@@ -175,20 +175,8 @@ module.exports = {
     run
 };
 
-function isEntryPoint() {
-    try {
-        if (require.main === module) return true;
-        if (require.main) return false;
-        const invoked = path.resolve(process.argv[1] || '');
-        return process.platform === 'win32'
-            ? invoked.toLowerCase() === __filename.toLowerCase()
-            : invoked === __filename;
-    } catch {
-        return false;
-    }
-}
-
-if (isEntryPoint()) {
+// Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).
+if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
     process.exitCode = 0;
     let input = null;
     try {

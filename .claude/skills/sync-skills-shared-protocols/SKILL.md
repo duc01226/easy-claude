@@ -88,8 +88,12 @@ Report:
 What is true is that a reminder is a SEPARATE tag from its parent, not a shorter view of it: syncing `foo` never touches `foo:reminder`, because the script's fence regexes require whitespace before the closing marker and so cannot cross between the two (`sync-update-blocks.py:64-66`). Update a reminder by running the script on `{tag}:reminder` explicitly, after editing that section in the canonical source — and only when the user asks for reminders too.
 
 ```bash
-py -3 .claude/scripts/sync-update-blocks.py --dry-run {tag}:reminder   # Windows
-python3 .claude/scripts/sync-update-blocks.py {tag}:reminder           # macOS/Linux
+# Windows (dry-run first, then the real run)
+py -3 .claude/scripts/sync-update-blocks.py --dry-run {tag}:reminder
+py -3 .claude/scripts/sync-update-blocks.py {tag}:reminder
+# macOS/Linux (dry-run first, then the real run)
+python3 .claude/scripts/sync-update-blocks.py --dry-run {tag}:reminder
+python3 .claude/scripts/sync-update-blocks.py {tag}:reminder
 ```
 
 ### Step 7: OVERRIDE Blocks — the sanctioned divergence
@@ -145,7 +149,7 @@ When the new block applies to work performed by a sub-agent, update the canonica
 
 1. Add the applicable quality tag(s) to `AGENT_QUALITY_BLOCKS` in `.claude/scripts/agent_protocol_matrix.py`; keep orchestration-only blocks out of leaf agents.
 2. Confirm every agent has a valid `AGENT_SKILL_CONNECTIONS` entry to its canonical task skill(s), and add the carrier owner for any newly propagated review/test protocol.
-3. Run `py -3 .claude/scripts/agent_protocol_matrix.py --validate`, then run both `inject_agent_protocol_blocks.py` and `inject_agent_skill_connections.py` (dry-run first, real run second).
+3. Run `py -3 .claude/scripts/agent_protocol_matrix.py --validate` (macOS/Linux: `python3` instead of `py -3`), then run both `inject_agent_protocol_blocks.py` and `inject_agent_skill_connections.py` (dry-run first, real run second).
 4. Verify the generated `AGENT-SKILL-CONNECTIONS` sections and the agent-universal-rules suite before regenerating mirrors.
 
 The connection map is explicit routing metadata. It links the agent prompt to the canonical skill procedure while the matrix injects only applicable quality blocks; do not blanket-copy skill bodies into a leaf agent when that would import caller-owned orchestration.

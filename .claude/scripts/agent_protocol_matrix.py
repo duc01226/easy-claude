@@ -397,7 +397,7 @@ AGENT_QUALITY_BLOCKS = {
         "source-test-drift-check",
     ],
     "docs-manager": [
-        "incremental-persistence",
+        "incremental-persistence", "ai-discovery-doc-quality",
     ],
     "framework-maintainer": [
         "context-engineering-principles", "sub-agent-selection",  # sub-agent-selection whitelisted

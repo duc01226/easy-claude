@@ -175,6 +175,15 @@ The optional `.claude/.ck.json` `promptLedger` object tunes the prompt-ledger ho
 
 Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`) and are pruned after 7 days. Out-of-range values are clamped, not rejected. Details: [../hooks/README.md § Session Prompt Ledger](../hooks/README.md#session-prompt-ledger).
 
+### Advisory prompt routers
+
+Two UserPromptSubmit accelerators are ON by default and inject a short conditional directive; the static `CLAUDE.md` / `AGENTS.md` rules bind every host without them, so turning one off loses only the reminder. `.claude/.ck.local.json` overrides `.ck.json` per key (local wins), and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
+
+| Hook                            | Injects when                                                                                                                                 | Opt-out (`.claude/.ck.json`)                          | Env opt-out                      |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------- |
+| `commit-skill-route.cjs`        | the prompt asks for a commit — run the `commit` skill, never a raw `git commit` (`review-commit-gate.cjs` still blocks an unreviewed commit) | `{ "commitSkillRoute": { "enabled": false } }`        | `CK_COMMIT_SKILL_ROUTE=0`        |
+| `judgement-integrity-route.cjs` | the prompt asks for a verdict, root cause, evaluation, or gap hunt — the `SYNC:judgement-integrity:reminder` directive                       | `{ "judgementIntegrityRoute": { "enabled": false } }` | `CK_JUDGEMENT_INTEGRITY_ROUTE=0` |
+
 ### Default-on workflow routing
 
 Automatic route selection is enabled by default. The tracked team preference lives in `docs/project-config.json` and can disable it:
@@ -388,6 +397,8 @@ This is a DEFAULT OF THE PORTABLE BUNDLE, not a setting of this repository: copy
 | Codex       | `model_auto_compact_token_limit = 500000` in `.codex/config.toml`                    | Upserted by `.claude/scripts/codex/migrate-claude-to-codex.mjs` on every `$sync-codex`, alongside `notify` and the `[tui]` keys; an existing project config keeps its other keys |
 | opencode    | the pinned model's `limit.context = 500000` in `.opencode/opencode.recommended.json` | Deep-merged into the project-root `opencode.json` by `$sync-opencode`; a project with no root config receives it verbatim                                                        |
 
+**Codex `AGENTS.md` read budget:** the same upsert raises top-level `project_doc_max_bytes` to 98304 in `.codex/config.toml` (a larger project value is kept). Codex silently stops reading `AGENTS.md` at 32 KiB by default, and the generated root is larger; the projection orders Doc Lookup and Git discipline first so they survive the default window if the host ignores the project key (set it in `~/.codex/config.toml` then). The budget is shared by every `AGENTS.md` Codex concatenates from the project root down to the working directory, so nested `AGENTS.md` files eat into the root's share.
+
 opencode has no absolute compaction threshold — it compacts relative to the model's declared window, so `limit.context` is the knob (it actually compacts at `limit.context - min(limit.output, 32000)` = 468,000). `compaction.reserved` is inert for this model: opencode reads it only for models that declare `limit.input`. See the `sync-opencode` skill ("Compaction budget") for the exact formula before changing any of these.
 
 > `.opencode/opencode.recommended.json` MUST NOT be renamed to `.opencode/opencode.json`: opencode auto-loads that path as project config, so it would stop being a template.
@@ -403,7 +414,9 @@ opencode has no absolute compaction threshold — it compacts relative to the mo
 ```json
 // .ck.json
 {
-  "promptLedger": { "enabled": false }      // Disable prompt-ledger recording
+  "promptLedger": { "enabled": false },      // Disable prompt-ledger recording
+  "commitSkillRoute": { "enabled": false },        // Disable the commit-skill prompt router
+  "judgementIntegrityRoute": { "enabled": false }  // Disable the judgement-integrity prompt router
 }
 
 // settings.json

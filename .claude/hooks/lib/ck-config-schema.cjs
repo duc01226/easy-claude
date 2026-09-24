@@ -59,6 +59,22 @@ const CK_SCHEMA = {
       reinjectAfterMinutes: { type: "number", required: false, min: 1, max: 1440 },
     },
   },
+  // Advisory UserPromptSubmit routers. On by default; `enabled: false` (or the env switch
+  // CK_COMMIT_SKILL_ROUTE=0 / CK_JUDGEMENT_INTEGRITY_ROUTE=0) switches one off.
+  commitSkillRoute: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+    },
+  },
+  judgementIntegrityRoute: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+    },
+  },
   portability: {
     type: "object",
     required: false,

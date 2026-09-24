@@ -250,9 +250,9 @@ Python, TypeScript, JavaScript, Vue, Go, Rust, Java, C#, Ruby, Kotlin, Swift, PH
 
 | Issue                                 | Fix                                                                      |
 | ------------------------------------- | ------------------------------------------------------------------------ |
-| `Python not found`                    | Install Python 3.10+. Windows: use `py` launcher.                        |
+| `Python not found`                    | Install Python 3.10+. Windows: `py -3` launcher; macOS/Linux: `python3`. |
 | `No module named 'tree_sitter'`       | Run `pip install tree-sitter tree-sitter-language-pack networkx`         |
-| `tree-sitter compile error`           | Ensure C compiler available. Windows: install Visual Studio Build Tools. |
+| `tree-sitter compile error`           | Ensure a C compiler. Windows: VS Build Tools; macOS: `xcode-select --install`; Linux: `build-essential`/`gcc`. |
 | `graph.db not found`                  | Run `/graph-build` first                                                 |
 | `Incremental update finds no changes` | Run `build` (full) instead of `update` after branch switches             |
 

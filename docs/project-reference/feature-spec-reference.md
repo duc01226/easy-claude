@@ -20,7 +20,7 @@
 **Summary:**
 
 - The canonical capability path is `{Bucket}/README.{FeatureName}.md` inside the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path. Section 8 is the canonical Test Specification registry.
-- The current Feature Spec corpus is the `ContextDelivery` bucket: `README.SessionPromptLedger.md` and `README.PerFileConventionInjection.md`, plus a thin `INDEX.md`. It is small and recent, so treat it as a conformance reference for structure — not yet as a gold-standard exemplar — and keep the project master template authoritative where the two differ.
+- The current Feature Spec corpus is two buckets, each with a thin `INDEX.md`: `ContextDelivery` (`README.SessionPromptLedger.md`, `README.PerFileConventionInjection.md`) and `Notifications` (`README.AssistantSessionNotifications.md`). It is small and recent, so treat it as a conformance reference for structure — not yet as a gold-standard exemplar — and keep the project master template authoritative where the two differ.
 - Enforce M1-M7, the complete canonical TC fields, and stack-portable evidence anchors before accepting a Feature Spec.
 
 **Decision sequence:** inspect the current corpus -> study the master template and any listed exemplars -> author through the spec owner -> verify all eight sections, M1-M7, TC fields, and evidence -> refresh derived indexes and technical views.
@@ -53,12 +53,14 @@ Feature docs path: `{Bucket}/README.{FeatureName}.md` inside the business spec r
 docs/                                      # Project-owned documentation
 ├── adr/                                   # Architecture decisions
 │   ├── 0001-skill-lifecycle.md
-│   └── 0002-canonical-count-metrics.md
+│   ├── 0002-canonical-count-metrics.md
+│   └── 0003-config-driven-doc-and-spec-roots.md
 ├── project-reference/                     # AI-facing project conventions and routers
 │   ├── design-system/
 │   │   └── README.md
 │   ├── backend-patterns-reference.md
 │   ├── code-review-rules.md
+│   ├── custom-prompts-reference.md
 │   ├── docs-index-reference.md
 │   ├── domain-entities-reference.md
 │   ├── e2e-test-reference.md
@@ -69,30 +71,32 @@ docs/                                      # Project-owned documentation
 │   ├── project-structure-reference.md
 │   ├── scss-styling-guide.md
 │   ├── seed-test-data-reference.md
+│   ├── skill-protocols-reference.md
 │   ├── spec-principles.md
 │   ├── spec-system-reference.md
 │   └── workflow-spec-test-code-cycle-reference.md
 ├── release/                               # Release history
 │   └── release-notes-2026-03-15-to-2026-04-14.md
 ├── specs/                                 # Canonical business Feature Specs (authored root)
-│   └── ContextDelivery/                   # Bucket: which guidance reaches an AI assistant, and when
+│   ├── ContextDelivery/                   # Bucket: which guidance reaches an AI assistant, and when
+│   └── Notifications/                     # Bucket: telling a developer an AI assistant finished or needs an answer
 ├── templates/                             # Project authoring templates
 │   └── detailed-feature-spec-template.md
 ├── copilot-registry.json                  # Copilot registry data
 └── project-config.json                    # Machine-readable project map
 ```
 
-The configured authored spec root exists and holds one bucket; the configured derived technical root is still absent from the tree. **Evidence:** `docs/project-config.json:200-203` (`specRoots.business` = `docs/specs`, `specRoots.technical` = `docs/specs-technical`); `docs/specs/ContextDelivery/` holds `INDEX.md`, `README.PerFileConventionInjection.md`, `README.SessionPromptLedger.md`; no `docs/specs-technical/` path exists.
+The configured authored spec root exists and holds two buckets; the configured derived technical root is still absent from the tree. **Evidence:** `docs/project-config.json:378-389` (`specRoots.business` = `docs/specs`, `specRoots.technical` = `docs/specs-technical`); `docs/specs/ContextDelivery/` holds `INDEX.md`, `README.PerFileConventionInjection.md`, `README.SessionPromptLedger.md`; `docs/specs/Notifications/` holds `INDEX.md`, `README.AssistantSessionNotifications.md`; no `docs/specs-technical/` path exists.
 
 ## Template Paths
 
-| Template / Owner            | Path                                                  | Purpose                                                       | Used by Feature Docs | Evidence                                                                                                               |
-| --------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- | -------------------: | ---------------------------------------------------------------------------------------------------------------------- |
-| Feature document convention | `{Bucket}/README.{FeatureName}.md`                    | Canonical capability document                                 |                    2 | `ContextDelivery/README.PerFileConventionInjection.md`, `ContextDelivery/README.SessionPromptLedger.md`                |
-| Project master template     | `detailed-feature-spec-template.md`                   | Current project authoring template                            |                    2 | Both corpus specs follow its 8-section order (`README.PerFileConventionInjection.md:36-454`)                           |
-| Portable source template    | `.claude/templates/detailed-feature-spec-template.md` | Bootstrap source when the project template is absent          |                    0 | `.claude/hooks/session-init-docs.cjs:54-56,150-167`                                                                    |
-| Feature authoring owner     | `.claude/skills/spec/SKILL.md`                        | Owns authoring and Test Specifications lifecycle              |                  N/A | `.claude/skills/spec/SKILL.md:17-31,47-60`                                                                             |
-| Test-case format authority  | `.claude/skills/shared/tc-format.md`                  | Owns TC shape, evidence, coverage, cardinality, and numbering |                    2 | 66 TCs across both corpus specs carry `CoveredBy:` + `Status:` per `.claude/skills/shared/tc-format.md:49-167,186-208` |
+| Template / Owner            | Path                                                  | Purpose                                                       | Used by Feature Docs | Evidence                                                                                                                                                         |
+| --------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- | -------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Feature document convention | `{Bucket}/README.{FeatureName}.md`                    | Canonical capability document                                 |                    3 | `ContextDelivery/README.PerFileConventionInjection.md`, `ContextDelivery/README.SessionPromptLedger.md`, `Notifications/README.AssistantSessionNotifications.md` |
+| Project master template     | `detailed-feature-spec-template.md`                   | Current project authoring template                            |                    3 | All three corpus specs follow its 8-section order (`README.PerFileConventionInjection.md:36-457`, `README.AssistantSessionNotifications.md:42-312`)              |
+| Portable source template    | `.claude/templates/detailed-feature-spec-template.md` | Bootstrap source when the project template is absent          |                    0 | `.claude/hooks/session-init-docs.cjs:62-63,182-198`                                                                                                              |
+| Feature authoring owner     | `.claude/skills/spec/SKILL.md`                        | Owns authoring and Test Specifications lifecycle              |                  N/A | `.claude/skills/spec/SKILL.md:17-31,47-60`                                                                                                                       |
+| Test-case format authority  | `.claude/skills/shared/tc-format.md`                  | Owns TC shape, evidence, coverage, cardinality, and numbering |                    3 | 80 TCs across the three corpus specs carry `CoveredBy:` + `Status:` per `.claude/skills/shared/tc-format.md:49-167,186-208`                                      |
 
 No configured `workflowPatterns.featureDocTemplate` key is present. The authoring owner therefore identifies the project master template as its default (`.claude/skills/spec/SKILL.md:19`; no matching key in `docs/project-config.json`).
 
@@ -118,7 +122,7 @@ MUST ATTENTION all 8 sections satisfy the applicable BLOCKING AI-SDD mandates: M
 **Single format:** `TC-{FEATURE}-{NNN}` (e.g., TC-GM-001, TC-KD-011). `{FEATURE}` is a short feature code; the per-project code registry lives below the SCAN-MANAGED boundary.
 
 - **Source of truth:** Section 8 (canonical TC registry)
-- **Code link:** `CoveredBy` records representative coverage; a configured test-spec annotation supplies the complete one-to-many test join. This repository currently configures no annotation scan; `techSpecScan` is deliberately omitted (`docs/project-config.json:204`).
+- **Code link:** `CoveredBy` records representative coverage; a configured test-spec annotation supplies the complete one-to-many test join. This repository currently configures no annotation scan; `techSpecScan` is deliberately omitted (`docs/project-config.json:390`).
 
 ## Evidence Rule
 
@@ -138,47 +142,49 @@ The abstract `[Source: namespace/service/id]` form is canonical (see `.claude/sk
 
 No product application or service boundary is configured, so ownership maps to the framework module that owns the behavior rather than to a deployed app.
 
-| App Name                                | Backend Services | Doc Directory                 | Doc Count | Evidence                                                                                                                         |
-| --------------------------------------- | ---------------- | ----------------------------- | --------: | -------------------------------------------------------------------------------------------------------------------------------- |
-| N/A — no configured product application | None             | `docs/specs/ContextDelivery/` |         2 | `docs/project-config.json:23-73,200-203`; both corpus specs describe hooks-module behavior (convention injection, prompt ledger) |
+| App Name                                | Backend Services | Doc Directory                                              | Doc Count | Evidence                                                                                                                                                      |
+| --------------------------------------- | ---------------- | ---------------------------------------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| N/A — no configured product application | None             | `docs/specs/ContextDelivery/`, `docs/specs/Notifications/` |         3 | `docs/project-config.json:44-115,378-389`; all three corpus specs describe hooks-module behavior (convention injection, prompt ledger, session notifications) |
 
 ## Gold Standard References
 
-No spec has been ratified as a gold-standard exemplar yet. The two corpus specs are structurally conformant and recent, so read them for shape, and keep the master template authoritative wherever the two disagree:
+No spec has been ratified as a gold-standard exemplar yet. The three corpus specs are structurally conformant and recent, so read them for shape, and keep the master template authoritative wherever a spec and the template disagree:
 
 - `detailed-feature-spec-template.md` — project master template (authoritative on structure)
-- `ContextDelivery/README.PerFileConventionInjection.md` — conformance reference; 8 sections, 44 TCs
-- `ContextDelivery/README.SessionPromptLedger.md` — conformance reference; 8 sections, 22 TCs
+- `ContextDelivery/README.PerFileConventionInjection.md` — conformance reference; 8 sections, 45 TCs
+- `ContextDelivery/README.SessionPromptLedger.md` — conformance reference; 8 sections, 23 TCs
+- `Notifications/README.AssistantSessionNotifications.md` — conformance reference; 8 sections, 12 TCs
 
 ## Feature Code Registry
 
-Two capability codes are registered, both in the `ContextDelivery` bucket.
+Three capability codes are registered: two in the `ContextDelivery` bucket and one in the `Notifications` bucket.
 
-| Code | Feature                       | Module | Status | Evidence                                                                             |
-| ---- | ----------------------------- | ------ | ------ | ------------------------------------------------------------------------------------ |
-| PFCI | Per-File Convention Injection | hooks  | draft  | `ContextDelivery/INDEX.md:7`; `ContextDelivery/README.PerFileConventionInjection.md` |
-| SPL  | Session Prompt Ledger         | hooks  | draft  | `ContextDelivery/INDEX.md:8`; `ContextDelivery/README.SessionPromptLedger.md`        |
+| Code | Feature                         | Module | Status | Evidence                                                                             |
+| ---- | ------------------------------- | ------ | ------ | ------------------------------------------------------------------------------------ |
+| PFCI | Per-File Convention Injection   | hooks  | draft  | `ContextDelivery/INDEX.md:7`; `ContextDelivery/README.PerFileConventionInjection.md` |
+| SPL  | Session Prompt Ledger           | hooks  | draft  | `ContextDelivery/INDEX.md:8`; `ContextDelivery/README.SessionPromptLedger.md`        |
+| NT   | Assistant Session Notifications | hooks  | draft  | `Notifications/INDEX.md:11`; `Notifications/README.AssistantSessionNotifications.md` |
 
 ## Thin-Index Files
 
-One bucket index exists: `ContextDelivery/INDEX.md` — a 9-line capability table (Capability · Feature Code · Status · Spec link) covering both corpus specs. No parent cross-bucket index exists, and none is required while a single bucket is populated. **Evidence:** `ContextDelivery/INDEX.md:1-9`.
+Two bucket indexes exist, each a capability table (Capability · Feature Code · Status · Spec link): `ContextDelivery/INDEX.md` covers its two specs; `Notifications/INDEX.md` covers its one spec and carries the derived-artifact banner (regenerate via `/spec-index`, never hand-edit). No parent cross-bucket index exists; with two buckets populated, one is now worth generating through the `/spec-index` owner. **Evidence:** `ContextDelivery/INDEX.md:1-8`; `Notifications/INDEX.md:1-11`.
 
 ## Section Structure
 
-Corpus denominator: 2 Feature Specs. Both carry all eight prescribed sections in the prescribed order, so every section is observed at 100% (2/2) and classified standard.
+Corpus denominator: 3 Feature Specs. All three carry all eight prescribed sections in the prescribed order, so every section is observed at 100% (3/3) and classified standard.
 
 | Order | Prescribed Section                 | Observed Frequency |
 | ----: | ---------------------------------- | ------------------ |
-|     1 | Overview                           | 100% (2/2)         |
-|     2 | Glossary                           | 100% (2/2)         |
-|     3 | User Stories & Acceptance Criteria | 100% (2/2)         |
-|     4 | Business Rules                     | 100% (2/2)         |
-|     5 | Domain Model                       | 100% (2/2)         |
-|     6 | Process Flows                      | 100% (2/2)         |
-|     7 | Permissions & Roles                | 100% (2/2)         |
-|     8 | Test Specifications                | 100% (2/2)         |
+|     1 | Overview                           | 100% (3/3)         |
+|     2 | Glossary                           | 100% (3/3)         |
+|     3 | User Stories & Acceptance Criteria | 100% (3/3)         |
+|     4 | Business Rules                     | 100% (3/3)         |
+|     5 | Domain Model                       | 100% (3/3)         |
+|     6 | Process Flows                      | 100% (3/3)         |
+|     7 | Permissions & Roles                | 100% (3/3)         |
+|     8 | Test Specifications                | 100% (3/3)         |
 
-A 2-spec denominator confirms the prescribed order is followed but is too small to establish an independent corpus convention; the master template stays the authority. **Evidence:** `detailed-feature-spec-template.md:33-195`; `ContextDelivery/README.PerFileConventionInjection.md:36,42,66,160,299,388,434,454`; `ContextDelivery/README.SessionPromptLedger.md:36,42,60,122,185,246,277,295`.
+A 3-spec denominator confirms the prescribed order is followed but is too small to establish an independent corpus convention; the master template stays the authority. **Evidence:** `detailed-feature-spec-template.md:33-195`; `ContextDelivery/README.PerFileConventionInjection.md:36,42,66,161,302,391,437,457`; `ContextDelivery/README.SessionPromptLedger.md:36,42,60,122,185,247,278,296`; `Notifications/README.AssistantSessionNotifications.md:42,48,70,110,199,242,300,312`.
 
 ## Documentation Conventions
 
@@ -198,11 +204,11 @@ A 2-spec denominator confirms the prescribed order is followed but is too small 
 
 | Area                         | Current State                                                                                                                                                      | Evidence / Next Owner                                                                                                                                                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Canonical corpus             | One bucket exists (`ContextDelivery`: 2 Feature Specs); every other capability is still uncovered                                                                  | `ContextDelivery/`; create further buckets through `$spec` when a capability is ready                                                                                                              |
-| Module distribution          | Only the hooks module has Feature Specs; the other six configured library modules have zero                                                                        | `docs/project-config.json:23-73`; corpus evidence above                                                                                                                                            |
+| Canonical corpus             | Two buckets exist (`ContextDelivery`: 2 Feature Specs; `Notifications`: 1); every other capability is still uncovered                                              | `ContextDelivery/`, `Notifications/`; create further buckets through `$spec` when a capability is ready                                                                                            |
+| Module distribution          | Only the hooks module has Feature Specs; the other six configured modules have zero                                                                                | `docs/project-config.json:44-115`; corpus evidence above                                                                                                                                           |
 | Worked exemplar              | No gold-standard capability document exists                                                                                                                        | Master template only: `detailed-feature-spec-template.md`                                                                                                                                          |
-| Feature-code registry        | Two codes registered (`PFCI`, `SPL`), both `draft`, both hooks-module; no code is `stable` yet                                                                     | `ContextDelivery/INDEX.md:7-8`                                                                                                                                                                     |
-| Thin indexes                 | One bucket index exists (`ContextDelivery/INDEX.md`); no cross-bucket catalog yet                                                                                  | `ContextDelivery/INDEX.md`                                                                                                                                                                         |
+| Feature-code registry        | Three codes registered (`PFCI`, `SPL`, `NT`), all `draft`, all hooks-module; no code is `stable` yet                                                               | `ContextDelivery/INDEX.md:7-8`; `Notifications/INDEX.md:11`                                                                                                                                        |
+| Thin indexes                 | Two bucket indexes exist (`ContextDelivery/INDEX.md`, `Notifications/INDEX.md`); no cross-bucket catalog yet — generate one through `/spec-index`                  | `ContextDelivery/INDEX.md`; `Notifications/INDEX.md`                                                                                                                                               |
 | Local M1 tokens              | The local prose-rule section defines no banned-token list or verifier                                                                                              | `spec-principles.md:35-39`                                                                                                                                                                         |
 | Template configuration       | The referenced template config key is absent                                                                                                                       | `docs/project-reference/spec-system-reference.md:15`; no matching key in `docs/project-config.json`                                                                                                |
 | Template parity              | Project and portable templates disagree on the Section 6 interaction-surface contract                                                                              | templates-root `detailed-feature-spec-template.md:151-171`; portable `.claude/templates/detailed-feature-spec-template.md:153-235`                                                                 |
@@ -211,12 +217,12 @@ A 2-spec denominator confirms the prescribed order is followed but is too small 
 
 ## M1/M2 Compliance Leaks
 
-The corpus now has two auditable specs, but no per-token M1/M2 audit has been run against them. The table below is empty because the audit is OUTSTANDING — this is an unperformed audit, not a compliance PASS.
+The corpus now has three auditable specs, but no per-token M1/M2 audit has been run against them. The table below is empty because the audit is OUTSTANDING — this is an unperformed audit, not a compliance PASS.
 
 | File | Line | Section | Mandate | Offending Token / Identifier |
 | ---- | ---: | ------- | ------- | ---------------------------- |
 
-Next owner: `/scan --target=feature-spec` populates these rows for `ContextDelivery/README.PerFileConventionInjection.md` and `ContextDelivery/README.SessionPromptLedger.md`. The shared category rules remain enforceable, but exact local-token coverage still cannot be claimed because the local banned-token list is not populated. **Evidence:** `.claude/skills/shared/sdd-artifact-contract.md:59-73`; `spec-principles.md:35-39`.
+Next owner: `/scan --target=feature-spec` populates these rows for `ContextDelivery/README.PerFileConventionInjection.md`, `ContextDelivery/README.SessionPromptLedger.md`, and `Notifications/README.AssistantSessionNotifications.md`. The shared category rules remain enforceable, but exact local-token coverage still cannot be claimed because the local banned-token list is not populated. **Evidence:** `.claude/skills/shared/sdd-artifact-contract.md:59-73`; `spec-principles.md:35-39`.
 
 ---
 

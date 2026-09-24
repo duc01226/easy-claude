@@ -53,6 +53,7 @@ const {
     getProjectConfigStatus
 } = require('./lib/project-config-loader.cjs');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
+const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
 
 // Generic source for the feature-doc template (relocated to .claude as the
 // portable source-of-truth). Bootstrapped into the configured featureDocTemplate
@@ -278,7 +279,8 @@ module.exports = {
     PLACEHOLDER_MARKER_SCSS
 };
 
-// Run if executed directly (not required as module)
-if (require.main === module) {
+// Run if executed directly — `node <hook>` or the Codex `node -e … require(hook)` launcher —
+// never when required as a module (tests).
+if (isHookEntryPoint(module)) {
     main();
 }

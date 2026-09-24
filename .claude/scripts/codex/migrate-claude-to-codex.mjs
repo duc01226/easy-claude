@@ -66,6 +66,9 @@ const MIRROR_EXCLUDED_DIRS = new Set(['.git', '.hg', '.svn', '.venv', 'node_modu
 // source tree, so mirroring them from disk would track files a clean checkout never has and make
 // the sync-divergence gate pass only on a developer machine.
 const MIRROR_EXCLUDED_FILES = new Set(['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']);
+// Codex AGENTS.md read budget: AGENTS_ROOT_LIMIT_BYTES (80 KiB) + the context pointer and reference
+// gate, with headroom. Raise it together with that limit, never to hide an overflow warning.
+export const CODEX_PROJECT_DOC_MAX_BYTES = 98304;
 const RUNTIME_ONLY_SKILL_FILES = new Set([path.normalize(path.join('shared', 'workflow-first-gate.md'))]);
 const agentsMirrorGitignorePath = path.join(path.dirname(agentsSkillsDir), '.gitignore');
 
@@ -231,6 +234,29 @@ function findTomlAssignmentEnd(lines, assignmentStart, scopeEnd) {
     return assignmentStart + 1;
 }
 
+/**
+ * Parse a TOML integer literal: signed decimal and the unsigned `0x` / `0o` / `0b` forms, each
+ * with optional single `_` separators between digits (TOML 1.0 §Integer). Anything else — a
+ * float, a string, a leading zero, a malformed separator — returns null so callers can refuse to
+ * act on a value they cannot read.
+ */
+function parseTomlInteger(text) {
+    const value = String(text ?? '').trim();
+    const forms = [
+        [/^[+-]?(?:0|[1-9](?:_?\d)*)$/, 10, 0],
+        [/^0x[0-9A-Fa-f](?:_?[0-9A-Fa-f])*$/, 16, 2],
+        [/^0o[0-7](?:_?[0-7])*$/, 8, 2],
+        [/^0b[01](?:_?[01])*$/, 2, 2],
+    ];
+    for (const [pattern, radix, prefixLength] of forms) {
+        if (!pattern.test(value)) continue;
+        const digits = value.slice(prefixLength).replace(/_/g, '');
+        const parsed = radix === 10 ? Number(digits) : parseInt(digits, radix);
+        return Number.isSafeInteger(parsed) ? parsed : null;
+    }
+    return null;
+}
+
 function upsertTomlKey(lines, key, value, start, end) {
     const keyPattern = new RegExp(`^\\s*${escapeRegExp(key)}\\s*=`);
     const existingIndex = lines.findIndex((line, index) => index >= start && index < end && keyPattern.test(line));
@@ -252,7 +278,7 @@ function upsertTomlKey(lines, key, value, start, end) {
     return { inserted: true, lineDelta: 1 };
 }
 
-function upsertCodexNotificationConfig(configText) {
+export function upsertCodexNotificationConfig(configText) {
     const lines = configText.replace(/\r\n/g, '\n').split('\n');
     if (lines.length === 1 && lines[0] === '') {
         lines.pop();
@@ -273,6 +299,22 @@ function upsertCodexNotificationConfig(configText) {
     let topLevelEnd = lines.findIndex(isTomlTableHeader);
     if (topLevelEnd === -1) topLevelEnd = lines.length;
     upsertTomlKey(lines, 'model_auto_compact_token_limit', '500000', 0, topLevelEnd);
+
+    // Codex silently stops reading AGENTS.md at `project_doc_max_bytes` (32 KiB by default), and the
+    // generated root runs up to AGENTS_ROOT_LIMIT_BYTES (sync-context-workflows.mjs) plus the context
+    // pointer and reference gate. Raise the floor so the whole root loads; a larger project value is
+    // kept, never lowered.
+    topLevelEnd = lines.findIndex(isTomlTableHeader);
+    if (topLevelEnd === -1) topLevelEnd = lines.length;
+    const docLimitLine = lines.slice(0, topLevelEnd)
+        .map(line => line.match(/^\s*(?:project_doc_max_bytes|"project_doc_max_bytes"|'project_doc_max_bytes')\s*=\s*(.*?)\s*(?:#.*)?$/))
+        .find(Boolean);
+    // Only a value PROVEN smaller is raised. A value this parser cannot read (a quoted key, a
+    // non-integer) is left untouched: rewriting it could lower a larger limit or duplicate the key.
+    const existingDocLimit = docLimitLine ? parseTomlInteger(docLimitLine[1]) : null;
+    if (!docLimitLine || (existingDocLimit !== null && existingDocLimit < CODEX_PROJECT_DOC_MAX_BYTES && /^\s*project_doc_max_bytes\s*=/.test(docLimitLine.input))) {
+        upsertTomlKey(lines, 'project_doc_max_bytes', String(CODEX_PROJECT_DOC_MAX_BYTES), 0, topLevelEnd);
+    }
 
     let tuiRange = findTomlTableRange(lines, 'tui');
     if (!tuiRange) {
@@ -328,18 +370,24 @@ function buildCodexProjectReferenceBlock() {
         '',
         '**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.',
         '',
-        '**Situation-based docs:**',
+        '**Situation-based docs** (pick by the phase you are about to enter — plan/investigate, edit, test, spec/doc, review — and read only docs the project selects in `referenceDocs` that exist):',
+        '- Planning, investigation, or design: `project-structure-reference.md`, `domain-entities-reference.md`, plus the docs below for every file type the plan touches',
+        '- Editing or writing code: `code-review-rules.md` plus the backend or frontend docs below for the file type',
         '- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`',
         '- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`',
-        '- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `configured styling reference`, `design-system/README.md`',
+        '- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md` (or the configured styling reference), `design-system/README.md`',
         '- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`',
         '- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above',
         '- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`',
         '- Integration test implementation/review: `integration-test-reference.md`',
         '- E2E test implementation/review: `e2e-test-reference.md`',
-        '- Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files',
+        '- Test-data seeders: `seed-test-data-reference.md`',
+        '- Code review/audit work: `code-review-rules.md` plus the docs above for every file type under review',
+        '- Per-file conventions (`contextGroups[]`): before editing an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`',
         '',
-        'Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.',
+        '**Dedup:** a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens, and it has not changed since — cite it `(loaded)` instead of re-reading. A hook reminder, a summary, or a prior mention never counts; a delegated sub-agent starts empty, so name the resolved doc paths in its brief.',
+        '',
+        'Never read all docs blindly: route from `docs-index-reference.md` and open only what the task needs.',
         CODEX_PROJECT_REFERENCE_END
     ].join('\n');
 }

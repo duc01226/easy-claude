@@ -236,8 +236,9 @@ function isPathWithinRoot(candidate, root) {
  * Does a configured value leave the repository root?
  *
  * True when the normalized value is absolute (POSIX `/…`, UNC, or a Windows drive such
- * as `C:/…`) or contains a `..` segment anywhere. An empty/invalid value is NOT an
- * escape — absence is handled by the caller's default, not by this guard.
+ * as `C:/…`), is Windows drive-relative (`C:foo` — resolved against that drive's current
+ * directory, never the repo), or contains a `..` segment anywhere. An empty/invalid value
+ * is NOT an escape — absence is handled by the caller's default, not by this guard.
  *
  * @param {*} value - Configured root path
  * @returns {boolean} True when the value escapes the repo root
@@ -246,8 +247,34 @@ function escapesRepoRoot(value) {
   const normalized = normalizeRootPath(value);
   if (!normalized) return false;
   if (normalized.startsWith('/')) return true;
-  if (/^[a-zA-Z]:(\/|$)/.test(normalized)) return true;
+  if (/^[a-zA-Z]:/.test(normalized)) return true;
   return normalized.split('/').includes('..');
+}
+
+/**
+ * Is the absolute filesystem path `candidate` inside `root` (or equal to it)?
+ *
+ * The canonical containment predicate for RESOLVED filesystem paths — the security check
+ * behind traversal and symlink-escape guards. Distinct from `isPathWithinRoot`, which
+ * compares repo-relative CONFIG strings. Both sides are resolved first, so `.`/`..`
+ * segments and redundant separators cannot fake containment; comparison goes through
+ * `path.relative`, which folds case on win32 and yields an absolute result for a different
+ * drive or UNC share (both rejected). A sibling that merely shares the prefix (`/a/bc` vs
+ * root `/a/b`) and an entry literally named `..x` are handled on the segment boundary.
+ * Physical (symlink/junction) containment is the caller's job: pass `realpath`ed inputs.
+ *
+ * @param {string} root - Containing directory (absolute, or resolved against cwd)
+ * @param {string} candidate - Path to test
+ * @param {object} [pathApi=path] - `path`, `path.win32` or `path.posix`; injectable so the
+ *   win32 and POSIX semantics are testable on any host
+ * @returns {boolean} True when candidate is root or lives beneath it; false for invalid input
+ */
+function isAbsolutePathWithin(root, candidate, pathApi = path) {
+  if (typeof root !== 'string' || typeof candidate !== 'string' || !root || !candidate) return false;
+  if (root.includes('\0') || candidate.includes('\0')) return false;
+  const relative = pathApi.relative(pathApi.resolve(root), pathApi.resolve(candidate));
+  return relative === '' ||
+    (relative !== '..' && !relative.startsWith(`..${pathApi.sep}`) && !pathApi.isAbsolute(relative));
 }
 
 /**
@@ -291,6 +318,7 @@ module.exports = {
   normalizeRootPath,
   isPathWithinRoot,
   escapesRepoRoot,
+  isAbsolutePathWithin,
   joinRoot,
   normalizePath,
   normalizePathForComparison,

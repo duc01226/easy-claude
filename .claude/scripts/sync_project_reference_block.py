@@ -42,34 +42,43 @@ REMINDER_BLOCK_RE = re.compile(
 CLOSING_RE = re.compile(r"^## Closing Reminders\b.*$", re.MULTILINE)
 
 
-def refresh(text: str) -> tuple[str, dict]:
+def refresh(text: str, top_block: str | None = None, bottom_block: str | None = None) -> tuple[str, dict]:
+    """Replace the carried blocks with canonical. The single refresh owner — the
+    injector delegates here. The regexes end at the close marker, so the in-place
+    replacement is whitespace-stripped: the blank lines around a block are never
+    touched, however many times the canonical body changes.
+
+    `top_block` / `bottom_block` default to the canonical wrapped blocks; tests pass
+    other bodies to simulate a canonical edit.
+    """
+    new_top = (NEW_TOP_BODY if top_block is None else top_block).strip()
+    new_bottom = NEW_BOTTOM_BLOCK if bottom_block is None else bottom_block
     status = {"top_refreshed": False, "bottom_refreshed": False, "bottom_added": False}
 
     # Refresh TOP block content
     m = TOP_BLOCK_RE.search(text)
-    if m and m.group(0).strip() != NEW_TOP_BODY.strip():
-        text = text[: m.start()] + NEW_TOP_BODY + text[m.end():]
+    if m and m.group(0).strip() != new_top:
+        text = text[: m.start()] + new_top + text[m.end():]
         status["top_refreshed"] = True
 
     # Refresh the :reminder block in place when present, else insert it before
-    # `## Closing Reminders` (EOF fallback). NEW_BOTTOM_BLOCK is the wrapped block
-    # (trailing newline); strip it for the in-place replacement so surrounding
-    # blank lines are preserved exactly.
+    # `## Closing Reminders` (EOF fallback).
     rm = REMINDER_BLOCK_RE.search(text)
     if rm:
-        new_reminder = NEW_BOTTOM_BLOCK.strip()
+        new_reminder = new_bottom.strip()
         if rm.group(0).strip() != new_reminder:
             text = text[: rm.start()] + new_reminder + text[rm.end():]
             status["bottom_refreshed"] = True
     else:
+        wrapped = new_bottom.strip() + "\n"
         m = CLOSING_RE.search(text)
         if m:
             insert_at = m.start()
-            text = text[:insert_at] + NEW_BOTTOM_BLOCK + "\n" + text[insert_at:]
+            text = text[:insert_at] + wrapped + "\n" + text[insert_at:]
         else:
             if not text.endswith("\n"):
                 text += "\n"
-            text += "\n" + NEW_BOTTOM_BLOCK
+            text += "\n" + wrapped
         status["bottom_added"] = True
 
     return text, status
@@ -113,7 +122,7 @@ def main() -> int:
         new_text, status = refresh(original)
         if new_text != original:
             if not (dry_run or check):
-                path.write_text(new_text, encoding="utf-8")
+                path.write_text(new_text, encoding="utf-8", newline="\n")
             refreshed += 1
         top = "REFRESHED" if status["top_refreshed"] else "ok"
         if status["bottom_added"]:

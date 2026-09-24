@@ -507,12 +507,12 @@ Research testing tools and strategy for the confirmed stack:
 
 Complete this owner-owned matrix in the architecture report before Step 6 ends. Use confirmed stack/config evidence; candidate tools are options, not proof.
 
-| Tier | Applicability + evidence | Owner | Runner/framework + config | Test root | Data/fixture policy | Full command (host) | Full command (container) | Environment reach | Focused/partial command | Zero-match behavior | CI gate | Simple/Windows entry point | Repeat proof |
+| Tier | Applicability + evidence | Owner | Runner/framework + config | Test root | Data/fixture policy | Full command (host) | Full command (container) | Environment reach | Focused/partial command | Zero-match behavior | CI gate | Simple Windows/macOS/Linux entry point | Repeat proof |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner + config path} | {root} | {fixture/factory policy} | `{copy-ready command}` | `{copy-ready command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{copy-ready filter}` | `{invalid/zero-match exit}` | {gate} | `{simple command or .cmd}` | `{two-run evidence or planned owner}` |
-| Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner + config path} | {root} | {public-path setup + data policy} | `{copy-ready command}` | `{copy-ready command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{copy-ready filter}` | `{invalid/zero-match exit}` | {gate} | `{simple command or .cmd}` | `{two no-reset runs}` |
-| E2E | `APPLICABLE` / `N/A — {config/source evidence}` | {owner} | {configured browser runner + config} | {root} | {reachable journey data} | `{configured command}` | `{configured command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{configured filter}` | `{invalid/zero-match exit}` | {gate} | `{simple command or .cmd}` | `{two-run evidence or N/A}` |
-| Performance/Scale | `APPLICABLE` / `N/A — {B/T-tier evidence}` | {owner} | {load/benchmark runner + config} | {root} | {volume AND shape: distribution, cardinality, skew — plus the ≥2 volumes ~10× apart} | `{copy-ready command}` | `{copy-ready command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{single-scenario filter}` | `{invalid/zero-match exit}` | {budgets that FAIL the run} | `{simple command or .cmd}` | `{two-run evidence or planned owner}` |
+| Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner + config path} | {root} | {fixture/factory policy} | `{copy-ready command}` | `{copy-ready command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{copy-ready filter}` | `{invalid/zero-match exit}` | {gate} | `{simple cross-OS command, or .cmd + .sh pair}` | `{two-run evidence or planned owner}` |
+| Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner + config path} | {root} | {public-path setup + data policy} | `{copy-ready command}` | `{copy-ready command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{copy-ready filter}` | `{invalid/zero-match exit}` | {gate} | `{simple cross-OS command, or .cmd + .sh pair}` | `{two no-reset runs}` |
+| E2E | `APPLICABLE` / `N/A — {config/source evidence}` | {owner} | {configured browser runner + config} | {root} | {reachable journey data} | `{configured command}` | `{configured command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{configured filter}` | `{invalid/zero-match exit}` | {gate} | `{simple cross-OS command, or .cmd + .sh pair}` | `{two-run evidence or N/A}` |
+| Performance/Scale | `APPLICABLE` / `N/A — {B/T-tier evidence}` | {owner} | {load/benchmark runner + config} | {root} | {volume AND shape: distribution, cardinality, skew — plus the ≥2 volumes ~10× apart} | `{copy-ready command}` | `{copy-ready command}` / `N/A — {evidence}` | {local · CI · prod-shaped} | `{single-scenario filter}` | `{invalid/zero-match exit}` | {budgets that FAIL the run} | `{simple cross-OS command, or .cmd + .sh pair}` | `{two-run evidence or planned owner}` |
 
 - `APPLICABLE` requires a verified runner, framework, configuration, root, and command. For E2E, use `N/A — {evidence}` when no browser framework/configuration/command is verified; never turn the candidate list above into an invented stack.
 - Record full/focused commands as copy-ready, with explicit scope/filter and non-zero invalid/zero-match behavior. Data/fixture and repeat columns must name unique run/test identity + business suffix, supported public setup path, realistic valid data, count-before-create idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/worker isolation, real pacing/arrange barrier, exact result, and two consecutive no-reset full runs for each applicable persistent-state suite. If implementation is downstream, mark repeat proof `planned` with its owner, not PASS.
@@ -665,7 +665,7 @@ Every example carries the `GOLDEN-PATH EXAMPLE — copy into src/ …; NOT compi
 
 ### Scaffold Handoff — Testability Contract
 
-The handoff MUST carry the completed Step-6 matrix unchanged so `/scaffold` and `/harness-setup` execute it without re-deciding confirmed choices. For each tier, resolve `APPLICABLE` with runner/config/root evidence or record `N/A — {evidence}`; E2E `N/A` must cite missing/verified config or command. Also name the example/documentation path, full/focused commands, zero-match failure behavior, CI gate, simple/Windows entry point, run identity, data/accumulation policy, and repeat-proof owner/status. Unresolved material choices still use the existing user-confirmation gate.
+The handoff MUST carry the completed Step-6 matrix unchanged so `/scaffold` and `/harness-setup` execute it without re-deciding confirmed choices. For each tier, resolve `APPLICABLE` with runner/config/root evidence or record `N/A — {evidence}`; E2E `N/A` must cite missing/verified config or command. Also name the example/documentation path, full/focused commands, zero-match failure behavior, CI gate, simple Windows/macOS/Linux entry point, run identity, data/accumulation policy, and repeat-proof owner/status. Unresolved material choices still use the existing user-confirmation gate.
 
 ---
 
@@ -978,6 +978,31 @@ Run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3
 
 <!-- /SYNC:engineering-foundation-gate -->
 
+<!-- SYNC:project-reference-docs-guide -->
+
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap, immediately before target/source reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate but never prove it ran.
+>
+> 1. **Scope** — identify file types, domain area, and operation.
+> 2. **Project config is OPTIONAL.** Read the configured project-config file via its loader (default `docs/project-config.json`) when it exists. Absent is a supported state, not an error: run on portable defaults, derive project facts (paths, commands, conventions, architecture, test/spec layout) from repository evidence (manifests, lockfiles, scripts, CI, layout, root instruction files), state material assumptions, never block, and at most OFFER `/project-init` or `/project-config` once. Present → minimum valid shape is a non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. A DECLARED section left malformed or incomplete is a configuration error: fail closed on it and run `/project-init` or `/project-config` before relying on it — why: silent defaults would present wrong facts as authoritative. Verify material config hints against repository evidence; generic defaults are never project facts.
+> 3. **Select docs.** Always-on: the project-init-owned `lessons.md` and docs-index inputs at their configured owner paths — read independently, never appended to `referenceDocs`. Task-specific: an explicit `referenceDocs` array is the exact selection, subsets and `[]` included; absent → the runtime capability-aware resolver (portable baseline plus configuration- or repository-evidenced capabilities; may be empty). The scan-target manifest is a registry, not a default selection. Filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Custom-doc schema, ownership, and path-safety rules: `.claude/skills/scan/references/targets.md`.
+> 4. **Route by phase.** Just in time, read the selected docs the table names for the phase you are ABOUT to enter, plus any selected custom doc whose `purpose` covers that phase. An unmatched row is `Not applicable`, never a blocker.
+>
+> | About to… | Read first (when selected and present) |
+> | --- | --- |
+> | investigate, explain, plan, design, estimate | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan will touch |
+> | edit or write code | `code-review-rules.md`, plus server-side / non-UI code → `backend-patterns-reference.md`; UI → `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` |
+> | write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `seed-test-data-reference.md` |
+> | author or change specs, test cases, or docs | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; `workflow-spec-test-code-cycle-reference.md` when specs, tests, and code must stay in sync |
+> | review a diff, plan, spec, or artifact | `code-review-rules.md`, plus the edit/test/spec-row docs for every file type under review |
+>
+> 5. **Per-file conventions** (`contextGroups[]` in the project config) add rules for the exact file read or edited: hooks deliver them where they run; elsewhere run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` before the first edit of an unfamiliar path class.
+> 6. **Cite and repair.** State `Reference docs read: ... | Not applicable: ...` (record an explicit empty selection); still honor references the active skill or task requires. A missing/stale always-on input or selected/required doc, or a malformed declared config section → `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on it.
+> 7. **Dedup within ~200K tokens.** A doc counts as loaded only when its full content came back to THIS context from your own read, after the last compaction and within roughly the last 200K tokens, and it has not changed since — list it in `Reference docs read:` as `<doc> (loaded)` and skip the re-read. Everything else is not loaded: a hook reminder, a summary, a doc merely named in the conversation, or a read by another agent. Re-select and re-read after compaction, resume, a material context change, or ~200K tokens of growth (= the file-convention hook default). A delegated sub-agent starts empty: name the resolved doc paths in its brief.
+>
+> **Ready when:** scope set · config read or its absence recorded · always-on inputs confirmed · selection applied (may be empty) · phase docs read or cited `(loaded)` · citation emitted.
+
+<!-- /SYNC:project-reference-docs-guide -->
+
 <!-- SYNC:scale-technique-gate:reminder -->
 
 **IMPORTANT MUST ATTENTION** scale-technique gate: derive the scale tier from evidence FIRST (T0 internal · T1 <10k · T2 10k–1M · T3 millions+), then judge each warranted technique `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise on warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight techniques (anti-over-engineering). **ADVICE-ONLY — emit the Technique Applicability Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scale-technique-catalog.md` (authoritative for tier thresholds & per-technique warranting tiers — on any change update the catalog FIRST, then re-run `inject_scale_technique_gate.py`).
@@ -1157,9 +1182,18 @@ Run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
+<!-- SYNC:project-reference-docs-guide:reminder -->
+
+- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
+- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
+- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
+- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
+
+<!-- /SYNC:project-reference-docs-guide:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Design and user-validate a complete, evidence-backed architecture decision package for all applicable backend/frontend, data, integration, deployment, observability, testing, quality, and dependency concerns—research ≥3 options, cite evidence + confidence for every recommendation, and emit ADR/Scaffold contracts—so implementation starts from sound, owned choices.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

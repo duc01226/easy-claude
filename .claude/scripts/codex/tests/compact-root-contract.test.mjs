@@ -102,7 +102,8 @@ test('TC-HARNESS-008b: oversized projection is reported and preserved without tr
     '',
     '## Evidence-Based Reasoning & Investigation',
     '',
-    '界'.repeat(20000),
+    // Sized from the budget (3 UTF-8 bytes per char, plus margin) so the case always overflows it.
+    '界'.repeat(Math.ceil(ROOT_LIMIT_BYTES / 3) + 1024),
     '',
     terminalSentinel,
     ''
@@ -116,6 +117,51 @@ test('TC-HARNESS-008b: oversized projection is reported and preserved without tr
     assert.match(agents, new RegExp(terminalSentinel));
     assert.match(agents, /<!-- \/CK:CODEX-ROOT-PROJECTION -->/);
     assert.doesNotMatch(agents, /TRUNCAT(?:ED|ION)/i);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+test("TC-HARNESS-008c: the projection emits Doc Lookup, then Git discipline, ahead of every other section", async () => {
+  // Source order is deliberately reversed: projection order must come from priority, not position,
+  // so discovery and the irreversible-action guardrail stay inside Codex's 32 KiB default window.
+  // Given a CLAUDE.md whose Workflow, Git and Doc Lookup sections appear in reverse priority order.
+  const claude = [
+    "# Claude Source Instructions",
+    "",
+    "## Workflow Step Advancement & Parallel Phases",
+    "",
+    "WORKFLOW_SENTINEL",
+    "",
+    "## Git & Version-Control Discipline",
+    "",
+    "GIT_SENTINEL",
+    "",
+    "## Doc Lookup — What to Read When",
+    "",
+    "DOC_LOOKUP_SENTINEL",
+    "",
+  ].join("\n");
+  const tempRoot = await makeFixture(claude);
+  try {
+    // When the context sync projects it into AGENTS.md.
+    await execFileAsync(process.execPath, [syncContextScript], {
+      cwd: tempRoot,
+    });
+    const agents = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
+    const at = (marker) => agents.indexOf(marker);
+    // Then Doc Lookup comes first, Git discipline second, and every other section after them.
+    assert.ok(
+      at("DOC_LOOKUP_SENTINEL") > -1,
+      "Doc Lookup is projected into AGENTS.md",
+    );
+    assert.ok(
+      at("DOC_LOOKUP_SENTINEL") < at("GIT_SENTINEL"),
+      "Doc Lookup precedes Git discipline",
+    );
+    assert.ok(
+      at("GIT_SENTINEL") < at("WORKFLOW_SENTINEL"),
+      "Git discipline precedes the remaining sections",
+    );
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }

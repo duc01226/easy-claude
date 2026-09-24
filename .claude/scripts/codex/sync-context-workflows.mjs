@@ -139,8 +139,24 @@ const AGENTS_ROOT_PROJECTION_END = "<!-- /CK:CODEX-ROOT-PROJECTION -->";
 // root, so the first ordinary edit (which runs `post-edit-prettier.cjs`) inflates the projected
 // mirror past it. A padded root is the documented steady state, so the budget must fit it. Still a
 // PROJECT budget, not a host limit — revisit with a measured host budget, never to hide an overflow.
-const AGENTS_ROOT_LIMIT_BYTES = 61440;
+// 2026-09-24: raised 61440 -> 69632 (60 -> 68 KiB). The root had 57 bytes of headroom; the
+// existence-gated Doc Lookup table (the when-to-read index every question routes through) costs
+// ~3.5 KiB. The host budget is now measured and configured: the sync upserts
+// `project_doc_max_bytes = 98304` (migrate-claude-to-codex.mjs CODEX_PROJECT_DOC_MAX_BYTES), so this
+// ceiling stays well inside what Codex reads; the projection also emits Doc Lookup and Git discipline
+// first so both survive the 32 KiB host default. Keep it below that host budget.
+// 2026-09-24: raised 69632 -> 81920 (68 -> 80 KiB). The root reached ~64 KiB with ~4.5 KiB of
+// headroom, so ordinary protocol growth would overflow again within a few edits. 80 KiB + the 8 KiB
+// context-pointer/gate allowance still fits the 96 KiB Codex host budget (pinned by
+// migrate-claude-to-codex.test.mjs).
+const AGENTS_ROOT_LIMIT_BYTES = 81920;
+// Order is PRIORITY, not source order: blocks are emitted in this sequence. Codex stops reading
+// AGENTS.md at `project_doc_max_bytes` (32 KiB by default, silently), so the doc-discovery table and
+// the irreversible-action guardrail come first and stay inside that default window even when the
+// project config's raised limit is not honored by the host.
 const AGENTS_PROJECTION_HEADINGS = [
+  /^## Doc Lookup — What to Read When$/m,
+  /^## Git & Version-Control Discipline$/m,
   /^## Workflow Step Advancement & Parallel Phases$/m,
   /^## TL;DR — What You Must Know Before Writing Any Code$/m,
   /^## Search Existing Code First$/m,
@@ -155,7 +171,6 @@ const AGENTS_PROJECTION_HEADINGS = [
   /^## Naming Conventions$/m,
   /^## Evidence-Based Reasoning & Investigation$/m,
   /^## Continuous Improvement — Lesson Extraction Gate$/m,
-  /^## Git & Version-Control Discipline$/m,
   /^## Graph Intelligence \(when \.code-graph\/graph\.db exists\)$/m,
   /^## Automatic Skill Activation$/m,
 ];
@@ -167,14 +182,22 @@ const PROJECT_REFERENCE_GATE_BODY_LINES = [
   "- Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.",
   "- Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.",
   "- Read `docs/project-reference/lessons.md` for always-on project guardrails.",
+  "- For any project question or task, find its row in the root `Doc Lookup — What to Read When` table (when the root carries one) and read that doc before answering or editing; `$project-help` explains the framework itself. Never answer project-specific questions from memory or framework defaults.",
   "- For spec, test-case, `docs/specs/`, behavior-change, or public-contract work, read the spec routing set named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized.",
-  "- If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.",
-  "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.",
-  "- Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, delegation, or a context change re-read them and restate `Reference docs read: ... | Not applicable: ...`.",
+  "- A missing `docs/project-config.json` is supported: run on portable defaults plus repository evidence, state material assumptions, never block, and at most offer `$project-init` once. If a declared config section is malformed, or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.",
+  "- For situation-specific work, open the referenced project doc directly; only your own full read within the dedup window below proves it is loaded.",
+  "- Pick docs by the phase you are about to enter, reading only docs the project selects (`referenceDocs`) that exist: plan/investigate/design → `project-structure-reference.md`, `domain-entities-reference.md`; edit code → `code-review-rules.md` plus the backend or frontend pattern doc for the file type (UI adds `scss-styling-guide.md` and `design-system/README.md`); tests or test data → the matching integration, E2E, or seed-test-data reference; specs or docs → the spec routing set above; review → `code-review-rules.md` plus the edit, test, and spec docs for every file type under review. Before editing an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` for its `contextGroups[]` conventions.",
+  "- Dedup: a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens (the file-convention hook's default re-injection distance), and it has not changed since — cite it `(loaded)` instead of re-reading. A hook reminder, a summary, or a prior mention never counts.",
+  "- Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, a context change, or leaving the dedup window re-read them and restate `Reference docs read: ... | Not applicable: ...`; a delegated sub-agent starts empty, so name the resolved doc paths in its brief and let it read them itself.",
 ];
 const PROJECT_REFERENCE_GATE_BODY_START = PROJECT_REFERENCE_GATE_BODY_LINES[0];
 const PROJECT_REFERENCE_GATE_BODY_END = PROJECT_REFERENCE_GATE_BODY_LINES.at(-1);
-const LEGACY_PROJECT_REFERENCE_GATE_BODY_END = "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.";
+// Former last lines of the gate body: an existing context file ending in any of them is still recognised and replaced.
+const LEGACY_PROJECT_REFERENCE_GATE_BODY_ENDS = [
+  "- Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, a context change, or ~200K tokens of growth re-read them and restate `Reference docs read: ... | Not applicable: ...`; a delegated sub-agent starts empty, so name the resolved doc paths in its brief and let it read them itself.",
+  "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.",
+  "- Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, delegation, or a context change re-read them and restate `Reference docs read: ... | Not applicable: ...`.",
+];
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -356,7 +379,7 @@ function stripProjectReferenceGateSection(contextMd) {
   }
 
   const orphanBodyPattern = new RegExp(
-    `(?:^|\\n)${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_START)}\\n[\\s\\S]*?(?:${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_END)}|${escapeRegExp(LEGACY_PROJECT_REFERENCE_GATE_BODY_END)})(?=\\n(?:## |<!-- [A-Z-]+:START -->)|\\n\\n(?:## |<!-- [A-Z-]+:START -->)|$)`,
+    `(?:^|\\n)${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_START)}\\n[\\s\\S]*?(?:${[PROJECT_REFERENCE_GATE_BODY_END, ...LEGACY_PROJECT_REFERENCE_GATE_BODY_ENDS].map(escapeRegExp).join("|")})(?=\\n(?:## |<!-- [A-Z-]+:START -->)|\\n\\n(?:## |<!-- [A-Z-]+:START -->)|$)`,
     "g"
   );
   nextText = nextText.replace(orphanBodyPattern, "");

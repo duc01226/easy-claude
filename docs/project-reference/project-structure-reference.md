@@ -54,7 +54,7 @@ Delivery stack: **undetermined (no CI/IaC config found)**. Root commands cover l
 | Setting group                 | Surface                                         | Purpose                                                                 |
 | ----------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
 | Framework runtime             | `.claude/settings.json:24-30`                   | Context/auto-memory/todo controls, stop-hook cap, MCP timeout           |
-| MCP authentication references | `.claude/.mcp.json:6-7`                         | `GITHUB_PERSONAL_ACCESS_TOKEN`                                          | <!-- path-role: user-local -->
+| MCP authentication references | `.claude/.mcp.json:6-7`                         | `GITHUB_PERSONAL_ACCESS_TOKEN` <!-- path-role: user-local -->           |
 | Notification references       | `.claude/hooks/notifications/.env.example:8-21` | Telegram, Discord, and Slack reference names                            |
 | Optional skill credentials    | `.claude/.env.example:34-50`                    | Shared AI/ML API key reference names with per-skill override precedence |
 
@@ -80,15 +80,15 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->14<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
-| Hook Libraries | <!-- COUNT:lib-modules -->43<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
+| Hooks          | <!-- COUNT:hooks -->16<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
+| Hook Libraries | <!-- COUNT:lib-modules -->44<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
 | Skills         | <!-- COUNT:skills -->124<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->23<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                     |
 | Scripts        | 34                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
 | Codex Scripts  | 17                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                 |
-| Hook Tests     | 40 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Hook Tests     | 47 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
 | Codex Mirrors  | <!-- COUNT:skills -->124<!-- /COUNT --> skills, <!-- COUNT:agents -->23<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 ## Project Directory Tree
@@ -132,8 +132,8 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->14<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->43<!-- /COUNT --> shared utility modules for hooks                                              |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->16<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->44<!-- /COUNT --> shared utility modules for hooks                                              |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->124<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->23<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->19<!-- /COUNT --> end-to-end process orchestrations                                               |
@@ -142,9 +142,9 @@ easy-claude/
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                    |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 40 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 47 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
-## Hooks (<!-- COUNT:hooks -->14<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->16<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
@@ -154,10 +154,10 @@ easy-claude/
 
 ### Quality Hooks
 
-| Hook               | Event            | Purpose                              |
-| ------------------ | ---------------- | ------------------------------------ |
-| `init-prompt-gate` | UserPromptSubmit | Gate initial prompt processing       |
-| `doc-sync-gate`    | PreToolUse       | Gate edits that require doc sync     |
+| Hook               | Event            | Purpose                                                                             |
+| ------------------ | ---------------- | ----------------------------------------------------------------------------------- |
+| `init-prompt-gate` | UserPromptSubmit | Gate initial prompt processing                                                      |
+| `doc-sync-gate`    | PreToolUse       | Warn (never block) when behavioral code edits or commits lack a Feature Spec update |
 
 > **Static enforcement.** Task creation, skill activation, edit gates, and workflow task-list integrity live in `CLAUDE.md` / `SKILL.md`; hookless harnesses read the same rules.
 
@@ -191,18 +191,20 @@ easy-claude/
 
 ### Workflow Hooks
 
-| Hook                    | Event            | Purpose                                                                                        |
-| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
-| `workflow-route-inject` | UserPromptSubmit | Inject the canonical workflow routing gate from `.claude/skills/shared/workflow-first-gate.md` |
+| Hook                        | Event            | Purpose                                                                                        |
+| --------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
+| `workflow-route-inject`     | UserPromptSubmit | Inject the canonical workflow routing gate from `.claude/skills/shared/workflow-first-gate.md` |
+| `commit-skill-route`        | UserPromptSubmit | Remind the agent to run the `commit` skill when the prompt asks to commit                      |
+| `judgement-integrity-route` | UserPromptSubmit | Inject the anti-confirmation-bias answer why-review when the prompt asks for a verdict         |
 
 > **Workflow tracking:** progression is model-driven against `CLAUDE.md` and persisted task tracking; no workflow-step hook advances tasks.
 
 ### Utility Hooks
 
-| Hook                                     | Event             | Purpose                                                        |
-| ---------------------------------------- | ----------------- | -------------------------------------------------------------- |
-| `post-edit-prettier`                     | PostToolUse       | Run prettier after edits                                       |
-| `.claude/hooks/notifications/notify.cjs` | Stop/Notification | Unified notification router (desktop + Telegram/Discord/Slack) |
+| Hook                                     | Event                                   | Purpose                                                                                                                                                                                                           |
+| ---------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `post-edit-prettier`                     | PostToolUse                             | Run prettier after edits                                                                                                                                                                                          |
+| `.claude/hooks/notifications/notify.cjs` | SessionEnd/Stop/PreToolUse/Notification | Main-session end alert; direct Claude `AskUserQuestion`; Codex `Stop` question when the final message ends in `?`; existing turn-complete and input/permission alerts (desktop + optional Telegram/Discord/Slack) |
 
 > **Post-processing:** no large-output swap, post-agent validator, or bash-cleanup hook is registered.
 

@@ -11,9 +11,32 @@
  */
 'use strict';
 
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const os = require('os');
 const path = require('path');
+const { EVENT_COPY } = require('../lib/event-copy.cjs');
+
+// A toast (non-blocking alert) is the only desktop form on the SessionEnd path,
+// and SessionEnd runs under a 3-second host hook budget (Claude settings and the
+// Codex mirror). Dialogs wait for a click and never run on the SessionEnd path.
+//
+// Windows toast: fire-and-forget, so it has no entry here. PowerShell start-up
+// plus notify-windows.ps1 took 1.9–6.3 s on a loaded host, so a toast awaited
+// under any wait that fits the budget was killed before it displayed. It is
+// launched detached and the hook returns as soon as the process has started.
+// The script ends on its own: the BurntToast branch exits after posting, and the
+// balloon fallback shows its tip, sleeps 500 ms, disposes the tray icon and
+// ends. Neither branch waits on the developer, so its lifetime is PowerShell
+// start-up plus module lookup plus ~0.5 s, and no orphan lingers.
+//
+// macOS/Linux toasts stay awaited: osascript `display notification` and
+// notify-send hand the alert to the OS notification service and return at once,
+// well inside these waits, and awaiting keeps their exit status as the delivery
+// result. Each wait leaves room in the budget for router start-up.
+const TOAST_TIMEOUT_MS = {
+    darwin: 2000,
+    linux: 2000
+};
 
 function runNotification(file, args, options) {
     return new Promise(resolve => {
@@ -23,13 +46,26 @@ function runNotification(file, args, options) {
     });
 }
 
+// Start a notifier that outlives this hook: no wait for its exit, no link to its
+// stdio, and no handle keeping this process alive. Settles once the OS has
+// started it, or reports why it could not.
+function launchDetached(file, args, options) {
+    return new Promise(resolve => {
+        const child = spawn(file, args, { ...options, shell: false, detached: true, stdio: 'ignore' });
+        child.once('error', err => resolve({ success: false, error: err.message }));
+        child.once('spawn', () => resolve({ success: true, detached: true }));
+        child.unref();
+    });
+}
+
 // Notification titles by event type (host-agnostic: this framework runs under
 // Claude Code, Codex and opencode, so notifications must not name one host).
 const TITLES = {
-    Stop: 'AI Agent Session Complete',
+    SessionEnd: EVENT_COPY.SessionEnd.title,
+    Stop: EVENT_COPY.Stop.title,
     SubagentStop: 'Subagent Complete',
     AskUserPrompt: 'AI Agent Needs Input',
-    AskUserQuestion: 'AI Agent Has a Question',
+    AskUserQuestion: EVENT_COPY.AskUserQuestion.title,
     idle_prompt: 'AI Agent Waiting for Input',
     permission_prompt: 'AI Agent Needs Permission',
     default: 'AI Agent'
@@ -37,10 +73,11 @@ const TITLES = {
 
 // Notification messages by event type
 const MESSAGES = {
-    Stop: 'Session completed successfully',
+    SessionEnd: EVENT_COPY.SessionEnd.summary,
+    Stop: EVENT_COPY.Stop.summary,
     SubagentStop: 'Specialized agent finished',
     AskUserPrompt: 'Waiting for your input',
-    AskUserQuestion: 'AI agent is asking a question — please check and answer',
+    AskUserQuestion: EVENT_COPY.AskUserQuestion.summary,
     idle_prompt: 'AI agent is waiting for your input',
     permission_prompt: 'AI agent is asking for tool permission',
     default: 'Event triggered'
@@ -88,7 +125,7 @@ function getNotificationContent(input) {
  * @param {string} title - Notification title
  * @param {string} message - Notification message
  * @param {boolean} showDialog - Whether to show blocking dialog
- * @returns {Promise<{success: boolean, error?: string}>}
+ * @returns {Promise<{success: boolean, detached?: boolean, error?: string}>}
  */
 function notifyWindows(title, message, showDialog) {
     const scriptPath = path.resolve(__dirname, '..', '..', 'lib', 'notify-windows.ps1');
@@ -96,8 +133,11 @@ function notifyWindows(title, message, showDialog) {
         '-Title', title, '-Message', message];
     if (showDialog) args.push('-ShowDialog');
 
-    // Wait for completion - dialogs block until user clicks, toasts complete quickly
-    return runNotification('powershell', args, { windowsHide: true, timeout: showDialog ? 60000 : 5000 });
+    // A dialog is awaited until the developer clicks it; a toast is detached (see TOAST_TIMEOUT_MS).
+    if (showDialog) {
+        return runNotification('powershell', args, { windowsHide: true, timeout: 60000 });
+    }
+    return launchDetached('powershell', args, { windowsHide: true });
 }
 
 /**
@@ -113,7 +153,7 @@ function notifyMacOS(title, message, showDialog) {
         ? 'on run argv\ndisplay dialog (item 2 of argv) with title (item 1 of argv) buttons {"OK"} default button "OK"\nend run'
         : 'on run argv\ndisplay notification (item 2 of argv) with title (item 1 of argv)\nend run';
 
-    return runNotification('osascript', ['-e', script, '--', title, message], { timeout: showDialog ? 30000 : 3000 });
+    return runNotification('osascript', ['-e', script, '--', title, message], { timeout: showDialog ? 30000 : TOAST_TIMEOUT_MS.darwin });
 }
 
 /**
@@ -134,7 +174,7 @@ async function notifyLinux(title, message, showDialog) {
         return runNotification('kdialog', ['--msgbox', message, '--title', title], { timeout: remaining });
     }
 
-    return runNotification('notify-send', ['--urgency=normal', '--expire-time=5000', '--', title, message], { timeout: 3000 });
+    return runNotification('notify-send', ['--urgency=normal', '--expire-time=5000', '--', title, message], { timeout: TOAST_TIMEOUT_MS.linux });
 }
 
 /**
@@ -187,8 +227,8 @@ module.exports = {
 
     /**
      * Send notification to desktop
-     * For Stop/idle_prompt events: shows blocking dialog (user must click OK)
-     * For other events: shows toast notification
+     * Stop completion and direct question/input/permission requests use a dialog.
+     * Session end and inferred Codex Stop questions use a toast notification.
      * @param {Object} input - Hook input (snake_case fields)
      * @param {Object} env - Environment variables
      * @returns {Promise<{success: boolean, error?: string}>}
@@ -197,14 +237,17 @@ module.exports = {
         const { title, message } = getNotificationContent(input);
         const hookType = input.hook_event_name || 'default';
         const notificationType = input.notification_type;
+        const isCodexStopQuestion = input.notification_source === 'codex-stop-question';
 
-        // Stop/AskUserQuestion/idle_prompt/AskUserPrompt/permission_prompt: show blocking dialog so user won't miss it
+        // Stop completion and direct input requests use dialogs; SessionEnd and the Codex Stop fallback use toasts.
         const showDialog =
-            hookType === 'Stop' ||
-            hookType === 'AskUserQuestion' ||
-            notificationType === 'idle_prompt' ||
-            notificationType === 'AskUserPrompt' ||
-            notificationType === 'permission_prompt';
+            !isCodexStopQuestion && (
+                hookType === 'Stop' ||
+                hookType === 'AskUserQuestion' ||
+                notificationType === 'idle_prompt' ||
+                notificationType === 'AskUserPrompt' ||
+                notificationType === 'permission_prompt'
+            );
 
         return sendNotification(title, message, showDialog);
     }

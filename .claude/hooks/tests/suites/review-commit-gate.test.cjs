@@ -88,7 +88,8 @@ function loadMutantGate(file, repo, statements) {
             if (request === './lib/command-inspection.cjs') return { inspectCommand: () => ({ status: 'KNOWN', statements }) };
             if (request === './lib/git-statement.cjs') return { classifyStatement, findRepository: () => repo, canonical: value => value,
                 AMEND_ABBREVIATIONS: new Set() };
-            if (request === './lib/hook-runner.cjs') return { runPreToolHookSync: () => undefined };
+            // The entry-point check is stubbed false so requiring the mutant never runs the hook's main.
+            if (request === './lib/hook-runner.cjs') return { runPreToolHookSync: () => undefined, isHookEntryPoint: () => false };
             if (request === './lib/debug-log.cjs') return { reportHookInternalError: () => undefined };
             if (request === './lib/review-receipt.cjs') return {
                 captureReviewTarget: () => ({ status: 'CLEAN' }),
@@ -191,8 +192,34 @@ const tests = [
                 const blocked = gate().evaluate(input);
                 assert.equal(blocked.code, 2, 'no receipt and no skip must block');
                 assert.match(blocked.stderr, /review fix-loop/i);
+                assert.match(blocked.stderr, /Ask the user to choose a review option below in order/i);
                 assert.match(blocked.stderr, /ASK them first/i);
                 assert.match(blocked.stderr, /user alone decides/i);
+
+                const hookOptions = [
+                    '1. /workflow-review-changes --fix-loop (Recommended)',
+                    '2. /changes-review --fix-loop',
+                    '3. /why-review --fix-loop',
+                    '4. Skip — only if the user explicitly decides'
+                ].map(option => blocked.stderr.indexOf(option));
+                assert.ok(hookOptions.every(index => index >= 0), 'hook must show all four review-gate options');
+                assert.ok(hookOptions.every((index, i) => i === 0 || hookOptions[i - 1] < index),
+                    'hook options must recommend workflow review first, followed by the two skill fix-loops and Skip');
+
+                const commitSkill = fs.readFileSync(path.resolve(__dirname, '../../../skills/commit/SKILL.md'), 'utf8');
+                const menuStart = commitSkill.indexOf('> Options (in order — first is the default and recommended):');
+                assert.ok(menuStart >= 0, 'commit skill must mark the first review option as the default and recommended');
+                const menuEnd = commitSkill.indexOf('Rules:', menuStart);
+                const skillOptions = [
+                    '> 1. `Run /workflow-review-changes --fix-loop` (Recommended)',
+                    '> 2. `Run /changes-review --fix-loop`',
+                    '> 3. `Run /why-review --fix-loop`',
+                    '> 4. `Skip — commit without review`'
+                ].map(option => commitSkill.indexOf(option, menuStart));
+                assert.ok(menuEnd > menuStart && skillOptions.every(index => index >= menuStart && index < menuEnd),
+                    'commit skill AskUserQuestion must show workflow, changes-review, why-review, then Skip');
+                assert.ok(skillOptions.every((index, i) => i === 0 || skillOptions[i - 1] < index),
+                    'commit skill AskUserQuestion options must appear in the requested order');
 
                 issueCandidate(receipt(), fx.store, snapshot(receipt(), fx.repoA), 'skip', {
                     reason: 'user approved skip'

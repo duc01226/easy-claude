@@ -237,14 +237,14 @@ Enable/disable official Claude Code plugins.
 ```json
 {
     "enabledPlugins": {
-        "code-review@claude-plugins-official": true,
-        "commit-commands@claude-plugins-official": true,
-        "csharp-lsp@claude-plugins-official": true,
-        "frontend-design@claude-plugins-official": true,
-        "github@claude-plugins-official": true,
+        "code-review@claude-plugins-official": false,
+        "commit-commands@claude-plugins-official": false,
+        "csharp-lsp@claude-plugins-official": false,
+        "frontend-design@claude-plugins-official": false,
+        "github@claude-plugins-official": false,
         "playwright@claude-plugins-official": false,
-        "typescript-lsp@claude-plugins-official": true,
-        "code-simplifier@claude-plugins-official": true
+        "typescript-lsp@claude-plugins-official": false,
+        "code-simplifier@claude-plugins-official": false
     }
 }
 ```

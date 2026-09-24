@@ -65,6 +65,7 @@ const ROOT_MATRIX = [
 ];
 
 const DOCS_ROOT_KEYS = ['projectReference', 'adr', 'templates', 'plans', 'teamArtifacts', 'productRoadmap'];
+const SPEC_ROOT_KEYS = ['business', 'technical'];
 
 function readDotted(obj, dotted) {
     let node = obj;
@@ -513,6 +514,9 @@ const tests = [
     {
         name: '[docroot-relocation] TC-DOCROOT-161 a ../escape value is rejected for ALL 8 roots and the default is used',
         fn: () => {
+            // Given every relocatable content root declares ../escape in the fixture.
+            // When runtime accessors and the config validator inspect those declarations.
+            // Then each accessor uses its default, while schema validation rejects all 8 roots.
             // RUNTIME PLANE — 8 assertions, one per root. This is the half that decides what the
             // AI is actually told, and it must hold for every root, not only for specRoots.
             const runtime = {
@@ -541,7 +545,7 @@ const tests = [
             const probe = ROOT_MATRIX.map(r => `{${r.token}}`).join(' ');
             assertNotContains(loader.resolvePortabilityTokens(probe, ESCAPED_CONFIG), '..', 'no `..` segment may survive resolution');
 
-            // VALIDATION PLANE — fail-CLOSED for the 6 docsRoots keys this change introduced.
+            // VALIDATION PLANE — fail-CLOSED for every declared docsRoots and specRoots path.
             const result = schema.validateConfig(ESCAPED_CONFIG);
             assertTrue(!result.valid, 'a config whose roots all escape must not validate');
             for (const key of DOCS_ROOT_KEYS) {
@@ -550,6 +554,66 @@ const tests = [
                     `docsRoots.${key}.path must raise a traversal ERROR. errors: ${result.errors.join(' | ')}`
                 );
             }
+            for (const key of SPEC_ROOT_KEYS) {
+                assertTrue(
+                    result.errors.some(e => e.startsWith(`specRoots.${key}.path:`) && e.includes('escapes the repository root')),
+                    `specRoots.${key}.path must raise a traversal ERROR. errors: ${result.errors.join(' | ')}`
+                );
+            }
+        }
+    },
+    {
+        name: '[docroot-relocation] TC-DOCROOT-167 a Windows drive-relative value (C:foo) escapes for ALL 8 roots',
+        fn: () => {
+            // INTENT: `C:foo` carries no `/` after the colon, so it is neither absolute nor `..` by a
+            // slash-anchored test, yet `path.resolve(repo, 'C:foo')` lands in drive C's current
+            // directory — outside the repository. It must be rejected on BOTH planes, on every host.
+            // Given: the escaped fixture with every root rewritten to a drive-relative value.
+            const driveRelative = JSON.parse(JSON.stringify(ESCAPED_CONFIG));
+            for (const root of ROOT_MATRIX) {
+                const [section, key] = root.configPath.split('.');
+                driveRelative[section][key].path = `C:drive-relative-${key}`;
+            }
+
+            // When: the runtime accessors and the config validator inspect those declarations.
+            const runtime = {
+                SPEC_ROOT: pathUtils.normalizeRootPath(loader.getSpecDocsPath(driveRelative)),
+                SPEC_ROOT_TECHNICAL: pathUtils.normalizeRootPath(loader.getTechnicalSpecDocsPath(driveRelative)),
+                REF_DOCS_ROOT: loader.getDocsRoot('projectReference', driveRelative),
+                ADR_ROOT: loader.getDocsRoot('adr', driveRelative),
+                TEMPLATES_ROOT: loader.getDocsRoot('templates', driveRelative),
+                PLANS_ROOT: loader.getDocsRoot('plans', driveRelative),
+                TEAM_ARTIFACTS_ROOT: loader.getDocsRoot('teamArtifacts', driveRelative),
+                PRODUCT_ROADMAP_DOC: loader.getDocsRoot('productRoadmap', driveRelative)
+            };
+            const result = schema.validateConfig(driveRelative);
+
+            // Then: the guard flags every value, each accessor uses its default, and validation fails
+            // closed with a per-root escape error for every docsRoots and specRoots key.
+            for (const root of ROOT_MATRIX) {
+                const declared = readDotted(driveRelative, root.configPath);
+                assertTrue(pathUtils.escapesRepoRoot(declared), `escapesRepoRoot must flag the drive-relative ${root.configPath} "${declared}"`);
+                assertEqual(
+                    runtime[root.token],
+                    loader.PORTABILITY_TOKENS[root.token].default,
+                    `${root.configPath}: a drive-relative value must be REJECTED and the documented default used`
+                );
+            }
+            assertTrue(!result.valid, 'a config whose roots are all drive-relative must not validate');
+            for (const key of DOCS_ROOT_KEYS) {
+                assertTrue(
+                    result.errors.some(e => e.startsWith(`docsRoots.${key}.path:`) && e.includes('escapes the repository root')),
+                    `docsRoots.${key}.path "C:…" must raise an escape ERROR. errors: ${result.errors.join(' | ')}`
+                );
+            }
+            for (const key of SPEC_ROOT_KEYS) {
+                assertTrue(
+                    result.errors.some(e => e.startsWith(`specRoots.${key}.path:`) && e.includes('escapes the repository root')),
+                    `specRoots.${key}.path "C:…" must raise an escape ERROR. errors: ${result.errors.join(' | ')}`
+                );
+            }
+            // A repo-relative directory whose name merely CONTAINS a colon later is not drive-relative.
+            assertTrue(!pathUtils.escapesRepoRoot('docs/c:notes'), 'only a leading drive letter + colon marks a drive-relative value');
         }
     },
 

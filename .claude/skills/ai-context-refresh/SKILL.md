@@ -20,7 +20,7 @@ description: '[Documentation] Use when initializing, updating, smart-merging, or
 1. **Detect Mode** — init (no root context or `--mode init`), update (`--mode update`), refactor (`--mode refactor`)
 2. **Run Generator** — `node .claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --mode <mode>`
 3. **AI Fill** — Review output, fill creative sections (project description, golden rules inference)
-4. **Verify** — Confirm output is valid, no project-specific leaks from template
+4. **Verify** — Confirm output is valid, no project-specific leaks from template, and the AI-discovery gate passes (project purpose + critical rules on top, Doc Lookup triggers to existing docs, closing reminders at the bottom)
 5. **Sync Codex Mirrors** — After the final AI edits and verification, run the shared standalone runner with `--skip=claude-md` so `AGENTS.md`, `.agents/`, and `.codex/` are regenerated from the finished `CLAUDE.md`.
 
 **Key Rules:**
@@ -177,6 +177,8 @@ After the script generates the mechanical parts, AI reviews and fills:
 - [ ] No template placeholder text remains (e.g., `{project-name}`, `TODO`)
 - [ ] No `.claude/skills/ai-context-refresh/` implementation paths leak into generated project context (self-reference)
 - [ ] Conditional sections with no data are omitted (not empty stubs)
+- [ ] **AI-discovery gate (`SYNC:ai-discovery-doc-quality`):** the first screen carries the project purpose (the `tldr` line), the discovery order (config → docs index + `lessons.md` → Doc Lookup row) and the critical rules; every Doc Lookup / path-routing row names a trigger and an existing target; a not-applicable doc appears once as a skip; the file ends with closing reminders repeating the critical rules (the template's final `Critical reminders:` line)
+- [ ] A discovery defect inside a `SECTION:*` block is fixed in its builder, the template or `docs/project-config.json`, then regenerated — never hand-edited; hand-owned prose that changed ran `/prompt-enhance`
 
 ## Phase 5: Sync Codex mirrors (after the final CLAUDE.md edit)
 
@@ -242,10 +244,10 @@ See `references/section-registry.md` for full mapping. Summary:
 | `dev-commands`        | `testing.commands`, `infrastructure.*`  | Yes — skip if no commands |
 | `infra-ports`         | `modules[].meta.port` (infra)           | Yes — skip if no ports    |
 | `api-ports`           | `modules[].meta.port` (services)        | Yes — skip if no ports    |
-| `integration-testing` | `framework.integrationTestDoc`          | Yes — skip if no doc      |
-| `e2e-testing`         | `framework.e2eTestDoc`, scan, or `e2eTesting.execution` | Yes — skip if no E2E evidence/profile |
+| `integration-testing` | `framework.integrationTestDoc`          | Yes — skip if no doc; doc declared N/A in `referenceDocs` → one-line skip notice |
+| `e2e-testing`         | `framework.e2eTestDoc` / `e2eTesting.guideDoc`, `testing.frameworks[]`, `e2eTesting.framework`, or `e2eTesting.execution` | Yes — skip only when no guide doc AND no E2E evidence/profile; guide declared N/A with no evidence → one-line skip notice |
 | `doc-index`           | Scan `docs/` directory                  | Yes — skip if no docs/    |
-| `doc-lookup`          | `modules[]` + business features         | Yes — skip if no modules  |
+| `doc-lookup`          | `modules[]`, spec rows, `referenceDocs[]` (N/A via `notApplicable: true` or an N/A purpose → named once as a skip), docs index, `lessons.md`, ADRs, `.claude/docs` — only files that exist | No — always generated; heading `## Doc Lookup — What to Read When`, back-filled onto older roots on `--mode update`, projected first into `AGENTS.md` |
 
 ## Running Tests
 
@@ -280,6 +282,22 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 <!-- /SYNC:output-quality-principles -->
 
+<!-- SYNC:ai-discovery-doc-quality -->
+
+> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
+>
+> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
+> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
+> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
+> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
+> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
+> 6. **Token-efficient:** apply `/prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
+> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
+>
+> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `/prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+
+<!-- /SYNC:ai-discovery-doc-quality -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -313,6 +331,12 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
+<!-- SYNC:ai-discovery-doc-quality:reminder -->
+
+**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+
+<!-- /SYNC:ai-discovery-doc-quality:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
@@ -340,13 +364,14 @@ node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 
 - **Critical Thinking:** apply critical + sequential thinking; traced proof, confidence >80% to act.
 - **Output Quality:** token-efficient — no inventories/trees/TOCs; tables over prose.
+- **AI-Discovery Doc Quality:** project purpose + critical rules on top, reminders at the bottom, every cross-doc pointer a `read <path> when <situation>` trigger to an existing target; fix generated sections at their source.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-**IMPORTANT MUST ATTENTION** execute in order: preflight config and detect mode → generate/update or AI smart-merge/refactor while preserving unmanaged content → AI-fill and verify markers/placeholders/portability → run the standalone `/sync-codex` runner with `--skip=claude-md` after final root edits and verify every Codex mirror
+**IMPORTANT MUST ATTENTION** execute in order: preflight config and detect mode → generate/update or AI smart-merge/refactor while preserving unmanaged content → AI-fill and verify markers/placeholders/portability plus the AI-discovery gate → run the standalone `/sync-codex` runner with `--skip=claude-md` after final root edits and verify every Codex mirror
 
 | Evasion | Rebuttal |
 | --- | --- |

@@ -45,7 +45,11 @@ const AGENTS_ROOT_PROJECTION_END = '/CK:CODEX-ROOT-PROJECTION';
 // prettier-managed source; its table padding inflates the projected mirror, so the old ceiling was
 // set against an un-padded root and overflowed on the first ordinary edit. Kept equal to the
 // generator via `verify-skill-protocol-compliance.test.mjs`.
-export const AGENTS_ROOT_LIMIT_BYTES = 61440;
+// 2026-09-24: raised 61440 -> 69632 (60 -> 68 KiB) in lockstep with the generator for the Doc Lookup
+// discovery table; kept below the configured Codex host budget (`project_doc_max_bytes = 98304`).
+// 2026-09-24: raised 69632 -> 81920 (68 -> 80 KiB) in lockstep with the generator to restore
+// headroom; 80 KiB + 8 KiB context allowance still fits the 96 KiB Codex host budget.
+export const AGENTS_ROOT_LIMIT_BYTES = 81920;
 const DEBUGGER_TRACE_MARKER = '<!-- SYNC:end-to-start-debugger-trace -->';
 const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
     'End-to-Start Debugger Trace',

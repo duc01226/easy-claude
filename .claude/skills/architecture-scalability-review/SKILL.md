@@ -20,7 +20,7 @@ description: '[Architecture] Use when grading architecture and scalability — b
 **Summary:**
 - **Purpose/ownership:** score 10 areas, apply G1-G7 and TVC, route sibling-owned depth, and emit one report; this skill owns the scorecard, not sibling checklists.
 - **Ordered run:** (1) resolve `mode=init`/`mode=audit` + scope; (2) load context/evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2; (5) run G1-G7, then TVC; (6) emit the report under `tmp/reports/`; (7) validate sub-80/risk findings with `/why-review` (max 2 passes), or record the zero-risk skip.
-- **Evidence/TVC:** every score needs `file:line`, command/artifact proof, or `N/A - reason`; otherwise score `0`. Resolve Unit/Integration/System/E2E applicability plus owner/root/data, full+focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff.
+- **Evidence/TVC:** every score needs `file:line`, command/artifact proof, or `N/A - reason`; otherwise score `0`. Resolve Unit/Integration/System/E2E applicability plus owner/root/data, full+focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff.
 - **Modes/advisories:** `init` scores planned greenfield evidence; `audit` scores existing evidence. Self-audit 11 red flags before emission; treat `— VERIFY` rows/section banners as unverified and confirm named sources or project docs. Technique + Scenario are advice-only and never change `/20`, verdict, or gates; new tools require user confirmation.
 
 **Workflow (run in order):**
@@ -156,7 +156,7 @@ Critical/high gate failures require an owner-accepted risk or follow-up plan bef
 Run this cross-cutting setup gate after G1-G7 and before report emission. Consume architecture-design plus scaffold/harness evidence; do not re-implement tier-specific child checklists.
 
 1. Verify one row each for Unit, Integration/System, and E2E. Each row is `APPLICABLE` only with runner/framework/configuration/root evidence, or `N/A — {specific evidence}`. An E2E `N/A` must cite the verified absence of a browser runner/configuration/command, never the absence of a preferred tool.
-2. For every applicable row, verify copy-ready full and focused commands, invalid/zero-match non-zero behavior, CI gate, simple/Windows entry point where needed, owner, and exact result fields.
+2. For every applicable row, verify copy-ready full and focused commands, invalid/zero-match non-zero behavior, CI gate, simple Windows/macOS/Linux entry point where needed, owner, and exact result fields.
 3. Verify the declared run identity and business-data suffix, supported public setup path, realistic valid data, idempotent/restart-safe reference setup, additive persistent-data policy, mutable-root/parallel-worker isolation, pacing/arrange barrier, and two consecutive no-reset full runs for each applicable persistent-state suite. Missing or placeholder evidence is `BLOCKED`, not a guessed pass.
 4. Emit `TVC: PASS | PARTIAL | BLOCKED` with the matrix, evidence, owner, and follow-up. `PASS` means every tier is resolved and every applicable field is evidenced; `PARTIAL` records the bounded gap without inventing a tier or command.
 
@@ -191,7 +191,7 @@ Report structure:
 
 **Status:** `TVC: PASS | PARTIAL | BLOCKED`
 
-| Tier | Applicability + evidence | Owner | Runner/config/root | Data + run identity | Full command | Focused/partial command | Zero-match behavior | CI / simple-Windows entry point | Repeat proof |
+| Tier | Applicability + evidence | Owner | Runner/config/root | Data + run identity | Full command | Focused/partial command | Zero-match behavior | CI / simple Windows/macOS/Linux entry point | Repeat proof |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Unit | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | {identity + fixture policy} | `{command}` | `{filter}` | `{non-zero behavior}` | {CI / command} | {result or planned owner} |
 | Integration/System | `APPLICABLE` / `N/A — {evidence}` | {owner} | {runner/config/root} | {identity + additive/public-path policy} | `{command}` | `{filter}` | `{non-zero behavior}` | {CI / command} | `{two no-reset runs}` |
@@ -409,6 +409,31 @@ List only user-confirmed recommendations or mark `N/A`.
 
 <!-- /SYNC:engineering-foundation-gate -->
 
+<!-- SYNC:project-reference-docs-guide -->
+
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap, immediately before target/source reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate but never prove it ran.
+>
+> 1. **Scope** — identify file types, domain area, and operation.
+> 2. **Project config is OPTIONAL.** Read the configured project-config file via its loader (default `docs/project-config.json`) when it exists. Absent is a supported state, not an error: run on portable defaults, derive project facts (paths, commands, conventions, architecture, test/spec layout) from repository evidence (manifests, lockfiles, scripts, CI, layout, root instruction files), state material assumptions, never block, and at most OFFER `/project-init` or `/project-config` once. Present → minimum valid shape is a non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. A DECLARED section left malformed or incomplete is a configuration error: fail closed on it and run `/project-init` or `/project-config` before relying on it — why: silent defaults would present wrong facts as authoritative. Verify material config hints against repository evidence; generic defaults are never project facts.
+> 3. **Select docs.** Always-on: the project-init-owned `lessons.md` and docs-index inputs at their configured owner paths — read independently, never appended to `referenceDocs`. Task-specific: an explicit `referenceDocs` array is the exact selection, subsets and `[]` included; absent → the runtime capability-aware resolver (portable baseline plus configuration- or repository-evidenced capabilities; may be empty). The scan-target manifest is a registry, not a default selection. Filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Custom-doc schema, ownership, and path-safety rules: `.claude/skills/scan/references/targets.md`.
+> 4. **Route by phase.** Just in time, read the selected docs the table names for the phase you are ABOUT to enter, plus any selected custom doc whose `purpose` covers that phase. An unmatched row is `Not applicable`, never a blocker.
+>
+> | About to… | Read first (when selected and present) |
+> | --- | --- |
+> | investigate, explain, plan, design, estimate | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan will touch |
+> | edit or write code | `code-review-rules.md`, plus server-side / non-UI code → `backend-patterns-reference.md`; UI → `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` |
+> | write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `seed-test-data-reference.md` |
+> | author or change specs, test cases, or docs | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; `workflow-spec-test-code-cycle-reference.md` when specs, tests, and code must stay in sync |
+> | review a diff, plan, spec, or artifact | `code-review-rules.md`, plus the edit/test/spec-row docs for every file type under review |
+>
+> 5. **Per-file conventions** (`contextGroups[]` in the project config) add rules for the exact file read or edited: hooks deliver them where they run; elsewhere run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` before the first edit of an unfamiliar path class.
+> 6. **Cite and repair.** State `Reference docs read: ... | Not applicable: ...` (record an explicit empty selection); still honor references the active skill or task requires. A missing/stale always-on input or selected/required doc, or a malformed declared config section → `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on it.
+> 7. **Dedup within ~200K tokens.** A doc counts as loaded only when its full content came back to THIS context from your own read, after the last compaction and within roughly the last 200K tokens, and it has not changed since — list it in `Reference docs read:` as `<doc> (loaded)` and skip the re-read. Everything else is not loaded: a hook reminder, a summary, a doc merely named in the conversation, or a read by another agent. Re-select and re-read after compaction, resume, a material context change, or ~200K tokens of growth (= the file-convention hook default). A delegated sub-agent starts empty: name the resolved doc paths in its brief.
+>
+> **Ready when:** scope set · config read or its absence recorded · always-on inputs confirmed · selection applied (may be empty) · phase docs read or cited `(loaded)` · citation emitted.
+
+<!-- /SYNC:project-reference-docs-guide -->
+
 <!-- SYNC:scale-technique-gate:reminder -->
 
 **IMPORTANT MUST ATTENTION** scale-technique gate: derive the scale tier from evidence FIRST (T0 internal · T1 <10k · T2 10k–1M · T3 millions+), then judge each warranted technique `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise on warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight techniques (anti-over-engineering). **ADVICE-ONLY — emit the Technique Applicability Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scale-technique-catalog.md` (authoritative for tier thresholds & per-technique warranting tiers — on any change update the catalog FIRST, then re-run `inject_scale_technique_gate.py`).
@@ -537,13 +562,22 @@ List only user-confirmed recommendations or mark `N/A`.
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
+<!-- SYNC:project-reference-docs-guide:reminder -->
+
+- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
+- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
+- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
+- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
+
+<!-- /SYNC:project-reference-docs-guide:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Grade a project or planned architecture against architecture + scalability criteria and produce an evidence-backed `/20` verdict (`STRONG` / `NEEDS WORK` / `HIGH RISK`) before scale or delivery decisions harden; route deep checks to owner skills.
 **IMPORTANT MUST ATTENTION scorecard scope:** assess all 10 areas — Build & CI Scalability, Architecture Pattern/distributed-monolith, Module Isolation, Dependency Discipline, Loose Coupling, Horizontal Scaling, DRY, Abstraction/Easy-to-Change, Clean Architecture, and Observability & Delivery — then route sibling-owned depth instead of duplicating it.
 **IMPORTANT MUST ATTENTION main steps (same order):** (1) resolve `mode=init`/`mode=audit` + scope; (2) load project context + evidence; (3) read `references/scorecard.md`; (4) score all 10 areas 0-2 with evidence; (5) run G1-G7, then TVC; (6) emit the report under `tmp/reports/`; (7) validate sub-80/risk findings with `/why-review` (maximum 2 passes), or record the zero-risk skip.
 **IMPORTANT MUST ATTENTION modes/gates:** `mode=init` scores planned greenfield evidence; `mode=audit` scores existing evidence. Every score needs proof or explicit `N/A - reason`; unproven criteria score `0`. `TVC: BLOCKED` prevents a `setup complete` claim but never changes `/20`.
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, owner/root/data, copy-ready full/focused commands, zero-match failures, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, owner/root/data, copy-ready full/focused commands, zero-match failures, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION advisory boundaries:** derive scale and business-criticality from evidence; Technique and Scenario matrices advise only and NEVER mutate `/20`, verdict, or G1-G7. Engineering Foundation `MISSING-WARRANTED` blocks when creating a foundation and stays advisory when auditing. A correctly-lean system is a PASS; new Tech/Lib recommendations require user confirmation.
 **IMPORTANT MUST ATTENTION scale-technique gate:** derive T0 internal/single-instance, T1 small SaaS (<10k users), T2 high-scale (10k–1M), or T3 massive/multi-region (millions+) from evidence, then emit `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise against unwarranted heavyweight techniques.
 **IMPORTANT MUST ATTENTION scenario-stress gate:** reuse `T0`–`T3`, derive `B0`–`B3` with the criticality-signal floor, select warranted scenarios, trace stimulus → break path → failure signature → self-heal/MTTR → trade-off, and emit the advisory matrix. NEVER turn it into a score, verdict, or gate result.

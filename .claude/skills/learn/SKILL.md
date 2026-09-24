@@ -18,7 +18,7 @@ disable-model-invocation: false
 - **Classify the carrier, don't default to prose:** a lesson stating a project FACT (path, run-command, module map, convention, tooling choice) belongs in `docs/project-config.json`, the machine-readable map every skill reads first; a lesson stating a RULE or pattern belongs in the matching `docs/project-reference/` doc. Both can apply — write the fact to config AND the rule to prose. To learn what the config holds and its exact field names, read the file or use `/project-config` (it runs `--describe`).
 - **Delegate overlay correctness:** `$project-skill-protocol` retains its mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror-sync rule; Learn must not bypass or replace it.
 - **Assess prevention depth** — doc/config update, prompt rule, static protocol lesson, hook, test, or skill update.
-- **Confirm target with the user, save, then run the 3 mandatory end tasks** — Learn Review → `/why-review` → `/prompt-enhance`.
+- **Confirm target with the user, save, then run the 3 mandatory end tasks** — Learn Review → `/why-review` → `/prompt-enhance`, then the AI-discovery gate on each modified carrier.
 
 **Workflow:**
 
@@ -27,7 +27,7 @@ disable-model-invocation: false
 3. **Save** -- After the applicable confirmation gates, delegate skill-specific lessons to `$project-skill-protocol`; otherwise append the lesson to the selected file
 4. **Confirm** -- Acknowledge what was saved and where
 5. **Learn Review** -- Run the mandatory 2-step end gate (`Learn Review` + `/why-review`)
-6. **Enhance** -- Run `/prompt-enhance` on modified file(s) to optimize AI attention anchoring
+6. **Enhance** -- Run `/prompt-enhance` on modified file(s) to optimize AI attention anchoring, then the AI-discovery gate (carrier reachable from the docs index; anchors not padded)
 
 **Key Rules:**
 
@@ -117,7 +117,7 @@ node .claude/hooks/lib/project-config-schema.cjs --describe   # exact field name
 Rules:
 
 - MUST check `docs/project-config.json` as a candidate on EVERY routing decision — why: a project fact written only as prose is invisible to the tooling that reads the config, and is silently overwritten the next time the generated docs regenerate from it.
-- MUST use exact schema field names (`--describe`, copy verbatim) and prefer an EXISTING field over a new one — why: unknown keys are accepted as warnings (`project-config-schema.cjs:618,688`), so an invented key looks like it worked while no consumer ever reads it.
+- MUST use exact schema field names (`--describe`, copy verbatim) and prefer an EXISTING field over a new one — why: unknown keys are accepted as warnings (`project-config-schema.cjs` unknown-key warnings), so an invented key looks like it worked while no consumer ever reads it.
 - No existing field fits → do NOT invent a top-level key silently. Route the lesson to prose and surface the gap to the user as a proposed schema addition — why: a schema change is a framework decision, not a side effect of `/learn`.
 - Prefer routing the config write through `/project-config` (Plan → Review → Execute + validation) over hand-editing the JSON — why: it validates after each phase and knows the field names this skill would otherwise guess.
 - Config carries FACTS, never prose lessons — NEVER paste a narrative lesson into a config string field. — why: the config is consumed by tooling and by every skill's prefetch; prose there bloats every session and belongs in a reference doc.
@@ -382,6 +382,8 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 - Optimizes token usage — tightens prose, merges redundant content
 - Verifies no content loss from the save operation
 
+**Then run the AI-discovery gate (`SYNC:ai-discovery-doc-quality`) on each modified file:** a lesson reaches the file's top critical rules or closing reminders only when it outranks a rule already there (those anchors hold 1–3 rules; otherwise it stays in its section, stated once); the carrier stays reachable from the docs index or root context (a new carrier doc gets a trigger row there); an edited pointer to another doc is `read <path> when <situation>` with an existing target.
+
 **How to invoke** — substitute the resolved reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
 ```
@@ -404,6 +406,22 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 > 3. "Run `/prompt-enhance <modified-file>` to optimize lesson content for AI attention anchoring."
 >
 > Do NOT mark the skill complete until all 3 tasks run.
+
+<!-- SYNC:ai-discovery-doc-quality -->
+
+> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
+>
+> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
+> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
+> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
+> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
+> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
+> 6. **Token-efficient:** apply `/prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
+> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
+>
+> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `/prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+
+<!-- /SYNC:ai-discovery-doc-quality -->
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -439,6 +457,12 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
+<!-- SYNC:ai-discovery-doc-quality:reminder -->
+
+**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+
+<!-- /SYNC:ai-discovery-doc-quality:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
@@ -473,11 +497,11 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 
 **IMPORTANT MUST ATTENTION Goal:** Persist each lesson at its failure-mode level into the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc or `docs/project-config.json` when the lesson is really a machine-readable project fact.
 
-**IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**delegate to `$project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `/why-review` → `/prompt-enhance`.
+**IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**delegate to `$project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `/why-review` → `/prompt-enhance` → AI-discovery gate (lesson reachable from a top/bottom anchor and from the docs index).
 **IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if recurrence is low OR review skills can catch it, skip `/learn` entirely
 **IMPORTANT MUST ATTENTION** check Reference Doc Catalog to find the best target file — NOT always `lessons.md`
 **IMPORTANT MUST ATTENTION** consider `docs/project-config.json` as a candidate carrier on EVERY routing decision, alongside the prose docs — read it directly or use `/project-config` to learn its sections and exact field names first — why: a project fact written only as prose is invisible to the tooling that reads the config and is contradicted the next time the generated docs regenerate from it.
-**IMPORTANT MUST ATTENTION** when routing into the config, copy field names verbatim from `node .claude/hooks/lib/project-config-schema.cjs --describe`, prefer an EXISTING field, and route the write through `/project-config`; no field fits → surface a proposed schema addition to the user instead of inventing a key — why: unknown keys only warn (`project-config-schema.cjs:618,688`), so an invented key looks applied while no consumer reads it.
+**IMPORTANT MUST ATTENTION** when routing into the config, copy field names verbatim from `node .claude/hooks/lib/project-config-schema.cjs --describe`, prefer an EXISTING field, and route the write through `/project-config`; no field fits → surface a proposed schema addition to the user instead of inventing a key — why: unknown keys only warn (`project-config-schema.cjs` unknown-key warnings), so an invented key looks applied while no consumer reads it.
 **IMPORTANT MUST ATTENTION** keep the config to FACTS — NEVER paste a narrative lesson into a config string field; the rule belongs in the matching prose reference doc.
 **IMPORTANT MUST ATTENTION** mandatory end tasks are ALWAYS: `Learn Review` → `/why-review` → `/prompt-enhance <modified-file>` (in order)
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting

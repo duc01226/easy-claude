@@ -121,7 +121,8 @@ One skill, three scope shapes. Infer the shape from what the user gave; never as
 
 ```bash
 # Time-based → boundary commits
-SINCE_DATE=$(date -d "-30 days" +%Y-%m-%d)   # Linux ( macOS: date -v-30d +%Y-%m-%d )
+SINCE_DATE=$(node -e "console.log(new Date(Date.now()-30*864e5).toISOString().slice(0,10))")   # portable (UTC): Windows Git Bash, macOS, Linux
+# Native alternatives — Linux: date -d "-30 days" +%Y-%m-%d · macOS: date -v-30d +%Y-%m-%d · Windows PowerShell: (Get-Date).AddDays(-30).ToString("yyyy-MM-dd")
 git log --since="$SINCE_DATE" --oneline --format="%H %ad %s" --date=short
 OLDEST=$(git log --since="$SINCE_DATE" --format="%H" | tail -1)
 ```

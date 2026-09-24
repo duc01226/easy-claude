@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Framework inventory:** **14 top-level hook files · 43 direct hook-library modules · 124 skills · 19 workflows · 23 agents**. Multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential thinking are documented here.
+> **Framework inventory:** **16 top-level hook files · 44 direct hook-library modules · 124 skills · 19 workflows · 23 agents**. Multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential thinking are documented here.
 
 > **Relocatable roots — read this before any path in this guide.** Diagrams, tables, and examples below name roots by ROLE ("the plans root", "the business spec root"). Each role resolves as follows:
 >
@@ -58,7 +58,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **14 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **16 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -295,7 +295,7 @@ graph LR
 > `.claude/settings.json`.
 
 ```
-HOOK SYSTEM (14 top-level .cjs hooks)
+HOOK SYSTEM (16 top-level .cjs hooks)
 │
 ├── SESSION LIFECYCLE (5 hooks)
 │   ├── verify-install.cjs ────────── Integrity preflight + guarded startup dependency install
@@ -304,13 +304,15 @@ HOOK SYSTEM (14 top-level .cjs hooks)
 │   ├── graph-session-init.cjs ───── Check Python/tree-sitter/graph.db, sync silently
 │   └── session-end.cjs ──────────── Cleanup temp/swap files, save state
 │
-├── PROMPT PROCESSING (4 hooks)
+├── PROMPT PROCESSING (6 hooks)
 │   ├── init-prompt-gate.cjs ──────── Block until project-config exists; routes
 │   │                                  /project-init when CLAUDE.md/AGENTS.md missing
 │   ├── graph-prompt-sync.cjs ─────── Reconcile the code graph with git HEAD on prompt
 │   ├── workflow-route-inject.cjs ─── Default-on, deduplicated workflow route/catalog context
-│   └── prompt-ledger.cjs ─────────── Record each user prompt; re-anchor the original
-│                                      request on SessionStart and at task checkpoints
+│   ├── prompt-ledger.cjs ─────────── Record each user prompt; re-anchor the original
+│   │                                  request on SessionStart and at task checkpoints
+│   ├── commit-skill-route.cjs ────── Advisory: a commit request → run the `commit` skill
+│   └── judgement-integrity-route.cjs  Advisory: a verdict request → judgement-integrity reminder
 │
 ├── SAFETY & BLOCKING (1 hook)
 │   └── review-commit-gate.cjs ───── Require a current review receipt before agent commits
@@ -325,9 +327,9 @@ HOOK SYSTEM (14 top-level .cjs hooks)
 │   ├── graph-auto-update.cjs ─────── Incremental graph update after edits (debounced)
 │   └── file-convention-inject.cjs ── Opt-in per-file convention reminder after reads/edits
 │
-└── SUPPORT INFRASTRUCTURE (43 lib modules)
+└── SUPPORT INFRASTRUCTURE (44 lib modules)
     ├── State: ck-session-state, workflow-state, todo-state, agent-files-state
-    ├── Context: prompt-injections, prompt-ledger-store
+    ├── Context: prompt-injections, prompt-ledger-store, prompt-route-utils
     ├── Conventions: file-conventions, convention-merge, convention-ledger, skill-protocol-overlay
     ├── Memory: swap-engine (externalize large outputs), temp-file-cleanup
     ├── Config: ck-paths, ck-config-loader, project-config-loader, project-config-schema, ck-config-utils, ck-config-schema
@@ -899,7 +901,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 ```mermaid
 graph LR
     subgraph "Generic Framework (reusable)"
-        H[14 Hook Files]
+        H[16 Hook Files]
         S[124 Skills]
         W[19 Workflows]
     end
@@ -3452,15 +3454,15 @@ sequenceDiagram
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `test-all-hooks.cjs` (primary gate)  | **130** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **668** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `run-all-tests.cjs` (full aggregate) | **743** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
 > The primary suite passes with 130 tests.
-> The full aggregate discovers 668 tests: 664 passed and 4 skipped on a clean checkout.
+> The full aggregate discovers 743 tests; 4 of them skip on host-capability or repo-state gates.
 > Both counts are checked against live totals by the runners on full runs.
 
-> Live-verified: `test-all-hooks.cjs` = 130; `run-all-tests.cjs` = 668 discovered.
+> Live-verified: `test-all-hooks.cjs` = 130; `run-all-tests.cjs` = 743 discovered.
 
-Suites under `tests/suites/` (38): agent-files-gate, agent-universal-rules, bash-hook-contract, bugfix-regression, check-subagent-routing, code-graph-storage-portability, command-inspection, content-presence, count-drift, desktop-argv, doc-impact-map, doc-stamp-guard, doc-sync-gate, docroot-relocation, emit-prompt-context, failure-log-hygiene, file-convention-inject, git-operation-lease, graph-head-staleness, init-prompt-gate, init-reference-docs, integration, lifecycle, notification, plan-naming, project-protocol-drift, prompt-ledger, protocol-text-parity, python-fallback, reference-doc-freshness, review-commit-gate, skill-protocol-overlay, standalone-scripts, swap-engine, sync-carrier-parity, windows-stdio-portability, workflow-routing-switch, workflow.
+Suites under `tests/suites/` (47): agent-files-gate, agent-universal-rules, bash-hook-contract, bugfix-regression, check-subagent-routing, ck-path-utils, code-graph-storage-portability, codex-launcher, command-inspection, commit-skill-route, content-presence, count-drift, desktop-argv, doc-impact-map, doc-stamp-guard, doc-sync-gate, docroot-relocation, emit-prompt-context, failure-log-hygiene, file-convention-inject, git-operation-lease, graph-head-staleness, init-prompt-gate, init-reference-docs, integration, judgement-integrity-route, lifecycle, notification, plan-naming, project-protocol-drift, project-reference-gate-coverage, prompt-ledger, protocol-text-parity, python-fallback, reference-doc-freshness, review-commit-gate, runner-await-contract, skill-protocol-overlay, standalone-scripts, startup-install, swap-engine, sync-carrier-parity, ui-ux-gate-inject, windows-git, windows-stdio-portability, workflow-routing-switch, workflow.
 
 Run the primary gate with `node .claude/hooks/tests/test-all-hooks.cjs`; the full aggregate with `node .claude/hooks/tests/run-all-tests.cjs`. See CLAUDE.md "Development Commands" for the full list.
 
@@ -3559,7 +3561,7 @@ flowchart TB
 ├── .ck.json ──────────── Hook-specific config
 ├── workflows.json ─────── 19 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
-├── hooks/ ─────────────── 14 top-level .cjs hooks + 43 lib modules
+├── hooks/ ─────────────── 16 top-level .cjs hooks + 44 lib modules
 │   ├── session-init.cjs
 │   ├── ...
 │   ├── lib/ ──────────── Shared modules
@@ -3885,7 +3887,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**14 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** working in concert to deliver:
+**16 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data

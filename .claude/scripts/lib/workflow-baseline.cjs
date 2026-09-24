@@ -21,6 +21,7 @@ const {
   stripApprovalPrefix,
   classifySensitivePath,
 } = require("../../hooks/lib/sensitive-path-policy.cjs");
+const { isAbsolutePathWithin: isWithin } = require("../../hooks/lib/ck-path-utils.cjs");
 
 const MAX_FILE_BYTES = 256 * 1024;
 const MAX_RUN_BYTES = 2 * 1024 * 1024;
@@ -67,11 +68,6 @@ function canonicalExisting(target) {
   } catch {
     return path.resolve(target);
   }
-}
-
-function isWithin(rootDir, target) {
-  const relative = path.relative(rootDir, target);
-  return relative === "" || (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
 }
 
 function canonicalRoot(rootDir) {

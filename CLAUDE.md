@@ -38,6 +38,7 @@
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+**Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
 
 <!-- /CK:CRITICAL-THINKING -->
 
@@ -81,7 +82,7 @@
 - **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
 - **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 - **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before deep tracing and before any verdict, sweep environment preconditions (toolchain/dependency/lockfile state, stale build or cache artifacts, env vars and config profile, service dependencies up-migrated-seeded, ports/network/clock, OS-path/locale, permissions and locks, leftover processes/containers/test data) AND transient resource pressure (RAM/OOM, CPU saturation under parallel workers, disk/temp exhaustion, handle and connection-pool limits, network flakiness, a timeout that is really slowness). Tell-tale shape: non-deterministic, timing-dependent, passes alone but fails in parallel, fails only on one machine or only on CI, or an error naming resources rather than business rules. Cite the discriminator you ran (clean environment? did code on the failing path change since it last passed? one machine or all? concurrency 1 or a clean rebuild?) — a verdict without one is a guess, for code as much as for the environment. Fix an environment cause in the environment or setup; NEVER edit product code or weaken/skip a test to absorb it, and a failure that vanishes on retry stays unexplained until its mechanism is named. — why: forcing green against an environment fault hides the real defect and permanently rots the test.
-- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral Node APIs and literal argv vectors; never infer shell, temporary-path, executable-extension, ACL, or symlink semantics from the current host. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
+- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral Node APIs and literal argv vectors; never infer shell, temporary-path, executable-extension, ACL, or symlink semantics from the current host. A documented command, entry point, or wrapper script gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>` — a single-OS example is an incomplete protocol. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- /CK:AI-MISTAKE-PREVENTION -->
@@ -114,9 +115,11 @@
 
 <!-- /SECTION:tldr -->
 
+**Goal:** ship correct, evidence-backed changes to this portable framework without leaking project specifics or bypassing a gate. Read order: `docs/project-config.json` → docs index + `lessons.md` → the [Doc Lookup](#doc-lookup--what-to-read-when) row for the task.
+
 ## Code Responsibility Hierarchy
 
-Place logic with the owner selected by the project's documented architecture. Resolve it from project config, reference docs, accepted decisions, and existing code; do not assume entity/model/service/component layers or assign mappings, constants, or display rules to a fixed type. Trace origin → failing consumer and bypass paths before fixing. Protect all consumers at one authoritative owner; never scatter symptom patches. Keep generic framework surfaces project-neutral. Apply YAGNI/KISS/DRY, justify abstractions and operational tradeoffs, and ship only code you can explain.
+Place logic with the owner selected by the project's documented architecture. Resolve it from project config, reference docs, accepted decisions, and existing code; do not assume entity/model/service/component layers or assign mappings, constants, or display rules to a fixed type — keep them with the project-owned data or contract that makes them coherent. Trace origin → failing consumer and bypass paths before fixing. Protect all consumers at one authoritative owner; never scatter symptom patches. Keep generic framework surfaces project-neutral. Apply YAGNI/KISS/DRY, justify abstractions and operational tradeoffs, and ship only code you can explain.
 
 ---
 
@@ -131,10 +134,6 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 3. **Workflow-in-workflow → sub-agent (one exception).** A step that itself activates a multi-step workflow MUST run as a sub-agent; it returns only a summary and writes full findings to `tmp/reports/`. This preserves context containment. **EXCEPTION — `workflow-review-changes`:** when it appears as a step inside ANY parent workflow (`workflow-feature`, `workflow-bugfix`, `workflow-refactor`, etc.) it MUST run INLINE in the main current session agent, NEVER as a sub-agent — its Step 0 `/goal` gate binds the session Stop hook and its step-15 re-review is inline by design; a sub-agent cannot own the Stop hook, so delegating it silently breaks the unabandonable review→fix→re-review loop. Its own step 2 and steps 4–10 reviewers stay sub-agents, so context stays bounded.
 4. **Hooks/trackers are accelerators only.** Any step-tracking hook is an optimization that may emit "next step" hints; correctness MUST NOT depend on it. Claude, Codex, and Copilot all run without a step-tracking hook and advance entirely by this rule.
 5. **Parallel sub-agent dispatch — plan it the moment a task list exists, before executing it.** Sequential-by-default is a **defect** when tasks are genuinely independent. Tag every task `PAR` (its inputs do not include another pending task's output AND its write set is disjoint from every other `PAR` task) or `SEQ` (name the specific dependency that forces it); group `PAR` tasks into **waves with disjoint write sets** (two writers of the same file never share a wave); declare it — `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`; spawn each wave's sub-agents in **ONE message** (never dripped one per turn), routed to their specialists; then honour the **all-return barrier** per wave — merge, mark each task completed/skipped, and only then dispatch the next wave. **Fan-out stays one level deep** — a dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it. Applies to workflow steps, batch/bulk updates, investigation, research, scans, reviews, and doc sync. **Plan execution is metadata-gated, not default-parallel** — its phases fan out ONLY on what the plan explicitly declares (`PAR`/`SEQ` tags plus a declared per-phase write set); an untagged plan runs sequentially. **Do NOT parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
-
----
-
-**Sections:** [TL;DR](#tldr--what-you-must-know-before-writing-any-code) | [Search First](#search-existing-code-first) | [Task Planning](#task-planning-rules) | [Code Hierarchy](#code-responsibility-hierarchy) | [Naming](#naming-conventions) | [Key Locations](#key-file-locations) | [Dev Commands](#development-commands) | [Evidence](#evidence-based-reasoning--investigation) | [Graph Intelligence](#graph-intelligence-when-code-graphgraphdb-exists) | [Skill Activation](#automatic-skill-activation)
 
 ---
 
@@ -183,62 +182,73 @@ Apply a group's rules only when the file matches at least one include matcher, m
 
 <!-- /SECTION:golden-rules -->
 
-**Architecture Rule** — Place behavior in the lowest owner defined by the project's architecture. If its config, references, or code show a different structure—or no layered structure—follow that evidence instead of assuming entity/model/service/component layers.
-
-**First Principles (Code Quality in AI Era):**
-
-1. **Understanding > Output** — Never ship code you can't explain. AI generates candidates; humans validate intent.
-2. **Design Before Mechanics** — Document WHY before WHAT. A 3-sentence rationale prevents 3-day debugging sessions.
-3. **Own Your Abstractions** — Every dependency, framework, and platform decision is YOUR responsibility.
-4. **Operational Awareness** — Code that works but can't be debugged, monitored, or rolled back is technical debt in disguise.
-5. **Depth Over Breadth** — One well-understood solution beats ten AI-generated variants.
-
-> **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
-
-<!-- SECTION:decision-quick-ref -->
-
-**Decision Quick-Ref:**
-
-| Task | Pattern |
-|---|---|
-| Backend conventions | Read `docs/project-reference/backend-patterns-reference.md` |
-| Frontend conventions | Read `docs/project-reference/frontend-patterns-reference.md` |
-
-<!-- /SECTION:decision-quick-ref -->
+**First Principles:** (1) **Understanding > Output** — never ship code you can't explain. (2) **Design before mechanics** — write WHY before WHAT. (3) **Own your abstractions** — every dependency and platform choice is yours. (4) **Operational awareness** — code that can't be debugged, monitored, or rolled back is debt. (5) **Depth over breadth** — one understood solution beats ten generated variants.
 
 ## Search Existing Code First
 
-Before writing code, you MUST grep/glob for 3+ similar examples and follow the local pattern over generic framework docs. Cite `file:line` evidence in the plan.
+MUST grep/glob 3+ similar examples before writing; follow the local pattern over framework docs; cite `file:line` in the plan — why: local conventions differ from framework defaults. Enforced by the investigate steps of Feature/Bugfix/Refactor workflows.
 
-1. Grep/Glob for similar patterns (find 3+ examples).
-2. Follow the codebase pattern; don't default to framework docs.
-3. Provide `file:line` evidence in the plan.
+### Discovery order — read BEFORE investigating, planning, coding, or answering
 
-**Why:** projects have local conventions that differ from framework defaults.
-**Enforced by:** Feature/Bugfix/Refactor workflows (investigate steps).
+1. `docs/project-config.json` — single source of truth for THIS repo: modules/paths, run-commands, design system, architecture and workflow rules. `CLAUDE.md` is generated from it; never assume framework defaults. Missing → run on portable defaults and offer `/project-init` once; skeleton or malformed → run `/project-init` or the narrow setup route first.
+2. `docs/project-reference/docs-index-reference.md` (keyword → doc routing) + `lessons.md` (learned guardrails) — before any non-trivial task.
+3. The matching [Doc Lookup](#doc-lookup--what-to-read-when) row for a question or task; the Path → Reference Doc row below before editing a path. Answer project questions from the doc you read and cite it; `/project-help` for how the framework works. NEVER answer project-specific questions from memory or framework defaults — why: generic answers silently contradict local config.
 
-### Read `docs/project-config.json` first — the project's machine-readable map
-
-It is the single source of truth describing THIS repo: modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, and workflow patterns. Consult its content to ground exact paths, run-commands, conventions, and rules **before investigating, planning, or coding** — never assume framework defaults. (`docs/project-config.json` + the reference docs below are what `CLAUDE.md` is generated from; read the config directly whenever you need precise paths, commands, or rules. If it is missing or still a skeleton, run `/project-init` or the narrow setup route first.)
+**Writing a doc an agent reads** (this file, its template, reference docs, docs index, `lessons.md`): keep it discoverable — purpose and critical rules first, closing reminders last when long, every pointer to another doc as `read <path> when <situation>` to a file that exists, routed from Doc Lookup or the docs index. The doc-writing skills end with this gate (`SYNC:ai-discovery-doc-quality`).
 
 ### Path → Reference Doc (read BEFORE editing the matched path)
 
-Unprefixed filenames below resolve inside the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Feature specs resolve inside the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
+Unprefixed filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` overrides); specs under the business spec root (default `docs/specs`; `specRoots.business.path` overrides), both in `docs/project-config.json`.
 
-| Edited path                                    | Read first                                                                                                                                                                                                      |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend / `.cs` (commands, handlers, repos)    | `backend-patterns-reference.md` — CQRS, validation, entity events                                                                                                                                               |
-| Frontend / UI components, stores               | `frontend-patterns-reference.md` — base classes, store, reactive effects                                                                                                                                        |
-| Integration tests                              | `integration-test-reference.md` — subcutaneous CQRS, real DI, no mocks                                                                                                                                          |
-| E2E tests                                      | `e2e-test-reference.md` — Page Object, BDD conventions                                                                                                                                                          |
-| Feature specs (business spec root)             | `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`                                                                                                                                 |
-| SCSS / style files                             | SCSS guide — BEM on all elements, no magic numbers, max 3 nesting levels                                                                                                                                        |
-| Any user-facing UI surface (new or reshaped)   | `.claude/docs/design-knowledge.md` — `DD-1`–`DD-8`: subject grounding, design plan + generic test, the generated-design tell catalog, typography/structure/motion, restraint & critique                         |
-| Reviewing / planning / building front-end work | `.claude/docs/design-review-checklist.md` — `CL-1`–`CL-6` + the `A1`…`Q` catalog: context gate, evidence rules, `P0`–`P4` severity, §A–§N sweep (§F/§G/§H, §L conditional), §O report shape, §P 10-check triage |
+| Edited path                                                                     | Read first                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hooks `.claude/hooks/**/*.cjs`, shared libs `.claude/hooks/lib/`                | `.claude/docs/hooks/README.md` — lifecycle events, hook inventory and roles                                                                                                                                     |
+| Skills `.claude/skills/**/SKILL.md`                                             | `.claude/docs/skills/README.md` + `.claude/docs/skill-naming-conventions.md`                                                                                                                                    |
+| Agents `.claude/agents/*.md`                                                    | `.claude/docs/agents/agent-patterns.md`                                                                                                                                                                         |
+| Scripts, generators, verifiers `.claude/scripts/**`                             | `.claude/docs/framework-portability.md` — config-resolved roots, no project residue                                                                                                                             |
+| Workflows `.claude/workflows.json`, `.claude/settings.json`, `.claude/.ck.json` | `.claude/docs/README.md` (framework doc map) + `.claude/docs/configuration/README.md`                                                                                                                           |
+| Root context `CLAUDE.md`, its template, `AGENTS.md`                             | `.claude/skills/ai-context-refresh/SKILL.md` — `SECTION:*` blocks are generated from `docs/project-config.json`; `AGENTS.md` is a generated projection, never hand-edited                                       |
+| Tests `*.test.cjs`, `*.test.mjs`                                                | `integration-test-reference.md` — real hook/process boundaries, Given/When/Then, isolated temp state, full run twice                                                                                            |
+| Feature specs (business spec root)                                              | `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`                                                                                                                                 |
+| Any user-facing UI surface (new or reshaped)                                    | `.claude/docs/design-knowledge.md` — `DD-1`–`DD-8`: subject grounding, design plan + generic test, the generated-design tell catalog, typography/structure/motion, restraint & critique                         |
+| Reviewing / planning / building front-end work                                  | `.claude/docs/design-review-checklist.md` — `CL-1`–`CL-6` + the `A1`…`Q` catalog: context gate, evidence rules, `P0`–`P4` severity, §A–§N sweep (§F/§G/§H, §L conditional), §O report shape, §P 10-check triage |
 
-> **[ROOT-CAUSE-FIX]** Fix at the correct layer (Entity > Service > Handler) — never patch symptoms.
+**By task phase** (read before the phase's first target read; only docs selected in `referenceDocs` that exist, skipping any Doc Lookup marks N/A): plan / investigate / design → `project-structure-reference.md`, `domain-entities-reference.md` + the edit-row docs above for every file type the plan touches · edit code → `code-review-rules.md` + the matching row above · tests or test data → `integration-test-reference.md` / `e2e-test-reference.md` / `seed-test-data-reference.md` · specs or docs → the spec row above (+ `workflow-spec-test-code-cycle-reference.md` for spec-test-code sync) · review → `code-review-rules.md` + the rows for every file type under review. **Dedup:** a doc whose full content your own read returned to this context after the last compaction and within ~200K tokens, and that has not changed since, counts as loaded — cite `(loaded)`, don't re-read; hook reminders, summaries and prior mentions never count. A delegated sub-agent starts empty: name the resolved doc paths in its brief. Canonical gate: `SYNC:project-reference-docs-guide`.
+
+> **[ROOT-CAUSE-FIX]** Fix at the owner of the violated invariant ([Code Responsibility Hierarchy](#code-responsibility-hierarchy)) — never patch symptoms.
 
 ---
+
+## Doc Lookup — What to Read When
+
+<!-- SECTION:doc-lookup -->
+
+Match the question or task to a row and read that doc before answering, planning, or editing; every row names a file or folder that exists in this repo.
+
+| If user prompt mentions... | Read first |
+|---|---|
+| Any project question or task — start here: paths, commands, modules, conventions | `docs/project-config.json` |
+| Where a topic is documented — keyword-to-doc routing | `docs/project-reference/docs-index-reference.md` |
+| Any non-trivial task — learned project guardrails | `docs/project-reference/lessons.md` |
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
+| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
+| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
+| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Where code lives, modules, stack, setup — before planning or investigating. Holds: Project directory structure and module overview | `docs/project-reference/project-structure-reference.md` |
+| Seeding or reviewing development/test data. Holds: Seed test data patterns: idempotent seeder architecture, DI scope safety, command dispatch, and config-driven counts | `docs/project-reference/seed-test-data-reference.md` |
+| Writing, fixing, or reviewing integration tests. Holds: Integration test patterns and conventions | `docs/project-reference/integration-test-reference.md` |
+| Before editing or reviewing code — rules, anti-patterns, checklists. Holds: Code review checklist and rules | `docs/project-reference/code-review-rules.md` |
+| A saved project prompt, playbook, or runbook may apply (`/custom-prompt`). Holds: Index of project-specific custom prompts (name, description, triggers) — managed by the /custom-prompt skill | `docs/project-reference/custom-prompts-reference.md` |
+| Before running any skill — project overlays layered on it. Holds: Index of project protocol overlays layered onto framework skills (target, scope, description) — written and managed via the /project-skill-protocol skill | `docs/project-reference/skill-protocols-reference.md` |
+| UI design — tokens, components, app-to-doc map. Holds: Design system index: app-to-doc mapping, design tokens overview, component inventory | `docs/project-reference/design-system/README.md` |
+| Domain concepts, entities, relationships, data ownership — before planning or design. Holds: Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module | `docs/project-reference/domain-entities-reference.md` |
+| Why the architecture or a convention is the way it is — accepted decisions and trade-offs | `docs/adr/` |
+| How the AI framework works — hooks, skills, agents, workflows, config (or run `/project-help`) | `.claude/docs/README.md` |
+| Framework rules, or why a hook blocked or warned | `.claude/docs/development-rules.md` + `.claude/docs/troubleshooting.md` |
+
+Declared not applicable in `referenceDocs` (skip unless the project adds that stack): `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `e2e-test-reference.md`.
+
+<!-- /SECTION:doc-lookup -->
 
 ## First Action Decision (before any tool call)
 
@@ -260,12 +270,6 @@ Unprefixed filenames below resolve inside the project-reference docs root — de
 ## Generated Artifact Storage
 
 Store disposable generated output in the project workspace. Treat it as disposable unless its owning contract explicitly declares it a source-of-truth or an intentionally versioned projection. Write temporary state, integration/E2E test results, reports, logs, screenshots, traces, videos, coverage, dumps, candidate evidence, and any other reproducible non-source output under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. The project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Do not place disposable output in source, docs, the plans root, the team artifacts root, or generated mirror directories; committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned mirrors remain at their declared owner paths.
-
----
-
-## Code Responsibility
-
-Resolve architecture from `docs/project-config.json`, project-reference docs, accepted decisions, and existing code. Put each invariant and behavior where its documented owner can protect the relevant consumers with appropriate coupling. When the project has no layered architecture, do not invent entity/model/service/component layers. Keep mapping, transformation, display, and constants with the project-owned data or contract that makes them coherent.
 
 ---
 
@@ -311,7 +315,7 @@ node .claude/hooks/tests/run-all-tests.cjs    # all suites
 
 <!-- SECTION:e2e-testing -->
 
-Full guide: [e2e-test-reference.md](docs/project-reference/e2e-test-reference.md) for E2E test patterns, test organization, and execution configuration.
+No E2E guide applies: `e2e-test-reference.md` is declared not applicable in `referenceDocs` (skip unless the project adds that stack).
 
 <!-- /SECTION:e2e-testing -->
 
@@ -325,7 +329,7 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 
 ## Evidence-Based Reasoning & Investigation
 
-Don't speculate. Every claim about code behavior — and every recommendation for changes — must be backed by evidence.
+Back every claim about behavior and every recommended change with evidence — never speculate.
 
 ### Core Rules
 
@@ -364,17 +368,17 @@ Add a final task — "Analyze AI mistakes & lessons learned" — to every non-tr
 
 ## Git & Version-Control Discipline
 
-> **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** On a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without any block.
+> **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** Claude and Codex run `review-commit-gate.cjs`; on a host without hooks (Copilot) or an un-wired project this section is the ONLY guardrail — obey it without any block.
 >
 > **Only ONE rule here is hook-enforced.** `review-commit-gate.cjs` blocks an agent `git commit` whose changeset has neither a review fix-loop receipt nor a user-approved skip (rules 2 and 7), and fails closed on any statement it cannot parse that places `commit` right after `git` — even a read-only one (rephrase such text or write it with a file tool); it ignores every other git statement. Destructive-git mechanical gating was removed by explicit user decision (`.claude/docs/development-rules.md`): no hook blocks `reset --hard`, `clean -f`, `checkout -- <path>`, a force push, or a `gh`/GitHub-MCP write. Only the literal `permissions.ask` patterns in `.claude/settings.json` still prompt (`ask` prompts even under `bypassPermissions`), and a destructive spelling outside that literal set runs without one. Every other rule is **model-behavioral** — obeying it is your responsibility on every host. A command being allowed is NEVER evidence you were asked to run it.
 
-1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. _(**Model-behavioral** — the hook deliberately does NOT block these; only `git push` also hits a `permissions.ask` prompt. They are recoverable, and gating them made the correct workflow harder to reach than the destructive one. Nothing catches this but you.)_
+1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. _(**Model-behavioral** — the hook deliberately does NOT block these, and the default settings allow-list `git push`: only the literal `git push --force`/`-f` prefixes still hit a `permissions.ask` prompt, so a trailing `--force`, a `+<ref>`, `--delete` or `--mirror` push runs unprompted. They are recoverable, and gating them made the correct workflow harder to reach than the destructive one. Nothing catches this but you.)_
 2. **Amend is a commit — gated like one.** `git commit --amend` and `git reset --soft HEAD~1` + `git commit` produce the same commit, so both follow the same rules: only on an explicit amend request (a plain commit request makes a new commit), and never on a commit that is already pushed or that this task did not create (either path rewrites it). `review-commit-gate.cjs` gates an amend by a review receipt over the amended commit's candidate measured against HEAD's parent; the `commit` skill passes `"amend":true` in the commit descriptor. Amending a merge commit fails closed. _(Authority is model-behavioral; the review is hook-enforced. The replaced commit stays in the reflog, so neither path is irreversible.)_
 3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. _(**Model-behavioral** — the hook has no branch awareness and will not stop a commit on `main`. Nothing catches this but you.)_
 4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`. _(Model-behavioral permission note.)_
 5. **Never run a command that can destroy uncommitted work.** Unstaged edits and untracked files exist in exactly one place — the working tree. `git checkout -- <path>`, `git restore <path>`, `git reset --hard`, `git clean -f`, `git switch --discard-changes` and `git stash drop` erase the only copy that ever existed. _(**Model-behavioral** — no hook blocks these; only some literal spellings hit a `permissions.ask` prompt. Ask before running one; there is nothing to undo it with.)_
 6. **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request rule 1 demands. The MCP tools (`mcp__github__merge_pull_request`, `create_*`, `update_*`, `push_files`, …) reach the same remote without a shell and need it too; only `get_*`/`list_*`/`search_*` are reads. _(**Model-behavioral** — no hook gates any `gh` or GitHub-MCP write.)_
-7. **Commit through the `commit` skill — NEVER a raw ad-hoc `git commit` from the agent.** The skill stages, derives the estimate, runs the test-verify gate, runs the review-before-commit gate, and mints the review receipt. `review-commit-gate.cjs` blocks an agent `git commit` whose changeset has no review fix-loop receipt — `changes-review --fix-loop`, `why-review --fix-loop`, or `workflow-review-changes --fix-loop` — and no user-approved `skip`; a raw commit therefore both skips the review and is refused. Each fix-loop mints a receipt over the exact changeset it converged on, and any content edit after the review invalidates it. The user may always run git themselves or approve a skip; the agent's path is the skill. _(Hook-enforced by `review-commit-gate.cjs`; the receipt is bounded bookkeeping, not consent.)_
+7. **Commit through the `commit` skill — NEVER a raw ad-hoc `git commit` from the agent.** The skill stages, derives the estimate, runs the test-verify gate, runs the review-before-commit gate, and mints the review receipt. `review-commit-gate.cjs` blocks an agent `git commit` whose changeset has no review fix-loop receipt — `changes-review --fix-loop`, `why-review --fix-loop`, or `workflow-review-changes --fix-loop` — and no user-approved `skip`; a raw commit therefore both skips the review and is refused. Each fix-loop mints a receipt over the exact changeset it converged on, and any content edit after the review invalidates it. The user may always run git themselves or approve a skip; the agent's path is the skill. When a prompt asks to commit, `commit-skill-route.cjs` (UserPromptSubmit, mirrored to Codex and OpenCode) injects a reminder to run the skill — `$commit` on Codex. _(Hook-enforced by `review-commit-gate.cjs`; the receipt is bounded bookkeeping, not consent.)_
 
 **Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history, so it stays gated on explicit human intent on every host. That gate is **behavioral, not mechanical** — a deliberate trade: the only mechanical check left is the review receipt on a commit (rule 7). Read every rule as binding on YOU, not on a hook.
 
@@ -450,11 +454,11 @@ When editing files matching these path patterns, pre-read the listed context fir
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
 | Skills      | <!-- COUNT:skills -->124<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->14<!-- /COUNT -->       |
+| Hooks       | <!-- COUNT:hooks -->16<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->23<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->10<!-- /COUNT -->      |
-| Lib modules | <!-- COUNT:lib-modules -->43<!-- /COUNT --> |
+| Lib modules | <!-- COUNT:lib-modules -->44<!-- /COUNT --> |
 
 ---
 
@@ -464,21 +468,19 @@ When editing files matching these path patterns, pre-read the listed context fir
 docs/adr/  (3 files)
 docs/project-reference/  (18 files)
 docs/release/  (1 files)
-docs/specs/  (3 files)
+docs/specs/  (5 files)
 docs/templates/  (1 files)
 ```
 
 <!-- /SECTION:doc-index -->
 
-<!-- SECTION:doc-lookup -->
+---
 
-| If user prompt mentions... | Read first |
-|---|---|
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
-| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
-| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
-| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
-| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
+## Closing Reminders
 
-<!-- /SECTION:doc-lookup -->
+**IMPORTANT MUST ATTENTION Goal:** ship correct, evidence-backed changes to this portable framework without leaking project specifics or bypassing a gate.
+
+- **MUST ATTENTION** route first (workflow gate at the top of this file), then read before acting: `docs/project-config.json` → docs index + `lessons.md` → the [Doc Lookup](#doc-lookup--what-to-read-when) / Path → Reference Doc row. NEVER answer or edit from memory — why: local config overrides framework defaults.
+- **MUST ATTENTION** cite `file:line` for every claim; >80% confidence to act; investigate root cause before any fix and adjudicate a failed test before editing either side.
+- **MUST ATTENTION** edit `.claude/**` and `CLAUDE.md` sources, never generated mirrors (`AGENTS.md`, `.agents/`, `.codex/`, `.opencode/`); regenerate and verify every affected output.
+- **NEVER** commit, push, stage, or run a destructive git command without an explicit user request — commit only through the `commit` skill.

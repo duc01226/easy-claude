@@ -49,11 +49,11 @@ Source: `.claude/hooks/lib/workflow-state.cjs:54-64`.
 
 ## CQRS Patterns
 
-Traditional CQRS, command/query handlers, controllers, pagination, projection, and HTTP result wrappers: **N/A**. Actual request path: `.claude/settings.json` event matcher → hook process stdin → parser/handler or direct security gate → stdout/stderr → exit code (`.claude/settings.json:32-209`, `.claude/hooks/lib/stdin-parser.cjs:78-91`). `runHook` executes one supplied handler; it is not a CQRS dispatcher (`.claude/hooks/lib/hook-runner.cjs:65-92`).
+Traditional CQRS, command/query handlers, controllers, pagination, projection, and HTTP result wrappers: **N/A**. Actual request path: `.claude/settings.json` event matcher → hook process stdin → parser/handler or direct security gate → stdout/stderr → exit code (`.claude/settings.json:32-234`, `.claude/hooks/lib/stdin-parser.cjs:78-91`). `runHook` executes one supplied handler; it is not a CQRS dispatcher (`.claude/hooks/lib/hook-runner.cjs:292-335`).
 
 ## Validation Patterns
 
-Reusable validator contract: `{ allowed, message? }`; `runBlockingHook` rejection writes stderr and sets exit code `2`, then returns so queued output drains. Its success/error/timeout contract remains fail-open `0` (`.claude/hooks/lib/hook-runner.cjs:345-384`). Registered security gates may own an explicitly tested deny-closed transport policy, but command-bearing consumers use the pure bounded inspection/policy helpers before applying an exit decision (`.claude/hooks/lib/command-inspection.cjs`, `.claude/hooks/lib/git-statement.cjs`, `.claude/hooks/review-commit-gate.cjs:25-28,288-335`). The rejection branch inside the runner is:
+Reusable validator contract: `{ allowed, message? }`; `runBlockingHook` rejection writes stderr and sets exit code `2`, then returns so queued output drains. Its success/error/timeout contract remains fail-open `0` (`.claude/hooks/lib/hook-runner.cjs:386-425`). Registered security gates may own an explicitly tested deny-closed transport policy, but command-bearing consumers use the pure bounded inspection/policy helpers before applying an exit decision (`.claude/hooks/lib/command-inspection.cjs`, `.claude/hooks/lib/git-statement.cjs`, `.claude/hooks/review-commit-gate.cjs:25-28,288-336`). The rejection branch inside the runner is:
 
 ```js
 if (result && result.allowed === false) {
@@ -66,7 +66,7 @@ if (result && result.allowed === false) {
 }
 ```
 
-Source: `.claude/hooks/lib/hook-runner.cjs:367-374`. Do not replace the drained return with immediate `process.exit(2)` after writing a diagnostic.
+Source: `.claude/hooks/lib/hook-runner.cjs:408-415`. Do not replace the drained return with immediate `process.exit(2)` after writing a diagnostic.
 
 ## Entity Patterns
 
@@ -78,15 +78,15 @@ Transport DTO layer: **N/A**. `parseHookEvent` owns raw snake-case event normali
 
 ## Event Handlers
 
-Events are Claude lifecycle contracts, not domain/integration events: `Notification`, `PostToolUse`, `PreToolUse`, `SessionEnd`, `SessionStart`, `Stop`, and `UserPromptSubmit` (`.claude/settings.json:32-209`). Handlers are short-lived Node processes; wrapper handlers may be sync/async and default to a 15-second fail-open timeout (`.claude/hooks/lib/hook-runner.cjs:26-92`).
+Events are Claude lifecycle contracts, not domain/integration events: `Notification`, `PostToolUse`, `PreToolUse`, `SessionEnd`, `SessionStart`, `Stop`, and `UserPromptSubmit` (`.claude/settings.json:32-234`). Handlers are short-lived Node processes; wrapper handlers may be sync/async and default to a 15-second fail-open timeout (`.claude/hooks/lib/hook-runner.cjs:33,292-335`).
 
 ## Message Bus
 
-Message bus/publisher/consumer convention: **N/A** (`docs/project-config.json:149-152`). Notifications are the only external side-effect channel: desktop plus configured Telegram/Discord/Slack providers. Desktop failures are isolated; external-provider failures are isolated and throttled (`.claude/hooks/notifications/notify.cjs:130-216`, `.claude/hooks/notifications/lib/sender.cjs:88-125`).
+Message bus/publisher/consumer convention: **N/A** (`docs/project-config.json:149-152`). Notifications are the only external side-effect channel: desktop plus configured Telegram/Discord/Slack providers. Desktop failures are isolated; external-provider failures are isolated and throttled (`.claude/hooks/notifications/notify.cjs:224-255`, `.claude/hooks/notifications/lib/sender.cjs:93-135`).
 
 ## DI & Configuration
 
-DI container/lifetimes: **N/A**. Configuration uses JSON registration and focused CommonJS imports: hook commands/matchers in `.claude/settings.json:32-209`; project module/config map in `docs/project-config.json:23-148`; cached config queries in `.claude/hooks/lib/project-config-loader.cjs:53-69` and `:227-243`.
+DI container/lifetimes: **N/A**. Configuration uses JSON registration and focused CommonJS imports: hook commands/matchers in `.claude/settings.json:32-234`; project module/config map in `docs/project-config.json:23-148`; cached config queries in `.claude/hooks/lib/project-config-loader.cjs:53-69` and `:227-243`.
 
 ## Migrations
 
@@ -94,15 +94,15 @@ Database/schema migrations: **N/A**. No database or ORM configured (`docs/projec
 
 ## Background Jobs
 
-Scheduler/recurring job framework: **N/A**. Hooks run only for registered lifecycle events. Notification sends are awaited sequentially and always fail open; they are not queued jobs (`.claude/hooks/notifications/notify.cjs:130-216`).
+Scheduler/recurring job framework: **N/A**. Hooks run only for registered lifecycle events. Notification sends are dispatched concurrently to every enabled provider — a slow channel cannot hold back the others inside the 3-second SessionEnd hook budget — and always fail open; they are not queued jobs (`.claude/hooks/notifications/notify.cjs:244-289`).
 
 ## Authorization
 
-No identity/role/policy layer. Operation authorization lives at static permissions and the `PreToolUse` Bash matcher, where `review-commit-gate` blocks an agent `git commit` whose changeset lacks a review or user-approved skip receipt and ignores every non-commit statement (`.claude/settings.json:84-96`, `.claude/settings.json:220-277`, `.claude/hooks/review-commit-gate.cjs:288-327`). Session Git leases (`.claude/hooks/lib/git-operation-lease.cjs`) are bounded bookkeeping rather than user consent or native host permission; no registered hook consumes them.
+No identity/role/policy layer. Operation authorization lives at static permissions and the `PreToolUse` Bash matcher, where `review-commit-gate` blocks an agent `git commit` whose changeset lacks a review or user-approved skip receipt and ignores every non-commit statement (`.claude/settings.json:84-96`, `.claude/settings.json:245-301`, `.claude/hooks/review-commit-gate.cjs:288-327`). Session Git leases (`.claude/hooks/lib/git-operation-lease.cjs`) are bounded bookkeeping rather than user consent or native host permission; no registered hook consumes them.
 
 ## Anti-Patterns
 
-No violation exceeded the 80% evidence threshold. Direct security gates and reusable `runBlockingHook` coexist in current source; non-adoption alone does not prove a defect (`.claude/hooks/lib/hook-runner.cjs:135-181`, `.claude/settings.json:64-130`). Do not force a wrapper refactor without a demonstrated correctness, cleanup, or configuration failure.
+No violation exceeded the 80% evidence threshold. Direct security gates and reusable `runBlockingHook` coexist in current source; non-adoption alone does not prove a defect (`.claude/hooks/lib/hook-runner.cjs:241-258,386-425`, `.claude/settings.json:64-139`). Do not force a wrapper refactor without a demonstrated correctness, cleanup, or configuration failure.
 
 ## Closing Reminders
 

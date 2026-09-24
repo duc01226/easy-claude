@@ -24,6 +24,7 @@
 const fs = require('fs');
 const path = require('path');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
+const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const {
     isConfigPopulated: _isConfigPopulated,
     getProjectConfigStatus,
@@ -612,6 +613,7 @@ module.exports = {
     handleProtocolOverlayGate
 };
 
-if (require.main === module) {
+// Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).
+if (isHookEntryPoint(module)) {
     main();
 }

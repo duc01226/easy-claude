@@ -11,6 +11,7 @@ Create award-quality designs with storytelling, 3D experiences, and micro-intera
 Run comprehensive `design` design-intelligence searches:
 
 ```bash
+# Windows: py -3 · macOS/Linux: python3 (same arguments)
 py -3 .claude/skills/design/scripts/search.py "<product-type>" --domain product
 py -3 .claude/skills/design/scripts/search.py "<style-keywords>" --domain style
 py -3 .claude/skills/design/scripts/search.py "<mood>" --domain typography

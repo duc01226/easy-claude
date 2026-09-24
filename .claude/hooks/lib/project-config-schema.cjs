@@ -611,7 +611,8 @@ const SCHEMA = {
             purpose: { type: 'string', required: true },
             sections: { type: 'array', required: false },
             templatePath: { type: 'string', required: false },
-            scanTarget: { type: 'string', required: false, describe: 'Optional custom-doc owner: generic for an evidence-based scan, manual for curated project ownership. Built-in docs keep their framework-owned target.' }
+            scanTarget: { type: 'string', required: false, describe: 'Optional custom-doc owner: generic for an evidence-based scan, manual for curated project ownership. Built-in docs keep their framework-owned target.' },
+            notApplicable: { type: 'boolean', required: false, describe: 'True when this stack/doc does not apply to the project; generated root context names it once as N/A and never routes agents to it. A purpose that starts with, or parenthesizes, "N/A" / "Not applicable" is read the same way.' }
         }
     },
     graphConnectors: {
@@ -1385,6 +1386,31 @@ function validateDocsRootsSemantics(config, errors, warnings) {
 }
 
 /**
+ * specRoots path semantics — reject declared content roots that escape the
+ * repository. Runtime accessors remain fail-soft and resolve such values to
+ * their documented defaults; config validation is the fail-closed plane.
+ *
+ * @param {object} config - The parsed project-config.json
+ * @param {string[]} errors - Error sink
+ */
+function validateSpecRootsSemantics(config, errors) {
+    const roots = config.specRoots;
+    if (!roots || typeof roots !== 'object' || Array.isArray(roots)) return;
+    const deps = semanticDeps();
+    if (!deps) return;
+
+    for (const key of Object.keys(SCHEMA.specRoots.properties)) {
+        const entry = roots[key];
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+        const value = entry.path;
+        if (typeof value !== 'string' || !value.trim()) continue;
+        if (deps.pathUtils.escapesRepoRoot(value)) {
+            errors.push(`specRoots.${key}.path: "${value}" escapes the repository root (absolute path or ".." segment)`);
+        }
+    }
+}
+
+/**
  * Validate the optional native spec profile using its closed owner schema.
  * Lazy loading keeps VM-based schema mutation tests and hook startup fail-soft.
  */
@@ -1508,6 +1534,7 @@ function validateConfig(config) {
     validateConventionInjectionSemantics(config, errors);
     validateSpecArtifactProfileSemantics(config, errors);
     validateDocsRootsSemantics(config, errors, warnings);
+    validateSpecRootsSemantics(config, errors);
     validatePortabilitySemantics(config, errors, warnings);
 
     // Check for unknown top-level keys

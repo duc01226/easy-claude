@@ -2,7 +2,7 @@
 /**
  * SessionEnd Hook - Cleanup on session end
  *
- * Fires: When session ends (clear, compact, user exit)
+ * Fires: For the SessionEnd reasons selected by the host's hook settings
  * Purpose: Clean up tmpclaude temp/swap files and stale snapshots on session end
  *
  * Exit Codes:

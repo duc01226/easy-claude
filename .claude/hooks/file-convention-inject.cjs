@@ -28,7 +28,6 @@
  */
 
 const fs = require('fs');
-const path = require('path');
 
 const HOOK_NAME = 'file-convention-inject';
 const MAX_INPUT_BYTES = 1024 * 1024;
@@ -341,17 +340,8 @@ function run(input, deps = {}) {
 // caller would be a second, ungated entry point into the delivery store.
 module.exports = { run, readInput, HOOK_NAME, TRIGGER_TOOLS };
 
-function isEntryPoint() {
-    if (require.main === module) return true;
-    if (require.main) return false;
-    // Codex launcher: `node -e "…require(path.join(root, hookPath))" -- <hookPath>` (require.main undefined).
-    const invoked = path.resolve(process.argv[1] || '');
-    return process.platform === 'win32'
-        ? invoked.toLowerCase() === __filename.toLowerCase()
-        : invoked === __filename;
-}
-
-if (isEntryPoint()) {
+// Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).
+if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
     process.exitCode = 0;
     const input = readInput();
     if (input) {

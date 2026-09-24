@@ -113,6 +113,14 @@ const HOOKS = {
         }
       ],
       "matcher": "clear|exit|compact"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/notifications/notify.cjs"
+        }
+      ]
     }
   ],
   "SessionStart": [
@@ -203,6 +211,22 @@ const HOOKS = {
         {
           "type": "command",
           "command": ".claude/hooks/workflow-route-inject.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/commit-skill-route.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/judgement-integrity-route.cjs"
         }
       ]
     },
@@ -410,7 +434,17 @@ async function runEventHooks(root, eventName, { matcher, payload } = {}) {
         if (result.stderr.trim()) outcome.denyReason = result.stderr.trim();
       }
       const parsed = parseJsonOutput(result.stdout);
-      const specific = parsed && typeof parsed === "object" ? parsed.hookSpecificOutput : null;
+      const isHookObject = parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
+      if (!isHookObject) {
+        // Claude Code adds the plain-text stdout of an exit-0 UserPromptSubmit hook
+        // to the prompt context; only JSON objects are hook-control output.
+        if (eventName === "UserPromptSubmit" && result.code === 0) {
+          const text = typeof result.stdout === "string" ? result.stdout.trim() : "";
+          if (text) outcome.contexts.push(text);
+        }
+        continue;
+      }
+      const specific = parsed.hookSpecificOutput;
       if (!specific || typeof specific !== "object") continue;
       if (specific.permissionDecision === "deny") {
         outcome.code = 2;
@@ -473,9 +507,16 @@ export const EasyClaudeHooks = async (input) => {
         case "session.deleted": {
           startedSessions.delete(sessionKey(sessionID));
           sessionStartContext.delete(sessionKey(sessionID));
-          const result = await runEventHooks(root, "SessionEnd", {
-            payload: { hook_event_name: "SessionEnd", reason: "exit", session_id: sessionID, cwd: seed },
-          });
+          // Every ended session is forwarded so per-session cleanup hooks always run; only the
+          // main-session alert depends on knowing which conversation ended. OpenCode includes
+          // SessionInfo on session.deleted, and parentID marks a delegated session: carry it as
+          // agent_id, the same marker Claude puts on a subagent event. Without SessionInfo the
+          // kind is unknown, so mark it and let the notification router withhold the alert.
+          const sessionInfo = props.info && typeof props.info === "object" ? props.info : null;
+          const payload = { hook_event_name: "SessionEnd", reason: "exit", session_id: sessionID, cwd: seed };
+          if (!sessionInfo) payload.conversation_kind = "unknown";
+          else if (sessionInfo.parentID) payload.agent_id = sessionID;
+          const result = await runEventHooks(root, "SessionEnd", { payload });
           warn("SessionEnd", result);
           break;
         }
@@ -523,6 +564,9 @@ export const EasyClaudeHooks = async (input) => {
           hook_event_name: "PreToolUse",
           tool_name: names[0] || tool,
           tool_input: toClaudeToolInput(tool, output && output.args),
+          // The question tool emits question.asked once it is waiting for an
+          // answer. Defer its PreToolUse notification so users get one alert.
+          notification_deferred: tool === "question",
           session_id: hookInput && hookInput.sessionID,
           cwd: seed,
         },

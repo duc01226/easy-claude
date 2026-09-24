@@ -27,18 +27,24 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 
 **Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
 
-**Situation-based docs:**
+**Situation-based docs** (pick by the phase you are about to enter — plan/investigate, edit, test, spec/doc, review — and read only docs the project selects in `referenceDocs` that exist):
+- Planning, investigation, or design: `project-structure-reference.md`, `domain-entities-reference.md`, plus the docs below for every file type the plan touches
+- Editing or writing code: `code-review-rules.md` plus the backend or frontend docs below for the file type
 - Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
-- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `configured styling reference`, `design-system/README.md`
+- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md` (or the configured styling reference), `design-system/README.md`
 - Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
 - Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
 - Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
-- Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
+- Test-data seeders: `seed-test-data-reference.md`
+- Code review/audit work: `code-review-rules.md` plus the docs above for every file type under review
+- Per-file conventions (`contextGroups[]`): before editing an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`
 
-Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
+**Dedup:** a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens, and it has not changed since — cite it `(loaded)` instead of re-reading. A hook reminder, a summary, or a prior mention never counts; a delegated sub-agent starts empty, so name the resolved doc paths in its brief.
+
+Never read all docs blindly: route from `docs-index-reference.md` and open only what the task needs.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 > **[IMPORTANT]** Create complete task plan before shell checks, scans, generators, edits, or skill calls.
@@ -62,8 +68,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 3. **Bootstrap** - Require the configured config file with non-empty `project.name`; derive optional properties only from evidence.
 4. **Select Context Work** - Ensure always-on `lessons.md` and `docs-index-reference.md` independently of task-specific `referenceDocs`; run only applicable selected/evidenced scans.
 5. **Spec Work** - For selected spec work, preserve a valid native `specArtifacts` profile or use the strict TC/Section-8 default when absent. Select the spec workflow only when canonical specs exist or accepted capability scope is available.
-6. **Review** - Run `$changes-review`, then `$why-review` after setup changes and selected scan/spec work are complete.
-7. **Verify** - Validate the required config, declared optional sections, changed docs, selected workflow outcomes, and generated mirrors that apply to this host.
+6. **Review** - Run the AI-discovery gate across the whole doc set (root context → docs index → every created or changed doc; Phase 4) so its fixes are reviewed, then `$changes-review`, then `$why-review` after setup changes and selected scan/spec work are complete.
+7. **Verify** - Validate the required config, declared optional sections, changed docs, selected workflow outcomes, and generated mirrors that apply to this host; re-run the AI-discovery gate only on a doc verification changed.
 8. **Graph Refresh** - Run `$graph-build` in a background sub-agent only when graph tooling is available and the project/task needs graph coverage; otherwise record an evidence-backed skip.
 9. **Report** - List completed actions, evidence-backed skips, blockers, and remaining manual steps.
 
@@ -164,13 +170,14 @@ Minimum required task rows:
 8. Run `$ai-context-refresh` when root instructions are missing or stale; otherwise record the verified state.
 9. Resolve Codex mirrors through the completed `$ai-context-refresh` handoff only when Codex context is present or requested.
 10. Configure or review `experienceVerification` only for evidenced observable surfaces; do not invent surface commands or baselines.
-11. Call `$changes-review` after selected setup/scan/spec work.
-12. Call `$why-review` after `$changes-review`.
-13. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
-14. Spawn `Spawn background $graph-build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
-15. Record the graph sub-agent outcome or skip reason.
-16. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, reviews, verification, graph outcome/skip, and remaining actions.
-17. Analyze AI mistakes and reusable lessons.
+11. Run the AI-discovery gate (`SYNC:ai-discovery-doc-quality`, Phase 4 doc-set check) on every doc this run created or changed plus the root instruction file and the docs index; route each failure to its owner fix before the reviews.
+12. Call `$changes-review` after selected setup/scan/spec work.
+13. Call `$why-review` after `$changes-review`.
+14. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
+15. Spawn `Spawn background $graph-build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
+16. Record the graph sub-agent outcome or skip reason.
+17. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, reviews, verification, graph outcome/skip, and remaining actions.
+18. Analyze AI mistakes and reusable lessons.
 
 Keep exactly one row `in_progress`. Mark each row `completed` immediately after its evidence is recorded.
 
@@ -256,10 +263,11 @@ When existing canonical specs or accepted product/capability scope selects spec 
 
 After selected setup, scan, and spec work, create and execute these final tasks in order:
 
-1. `Call $changes-review` - run after all selected setup, scan, and spec work so changed config/context/artifacts are reviewed from the current diff.
-2. `Call $why-review` - run after `$changes-review` to validate rationale and avoid closing on unchallenged setup decisions.
+1. `Run the AI-discovery gate` - the Phase 4 doc-set check, run BEFORE the reviews so any doc it fixes is reviewed.
+2. `Call $changes-review` - run after all selected setup, scan, and spec work so changed config/context/artifacts are reviewed from the current diff.
+3. `Call $why-review` - run after `$changes-review` to validate rationale and avoid closing on unchallenged setup decisions.
 
-If either skill cannot run because the environment lacks the required tool, stop and report the missing tool. If no files changed, still record that result rather than claiming a review of nonexistent changes.
+If a listed task's skill cannot run because the environment lacks the required tool, stop and report the missing tool. If no files changed, still record that result rather than claiming a review of nonexistent changes.
 
 ## Phase 3: Hookless Agent Rule
 
@@ -289,6 +297,8 @@ For selected spec work, confirm:
 - Apply the spec workflow's large-scope decomposition rules only to the accepted scope actually selected.
 
 For selected observable-surface work, validate only declared or evidenced surfaces. Configuration is not live-review evidence; a relevant but unusable surface is `ENVIRONMENT-BLOCKED`, and first-run expectations remain `ACCEPTANCE-PENDING`.
+
+**AI-discovery gate (`SYNC:ai-discovery-doc-quality`) — across the doc set, not per file.** For every doc this run created or changed, plus the root instruction file and the docs index: purpose + critical rules on the first screen and closing reminders when long; the root context's Doc Lookup and the docs index route each question/task class to one doc through a `read <path> when <situation>` trigger; every routed path exists; each selected reference doc is reachable from the root or the index (no orphan); not-applicable docs are named once as a skip. Record each failure as a fix at its owner (`$scan --target=<key>` for a reference doc, `$project-config` then `$ai-context-refresh` for a root-context route or generated section — the Doc Lookup routes only docs selected in `referenceDocs`), never a hand-edit of a generated mirror.
 
 Run `$changes-review` and then `$why-review` after setup and selected work are complete. If no files changed, record that result without claiming a review of nonexistent changes.
 
@@ -369,8 +379,10 @@ Report:
 - **Critical Thinking:** ALWAYS apply critical + sequential thinking; traced proof, confidence >80% to act.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
+- **AI-Discovery Doc Quality:** every AI-read doc leads with purpose + critical rules, ends with reminders when long, and routes to other docs by trigger to existing targets; no orphan doc.
 
 **IMPORTANT MUST ATTENTION** use `$project-init` as the unified missing-context route; lower-level skills remain implementation steps.
+**IMPORTANT MUST ATTENTION** run the AI-discovery gate across the doc set before the final reviews — root context and docs index route every selected doc by trigger, no orphan or dead route; fix each failure at its owner skill.
 **IMPORTANT MUST ATTENTION** create task-plan rows for required setup and final reviews; add scan, spec, surface, root-sync, and graph tasks only when evidence selects them.
 **IMPORTANT MUST ATTENTION** the configured project-config file and non-empty `project.name` are required; omitted optional properties are valid unless a declared property is invalid.
 **IMPORTANT MUST ATTENTION** keep absent `referenceDocs` separate from an explicit selection: absent uses the resolver baseline (possibly empty) plus evidenced capability docs; explicit arrays, including `[]`, remain exact. Always-on lessons/index inputs are ensured independently.
@@ -402,6 +414,22 @@ Report:
 
 <!-- /SYNC:critical-thinking-mindset -->
 
+<!-- SYNC:ai-discovery-doc-quality -->
+
+> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
+>
+> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
+> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
+> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
+> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
+> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
+> 6. **Token-efficient:** apply `$prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
+> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
+>
+> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `$prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+
+<!-- /SYNC:ai-discovery-doc-quality -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -428,6 +456,12 @@ Report:
 **MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
+<!-- SYNC:ai-discovery-doc-quality:reminder -->
+
+**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `$prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+
+<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
@@ -487,6 +521,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+**Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
 ## Common AI Mistake Prevention (System Lessons)
 
 - **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
@@ -521,7 +556,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
 - **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
 - **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before deep tracing and before any verdict, sweep environment preconditions (toolchain/dependency/lockfile state, stale build or cache artifacts, env vars and config profile, service dependencies up-migrated-seeded, ports/network/clock, OS-path/locale, permissions and locks, leftover processes/containers/test data) AND transient resource pressure (RAM/OOM, CPU saturation under parallel workers, disk/temp exhaustion, handle and connection-pool limits, network flakiness, a timeout that is really slowness). Tell-tale shape: non-deterministic, timing-dependent, passes alone but fails in parallel, fails only on one machine or only on CI, or an error naming resources rather than business rules. Cite the discriminator you ran (clean environment? did code on the failing path change since it last passed? one machine or all? concurrency 1 or a clean rebuild?) — a verdict without one is a guess, for code as much as for the environment. Fix an environment cause in the environment or setup; NEVER edit product code or weaken/skip a test to absorb it, and a failure that vanishes on retry stays unexplained until its mechanism is named. — why: forcing green against an environment fault hides the real defect and permanently rots the test.
-- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral Node APIs and literal argv vectors; never infer shell, temporary-path, executable-extension, ACL, or symlink semantics from the current host. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
+- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral Node APIs and literal argv vectors; never infer shell, temporary-path, executable-extension, ACL, or symlink semantics from the current host. A documented command, entry point, or wrapper script gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>` — a single-OS example is an incomplete protocol. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

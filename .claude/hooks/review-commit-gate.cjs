@@ -26,7 +26,7 @@ const { inspectCommand } = require('./lib/command-inspection.cjs');
 const {
   classifyStatement, findRepository, canonical, AMEND_ABBREVIATIONS
 } = require('./lib/git-statement.cjs');
-const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
+const { runPreToolHookSync, isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const { reportHookInternalError } = require('./lib/debug-log.cjs');
 const {
   captureReviewTarget,
@@ -244,7 +244,7 @@ function blockMessage(repository, snapshot, descriptor, reason) {
   const shellQuote = value => `'${String(value).replace(/'/g, "'\\''")}'`;
   const skipRecovery = descriptor
     ? [
-      'If the user explicitly decides to commit without review, ASK them first, then mint a descriptor-bound skip (the user alone decides):',
+      '  4. Skip — only if the user explicitly decides to commit without review; ASK them first (the user alone decides), then mint a descriptor-bound skip:',
       '',
       `  node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --descriptor-json=${shellQuote(JSON.stringify(descriptor))}`,
       '  node .claude/hooks/lib/review-receipt.cjs issue --kind=skip --scope=full-changeset --snapshot-json=\'<exact snapshot JSON returned above>\' --reason="user approved skip"',
@@ -252,7 +252,7 @@ function blockMessage(repository, snapshot, descriptor, reason) {
       'Use this exact descriptor for the snapshot and commit. The `skip` shorthand captures only the worktree and may not match this commit candidate.'
     ]
     : [
-      'This Git context has no supported exact commit descriptor, so a skip receipt cannot match it. Use the `commit` skill to prepare a supported candidate, then review or explicitly skip that exact candidate.'
+      'Skip is unavailable because this Git context has no supported exact commit descriptor. Use the `commit` skill to prepare a supported candidate, then choose a review option or explicitly skip that exact candidate.'
     ];
   return [
     '[BLOCKED] Commit refused — the exact commit candidate has no matching review fix-loop receipt.',
@@ -269,11 +269,11 @@ function blockMessage(repository, snapshot, descriptor, reason) {
     ...(reason ? [`Reason: ${reason}`] : []),
     '',
     'A commit MUST be preceded by a review fix-loop over this exact full candidate.',
-    'Review the intended candidate, issue its receipt, then retry the commit:',
+    'Ask the user to choose a review option below in order (option 1 is recommended), issue its receipt, then retry the commit:',
     '',
-    '  /changes-review --fix-loop      # review, validate findings, fix, full re-review',
-    '  /why-review --fix-loop          # rationale review + fix + fresh full re-review',
-    '  /workflow-review-changes --fix-loop',
+    '  1. /workflow-review-changes --fix-loop (Recommended)  # complete review workflow + fix-loop',
+    '  2. /changes-review --fix-loop                         # review, validate findings, fix, full re-review',
+    '  3. /why-review --fix-loop                             # rationale review + fix + fresh full re-review',
     '',
     'Use the supported default staged, -a/--all, or exact literal -- <files> mode. Unsupported',
     'Git contexts and candidate errors fail closed. Restore the normal repository/default index,',
@@ -327,7 +327,8 @@ function evaluate(input, dependencies = {}) {
   return undefined;
 }
 
-if (require.main === module) {
+// Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).
+if (isHookEntryPoint(module)) {
   runPreToolHookSync('review-commit-gate', evaluate, {
     // A malformed input or failed evaluation cannot be treated as permission for commit.
     inputErrorCode: 2,

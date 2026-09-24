@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   buildHooksConfig,
@@ -35,6 +36,25 @@ const HOOK_SCRIPTS = {
     "process.stdin.resume();",
     "process.stdin.on('end', () => { process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext: 'PROMPT_CTX' } })); });",
   ].join("\n"),
+  // Claude Code treats exit-0 plain-text UserPromptSubmit stdout as prompt context.
+  "prompt-plain.cjs": [
+    "process.stdin.resume();",
+    "process.stdin.on('end', () => { process.stdout.write('\\n  PLAIN_PROMPT_CTX\\n'); });",
+  ].join("\n"),
+  "prompt-blank.cjs": [
+    "process.stdin.resume();",
+    "process.stdin.on('end', () => { process.stdout.write(' \\n\\t\\n'); });",
+  ].join("\n"),
+  // A JSON object is hook-control output, never raw prompt text.
+  "prompt-decision.cjs": [
+    "process.stdin.resume();",
+    "process.stdin.on('end', () => { process.stdout.write(JSON.stringify({ decision: 'approve', reason: 'DECISION_JSON_TEXT' })); });",
+  ].join("\n"),
+  // A non-zero, non-blocking exit is an error: its stdout is not context.
+  "prompt-error.cjs": [
+    "process.stdin.resume();",
+    "process.stdin.on('end', () => { process.stdout.write('ERROR_EXIT_TEXT'); process.exit(1); });",
+  ].join("\n"),
   "record.cjs": [
     "const fs = require('node:fs');",
     "const path = require('node:path');",
@@ -46,7 +66,50 @@ const HOOK_SCRIPTS = {
     "  fs.writeFileSync(path.join(dir, 'hook-payload.json'), raw);",
     "});",
   ].join("\n"),
+  // Appends every payload it receives, so a test can prove each forwarded event separately.
+  "record-all.cjs": [
+    "const fs = require('node:fs');",
+    "const path = require('node:path');",
+    "let raw = '';",
+    "process.stdin.on('data', (chunk) => { raw += chunk.toString(); });",
+    "process.stdin.on('end', () => {",
+    "  const dir = path.join(process.env.CLAUDE_PROJECT_DIR || process.cwd(), 'tmp');",
+    "  fs.mkdirSync(dir, { recursive: true });",
+    "  fs.appendFileSync(path.join(dir, 'hook-payloads.jsonl'), JSON.stringify(JSON.parse(raw)) + '\\n');",
+    "});",
+  ].join("\n"),
 };
+
+const NOTIFY_ROUTER = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../hooks/notifications/notify.cjs");
+
+async function readRecordedPayloads(root) {
+  const text = await fs.readFile(path.join(root, "tmp", "hook-payloads.jsonl"), "utf8");
+  return text.split("\n").filter(Boolean).map((line) => JSON.parse(line));
+}
+
+// Run the real notification router on a recorded bridge payload with every remote
+// channel blanked, desktop alerts off and a throwaway home, so nothing is delivered.
+function routeThroughRealRouter(payload, isolatedHome) {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (/^(TELEGRAM|DISCORD|SLACK)_/.test(key)) env[key] = "";
+  }
+  Object.assign(env, {
+    ENABLE_DESKTOP_NOTIFICATIONS: "false",
+    CLAUDE_HOOK_TEST_MODE: "1",
+    HOME: isolatedHome,
+    USERPROFILE: isolatedHome,
+  });
+  const result = spawnSync(process.execPath, [NOTIFY_ROUTER], {
+    input: JSON.stringify({ ...payload, cwd: isolatedHome }),
+    cwd: isolatedHome,
+    env,
+    encoding: "utf8",
+    timeout: 10000,
+  });
+  assert.equal(result.status, 0, `router must exit 0: ${result.stderr}`);
+  return result.stderr;
+}
 
 function hookCommand(script) {
   return `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/${script}`;
@@ -239,6 +302,59 @@ test("generated bridge injects UserPromptSubmit context and SessionStart system 
   }
 });
 
+test("generated bridge injects plain-text UserPromptSubmit stdout as context, keeps JSON handling, and ignores blank output", async () => {
+  // Given UserPromptSubmit hooks emitting plain text, hook JSON, blank output, a JSON
+  // control object without context, and plain text on a non-zero exit
+  const settings = {
+    hooks: {
+      UserPromptSubmit: [
+        { hooks: [{ type: "command", command: hookCommand("prompt-plain.cjs") }] },
+        { hooks: [{ type: "command", command: hookCommand("prompt.cjs") }] },
+        { hooks: [{ type: "command", command: hookCommand("prompt-blank.cjs") }] },
+        { hooks: [{ type: "command", command: hookCommand("prompt-decision.cjs") }] },
+        { hooks: [{ type: "command", command: hookCommand("prompt-error.cjs") }] },
+      ],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When a user message goes through the real generated bridge
+    const message = { parts: [{ type: "text", text: "hello" }] };
+    await hooks["chat.message"]({ sessionID: "s1" }, message);
+
+    // Then exactly the trimmed plain text and the JSON additionalContext are injected, in hook order
+    const injected = message.parts.filter((part) => part.synthetic === true).map((part) => part.text);
+    assert.deepEqual(injected, ["PLAIN_PROMPT_CTX", "PROMPT_CTX"]);
+    assert.equal(message.parts[0].text, "hello", "the user's own text part is preserved");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge injects nothing when every UserPromptSubmit hook prints nothing", async () => {
+  const settings = {
+    hooks: {
+      UserPromptSubmit: [{ hooks: [{ type: "command", command: hookCommand("prompt-blank.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    const message = { parts: [{ type: "text", text: "hello" }] };
+    await hooks["chat.message"]({ sessionID: "s1" }, message);
+    assert.deepEqual(message.parts, [{ type: "text", text: "hello" }]);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("generated bridge runs the canonical Git capability hook with validated child environment augmentation", async () => {
   const settings = {
     hooks: {
@@ -305,18 +421,128 @@ process.stdin.on("end", () => {
   }
 });
 
-test("generated bridge forwards Notification events to the notify hook", async () => {
+test("[TC-NT-011] generated bridge forwards question requests to the notification hook", async () => {
+  // Given the generated bridge has a Notification hook registered for AskUserPrompt
   const root = await createProject();
   try {
     const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
     const factory = await loadBridge(pluginPath);
     const hooks = await factory({ directory: root });
 
+    // When OpenCode emits a question.asked event
     await hooks.event({ event: { type: "question.asked", properties: { sessionID: "s1" } } });
     const payload = JSON.parse(await fs.readFile(path.join(root, "tmp", "hook-payload.json"), "utf8"));
+    // Then the question reaches the registered hook with its type, tool, and session preserved
     assert.equal(payload.hook_event_name, "AskUserPrompt");
     assert.equal(payload.tool_name, "AskUserQuestion");
     assert.equal(payload.session_id, "s1");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("[TC-NT-071] generated bridge forwards every SessionEnd for cleanup but marks delegated sessions so only the main one alerts", async () => {
+  // Given the real generated OpenCode bridge with a SessionEnd hook configured for every reason
+  const settings = {
+    hooks: {
+      SessionEnd: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When a delegated session is deleted (its parentID identifies it as non-main), then the main session
+    await hooks.event({
+      event: {
+        type: "session.deleted",
+        properties: { sessionID: "child-session", info: { id: "child-session", parentID: "main-session" } },
+      },
+    });
+    await hooks.event({
+      event: {
+        type: "session.deleted",
+        properties: { sessionID: "main-session", info: { id: "main-session" } },
+      },
+    });
+
+    // Then both ends reach the SessionEnd hooks, so per-session cleanup runs for each
+    const [delegated, main] = await readRecordedPayloads(root);
+    assert.equal(delegated.hook_event_name, "SessionEnd");
+    assert.equal(delegated.session_id, "child-session");
+    assert.equal(delegated.reason, "exit", "cleanup keys full swap/snapshot removal off an exit reason");
+    assert.equal(main.hook_event_name, "SessionEnd");
+    assert.equal(main.session_id, "main-session");
+    // And only the delegated end carries the delegated-conversation marker
+    assert.equal(delegated.agent_id, "child-session");
+    assert.equal(Object.hasOwn(main, "agent_id"), false, "the main session end must not look delegated");
+    assert.equal(Object.hasOwn(main, "conversation_kind"), false, "the main session end is a known main conversation");
+
+    // And the real notification router withholds the alert only for the delegated end
+    assert.match(routeThroughRealRouter(delegated, root), /Skipped: subagent SessionEnd/);
+    assert.doesNotMatch(routeThroughRealRouter(main, root), /Skipped/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("[TC-NT-071] generated bridge still runs SessionEnd cleanup when session metadata is missing but withholds the alert", async () => {
+  // Given the real generated OpenCode bridge with a SessionEnd hook configured
+  const settings = {
+    hooks: {
+      SessionEnd: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When a session is deleted without the metadata that says whether it was delegated
+    await hooks.event({ event: { type: "session.deleted", properties: { sessionID: "unknown-session" } } });
+
+    // Then SessionEnd is still forwarded, so per-session cleanup runs
+    const [payload] = await readRecordedPayloads(root);
+    assert.equal(payload.hook_event_name, "SessionEnd");
+    assert.equal(payload.session_id, "unknown-session");
+    assert.equal(payload.reason, "exit");
+    // And it is marked as an unknown conversation kind rather than a main-session end
+    assert.equal(payload.conversation_kind, "unknown");
+    // And the real notification router raises no session-ended alert for it
+    assert.match(routeThroughRealRouter(payload, root), /Skipped: SessionEnd for a conversation of unknown kind/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("[TC-NT-011] generated bridge defers only the question tool precursor so one question alert is raised", async () => {
+  // Given the real generated OpenCode bridge with a PreToolUse hook for the question and shell tools
+  const settings = {
+    hooks: {
+      PreToolUse: [{ matcher: "AskUserQuestion|Bash", hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When OpenCode runs its question tool, then an ordinary shell tool
+    await hooks["tool.execute.before"]({ tool: "question", sessionID: "s-question" }, { args: {} });
+    await hooks["tool.execute.before"]({ tool: "bash", sessionID: "s-question" }, { args: { command: "echo ok" } });
+
+    // Then the question precursor is forwarded marked deferred, and the shell tool is not
+    const [question, shell] = await readRecordedPayloads(root);
+    assert.equal(question.tool_name, "AskUserQuestion");
+    assert.equal(question.notification_deferred, true);
+    assert.equal(shell.tool_name, "Bash");
+    assert.equal(shell.notification_deferred, false);
+    // And the real notification router skips the deferred precursor, leaving question.asked as the one alert
+    assert.match(routeThroughRealRouter(question, root), /Skipped: deferred question precursor/);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

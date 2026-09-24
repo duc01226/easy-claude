@@ -592,6 +592,8 @@ node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs');const{l
 - For an explicit selection, configure only the docs the project wants the framework to select. Normalize aliases/deduplication only within that selection, preserving intentional `[]`; never infer a broader selection from files on disk alone.
 - Keep `lessons.md` and `docs-index-reference.md` under the configured project-reference root through the independent project-init/bootstrap path, regardless of the task-specific selection.
 - Generate a selected project reference only when its scan target applies and its source evidence exists. Do not create unselected docs, fabricate content, or rename/delete files merely to match the framework catalog.
+- Write `purpose` for AI discovery: its first clause (up to the first `. ` or `; `) is rendered into the root context's Doc Lookup table — as the whole route for a custom doc, or as `Holds: …` after the framework trigger for a built-in doc outside the fixed docs-index, lessons and spec rows (those never render `purpose`). Avoid an abbreviation such as "e.g. " inside that first clause: it ends the clause early. Open a custom doc's purpose with the situation that should send an agent to it (e.g. "Before changing billing rules — invariants and owners"), not a bare topic name.
+- Declare a selected doc the project does not use with `notApplicable: true` (or a purpose that opens with `N/A`) so generated context names it once as a skip instead of routing agents to it; incidental prose such as "mocks are not applicable" does not count.
 
 ### 2t. Native Spec Artifact Profile — Derive Only from Stable Source
 

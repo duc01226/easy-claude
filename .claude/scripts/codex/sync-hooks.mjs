@@ -303,10 +303,14 @@ async function main(targetDir = codexDir) {
         const command = normalizeCommand(hook?.command);
         if (!command) continue;
 
-        mappedHooks.push({
+        const mappedHook = {
           type: "command",
           command,
-        });
+        };
+        if (typeof hook?.timeout === "number" && Number.isFinite(hook.timeout)) {
+          mappedHook.timeout = hook.timeout;
+        }
+        mappedHooks.push(mappedHook);
       }
 
       if (mappedHooks.length === 0) {

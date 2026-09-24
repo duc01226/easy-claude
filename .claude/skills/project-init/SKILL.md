@@ -25,8 +25,8 @@ disable-model-invocation: false
 3. **Bootstrap** - Require the configured config file with non-empty `project.name`; derive optional properties only from evidence.
 4. **Select Context Work** - Ensure always-on `lessons.md` and `docs-index-reference.md` independently of task-specific `referenceDocs`; run only applicable selected/evidenced scans.
 5. **Spec Work** - For selected spec work, preserve a valid native `specArtifacts` profile or use the strict TC/Section-8 default when absent. Select the spec workflow only when canonical specs exist or accepted capability scope is available.
-6. **Review** - Run `/changes-review`, then `/why-review` after setup changes and selected scan/spec work are complete.
-7. **Verify** - Validate the required config, declared optional sections, changed docs, selected workflow outcomes, and generated mirrors that apply to this host.
+6. **Review** - Run the AI-discovery gate across the whole doc set (root context → docs index → every created or changed doc; Phase 4) so its fixes are reviewed, then `/changes-review`, then `/why-review` after setup changes and selected scan/spec work are complete.
+7. **Verify** - Validate the required config, declared optional sections, changed docs, selected workflow outcomes, and generated mirrors that apply to this host; re-run the AI-discovery gate only on a doc verification changed.
 8. **Graph Refresh** - Run `/graph-build` in a background sub-agent only when graph tooling is available and the project/task needs graph coverage; otherwise record an evidence-backed skip.
 9. **Report** - List completed actions, evidence-backed skips, blockers, and remaining manual steps.
 
@@ -127,13 +127,14 @@ Minimum required task rows:
 8. Run `/ai-context-refresh` when root instructions are missing or stale; otherwise record the verified state.
 9. Resolve Codex mirrors through the completed `/ai-context-refresh` handoff only when Codex context is present or requested.
 10. Configure or review `experienceVerification` only for evidenced observable surfaces; do not invent surface commands or baselines.
-11. Call `/changes-review` after selected setup/scan/spec work.
-12. Call `/why-review` after `/changes-review`.
-13. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
-14. Spawn `Spawn background /graph-build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
-15. Record the graph sub-agent outcome or skip reason.
-16. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, reviews, verification, graph outcome/skip, and remaining actions.
-17. Analyze AI mistakes and reusable lessons.
+11. Run the AI-discovery gate (`SYNC:ai-discovery-doc-quality`, Phase 4 doc-set check) on every doc this run created or changed plus the root instruction file and the docs index; route each failure to its owner fix before the reviews.
+12. Call `/changes-review` after selected setup/scan/spec work.
+13. Call `/why-review` after `/changes-review`.
+14. Run focused verification for changed config, selected docs, and generated outputs; run broader harness gates only when the change plan calls for them.
+15. Spawn `Spawn background /graph-build sub-agent` only when graph tooling is available and graph work is relevant; otherwise record the evidence-backed skip.
+16. Record the graph sub-agent outcome or skip reason.
+17. Report the configured identity, changed optional properties, applicable scan/spec outcomes, always-on context, reviews, verification, graph outcome/skip, and remaining actions.
+18. Analyze AI mistakes and reusable lessons.
 
 Keep exactly one row `in_progress`. Mark each row `completed` immediately after its evidence is recorded.
 
@@ -219,10 +220,11 @@ When existing canonical specs or accepted product/capability scope selects spec 
 
 After selected setup, scan, and spec work, create and execute these final tasks in order:
 
-1. `Call /changes-review` - run after all selected setup, scan, and spec work so changed config/context/artifacts are reviewed from the current diff.
-2. `Call /why-review` - run after `/changes-review` to validate rationale and avoid closing on unchallenged setup decisions.
+1. `Run the AI-discovery gate` - the Phase 4 doc-set check, run BEFORE the reviews so any doc it fixes is reviewed.
+2. `Call /changes-review` - run after all selected setup, scan, and spec work so changed config/context/artifacts are reviewed from the current diff.
+3. `Call /why-review` - run after `/changes-review` to validate rationale and avoid closing on unchallenged setup decisions.
 
-If either skill cannot run because the environment lacks the required tool, stop and report the missing tool. If no files changed, still record that result rather than claiming a review of nonexistent changes.
+If a listed task's skill cannot run because the environment lacks the required tool, stop and report the missing tool. If no files changed, still record that result rather than claiming a review of nonexistent changes.
 
 ## Phase 3: Hookless Agent Rule
 
@@ -252,6 +254,8 @@ For selected spec work, confirm:
 - Apply the spec workflow's large-scope decomposition rules only to the accepted scope actually selected.
 
 For selected observable-surface work, validate only declared or evidenced surfaces. Configuration is not live-review evidence; a relevant but unusable surface is `ENVIRONMENT-BLOCKED`, and first-run expectations remain `ACCEPTANCE-PENDING`.
+
+**AI-discovery gate (`SYNC:ai-discovery-doc-quality`) — across the doc set, not per file.** For every doc this run created or changed, plus the root instruction file and the docs index: purpose + critical rules on the first screen and closing reminders when long; the root context's Doc Lookup and the docs index route each question/task class to one doc through a `read <path> when <situation>` trigger; every routed path exists; each selected reference doc is reachable from the root or the index (no orphan); not-applicable docs are named once as a skip. Record each failure as a fix at its owner (`/scan --target=<key>` for a reference doc, `/project-config` then `/ai-context-refresh` for a root-context route or generated section — the Doc Lookup routes only docs selected in `referenceDocs`), never a hand-edit of a generated mirror.
 
 Run `/changes-review` and then `/why-review` after setup and selected work are complete. If no files changed, record that result without claiming a review of nonexistent changes.
 
@@ -332,8 +336,10 @@ Report:
 - **Critical Thinking:** ALWAYS apply critical + sequential thinking; traced proof, confidence >80% to act.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
+- **AI-Discovery Doc Quality:** every AI-read doc leads with purpose + critical rules, ends with reminders when long, and routes to other docs by trigger to existing targets; no orphan doc.
 
 **IMPORTANT MUST ATTENTION** use `/project-init` as the unified missing-context route; lower-level skills remain implementation steps.
+**IMPORTANT MUST ATTENTION** run the AI-discovery gate across the doc set before the final reviews — root context and docs index route every selected doc by trigger, no orphan or dead route; fix each failure at its owner skill.
 **IMPORTANT MUST ATTENTION** create task-plan rows for required setup and final reviews; add scan, spec, surface, root-sync, and graph tasks only when evidence selects them.
 **IMPORTANT MUST ATTENTION** the configured project-config file and non-empty `project.name` are required; omitted optional properties are valid unless a declared property is invalid.
 **IMPORTANT MUST ATTENTION** keep absent `referenceDocs` separate from an explicit selection: absent uses the resolver baseline (possibly empty) plus evidenced capability docs; explicit arrays, including `[]`, remain exact. Always-on lessons/index inputs are ensured independently.
@@ -365,6 +371,22 @@ Report:
 
 <!-- /SYNC:critical-thinking-mindset -->
 
+<!-- SYNC:ai-discovery-doc-quality -->
+
+> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
+>
+> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
+> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
+> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
+> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
+> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
+> 6. **Token-efficient:** apply `/prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
+> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
+>
+> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `/prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+
+<!-- /SYNC:ai-discovery-doc-quality -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -391,6 +413,12 @@ Report:
 **MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
+<!-- SYNC:ai-discovery-doc-quality:reminder -->
+
+**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+
+<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 

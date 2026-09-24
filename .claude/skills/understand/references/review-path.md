@@ -26,7 +26,7 @@ A file that matches two buckets goes in the **lower-numbered** one — meaning o
 Deterministic: the same change set always yields the same stage order.
 
 1. **Seed with meaning.** The route starts at the lowest-numbered non-empty layer among L1-L2. If both are empty, start at the lowest-numbered non-empty layer overall.
-2. **Walk outward.** `python .claude/scripts/code_graph trace <seed> --direction both --json` (Windows: `py -3`). Order files *within* a stage by call-graph dependency — callees before callers.
+2. **Walk outward.** `python .claude/scripts/code_graph trace <seed> --direction both --json` (Windows: `py -3`; macOS/Linux: `python3`). Order files *within* a stage by call-graph dependency — callees before callers.
 3. **Break ties by blast radius, descending.** Where two files are peers, the higher-reach file goes first. This reuses the signal `changes-review/SKILL.md:161` already establishes ("prioritize file review order, highest-impact files first") — the route **adopts** it as the tie-break rather than replacing it, so the two skills never disagree on the same diff.
 4. **Tests last.** L7 is always the final substantive stage — it is the verification pass, read once you know what should be true.
 5. **Skim bucket.** L8 plus generated/boilerplate files collapse into a single final "skim" stage. Never distribute them through the route.

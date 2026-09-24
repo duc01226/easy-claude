@@ -8,19 +8,29 @@
 
 ## Project Reference Loading
 
-Read `docs/project-config.json` first, then `docs/project-reference/docs-index-reference.md` and `docs/project-reference/lessons.md` before investigating, planning, or coding. Config owns project paths, commands, modules, design-system mappings and conventions; local references override generic defaults. Classify the target and operation, then open only the matching context-group and index-routed detail immediately before the first target read/grep/edit/test; do not treat a hook reminder or prior conversation as proof that a document is loaded. State `Reference docs read: ... | Not applicable: ...`; after compaction, resume, delegation, or a context change, re-read the required docs and restate the set.
+Read `docs/project-config.json` first, then `docs/project-reference/docs-index-reference.md` and `docs/project-reference/lessons.md` before investigating, planning, or coding. Config owns project paths, commands, modules, design-system mappings and conventions; local references override generic defaults. Classify the target, operation and phase you are about to enter (plan, edit, test, spec/doc, review), then open only that row's context-group and index-routed detail immediately before the first target read/grep/edit/test, and state `Reference docs read: ... | Not applicable: ...`. Dedup: a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens, and it has not changed since — cite it `(loaded)` instead of re-reading; a hook reminder, a summary, or a prior mention never counts. After compaction, resume, a context change, or leaving that window, re-read the required docs and restate the set; a delegated sub-agent starts empty, so name the resolved doc paths in its brief.
 
 | Task | Required detail under the reference-docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) |
 | --- | --- |
-| Structure, architecture, stack, deployment, setup | `project-structure-reference.md` |
+| Plan, investigate, design; structure, architecture, stack, deployment, setup | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan touches |
+| Edit or write code | `code-review-rules.md` plus the backend or frontend row below for the file type |
 | Backend/CQRS/API/domain/entity | `backend-patterns-reference.md`, `domain-entities-reference.md` |
 | Frontend/UI/style/design | Applicable frontend patterns, styling, and design-system docs selected by project config |
-| Integration / E2E tests | `integration-test-reference.md` / `e2e-test-reference.md` |
+| Integration / E2E tests / test data | `integration-test-reference.md` / `e2e-test-reference.md` / `seed-test-data-reference.md` |
 | Specs, TC authoring, derived indexes | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; source Feature Specs under the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) for derived artifacts |
 | Behavior/public contract or spec-test-code sync | Spec docs above plus `workflow-spec-test-code-cycle-reference.md` |
-| Review/audit | `code-review-rules.md` plus applicable domain docs |
+| Review/audit (diff, plan, spec, artifact) | `code-review-rules.md` plus the rows above for every file type under review |
 
-If config, root instructions or required docs are missing or stale, run `$project-init` or the narrow `$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh` setup route before ordinary work. A full `$sync-codex` run preflights `CLAUDE.md` before regenerating Codex mirrors; a completed `$ai-context-refresh` run invokes the same standalone runner with `--skip=claude-md` after final source edits. Markerless roots remain a manual smart-merge boundary unless `portability.requireUniversalGuides: false` is explicit. If required detail remains unavailable, stop and report its exact path; never invent rules or completion.
+A missing project config is supported. If a declared config section is malformed, or root instructions or required docs are missing or stale, run `$project-init` or the narrow `$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh` setup route before ordinary work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run invokes the same standalone runner with `--skip=claude-md`. Markerless roots stay a manual smart-merge boundary unless `portability.requireUniversalGuides: false` is explicit. If required detail remains unavailable, stop and report its path; never invent rules or completion.
+
+For a question about the project (not a change), answer from the matching Doc Lookup row below and cite the doc you read; for how the `.claude` framework itself works, use `$project-help`. Never answer project-specific questions from framework defaults or memory.
+
+When you write or update a doc an agent reads (root context, reference docs, docs index, `lessons.md`), keep it discoverable: purpose and critical rules first, closing reminders last when long, and every pointer to another doc as `read <path> when <situation>` to a file that exists, routed from this table or the docs index. The doc-writing skills end with this gate (`SYNC:ai-discovery-doc-quality`).
+
+## Doc Lookup — What to Read When
+
+<!-- SECTION:doc-lookup -->
+<!-- /SECTION:doc-lookup -->
 
 ## Task Planning Rules
 
@@ -60,7 +70,7 @@ When `.code-graph/graph.db` exists, run at least one graph command on key files 
 ## Git & Version-Control Discipline
 
 - Never commit, push, or stage (`git add`) unless the user explicitly asks for that operation. Implementation approval, a workflow or delegated role grants none of these operations.
-- Commit through the `commit` skill, never a raw ad-hoc `git commit`: the skill runs the review-before-commit gate, and `review-commit-gate.cjs` blocks an agent commit whose changeset has no review fix-loop receipt (`changes-review --fix-loop` / `why-review --fix-loop` / `workflow-review-changes --fix-loop`) or user-approved skip.
+- Commit through the `commit` skill, never a raw ad-hoc `git commit`: the skill runs the review-before-commit gate, and `review-commit-gate.cjs` blocks an agent commit whose changeset has no review fix-loop receipt (`changes-review --fix-loop` / `why-review --fix-loop` / `workflow-review-changes --fix-loop`) or user-approved skip. On a commit request, `commit-skill-route.cjs` (UserPromptSubmit) reminds the agent to run the skill (`$commit` on Codex).
 - Amend only on an explicit amend request (a plain commit request makes a new commit), and never a pushed commit or one this task did not create: `git commit --amend` and `git reset --soft HEAD~1` + commit produce the same commit and follow the same rules, including the review receipt (against HEAD's parent).
 - Branch before committing on the default branch (`main`/`master`).
 - Read-only inspection needs no permission. Index/worktree/history mutations and external publication must stay within actual user authority; never infer it from a read-only request.
@@ -93,7 +103,4 @@ Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the ro
 <!-- SECTION:skill-activation -->
 <!-- /SECTION:skill-activation -->
 
-<!-- SECTION:doc-lookup -->
-<!-- /SECTION:doc-lookup -->
-
-Critical reminders: operate only within user authority; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; verify evidence and every required gate before completion.
+Critical reminders: operate only within user authority; read the project config, docs index, `lessons.md` and the matching Doc Lookup row before answering or editing — never from memory; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; verify evidence and every required gate before completion.

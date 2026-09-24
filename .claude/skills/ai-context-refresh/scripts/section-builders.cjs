@@ -23,6 +23,7 @@ const PORTABILITY = (() => {
         return {
             getDocsRoot: loader.getDocsRoot,
             getSpecDocsPath: loader.getSpecDocsPath,
+            getConfiguredProjectConfigPath: loader.getConfiguredProjectConfigPath,
             normalizeRootPath: paths.normalizeRootPath,
             escapesRepoRoot: paths.escapesRepoRoot,
             joinRoot: paths.joinRoot
@@ -37,6 +38,8 @@ const PORTABILITY = (() => {
 const DEFAULT_DOCS_TREE = 'docs';
 const DEFAULT_REF_DOCS_ROOT = 'docs/project-reference';
 const DEFAULT_SPEC_ROOT = 'docs/specs';
+const DEFAULT_ADR_ROOT = 'docs/adr';
+const DEFAULT_PROJECT_CONFIG = 'docs/project-config.json';
 
 /** Canonical reference-doc filenames the doc-lookup table always routes to. */
 const REFERENCE_DOC_ROWS = [
@@ -44,6 +47,62 @@ const REFERENCE_DOC_ROWS = [
     ['Spec quality, AI-implementability, tech-agnostic prose', 'spec-principles.md'],
     ['Behavior or public contract changes, spec-test-code sync', 'workflow-spec-test-code-cycle-reference.md']
 ];
+
+// Reference docs the doc-lookup table already routes by fixed rows; the `referenceDocs[]` pass skips them.
+const FIXED_ROUTE_DOCS = new Set([
+    'docs-index-reference.md',
+    'lessons.md',
+    'feature-spec-reference.md',
+    ...REFERENCE_DOC_ROWS.map(([, file]) => file)
+]);
+
+/**
+ * When-to-read triggers for the framework-owned reference docs (the SCAN_SKILL_MAP docs in
+ * project-reference-registry.cjs plus the custom-prompts and skill-protocols indexes that
+ * session-init-helpers.cjs REFERENCE_DOC_CATALOG seeds). The trigger says WHEN to open a doc;
+ * the project's own `referenceDocs[].purpose` says WHAT it holds. A custom doc has no
+ * trigger here and is routed by its purpose alone.
+ */
+const REFERENCE_DOC_TRIGGERS = Object.freeze({
+    'project-structure-reference.md': 'Where code lives, modules, stack, setup — before planning or investigating',
+    'domain-entities-reference.md': 'Domain concepts, entities, relationships, data ownership — before planning or design',
+    'code-review-rules.md': 'Before editing or reviewing code — rules, anti-patterns, checklists',
+    'backend-patterns-reference.md': 'Backend code — services, APIs, data access, validation, messaging',
+    'frontend-patterns-reference.md': 'Frontend code — components, state, API calls',
+    'scss-styling-guide.md': 'Style files — styling conventions, theming, responsive rules',
+    'design-system/README.md': 'UI design — tokens, components, app-to-doc map',
+    'integration-test-reference.md': 'Writing, fixing, or reviewing integration tests',
+    'e2e-test-reference.md': 'Writing, running, or reviewing E2E / user-flow tests',
+    'seed-test-data-reference.md': 'Seeding or reviewing development/test data',
+    'custom-prompts-reference.md': 'A saved project prompt, playbook, or runbook may apply (`/custom-prompt`)',
+    'skill-protocols-reference.md': 'Before running any skill — project overlays layered on it'
+});
+
+/**
+ * Framework docs shipped with the portable `.claude` bundle, routed for questions about the AI
+ * tooling itself. Rows render only for files that exist in the adopting project.
+ */
+const FRAMEWORK_DOC_ROWS = [
+    ['How the AI framework works — hooks, skills, agents, workflows, config (or run `/project-help`)', ['.claude/docs/README.md']],
+    ['Framework rules, or why a hook blocked or warned', ['.claude/docs/development-rules.md', '.claude/docs/troubleshooting.md']]
+];
+
+// A purpose that OPENS with, or parenthesizes, an N/A marker ("N/A — …", "Backend patterns (N/A for …)").
+// Anchored so ordinary prose ("mocks are not applicable here") never hides a real doc.
+const NOT_APPLICABLE_PURPOSE = /^\s*(?:N\/A|not applicable)\b|\(\s*(?:N\/A|not applicable)\b/i;
+
+/** True when a `referenceDocs[]` entry declares its doc N/A: explicit `notApplicable: true`, or an N/A purpose marker. */
+function declaresNotApplicable(doc) {
+    return doc?.notApplicable === true || NOT_APPLICABLE_PURPOSE.test(String(doc?.purpose || ''));
+}
+
+/** True when `docPath` is a selected reference doc the project declares N/A. Such a doc is named once, never routed. */
+function isDeclaredNotApplicable(config, docPath) {
+    const referenceRoot = referenceDocsRoot(config);
+    return (Array.isArray(config?.referenceDocs) ? config.referenceDocs : []).some(doc =>
+        typeof doc?.filename === 'string' && docPath === underRoot(referenceRoot, doc.filename.trim()) &&
+        declaresNotApplicable(doc));
+}
 
 /** Slash-free `docsRoots.projectReference` root; default `docs/project-reference`. */
 function referenceDocsRoot(config) {
@@ -197,13 +256,20 @@ function buildDecisionQuickRef(config) {
     if (modules.length === 0) return null;
 
     const rows = [];
+    const skippedNotApplicable = [];
+    // A pattern doc the project's own `referenceDocs` declares N/A is never routed.
+    const applicable = doc => {
+        if (!isDeclaredNotApplicable(config, doc)) return true;
+        skippedNotApplicable.push(`\`${tableCell(doc)}\``);
+        return false;
+    };
     // Configuration must name a convention; a database/broker technology alone does not
     // establish an application's data-access or messaging architecture.
     if (config.framework?.backendPatternsDoc) {
-        rows.push(`| Backend conventions | Read \`${config.framework.backendPatternsDoc}\` |`);
+        if (applicable(config.framework.backendPatternsDoc)) rows.push(`| Backend conventions | Read \`${config.framework.backendPatternsDoc}\` |`);
     }
     if (config.framework?.frontendPatternsDoc) {
-        rows.push(`| Frontend conventions | Read \`${config.framework.frontendPatternsDoc}\` |`);
+        if (applicable(config.framework.frontendPatternsDoc)) rows.push(`| Frontend conventions | Read \`${config.framework.frontendPatternsDoc}\` |`);
     }
 
     const workflowPatterns = config.workflowPatterns || {};
@@ -231,6 +297,11 @@ function buildDecisionQuickRef(config) {
         }
     }
 
+    // Only N/A docs left: return a visible body, never null. `--mode update` keeps an existing body
+    // when a builder returns null, so null here would leave stale rows routing to the N/A docs.
+    if (rows.length === 0 && skippedNotApplicable.length > 0) {
+        return `**Decision Quick-Ref:** no configured pattern doc applies — ${skippedNotApplicable.join(', ')} declared N/A in \`referenceDocs\`.`;
+    }
     if (rows.length === 0) return null;
     return `**Decision Quick-Ref:**\n\n| Task | Pattern |\n|---|---|\n${rows.join('\n')}`;
 }
@@ -311,21 +382,35 @@ function buildApiPorts(config) {
     return `| API Service | Port |\n|---|---|\n${rows.join('\n')}`;
 }
 
+// A guide doc the project declares N/A in `referenceDocs` is never linked as a guide. The section
+// still renders this notice instead of returning null: `--mode update` PRESERVES a marker body whose
+// builder returns null (generate-claude-md.cjs updateMarkedSections), so null would leave a stale
+// "Full guide" link that contradicts the Doc Lookup N/A list.
+function notApplicableGuideNotice(kind, doc) {
+    return `No ${kind} guide applies: \`${path.basename(doc)}\` is declared not applicable in \`referenceDocs\` (skip unless the project adds that stack).`;
+}
+
+// Placeholder values ("none", "N/A", "not-applicable") are declarations of absence, not E2E evidence.
+const ABSENT_VALUE = /^\s*(?:none|n\/?a|not[- ]applicable)\s*$/i;
+
 function buildIntegrationTesting(config) {
     const doc = config.framework?.integrationTestDoc;
     if (!doc) return null;
+    if (isDeclaredNotApplicable(config, doc)) return notApplicableGuideNotice('integration-test', doc);
     return `See [${path.basename(doc)}](${doc}) for integration test patterns and setup.`;
 }
 
 function buildE2eTesting(config) {
     const e2e = config.e2eTesting || {};
-    const doc = config.framework?.e2eTestDoc || e2e.guideDoc;
+    const configuredDoc = config.framework?.e2eTestDoc || e2e.guideDoc;
+    const docNotApplicable = !!configuredDoc && isDeclaredNotApplicable(config, configuredDoc);
+    const doc = docNotApplicable ? null : configuredDoc;
     const frameworks = config.testing?.frameworks || [];
     const execution = e2e.execution || {};
     const hasE2e = frameworks.some(f => /selenium|playwright|cypress|specflow/i.test(f)) ||
-        !!e2e.framework || Object.keys(execution).length > 0;
+        (!!e2e.framework && !ABSENT_VALUE.test(String(e2e.framework))) || Object.keys(execution).length > 0;
 
-    if (!doc && !hasE2e) return null;
+    if (!configuredDoc && !hasE2e) return null;
 
     // Compose a stack descriptor from structured e2eTesting.architecture so the
     // generated line is at least as rich as a hand-authored one (avoids the
@@ -395,6 +480,7 @@ function buildE2eTesting(config) {
     if (stack && docLink) return `${stack}. ${docLink}${executionProfile}`;
     if (stack) return `E2E stack: ${stack}.${executionProfile}`;
     if (docLink) return `${docLink}${executionProfile}`;
+    if (!hasE2e) return notApplicableGuideNotice('E2E', configuredDoc);
     return `E2E testing framework(s): ${frameworks.join(', ')}${executionProfile}`;
 }
 
@@ -523,32 +609,154 @@ function buildDocIndex(config, projectDir) {
     return '```\n' + tree.join('\n') + '\n```';
 }
 
-function buildDocLookup(config) {
+/** Slash-free ADR root; default `docs/adr`. */
+function adrRootPath(config) {
+    if (!PORTABILITY) return DEFAULT_ADR_ROOT;
+    return PORTABILITY.normalizeRootPath(PORTABILITY.getDocsRoot('adr', config || {})) || DEFAULT_ADR_ROOT;
+}
+
+/** Repo-relative POSIX display path of the project config, resolved like the generator's own read. */
+function projectConfigDisplayPath(projectDir) {
+    try {
+        const configured = PORTABILITY?.getConfiguredProjectConfigPath?.();
+        if (configured) {
+            const relative = path.relative(projectDir, configured).split(path.sep).join('/');
+            if (relative && !relative.startsWith('..') && !path.isAbsolute(relative)) return relative;
+        }
+    } catch {
+        /* fall back to the documented default */
+    }
+    return DEFAULT_PROJECT_CONFIG;
+}
+
+const existsUnder = (projectDir, relative) => fs.existsSync(path.join(projectDir, ...relative.split('/')));
+
+/** Inline-code table cell for one path. */
+const codeCell = value => `\`${tableCell(value)}\``;
+
+/** Render one doc-lookup row `{ topic, files }`; every cell is escaped, so a `|` never splits the row. */
+const renderLookupRow = row => `| ${tableCell(row.topic)} | ${row.files.map(codeCell).join(' + ')} |`;
+
+/**
+ * Discovery rows added when the generator knows the project directory. Every row names a file that
+ * exists on disk, so the table can never route an agent to a document the project does not have.
+ * @returns {{top: {topic: string, files: string[]}[], bottom: {topic: string, files: string[]}[], notApplicable: string[]}}
+ */
+function buildDiscoveryRows(config, projectDir, referenceRoot, routedPaths) {
+    const top = [];
+    const bottom = [];
+    const notApplicable = [];
+    const pushRow = (target, topic, files) => {
+        const present = files.filter(file => existsUnder(projectDir, file) && !routedPaths.has(file));
+        if (present.length === 0) return;
+        present.forEach(file => routedPaths.add(file));
+        target.push({ topic, files: present });
+    };
+
+    pushRow(top, 'Any project question or task — start here: paths, commands, modules, conventions', [projectConfigDisplayPath(projectDir)]);
+    pushRow(top, 'Where a topic is documented — keyword-to-doc routing', [underRoot(referenceRoot, 'docs-index-reference.md')]);
+    pushRow(top, 'Any non-trivial task — learned project guardrails', [underRoot(referenceRoot, 'lessons.md')]);
+
+    for (const doc of Array.isArray(config.referenceDocs) ? config.referenceDocs : []) {
+        const filename = typeof doc?.filename === 'string' ? doc.filename.trim() : '';
+        // A traversing or absolute name is invalid config (project-reference-registry.cjs rejects it); never probe it.
+        if (!filename || FIXED_ROUTE_DOCS.has(filename) || path.isAbsolute(filename) || /(^|[\\/])\.\.([\\/]|$)/.test(filename)) continue;
+        const docPath = underRoot(referenceRoot, filename);
+        if (routedPaths.has(docPath) || !existsUnder(projectDir, docPath)) continue;
+        const purpose = typeof doc.purpose === 'string' ? doc.purpose.trim() : '';
+        if (declaresNotApplicable(doc)) {
+            notApplicable.push(codeCell(filename));
+            routedPaths.add(docPath);
+            continue;
+        }
+        const trigger = REFERENCE_DOC_TRIGGERS[filename];
+        // First clause only: the table is always-on context; the doc itself carries the detail.
+        const summary = purpose.split(/(?<=\.)\s|;\s/)[0].replace(/\.$/, '');
+        const topic = trigger && summary ? `${trigger}. Holds: ${summary}` : trigger || summary || filename;
+        pushRow(bottom, topic, [docPath]);
+    }
+
+    const adrRoot = adrRootPath(config);
+    const adrDir = path.join(projectDir, ...adrRoot.split('/'));
+    let hasAdr = false;
+    try {
+        hasAdr = fs.statSync(adrDir).isDirectory() && fs.readdirSync(adrDir).some(name => name.endsWith('.md'));
+    } catch {
+        /* no ADR root: no row */
+    }
+    if (hasAdr) bottom.push({ topic: 'Why the architecture or a convention is the way it is — accepted decisions and trade-offs', files: [underRoot(adrRoot, '')] });
+
+    for (const [topic, files] of FRAMEWORK_DOC_ROWS) pushRow(bottom, topic, files);
+    return { top, bottom, notApplicable };
+}
+
+/**
+ * The doc-lookup table: which document to open for a given question or task.
+ *
+ * Without `projectDir` it renders only the config-derived spec/pattern rows (the historical shape,
+ * pinned byte-for-byte by TC-DOCROOT-065; a pattern doc declared N/A is omitted). With `projectDir`, which the generator always passes, it
+ * adds existence-gated discovery rows: the always-on start-here docs, every selected `referenceDocs[]`
+ * entry with a when-to-read trigger, the ADR root, and the framework docs.
+ */
+function buildDocLookup(config, projectDir) {
     const modules = config.modules || [];
     const featureRoot = specRootPath(config);
     const referenceRoot = referenceDocsRoot(config);
 
+    // Fixed rows are DATA `{ topic, files }` rendered once at the end, so filtering never has to
+    // re-parse rendered markdown and every cell goes through the same escaping.
     const rows = modules
         .filter(m => m.meta?.domain)
-        .map(m => {
-            const docPath = underRoot(featureRoot, m.name, '');
-            return `| ${m.meta.domain} | \`${docPath}\` |`;
+        .map(m => ({ topic: m.meta.domain, files: [underRoot(featureRoot, m.name, '')] }));
+
+    rows.push({
+        topic: 'Feature specs, capability behavior, business rules, test cases',
+        files: [underRoot(featureRoot, ''), underRoot(referenceRoot, 'feature-spec-reference.md')]
+    });
+    for (const [topic, file] of REFERENCE_DOC_ROWS) rows.push({ topic, files: [underRoot(referenceRoot, file)] });
+
+    const hasProjectDir = typeof projectDir === 'string' && projectDir.length > 0;
+    const discovery = hasProjectDir
+        ? buildDiscoveryRows(config, projectDir, referenceRoot, new Set())
+        : null;
+    // Add framework docs; a pattern doc declared N/A is never routed (with a project directory the
+    // closing note names it once instead).
+    if (config.framework?.backendPatternsDoc && !isDeclaredNotApplicable(config, config.framework.backendPatternsDoc)) {
+        rows.push({ topic: 'Backend patterns, CQRS, validation', files: [config.framework.backendPatternsDoc] });
+    }
+    if (config.framework?.frontendPatternsDoc && !isDeclaredNotApplicable(config, config.framework.frontendPatternsDoc)) {
+        rows.push({ topic: 'Frontend patterns, components, stores', files: [config.framework.frontendPatternsDoc] });
+    }
+
+    if (!discovery) return `| If user prompt mentions... | Read first |\n|---|---|\n${rows.map(renderLookupRow).join('\n')}`;
+
+    // The fixed rows obey the same promises as the discovery rows: a path missing on disk, or a doc the
+    // project declares N/A, is dropped from its row, and a row left with no path is dropped entirely.
+    const notApplicable = [...discovery.notApplicable];
+    const existingRows = rows.map(row => {
+        const present = row.files.filter(file => {
+            if (!existsUnder(projectDir, file)) return false;
+            if (!isDeclaredNotApplicable(config, file)) return true;
+            const name = codeCell(path.posix.relative(referenceRoot, file));
+            if (!notApplicable.includes(name)) notApplicable.push(name);
+            return false;
         });
+        return present.length ? { topic: row.topic, files: present } : null;
+    }).filter(Boolean);
 
-    rows.push(`| Feature specs, capability behavior, business rules, test cases | \`${underRoot(featureRoot, '')}\` + \`${underRoot(referenceRoot, 'feature-spec-reference.md')}\` |`);
-    for (const [topic, file] of REFERENCE_DOC_ROWS) {
-        rows.push(`| ${topic} | \`${underRoot(referenceRoot, file)}\` |`);
-    }
-
-    // Add framework docs
-    if (config.framework?.backendPatternsDoc) {
-        rows.push(`| Backend patterns, CQRS, validation | \`${config.framework.backendPatternsDoc}\` |`);
-    }
-    if (config.framework?.frontendPatternsDoc) {
-        rows.push(`| Frontend patterns, components, stores | \`${config.framework.frontendPatternsDoc}\` |`);
-    }
-
-    return `| If user prompt mentions... | Read first |\n|---|---|\n${rows.join('\n')}`;
+    // A doc already routed by a fixed row above must not be routed twice below: a discovery row
+    // naming any fixed path is dropped whole, as the fixed row already sends the reader there.
+    const fixedPaths = new Set(existingRows.flatMap(row => row.files));
+    const bottom = discovery.bottom.filter(row => !row.files.some(file => fixedPaths.has(file)));
+    const allRows = [...discovery.top, ...existingRows, ...bottom].map(renderLookupRow);
+    const skip = notApplicable.length
+        ? `\n\nDeclared not applicable in \`referenceDocs\` (skip unless the project adds that stack): ${notApplicable.join(', ')}.`
+        : '';
+    // Never render a header-only table: say what to do instead.
+    if (allRows.length === 0) return `No project docs exist yet — run \`/project-init\` or \`/docs-init\` before project work.${skip}`;
+    const intro = 'Match the question or task to a row and read that doc before answering, planning, or editing; ' +
+        'every row names a file or folder that exists in this repo.';
+    return `${intro}\n\n| If user prompt mentions... | Read first |\n|---|---|\n${allRows.join('\n')}${skip}`;
 }
 
 module.exports = {

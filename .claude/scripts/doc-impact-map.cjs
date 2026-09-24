@@ -792,6 +792,87 @@ function isWorkspacePackageReference(claim) {
     });
 }
 
+function isSafeRelativeClaim(claim) {
+    const normalized = String(claim || '').replace(/\\/g, '/');
+    return Boolean(normalized) &&
+        !normalized.startsWith('/') &&
+        !/^[a-zA-Z]:/.test(normalized) &&
+        !normalized.includes('\0') &&
+        !normalized.split('/').includes('..');
+}
+
+/**
+ * Absolute-path containment for traversal/symlink guards. Shared canonical predicate when
+ * available; the inline fallback keeps the module's fail-open load contract if
+ * `ck-path-utils.cjs` ever moves and applies the SAME rule (resolve both sides, compare via
+ * `path.relative` on a segment boundary) so containment cannot differ between the two paths.
+ */
+const isAbsolutePathWithin =
+    (pathUtils && pathUtils.isAbsolutePathWithin) ||
+    ((root, candidate) => {
+        if (typeof root !== 'string' || typeof candidate !== 'string' || !root || !candidate) return false;
+        if (root.includes('\0') || candidate.includes('\0')) return false;
+        const relative = path.relative(path.resolve(root), path.resolve(candidate));
+        return relative === '' ||
+            (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+    });
+
+/**
+ * Resolve an existing repo-relative claim while keeping both lexical and physical paths
+ * inside `rootAbs` and the project root. This rejects traversal and symlink escapes.
+ */
+function existingPathWithin(rootAbs, relativePath) {
+    if (!isSafeRelativeClaim(relativePath)) return false;
+
+    const projectRoot = path.resolve(PROJECT_DIR);
+    const root = path.resolve(rootAbs);
+    const candidate = path.resolve(root, relativePath);
+    if (!isAbsolutePathWithin(projectRoot, root) || !isAbsolutePathWithin(root, candidate)) return false;
+    if (!fs.existsSync(candidate)) return false;
+
+    try {
+        const realProjectRoot = fs.realpathSync(projectRoot);
+        const realRoot = fs.realpathSync(root);
+        const realCandidate = fs.realpathSync(candidate);
+        return isAbsolutePathWithin(realProjectRoot, realRoot) &&
+            isAbsolutePathWithin(realRoot, realCandidate);
+    } catch {
+        return false;
+    }
+}
+
+function isCanonicalBusinessSpecClaim(claim) {
+    const parts = String(claim || '').split('/');
+    if (parts.length !== 2 || !parts[0] || parts[0] === '.' || parts[0] === '..') return false;
+    return parts[1] === 'INDEX.md' || /^README\..+\.md$/.test(parts[1]);
+}
+
+let businessSpecRootRead = false;
+let businessSpecRoot = null;
+function getBusinessSpecRoot() {
+    if (businessSpecRootRead) return businessSpecRoot;
+    businessSpecRootRead = true;
+
+    if (!loader || typeof loader.getProjectConfigStatus !== 'function' || typeof loader.getSpecDocsPath !== 'function') {
+        warnings.push('Could not resolve the configured business-spec root for category-relative claims.');
+        return null;
+    }
+
+    try {
+        const status = loader.getProjectConfigStatus();
+        if (!status || !['valid', 'missing'].includes(status.state)) {
+            warnings.push('Project config is invalid; category-relative business-spec claims cannot use a default root.');
+            return null;
+        }
+        const config = status.state === 'valid' ? status.config : {};
+        businessSpecRoot = path.resolve(PROJECT_DIR, loader.getSpecDocsPath(config));
+        return businessSpecRoot;
+    } catch (error) {
+        warnings.push(`Business-spec root resolution failed: ${error.message}`);
+        return null;
+    }
+}
+
 function checkClaims(relDocPath) {
     const abs = path.join(PROJECT_DIR, relDocPath);
     if (!fs.existsSync(abs)) {
@@ -839,10 +920,37 @@ function checkClaims(relDocPath) {
         // carry a dot. File extensions here are lowercase; a PascalCase suffix is a
         // .NET namespace segment, so treat it as a directory reference, not a file.
         if (!/\.[a-z0-9]{1,6}$/.test(base)) continue;
-        claim = claim.replace(/^\.\//, '').replace(/^\/+/, '');
+        claim = claim.replace(/^\.\//, '');
         if (seen.has(claim)) continue;
         seen.add(claim);
-        if (fs.existsSync(path.join(PROJECT_DIR, claim))) continue;
+
+        // `/docs/x.md` is a REPO-ROOTED citation, not a filesystem-absolute path: resolve it
+        // against the project root exactly, never by suffix and never under the spec root.
+        // `//server/share/...` stays a UNC path and is rejected below. The claim is reported
+        // as cited so the dead list names the text a maintainer has to repoint.
+        if (/^\/(?!\/)/.test(claim)) {
+            if (existingPathWithin(PROJECT_DIR, claim.slice(1))) continue;
+            missing.push(claim);
+            continue;
+        }
+
+        // Feature Specs and bucket catalogs are authored relative to the configured
+        // business-spec root. Resolve only their canonical one-bucket forms here; a
+        // generic search across configured roots could bless a same-named file from
+        // an unrelated documentation category.
+        if (isCanonicalBusinessSpecClaim(claim)) {
+            const root = getBusinessSpecRoot();
+            if (root && existingPathWithin(root, claim)) continue;
+            missing.push(claim);
+            continue;
+        }
+
+        if (existingPathWithin(PROJECT_DIR, claim)) continue;
+
+        if (!isSafeRelativeClaim(claim)) {
+            missing.push(claim);
+            continue;
+        }
         if (isWorkspacePackageReference(claim)) continue;
         if (trackedFiles().some(f => f.toLowerCase().endsWith('/' + claim.toLowerCase()))) {
             ambiguous.push(claim);

@@ -141,7 +141,7 @@ Hooks communicate with Claude Code via event-specific stdout contracts plus the 
 | stderr text | `2`       | Operation is blocked; stderr message is shown (and visible to Claude) |
 | no output   | `0`       | Silent no-op                                                          |
 
-`runBlockingHook` implements the blocking channel for you: return `{ allowed: false, message }` and it writes `message` to stderr, sets exit code 2, and returns to drain output (`hook-runner.cjs:345-384`). Errors and timeouts retain its generic allow-on-error policy.
+`runBlockingHook` implements the blocking channel for you: return `{ allowed: false, message }` and it writes `message` to stderr, sets exit code 2, and returns to drain output (`hook-runner.cjs:386-425`). Errors and timeouts retain its generic allow-on-error policy.
 
 ### Bash PreToolUse hooks
 
@@ -255,7 +255,7 @@ Register hooks in `.claude/settings.json`:
 | Event              | Matcher Values                                                       | When Triggered                 |
 | ------------------ | -------------------------------------------------------------------- | ------------------------------ |
 | `SessionStart`     | `startup`, `resume`, `clear`, `compact`                              | New or resumed session         |
-| `SessionEnd`       | `clear`, `exit`, `compact`                                           | Session ending                 |
+| `SessionEnd`       | Host-specific supported reasons                                      | Session ending                 |
 | `UserPromptSubmit` | (none needed)                                                        | User submits prompt            |
 | `PreToolUse`       | Tool names: `Read`, `Edit`, `Write`, `Bash`, `Glob`, `Grep`, `Skill` | Before tool execution          |
 | `PostToolUse`      | Tool names (same as above)                                           | After tool execution           |
@@ -488,7 +488,7 @@ Use this shape only for a reminder that ALSO exists statically (CLAUDE.md/AGENTS
 - **Deliver only what is missing:** key delivery memory by `session_id` + working context (`agent_id` when present, else main); write the record only in the `process.stdout.write` callback so an undelivered reminder is retried; re-arm after condensation (SessionStart `compact|clear`, transcript marks) and after enough conversation growth.
 - **Concurrency:** claim with an exclusive-create lock (`fs.openSync(file, 'wx')`), treat an old lock as stale, and re-check presence after acquiring it.
 - **Budget:** cap the text, put the must-do lines first and last, and degrade lowest-precedence content first.
-- **Codex:** `run-codex-sync.mjs` mirrors the registration; Codex runs the hook via a `node -e` launcher where `require.main` is undefined, so gate the entry point on `require.main === module || (!require.main && resolved argv[1] === __filename)`.
+- **Codex:** `run-codex-sync.mjs` mirrors the registration; Codex runs the hook via a `node -e` launcher where `require.main` is undefined, so a bare `require.main === module` check silently never runs the hook there. Gate the entry point with `isHookEntryPoint(module)` from `./lib/hook-runner.cjs` — it covers both `node <hook>` and the Codex launcher; never hand-write the check.
 
 ---
 

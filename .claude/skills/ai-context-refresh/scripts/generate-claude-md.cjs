@@ -392,7 +392,7 @@ const BUILDER_MAP = {
     'e2e-testing': c => builders.buildE2eTesting(c),
     'skill-activation': (c, d) => builders.buildSkillActivation(c, d),
     'doc-index': (c, d) => builders.buildDocIndex(c, d),
-    'doc-lookup': c => builders.buildDocLookup(c)
+    'doc-lookup': (c, d) => builders.buildDocLookup(c, d)
 };
 
 function loadConfig() {
@@ -602,6 +602,30 @@ function backfillGeneratedE2eSection(content, sections) {
     return `${content.replace(/\s+$/, '')}\n\n${block}\n`;
 }
 
+// The template gives doc-lookup its own heading so the Codex projection (sync-context-workflows.mjs
+// AGENTS_PROJECTION_HEADINGS) can carry it. Roots initialized before that heading hold the marker
+// headless (often at EOF), and `updateMarkedSections` rewrites bodies in place only — so without this
+// back-fill no existing adopter's AGENTS.md would ever receive the table. A heading already naming
+// "doc lookup" (the smart-merge alias) is normalized; any other preceding line gets the heading inserted.
+const DOC_LOOKUP_HEADING = '## Doc Lookup — What to Read When';
+
+function backfillDocLookupHeading(content) {
+    const eol = content.includes('\r\n') ? '\r\n' : '\n';
+    const lines = content.split(/\r?\n/);
+    const at = lines.findIndex(line => line.trim() === '<!-- SECTION:doc-lookup -->');
+    if (at === -1) return content;
+    let prev = at - 1;
+    while (prev >= 0 && lines[prev].trim() === '') prev--;
+    const previous = prev >= 0 ? lines[prev].trim() : '';
+    if (previous === DOC_LOOKUP_HEADING) return content;
+    if (/^##\s+.*doc lookup/i.test(previous)) {
+        lines[prev] = DOC_LOOKUP_HEADING;
+    } else {
+        lines.splice(at, 0, DOC_LOOKUP_HEADING, '');
+    }
+    return lines.join(eol);
+}
+
 /**
  * Render the exact marker-managed update without writing it. The sync runner uses this
  * function through `--check` to decide whether CLAUDE.md needs an update before it writes
@@ -620,6 +644,12 @@ function buildUpdateOutput(existing, sections, { report = true } = {}) {
     if (withE2e !== output) {
         output = withE2e;
         if (report) console.log('[OK] Back-filled generated E2E section from project configuration');
+    }
+
+    const withDocLookupHeading = backfillDocLookupHeading(output);
+    if (withDocLookupHeading !== output) {
+        output = withDocLookupHeading;
+        if (report) console.log(`[OK] Back-filled "${DOC_LOOKUP_HEADING}" heading for the Codex projection`);
     }
 
     // Marker-managed files only: markerless roots are project-owned and require an AI
@@ -817,6 +847,8 @@ if (require.main === module) {
 module.exports = {
     updateMarkedSections,
     buildUpdateOutput,
+    backfillDocLookupHeading,
+    DOC_LOOKUP_HEADING,
     checkClaudeMd,
     SECTION_OPEN,
     SECTION_CLOSE,

@@ -17,6 +17,7 @@ model_auto_compact_token_limit = 500000
 
 # Let Codex consume existing Claude project instructions while we migrate.
 project_doc_fallback_filenames = ["CLAUDE.md"]
+project_doc_max_bytes = 98304
 
 [tui]
 # Notify when Codex finishes work, even if the terminal still has focus.

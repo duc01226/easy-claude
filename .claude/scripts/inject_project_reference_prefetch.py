@@ -1,7 +1,8 @@
 """Inject SYNC:project-reference-docs-guide block (TOP + reminder BOTTOM) into
 implementation/planning/review/investigation skills.
 
-Idempotent — skips files that already contain the SYNC tag.
+Idempotent — a file that already carries the SYNC tag is only refreshed in place
+(delegated to sync_project_reference_block.refresh, the single refresh owner).
 Block content is GENERIC (project-agnostic) — works for any project that uses
 the canonical .claude harness with hook-initialized docs/project-reference/.
 
@@ -17,6 +18,7 @@ import sys
 from pathlib import Path
 
 from sync_blocks import find_sync_region_start, load_wrapped_sync_block
+from sync_project_reference_block import refresh as refresh_existing
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
@@ -49,7 +51,34 @@ SKILL_NAMES = [
     # [BLOCKING] gate; injecting the generic prefetch here would duplicate it.
     "integration-test", "integration-test-verify",
     "docs-update", "watzup", "workflow-write-integration-test",
+    # Workflow step skills that read, write, test, or review project artifacts
+    # (code, tests, specs, PBIs, designs) — each needs the phase routing table.
+    "architecture-design", "architecture-scalability-review", "tech-stack-research",
+    "domain-analysis", "scenario", "code-simplifier", "performance-review",
+    "experience-review", "test", "e2e-test", "e2e-test-verify", "workflow-e2e",
+    "seed-test-data", "spec-index", "harness-setup", "linter-setup",
+    "brainstorm", "idea", "refine", "story", "prioritize", "dor-gate",
+    "pbi-challenge", "pbi-mockup", "design-spec", "demo-guide",
+    "feature-presentation", "excalidraw-diagram", "ui-review", "workflow-end",
+    # Non-workflow skills that edit or explain project code/UI
+    "design", "understand", "tech-spec", "package-upgrade",
+    "git-conflict-resolve", "web-design-guidelines",
 ]
+
+# Workflow step skills deliberately WITHOUT the block. Every step skill named in
+# .claude/workflows.json must be in SKILL_NAMES or here (enforced by
+# tests/suites/project-reference-gate-coverage.test.cjs). Reason required.
+EXEMPT_WORKFLOW_STEPS = {
+    "spec": "own [BLOCKING] read gate for project-config, docs index, lessons and the spec doc set",
+    "scan": "generator of the reference docs; validates project-config itself before scanning",
+    "web-research": "external-source research; no project target files",
+    "deep-research": "external-source research; no project target files",
+    "knowledge-synthesis": "synthesizes external research into a report; no project target files",
+    "market-analysis": "external market research; no project target files",
+    "business-evaluation": "business viability report; no project target files",
+    "strategy-builder": "marketing strategy report; no project target files",
+    "course-builder": "course material from research; no project target files",
+}
 
 TAG = "SYNC:project-reference-docs-guide"
 REMINDER_TAG = "SYNC:project-reference-docs-guide:reminder"
@@ -58,14 +87,6 @@ TOP_BLOCK = load_wrapped_sync_block(TAG)
 BOTTOM_BLOCK = load_wrapped_sync_block(REMINDER_TAG)
 
 CLOSING_RE = re.compile(r"^## Closing Reminders\b.*$", re.MULTILINE)
-TOP_BLOCK_RE = re.compile(
-    r"<!-- SYNC:project-reference-docs-guide -->.*?<!-- /SYNC:project-reference-docs-guide -->",
-    re.DOTALL,
-)
-BOTTOM_BLOCK_RE = re.compile(
-    r"<!-- SYNC:project-reference-docs-guide:reminder -->.*?<!-- /SYNC:project-reference-docs-guide:reminder -->",
-    re.DOTALL,
-)
 
 
 def find_skill_path(name: str) -> Path | None:
@@ -77,49 +98,47 @@ def find_skill_path(name: str) -> Path | None:
     return None
 
 
-def inject(text: str) -> tuple[str, dict]:
+def inject(text: str, top_block: str | None = None, bottom_block: str | None = None) -> tuple[str, dict]:
+    """Insert the blocks into a skill that lacks them, or refresh carried copies.
+
+    `top_block` / `bottom_block` default to canonical; tests pass other wrapped
+    blocks to simulate a canonical edit.
+    """
+    top_block = TOP_BLOCK if top_block is None else top_block
+    bottom_block = BOTTOM_BLOCK if bottom_block is None else bottom_block
     status = {"top": "skipped", "bottom": "skipped", "already_present": False}
 
     if TAG in text:
+        # Refresh has ONE owner (sync_project_reference_block.refresh), which
+        # replaces blocks whitespace-stripped so repeated canonical edits never
+        # accumulate blank lines around the markers.
         status["already_present"] = True
-        m = TOP_BLOCK_RE.search(text)
-        if m and m.group(0).strip() != TOP_BLOCK.strip():
-            text = text[: m.start()] + TOP_BLOCK + text[m.end():]
+        text, refreshed = refresh_existing(text, top_block, bottom_block)
+        if refreshed["top_refreshed"]:
             status["top"] = "refreshed"
-        if REMINDER_TAG in text:
-            m = BOTTOM_BLOCK_RE.search(text)
-            if m and m.group(0).strip() != BOTTOM_BLOCK.strip():
-                text = text[: m.start()] + BOTTOM_BLOCK + text[m.end():]
-                status["bottom"] = "refreshed"
-        else:
-            m = CLOSING_RE.search(text)
-            if m:
-                text = text[: m.start()] + BOTTOM_BLOCK + "\n" + text[m.start():]
-                status["bottom"] = "before-closing-reminders"
-            else:
-                if not text.endswith("\n"):
-                    text += "\n"
-                text += "\n" + BOTTOM_BLOCK
-                status["bottom"] = "appended-eof"
+        if refreshed["bottom_refreshed"]:
+            status["bottom"] = "refreshed"
+        elif refreshed["bottom_added"]:
+            status["bottom"] = "added"
         return text, status
 
     # --- TOP insert: BEFORE the SYNC region start (co-located with reminders) ---
     insert_at = find_sync_region_start(text)
     head = text[:insert_at].rstrip() + "\n\n"
     tail = "\n" + text[insert_at:].lstrip("\n")
-    text = head + TOP_BLOCK + tail
+    text = head + top_block + tail
     status["top"] = "before-sync-region-start"
 
     # --- BOTTOM insert: before `## Closing Reminders` heading ---
     m = CLOSING_RE.search(text)
     if m:
         insert_at = m.start()
-        text = text[:insert_at] + BOTTOM_BLOCK + "\n" + text[insert_at:]
+        text = text[:insert_at] + bottom_block + "\n" + text[insert_at:]
         status["bottom"] = "before-closing-reminders"
     else:
         if not text.endswith("\n"):
             text += "\n"
-        text += "\n" + BOTTOM_BLOCK
+        text += "\n" + bottom_block
         status["bottom"] = "appended-eof"
 
     return text, status
@@ -150,7 +169,7 @@ def main() -> int:
         if check or dry_run:
             results.append((name, "WOULD-UPDATE" if check else "DRY-RUN", status))
             continue
-        path.write_text(new_text, encoding="utf-8")
+        path.write_text(new_text, encoding="utf-8", newline="\n")
         results.append((name, "UPDATED", status))
 
     print(f"{'SKILL':<30} {'STATUS':<18} TOP / BOTTOM")

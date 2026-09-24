@@ -15,7 +15,7 @@ TELEGRAM_CHAT_ID=your_chat_id
 
 ### 2. Enable in settings.json
 
-Hooks are already configured in `.claude/settings.json`. The unified system is enabled by default for Stop, SubagentStop, and AskUserPrompt events.
+Hooks are already configured in `.claude/settings.json`. The unified system sends SessionEnd, Stop, AskUserQuestion, AskUserPrompt, idle_prompt and permission_prompt events (`EVENT_WHITELIST` in `notify.cjs`); every other event, including SubagentStop, is skipped. No session-ended alert is sent for a subagent's end, a conversation reset (`/clear`), or a session of unknown kind (the OpenCode bridge without session metadata). A failed request (HTTP error status, refused connection, DNS or network error) pauses the channel for 5 minutes; a request slower than 2 s (less when the session is ending and its hook time is nearly used) is abandoned for that alert only and pauses nothing.
 
 ### 3. Test
 

@@ -646,6 +646,7 @@ Path branching: INIT derives the guide from verified native artifacts/config; SY
 
 **Phase 4: Build Lookup Table** (no Think prompt)
 - Map verified topics, terms, artifact types, and project roles to their authoritative doc paths. Use configured native identifiers and filenames when present; do not assume buckets, `README.{Feature}.md`, a spec root, or a specific reference-doc filename.
+- Phrase each lookup row as a when-to-read trigger — the question, task, or phase that should send an agent to that doc — not a bare keyword; keep the rows most agents need (project config, lessons, structure, code rules) at the top of the table.
 
 **Phase 5: Fresh-Eyes Verification** (one zero-memory verifier) — validate the complete set rather than a fixed sample:
 1. Every documented path exists; every listed count matches a fresh glob of the documented scope.
@@ -653,6 +654,7 @@ Path branching: INIT derives the guide from verified native artifacts/config; SY
 3. Lookup entries resolve to the correct existing authority and do not conflict or duplicate the same path under inconsistent topics.
 4. Required sections, labels, paths, or formats from the project config, current template, and repository-owned checks remain satisfied; report the evidence for each local constraint.
 5. No claims, authorities, relationships, or generated paths were inferred without evidence.
+6. Every AI-read project doc (selected reference docs, `lessons.md`, root instruction files) is reachable from the index through a trigger row — no orphan; a doc declared not applicable is named once as a skip, never routed.
 
 ### Target Sections
 

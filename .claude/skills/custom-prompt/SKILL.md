@@ -22,7 +22,8 @@ description: '[Utilities] Use when invoking, listing, saving, updating, or delet
 2. **Load index** — read the index doc; if missing or empty, branch to the empty-registry path
 3. **Execute mode** — LIST (Phase 1) · MATCH + confirm (Phase 2) · RUN (Phase 3) · SAVE/UPDATE (Phase 4) · DELETE (Phase 5)
 4. **Sync index** — any body write updates the index row in the same turn; the two never drift
-5. **Report** — state the file(s) touched and the mode taken; never commit
+5. **Discovery check** — a written body leads with its goal and when to use it and ends with its success criteria and guardrails; the index keeps its purpose header on top and stays routed from the docs index (`SYNC:ai-discovery-doc-quality`)
+6. **Report** — state the file(s) touched and the mode taken; never commit
 
 **Key Rules:**
 
@@ -188,6 +189,22 @@ LIST reads the index ONLY. Reading bodies here is a defect — it costs the whol
 
 <!-- /SYNC:critical-thinking-mindset -->
 
+<!-- SYNC:ai-discovery-doc-quality -->
+
+> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
+>
+> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
+> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
+> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
+> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
+> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
+> 6. **Token-efficient:** apply `/prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
+> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
+>
+> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `/prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+
+<!-- /SYNC:ai-discovery-doc-quality -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -223,6 +240,12 @@ LIST reads the index ONLY. Reading bodies here is a defect — it costs the whol
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
+<!-- SYNC:ai-discovery-doc-quality:reminder -->
+
+**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+
+<!-- /SYNC:ai-discovery-doc-quality:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
@@ -240,3 +263,4 @@ LIST reads the index ONLY. Reading bodies here is a defect — it costs the whol
 - **MUST ATTENTION** Index for matching, ONE body for executing — never bulk-read bodies.
 - **MUST ATTENTION** SAVE drafts the best version of the prompt, then confirms name + description + goal + steps and states what changed — never write a rewrite the user has not seen.
 - **MUST ATTENTION** Every write touches the body AND its index row in the same turn; never commit without an explicit ask.
+- **MUST ATTENTION** A written body passes the AI-discovery check — goal and when-to-use first, success criteria and guardrails last; the index row's `description` + `triggers` are the only route an agent has to it.

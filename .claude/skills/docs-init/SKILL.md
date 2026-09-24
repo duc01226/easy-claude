@@ -15,6 +15,7 @@ disable-model-invocation: false
 2. **Resolve** -- Separate project-init-owned always-on inputs from task-specific reference docs; resolve the effective selection.
 3. **Select** -- Resolve selected built-in targets, explicitly generic custom targets, and manual custom docs; check capability evidence where a built-in target defines one.
 4. **Populate** -- Run only applicable selected scans, then verify each changed or unchanged result.
+5. **Discovery gate** -- Every initialized or changed doc leads with purpose + critical rules and routes to related docs by trigger; the docs index routes to each of them (Step 5).
 
 **Key Rules:**
 
@@ -76,6 +77,10 @@ Apply the shared SDD quality contract only when the selected scan produces or up
 
 Run the exact verifier declared by the project/framework contract and resolve failures before reporting completion. Do not invent a verifier command; report when none is configured or applicable.
 
+## Step 5: AI-Discovery Gate (final)
+
+Apply `SYNC:ai-discovery-doc-quality` to each doc this run initialized or changed and to the docs index. Pass requires: purpose, when-to-read and critical rules on the first screen; closing reminders on a long or rule-bearing doc; every pointer to another doc written as `read <path> when <situation>` with an existing target; each selected doc reachable from the docs index or root context (no orphan). Route a failure back to the doc's owner (`/scan --target=<key>`, the docs-index target for index routing gaps, or a `referenceDocs` entry via `/project-config` for a root-context route) instead of patching generated output by hand; a placeholder-only doc still names its purpose and when to read it.
+
 ## Configuration
 
 Reference-doc definitions are in the configured project-config file under `referenceDocs`; `.claude/hooks/lib/session-init-helpers.cjs` resolves the portable default selection and templates. The project config schema, not this skill, defines accepted properties.
@@ -83,6 +88,22 @@ Reference-doc definitions are in the configured project-config file under `refer
 ---
 
 > **[IMPORTANT]** Track multi-target initialization as small tasks with a final consistency review. Do not interrupt an otherwise clear initialization to ask which applicable configured scans to run.
+
+<!-- SYNC:ai-discovery-doc-quality -->
+
+> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
+>
+> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
+> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
+> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
+> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
+> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
+> 6. **Token-efficient:** apply `/prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
+> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
+>
+> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `/prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+
+<!-- /SYNC:ai-discovery-doc-quality -->
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -118,6 +139,12 @@ Reference-doc definitions are in the configured project-config file under `refer
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
+<!-- SYNC:ai-discovery-doc-quality:reminder -->
+
+**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+
+<!-- /SYNC:ai-discovery-doc-quality:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
@@ -143,7 +170,9 @@ Reference-doc definitions are in the configured project-config file under `refer
 
 - **Critical Thinking:** Apply critical + sequential thinking; cite proof, confidence >80% to act.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **AI-Discovery Doc Quality:** purpose + critical rules on top, reminders at the bottom when long, trigger-based routing to existing docs, no orphan doc.
 
+- **MANDATORY IMPORTANT MUST ATTENTION** finish with the Step 5 AI-discovery gate on every initialized or changed doc and the docs index
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)

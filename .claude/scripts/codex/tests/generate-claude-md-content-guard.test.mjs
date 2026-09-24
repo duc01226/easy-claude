@@ -1027,3 +1027,214 @@ test("TC-DOCROOT-067 a traversing reference root falls back to the default docs 
 
   assert.equal(out, "```\ndocs/overview.md\n```", `an escaping root must degrade to the default tree; got:\n${out}`);
 });
+
+// TC-DOCROOT-068..069 — with the project dir, doc-lookup is the when-to-read index an agent routes
+// every question through. It must never point at a document the project does not have (a dead row
+// sends the agent to invent the answer), and a doc the project declares N/A must not be routed.
+test("TC-DOCROOT-068 doc-lookup routes only existing docs, with start-here rows first and N/A docs named once", async t => {
+  // Given a project holding some selected docs, missing others, and declaring one pattern doc N/A.
+  const root = await docsFixture(t, {
+    "docs/project-config.json": "{}",
+    "docs/project-reference/docs-index-reference.md": "# index",
+    "docs/project-reference/lessons.md": "# lessons",
+    "docs/project-reference/code-review-rules.md": "# rules",
+    "docs/project-reference/backend-patterns-reference.md": "# n/a",
+    "docs/project-reference/runbook-reference.md": "# custom",
+    "docs/adr/0001-choice.md": "# adr",
+    ".claude/docs/README.md": "# framework",
+  });
+  const config = {
+    framework: { backendPatternsDoc: "docs/project-reference/backend-patterns-reference.md" },
+    referenceDocs: [
+      { filename: "code-review-rules.md", purpose: "Code review checklist and rules" },
+      { filename: "backend-patterns-reference.md", purpose: "Backend coding patterns (N/A for this project)" },
+      { filename: "runbook-reference.md", purpose: "Operational runbook for releases" },
+      { filename: "e2e-test-reference.md", purpose: "E2E patterns" },
+    ],
+  };
+  // When the doc-lookup table is built with the project directory.
+  const out = freshBuilders().buildDocLookup(config, root);
+  const rows = out.split("\n").filter(line => line.startsWith("| ") && !line.startsWith("| If user"));
+
+  // Then start-here rows lead, only existing docs are routed, and the N/A doc is named once instead.
+  assert.match(rows[0], /start here.*`docs\/project-config\.json`/, `config is the first row; got:\n${out}`);
+  assert.match(rows[1], /`docs\/project-reference\/docs-index-reference\.md`/, "docs index is the second row");
+  assert.match(rows[2], /`docs\/project-reference\/lessons\.md`/, "lessons is the third row");
+  assert.match(out, /Before editing or reviewing code.*Holds: Code review checklist and rules \| `docs\/project-reference\/code-review-rules\.md`/,
+    "a built-in doc carries its trigger AND the project purpose");
+  assert.match(out, /\| Operational runbook for releases \| `docs\/project-reference\/runbook-reference\.md` \|/, "a custom doc routes by its purpose");
+  assert.match(out, /`docs\/adr\/`/, "an ADR root with decisions is routed");
+  assert.match(out, /`\.claude\/docs\/README\.md`/, "framework guide is routed when shipped");
+  assert.ok(!out.includes("e2e-test-reference.md"), "a selected doc missing on disk must not be routed");
+  assert.ok(!out.includes("spec-system-reference.md") && !out.includes("docs/specs/"), "a fixed spec row whose docs are missing must not be routed");
+  assert.ok(!out.includes(".claude/docs/development-rules.md"), "a framework doc missing on disk must not be routed");
+  assert.ok(!rows.some(row => row.includes("backend-patterns-reference.md")), "a declared N/A doc must not be routed, not even by its framework row");
+  assert.match(out, /Declared not applicable[^\n]*`backend-patterns-reference\.md`/, "a declared N/A doc is named once so agents skip it");
+});
+
+test("TC-DOCROOT-069 doc-lookup discovery rows follow relocated reference and ADR roots", async t => {
+  // Given reference docs and decisions that live only under relocated roots.
+  const root = await docsFixture(t, {
+    "documentation/reference/lessons.md": "# lessons",
+    "documentation/reference/project-structure-reference.md": "# structure",
+    "decisions/0001.md": "# adr",
+  });
+  // When the doc-lookup table is built for a config naming those roots.
+  const out = freshBuilders().buildDocLookup({
+    docsRoots: { projectReference: { path: "documentation/reference" }, adr: { path: "decisions" } },
+    referenceDocs: [{ filename: "project-structure-reference.md", purpose: "Directory layout" }],
+  }, root);
+
+  // Then every discovery row follows the configured roots and no default root appears.
+  assert.match(out, /`documentation\/reference\/lessons\.md`/, `lessons follows the configured root; got:\n${out}`);
+  assert.match(out, /`documentation\/reference\/project-structure-reference\.md`/);
+  assert.match(out, /`decisions\/`/, "the ADR row follows docsRoots.adr");
+  assert.ok(!out.includes("docs/project-reference"), "no default reference root may appear");
+  assert.ok(!out.includes("docs/adr"), "no default ADR root may appear");
+});
+
+test("TC-DOCROOT-070 decision quick-ref never routes a pattern doc the project declares N/A", () => {
+  // Given a config naming backend and frontend pattern docs.
+  const b = freshBuilders();
+  const base = {
+    modules: [{ name: "alpha" }],
+    framework: { backendPatternsDoc: "docs/project-reference/backend-patterns-reference.md", frontendPatternsDoc: "docs/project-reference/frontend-patterns-reference.md" },
+  };
+  // When the quick-ref is built with the backend doc applicable, then declared N/A.
+  const applicable = b.buildDecisionQuickRef({ ...base, referenceDocs: [{ filename: "backend-patterns-reference.md", purpose: "Backend patterns" }] });
+  const declared = b.buildDecisionQuickRef({ ...base, referenceDocs: [{ filename: "backend-patterns-reference.md", purpose: "Backend coding patterns (N/A for this project)" }] });
+
+  // Then only the declared doc is dropped.
+  assert.match(applicable, /Backend conventions/, "an applicable backend doc is still routed");
+  assert.ok(!declared.includes("backend-patterns-reference.md"), `a declared N/A doc must not be routed; got:\n${declared}`);
+  assert.match(declared, /Frontend conventions/, "only the declared doc is dropped");
+});
+
+test("TC-DOCROOT-071 doc-lookup survives a file-shaped ADR root and never probes a traversing referenceDocs name", async t => {
+  // Given a file where the ADR directory belongs and a referenceDocs name that traverses out.
+  const root = await docsFixture(t, {
+    "docs/adr": "not a directory",
+    "docs/project-reference/lessons.md": "# lessons",
+    "outside.md": "# must never be routed",
+  });
+  // When the doc-lookup table is built.
+  const out = freshBuilders().buildDocLookup({
+    referenceDocs: [{ filename: "../../outside.md", purpose: "Escaping doc" }],
+  }, root);
+
+  // Then generation succeeds and neither the ADR root nor the traversing doc is routed.
+  assert.match(out, /`docs\/project-reference\/lessons\.md`/, "generation still succeeds");
+  assert.ok(!out.includes("docs/adr"), "a file-shaped ADR root yields no row");
+  assert.ok(!out.includes("outside.md") && !out.includes("Escaping doc"), "a traversing name is skipped, never routed");
+});
+
+// TC-DOCROOT-072..077 — existing adopters receive the Doc Lookup heading on `--mode update`, N/A is
+// explicit (never inferred from ordinary prose), no path is routed twice, and cells are escaped.
+test("TC-DOCROOT-072 update back-fills the Doc Lookup heading onto a legacy headless doc-lookup block", () => {
+  // Given a CRLF root whose doc-lookup section has no heading, and a root with an older heading alias.
+  const legacy = ["# Demo", "", "## Inventory", "", "<!-- SECTION:doc-lookup -->", "", "| old |", "", "<!-- /SECTION:doc-lookup -->", ""].join("\r\n");
+  // When the heading back-fill runs.
+  const out = gen.backfillDocLookupHeading(legacy);
+  const aliased = gen.backfillDocLookupHeading("## Doc Lookup Guide\n\n<!-- SECTION:doc-lookup -->\n<!-- /SECTION:doc-lookup -->\n");
+
+  // Then the canonical heading is inserted once, line endings are kept, and unrelated roots are untouched.
+  assert.match(out, /## Doc Lookup — What to Read When\r\n\r\n<!-- SECTION:doc-lookup -->/, `heading inserted before the marker, CRLF kept; got:\n${out}`);
+  assert.equal(gen.backfillDocLookupHeading(out), out, "idempotent: a second update adds nothing");
+  assert.equal((aliased.match(/^## /gm) || []).length, 1, "a smart-merge doc-lookup heading is normalized, never duplicated");
+  assert.match(aliased, /^## Doc Lookup — What to Read When$/m);
+  assert.equal(gen.backfillDocLookupHeading("# No lookup here\n"), "# No lookup here\n", "a root without the section is untouched");
+});
+
+test("TC-DOCROOT-073 N/A needs an explicit field or a leading/parenthesized marker, never incidental prose", async t => {
+  // Given four existing docs: one with incidental "not applicable" prose, three declared N/A three ways.
+  const root = await docsFixture(t, {
+    "docs/project-reference/integration-test-reference.md": "# it",
+    "docs/project-reference/e2e-test-reference.md": "# e2e",
+    "docs/project-reference/scss-styling-guide.md": "# scss",
+    "docs/project-reference/seed-test-data-reference.md": "# seed",
+  });
+  // When the doc-lookup table is built.
+  const out = freshBuilders().buildDocLookup({
+    referenceDocs: [
+      { filename: "integration-test-reference.md", purpose: "Integration test patterns. Mocks are not applicable here." },
+      { filename: "e2e-test-reference.md", purpose: "E2E patterns", notApplicable: true },
+      { filename: "scss-styling-guide.md", purpose: "N/A — no stylesheets" },
+      { filename: "seed-test-data-reference.md", purpose: "Seeders (N/A for this project)" },
+    ],
+  }, root);
+  const rows = out.split("\n").filter(line => line.startsWith("| ") && !line.startsWith("| If user"));
+
+  // Then incidental prose keeps the doc routed, and each declared doc is skipped and named once.
+  assert.ok(rows.some(row => row.includes("integration-test-reference.md")), `incidental N/A prose must not hide a real doc; got:\n${out}`);
+  for (const file of ["e2e-test-reference.md", "scss-styling-guide.md", "seed-test-data-reference.md"]) {
+    assert.ok(!rows.some(row => row.includes(file)), `${file} is declared N/A and must not be routed`);
+    assert.ok(out.split("\n").some(line => line.startsWith("Declared not applicable") && line.includes(`\`${file}\``)), `${file} is named once as N/A`);
+  }
+});
+
+test("TC-DOCROOT-074 a fixed spec row honours N/A, and an applicable pattern doc is routed exactly once", async t => {
+  // Given a fixed-row spec doc declared N/A and a pattern doc named by both a fixed row and referenceDocs.
+  const root = await docsFixture(t, {
+    "docs/project-reference/spec-principles.md": "# principles",
+    "docs/project-reference/backend-patterns-reference.md": "# backend",
+  });
+  // When the doc-lookup table is built.
+  const out = freshBuilders().buildDocLookup({
+    framework: { backendPatternsDoc: "docs/project-reference/backend-patterns-reference.md" },
+    referenceDocs: [
+      { filename: "spec-principles.md", purpose: "Spec rules", notApplicable: true },
+      { filename: "backend-patterns-reference.md", purpose: "Backend patterns" },
+    ],
+  }, root);
+  const rows = out.split("\n").filter(line => line.startsWith("| ") && !line.startsWith("| If user"));
+
+  // Then the N/A spec doc is named, not routed, and the pattern doc is routed exactly once.
+  assert.ok(!rows.some(row => row.includes("spec-principles.md")), `a fixed spec row declared N/A must not be routed; got:\n${out}`);
+  assert.ok(out.split("\n").some(line => line.startsWith("Declared not applicable") && line.includes("`spec-principles.md`")));
+  assert.equal(rows.filter(row => row.includes("backend-patterns-reference.md")).length, 1, "an applicable pattern doc in both fixed rows and referenceDocs is routed once");
+});
+
+test("TC-DOCROOT-075 a project with no docs gets an actionable line, never a header-only table", async t => {
+  // Given a project with no documentation at all.
+  const root = await docsFixture(t, { "README.md": "# empty project" });
+  // When the doc-lookup table is built.
+  const out = freshBuilders().buildDocLookup({}, root);
+  // Then it names the setup route instead of rendering an empty table.
+  assert.ok(!out.includes("| If user prompt mentions..."), `no empty table; got:\n${out}`);
+  assert.ok(out.includes("run `/project-init` or `/docs-init`"));
+});
+
+test("TC-DOCROOT-076 decision quick-ref left with only N/A docs returns a body, so update replaces stale rows", () => {
+  // Given a config whose only pattern doc is declared N/A, and a root still carrying its old routing row.
+  const b = freshBuilders();
+  const config = {
+    modules: [{ name: "alpha" }],
+    framework: { backendPatternsDoc: "docs/project-reference/backend-patterns-reference.md" },
+    referenceDocs: [{ filename: "backend-patterns-reference.md", purpose: "Backend", notApplicable: true }],
+  };
+  const stale = ["<!-- SECTION:decision-quick-ref -->", "", "| Backend conventions | Read `docs/project-reference/backend-patterns-reference.md` |", "", "<!-- /SECTION:decision-quick-ref -->", ""].join("\n");
+  // When the quick-ref is built and applied with --mode update semantics.
+  const body = b.buildDecisionQuickRef(config);
+  const updated = gen.updateMarkedSections(stale, { "decision-quick-ref": body }, () => {});
+
+  // Then the body is a string without the N/A row, so the stale row is replaced rather than kept.
+  assert.equal(typeof body, "string", "never null: null would keep the stale body on --mode update");
+  assert.ok(!body.includes("| Backend conventions"), "no routing row to the N/A doc");
+  assert.ok(!updated.includes("| Backend conventions"), `update must replace the stale routing row; got:\n${updated}`);
+});
+
+test("TC-DOCROOT-077 doc-lookup escapes every cell, so a pipe in a module topic never splits its row", async t => {
+  // Given a module whose domain text contains a table pipe, with its spec folder present.
+  const root = await docsFixture(t, { "docs/specs/Billing/README.md": "# billing" });
+  const config = { modules: [{ name: "Billing", meta: { domain: "Invoices | refunds" } }] };
+  // When the doc-lookup table is built with and without the project directory.
+  const b = freshBuilders();
+  const outputs = [b.buildDocLookup(config, root), b.buildDocLookup(config)];
+
+  // Then the pipe is escaped and the row still has exactly two cells routing the module's spec folder.
+  for (const out of outputs) {
+    const row = out.split("\n").find(line => line.includes("Invoices"));
+    assert.equal(row, "| Invoices \\| refunds | `docs/specs/Billing/` |", `the topic cell must be escaped; got:\n${out}`);
+    assert.equal(row.split(/(?<!\\)\|/).length, 4, "an escaped pipe adds no column");
+  }
+});

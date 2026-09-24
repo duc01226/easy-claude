@@ -324,15 +324,18 @@ test("seeded expiry mutant is killed by the exact-boundary counter-case", (t) =>
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), "workflow-baseline-mutant-"));
   t.after(() => fs.rmSync(parent, { recursive: true, force: true }));
   const mutantModule = path.join(parent, ".claude", "scripts", "lib", "workflow-baseline.cjs");
-  const hooksPolicy = path.join(parent, ".claude", "hooks", "lib", "sensitive-path-policy.cjs");
+  // The module's hook-lib dependency closure: every file it requires must be copied, or the
+  // control run fails to load and proves nothing.
+  const hookLibDeps = ["sensitive-path-policy.cjs", "ck-path-utils.cjs"];
+  const copiedDeps = hookLibDeps.map(name => path.join(parent, ".claude", "hooks", "lib", name));
   const copiedTest = path.join(parent, ".claude", "scripts", "codex", "tests", "workflow-baseline.test.mjs");
-  for (const file of [mutantModule, hooksPolicy, copiedTest]) {
+  for (const file of [mutantModule, ...copiedDeps, copiedTest]) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
   }
   const source = fs.readFileSync(modulePath, "utf8");
   const before = "at < createdAt || at >= expiresAt || at - createdAt >= MAX_AGE_MS";
   assert.equal(source.split(before).length, 2, "expiry mutation target must exist exactly once");
-  fs.copyFileSync(path.join(repoRoot, ".claude", "hooks", "lib", "sensitive-path-policy.cjs"), hooksPolicy);
+  hookLibDeps.forEach((name, index) => fs.copyFileSync(path.join(repoRoot, ".claude", "hooks", "lib", name), copiedDeps[index]));
   fs.copyFileSync(fileURLToPath(import.meta.url), copiedTest);
   const env = { ...process.env, TMPDIR: parent, TEMP: parent, TMP: parent };
   delete env.NODE_TEST_CONTEXT;

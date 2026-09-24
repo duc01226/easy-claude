@@ -15,7 +15,7 @@ disable-model-invocation: true
 > `package.json` script, and never document one: `npm run …` names a command that does not exist in
 > most projects the bundle is copied into. The only external requirement is `node` >= 18 — no
 > `node_modules`, no npm, no lockfile (`PORT-001` enforces the pipeline imports only `node:`
-> built-ins). Catalog regeneration additionally needs `python` (`py -3` on Windows).
+> built-ins). Catalog regeneration additionally needs Python 3 (`py -3` on Windows, `python3` on macOS/Linux).
 >
 > Discover the roster instead of memorizing it:
 > `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --list-stages`
@@ -24,6 +24,7 @@ disable-model-invocation: true
 
 - Run the 19-stage orchestrator in order; stage 1 reconciles `CLAUDE.md`, stages 2-4 generate the Codex mirrors, and stages 5-19 run tests and read-only release gates.
 - Keep `.claude` canonical and source-owned; never hand-edit `.agents`, `.codex`, or `AGENTS.md`, and expect Claude slash invocations to become Codex dollar invocations only in generated mirrors.
+- Keep `AGENTS.md` discoverable under Codex's read budget: Doc Lookup and Git discipline project first; fix a discovery defect in `CLAUDE.md`, its template, or the projection script, then re-sync.
 - If a stage fails, rerun that stage with `--only=<stage> --verbose`, then rerun the full pipeline and inspect the generated diff before handoff.
 
 > **Renamed:** formerly `/codex-sync` — that name no longer resolves as a slash command; use `/sync-codex`.
@@ -48,6 +49,7 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
   verifiers, and the cross-surface divergence oracle)
 - Stage 2 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
 - Stage 2 also upserts top-level `model_auto_compact_token_limit = 500000` — the bundle-wide compaction budget; change it here AND in the other two surfaces, never in one alone
+- Stage 2 also raises top-level `project_doc_max_bytes` to 98304 (never lowers a larger value): Codex silently stops reading `AGENTS.md` at 32 KiB by default, which cut the generated root mid-file. The projection still emits Doc Lookup and Git discipline first, so they survive a host that ignores the project value; there, set the key in `~/.codex/config.toml` instead. The budget covers every `AGENTS.md` concatenated from the project root to the working directory, not the root alone.
 - Stage 4 generates the bounded `AGENTS.md` projection and `.codex/CODEX_CONTEXT.md` quality-protocol mirror. Automatic route selection is deliberately absent; the opt-in `UserPromptSubmit` hook owns runtime routing.
 - Stage 2 must not inline `lessons.md` content — it lives in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — into `.agents/skills/**`; generated skill mirrors reference the project-reference loading gate instead
 - The `SYNC:ai-sdd-artifact-contract` marker must appear after sync in `.codex/CODEX_CONTEXT.md` and `AGENTS.md`
@@ -171,6 +173,22 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 
 **Exit codes:** `0` all pass · `1` orchestrator failure · non-zero propagates from failing stage.
 
+<!-- SYNC:ai-discovery-doc-quality -->
+
+> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
+>
+> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
+> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
+> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
+> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
+> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
+> 6. **Token-efficient:** apply `/prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
+> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
+>
+> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `/prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+
+<!-- /SYNC:ai-discovery-doc-quality -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -217,6 +235,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 **MUST ATTENTION** keep `.codex/scripts/codex/codex-notify.mjs` generated from `.claude/scripts/codex/codex-notify.mjs`; edit the `.claude` source first
 **MUST ATTENTION** keep Codex config upserts surgical; preserve unrelated `.codex/config.toml` keys and tables while updating the managed notification/status-line/auto-compact keys
 **MUST ATTENTION** keep `AGENTS.md` sync comprehensive; mirror full `CLAUDE.md` plus generated hook/context blocks, and preserve unmanaged `AGENTS.md` preface text
+**MUST ATTENTION** keep `AGENTS.md` discoverable under Codex's read budget — Doc Lookup and Git discipline project first; a discovery defect in `AGENTS.md` is fixed in `CLAUDE.md`, its template or the projection script, then re-synced
 **MUST ATTENTION** keep learned-lessons content out of `.agents/skills/**`; skills may point to `lessons.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) but must not embed its entries
 **MUST ATTENTION** orchestrator fails fast — re-run single failing stage with `--only=<id> --verbose` to debug
 **MUST ATTENTION** working directory auto-resolves to repo root from script path — do not pass `--cwd`
@@ -245,6 +264,12 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 **MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+<!-- SYNC:ai-discovery-doc-quality:reminder -->
+
+**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+
+<!-- /SYNC:ai-discovery-doc-quality:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.

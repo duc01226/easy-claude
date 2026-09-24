@@ -21,6 +21,13 @@
 //   D11 short-form citations are ambiguous, not dead — F1's signal stays readable
 //   D12 a malformed config regex warns loudly instead of silently narrowing routing
 //   D13 a renamed file is collected under its NEW path, never the dead old one
+//   D18 canonical business-spec claims resolve under the configured root, including when untracked
+//   D19 same-named repo-root and project-reference files cannot satisfy a business-spec claim
+//   D20 missing config uses the default business-spec root
+//   D21 invalid business-root config never falls back to the default
+//   D22 traversal, absolute, drive-relative, and UNC claims stay unresolved
+//   D23 symlink/junction targets outside the business root stay unresolved
+//   D24 leading-slash citations resolve repo-root-relative and are never suffix-matched
 //   F1  a specific configured rule still suppresses the conventions fallback
 //   F2  task-specific built-in outputs obey the EXACT selected set; always-on
 //       docs and direct context-group routes stay separate; an omitted
@@ -32,9 +39,9 @@
 // structure. The always-on index name comes from the configured resolver, and CLI/custom-index
 // cases run in isolated temporary roots.
 //
-// All tests here are TECHNICAL-ONLY: this repo has no canonical Feature Spec
-// registry (no docs/specs/, no docs/specs-technical/), so no business TC governs
-// them. The bracket prefix plus this roster IS the project's technical annotation
+// All tests here are TECHNICAL-ONLY: they guard the generic impact mapper and do not implement
+// any user-facing Feature Spec. The project has business Feature Specs, but none governs this
+// utility; the bracket prefix plus this roster is the local technical annotation
 // (docs/project-reference/integration-test-reference.md -> New Test Quickstart, 3).
 
 const fs = require('fs');
@@ -107,6 +114,23 @@ function cleanupRepo(dir) {
     }
 }
 
+const DIRECTORY_LINK_SKIP = (() => {
+    const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), `doc-impact-map-link-probe-${process.pid}-`));
+    try {
+        const target = path.join(probeDir, 'target');
+        fs.mkdirSync(target);
+        fs.symlinkSync(target, path.join(probeDir, 'link'), process.platform === 'win32' ? 'junction' : 'dir');
+        return false;
+    } catch (error) {
+        if (['EACCES', 'EPERM', 'ENOSYS', 'ENOTSUP', 'EOPNOTSUPP'].includes(error && error.code)) {
+            return `directory symlink/junction creation is unavailable on ${process.platform}: ${error.code}`;
+        }
+        throw error;
+    } finally {
+        cleanupRepo(probeDir);
+    }
+})();
+
 /** Run `checkClaims` against a throwaway repo — PROJECT_DIR is fixed at module load, so spawn. */
 function checkClaimsIn(dir, relDoc) {
     const driver =
@@ -119,6 +143,27 @@ function checkClaimsIn(dir, relDoc) {
     });
     if (out.status !== 0) throw new Error(`checkClaims driver failed: ${out.stderr}`);
     return JSON.parse(out.stdout);
+}
+
+function writeFixtureFile(dir, relativePath, content = '# fixture\n') {
+    const absolutePath = path.join(dir, ...relativePath.split('/'));
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, content, 'utf8');
+    return absolutePath;
+}
+
+function configuredBusinessSpecConfig(rootPath) {
+    return {
+        ...MINIMAL_CONFIG,
+        specRoots: {
+            business: { path: rootPath, authorship: 'authored', m1Policy: 'enforced' }
+        }
+    };
+}
+
+function checkFixtureClaims(dir, claims) {
+    writeFixtureFile(dir, 'claims.md', claims.map(claim => `\`${claim}\``).join('\n') + '\n');
+    return checkClaimsIn(dir, 'claims.md');
 }
 
 function runMapper(dir, args) {
@@ -541,6 +586,221 @@ const tests = [
                 );
             } finally {
                 if (fs.existsSync(fixture)) fs.unlinkSync(fixture);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D18 canonical business-spec claims resolve under the configured root while untracked',
+        skip: GIT_SKIP,
+        fn: () => {
+            const { dir, g } = makeRepo();
+            const claims = ['SampleBucket/INDEX.md', 'SampleBucket/README.Feature.md'];
+            const files = claims.map(claim => `custom-specs/${claim}`);
+            try {
+                // Given: a relocated business-spec root holding both canonical forms, untracked by git.
+                writeFixtureFile(dir, 'docs/project-config.json', JSON.stringify(configuredBusinessSpecConfig('custom-specs')));
+                for (const relativePath of files) writeFixtureFile(dir, relativePath);
+
+                assertEqual(g(['ls-files', '--', ...files]).trim(), '', 'Configured-root Feature Spec fixtures must remain untracked.');
+                // When: a reference doc cites them in their bucket-relative form.
+                const result = checkFixtureClaims(dir, claims);
+                // Then: both resolve precisely under the configured root — neither dead nor ambiguous.
+                assertEqual(result.checked, claims.length, 'Both canonical business-spec claim forms should be checked.');
+                for (const claim of claims) {
+                    assertTrue(!result.missing.includes(claim), `Configured business root must resolve ${claim}.`);
+                    assertTrue(!result.ambiguous.includes(claim), `Configured business root must resolve ${claim} precisely.`);
+                }
+            } finally {
+                cleanupRepo(dir);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D19 repo-root and project-reference collisions cannot satisfy business-spec claims',
+        skip: GIT_SKIP,
+        fn: () => {
+            const claims = ['SampleBucket/INDEX.md', 'SampleBucket/README.Feature.md'];
+            for (const collisionRoot of ['repo-root', 'project-reference']) {
+                const { dir, g } = makeRepo();
+                try {
+                    // Given: same-named copies at the repo root (untracked) or under project-reference
+                    // (tracked), and nothing under the configured business-spec root.
+                    writeFixtureFile(dir, 'docs/project-config.json', JSON.stringify(configuredBusinessSpecConfig('custom-specs')));
+                    const files = claims.map(claim =>
+                        collisionRoot === 'repo-root' ? claim : `docs/project-reference/${claim}`
+                    );
+                    for (const relativePath of files) writeFixtureFile(dir, relativePath);
+                    if (collisionRoot === 'project-reference') {
+                        g(['add', '--', ...files]);
+                    } else {
+                        assertEqual(g(['ls-files', '--', ...files]).trim(), '', 'Repo-root collision fixtures must be untracked.');
+                    }
+
+                    // When: the canonical business-spec claims are checked.
+                    const result = checkFixtureClaims(dir, claims);
+                    // Then: the collisions satisfy nothing — each claim is dead, never ambiguous.
+                    for (const claim of claims) {
+                        assertTrue(
+                            result.missing.includes(claim),
+                            `${collisionRoot} copies must not satisfy the configured business-spec claim ${claim}.`
+                        );
+                        assertTrue(
+                            !result.ambiguous.includes(claim),
+                            `${collisionRoot} copies must not turn a canonical business-spec claim into a short-form citation.`
+                        );
+                    }
+                } finally {
+                    cleanupRepo(dir);
+                }
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D20 missing project config uses the default business-spec root',
+        skip: GIT_SKIP,
+        fn: () => {
+            const { dir, g } = makeRepo();
+            const claims = ['DefaultBucket/INDEX.md', 'DefaultBucket/README.Feature.md'];
+            const files = claims.map(claim => `docs/specs/${claim}`);
+            try {
+                // Given: no project config and both canonical forms under the default business-spec root.
+                for (const relativePath of files) writeFixtureFile(dir, relativePath);
+                assertTrue(!fs.existsSync(path.join(dir, 'docs', 'project-config.json')), 'The fixture must have no declared project config.');
+                assertEqual(g(['ls-files', '--', ...files]).trim(), '', 'Default-root spec fixtures must remain untracked.');
+
+                // When: the claims are checked.
+                const result = checkFixtureClaims(dir, claims);
+                // Then: the default root resolves them precisely.
+                assertEqual(result.missing.length, 0, `A missing config should use docs/specs. Got ${JSON.stringify(result.missing)}.`);
+                assertEqual(result.ambiguous.length, 0, 'Default-root business-spec claims should resolve precisely.');
+            } finally {
+                cleanupRepo(dir);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D21 invalid business-root config never falls back to default docs/specs',
+        skip: GIT_SKIP,
+        fn: () => {
+            const { dir } = makeRepo();
+            const claims = ['InvalidBucket/INDEX.md', 'InvalidBucket/README.Feature.md'];
+            try {
+                // Given: an escaping (invalid) business root and valid copies under the DEFAULT root.
+                writeFixtureFile(
+                    dir,
+                    'docs/project-config.json',
+                    JSON.stringify(configuredBusinessSpecConfig('../outside-specs'))
+                );
+                for (const claim of claims) writeFixtureFile(dir, `docs/specs/${claim}`);
+
+                // When: the claims are checked.
+                const result = checkFixtureClaims(dir, claims);
+                // Then: the invalid config is not silently replaced by the default — every claim is dead.
+                for (const claim of claims) {
+                    assertTrue(
+                        result.missing.includes(claim),
+                        `Invalid declared config must not use a default-root copy to satisfy ${claim}.`
+                    );
+                    assertTrue(!result.ambiguous.includes(claim), `${claim} is canonical, not an ambiguous suffix.`);
+                }
+            } finally {
+                cleanupRepo(dir);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D22 traversal, absolute, drive-relative, and UNC claims stay unresolved',
+        skip: GIT_SKIP,
+        fn: () => {
+            const { dir } = makeRepo();
+            const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), `doc-impact-map-escape-${process.pid}-`));
+            try {
+                // Given: real spec files that exist only OUTSIDE the project, and claims that reach
+                // them by traversal, absolute, drive, drive-relative, and UNC forms.
+                writeFixtureFile(outsideDir, 'EscapeBucket/INDEX.md');
+                writeFixtureFile(outsideDir, 'EscapeBucket/README.Feature.md');
+                const outsideIndex = path.join(outsideDir, 'EscapeBucket', 'INDEX.md');
+                const claims = [
+                    path.relative(dir, outsideIndex).replace(/\\/g, '/'),
+                    path.resolve(outsideIndex).replace(/\\/g, '/'),
+                    '/outside/EscapeBucket/INDEX.md',
+                    'C:/outside/EscapeBucket/INDEX.md',
+                    'C:relative/EscapeBucket/INDEX.md',
+                    '//server/share/EscapeBucket/INDEX.md'
+                ];
+
+                // When: the claims are checked.
+                const result = checkFixtureClaims(dir, claims);
+                // Then: none resolves outside the project; each is dead and none is a short-form suffix.
+                for (const claim of claims) {
+                    assertTrue(result.missing.includes(claim), `Unsafe path claim must stay unresolved: ${claim}.`);
+                }
+                assertEqual(result.ambiguous.length, 0, 'Unsafe paths must not be mistaken for short-form citations.');
+            } finally {
+                cleanupRepo(dir);
+                cleanupRepo(outsideDir);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D23 symlink or junction escapes cannot satisfy a business-spec claim',
+        // makeRepo() runs `git init`, so a git-less host must skip exactly like its siblings.
+        skip: GIT_SKIP || DIRECTORY_LINK_SKIP,
+        fn: () => {
+            const { dir } = makeRepo();
+            const claims = ['LinkedBucket/INDEX.md', 'LinkedBucket/README.Feature.md'];
+            try {
+                // Given: the configured business root's bucket is a symlink/junction to a directory
+                // outside that root that holds both canonical files.
+                writeFixtureFile(dir, 'docs/project-config.json', JSON.stringify(configuredBusinessSpecConfig('custom-specs')));
+                const targetDir = path.join(dir, 'outside-specs', 'LinkedBucket');
+                writeFixtureFile(dir, 'outside-specs/LinkedBucket/INDEX.md');
+                writeFixtureFile(dir, 'outside-specs/LinkedBucket/README.Feature.md');
+                const linkPath = path.join(dir, 'custom-specs', 'LinkedBucket');
+                fs.mkdirSync(path.dirname(linkPath), { recursive: true });
+                fs.symlinkSync(targetDir, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+
+                // When: the claims are checked.
+                const result = checkFixtureClaims(dir, claims);
+                // Then: physical containment rejects the link — each claim stays a canonical dead claim.
+                for (const claim of claims) {
+                    assertTrue(result.missing.includes(claim), `A link outside the configured business root must not satisfy ${claim}.`);
+                    assertTrue(!result.ambiguous.includes(claim), `${claim} must remain a canonical missing claim.`);
+                }
+            } finally {
+                cleanupRepo(dir);
+            }
+        }
+    },
+    {
+        name: '[doc-impact-map] D24 leading-slash citations resolve repo-root-relative, never by suffix',
+        skip: GIT_SKIP,
+        fn: () => {
+            const { dir, g } = makeRepo();
+            try {
+                // Given: a repo-root file, a nested tracked file whose SUFFIX a rooted claim would
+                // match, and a business-spec copy a rooted two-segment claim must not borrow.
+                writeFixtureFile(dir, 'docs/guide.md');
+                writeFixtureFile(dir, 'plans/INDEX.md');
+                writeFixtureFile(dir, 'nested/area/notes.md');
+                writeFixtureFile(dir, 'docs/specs/RootedBucket/INDEX.md');
+                g(['add', '--', 'nested/area/notes.md']);
+                const claims = ['/docs/guide.md', '/plans/INDEX.md', '/area/notes.md', '/RootedBucket/INDEX.md', '/docs/absent.md'];
+
+                // When: the rooted citations are checked.
+                const result = checkFixtureClaims(dir, claims);
+
+                // Then: citations naming a real repo-root file resolve; the rest are dead as cited,
+                // and a rooted claim is precise, so it never becomes an ambiguous suffix match.
+                for (const claim of ['/docs/guide.md', '/plans/INDEX.md']) {
+                    assertTrue(!result.missing.includes(claim), `Repo-rooted citation must resolve: ${claim}. missing=${JSON.stringify(result.missing)}`);
+                }
+                for (const claim of ['/area/notes.md', '/RootedBucket/INDEX.md', '/docs/absent.md']) {
+                    assertTrue(result.missing.includes(claim), `Repo-rooted citation with no repo-root file must be dead as cited: ${claim}.`);
+                }
+                assertEqual(result.ambiguous.length, 0, `Rooted citations are precise, never suffix matches. ambiguous=${JSON.stringify(result.ambiguous)}`);
+            } finally {
+                cleanupRepo(dir);
             }
         }
     },

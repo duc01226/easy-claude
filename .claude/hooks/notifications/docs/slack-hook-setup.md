@@ -45,27 +45,33 @@ echo '{"hook_event_name":"Stop","cwd":"'"$(pwd)"'","session_id":"test123"}' | \
 
 Notifications use Slack Block Kit with:
 
-- Header showing event type
+- Header showing the alert title, e.g. `AI Agent Turn Complete` for `Stop` (turn-complete, session-ended and question titles are shared by every channel: `lib/event-copy.cjs`)
 - Project name, time, session ID
 - Location path in context block
-- Agent type for SubagentStop events
+- For turn-complete, session-ended and question alerts, a one-line summary (also used as the preview text, prefixed with the project name)
 
 ## Supported Events
 
-| Event         | Description               |
-| ------------- | ------------------------- |
-| Stop          | Main session completed    |
-| SubagentStop  | Subagent task completed   |
-| AskUserPrompt | AI agent needs user input |
+The router forwards only these events (`EVENT_WHITELIST` in `notify.cjs`); every other event, including `SubagentStop`, is skipped.
+
+| Event             | Description                                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
+| SessionEnd        | Main session ended — not sent for a subagent's end, a conversation reset (`/clear`), or a session of unknown kind |
+| Stop              | Turn completed — on Codex, a final reply ending in `?` is sent as an `AskUserQuestion` alert                      |
+| AskUserQuestion   | AI agent asked a question                                                                                         |
+| AskUserPrompt     | AI agent needs user input                                                                                         |
+| idle_prompt       | AI agent is waiting for input                                                                                     |
+| permission_prompt | AI agent needs tool permission                                                                                    |
 
 ## Troubleshooting
 
-| Error                 | Solution                                  |
-| --------------------- | ----------------------------------------- |
-| `invalid_payload`     | Check JSON formatting                     |
-| `channel_is_archived` | Webhook's target channel was archived     |
-| `no_active_hooks`     | Webhook was disabled in Slack             |
-| No notification       | Verify SLACK_WEBHOOK_URL is set correctly |
+| Error                   | Solution                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `invalid_payload`       | Check JSON formatting                                                                   |
+| `channel_is_archived`   | Webhook's target channel was archived                                                   |
+| `no_active_hooks`       | Webhook was disabled in Slack                                                           |
+| No notification         | Verify SLACK_WEBHOOK_URL is set correctly                                               |
+| Alerts stop for a while | A failed request (HTTP error status, refused connection, DNS or network error) pauses the channel for 5 minutes; a request slower than 2 s is abandoned for that alert only and pauses nothing (`lib/sender.cjs`) |
 
 ## Multiple Providers
 
@@ -117,4 +123,4 @@ The unified `notify.cjs` routes to all configured providers simultaneously. Set 
 
 ---
 
-**Last Updated:** 2025-12-21
+**Last Updated:** 2026-09-24

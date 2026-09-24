@@ -12,6 +12,7 @@ Create immersive interactive 3D designs with Three.js.
 Run focused `design` design-intelligence searches:
 
 ```bash
+# Windows: py -3 · macOS/Linux: python3 (same arguments)
 py -3 .claude/skills/design/scripts/search.py "<product-type>" --domain product
 py -3 .claude/skills/design/scripts/search.py "immersive 3d" --domain style
 py -3 .claude/skills/design/scripts/search.py "animation" --domain ux

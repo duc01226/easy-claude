@@ -27,7 +27,7 @@
 
 The project uses a dependency-free CommonJS harness (`package.json:3-11`, `docs/project-config.json:120-130`). `.claude/hooks/tests/test-all-hooks.cjs` exercises hook behavior directly; `.claude/hooks/tests/run-all-tests.cjs` discovers suite files by the .test.cjs suffix and executes exported test objects (`.claude/hooks/tests/run-all-tests.cjs:87-99`, `.claude/hooks/tests/run-all-tests.cjs:298-325`).
 
-Integration is process/filesystem based: `runHook` spawns `node`, merges test environment overrides, writes JSON to stdin, captures stdout/stderr, and kills timed-out children (`.claude/hooks/tests/lib/hook-runner.cjs:22-83`). No container, web server, database, broker, or service startup is configured (`docs/project-config.json:120-152`).
+Integration is process/filesystem based: `runHook` spawns `node`, merges test environment overrides, writes JSON to stdin, captures stdout/stderr, and kills timed-out children (`.claude/hooks/tests/lib/hook-runner.cjs:35-108`). No container, web server, database, broker, or service startup is configured (`docs/project-config.json:120-152`).
 
 ## Test Base Classes
 
@@ -43,7 +43,7 @@ Standalone tests may use `TestGroup` and `TestSuite` from `.claude/hooks/tests/h
 
 ## Test Helpers
 
-Use `.claude/hooks/tests/lib/assertions.cjs:12-223` for equality, content/regex, throws, nullability, and hook exit-code assertions. `runHook`, `runHookSequence`, and `runHooksParallel` execute real hook boundaries (`.claude/hooks/tests/lib/hook-runner.cjs:22-155`).
+Use `.claude/hooks/tests/lib/assertions.cjs:12-223` for equality, content/regex, throws, nullability, and hook exit-code assertions. `runHook`, `runHookSequence`, and `runHooksParallel` execute real hook boundaries (`.claude/hooks/tests/lib/hook-runner.cjs:35-182`). `runCodexLauncher(hookFile, stdin, { cwd, env, timeout })` runs a hook through the exact `node -e` command the generated `.codex/hooks.json` wires (where `require.main` is undefined) and returns `{ code, stdout, stderr, command }` without asserting, so a blocking gate's exit `2` stays assertable (`.claude/hooks/tests/lib/hook-runner.cjs:297-328`; `.claude/hooks/tests/suites/codex-launcher.test.cjs`).
 
 ```js
 const results = await runHooksParallel(hooks, { cwd: tmpDir, timeout: SPAWN_TIMEOUT_MS });
@@ -64,7 +64,7 @@ Canonical commands live in `docs/project-config.json:158-169` (`testing.commands
 
 The suite runner sets `CLAUDE_PROJECT_DIR` before loading suites (`.claude/hooks/tests/run-all-tests.cjs:16-24`). Child-process helpers merge per-call `env`; parent-process mutations must use `createEnvSaver`/`setupClaudeEnvFile` and restore in `finally` (`.claude/hooks/tests/lib/test-utils.cjs:141-195`).
 
-Targeted suites may require host executables: count-drift resolves `python` then Windows `py -3` (`.claude/hooks/tests/suites/count-drift.test.cjs:24-59`), and doc-sync tests probe/use Git in isolated temporary repositories (`.claude/hooks/tests/test-doc-sync-gate.cjs:65-76`). No real hardcoded test credential was verified; notification literals are synthetic enablement sentinels (`.claude/hooks/tests/suites/notification.test.cjs:140-154`).
+Targeted suites may require host executables: count-drift resolves `python` then Windows `py -3` (`.claude/hooks/tests/suites/count-drift.test.cjs:24-59`), and doc-sync tests probe/use Git in isolated temporary repositories (`.claude/hooks/tests/test-doc-sync-gate.cjs:65-76`). No real hardcoded test credential was verified; notification literals are synthetic enablement sentinels (`.claude/hooks/tests/suites/notification.test.cjs:145-159`).
 
 ## Service-Specific Setup
 

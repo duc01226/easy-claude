@@ -12,7 +12,7 @@
     "code-simplifier@claude-plugins-official": false,
     "csharp-lsp@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": false,
-    "github@claude-plugins-official": true,
+    "github@claude-plugins-official": false,
     "playwright@claude-plugins-official": false,
     "typescript-lsp@claude-plugins-official": false
   },
@@ -113,6 +113,15 @@
           }
         ],
         "matcher": "clear|exit|compact"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notifications/notify.cjs",
+            "timeout": 3,
+            "type": "command"
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -209,6 +218,22 @@
       {
         "hooks": [
           {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/commit-skill-route.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/judgement-integrity-route.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/prompt-ledger.cjs",
             "type": "command"
           }
@@ -218,9 +243,8 @@
   },
   "includeCoAuthoredBy": false,
   "permissions": {
-    "allow": ["Edit(.claude/**)", "Bash(tmp/**)", "Edit(tmp/**)", "Read(tmp/**)"],
+    "allow": ["Edit(.claude/**)", "Bash(tmp/**)", "Edit(tmp/**)", "Read(tmp/**)", "Bash(git push:*)"],
     "ask": [
-      "Bash(git push:*)",
       "Bash(npm publish:*)",
       "Bash(docker push:*)",
       "Bash(rm -rf /*)",

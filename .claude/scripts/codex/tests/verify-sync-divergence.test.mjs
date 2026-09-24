@@ -293,10 +293,10 @@ const EXPECTED_RENDERED_GROUPS = [
     ['PreToolUse', 'Bash', 2],
     ['PreToolUse', 'Write|Edit|MultiEdit|apply_patch', 1],
     // SessionEnd (2026-09-17): Codex DOES support this event. Its matcher vocabulary is
-    // only `other`, so Claude's clear|exit|compact is dropped and the hook mirrors
-    // UNSCOPED — `null` here is the intended shape, not a lost matcher. The previous
-    // baseline recorded SessionEnd as "no Codex equivalent", which the official hook
-    // reference contradicts.
+    // only `other`, so the legacy clear|exit|compact cleanup hook mirrors UNSCOPED.
+    ['SessionEnd', null, 1],
+    // The separate matcherless notification group also mirrors; its configured timeout
+    // is asserted against the output below.
     ['SessionEnd', null, 1],
     // SessionStart (2026-09-17): Codex supports startup|resume|clear|compact. The event
     // is no longer skipped wholesale; sync-hooks.mjs codexSessionStartMirrors mirrors
@@ -316,6 +316,10 @@ const EXPECTED_RENDERED_GROUPS = [
     ['UserPromptSubmit', null, 1],
     ['UserPromptSubmit', null, 1],
     // workflow-route-inject: default-on, configurable runtime workflow router.
+    ['UserPromptSubmit', null, 1],
+    // commit-skill-route (2026-09-24): routes a commit request to the `commit` skill ($commit on Codex).
+    ['UserPromptSubmit', null, 1],
+    // judgement-integrity-route (2026-09-24): anti-confirmation-bias answer why-review on verdict prompts.
     ['UserPromptSubmit', null, 1],
     // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.
     ['UserPromptSubmit', null, 1]
@@ -358,6 +362,22 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
                 `PreToolUse matcher "${group.matcher}" is configured in settings.json but no rendered Codex matcher preserves it as a prefix (rendered: ${renderedMatchers.join(', ')})`
             );
         }
+
+        const sessionEndAlertSource = (settings.hooks.SessionEnd || [])
+            .flatMap(group => Array.isArray(group.hooks) ? group.hooks : [])
+            .find(hook => hook.command?.includes('/notifications/notify.cjs'));
+        assert.ok(sessionEndAlertSource, 'settings.json must register the SessionEnd notification hook');
+        assert.equal(sessionEndAlertSource.timeout, 3, 'the SessionEnd notification timeout must stay within Codex’s 3-second budget');
+
+        const sessionEndAlertMirror = (rendered.hooks.SessionEnd || [])
+            .flatMap(group => group.hooks || [])
+            .find(hook => hook.command?.includes('notifications/notify.cjs'));
+        assert.ok(sessionEndAlertMirror, 'Codex must render the SessionEnd notification handler');
+        assert.equal(
+            sessionEndAlertMirror.timeout,
+            sessionEndAlertSource.timeout,
+            'Codex must preserve the SessionEnd notification timeout configured in Claude settings'
+        );
     } finally {
         await fs.rm(staging, { recursive: true, force: true });
     }

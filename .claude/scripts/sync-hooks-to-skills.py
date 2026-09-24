@@ -143,20 +143,6 @@ BLOCKS = {
 
 <!-- /SYNC:task-tracking-external-report -->""",
 
-    "project-reference-docs-guide": """\
-<!-- SYNC:project-reference-docs-guide -->
-
-> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap and immediately before target/source file reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate, but never prove that it ran.
->
-> 1. Identify scope: file types, domain area, and operation.
-> 2. **Read the configured project-config file first, if it exists.** Resolve its path through the project-config loader (default `docs/project-config.json`). **The project config is OPTIONAL: a project with no config is a supported, first-class state, not an error.** When it is absent, run on the framework's portable defaults and derive project facts from repository evidence — manifests, lockfiles, scripts, CI definitions, directory layout, root instruction files — stating the assumption whenever one is material; do not block. When it IS present, the minimum valid shape has a non-empty `project.name`; omitted optional capability properties use neutral defaults or skip that capability. A section its author DECLARED but left malformed or incomplete is a configuration error: fail closed on that section and run `/project-init` or `/project-config` before relying on it. Use valid config for the adopter's paths, commands, architecture, specs, tests, and workflows, then verify material hints against repository evidence; never assume generic defaults are project facts.
-> 3. **Always-on vs task-specific references:** Project initialization owns and ensures the project's `lessons.md` and docs-index inputs at their configured owner paths. Read them under the static project-context contract independently of task-specific `referenceDocs`; do not append them to that selection. For task-specific docs, when the configured `referenceDocs` property is an array, follow it exactly, including subsets and `[]`. When absent, use the runtime capability-aware resolver: its portable baseline plus only configuration- or repository-evidenced capabilities; a minimal project with no capability evidence may resolve to an empty task-specific set. The full scan-target manifest is a registry of metadata/aliases, not a default selection. Resolve configured paths using `docsRoots.projectReference.path` when present (default `docs/project-reference`). A custom reference doc declares `filename` and `purpose`, with optional `sections`, `templatePath`, and `scanTarget`. Built-in filenames keep their exact framework-owned target; other custom docs default to manual ownership, while `scanTarget: "generic"` opts one exact selected file into evidence-based scanning. Manual docs are not freshness-tracked or impact-routed. Never infer a target by basename; config and runtime path resolution reject lexical traversal and physical symlink escapes.
-> 4. Read selected task-specific docs just in time before target work, then state: `Reference docs read: ... | Not applicable: ...`; an explicit empty selection means no task-specific docs are selected by the catalog. Still honor separately required references named by the active skill or task. An absent project config is not a missing doc: proceed on repository evidence and, at most, OFFER `/project-init` or `/project-config` as an optional one-time recording of those facts. If an always-on input or a selected/otherwise required doc is missing or stale, or a declared config section is malformed, use `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on that input. If Codex mirrors are stale, use the explicit `/sync-codex` route or its documented `/ai-context-refresh` completion handoff for the active source-authoring task. After compaction, resume, delegation, or material context change, repeat selection and reading; prior conversation and hook output are not proof of current loading.
->
-> **Ready when:** scope evaluated, the configured project-config file consulted or its absence recorded and the portable-defaults fallback applied, root always-on inputs are confirmed (completing project initialization if they are missing or stale), the declared task-specific `referenceDocs` selection is applied exactly or, when absent, the runtime capability-aware resolver output is applied (which may be empty), selected docs are read or an explicit empty selection is recorded, and the citation emitted.
-
-<!-- /SYNC:project-reference-docs-guide -->""",
-
     "project-protocol-overlay": """\
 <!-- SYNC:project-protocol-overlay -->
 
@@ -300,13 +286,6 @@ REMINDERS = {
 - **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
   <!-- /SYNC:task-tracking-external-report:reminder -->""",
 
-    "project-reference-docs-guide": """\
-  <!-- SYNC:project-reference-docs-guide:reminder -->
-- **MANDATORY** Before investigating, planning, or coding, read the OPTIONAL project-config file (default `docs/project-config.json` — the project map: modules/paths, run-commands, conventions, architecture/workflow rules) when it exists, plus the required project-reference docs, and cite `Reference docs read: ...`. A project with no config is supported: fall back to portable defaults plus repository evidence, state material assumptions, and never block.
-- **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** An absent project config never gates work — at most offer `/project-init` or `/project-config` once. If root instruction files or any required reference doc is missing or stale, or a declared config section is malformed, auto-run `/project-init` or the narrow lower-level route before relying on that input.
-  <!-- /SYNC:project-reference-docs-guide:reminder -->""",
-
     "project-protocol-overlay": """\
   <!-- SYNC:project-protocol-overlay:reminder -->
 
@@ -319,6 +298,15 @@ REMINDERS = {
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
   <!-- /SYNC:cross-service-check:reminder -->""",
 }
+
+# project-reference-docs-guide is single-sourced from the canonical file (not a
+# hardcoded copy) so a newly tiered agent never receives a stale phase-routing /
+# dedup gate; sync_project_reference_block.py refreshes existing carriers.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sync_blocks import load_wrapped_sync_block  # noqa: E402
+
+BLOCKS["project-reference-docs-guide"] = load_wrapped_sync_block("SYNC:project-reference-docs-guide").rstrip()
+REMINDERS["project-reference-docs-guide"] = load_wrapped_sync_block("SYNC:project-reference-docs-guide:reminder").rstrip()
 
 # ─── Tier ordering ───────────────────────────────────────────────────────────
 # Skills: the original 2 universal blocks + parallel-subagent-dispatch.

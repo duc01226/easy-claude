@@ -6,6 +6,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
 
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -210,13 +211,29 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         assert.doesNotMatch(mirroredPackageJson, /\r/);
         assert.doesNotMatch(mirroredYaml, /\r/);
         assert.doesNotMatch(mirroredYml, /\r/);
-        assert.doesNotMatch(mirroredSkill, /adr-service-pattern-v1-v2-split|integration-test-guide|seed-test-data-reference/);
+        // Portability: the routing block may name only framework-owned reference docs, never a
+        // consumer project's own doc. Allowed = registry built-ins + the framework spec/lessons docs.
+        const { SCAN_SKILL_MAP } = createRequire(import.meta.url)(path.join(repoRoot, '.claude', 'hooks', 'lib', 'project-reference-registry.cjs'));
+        const frameworkDocs = new Set([
+            ...Object.keys(SCAN_SKILL_MAP),
+            'spec-system-reference.md', 'spec-principles.md', 'workflow-spec-test-code-cycle-reference.md', 'lessons.md',
+            'CLAUDE.md', 'AGENTS.md',
+        ]);
+        const routingBlock = mirroredSkill.split('<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->')[1].split('<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->')[0];
+        const namedDocs = [...routingBlock.matchAll(/`([\w./-]+\.md)`/g)].map(m => m[1].replace(/^docs\/project-reference\//, ''));
+        assert.ok(namedDocs.length > 5, 'routing block must name the phase docs');
+        assert.deepEqual(namedDocs.filter(doc => !frameworkDocs.has(doc)), [], 'routing block names a non-framework doc');
+        assert.match(mirroredSkill, /pick by the phase you are about to enter/);
+        assert.match(mirroredSkill, /\*\*Dedup:\*\*[^\n]*last 200K tokens/);
+        assert.match(mirroredSkill, /\*\*Dedup:\*\*[^\n]*and it has not changed since/, 'a doc edited after the read must not count as loaded');
         assert.match(mirroredAgent, /name = "sample-agent"/);
         assert.match(mirroredAgent, new RegExp(subagentAuthorizationSnippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
         assert.match(codexConfig, /notify = \["node", "\.codex\/scripts\/codex\/codex-notify\.mjs"\]/);
         assert.match(codexConfig, /^model_auto_compact_token_limit = 500000$/m);
         assert.equal([...codexConfig.matchAll(/^model_auto_compact_token_limit\s*=/gm)].length, 1);
         assert.ok(codexConfig.indexOf('model_auto_compact_token_limit = 500000') < codexConfig.indexOf('[[profiles]]'));
+        assert.match(codexConfig, /^project_doc_max_bytes = 98304$/m, 'AGENTS.md must load past the 32 KiB Codex default');
+        assert.ok(codexConfig.indexOf('project_doc_max_bytes = 98304') < codexConfig.indexOf('[[profiles]]'), 'top-level key, not inside a table');
         assert.match(codexConfig, /\[tui\]/);
         assert.match(codexConfig, /notifications = true/);
         assert.match(codexConfig, /notification_condition = "always"/);
@@ -487,4 +504,47 @@ test('mirror .gitignore preserves adopter content outside the managed block and 
         assert.equal(twice, once, 'damaged input converges after one sync');
         for (const kept of ['keep1', 'keep2']) assert.ok(twice.includes(kept), `${kept} survives repeated syncs`);
     }
+});
+
+test('Codex config upsert raises project_doc_max_bytes to the root budget but never lowers a larger value', async () => {
+    // Given the adopter config upsert and a reader for the resulting bare-key decimal limits.
+    const { upsertCodexNotificationConfig } = await import(pathToFileURL(migrateScript).href);
+    const docLimits = text => [...text.matchAll(/^project_doc_max_bytes = (\d+)$/gm)].map(m => Number(m[1]));
+    const keyLines = text => text.split('\n').filter(line => /project_doc_max_bytes/.test(line));
+
+    // When an absent, smaller, or larger decimal limit is upserted — and a rerun repeats the sync.
+    // Then an absent or smaller limit becomes the root budget, a larger one is kept, and reruns are stable.
+    assert.deepEqual(docLimits(upsertCodexNotificationConfig('')), [98304], 'absent key is added once');
+    assert.deepEqual(docLimits(upsertCodexNotificationConfig('project_doc_max_bytes = 32768\n')), [98304], 'a limit that would truncate the root is raised');
+    assert.deepEqual(docLimits(upsertCodexNotificationConfig('project_doc_max_bytes = 262144\n')), [262144], 'a larger project choice is kept');
+    assert.match(upsertCodexNotificationConfig('project_doc_max_bytes = 262_144\n'), /^project_doc_max_bytes = 262_144$/m,
+        'a larger value written with TOML digit separators is kept, never lowered');
+    const rerun = upsertCodexNotificationConfig(upsertCodexNotificationConfig(''));
+    assert.deepEqual(docLimits(rerun), [98304], 'idempotent across syncs');
+
+    // When the limit uses the other TOML integer forms (hex, octal, binary, separators, sign).
+    // Then a larger value is kept verbatim and a smaller one is raised, whatever its radix.
+    for (const larger of ['0x40000', '0x4_0000', '0o1000000', '0b1000000000000000000', '+262_144']) {
+        assert.deepEqual(keyLines(upsertCodexNotificationConfig(`project_doc_max_bytes = ${larger}\n`)), [`project_doc_max_bytes = ${larger}`],
+            `a larger TOML integer ${larger} is kept, never lowered`);
+    }
+    for (const smaller of ['0x8000', '0o100000', '0b1000000000000000', '32_768']) {
+        assert.deepEqual(docLimits(upsertCodexNotificationConfig(`project_doc_max_bytes = ${smaller}\n`)), [98304], `a smaller TOML integer ${smaller} is raised`);
+    }
+
+    // When the key's value or spelling is one the upsert cannot read.
+    // Then the line is left exactly as written — never overwritten and never duplicated.
+    for (const unreadable of ['project_doc_max_bytes = "262144"', 'project_doc_max_bytes = 0x_40000', '"project_doc_max_bytes" = 262144']) {
+        assert.deepEqual(keyLines(upsertCodexNotificationConfig(`${unreadable}\n`)), [unreadable], `unreadable limit is preserved: ${unreadable}`);
+    }
+});
+
+test('the Codex read budget always covers the generated AGENTS.md root budget', async () => {
+    // Given the Codex read budget and the generated AGENTS.md root budget.
+    const { CODEX_PROJECT_DOC_MAX_BYTES } = await import(pathToFileURL(migrateScript).href);
+    const { AGENTS_ROOT_LIMIT_BYTES } = await import(pathToFileURL(path.join(sourceScriptsDir, 'sync-context-workflows.mjs')).href);
+    // When they are compared. Then the root plus its 8 KiB pointer/gate headroom fits what Codex reads —
+    // a root allowed to grow past what Codex reads would be silently truncated again.
+    assert.ok(AGENTS_ROOT_LIMIT_BYTES + 8192 <= CODEX_PROJECT_DOC_MAX_BYTES,
+        `root budget ${AGENTS_ROOT_LIMIT_BYTES} + 8 KiB context pointer/gate headroom must fit the Codex read budget ${CODEX_PROJECT_DOC_MAX_BYTES}`);
 });

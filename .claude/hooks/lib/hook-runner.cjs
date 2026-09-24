@@ -21,6 +21,7 @@
 "use strict";
 
 const fs = require("node:fs");
+const path = require("node:path");
 const { parseStdinSync, parseHookEvent, parseJsonInput } = require("./stdin-parser.cjs");
 const {
   debug,
@@ -56,6 +57,46 @@ function timeoutPromise(ms, name) {
       clearTimeout(timer);
     },
   };
+}
+
+/** Absolute, symlink/junction-resolved form of `target`; the plain resolved path when it cannot be resolved. */
+function canonicalPath(target, realpath) {
+  const resolved = path.resolve(target);
+  try {
+    return realpath(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
+/**
+ * True when `mod` (the caller's `module`) is the running hook entry point, on BOTH launch shapes:
+ * `node <hook>` (Claude/OpenCode: `require.main === mod`) and the Codex mirror launcher
+ * `node -e "…require(path.join(root, hookPath))" -- <hookPath>` (`require.main` undefined; the
+ * launcher chdirs to the root first, so the relative argv[1] resolves to the hook file).
+ *
+ * Node records `mod.filename` as the REAL path, so both sides are canonicalized before comparing —
+ * otherwise a framework reached through a symlink or junction never matches and every hook using
+ * this check becomes a silent no-op on Codex. Windows paths compare case-insensitively.
+ * `options` (tests only): `main`, `argv`, `platform`, `realpath`. Never throws.
+ */
+function isHookEntryPoint(mod, options = {}) {
+  try {
+    if (!mod || typeof mod.filename !== "string") return false;
+    const main = Object.prototype.hasOwnProperty.call(options, "main") ? options.main : require.main;
+    if (main === mod) return true;
+    if (main) return false;
+    const argv = options.argv || process.argv;
+    if (typeof argv[1] !== "string" || argv[1] === "") return false;
+    const realpath = options.realpath || fs.realpathSync.native;
+    const invoked = canonicalPath(argv[1], realpath);
+    const self = canonicalPath(mod.filename, realpath);
+    return (options.platform || process.platform) === "win32"
+      ? invoked.toLowerCase() === self.toLowerCase()
+      : invoked === self;
+  } catch {
+    return false; // fail-open: entry-point detection must never throw out of a required module
+  }
 }
 
 function finishTimedOutHook(code) {
@@ -389,5 +430,6 @@ module.exports = {
   runBlockingHook,
   runPreToolHook,
   runPreToolHookSync,
+  isHookEntryPoint,
   MAX_PRE_TOOL_INPUT_BYTES,
 };

@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { isAbsolutePathWithin: isPathWithin } = require('./ck-path-utils.cjs');
 
 /** Built-in document owners are framework-owned and keyed by exact relative filename. */
 const SCAN_SKILL_MAP = Object.freeze({
@@ -72,11 +73,6 @@ function normalizeProjectRelativePath(value, label = 'path') {
         }
     }
     return value;
-}
-
-function isPathWithin(root, candidate) {
-    const relative = path.relative(root, candidate);
-    return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
 }
 
 /** Resolve a possibly-missing path through its nearest existing ancestor. */

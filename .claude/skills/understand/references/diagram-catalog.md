@@ -201,7 +201,7 @@ flowchart TD
 
 Walk it top-down per diagram. Stop at the first rung that yields verified nodes.
 
-1. **Graph trace** — `python .claude/scripts/code_graph trace <file> --direction both --json` (Windows: `py -3`). Highest confidence; edges are traced.
+1. **Graph trace** — `python .claude/scripts/code_graph trace <file> --direction both --json` (Windows: `py -3`; macOS/Linux: `python3`). Highest confidence; edges are traced.
 2. **Grep + read** — find the references, open the files, record what you actually read. Edges from a read call site are traced; edges from a name match alone are **inferred**.
 3. **Spec / plan text** — an existing `erDiagram` or a declared dependency list. Traced, because the artifact asserts it.
 4. **STATE THE BLOCKER.** Emit the diagram with **only the nodes you verified**, and one line beneath naming what you could not derive and why.

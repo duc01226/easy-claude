@@ -537,10 +537,68 @@ test("sync-context-workflows replaces stale project-reference gate content", asy
     assert.match(contextText, /## Critical Thinking Mindset/);
     assert.ok(contextText.indexOf(projectReferenceGateHeading) < contextText.indexOf("## Critical Thinking Mindset"));
     assert.match(agentsText, /For situation-specific work, open the referenced project doc directly/);
+    // Phase routing + dedup reach Codex, and no older line contradicts the dedup rule.
+    for (const text of [contextText, agentsText]) {
+      assert.equal(text.match(/- Pick docs by the phase you are about to enter/g)?.length, 1);
+      assert.match(text, /- Dedup: [^\n]*within roughly the last 200K tokens[^\n]*never counts/);
+      // A doc edited after it was read is stale, so the dedup credit must require it to be unchanged.
+      assert.match(text, /- Dedup: [^\n]*and it has not changed since/);
+      // Reviewing a spec or test diff must load the spec and test references, not only pattern docs.
+      assert.match(text, /review → `code-review-rules\.md` plus the edit, test, and spec docs for every file type under review/);
+      assert.doesNotMatch(text, /do not rely on prior conversation text as proof/);
+      assert.doesNotMatch(text, /after compaction, resume, delegation,/);
+    }
 
     await runSync(tempRoot);
     const contextTextAfterSecondRun = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
     assert.equal(contextTextAfterSecondRun, contextText);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("sync-context-workflows replaces a previous-generation gate body instead of duplicating it", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-gate-prev-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".codex"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      JSON.stringify({ workflows: { testing: { name: "Testing", description: "Run local tests", sequence: ["test"], preActions: { injectContext: "Use /test." } } } }),
+      "utf8"
+    );
+    await fs.writeFile(path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"), "---\nname: test\ndescription: Test skill\n---\n\n# Test\n", "utf8");
+    // Given a Codex context holding an orphan gate body (no heading) in the shape emitted before the
+    // phase-routing lines existed, followed by a section that must survive.
+    await fs.writeFile(
+      path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"),
+      [
+        "# Existing Context",
+        "",
+        "Codex uses static project-reference loading instead of runtime-injected project docs. Before coding, planning, debugging, testing, or reviewing:",
+        "",
+        "- Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.",
+        "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.",
+        "- Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, delegation, or a context change re-read them and restate `Reference docs read: ... | Not applicable: ...`.",
+        "",
+        "## Critical Thinking Mindset",
+        "",
+        "Keep this section.",
+        "",
+      ].join("\n"),
+      "utf8"
+    );
+
+    // When the context sync runs.
+    await runSync(tempRoot);
+    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+
+    // Then the old body is replaced by exactly one current gate and the following section is kept intact.
+    assert.equal(contextText.match(/Codex uses static project-reference loading/g)?.length, 1, "previous body must be replaced, not kept beside the new one");
+    assert.equal(contextText.match(/- Load context just in time/g)?.length, 1);
+    assert.doesNotMatch(contextText, /after compaction, resume, delegation,/);
+    assert.match(contextText, /## Critical Thinking Mindset\n\nKeep this section\./);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }

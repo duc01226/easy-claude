@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **14 top-level hook files**, **124 skills**, **19 workflows**, and **23 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **16 top-level hook files**, **124 skills**, **19 workflows**, and **23 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -134,17 +134,17 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (14 top-level `.cjs` files, 43 lib modules)
+### Hooks (16 top-level `.cjs` files, 44 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
-| Category               | Hooks                                                                                                                                               | Purpose                                                                                                                                                                                    |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Safety**             | `review-commit-gate`                                                                                                                                    | Block an agent `git commit` with no review fix-loop receipt or user-approved skip; other git and GitHub writes are model-behavioral                                                          |
-| **Quality**            | `doc-sync-gate`                                                                                                                                     | Warn on doc⇄code drift                                                                                                                                                                     |
-| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                                              | Initialize state, load config, seed the graph                                                                                                                                                |
-| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`                                                                       | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, and keep the prompt ledger anchored                                   |
-| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`                                                                                 | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits                                                                                  |
+| Category               | Hooks                                                                                                                                | Purpose                                                                                                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Safety**             | `review-commit-gate`                                                                                                                 | Block an agent `git commit` with no review fix-loop receipt or user-approved skip; other git and GitHub writes are model-behavioral                                                                                                                               |
+| **Quality**            | `doc-sync-gate`                                                                                                                      | Warn on doc⇄code drift                                                                                                                                                                                                                                            |
+| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                           | Initialize state, load config, seed the graph                                                                                                                                                                                                                     |
+| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, and remind the judgement-integrity check on verdict requests |
+| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`                                                                  | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits                                                                                                                                                         |
 
 > **De-hooked enforcement & context injection.** Earlier versions ran runtime
 > enforcement/lifecycle hooks — per-edit/per-prompt inject dispatchers plus task/skill/edit
@@ -245,7 +245,7 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 23 specialized agent definitions
-│   ├── hooks/                # 14 top-level hook files + lib/ utilities
+│   ├── hooks/                # 16 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
@@ -281,7 +281,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 14 Hook Files + 124 Skills + 19 Flows │
+│ 16 Hook Files + 124 Skills + 19 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

@@ -21,7 +21,7 @@ description: '[Testing] Use when selecting, generating, updating, or maintaining
 **Goal:** Produce or select maintainable, spec-traceable E2E tests from the user prompt/current context, recordings, canonical artifacts, or code changes with the project's configured framework (Playwright, Selenium, Cypress, or another), then exercise the declared scope like a human QC tester and protect business behavior so cosmetic UI changes do not break tests and intended behavior breaks do. Resolve case identity from the configured artifact profile; use TC/§8 only when no native `specArtifacts` profile is declared.
 
 **Summary:**
-- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple-Windows entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
+- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
 
 - **Purpose:** turn recordings/specs/code changes into maintainable, spec-traceable E2E tests that break ONLY when intended business behavior breaks — never on cosmetic UI churn.
 - **Main steps (in order):** (1) resolve scope from the prompt/current context/artifact/code and default whole-project intent; (2) read the configured E2E reference, `e2eTesting` block, `specRoots.business.path`, and optional `specArtifacts` profile from `docs/project-config.json` FIRST — never assume a stack or invent an ID/annotation marker; (3) resolve the optional `e2eTesting.execution` profile and linked `experienceVerification` surface; (4) load owner-qualified scenario/case IDs and their configured evidence from the canonical root using the profile's identifiers, carriers, and section roles; when no native profile is declared, use the default TC/§8/Test Specifications model; (5) pass the Real-World Fidelity Gate BEFORE writing test code — can this flow, timing, and data actually occur in production?; (6) select a suitable existing test or generate/update one using the configured test organization (spawn the `e2e-runner` sub-agent); (7) bring up the configured whole system, authenticate/seed only through project-owned paths, and run visible web QC/evidence when applicable; (8) run tests with the project's configured command; (9) update the configured E2E reference with learnings.
@@ -97,7 +97,7 @@ Record E2E as `APPLICABLE` only when the project config/reference docs, an actua
 
 When E2E is applicable, add the following fields to the test plan/report before generating code:
 
-| Applicability evidence | Owner / test root | Runner/framework | Full command | Focused/partial command | Zero-match behavior | Run identity / data mode | Parallel isolation | Simple/Windows entry point |
+| Applicability evidence | Owner / test root | Runner/framework | Full command | Focused/partial command | Zero-match behavior | Run identity / data mode | Parallel isolation | Simple Windows/macOS/Linux entry point |
 | ---------------------- | ----------------- | ---------------- | ------------ | ------------------------ | ------------------- | ------------------------ | ------------------ | --------------------------- |
 | `{file:line}` | `{owner}` / `{path}` | `{configured stack}` | `{copy-ready command}` | `{copy-ready command or N/A + evidence}` | `{documented non-zero behavior}` | `{unique identity; reference/additive mode}` | `{worker/root strategy}` | `{entry point or N/A + evidence}` |
 
@@ -320,7 +320,7 @@ Document what must exist before test runs:
 7. **Select or generate/update tests** following the configured project organization; spawn `e2e-runner` for generation/maintenance.
 8. **Bring up and exercise** the configured whole system, authenticate/seed through supported project paths, use a visible web browser when applicable, capture/read evidence, and classify missing capability honestly.
 9. **Run tests** using the project's configured commands and report exact counts/exit status and repeat proof.
-10. **Update e2e-test-reference.md** with any evidence-backed learnings.
+10. **Update e2e-test-reference.md** with any evidence-backed learnings, then pass the AI-discovery gate on it (`SYNC:ai-discovery-doc-quality`): a learning that changes what an agent must never do reaches the doc's top rules or closing reminders only when it outranks an existing one; new pointers to other docs are `read <path> when <situation>` with existing targets.
 
 ---
 
@@ -332,7 +332,7 @@ Report:
 - Owner-qualified case/variant IDs and requirement/acceptance references covered; their configured evidence section and carrier, actual executor/assertion/result, and verdict (`UNVERIFIED` when unresolved; TC/§8 only under the strict default profile)
 - Run command to execute tests (configured full command)
 - E2E applicability and evidence (`APPLICABLE` or `N/A — <file:line evidence>`)
-- Full and focused/partial commands, zero-match behavior, and simple/Windows entry point (or evidence-backed N/A)
+- Full and focused/partial commands, zero-match behavior, and simple Windows/macOS/Linux entry point (or evidence-backed N/A)
 - Run identity, reference/additive data mode, parallel-isolation strategy, and exact Passed/Failed/Skipped counts + exit status for each executed scope
 - Repeat evidence: two consecutive no-reset full runs when persistent state is applicable
 - Prompt/current-context scope, whole-project vs focused decision, and the Given/When/Then + protected invariant record
@@ -427,6 +427,22 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 
+<!-- SYNC:ai-discovery-doc-quality -->
+
+> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
+>
+> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
+> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
+> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
+> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
+> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
+> 6. **Token-efficient:** apply `/prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
+> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
+>
+> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `/prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+
+<!-- /SYNC:ai-discovery-doc-quality -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -493,14 +509,42 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- /SYNC:e2e-visual-design-contract -->
 
+<!-- SYNC:project-reference-docs-guide -->
 
+> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap, immediately before target/source reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate but never prove it ran.
+>
+> 1. **Scope** — identify file types, domain area, and operation.
+> 2. **Project config is OPTIONAL.** Read the configured project-config file via its loader (default `docs/project-config.json`) when it exists. Absent is a supported state, not an error: run on portable defaults, derive project facts (paths, commands, conventions, architecture, test/spec layout) from repository evidence (manifests, lockfiles, scripts, CI, layout, root instruction files), state material assumptions, never block, and at most OFFER `/project-init` or `/project-config` once. Present → minimum valid shape is a non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. A DECLARED section left malformed or incomplete is a configuration error: fail closed on it and run `/project-init` or `/project-config` before relying on it — why: silent defaults would present wrong facts as authoritative. Verify material config hints against repository evidence; generic defaults are never project facts.
+> 3. **Select docs.** Always-on: the project-init-owned `lessons.md` and docs-index inputs at their configured owner paths — read independently, never appended to `referenceDocs`. Task-specific: an explicit `referenceDocs` array is the exact selection, subsets and `[]` included; absent → the runtime capability-aware resolver (portable baseline plus configuration- or repository-evidenced capabilities; may be empty). The scan-target manifest is a registry, not a default selection. Filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Custom-doc schema, ownership, and path-safety rules: `.claude/skills/scan/references/targets.md`.
+> 4. **Route by phase.** Just in time, read the selected docs the table names for the phase you are ABOUT to enter, plus any selected custom doc whose `purpose` covers that phase. An unmatched row is `Not applicable`, never a blocker.
+>
+> | About to… | Read first (when selected and present) |
+> | --- | --- |
+> | investigate, explain, plan, design, estimate | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan will touch |
+> | edit or write code | `code-review-rules.md`, plus server-side / non-UI code → `backend-patterns-reference.md`; UI → `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` |
+> | write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `seed-test-data-reference.md` |
+> | author or change specs, test cases, or docs | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; `workflow-spec-test-code-cycle-reference.md` when specs, tests, and code must stay in sync |
+> | review a diff, plan, spec, or artifact | `code-review-rules.md`, plus the edit/test/spec-row docs for every file type under review |
+>
+> 5. **Per-file conventions** (`contextGroups[]` in the project config) add rules for the exact file read or edited: hooks deliver them where they run; elsewhere run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` before the first edit of an unfamiliar path class.
+> 6. **Cite and repair.** State `Reference docs read: ... | Not applicable: ...` (record an explicit empty selection); still honor references the active skill or task requires. A missing/stale always-on input or selected/required doc, or a malformed declared config section → `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on it.
+> 7. **Dedup within ~200K tokens.** A doc counts as loaded only when its full content came back to THIS context from your own read, after the last compaction and within roughly the last 200K tokens, and it has not changed since — list it in `Reference docs read:` as `<doc> (loaded)` and skip the re-read. Everything else is not loaded: a hook reminder, a summary, a doc merely named in the conversation, or a read by another agent. Re-select and re-read after compaction, resume, a material context change, or ~200K tokens of growth (= the file-convention hook default). A delegated sub-agent starts empty: name the resolved doc paths in its brief.
+>
+> **Ready when:** scope set · config read or its absence recorded · always-on inputs confirmed · selection applied (may be empty) · phase docs read or cited `(loaded)` · citation emitted.
 
+<!-- /SYNC:project-reference-docs-guide -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
+<!-- SYNC:ai-discovery-doc-quality:reminder -->
+
+**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+
+<!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
@@ -571,10 +615,18 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
 
+<!-- SYNC:project-reference-docs-guide:reminder -->
+
+- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
+- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
+- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
+- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
+
+<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple-Windows entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
+**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Produce or select maintainable, spec-traceable E2E tests from the user prompt/current context, recordings, canonical artifacts, or code changes with the project's configured framework (Playwright, Selenium, Cypress, or another). Resolve owner-qualified case identity from the configured profile, map it to the real test assertion and result, and use TC/§8 only when no native `specArtifacts` profile is declared. Then exercise the declared scope like a human QC tester and protect business behavior so cosmetic UI changes do not break tests and intended behavior breaks do.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**

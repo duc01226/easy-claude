@@ -38,7 +38,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { runPreToolHookSync } = require('./lib/hook-runner.cjs');
+const { runPreToolHookSync, isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const { reportHookInternalError } = require('./lib/debug-log.cjs');
 const cls = require('./lib/doc-sync-classify.cjs');
 
@@ -309,7 +309,8 @@ function evaluate(input) {
   return undefined;
 }
 
-if (require.main === module) {
+// Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).
+if (isHookEntryPoint(module)) {
   runPreToolHookSync('doc-sync-gate', evaluate, {
     inputErrorCode: 0,
     errorExitCode: 0

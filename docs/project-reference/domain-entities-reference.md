@@ -102,7 +102,7 @@ No named domain DTO, ViewModel, Request/Response, CQRS carrier, or entity round-
 
 | Source Carrier                        | Consumer Form                                  | Mapping Owner                              | Classification                     | File                                                                                        |
 | ------------------------------------- | ---------------------------------------------- | ------------------------------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------- |
-| Raw hook-event JSON                   | Normalized event object                        | `parseHookEvent`, delivered by hook runner | Infrastructure event adapter       | `.claude/hooks/lib/stdin-parser.cjs:28-50,78-91`; `.claude/hooks/lib/hook-runner.cjs:56-73` |
+| Raw hook-event JSON                   | Normalized event object                        | `parseHookEvent`, delivered by hook runner | Infrastructure event adapter       | `.claude/hooks/lib/stdin-parser.cjs:28-50,78-91`; `.claude/hooks/lib/hook-runner.cjs:302-304,353-355` |
 | Project configuration                 | Normalized module/pattern/localization objects | Project-config loader                      | Infrastructure configuration model | `.claude/hooks/lib/project-config-loader.cjs:128-198,292-320`                               |
 | Skill frontmatter                     | Catalog record/grouped YAML                    | Skill scanner and catalog generator        | Application read-model projection  | `.claude/scripts/scan_skills.py:70-115`; `.claude/scripts/generate_catalogs.py:124-175`     |
 | Workflow JSON plus skill descriptions | Markdown workflow/skill catalog                | Workflow catalog builder                   | Presentation projection            | `.claude/scripts/lib/workflow-skills-catalog.cjs:95-115,137-206`                            |
@@ -157,7 +157,7 @@ Configured modules: 7/7 scanned. Formal entities, entity DTOs, service entity da
 
 ## 1. Hook
 
-A CJS executable registered for a Claude Code lifecycle event. Standard hooks receive a normalized event through `runHook`/`runHookSync`; explicit policy blockers may use the shared parser for direct exit-code control. stdout is reserved for intentional results/context and stderr for diagnostics or rejection reasons (`.claude/hooks/lib/hook-runner.cjs:56-175`; `.claude/hooks/lib/stdin-parser.cjs:28-97`).
+A CJS executable registered for a Claude Code lifecycle event. Standard hooks receive a normalized event through `runHook`/`runHookSync`; explicit policy blockers may use the shared parser for direct exit-code control. stdout is reserved for intentional results/context and stderr for diagnostics or rejection reasons (`.claude/hooks/lib/hook-runner.cjs:292-375`; `.claude/hooks/lib/stdin-parser.cjs:28-97`).
 
 **Location:** `.claude/hooks/<name>.cjs`
 **Shared libraries:** `.claude/hooks/lib/<name>.cjs`
@@ -292,7 +292,7 @@ A named sequence of skill steps that orchestrates a multi-step process (feature 
 
 ## 5. Context Group
 
-A configuration value record in `docs/project-config.json` mapping file paths/extensions to guidance and rules. The AI-context generator converts context-group rules and documents into Golden Rules and path-based pre-read routing (`.claude/skills/ai-context-refresh/scripts/section-builders.cjs:43-51,194-207`).
+A configuration value record in `docs/project-config.json` mapping file paths/extensions to guidance and rules. The AI-context generator converts context-group rules and documents into Golden Rules and path-based pre-read routing (`.claude/skills/ai-context-refresh/scripts/section-builders.cjs:223-252,530-568`).
 
 **Location:** `docs/project-config.json` under `contextGroups[]`
 
