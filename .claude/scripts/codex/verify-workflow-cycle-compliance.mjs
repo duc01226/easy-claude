@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { resolveWorkflowManifest, resolveAllWorkflowManifests } = require("../lib/workflow-manifest.cjs");
-const { resolveProjectRoot } = require("../lib/project-root.cjs");
+const { resolveProjectRoot, isInvokedAsScript } = require("../lib/project-root.cjs");
 
 // Prose-only semantic anchor for the advancement+barrier rule in the runtime routing payload:
 // "advance only after ALL/EVERY member(s) return". Deliberately
@@ -1193,7 +1193,7 @@ async function main() {
 }
 
 const isEntrypoint =
-  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url));
 
 if (isEntrypoint) {
   await main();

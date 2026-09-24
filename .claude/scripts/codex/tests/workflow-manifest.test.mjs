@@ -158,6 +158,7 @@ function fixture(t, doc = variantDoc()) {
   fs.mkdirSync(path.join(scripts, "codex/tests"), { recursive: true });
   fs.mkdirSync(path.join(scripts, "lib"), { recursive: true });
   fs.copyFileSync(modulePath, path.join(scripts, "lib/workflow-manifest.cjs"));
+  fs.copyFileSync(path.join(root, ".claude/scripts/lib/project-root.cjs"), path.join(scripts, "lib/project-root.cjs"));
   fs.copyFileSync(path.join(root, ".claude/scripts/codex/read-workflow-entry.mjs"), path.join(scripts, "codex/read-workflow-entry.mjs"));
   fs.writeFileSync(path.join(dir, ".claude/workflows.json"), JSON.stringify(doc));
   for (const skill of availableSkills) {

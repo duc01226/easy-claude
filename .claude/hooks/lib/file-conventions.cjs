@@ -608,7 +608,21 @@ function runCli(argv) {
 }
 
 // Launcher-aware entry: Codex runs hooks via `node -e … require()`, where require.main is undefined.
-if (require.main === module || (!require.main && path.resolve(process.argv[1] || '') === __filename)) {
+// hook-runner.cjs isHookEntryPoint (twin of scripts/lib/project-root.cjs isInvokedAsScript)
+// canonicalizes a symlinked launch path. It is loaded only when require.main is undefined, so a
+// standalone copy of this lib (mirrored skill builders) required normally never needs it beside it.
+function isLauncherEntry() {
+    try {
+        return require('./hook-runner.cjs').isHookEntryPoint(module);
+    } catch (err) {
+        // Absent beside a standalone copy: this lib is being used as a library. Any other load
+        // failure is a broken hook-runner and must surface, not silently skip the CLI.
+        if (err && err.code === 'MODULE_NOT_FOUND' && String(err.message).includes("'./hook-runner.cjs'")) return false;
+        throw err;
+    }
+}
+
+if (require.main === module || (!require.main && isLauncherEntry())) {
     try {
         process.exitCode = runCli(process.argv.slice(2));
     } catch (err) {

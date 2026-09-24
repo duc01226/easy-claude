@@ -11,8 +11,9 @@ import { createRequire } from "node:module";
 const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
 let resolveProjectRoot;
+let isInvokedAsScript;
 try {
-  ({ resolveProjectRoot } = require("../lib/project-root.cjs"));
+  ({ resolveProjectRoot, isInvokedAsScript } = require("../lib/project-root.cjs"));
 } catch {
   // The semantic policy is also mutation-tested as a standalone copied file.
   // Keep the evaluator importable without the optional project bundle around it.
@@ -20,6 +21,17 @@ try {
     rootDir: path.resolve(cwd),
     source: "cwd-fallback",
   });
+  // Minimal stand-in for project-root.cjs isInvokedAsScript (no win32 case folding): argv keeps the
+  // typed path, while the module URL is the real path, so a launch through a symlink must still match.
+  const canonical = (target) => {
+    try {
+      return require("node:fs").realpathSync.native(path.resolve(target));
+    } catch {
+      return path.resolve(target);
+    }
+  };
+  isInvokedAsScript = (invokedPath, selfPath) =>
+    typeof invokedPath === "string" && invokedPath !== "" && canonical(invokedPath) === canonical(selfPath);
 }
 
 // Consumer-specific names are configuration, never framework source. A project may declare
@@ -2102,8 +2114,7 @@ async function main() {
   console.log(JSON.stringify({ sddMetrics: result.sddMetrics }, null, 2));
 }
 
-const isEntrypoint =
-  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isEntrypoint = isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url));
 
 if (isEntrypoint) {
   await main();

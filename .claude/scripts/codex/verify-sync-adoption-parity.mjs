@@ -35,7 +35,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 const rootDir = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
@@ -262,7 +262,7 @@ async function main() {
 
 // Run ONLY when invoked directly. Importing this module (tests reuse the pure helpers above)
 // must not execute the verification — matches verify-review-validate-coverage.mjs.
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
     await main().then(
         (code) => process.exit(code),
         (err) => {

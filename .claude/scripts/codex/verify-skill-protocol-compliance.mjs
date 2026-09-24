@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { resolveProjectRoot } = require('../lib/project-root.cjs');
+const { resolveProjectRoot, isInvokedAsScript } = require('../lib/project-root.cjs');
 const rootResolution = resolveProjectRoot({
     cwd: process.cwd(),
     scriptPath: fileURLToPath(import.meta.url),
@@ -774,6 +774,6 @@ async function main() {
     console.log('[codex-skill-compliance] PASS - strict execution contract present across generated Codex artifacts');
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+if (isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url))) {
     await main();
 }

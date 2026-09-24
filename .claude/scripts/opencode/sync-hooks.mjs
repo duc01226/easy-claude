@@ -25,7 +25,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const { resolveMutationProjectRoot } = require("../lib/project-root.cjs");
+const { resolveMutationProjectRoot, isInvokedAsScript } = require("../lib/project-root.cjs");
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const templatePath = path.join(here, "templates", "easy-claude-hooks.js.tmpl");
@@ -325,7 +325,7 @@ async function main() {
   }
 }
 
-const invokedAsScript = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const invokedAsScript = isInvokedAsScript(process.argv[1], fileURLToPath(import.meta.url));
 if (invokedAsScript) {
   await main();
 }

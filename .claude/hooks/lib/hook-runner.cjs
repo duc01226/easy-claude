@@ -78,6 +78,8 @@ function canonicalPath(target, realpath) {
  * Node records `mod.filename` as the REAL path, so both sides are canonicalized before comparing —
  * otherwise a framework reached through a symlink or junction never matches and every hook using
  * this check becomes a silent no-op on Codex. Windows paths compare case-insensitively.
+ * Twin of scripts/lib/project-root.cjs isInvokedAsScript (ESM CLIs; minimal stand-in in
+ * codex/verify-sdd-semantic-compliance.mjs); keep them in step.
  * `options` (tests only): `main`, `argv`, `platform`, `realpath`. Never throws.
  */
 function isHookEntryPoint(mod, options = {}) {

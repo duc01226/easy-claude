@@ -123,10 +123,9 @@ test("TC-DOCROOT-047 empty injectContext throws; on-disk workflows.json is never
     fs.mkdirSync(libDir, { recursive: true });
     fs.mkdirSync(skillDir, { recursive: true });
     fs.copyFileSync(entryScript, path.join(codexDir, "read-workflow-entry.mjs"));
-    fs.copyFileSync(
-      path.join(repoRoot, ".claude", "scripts", "lib", "workflow-manifest.cjs"),
-      path.join(libDir, "workflow-manifest.cjs")
-    );
+    for (const lib of ["workflow-manifest.cjs", "project-root.cjs"]) {
+      fs.copyFileSync(path.join(repoRoot, ".claude", "scripts", "lib", lib), path.join(libDir, lib));
+    }
     fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# investigate\n");
 
     const fixtureWorkflows = {
