@@ -8,7 +8,10 @@ step executes, and a contradiction between them is drift to surface, not a choic
 The reverse half of the binding lives in `.claude/workflows.json` as
 `preActions.readFiles` naming each workflow's own SKILL.md.
 
-Idempotent: refreshes an existing block in place, inserts when absent.
+Idempotent: refreshes an existing block in place, inserts when absent. A skill
+that carries a guide entry for the tag (sync_blocks.has_guide_entry: converted to
+guide lines) is left as is (GUIDED); the block has no reminder variant. Files keep
+their own line-ending style (LF stays LF on Windows).
 Mirrors the insertion contract of inject_nested_task_creation.py — TOP block
 immediately BEFORE the SYNC region start (per sync_blocks.find_sync_region_start).
 
@@ -22,7 +25,8 @@ import re
 import sys
 from pathlib import Path
 
-from sync_blocks import find_sync_region_start, load_wrapped_sync_block
+from line_endings import read_text, write_text
+from sync_blocks import find_sync_region_start, has_guide_entry, load_wrapped_sync_block
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
@@ -57,6 +61,9 @@ def inject(text: str) -> tuple[str, str]:
             return text, "ALREADY-PRESENT"
         return text[: m.start()] + TOP_BLOCK.strip() + text[m.end():], "REFRESHED"
 
+    if has_guide_entry(text, TAG.removeprefix("SYNC:")):
+        return text, "GUIDED"
+
     insert_at = find_sync_region_start(text)
     head = text[:insert_at].rstrip() + "\n\n"
     tail = "\n" + text[insert_at:].lstrip("\n")
@@ -77,7 +84,7 @@ def main() -> int:
         if path is None:
             results.append((name, "NO-SKILL"))
             continue
-        original = path.read_text(encoding="utf-8")
+        original, newline = read_text(path)
         new_text, status = inject(original)
         if status == "MALFORMED":
             results.append((name, "MALFORMED"))
@@ -88,7 +95,7 @@ def main() -> int:
         if check or dry_run:
             results.append((name, "WOULD-UPDATE" if check else "DRY-RUN"))
             continue
-        path.write_text(new_text, encoding="utf-8")
+        write_text(path, new_text, newline)
         results.append((name, status))
 
     print(f"{'WORKFLOW':<38} STATUS")

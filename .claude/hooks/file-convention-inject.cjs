@@ -10,6 +10,10 @@
  *       in the current working context (spec BR-PFCI-05..07, 15..17). A class may declare its own
  *       window (`reinjectAfterTokens`) and transcript evidence (`evidenceDocs`/`evidenceSkills`)
  *       that counts as present — the front-end `ui-ux-gate` class uses both.
+ *     Read vs edit (BR-PFCI-19/20): a Read delivers only classes whose `on` is read|both, in the
+ *       conditional wording; any other trigger tool delivers only edit|both classes, in the mandatory
+ *       wording. The record keeps the wording, so a read-form delivery never suppresses the first
+ *       change after it (BR-PFCI-05 read-form presence).
  *   SessionStart compact|clear → records the condensation; prints nothing. BOTH hosts since
  *     2026-09-17: Codex supports SessionStart with the same matcher vocabulary, and this hook
  *     is on the narrow mirror allowlist (sync-hooks.mjs codexSessionStartMirrors) because
@@ -33,6 +37,9 @@ const HOOK_NAME = 'file-convention-inject';
 const MAX_INPUT_BYTES = 1024 * 1024;
 const TRIGGER_TOOLS = new Set(['Read', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'apply_patch']);
 const CONDENSATION_SOURCES = new Set(['compact', 'clear']);
+// Delivery-record wording (BR-PFCI-05/20): conditional = delivered on a read, mandatory = on a change.
+const WORDING_CONDITIONAL = 'conditional';
+const WORDING_MANDATORY = 'mandatory';
 // A non-blocking stdin that is not yet readable reports EAGAIN: wait briefly between attempts
 // and give up (silently, fail-open) once the deadline passes instead of spinning a CPU core.
 const EAGAIN_WAIT_MS = 5;
@@ -156,7 +163,10 @@ function planDelivery(input, deps) {
     const conventions = require('./lib/file-conventions.cjs');
     const config = deps.config;
     const settings = conventions.resolveSettings(config);
-    if (input.tool_name === 'Read' && settings.onRead === false) {
+    // The operation (BR-PFCI-19): a Read is a read; every other trigger tool creates, changes or moves.
+    const trigger = input.tool_name === 'Read' ? conventions.TRIGGER_READ : conventions.TRIGGER_EDIT;
+    // The project-wide exclusion of reads wins over every class trigger (BR-PFCI-14).
+    if (trigger === conventions.TRIGGER_READ && settings.onRead === false) {
         note(deps, 'skip: reads excluded (onRead false)');
         return null;
     }
@@ -167,9 +177,9 @@ function planDelivery(input, deps) {
         note(deps, 'skip: no relevant target (outside project, folder, removal or failed tool)');
         return null;
     }
-    const matched = conventions.matchGroups(config, targets, settings);
+    const matched = conventions.matchGroups(config, targets, settings, trigger);
     if (!matched.length) {
-        note(deps, `skip: no class matches ${targets.length} target(s)`);
+        note(deps, `skip: no class matches ${targets.length} target(s) on ${trigger}`);
         return null;
     }
 
@@ -187,8 +197,15 @@ function planDelivery(input, deps) {
         now
     };
     // Each class ages against its own window (`reinjectAfterTokens`), else the global distance.
-    const isRecorded = (entry, hash) =>
-        ledger.isPresent(ledger.readRecord(root, sessionId, scope, entry.name), hash, ctx, conventions.classSettings(entry, settings));
+    // Read-form presence (BR-PFCI-05): a delivery made on a read carried the conditional wording and
+    // no protocol, so it counts as present only for later reads; the first change after it delivers
+    // the class once more in the mandatory wording. A record without a wording predates the field or
+    // is transcript evidence of the protocol itself: both count as mandatory.
+    const isRecorded = (entry, hash, at = ctx) => {
+        const record = ledger.readRecord(root, sessionId, scope, entry.name);
+        if (record && record.wording === WORDING_CONDITIONAL && trigger !== conventions.TRIGGER_READ) return false;
+        return ledger.isPresent(record, hash, at, conventions.classSettings(entry, settings));
+    };
     const present = (entry, hash) => {
         if (isRecorded(entry, hash)) return true;
         const perClass = conventions.classSettings(entry, settings);
@@ -229,7 +246,7 @@ function planDelivery(input, deps) {
         }
         if (typeof deps.afterLock === 'function') deps.afterLock(entry);
         // Post-lock re-check (BR-PFCI-17): a peer may have completed between the check and the claim.
-        if (isRecorded(entry, hash)) {
+        if (isRecorded(entry, hash, ledger.recheckContext(ctx))) {
             ledger.releaseLock(lock, token);
             note(deps, `skip ${entry.name}: delivered by a peer`);
             continue;
@@ -242,7 +259,7 @@ function planDelivery(input, deps) {
     const entries = claimed.map(item => item.entry);
     let digest;
     try {
-        digest = conventions.buildDigest(entries, targets, settings, { projectDir, fileExists: deps.fileExists });
+        digest = conventions.buildDigest(entries, targets, settings, { projectDir, fileExists: deps.fileExists, trigger });
     } catch (err) {
         releaseAll(); // never strand claimed locks on a render failure (peers would skip the class)
         throw err;
@@ -266,7 +283,9 @@ function planDelivery(input, deps) {
                         hash,
                         deliveredAt: now,
                         transcriptBytes: ctx.transcriptSize,
-                        form
+                        form,
+                        // Which wording was delivered decides whether a later change must re-deliver (BR-PFCI-05).
+                        wording: trigger === conventions.TRIGGER_READ ? WORDING_CONDITIONAL : WORDING_MANDATORY
                     });
                 }
             } finally {

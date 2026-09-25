@@ -28,6 +28,17 @@ const MINUTE = 60 * 1000;
 const DAY = 24 * 60 * MINUTE;
 const TAG_RE = /\[\[prompt-ledger@[0-9a-f]{8}\]\]$/;
 
+// TC-SPL-041 carrier predicate. A workflow skill carries SYNC:session-goal-ledger inline, or — once
+// converted — as a guide line (shared P25 recognizer, never a copied line format) whose projection
+// file `shared/protocols/session-goal-ledger.md` holds exactly the canonical body.
+const guideCarrier = require(path.join(REPO_ROOT, '.claude', 'scripts', 'lib', 'protocol-guide-carrier.cjs'));
+function carriesLedgerProtocol(text, projectionText, canonicalBody) {
+    if (text.includes(`<!-- SYNC:session-goal-ledger -->\n\n${canonicalBody}\n\n<!-- /SYNC:session-goal-ledger -->`)) return true;
+    return !text.includes('<!-- SYNC:session-goal-ledger -->') && projectionText != null &&
+        guideCarrier.hasGuideEntry(text, 'session-goal-ledger') &&
+        projectionText.replace(/\r\n?/g, '\n').trim() === canonicalBody;
+}
+
 async function withFixture(fn) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'spl-test-'));
     const fx = {
@@ -648,10 +659,12 @@ const tests = [
                 .map(name => path.join(skillsDir, name, 'SKILL.md'))
                 .filter(file => fs.existsSync(file));
             assert.ok(carriers.length >= 3, 'workflow skills discovered');
+            const projectionFile = path.join(skillsDir, 'shared', 'protocols', 'session-goal-ledger.md');
+            const projection = fs.existsSync(projectionFile) ? fs.readFileSync(projectionFile, 'utf8') : null;
             for (const file of carriers) {
                 const text = norm(fs.readFileSync(file, 'utf8'));
                 const rel = path.relative(REPO_ROOT, file);
-                assert.ok(text.includes(`<!-- SYNC:session-goal-ledger -->\n\n${body}\n\n<!-- /SYNC:session-goal-ledger -->`), `${rel} carries the canonical protocol`);
+                assert.ok(carriesLedgerProtocol(text, projection, body), `${rel} carries the canonical protocol (inline, or a guide entry whose projection equals canonical)`);
                 assert.ok(text.includes(`<!-- SYNC:session-goal-ledger:reminder -->\n\n${reminder}\n\n<!-- /SYNC:session-goal-ledger:reminder -->`), `${rel} carries the canonical reminder`);
             }
 
@@ -660,6 +673,25 @@ const tests = [
 
             const claudeMd = norm(fs.readFileSync(path.join(REPO_ROOT, 'CLAUDE.md'), 'utf8'));
             assert.ok(/Original goal:/.test(claudeMd) && claudeMd.includes('SYNC:session-goal-ledger'), 'always-loaded instructions carry the rule');
+        }
+    },
+    {
+        name: 'TC-PDL-065 static carrier accepts a guide entry backed by a canonical projection',
+        fn: () => {
+            // Given: a canonical body, a guide carrier (guide line, no body) and a projection equal to canonical.
+            const body = '> Pin `Original goal:` and track every prompt.';
+            const guideLine = guideCarrier.formatGuideLine({ tag: 'session-goal-ledger', summary: 'Pin the goal', when: 'running a workflow', path: '.claude/skills/shared/protocols/session-goal-ledger.md' });
+            const guided = `# Workflow\n\n${guideCarrier.GUIDE_BLOCK_START}\n\n${guideLine}\n\n${guideCarrier.GUIDE_BLOCK_END}\n`;
+            // When/Then: the guide carrier passes; an inline canonical body still passes.
+            assert.equal(carriesLedgerProtocol(guided, `${body}\r\n`, body), true);
+            assert.equal(carriesLedgerProtocol(`<!-- SYNC:session-goal-ledger -->\n\n${body}\n\n<!-- /SYNC:session-goal-ledger -->`, null, body), true);
+            // When the guide is removed too (both forms missing), Then it fails.
+            assert.equal(carriesLedgerProtocol('# Workflow\n', `${body}\n`, body), false);
+            // When the projection is missing or drifted, Then it fails.
+            assert.equal(carriesLedgerProtocol(guided, null, body), false);
+            assert.equal(carriesLedgerProtocol(guided, '> Drifted.\n', body), false);
+            // When a drifted inline body sits beside a guide, Then it fails (a body present must be canonical).
+            assert.equal(carriesLedgerProtocol(`${guided}\n<!-- SYNC:session-goal-ledger -->\n\n> Old.\n\n<!-- /SYNC:session-goal-ledger -->`, `${body}\n`, body), false);
         }
     },
     {

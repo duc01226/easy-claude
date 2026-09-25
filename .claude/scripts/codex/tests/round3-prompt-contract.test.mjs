@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -8,6 +9,17 @@ import { createRequire } from 'node:module';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const read = relative => fs.readFileSync(path.join(root, '.claude', relative), 'utf8');
 const skill = name => read(`skills/${name}/SKILL.md`);
+// A loop skill's contract is SKILL.md plus its point-of-use references (sorted), joined with '\n':
+// the `--fix-loop` modes of why-review, changes-review and workflow-review-changes live in
+// `references/fix-loop.md`, read first when the flag is present.
+const skillContract = name => {
+    const refs = path.join(root, '.claude', 'skills', name, 'references');
+    const parts = [skill(name)];
+    if (fs.existsSync(refs)) {
+        for (const file of fs.readdirSync(refs).filter(entry => entry.endsWith('.md')).sort()) parts.push(fs.readFileSync(path.join(refs, file), 'utf8'));
+    }
+    return parts.join('\n');
+};
 const local = text => text.replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
 const policy = createRequire(import.meta.url)('../../lib/review-policy.cjs');
 const { resolveWorkflowManifest } = createRequire(import.meta.url)('../../lib/workflow-manifest.cjs');
@@ -125,12 +137,48 @@ function assertTeaching(text) {
     assert.match(text, /delegated transport limit does not replace that deliverable/);
 }
 
+// Sensor row N3 (P26 scratch run). A converted skill carries a shared protocol as a guide line (the
+// shared P25 recognizer, never a copied line format) and the hook delivers the projection file; the
+// text a model reads is then the skill plus that file. The projection joins only while the guide entry
+// is present, so a skill that lost both the body and the guide still fails the same assertion.
+const guideCarrier = createRequire(import.meta.url)('../../lib/protocol-guide-carrier.cjs');
+function deliveredText(text, tag, skillsDir = path.join(root, '.claude', 'skills')) {
+    if (text.includes(`<!-- SYNC:${tag} -->`) || !guideCarrier.hasGuideEntry(text, tag)) return text;
+    const projection = path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
+    return fs.existsSync(projection) ? `${text}\n${fs.readFileSync(projection, 'utf8')}` : text;
+}
+
 test('R3-PROMPT-030: inline teaching survives delegated transport constraints', () => {
-    const source = skill('understand');
+    const own = skill('understand');
+    const source = deliveredText(own, 'incremental-persistence');
     assertTeaching(source);
     rejects(assertTeaching, source, "**Inline user-facing output:** Preserve the skill's requested explanation or teaching", '**At return:** Emit only the structured envelope');
-    const body = local(source);
+    const body = local(own);
     assert.match(body, /teach|explain/i);
+});
+
+test('TC-PDL-065 R3-PROMPT-030 reads a guide carrier through its projection only while the guide is present (N3)', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'n3-guide-'));
+    try {
+        // Given a projection holding the teaching rule and a skill carrying only the guide line
+        const tag = 'incremental-persistence';
+        const skillsDir = path.join(tmp, 'skills');
+        const projection = path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
+        fs.mkdirSync(path.dirname(projection), { recursive: true });
+        fs.writeFileSync(projection, "> 3. **Delegated return:** A sub-agent emits only the structured envelope. **Inline user-facing output:** Preserve the skill's requested explanation or teaching; the delegated transport limit does not replace that deliverable.\n");
+        const guided = ['# understand', guideCarrier.GUIDE_BLOCK_START, '',
+            guideCarrier.formatGuideLine({ tag, summary: 'Persist results per file', when: 'processing many files', path: `.claude/skills/shared/protocols/${tag}.md` }),
+            '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+        // When the delivered text is checked, Then the guide carrier passes
+        assertTeaching(deliveredText(guided, tag, skillsDir));
+        // When the guide entry is removed, Then the projection is not joined and the check fails
+        assert.throws(() => assertTeaching(deliveredText('# understand\n', tag, skillsDir)), { code: 'ERR_ASSERTION' });
+        // When the projection is missing, Then the check fails
+        fs.rmSync(projection);
+        assert.throws(() => assertTeaching(deliveredText(guided, tag, skillsDir)), { code: 'ERR_ASSERTION' });
+    } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+    }
 });
 
 function assertDefaultOnly(text) {
@@ -250,7 +298,7 @@ function assertLoopBudget(text, name) {
 
 test('R3-PROMPT-042: loop skills state one budget — round-3 extension for review blockers, uncapped failing tests', () => {
     for (const name of ['why-review', 'changes-review', 'workflow-review-changes']) {
-        const source = skill(name);
+        const source = skillContract(name);
         const check = text => assertLoopBudget(text, name);
         check(source);
         rejects(check, source, 'extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL/HIGH open', 'with no extension');
@@ -292,7 +340,7 @@ test('R3-PROMPT-042: loop skills state one budget — round-3 extension for revi
         rejects(check, source, 'A LOW-only round 2 has zero review blockers, so it is never an increase.', '');
     }
     // F-2: the workflow loop may not converge on a clear review bar while a round still applies fixes.
-    const workflowSource = skill('workflow-review-changes');
+    const workflowSource = skillContract('workflow-review-changes');
     const workflowCheck = text => assertLoopBudget(text, 'workflow-review-changes');
     rejects(workflowCheck, workflowSource, '(6) the round applied ZERO fixes', '(6) the current round bar is clear');
     // R5-03: a simplifier-only round with no review blocker proves a zero-fix pass within budget and
@@ -320,7 +368,7 @@ test('R3-PROMPT-042: loop skills state one budget — round-3 extension for revi
         'a LOW-only round 2 has zero review blockers at its own bar, so it is never an increase');
     // A zero-fix pass is not convergence while a test gate is still red.
     const zeroFix = /\| Round applied \*\*ZERO fixes\*\* \(clean no-op pass\) AND no test gate is failing \|/;
-    const workflowLoop = skill('workflow-review-changes');
+    const workflowLoop = skillContract('workflow-review-changes');
     assert.match(local(workflowLoop), zeroFix);
     assert.doesNotMatch(local(workflowLoop.replaceAll(' AND no test gate is failing', '')), zeroFix);
 });
@@ -342,7 +390,7 @@ function assertInnerBudget(text) {
 }
 
 test('R3-PROMPT-044: the inner review workflow orders its increase stop after the round-2 extension', () => {
-    const source = skill('workflow-review-changes');
+    const source = skillContract('workflow-review-changes');
     assertInnerBudget(source);
     rejects(assertInnerBudget, source, 'bounded at **2 rounds MAX**, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open (', 'bounded at **2 rounds MAX** (');
     rejects(assertInnerBudget, source,

@@ -46,9 +46,9 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Project Reference      |             18 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
-| Feature Specs          |              3 | `*/README.*.md` under the business spec root                                          |
-| Spec Catalogs          |              2 | `*/INDEX.md` under the business spec root                                             |
-| Architecture Decisions |              3 | `**/*.md` under the ADR root                                                          |
+| Feature Specs          |              8 | `*/README.*.md` under the business spec root                                          |
+| Spec Catalogs          |              4 | `*/INDEX.md` under the business spec root                                             |
+| Architecture Decisions |              4 | `**/*.md` under the ADR root                                                          |
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              1 | `docs/release/**/*.md`                                                                |
 | Framework Docs         |             37 | `.claude/docs/**/*.md`                                                                |
@@ -65,11 +65,12 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 28 markdown files
-│   ├── adr/                                       # 3 architecture decisions
+├── docs/                                          # 32 markdown files
+│   ├── adr/                                       # 4 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
-│   │   └── 0003-config-driven-doc-and-spec-roots.md
+│   │   ├── 0003-config-driven-doc-and-spec-roots.md
+│   │   └── 0004-protocol-delivery-hybrid.md
 │   ├── project-reference/                         # 18 files
 │   │   ├── backend-patterns-reference.md
 │   │   ├── code-review-rules.md
@@ -91,13 +92,22 @@ easy-claude/
 │   │   └── design-system/README.md                # Design System subset
 │   ├── release/                                   # 1 release-note archive
 │   ├── specs/                                     # Canonical business Feature Specs
-│   │   ├── ContextDelivery/                       # 2 Feature Specs + 1 bucket catalog
+│   │   ├── Adoption/                              # 1 Feature Spec (2 parts) + 1 bucket catalog
+│   │   │   ├── INDEX.md
+│   │   │   ├── README.AdoptionSwitches.md
+│   │   │   └── README.AdoptionSwitches-Part2.md
+│   │   ├── ContextDelivery/                       # 4 Feature Specs + 1 bucket catalog
 │   │   │   ├── INDEX.md
 │   │   │   ├── README.PerFileConventionInjection.md
-│   │   │   └── README.SessionPromptLedger.md
-│   │   └── Notifications/                          # 1 Feature Spec + 1 bucket catalog
+│   │   │   ├── README.ProtocolDelivery.md
+│   │   │   ├── README.SessionPromptLedger.md
+│   │   │   └── README.WorkflowRouting.md
+│   │   ├── Notifications/                         # 1 Feature Spec + 1 bucket catalog
+│   │   │   ├── INDEX.md
+│   │   │   └── README.AssistantSessionNotifications.md
+│   │   └── WorkflowExecution/                     # 1 Feature Spec + 1 bucket catalog
 │   │       ├── INDEX.md
-│   │       └── README.AssistantSessionNotifications.md
+│   │       └── README.GuidedWorkflow.md
 │   └── templates/                                 # 1 Feature Spec template
 ├── .claude/docs/                                  # 37 framework docs
 │   ├── 20 direct framework guides
@@ -142,15 +152,24 @@ CLAUDE.md
 ├── code-graph-{mechanism,setup}.md
 └── troubleshooting.md
 
+docs/specs/Adoption/INDEX.md
+├── README.AdoptionSwitches.md
+└── README.AdoptionSwitches-Part2.md
+
 docs/specs/ContextDelivery/INDEX.md
 ├── README.PerFileConventionInjection.md
-└── README.SessionPromptLedger.md
+├── README.ProtocolDelivery.md
+├── README.SessionPromptLedger.md
+└── README.WorkflowRouting.md
 
 docs/specs/Notifications/INDEX.md
 └── README.AssistantSessionNotifications.md
+
+docs/specs/WorkflowExecution/INDEX.md
+└── README.GuidedWorkflow.md
 ```
 
-Evidence: `README.md:386-392` (Further Reading); `CLAUDE.md:205-212,233-242` (hook, skill, agent, test, and feature-spec lookup rows), `:249` (backend, frontend, SCSS, and E2E references are not applicable), `:324` (active integration-test reference), `:421-426` (spec/test/auto-context relationships), and `:452` (ADR-0002 pointer); `.claude/docs/README.md:9-18,87-97,144-148`; `ContextDelivery/INDEX.md:7-8`; and `Notifications/INDEX.md:7-9`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
+Evidence: `README.md:386-392` (Further Reading); `CLAUDE.md:205-212,233-242` (hook, skill, agent, test, and feature-spec lookup rows), `:249` (backend, frontend, SCSS, and E2E references are not applicable), `:324` (active integration-test reference), `:421-426` (spec/test/auto-context relationships), and `:452` (ADR-0002 pointer); `.claude/docs/README.md:9-18,87-97,144-148`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-9`; and `WorkflowExecution/INDEX.md:7-11`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
 
 ## Doc Lookup Guide
 
@@ -158,36 +177,43 @@ Filenames are immutable; only the containing root is configurable. Rows in the *
 
 Read `docs/project-config.json` first for any project question or task — paths, commands, modules, conventions — then route with the rows below (most-needed first).
 
-| Category               | Read when…                                                               | Unique path (relative to its category root) or status   |
-| ---------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------- |
-| Root-Level Docs        | starting any task in Claude — project rules, routing, gates              | `CLAUDE.md`                                             |
-| Project Reference      | starting any non-trivial task — learned guardrails                       | `lessons.md`                                            |
-| Project Reference      | planning or investigating — where code lives, modules, stack             | `project-structure-reference.md`                        |
-| Project Reference      | editing or reviewing code — rules, anti-patterns, checklists             | `code-review-rules.md`                                  |
-| Root-Level Docs        | running as Codex or another agent harness                                | `AGENTS.md`                                             |
-| Root-Level Docs        | adopting or installing the framework, or needing a project overview      | `README.md`                                             |
-| Project Reference      | locating the doc for a topic — tree, counts, lookup                      | `docs-index-reference.md`                               |
-| Project Reference      | planning or designing — domain concepts, entities, ownership             | `domain-entities-reference.md`                          |
-| Project Reference      | writing, fixing, or reviewing integration tests                          | `integration-test-reference.md`                         |
-| Project Reference      | seeding or reviewing development/test data                               | `seed-test-data-reference.md`                           |
-| Project Reference      | authoring or reviewing a Feature Spec or its TC format                   | `feature-spec-reference.md`                             |
-| Project Reference      | resolving spec paths or canonical vs derived spec artifacts              | `spec-system-reference.md`                              |
-| Project Reference      | judging spec quality or local SDD rules                                  | `spec-principles.md`                                    |
-| Project Reference      | changing behavior or a public contract — keep specs, tests, code in sync | `workflow-spec-test-code-cycle-reference.md`            |
-| Project Reference      | a saved project prompt, playbook, or runbook may apply                   | `custom-prompts-reference.md`                           |
-| Project Reference      | about to run any skill — check project overlays                          | `skill-protocols-reference.md`                          |
-| Design System          | touching UI design — tokens, components, app-to-doc map                  | `design-system/README.md`                               |
-| Operations             | looking for getting-started, deployment, or runbook docs                 | No authored Operations file                             |
-| Feature Specs          | changing per-file convention injection (PFCI)                            | `ContextDelivery/README.PerFileConventionInjection.md`  |
-| Feature Specs          | changing the session prompt ledger (SPL)                                 | `ContextDelivery/README.SessionPromptLedger.md`         |
-| Feature Specs          | changing assistant session notifications (NT)                            | `Notifications/README.AssistantSessionNotifications.md` |
-| Spec Catalogs          | browsing ContextDelivery specs                                           | `ContextDelivery/INDEX.md`                              |
-| Spec Catalogs          | browsing Notifications specs                                             | `Notifications/INDEX.md`                                |
-| Architecture Decisions | asking why an architecture choice or convention exists                   | the ADR root itself                                     |
-| Templates              | writing a new detailed Feature Spec                                      | `detailed-feature-spec-template.md`                     |
-| Release Notes          | checking release history                                                 | `docs/release/`                                         |
-| Framework Docs         | asking how hooks, skills, agents, workflows, or configuration work       | `.claude/docs/README.md`                                |
-| Skill Markdown         | editing or reading an authored skill, its references, or templates       | `.claude/skills/`                                       |
+| Category               | Read when…                                                                                                                                                | Unique path (relative to its category root) or status                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Root-Level Docs        | starting any task in Claude — project rules, routing, gates                                                                                               | `CLAUDE.md`                                                                                            |
+| Project Reference      | starting any non-trivial task — learned guardrails                                                                                                        | `lessons.md`                                                                                           |
+| Project Reference      | planning or investigating — where code lives, modules, stack                                                                                              | `project-structure-reference.md`                                                                       |
+| Project Reference      | editing or reviewing code — rules, anti-patterns, checklists                                                                                              | `code-review-rules.md`                                                                                 |
+| Root-Level Docs        | running as Codex or another agent harness                                                                                                                 | `AGENTS.md`                                                                                            |
+| Root-Level Docs        | adopting or installing the framework, or needing a project overview                                                                                       | `README.md`                                                                                            |
+| Project Reference      | locating the doc for a topic — tree, counts, lookup                                                                                                       | `docs-index-reference.md`                                                                              |
+| Project Reference      | planning or designing — domain concepts, entities, ownership                                                                                              | `domain-entities-reference.md`                                                                         |
+| Project Reference      | writing, fixing, or reviewing integration tests                                                                                                           | `integration-test-reference.md`                                                                        |
+| Project Reference      | seeding or reviewing development/test data                                                                                                                | `seed-test-data-reference.md`                                                                          |
+| Project Reference      | authoring or reviewing a Feature Spec or its TC format                                                                                                    | `feature-spec-reference.md`                                                                            |
+| Project Reference      | resolving spec paths or canonical vs derived spec artifacts                                                                                               | `spec-system-reference.md`                                                                             |
+| Project Reference      | judging spec quality or local SDD rules                                                                                                                   | `spec-principles.md`                                                                                   |
+| Project Reference      | changing behavior or a public contract — keep specs, tests, code in sync                                                                                  | `workflow-spec-test-code-cycle-reference.md`                                                           |
+| Project Reference      | a saved project prompt, playbook, or runbook may apply                                                                                                    | `custom-prompts-reference.md`                                                                          |
+| Project Reference      | about to run any skill — check project overlays                                                                                                           | `skill-protocols-reference.md`                                                                         |
+| Design System          | touching UI design — tokens, components, app-to-doc map                                                                                                   | `design-system/README.md`                                                                              |
+| Operations             | looking for getting-started, deployment, or runbook docs                                                                                                  | No authored Operations file                                                                            |
+| Feature Specs          | changing per-file convention injection (PFCI)                                                                                                             | `ContextDelivery/README.PerFileConventionInjection.md`                                                 |
+| Feature Specs          | changing the session prompt ledger (SPL)                                                                                                                  | `ContextDelivery/README.SessionPromptLedger.md`                                                        |
+| Feature Specs          | changing workflow routing, the route payload, or activation tiers (WFR)                                                                                   | `ContextDelivery/README.WorkflowRouting.md`                                                            |
+| Feature Specs          | changing how shared protocols reach the assistant: guide lines, delivery hooks, host mapping (PDL)                                                        | `ContextDelivery/README.ProtocolDelivery.md`                                                           |
+| Feature Specs          | changing how a chosen workflow runs: step roles, outcome gates, deviation log, the spec-supplied route, scope guard, usage report, token checkpoint (GWF) | `WorkflowExecution/README.GuidedWorkflow.md`                                                           |
+| Feature Specs          | changing adoption switches: code graph, commit trailer, command-only skills, compaction (ADS)                                                             | `Adoption/README.AdoptionSwitches.md` (release-D cases in `Adoption/README.AdoptionSwitches-Part2.md`) |
+| Feature Specs          | changing assistant session notifications (NT)                                                                                                             | `Notifications/README.AssistantSessionNotifications.md`                                                |
+| Spec Catalogs          | browsing ContextDelivery specs                                                                                                                            | `ContextDelivery/INDEX.md`                                                                             |
+| Spec Catalogs          | browsing Notifications specs                                                                                                                              | `Notifications/INDEX.md`                                                                               |
+| Spec Catalogs          | browsing Adoption specs                                                                                                                                   | `Adoption/INDEX.md`                                                                                    |
+| Spec Catalogs          | browsing WorkflowExecution specs                                                                                                                          | `WorkflowExecution/INDEX.md`                                                                           |
+| Architecture Decisions | asking why an architecture choice or convention exists                                                                                                    | the ADR root itself                                                                                    |
+| Architecture Decisions | asking why protocols are delivered by hooks with guide-line fallback instead of inline copies                                                             | `0004-protocol-delivery-hybrid.md`                                                                     |
+| Templates              | writing a new detailed Feature Spec                                                                                                                       | `detailed-feature-spec-template.md`                                                                    |
+| Release Notes          | checking release history                                                                                                                                  | `docs/release/`                                                                                        |
+| Framework Docs         | asking how hooks, skills, agents, workflows, or configuration work                                                                                        | `.claude/docs/README.md`                                                                               |
+| Skill Markdown         | editing or reading an authored skill, its references, or templates                                                                                        | `.claude/skills/`                                                                                      |
 
 **Not applicable — skip, never route:** `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `e2e-test-reference.md` exist on disk but are declared N/A in the `referenceDocs` purposes of `docs/project-config.json`.
 
@@ -197,7 +223,7 @@ With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, t
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 28 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, and Release Notes covered all 28.
+None. A fresh broad `docs/**/*.md` scan returned 36 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, and Release Notes covered all 36.
 
 ## Closing Reminders
 

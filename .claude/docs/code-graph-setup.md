@@ -10,11 +10,15 @@ Structural code intelligence for easy-claude. Parses your codebase with Tree-sit
 
 ## Installation
 
-```bash
-pip install tree-sitter tree-sitter-language-pack networkx
-```
+Python 3.10+ required; `/graph-build` installs the rest into the hooks' environment (`tree-sitter`, `tree-sitter-language-pack`, `networkx`, on first use). Do not `pip install` them into the system Python.
+
+## Enable or disable
+
+`hooks.codeGraph.enabled` in `docs/project-config.json` sets the mode: `auto` (default) = active only once `.code-graph/graph.db` exists; `on` = always active; `off` = the graph hooks stay silent and the graph CLI refuses every command. A malformed value counts as `off`. Read `.claude/docs/hooks/README.md` § Code graph mode when you need what each hook does per mode.
 
 ## First Build
+
+Run `/graph-build` (installs the tooling, then builds). The CLI build it runs:
 
 ```bash
 python .claude/scripts/code_graph build --json
@@ -251,7 +255,7 @@ Python, TypeScript, JavaScript, Vue, Go, Rust, Java, C#, Ruby, Kotlin, Swift, PH
 | Issue                                 | Fix                                                                      |
 | ------------------------------------- | ------------------------------------------------------------------------ |
 | `Python not found`                    | Install Python 3.10+. Windows: `py -3` launcher; macOS/Linux: `python3`. |
-| `No module named 'tree_sitter'`       | Run `pip install tree-sitter tree-sitter-language-pack networkx`         |
+| `No module named 'tree_sitter'`       | Run `/graph-build`: it installs the tooling into the hooks' environment. A direct CLI call must use that environment's Python (`/graph-build` Step 0 prints how to find it) |
 | `tree-sitter compile error`           | Ensure a C compiler. Windows: VS Build Tools; macOS: `xcode-select --install`; Linux: `build-essential`/`gcc`. |
 | `graph.db not found`                  | Run `/graph-build` first                                                 |
 | `Incremental update finds no changes` | Run `build` (full) instead of `update` after branch switches             |

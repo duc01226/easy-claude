@@ -66,7 +66,8 @@ function resolveString(value, config) {
   return typeof value === "string" ? resolvePortabilityTokens(value, config) : value;
 }
 
-// `applicability` is the only nested routed carrier: { when, skipReason }.
+// Nested routed step carrier: `applicability` { when, skipReason }. (`outcomeGates[].when` is the
+// only other nested routed field; resolveWorkflowStrings handles it directly.)
 function resolveApplicability(applicability, config) {
   if (!applicability || typeof applicability !== "object" || Array.isArray(applicability)) {
     return applicability;
@@ -90,11 +91,13 @@ function resolveSteps(steps, config) {
 
 /**
  * Resolve every ROUTED `workflows.json` field on a DEEP COPY of the merged workflow+manifest
- * object. The routed set is exactly: `description`, `preActions.injectContext`, `whenToUse`,
- * `sequence[].applicability.when`, `sequence[].applicability.skipReason` (including the
- * `variants.*.sequence[]` and manifest `occurrences[]` carriers of the same two fields).
- * Every other field — `name`, `preActions.readFiles`, `stepMeta`, `parallelGroups`, fingerprints —
- * stays literal. Unknown braces (`{Bucket}`, `{FeatureName}`, `{plan-id}`, `{n}`) survive verbatim.
+ * object. The routed set is exactly: `description`, `intent`, `preActions.injectContext`,
+ * `whenToUse`, `outcomeGates[].when`, `sequence[].applicability.when`,
+ * `sequence[].applicability.skipReason` (including the `variants.*.sequence[]` and manifest
+ * `occurrences[]` carriers of the same two fields). Every other field — `name`, occurrence `role`,
+ * `outcomeGates[].id`/`satisfiedBy`, `preActions.readFiles`, `stepMeta`, `parallelGroups`,
+ * fingerprints — stays literal. Unknown braces (`{Bucket}`, `{FeatureName}`, `{plan-id}`, `{n}`)
+ * survive verbatim.
  *
  * @param {object} entry merged `{ ...workflow, ...manifest }` object
  * @param {object} [config] parsed project-config.json; loaded + cached by the loader when omitted
@@ -106,6 +109,15 @@ export function resolveWorkflowStrings(entry, config) {
 
   if (typeof out.description === "string") out.description = resolveString(out.description, config);
   if (typeof out.whenToUse === "string") out.whenToUse = resolveString(out.whenToUse, config);
+  if (typeof out.intent === "string") out.intent = resolveString(out.intent, config);
+
+  if (Array.isArray(out.outcomeGates)) {
+    out.outcomeGates = out.outcomeGates.map((gate) =>
+      gate && typeof gate === "object" && !Array.isArray(gate) && typeof gate.when === "string"
+        ? { ...gate, when: resolveString(gate.when, config) }
+        : gate
+    );
+  }
 
   if (out.preActions && typeof out.preActions === "object" && !Array.isArray(out.preActions)) {
     if (typeof out.preActions.injectContext === "string") {

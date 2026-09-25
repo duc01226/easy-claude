@@ -21,10 +21,22 @@ const {
 // SCHEMA DEFINITION
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Workflow activation tiers, loosest first (auto < confirm < manual). */
+const WORKFLOW_ACTIVATION_TIERS = ['auto', 'confirm', 'manual'];
+/** hooks.tokenBudget.checkpointTokens inclusive range (non-cached tokens per advisory checkpoint). */
+const TOKEN_BUDGET_CHECKPOINT_RANGE = [50000, 20000000];
+/** skillProfile.preset values; the preset data lives in .claude/config/skill-profiles.json. */
+const SKILL_PROFILE_PRESETS = ['full', 'standard', 'minimal'];
+/** skillProfile per-skill lists, least to most restrictive. */
+const SKILL_PROFILE_LISTS = ['nameOnly', 'commandOnly', 'off'];
+/** A skill folder name usable as a skillOverrides key. */
+const SKILL_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+
 /**
  * Schema definition using a simple type system.
  * Types: 'string', 'number', 'array', 'object', 'map', 'arrayOf'
- * 'map' = object with string keys and regex-string values (e.g., serviceMap)
+ * 'map' = object with string keys and regex-string values (e.g., serviceMap);
+ *         `valuesEnum` restricts every value to one of the listed strings instead
  * 'arrayOf' = array of objects matching a sub-schema
  */
 const SCHEMA = {
@@ -294,7 +306,8 @@ const SCHEMA = {
         type: 'arrayOf',
         required: false,
         describe: 'Per-file convention classes: member = fileExtensions ok AND any include (pathRegexes|pathGlobs|fileNameRegexes) AND no exclude; priority 100/500/900.\n' +
-            'Groups with rules|skills|referenceDocs|guideDoc|patternsDoc are rendered in CLAUDE.md and delivered by the hook; detect: node .claude/hooks/lib/convention-merge.cjs --detect',
+            'Groups with rules|skills|referenceDocs|guideDoc|patternsDoc are rendered in CLAUDE.md and delivered by the hook; detect: node .claude/hooks/lib/convention-merge.cjs --detect\n' +
+            'Per-group trigger `on`: read | edit | both (default both); `edit` delivers the group on edits only, never on plain reads.',
         itemSchema: {
             name: { type: 'string', required: true, describe: 'Unique class name (kebab-case); also the convention tag name.' },
             pathRegexes: { type: 'array', required: true, itemsAreRegex: true, describe: 'Case-insensitive regexes tested against "/" + repo-relative forward-slash path; may be [] when pathGlobs or fileNameRegexes is set.' },
@@ -315,7 +328,13 @@ const SCHEMA = {
             evidenceDocs: { type: 'array', required: false, describe: 'Repo-relative docs whose Read (ALL of them) inside the class window counts as the class being present — no digest re-delivered.' },
             evidenceSkills: { type: 'array', required: false, describe: 'Skill names whose load (ANY of them) inside the class window counts as the class being present — they carry the protocol inline.' },
             origin: { type: 'string', required: false, describe: '"detected" (written by setup detection; may be refreshed while unedited) or "user" (never touched by setup).' },
-            detectedFingerprint: { type: 'string', required: false, describe: 'Setup-owned fingerprint of the detected content; a mismatch marks the group as user-edited.' }
+            detectedFingerprint: { type: 'string', required: false, describe: 'Setup-owned fingerprint of the detected content; a mismatch marks the group as user-edited.' },
+            on: {
+                type: 'string',
+                required: false,
+                enumValues: ['read', 'edit', 'both'],
+                describe: 'Which file operation delivers this group: read, edit, or both (default both).'
+            }
         }
     },
     conventionInjection: {
@@ -764,6 +783,12 @@ const SCHEMA = {
             // false opts the team out of the tracked workflow route gate. Default true.
             // A developer may override runtime refresh in git-ignored `.claude/.ck.local.json`.
             workflowAutoDetect: { type: 'boolean', required: false },
+            // false = the generated golden-rules section names each context group and points to the
+            // file-conventions hook + `--lookup` CLI instead of inlining every rule (root byte budget).
+            // Honored only with conventionInjection.enabled: true, the conventions lib available and every
+            // rule-bearing group ranked within maxClassesPerEdit with a worst-case digest within maxChars;
+            // otherwise rules stay inline and the generator warns. Default true.
+            inlinePathRules: { type: 'boolean', required: false },
             // Optional custom protocol appended to the runtime workflow-route reminder on
             // UserPromptSubmit. A string is inline markdown; an object carries inline `text`
             // and/or a repo-relative `path` to a markdown file read at runtime. The value here
@@ -784,6 +809,29 @@ const SCHEMA = {
                         }
                     }
                 ]
+            },
+            // Per-project workflow activation tier. Tier order auto < confirm < manual.
+            // `default` only tightens a workflow's framework tier; `overrides` pin one workflow's
+            // tier and may loosen it. Omitted = every workflow keeps its framework tier.
+            // A developer may override it in git-ignored `.claude/.ck.local.json` (local wins).
+            workflowActivation: {
+                type: 'object',
+                required: false,
+                describe: 'Workflow activation tiers (auto < confirm < manual). default: floor raised onto every workflow\'s framework tier (only tightens); overrides: { <workflowId>: tier } pins one workflow and may loosen it. Omitted = framework tiers. Local override: .claude/.ck.local.json.',
+                properties: {
+                    default: {
+                        type: 'string',
+                        required: false,
+                        enumValues: WORKFLOW_ACTIVATION_TIERS,
+                        describe: 'Minimum tier for every workflow: auto | confirm | manual. Omitted = framework tiers unchanged.'
+                    },
+                    overrides: {
+                        type: 'map',
+                        required: false,
+                        valuesEnum: WORKFLOW_ACTIVATION_TIERS,
+                        describe: 'Map of workflow id -> tier (auto | confirm | manual); wins over default and the framework tier.'
+                    }
+                }
             },
             // The root package.json `name` that marks this repo as carrying the framework's own
             // npm surface. Read by .claude/scripts/codex/tests/framework-repo.helper.mjs to decide
@@ -865,6 +913,88 @@ const SCHEMA = {
                         describe: 'Default true. false keeps the read-only probe but never starts the WinGet repair worker.'
                     }
                 }
+            },
+            codeGraph: {
+                type: 'object',
+                required: false,
+                describe: 'Code-graph hooks and CLI. Default enabled "auto": active only when .code-graph/graph.db exists.',
+                properties: {
+                    enabled: {
+                        type: 'string',
+                        required: false,
+                        enumValues: ['auto', 'on', 'off'],
+                        describe: 'Default "auto" (active only when .code-graph/graph.db exists). "on" = always active; "off" = graph hooks stay silent and the graph CLI refuses to run.'
+                    }
+                }
+            },
+            tokenBudget: {
+                type: 'object',
+                required: false,
+                describe: 'Advisory token checkpoint at task/plan step boundaries, read by the token-budget-checkpoint hook (PostToolUse on task/plan tools, Claude transcripts); never blocks. Defaults: enabled true, checkpointTokens 500000 (non-cached tokens). A malformed section keeps the checkpoint off until fixed.',
+                properties: {
+                    enabled: {
+                        type: 'boolean',
+                        required: false,
+                        describe: 'Default true. false turns the advisory checkpoint note off.'
+                    },
+                    checkpointTokens: {
+                        type: 'number',
+                        required: false,
+                        describe: 'Integer 50000..20000000, default 500000: one note each time the session\'s non-cached tokens (input + cache creation + output) cross the next multiple.'
+                    }
+                }
+            }
+        }
+    },
+    // Optional commit-skill policy. Every property is optional; omitted keeps the default.
+    commit: {
+        type: 'object',
+        required: false,
+        describe: 'Optional commit-skill policy. Omitted properties keep the defaults.',
+        properties: {
+            fixOriginTrailer: {
+                type: 'boolean',
+                required: false,
+                describe: 'Default false. true = the commit skill writes the author-declared Fix-Origin trailer (feedback | regression | not-applicable) on new commits only; existing commits are never reworded to add it.'
+            }
+        }
+    },
+    // Optional team skill profile. `node .claude/scripts/sync-skill-profile.cjs` resolves it and
+    // writes only the keys it owns into `.claude/settings.json` `skillOverrides`; a developer's own
+    // choices stay in git-ignored `.claude/settings.local.json`. Omitted = no overrides.
+    skillProfile: {
+        type: 'object',
+        required: false,
+        describe: 'Team skill visibility profile. Applied by `node .claude/scripts/sync-skill-profile.cjs` into .claude/settings.json skillOverrides (only the keys it wrote; personal choices go in .claude/settings.local.json). Omitted = every skill keeps its default visibility.',
+        properties: {
+            preset: {
+                type: 'string',
+                required: false,
+                enumValues: SKILL_PROFILE_PRESETS,
+                describe: 'Starting point: full = no overrides; standard = the skills other skills or hooks start become name-only; minimal = only start-workflow, commit and the setup skills stay listed, every other skill becomes name-only. Presets live in .claude/config/skill-profiles.json.'
+            },
+            nameOnly: {
+                type: 'array',
+                required: false,
+                itemType: 'string',
+                describe: 'Skills hidden from the model\'s skill list but still callable by name (Claude name-only). Allowed for any skill.'
+            },
+            commandOnly: {
+                type: 'array',
+                required: false,
+                itemType: 'string',
+                describe: 'Skills only a user can start with /name (Claude user-invocable-only). Refused for a skill a workflow, agent, skill or hook starts, unless allowHidingCalledSkills is true.'
+            },
+            off: {
+                type: 'array',
+                required: false,
+                itemType: 'string',
+                describe: 'Skills turned off (Claude off; a call by full name fails). Refused for a skill a workflow, agent, skill or hook starts, unless allowHidingCalledSkills is true.'
+            },
+            allowHidingCalledSkills: {
+                type: 'boolean',
+                required: false,
+                describe: 'Default false. true lets commandOnly/off hide a skill that a workflow, agent, skill or hook starts; each one is still named in a warning line.'
             }
         }
     }
@@ -1009,6 +1139,14 @@ function validateField(value, fieldSchema, path, errors, warnings) {
                     if (typeof val === 'string') {
                         const regexErr = validateRegex(val, `${path}.${key}`);
                         if (regexErr) errors.push(regexErr);
+                    }
+                }
+            }
+            if (Array.isArray(fieldSchema.valuesEnum)) {
+                for (const [key, val] of Object.entries(value)) {
+                    if (!fieldSchema.valuesEnum.includes(val)) {
+                        const got = typeof val === 'string' ? `"${val}"` : typeof val;
+                        errors.push(`${path}.${key}: expected one of ${fieldSchema.valuesEnum.join('|')}, got ${got}`);
                     }
                 }
             }
@@ -1319,6 +1457,50 @@ function validateConventionInjectionSemantics(config, errors) {
     }
 }
 
+/** hooks.tokenBudget.checkpointTokens range; the structural pass already rejects a non-number. */
+function validateTokenBudgetSemantics(config, errors) {
+    const budget = config.hooks && config.hooks.tokenBudget;
+    if (!budget || typeof budget !== 'object' || Array.isArray(budget)) return;
+    const value = budget.checkpointTokens;
+    if (value === undefined || value === null || typeof value !== 'number') return;
+    const [min, max] = TOKEN_BUDGET_CHECKPOINT_RANGE;
+    if (!Number.isInteger(value) || value < min || value > max) {
+        errors.push(`hooks.tokenBudget.checkpointTokens: expected an integer from ${min} through ${max}, got ${value}`);
+    }
+}
+
+/**
+ * skillProfile lists: every entry must be usable as a skill key, and one skill sits in at most one
+ * list (which visibility wins would otherwise be a guess). A name with no `.claude/skills/<name>/SKILL.md`
+ * is a warning only: the profile may name a skill the project adds later. The structural pass has
+ * already rejected non-array lists and non-string items.
+ */
+function validateSkillProfileSemantics(config, errors, warnings) {
+    const profile = config.skillProfile;
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return;
+    const seenIn = new Map();
+    const deps = semanticDeps();
+    for (const list of SKILL_PROFILE_LISTS) {
+        const names = profile[list];
+        if (!Array.isArray(names)) continue;
+        names.forEach((name, index) => {
+            if (typeof name !== 'string') return;
+            if (!SKILL_NAME_PATTERN.test(name)) {
+                errors.push(`skillProfile.${list}[${index}]: "${name}" is not a skill folder name (lowercase letters, digits, hyphens)`);
+                return;
+            }
+            if (seenIn.has(name) && seenIn.get(name) !== list) {
+                errors.push(`skillProfile.${list}: "${name}" is also listed in skillProfile.${seenIn.get(name)}; keep it in one list`);
+                return;
+            }
+            seenIn.set(name, list);
+            if (deps && !deps.fs.existsSync(deps.path.join(deps.repoRoot, '.claude', 'skills', name, 'SKILL.md'))) {
+                warnings.push(`skillProfile.${list}: unknown skill "${name}" (no .claude/skills/${name}/SKILL.md)`);
+            }
+        });
+    }
+}
+
 // Node built-ins + the shared path utils are loaded LAZILY and behind a `typeof require`
 // guard on purpose: `experience-config.test.cjs:189` evaluates this file's SOURCE inside
 // `vm.runInNewContext` with `require` bound to a plain OBJECT (`{ main: null }`), so a
@@ -1532,10 +1714,12 @@ function validateConfig(config) {
     validateReferenceDocsSemantics(config, errors, warnings);
     validateFeatureDocTemplateSemantics(config, errors);
     validateConventionInjectionSemantics(config, errors);
+    validateTokenBudgetSemantics(config, errors);
     validateSpecArtifactProfileSemantics(config, errors);
     validateDocsRootsSemantics(config, errors, warnings);
     validateSpecRootsSemantics(config, errors);
     validatePortabilitySemantics(config, errors, warnings);
+    validateSkillProfileSemantics(config, errors, warnings);
 
     // Check for unknown top-level keys
     const knownKeys = new Set(Object.keys(SCHEMA));
@@ -1602,7 +1786,9 @@ function generateExampleItem(itemSchema) {
     for (const [field, def] of Object.entries(itemSchema)) {
         const req = def.required ? 'required' : 'optional';
         if (def.type === 'string') {
-            obj[field] = def.isRegex ? `<regex> (${req})` : `<string> (${req})`;
+            obj[field] = def.isRegex
+                ? `<regex> (${req})`
+                : Array.isArray(def.enumValues) ? `<${def.enumValues.join('|')}> (${req})` : `<string> (${req})`;
         } else if (def.type === 'number') {
             obj[field] = `<number> (${req})`;
         } else if (def.type === 'array') {
@@ -1658,7 +1844,11 @@ function describeField(name, schema, depth, lines) {
         lines.push(`${indent}${name} (array${extra}, ${req})${depr}`);
         emitDescribe(schema, depth + 1, lines);
     } else if (schema.type === 'map') {
-        const extra = schema.valuesAreRegex ? ', values are regexes' : '';
+        const extra = schema.valuesAreRegex
+            ? ', values are regexes'
+            : Array.isArray(schema.valuesEnum)
+                ? `, values one of ${schema.valuesEnum.join('|')}`
+                : '';
         lines.push(`${indent}${name} (map${extra}, ${req})${depr}`);
         emitDescribe(schema, depth + 1, lines);
     } else if (schema.type === 'object') {
@@ -1713,7 +1903,11 @@ module.exports = {
     getRequiredSections,
     formatResult,
     validateRegex,
-    describeSchema
+    describeSchema,
+    WORKFLOW_ACTIVATION_TIERS,
+    TOKEN_BUDGET_CHECKPOINT_RANGE,
+    SKILL_PROFILE_PRESETS,
+    SKILL_PROFILE_LISTS
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -59,6 +59,26 @@ const severityConsumers = [
     '.claude/skills/workflow-write-integration-test/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md'
 ];
+// A severity consumer may carry the rubric as a guide entry (shared P25 recognizer, never a copied
+// line format) instead of the body; the full text then lives in `shared/protocols/severity-rubric.md`,
+// which must equal the canonical body exactly as an inline body must. Every consumer is a skill.
+const guideCarrier = createRequire(import.meta.url)('../../lib/protocol-guide-carrier.cjs');
+const severityProjectionPath = path.join(root, '.claude', 'skills', 'shared', 'protocols', 'severity-rubric.md');
+function carriesSeverityRubric(text, projectionText, expected) {
+    return carriesCanonicalProtocol(text, 'severity-rubric', projectionText, expected);
+}
+// The same rule for any tag (sensor row N2, P26 scratch run): an inline body must equal canonical;
+// a guide entry counts only while its projection file equals canonical. Neither form fails.
+function carriesCanonicalProtocol(text, tag, projectionText, expected) {
+    const inline = body(text, tag);
+    if (inline !== null) return inline === expected;
+    return projectionText != null && guideCarrier.hasGuideEntry(text, tag) &&
+        normalizeEol(projectionText).trim() === expected;
+}
+const projectionTextOf = (tag) => {
+    const file = path.join(root, '.claude', 'skills', 'shared', 'protocols', `${tag}.md`);
+    return fsSync.existsSync(file) ? fsSync.readFileSync(file, 'utf8') : null;
+};
 
 function body(text, tag) {
     const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -70,10 +90,8 @@ function body(text, tag) {
 // was compared against a CRLF one and every multi-line block failed — a checkout-format artifact
 // reported as canonical drift, which is the false alarm that trains a maintainer to distrust the
 // guard. The contract is byte-exact BODY TEXT; the line ending is a property of the working copy,
-// not of the protocol. Boundary detection is left as-is deliberately: this matcher stops at
-// `\n---\n` OR `\n## SYNC:`, which is not the same span as extract-sync-block's combined
-// `\n---\n\n## SYNC:` delimiter, so adopting that extractor wholesale would change WHAT is compared
-// rather than just how line endings are read.
+// not of the protocol. This matcher stops at `\n---\n` OR `\n## SYNC:` — the same block-end rule
+// extract-sync-block and the Python readers now share (sync-reader-parity.test.cjs guards it).
 function canonicalBody(text, tag) {
     const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const match = normalizeEol(text)
@@ -83,6 +101,21 @@ function canonicalBody(text, tag) {
 
 function stripSyncBlocks(text) {
     return text.replace(/<!-- SYNC:([^>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
+}
+
+// A skill's contract is its SKILL.md plus every sibling `references/*.md` (sorted), read as one text:
+// a mode section moved to a point-of-use reference is still the skill's contract, so a pinned phrase
+// must hold wherever it lives. Takes the SKILL.md path (absolute, or relative to the repo root).
+function readSkillContract(skillFile) {
+    const file = path.isAbsolute(skillFile) ? skillFile : path.join(root, skillFile);
+    const refs = path.join(path.dirname(file), 'references');
+    const texts = [fsSync.readFileSync(file, 'utf8')];
+    if (fsSync.existsSync(refs)) {
+        for (const name of fsSync.readdirSync(refs).filter(entry => entry.endsWith('.md')).sort()) {
+            texts.push(fsSync.readFileSync(path.join(refs, name), 'utf8'));
+        }
+    }
+    return texts.join('\n');
 }
 
 function gitAvailable() {
@@ -283,17 +316,37 @@ test('TC-HARNESS-006: shared severity rubric normalizes domain vocabularies', as
     assert.match(expected, /BLOCKED.*HARD FAIL.*FAIL/i);
     assert.match(expected, /P0.*P1.*P2.*P3.*P4/i);
     assert.match(expected, /INFO.*advisory/i);
+    const projection = await fs.readFile(severityProjectionPath, 'utf8').catch(() => null);
     for (const relative of severityConsumers) {
         const text = await fs.readFile(path.join(root, relative), 'utf8');
-        assert.equal(body(text, 'severity-rubric'), expected, `${relative} must carry the canonical severity rubric`);
+        assert.ok(carriesSeverityRubric(text, projection, expected),
+            `${relative} must carry the canonical severity rubric inline, or a severity-rubric guide entry whose projection file equals canonical`);
     }
+});
+
+test('TC-PDL-065: a severity consumer passes with a guide entry backed by a canonical projection and fails when both forms are missing', () => {
+    const expected = '> Fixture rubric.';
+    // Given a consumer that holds a guide entry instead of the rubric body, and a projection equal to canonical
+    const guided = [guideCarrier.GUIDE_BLOCK_START, '',
+        guideCarrier.formatGuideLine({ tag: 'severity-rubric', summary: 'Rubric', when: 'classifying a finding', path: '.claude/skills/shared/protocols/severity-rubric.md' }),
+        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+    // When it is checked, Then it passes
+    assert.equal(carriesSeverityRubric(guided, `${expected}\r\n`, expected), true);
+    // When the guide is removed too (both forms missing), Then it fails
+    assert.equal(carriesSeverityRubric('# Skill\n', `${expected}\n`, expected), false);
+    // When the projection is missing or drifted, Then it fails
+    assert.equal(carriesSeverityRubric(guided, null, expected), false);
+    assert.equal(carriesSeverityRubric(guided, '> Drifted rubric.\n', expected), false);
+    // And an inline body is still held to exact parity
+    assert.equal(carriesSeverityRubric(`<!-- SYNC:severity-rubric -->\n\n${expected}\n\n<!-- /SYNC:severity-rubric -->`, null, expected), true);
+    assert.equal(carriesSeverityRubric('<!-- SYNC:severity-rubric -->\n\n> Edited.\n\n<!-- /SYNC:severity-rubric -->', `${expected}\n`, expected), false);
 });
 
 test('TC-HARNESS-006: consumer-specific anchors preserve loop ownership and independent-pass semantics', async () => {
     // plan-review is read by explicit path, not from `consumers` — it is an OVERRIDE carrier, so it is
     // absent from that array, but its anchor obligation is unchanged by the fence it uses.
-    const [changes, workflow, plan] = await Promise.all(
-        [...consumers, planReviewPath].map(relative => fs.readFile(path.join(root, relative), 'utf8')));
+    // Each skill is read as its contract (SKILL.md + references): the `--fix-loop` modes live in references/fix-loop.md.
+    const [changes, workflow, plan] = [...consumers, planReviewPath].map(relative => readSkillContract(relative));
     assert.match(changes, /Phase 6.*Why-Review Findings Validation/s);
     assert.match(workflow, /all-return barrier/i);
     // The outer zero-fix loop is workflow-review-changes' optional `--fix-loop` mode.
@@ -302,7 +355,7 @@ test('TC-HARNESS-006: consumer-specific anchors preserve loop ownership and inde
 });
 
 test('TC-HARNESS-006: changes-review fix prose cannot reopen a round for LOW-only findings', async () => {
-    const changes = await fs.readFile(path.join(root, '.claude', 'skills', 'changes-review', 'SKILL.md'), 'utf8');
+    const changes = readSkillContract('.claude/skills/changes-review/SKILL.md');
     assert.match(changes, /SELF-FIX each validated finding that blocks the current round/);
     assert.match(changes, /round-2 LOW-only findings are recorded and deferred, not fixed/);
     assert.match(changes, /fixing only findings that block the current round and re-running until that bar is clear/);
@@ -454,10 +507,31 @@ test('R3-PROMPT-031: visual review consumers persist one artifact result before 
         '.claude/skills/e2e-test-verify/SKILL.md',
         '.claude/skills/workflow-e2e/SKILL.md',
     ];
+    const projection = projectionTextOf('incremental-persistence');
     for (const relative of visualConsumers) {
         const text = await fs.readFile(path.join(root, relative), 'utf8');
-        assert.equal(body(text, 'incremental-persistence'), expected, `${relative} must carry the canonical per-artifact persistence contract`);
+        assert.ok(carriesCanonicalProtocol(text, 'incremental-persistence', projection, expected),
+            `${relative} must carry the canonical per-artifact persistence contract (inline, or a guide entry whose projection equals canonical)`);
     }
+});
+
+test('TC-PDL-065 visual-consumer check (R3-PROMPT-031) accepts a guide entry backed by a canonical projection (N2)', () => {
+    // Given a canonical body, a guide carrier (guide line, no body) and a projection equal to canonical
+    const tag = 'incremental-persistence';
+    const expected = '> **Incremental Persistence** — fixture body.';
+    const guided = [guideCarrier.GUIDE_BLOCK_START, '',
+        guideCarrier.formatGuideLine({ tag, summary: 'Persist results per file', when: 'processing many files', path: `.claude/skills/shared/protocols/${tag}.md` }),
+        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+    // When the carrier check runs, Then the guide carrier and an equal inline body pass
+    assert.equal(carriesCanonicalProtocol(guided, tag, `${expected}\r\n`, expected), true);
+    assert.equal(carriesCanonicalProtocol(`<!-- SYNC:${tag} -->\n\n${expected}\n\n<!-- /SYNC:${tag} -->`, tag, null, expected), true);
+    // When both forms are missing, Then it fails
+    assert.equal(carriesCanonicalProtocol('# Skill\n', tag, expected, expected), false);
+    // When the projection is missing or drifted, Then the guide alone fails
+    assert.equal(carriesCanonicalProtocol(guided, tag, null, expected), false);
+    assert.equal(carriesCanonicalProtocol(guided, tag, '> Drifted.', expected), false);
+    // When a drifted inline body sits beside a guide, Then the body still decides and fails
+    assert.equal(carriesCanonicalProtocol(`${guided}\n<!-- SYNC:${tag} -->\n\n> Old.\n\n<!-- /SYNC:${tag} -->`, tag, expected, expected), false);
 });
 
 test('R3-PROMPT-023: specialist overrides preserve role and durable budget', async () => {
@@ -521,7 +595,13 @@ test('TC-FIT-012: every review receipt issuer binds the pre-review full candidat
     assert.equal(receiptIssuers.length, 3, 'only the three declared full-review fix loops issue review receipts');
     const discoveredIssuers = new Set();
     for (const file of listSkillMarkdownFiles(path.join(root, '.claude', 'skills'))) {
-        const source = stripSyncBlocks(fsSync.readFileSync(file, 'utf8'));
+        let contract;
+        try { contract = readSkillContract(file); } catch (error) {
+            // Same race as listSkillMarkdownFiles: a scratch skill directory can vanish mid-scan.
+            if (error.code === 'ENOENT') continue;
+            throw error;
+        }
+        const source = stripSyncBlocks(contract);
         for (const match of source.matchAll(/review-receipt\.cjs issue --kind=(changes-review|why-review|workflow-review-changes)\b/g)) {
             discoveredIssuers.add(`${path.relative(root, file).split(path.sep).join('/')}#${match[1]}`);
         }
@@ -530,7 +610,7 @@ test('TC-FIT-012: every review receipt issuer binds the pre-review full candidat
         receiptIssuers.map(issuer => `${issuer.file}#${issuer.kind}`).sort(),
         'every in-scope receipt issuer is in the reviewed consumer inventory');
     for (const issuer of receiptIssuers) {
-        const source = stripSyncBlocks(await fs.readFile(path.join(root, issuer.file), 'utf8'));
+        const source = stripSyncBlocks(readSkillContract(issuer.file));
         const captureAt = source.indexOf(issuer.captureAnchor);
         const reviewAt = source.indexOf(issuer.reviewAnchor, captureAt);
         assert.ok(captureAt >= 0 && reviewAt > captureAt, `${issuer.file}: candidate capture precedes the qualifying review`);
@@ -552,7 +632,7 @@ test('TC-FIT-012: every review receipt issuer binds the pre-review full candidat
 
 test('TC-FIT-012: review and commit prompts preserve the configured semantic profile', async () => {
     for (const relative of receiptIssuers.map(issuer => issuer.file)) {
-        const source = stripSyncBlocks(await fs.readFile(path.join(root, relative), 'utf8'));
+        const source = stripSyncBlocks(readSkillContract(relative));
         assert.match(source, /configured canonical (?:owner|spec)/i, `${relative}: resolve the native canonical owner`);
         assert.match(source, /profile-declared (?:canonical )?scenario\/case/i, `${relative}: retain native scenario identity`);
         assert.match(source, /(?:assertion\/result|executing test)/i, `${relative}: require executable test evidence`);

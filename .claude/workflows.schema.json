@@ -21,8 +21,44 @@
         "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
         "skill": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
         "args": { "type": "string" },
-        "applicability": { "$ref": "#/definitions/Applicability" }
-      }
+        "applicability": { "$ref": "#/definitions/Applicability" },
+        "role": {
+          "default": "core",
+          "description": "Step semantics. gate = never skipped; carries no applicability. core = runs by default (an unannotated step is core). optional = runs only when applicability.when holds; requires applicability with when and skipReason.",
+          "enum": ["gate", "core", "optional"],
+          "title": "Step Role",
+          "type": "string"
+        }
+      },
+      "allOf": [
+        { "if": { "required": ["role"], "properties": { "role": { "const": "optional" } } }, "then": { "required": ["applicability"] } },
+        { "if": { "required": ["role"], "properties": { "role": { "const": "gate" } } }, "then": { "not": { "required": ["applicability"] } } }
+      ]
+    },
+    "OutcomeGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "satisfiedBy"],
+      "properties": {
+        "id": {
+          "description": "Outcome a finished run must prove. tests-pass = changed behaviour is tested and green; review-converged = the review loop converged; spec-synced = specs match the changed behaviour; plan-approved = the plan was reviewed and approved; root-cause-traced = a bug's root cause is traced before the fix; run-closed = the run closed through its close step.",
+          "enum": ["tests-pass", "review-converged", "spec-synced", "plan-approved", "root-cause-traced", "run-closed"],
+          "type": "string"
+        },
+        "satisfiedBy": {
+          "description": "Skills whose occurrences can satisfy this gate (alternatives). Each skill MUST appear in the workflow's sequence (with variants: in at least one mode), and every resolved mode MUST contain at least one of them.",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "minItems": 1,
+          "uniqueItems": true,
+          "type": "array"
+        },
+        "when": {
+          "description": "Model-evaluated condition for a conditional gate (for example 'behavior or public contract changed'). Absent = the gate always applies.",
+          "pattern": "\\S",
+          "type": "string"
+        }
+      },
+      "title": "Outcome Gate"
     },
     "Variant": {
       "type": "object",
@@ -89,7 +125,27 @@
       "dependencies": { "variants": ["defaultMode"], "defaultMode": ["variants"] },
       "description": "Defines a workflow selected by AI-native intent detection. Contains natural language descriptions for when to use/not use, an ordered sequence of commands, and optional pre-actions.",
       "properties": {
+        "activation": {
+          "default": "auto",
+          "description": "Who may start this workflow. auto: the route gate may select and start it (first task of a session only). confirm: before starting it on its own selection, the model asks the user once, showing its step count and the lean alternative. manual: the model never selects or starts it; it runs only on an explicit user request, and its wrapper skill sets disable-model-invocation: true (the Codex mirror then sets allow_implicit_invocation: false). An explicit user request runs every tier directly.",
+          "enum": ["auto", "confirm", "manual"],
+          "title": "Activation Tier",
+          "type": "string"
+        },
         "defaultMode": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "intent": {
+          "description": "One sentence, one line: the goal this workflow must achieve. Steps are recommendations toward it; outcomeGates are what must hold.",
+          "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$",
+          "title": "Workflow Intent",
+          "type": "string"
+        },
+        "outcomeGates": {
+          "description": "Evidence every finished run must produce. Gate IDs are unique per workflow.",
+          "items": { "$ref": "#/definitions/OutcomeGate" },
+          "minItems": 1,
+          "title": "Outcome Gates",
+          "type": "array"
+        },
         "variants": {
           "type": "object",
           "minProperties": 1,

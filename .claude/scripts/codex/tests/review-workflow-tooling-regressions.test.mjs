@@ -11,6 +11,20 @@ const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, '..', '..', '..', '..');
 const normalizeEol = text => text.replace(/\r\n/g, '\n');
+// A skill's contract is SKILL.md plus its point-of-use references (sorted), joined with '\n':
+// workflow-review-changes keeps its `--fix-loop` mode in `references/fix-loop.md`, read first when the flag is present.
+async function readSkillContract(name) {
+    const dir = path.join(repoRoot, '.claude', 'skills', name);
+    const parts = [await fs.readFile(path.join(dir, 'SKILL.md'), 'utf8')];
+    const refs = await fs.readdir(path.join(dir, 'references')).catch(error => {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+    });
+    for (const file of refs.filter(entry => entry.endsWith('.md')).sort()) {
+        parts.push(await fs.readFile(path.join(dir, 'references', file), 'utf8'));
+    }
+    return parts.join('\n');
+}
 
 test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review validation gate', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'wfproto-sweep-'));
@@ -128,9 +142,7 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
         await fs.readFile(path.join(repoRoot, '.claude', 'workflows.json'), 'utf8')
     ).workflows;
     const workflow = workflows['workflow-review-changes'];
-    const skillText = normalizeEol(
-        await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8')
-    );
+    const skillText = normalizeEol(await readSkillContract('workflow-review-changes'));
     const codexContextText = normalizeEol(
         await fs.readFile(path.join(repoRoot, '.codex', 'CODEX_CONTEXT.md'), 'utf8')
     );
@@ -246,9 +258,7 @@ function assertFixLoopMode(text) {
 }
 
 test('TC-WFADV-023: workflow-review-changes documents the optional --fix-loop outer convergence mode with its gates', async () => {
-    const skillText = normalizeEol(
-        await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8')
-    );
+    const skillText = normalizeEol(await readSkillContract('workflow-review-changes'));
     assertFixLoopMode(skillText);
     await assert.rejects(
         fs.access(path.join(repoRoot, '.claude', 'skills', RETIRED_LOOP_SKILL)),

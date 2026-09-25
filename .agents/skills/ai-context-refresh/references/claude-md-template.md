@@ -23,7 +23,7 @@ Read `docs/project-config.json` first, then `docs/project-reference/docs-index-r
 
 A missing project config is supported. If a declared config section is malformed, or root instructions or required docs are missing or stale, run `$project-init` or the narrow `$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh` setup route before ordinary work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run invokes the same standalone runner with `--skip=claude-md`. Markerless roots stay a manual smart-merge boundary unless `portability.requireUniversalGuides: false` is explicit. If required detail remains unavailable, stop and report its path; never invent rules or completion.
 
-For a question about the project (not a change), answer from the matching Doc Lookup row below and cite the doc you read; for how the `.claude` framework itself works, use `$project-help`. Never answer project-specific questions from framework defaults or memory.
+Answer a project question (not a change) from its Doc Lookup row below, citing the doc you read — never from framework defaults or memory; for the `.claude` framework itself, read `.claude/docs/README.md` (the user can run `$project-help`).
 
 When you write or update a doc an agent reads (root context, reference docs, docs index, `lessons.md`), keep it discoverable: purpose and critical rules first, closing reminders last when long, and every pointer to another doc as `read <path> when <situation>` to a file that exists, routed from this table or the docs index. The doc-writing skills end with this gate (`SYNC:ai-discovery-doc-quality`).
 

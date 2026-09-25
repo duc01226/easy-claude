@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { isInjectable, skillPath, UI_UX_GATE } = require('./file-conventions.cjs');
+const { isInjectable, skillPath, UI_UX_GATE, CLASS_TRIGGERS, TRIGGER_EDIT } = require('./file-conventions.cjs');
 const { getDocsRoot } = require('./project-config-loader.cjs');
 
 // The three spec-authoring reference docs. Only the FILENAMES are fixed; the root resolves from
@@ -118,6 +118,12 @@ function candidate(fields, exists) {
     if (evidenceDocs.length) group.evidenceDocs = evidenceDocs;
     const evidenceSkills = unique(strings(fields.evidenceSkills)).filter(name => exists(skillPath(name)));
     if (evidenceSkills.length) group.evidenceSkills = evidenceSkills;
+    // BR-PFCI-19: a detected class that carries reference docs or protocols is authoring context, so
+    // it is proposed with the edit trigger (reads stay quiet); a proposal naming its own trigger keeps
+    // it, and a rules-only class names none (it behaves as both). The merge below never touches a
+    // class it may not refresh, so a maintainer's trigger is never changed (BR-PFCI-12).
+    if (CLASS_TRIGGERS.includes(fields.on)) group.on = fields.on;
+    else if (group.referenceDocs || group.skills) group.on = TRIGGER_EDIT;
     const hasInclude = group.pathRegexes.length || (group.pathGlobs || []).length || (group.fileNameRegexes || []).length;
     return hasInclude && isInjectable(group) ? group : null;
 }

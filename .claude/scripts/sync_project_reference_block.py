@@ -7,7 +7,12 @@ Refreshes BOTH variants:
   - the :reminder bottom block content (replaced in place when present,
     or inserted before `## Closing Reminders` when missing).
 
-Idempotent — only writes when content actually changes.
+A skill converted to guide lines (`sync_blocks.has_guide_entry`) also carries the
+protocol: its reminder is refreshed, and no TOP block is ever created (refresh only
+replaces a TOP block that is already there).
+
+Idempotent — only writes when content actually changes. Files keep their own
+line-ending style.
 """
 from __future__ import annotations
 
@@ -15,7 +20,8 @@ import re
 import sys
 from pathlib import Path
 
-from sync_blocks import load_wrapped_sync_block
+from line_endings import read_text, write_text
+from sync_blocks import has_guide_entry, load_wrapped_sync_block
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
@@ -23,6 +29,7 @@ AGENTS_DIR = PROJECT_ROOT / ".claude" / "agents"
 
 TAG = "SYNC:project-reference-docs-guide"
 REMINDER_TAG = "SYNC:project-reference-docs-guide:reminder"
+GUIDE_TAG = TAG.removeprefix("SYNC:")
 
 NEW_TOP_BODY = load_wrapped_sync_block(TAG).rstrip()
 NEW_BOTTOM_BLOCK = load_wrapped_sync_block(REMINDER_TAG)
@@ -40,6 +47,12 @@ REMINDER_BLOCK_RE = re.compile(
     re.DOTALL,
 )
 CLOSING_RE = re.compile(r"^## Closing Reminders\b.*$", re.MULTILINE)
+
+
+def carries(text: str) -> bool:
+    """The file carries the protocol: any SYNC fence for it (body or kept reminder), or a
+    guide entry. The injector asks the same question before it would insert a TOP block."""
+    return TAG in text or has_guide_entry(text, GUIDE_TAG)
 
 
 def refresh(text: str, top_block: str | None = None, bottom_block: str | None = None) -> tuple[str, dict]:
@@ -105,7 +118,7 @@ def main() -> int:
             key = str(p).lower()
             if key in seen:
                 continue
-            if TAG in p.read_text(encoding="utf-8"):
+            if carries(read_text(p)[0]):
                 targets.append(p)
                 seen.add(key)
 
@@ -118,11 +131,11 @@ def main() -> int:
     print("-" * 64)
     refreshed = 0
     for path in sorted(targets):
-        original = path.read_text(encoding="utf-8")
+        original, newline = read_text(path)
         new_text, status = refresh(original)
         if new_text != original:
             if not (dry_run or check):
-                path.write_text(new_text, encoding="utf-8", newline="\n")
+                write_text(path, new_text, newline)
             refreshed += 1
         top = "REFRESHED" if status["top_refreshed"] else "ok"
         if status["bottom_added"]:

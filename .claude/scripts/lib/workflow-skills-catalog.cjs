@@ -16,11 +16,30 @@
 const fs = require("fs");
 const path = require("path");
 const { resolveAllWorkflowManifests } = require("./workflow-manifest.cjs");
+const routingConfig = require("./workflow-routing-config.cjs");
 
 const CK_SKILLS_START = "<!-- CK:WORKFLOW-SKILLS -->";
 const CK_SKILLS_END = "<!-- /CK:WORKFLOW-SKILLS -->";
 
 const DEFAULT_SECTIONS = ["routing", "workflows", "skills"];
+// Values of `activation` in .claude/workflows.json (schema: WorkflowEntry.activation), in
+// strictness order; owned by the tier resolver.
+const ACTIVATION_TIERS = routingConfig.ACTIVATION_TIERS;
+const ACTIVATION_LEGEND =
+  "**Activation:** `auto` = the route gate may select and start it; `confirm` = on your own selection, ask the user once (its step count vs. the lean route you would take) before starting it; `manual` = never select or start it yourself — name it in your route declaration and run it only when the user asks. An explicit request runs every tier. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
+// The barrier legend carries the advancement rule (wf-cycle W5 reads it); every form renders it.
+const BARRIER_LEGEND =
+  "`[a ∥ b]` = one parallel phase (all-return barrier): start every member together and advance only after ALL return; `*` marks a conditional member.";
+// Compact (runtime-hook) rendering: a when-to-use hint cap and the pointer that replaces step lists.
+const COMPACT_HINT_MAX = 140;
+const COMPACT_STEPS_NOTE =
+  "Step lists are omitted here: `start-workflow <id>` resolves the full sequence from `.claude/workflows.json` before creating tasks.";
+// Pointer-only rendering: used when even the compact catalog would overflow the hook output cap.
+const POINTER_ROWS = Object.freeze(["groups", "tiers", "none"]);
+const POINTER_NOTE =
+  "Index only — the full catalog exceeds the hook output cap. Read `.claude/workflows.json` for when-to-use and steps; `start-workflow <id>` resolves a workflow's full sequence before creating tasks. A workflow's `activation` tier there may be tightened or overridden by `portability.workflowActivation` in the project config; `start-workflow` resolves the effective tier.";
+const ACTIVATION_RULE =
+  "**Activation tiers** (`activation` in `.claude/workflows.json`) bind the first-task auto-selection above: `auto` workflows follow it unchanged; for a `confirm` workflow, ask ONCE with its step count and your lean custom-simple alternative, then follow the answer without re-asking; a `manual` workflow is never selected or started by you — take the best non-manual route and name the manual workflow in the route declaration so the user can run it. An explicit user request runs every tier directly.";
 
 // R8 LOCKSTEP. The loader (.claude/hooks/lib/project-config-loader.cjs) owns the portability token
 // table; this module only runs its own resolution when that require FAILS (a stripped portable tree
@@ -169,10 +188,11 @@ function resolvedModeSequences(rootDir, workflowId, workflow) {
     .map((manifest) => ({ mode: manifest.mode, sequence: manifest.sequence }));
 }
 
-// Render one resolved mode as its flat step list, collapsing each declared all-return barrier into
-// a single bracketed step (`[a ∥ b*]`, `*` = conditional member). Every flat step token stays
-// present verbatim, so the row remains a complete task list for the selected mode.
-function renderGroupedSequence(manifest) {
+// Tokenize one resolved mode in sequence order: a plain step is `{ text }`, and each declared
+// all-return barrier collapses into one `{ text: "[a ∥ b*]", group: true }` token (`*` = conditional
+// member). Shared by the full row (every token) and the compact row (group tokens only), so both
+// render a barrier identically.
+function groupedSequenceTokens(manifest) {
   const occurrences = Array.isArray(manifest.occurrences) ? manifest.occurrences : [];
   const groups = new Map((manifest.parallelGroups || []).map((group) => [group.id, group]));
   const tokens = [];
@@ -182,19 +202,35 @@ function renderGroupedSequence(manifest) {
     const group = occurrence && occurrence.barrier ? groups.get(occurrence.barrier) : null;
     if (!group) {
       open = null;
-      tokens.push(safeCell(step));
+      tokens.push({ text: safeCell(step), group: false });
       return;
     }
     const conditional = (group.conditionalMembers || []).includes(occurrence.id) ? "*" : "";
     if (!open || open.id !== group.id) {
-      open = { id: group.id, members: [] };
+      open = { id: group.id, members: [], group: true };
       tokens.push(open);
     }
     open.members.push(`${safeCell(step)}${conditional}`);
   });
-  return tokens
-    .map((token) => (typeof token === "string" ? token : `[${token.members.join(" ∥ ")}]`))
-    .join(" → ");
+  return tokens.map((token) =>
+    token.group ? { text: `[${token.members.join(" ∥ ")}]`, group: true } : token
+  );
+}
+
+// Render one resolved mode as its flat step list, collapsing each declared all-return barrier into
+// a single bracketed step. Every flat step token stays present verbatim, so the row remains a
+// complete task list for the selected mode.
+function renderGroupedSequence(manifest) {
+  return groupedSequenceTokens(manifest).map((token) => token.text).join(" → ");
+}
+
+// Compact form of one resolved mode: only its barrier tokens, in sequence order ('' when the mode
+// declares no parallel group). The full step list is resolved by `start-workflow` at activation.
+function renderBarrierGroups(manifest) {
+  return groupedSequenceTokens(manifest)
+    .filter((token) => token.group)
+    .map((token) => token.text)
+    .join(" · ");
 }
 
 function resolveCatalogManifests(rootDir, workflowId, workflow) {
@@ -247,10 +283,12 @@ function renderRoutingSection() {
     "| Question, lookup, or trivial low-risk edit; one skill covers it | **direct execution** (plain answer or that one skill) |",
     "| Focused change: one module/policy, clear intent, no public-contract change | **custom simple workflow** — sequence only the needed canonical steps |",
     "| Non-trivial bug / regression / wrong output, cause unknown or wide reach | **`workflow-bugfix`** |",
-    "| Non-trivial feature or enhancement changing behavior or a contract across modules | **`workflow-feature`** (`workflow-big-feature` when large/ambiguous/research-heavy) |",
+    "| Non-trivial feature or enhancement changing behavior or a contract across modules | **`workflow-feature`** (confirm tier; when large/ambiguous/research-heavy, also name the manual `workflow-big-feature`) |",
     "| Matches a skill's or workflow's \"Use\" clause | that skill / workflow |",
     "",
-    "The table route is the default. Keep a catalog workflow only when >80% of its unconditional steps would do real work for the request; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take.",
+    "The table route is the default. Keep a catalog workflow only when >80% of its unconditional steps would do real work for the request; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take, except the one question a `confirm`-tier workflow requires.",
+    "",
+    ACTIVATION_RULE,
     "",
     "**Mid-session: never auto-activate a workflow.** Auto-activation applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `/start-workflow <id>` call, or the user asking in words to use a workflow; follow it.",
   ].join("\n");
@@ -259,29 +297,86 @@ function renderRoutingSection() {
 // `whenToUse` (and any `description` this module renders) is a ROUTED field: it lands in the
 // GENERATED catalog table, so portability tokens are resolved BEFORE condensing/rendering.
 // Unknown braces (`{Bucket}`, `{plan-id}`, `--type={pbi|story}`) are left verbatim by the resolver.
-function renderWorkflowsSection(entries, rootDir, config) {
+//
+// `opts.compact` renders the runtime-hook form: the last column keeps only each mode's barrier
+// tokens (the step list is resolved by `start-workflow` at activation) and the hint is capped at
+// COMPACT_HINT_MAX. The barrier legend stays in both forms: it carries the advancement rule.
+function renderWorkflowsSection(entries, rootDir, config, opts = {}) {
+  const compact = opts.compact === true;
+  const activation = catalogActivation(rootDir, config, opts);
   const rows = entries.map(([id, wf]) => {
     const whenToUse = resolvePortabilityTokens(wf && wf.whenToUse, config);
     const hint = condenseWhenToUse(whenToUse) || safeCell((wf && wf.name) || id);
     const modes = resolveCatalogManifests(rootDir, id, wf);
-    const steps = modes.map((manifest) => {
-      const rendered = renderGroupedSequence(manifest);
-      return modes.length > 1 ? `${safeCell(manifest.mode)}: ${rendered}` : rendered;
-    }).join("; ");
-    return `| \`${id}\` | ${hint} | ${steps} |`;
+    const label = modes.length > 1 ? (manifest, text) => `${safeCell(manifest.mode)}: ${text}` : (manifest, text) => text;
+    const last = compact
+      ? modes
+          .map((manifest) => [manifest, renderBarrierGroups(manifest)])
+          .filter(([, groups]) => groups)
+          .map(([manifest, groups]) => label(manifest, groups))
+          .join("; ")
+      : modes.map((manifest) => label(manifest, renderGroupedSequence(manifest))).join("; ");
+    const cell = compact ? clipCell(hint, COMPACT_HINT_MAX) : hint;
+    return `| \`${id}\` | ${activationTier(wf, { workflowId: id, activation })} · ${stepCountLabel(modes)} | ${cell} | ${last} |`;
   });
   return [
     `### Workflows Index (${entries.length})`,
     "",
-    "`[a ∥ b]` = one parallel phase (all-return barrier): start every member together and advance only after ALL return; `*` marks a conditional member.",
+    BARRIER_LEGEND,
     "",
-    "| Workflow | When to use | Steps |",
-    "| --- | --- | --- |",
+    ACTIVATION_LEGEND,
+    "",
+    ...(compact
+      ? [COMPACT_STEPS_NOTE, "", "| Workflow | Activation | When to use | Parallel phases |"]
+      : ["| Workflow | Activation | When to use | Steps |"]),
+    "| --- | --- | --- | --- |",
     ...rows,
   ].join("\n");
 }
 
-function renderSkillsSection(skills, rootDir, cache, config) {
+/** Cap a rendered cell at `max` characters, marking the cut with an ellipsis. */
+function clipCell(text, max) {
+  return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
+/**
+ * A workflow's activation tier. Without `options.activation` it is the framework tier (an absent or
+ * unknown value is `auto`, the behavior before tiers existed); with resolved project settings it is
+ * the effective tier, delegated to the resolver in workflow-routing-config.cjs.
+ * @param {object} workflow its `.claude/workflows.json` entry
+ * @param {{workflowId?: string, activation?: object|null}} [options]
+ */
+function activationTier(workflow, options = {}) {
+  if (options.activation) {
+    return routingConfig.effectiveActivationTier(options.workflowId, workflow, options.activation);
+  }
+  return routingConfig.frameworkActivationTier(workflow);
+}
+
+/**
+ * The tier settings a catalog renders with: `opts.activation` when the caller resolved them
+ * (`null` = framework tiers); otherwise the `config` object alone (team scope) when one is given;
+ * otherwise the project's team config plus the developer's local override under `rootDir`.
+ */
+function catalogActivation(rootDir, config, opts = {}) {
+  if (opts.activation !== undefined) return opts.activation;
+  return routingConfig.resolveWorkflowActivation(
+    config !== undefined && config !== null ? { config } : { rootDir }
+  );
+}
+
+/** Step count of the resolved sequence, as a range when the workflow's modes differ in length. */
+function stepCountLabel(manifests) {
+  const counts = manifests.map((manifest) => manifest.sequence.length);
+  const min = Math.min(...counts);
+  const max = Math.max(...counts);
+  return min === max ? `${min} steps` : `${min}–${max} steps`;
+}
+
+function renderSkillsSection(skills, rootDir, cache, config, opts = {}) {
+  // Compact: names only — each step skill already reaches the model with its description through
+  // the host's own skill list.
+  if (opts.compact === true) return `Step skills: ${skills.join(", ")}`;
   const rows = skills.map((skill) => {
     const desc = safeCell(
       resolvePortabilityTokens(resolveSkillDescription(rootDir, skill, cache), config)
@@ -305,11 +400,17 @@ function renderSkillsSection(skills, rootDir, cache, config) {
  * @param {string} [opts.rootDir] repo root (defaults to resolved repo root)
  * @param {string[]} [opts.sections] subset of ["routing","workflows","skills"]
  * @param {object} [opts.config] parsed project-config.json; the loader loads + caches it when omitted
+ * @param {boolean} [opts.compact] runtime-hook form: barrier tokens instead of step lists, capped
+ *   hints, and a names-only step-skill line
+ * @param {object|null} [opts.activation] resolved tier settings (`resolveWorkflowActivation`);
+ *   `null` renders framework tiers. Omitted: read from `opts.config` when given (team scope),
+ *   otherwise from the team config and local override under `rootDir` (effective scope).
  * @returns {string} markdown body (no CK markers)
  */
 function buildWorkflowSkillsCatalog(opts = {}) {
   const rootDir = opts.rootDir || defaultRootDir();
   const config = opts.config;
+  const render = { compact: opts.compact === true, activation: catalogActivation(rootDir, config, opts) };
   const sections = opts.sections || DEFAULT_SECTIONS;
   const doc = readWorkflowsDoc(rootDir);
 
@@ -344,17 +445,68 @@ function buildWorkflowSkillsCatalog(opts = {}) {
   for (const section of sections) {
     if (section === "routing") blocks.push(renderRoutingSection(), "");
     else if (section === "workflows")
-      blocks.push(renderWorkflowsSection(entries, rootDir, config), "");
+      blocks.push(renderWorkflowsSection(entries, rootDir, config, render), "");
     else if (section === "skills")
-      blocks.push(renderSkillsSection(skills, rootDir, cache, config), "");
+      blocks.push(renderSkillsSection(skills, rootDir, cache, config, render), "");
   }
 
   return blocks.join("\n").trimEnd();
 }
 
+/**
+ * Build the pointer-only catalog body the runtime hook falls back to when the compact catalog
+ * would overflow the hook output cap. Always carries the barrier legend (advancement clause) and
+ * the pointer to `.claude/workflows.json` / `start-workflow <id>`.
+ * @param {object} [opts]
+ * @param {string} [opts.rootDir] repo root (defaults to resolved repo root)
+ * @param {"groups"|"tiers"|"none"} [opts.rows] one row per workflow with tier and barrier tokens
+ *   (`groups`), with tier only (`tiers`), or no workflow rows (`none`)
+ * @param {object} [opts.config] parsed project config (team-scope tier settings)
+ * @param {object|null} [opts.activation] resolved tier settings; see buildWorkflowSkillsCatalog
+ * @returns {string} markdown body (no CK markers)
+ */
+function buildWorkflowPointerCatalog(opts = {}) {
+  const rootDir = opts.rootDir || defaultRootDir();
+  const rows = POINTER_ROWS.includes(opts.rows) ? opts.rows : "groups";
+  const entries = Object.entries(readWorkflowsDoc(rootDir).workflows || {}).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
+  const blocks = ["## Workflow & Skills Catalog", "", POINTER_NOTE, "", BARRIER_LEGEND];
+  if (rows !== "none") {
+    const activation = catalogActivation(rootDir, opts.config, opts);
+    const tierOf = (id, wf) => activationTier(wf, { workflowId: id, activation });
+    const lines = entries.map(([id, wf]) => {
+      if (rows === "tiers") return `| \`${id}\` | ${tierOf(id, wf)} |`;
+      const modes = resolveCatalogManifests(rootDir, id, wf);
+      const groups = modes
+        .map((manifest) => [manifest, renderBarrierGroups(manifest)])
+        .filter(([, text]) => text)
+        .map(([manifest, text]) => (modes.length > 1 ? `${safeCell(manifest.mode)}: ${text}` : text))
+        .join("; ");
+      return `| \`${id}\` | ${tierOf(id, wf)} | ${groups} |`;
+    });
+    blocks.push(
+      "",
+      ACTIVATION_LEGEND,
+      "",
+      `### Workflows (${entries.length})`,
+      "",
+      rows === "tiers" ? "| Workflow | Activation |" : "| Workflow | Activation | Parallel phases |",
+      rows === "tiers" ? "| --- | --- |" : "| --- | --- | --- |",
+      ...lines
+    );
+  }
+  return blocks.join("\n");
+}
+
 module.exports = {
   buildWorkflowSkillsCatalog,
+  buildWorkflowPointerCatalog,
+  POINTER_ROWS,
   renderWorkflowsSection,
+  activationTier,
+  ACTIVATION_TIERS,
+  COMPACT_HINT_MAX,
   condenseWhenToUse,
   baseSkill,
   resolvedModeSequences,

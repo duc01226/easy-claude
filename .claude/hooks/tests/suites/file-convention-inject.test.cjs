@@ -221,13 +221,16 @@ const tests = [
             assert.equal(result.code, 0);
             assert.equal(result.stderr, '');
             const context = contextOf(result.stdout);
-            assert.ok(context.startsWith('[conventions] .claude/hooks/example-hook.cjs — MUST read first: docs/hooks-guide.md'), context);
+            // A read is worded conditionally (BR-PFCI-20) for every class, including one that names no trigger
+            assert.ok(context.startsWith('[conventions] .claude/hooks/example-hook.cjs — If you will edit this file, read first: docs/hooks-guide.md'), context);
+            assert.ok(!context.includes('MUST read first'), context);
             assert.ok(context.includes(`${tagOf(group)} hooks-context (priority 500)`));
             assert.ok(context.includes('- Hooks use CommonJS'));
-            // And the conversation now counts the class as reminded at the current version
+            // And the conversation now counts the class as reminded at the current version, in the read wording
             const record = ledger.readRecord(fx.store, 'session-1', 'main', 'hooks-context');
             assert.equal(record.hash, hashOf(group));
             assert.equal(record.form, 'full');
+            assert.equal(record.wording, 'conditional');
             // Edge: a file of a kind with no class → no reminder
             fx.write('docs/readme.txt', 'x');
             assertSilent(await spawnHook(fx, post(fx, 'Read', 'docs/readme.txt', { session_id: 'session-2' })), 'unclassified file');
@@ -309,8 +312,9 @@ const tests = [
             assert.equal(lookup.code, 0, lookup.stderr);
             // Then the lookup never touches delivery memory
             assert.ok(storeIsEmpty(fx), 'lookup writes no delivery record');
-            // And a fresh-conversation delivery shows the same sections in the same order with the same text
-            const delivered = contextOf((await spawnHook(fx, post(fx, 'Read', '.claude/hooks/example-hook.cjs'))).stdout);
+            // And a fresh-conversation delivery on a change shows the same sections in the same order with the
+            // same text (the lookup answers "before editing this file", so its parity is with a change, BR-PFCI-19)
+            const delivered = contextOf((await spawnHook(fx, post(fx, 'Edit', '.claude/hooks/example-hook.cjs'))).stdout);
             assert.equal(lookup.stdout, `${delivered}\n`);
             assert.ok(delivered.indexOf('hooks-context') < delivered.indexOf('general-code'));
             // Edge: a file matching no class → lookup reports no conventions
@@ -365,6 +369,224 @@ const tests = [
             const filteredRow = builders.buildSkillActivation({ contextGroups: [filtered] }).split('\n').find(line => line.includes(tagOf(filtered)));
             assert.ok(filteredRow.startsWith('| `**/*` ext `.cjs`, `.js` · not `/dist/**`, `tmp/**` |'), filteredRow);
         }
+    },
+
+    // TC-PFCI-083..085 guard one invariant: path rules always reach the agent: inline, or via hook + lookup.
+    // `portability.inlinePathRules: false` may drop rule text from the root context ONLY when the hook
+    // and its `--lookup` CLI deliver every rule-bearing group; otherwise the rules stay inline.
+
+    // TC-PFCI-083: compact golden rules only when the hook delivers every named group's rules
+    {
+        name: 'TC-PFCI-083 path rules always reach the agent: compact golden rules name every group and the lookup delivers its rules',
+        fn: async () => withFixture(async fx => {
+            // Given rule-bearing groups (one with a backtick in its name), a group without rules,
+            // injection switched on, the conventions lib available, and inlining opted out
+            const api = { name: 'api-route', pathRegexes: [], pathGlobs: ['app/api/**'], rules: ['Routes are thin wrappers', 'Validate at the boundary'] };
+            const db = { name: 'db-schema', pathRegexes: [], pathGlobs: ['db/**'], priority: 100, rules: ['Tenant column required'] };
+            const ticked = { name: 'tick`group', pathRegexes: [], pathGlobs: ['tick/**'], rules: ['Tick rule'] };
+            const bare = { name: 'no-rules', pathRegexes: [], pathGlobs: ['docs/**'], guideDoc: 'docs/g.md' };
+            const samplePath = { 'api-route': 'app/api/users.cjs', 'db-schema': 'db/tenants.sql', 'tick`group': 'tick/a.md' };
+            const config = { ...enabled([api, db, ticked, bare]), portability: { inlinePathRules: false } };
+            const literal = name => `\`${name.replace(/`/g, '\\`')}\``;
+            // When the golden-rules section is regenerated
+            const compact = builders.buildGoldenRules(config, fx.project);
+            // Then it is the compact form: every rule-bearing injectable group named (escaped, precedence order), lookup command given
+            const named = conventions.sortEntries(conventions.injectableEntries(config)).filter(entry => entry.rules.length);
+            assert.deepEqual(named.map(entry => entry.name), ['db-schema', 'api-route', 'tick`group']);
+            assert.ok(compact.includes('delivered just in time'), compact);
+            assert.ok(compact.includes(`Groups with rules: ${named.map(entry => literal(entry.name)).join(', ')}.`), compact);
+            assert.ok(compact.includes('`tick\\`group`'), compact);
+            assert.ok(!compact.includes('`no-rules`'), compact);
+            assert.ok(compact.includes(`\`${conventions.LOOKUP_COMMAND} <path>\``), compact);
+            // And NO rule text is inlined
+            for (const entry of named) for (const rule of entry.rules) assert.ok(!compact.includes(rule), `inlined ${rule}`);
+            // And each named group's rules come back from the lookup for a path it matches (delivery, not text shape)
+            for (const entry of named) {
+                const looked = conventions.lookup(config, fx.abs(samplePath[entry.name]), { projectDir: fx.project });
+                assert.ok(looked.entries.some(e => e.name === entry.name), `${entry.name} matched by lookup`);
+                for (const rule of entry.rules) assert.ok(looked.text.includes(rule), `lookup delivers ${entry.name}: ${rule}\n${looked.text}`);
+            }
+            // Counter-case: a rule-bearing group the hook cannot deliver (duplicate name, or nameless) → inline, no rule lost
+            for (const orphan of [{ ...api, rules: ['Second api rule'] }, { pathRegexes: [], pathGlobs: ['x/**'], rules: ['Nameless rule'] }]) {
+                const withOrphan = { ...config, contextGroups: [...config.contextGroups, orphan] };
+                const inline = builders.buildGoldenRules(withOrphan, fx.project);
+                assert.ok(!inline.includes('delivered just in time'), inline);
+                for (const rule of ['Routes are thin wrappers', 'Tenant column required', 'Tick rule', ...orphan.rules]) assert.ok(inline.includes(rule), `inline keeps ${rule}`);
+                assert.match(builders.pathRulesDelivery(withOrphan, fx.project).reason, /cannot be delivered by the hook/);
+            }
+            // And the compact text states that delivery follows each group's trigger
+            assert.ok(compact.includes("when a matching file is read or edited, per the group's trigger"), compact);
+            // Counter-case: a rule-bearing group ranked beyond the per-path class cap could be cut from a
+            // path's digest → inline, no rule lost. Cap 1 with two overlapping rule-bearing groups: the
+            // lower-ranked one would never be delivered on the shared path.
+            const first = { name: 'first', pathRegexes: [], pathGlobs: ['shared/**'], priority: 100, rules: ['First rule'] };
+            const second = { name: 'second', pathRegexes: [], pathGlobs: ['shared/**'], priority: 200, rules: ['Second rule'] };
+            const capped = { ...enabled([first, second], { maxClassesPerEdit: 1 }), portability: { inlinePathRules: false } };
+            const cut = conventions.lookup(capped, fx.abs('shared/a.cjs'), { projectDir: fx.project }).text;
+            assert.ok(!cut.includes('Second rule'), `premise: the cap drops the second group on the shared path\n${cut}`);
+            const cappedGolden = builders.buildGoldenRules(capped, fx.project);
+            assert.ok(!cappedGolden.includes('delivered just in time'), cappedGolden);
+            assert.ok(cappedGolden.includes('First rule') && cappedGolden.includes('Second rule'), cappedGolden);
+            assert.match(builders.pathRulesDelivery(capped, fx.project).reason, /per-path class cap \(maxClassesPerEdit 1\)/);
+            // And raising the cap to cover every rule-bearing group restores the compact form
+            const roomy = { ...capped, conventionInjection: { ...capped.conventionInjection, maxClassesPerEdit: 2 } };
+            assert.equal(builders.pathRulesDelivery(roomy, fx.project).compact, true);
+            // Counter-case: a worst-case digest over the size budget could be reduced (BR-PFCI-08),
+            // dropping rule text → inline, no rule lost. Premise: at the minimum budget the lookup
+            // itself reduces a rule-bearing class to references.
+            const long = { name: 'long', pathRegexes: [], pathGlobs: ['long/**'], rules: ['L'.repeat(300), 'M'.repeat(300)] };
+            const minChars = conventions.RANGES.maxChars[0];
+            const tight = { ...enabled([long], { maxChars: minChars }), portability: { inlinePathRules: false } };
+            const reduced = conventions.lookup(tight, fx.abs('long/a.cjs'), { projectDir: fx.project }).text;
+            assert.ok(!reduced.includes('M'.repeat(300)), `premise: the budget drops rule text\n${reduced}`);
+            const tightGolden = builders.buildGoldenRules(tight, fx.project);
+            assert.ok(!tightGolden.includes('delivered just in time') && tightGolden.includes('M'.repeat(300)), tightGolden);
+            assert.match(builders.pathRulesDelivery(tight, fx.project).reason, new RegExp(`exceeds conventionInjection\\.maxChars ${minChars}`));
+            // And the widest budget admits the same class
+            const wide = { ...tight, conventionInjection: { ...tight.conventionInjection, maxChars: conventions.RANGES.maxChars[1] } };
+            assert.equal(builders.pathRulesDelivery(wide, fx.project).compact, true);
+            // Edge (BR-PFCI-20): a read digest opens with the longer conditional wording, and a file can
+            // receive it. At the LARGEST rule the opt-out still accepts, a digest in either wording on the
+            // longest accepted path keeps the rule in full — the bound is sound at its own edge.
+            const budget = conventions.RANGES.maxChars[1];
+            const sized = size => ({ ...enabled([{ name: 'sized', pathRegexes: [], pathGlobs: ['long/**'], rules: ['R'.repeat(size)] }], { maxChars: budget }), portability: { inlinePathRules: false } });
+            const compactAt = size => builders.pathRulesDelivery(sized(size), fx.project).compact;
+            let lo = 1;
+            let hi = budget;
+            assert.ok(compactAt(lo) && !compactAt(hi), 'premise: a one-char rule compacts, a budget-size rule does not');
+            while (hi - lo > 1) {
+                const mid = Math.floor((lo + hi) / 2);
+                if (compactAt(mid)) lo = mid; else hi = mid;
+            }
+            const edge = sized(lo);
+            const edgeSettings = conventions.resolveSettings(edge);
+            const longest = `long/${'r'.repeat(conventions.PATH_CAP - 'long/'.length)}`;
+            for (const trigger of [conventions.TRIGGER_READ, conventions.TRIGGER_EDIT]) {
+                const matched = conventions.matchGroups(edge, [longest], edgeSettings, trigger);
+                assert.deepEqual(matched.map(entry => entry.name), ['sized'], `premise: ${trigger} matches the class`);
+                const { text, forms } = conventions.buildDigest(matched, [longest], edgeSettings, { projectDir: fx.project, trigger });
+                assert.equal(forms.sized, 'full', `${trigger} digest at the accepted edge (${lo}-char rule) had to be reduced to fit ${budget} chars`);
+                assert.ok(text.includes('R'.repeat(lo)), `${trigger} digest keeps the rule text`);
+            }
+            // Edge: no group carries rules → nothing requested to compact, so no warning reason
+            const ruleless = { ...enabled([bare]), portability: { inlinePathRules: false } };
+            assert.equal(builders.buildGoldenRules(ruleless, fx.project), null);
+            assert.equal(builders.pathRulesDelivery(ruleless, fx.project).reason, null);
+            // Edge: inlinePathRules absent or true keeps the inline contract every other consumer relies on
+            for (const portability of [undefined, { inlinePathRules: true }]) {
+                const inline = builders.buildGoldenRules({ ...config, portability }, fx.project);
+                assert.ok(inline.includes('Routes are thin wrappers') && inline.includes('Tenant column required'), inline);
+                assert.ok(!inline.includes('delivered just in time'), inline);
+                assert.equal(builders.pathRulesDelivery({ ...config, portability }, fx.project).requested, false);
+            }
+        })
+    },
+
+    // TC-PFCI-093: a read-only rule-bearing class refuses the compact golden rules (BR-PFCI-13 × BR-PFCI-19)
+    {
+        // INTENT: automatic delivery is never the only carrier. The lookup prints what a change delivers, so it
+        // never prints a class delivered on reads only; a shell read or a hookless host would get no carrier.
+        name: 'TC-PFCI-093 path rules always reach the agent: a read-only rule-bearing class keeps the rules inline',
+        fn: async () => withFixture(async fx => {
+            // Given injection on, inlining opted out, and one rule-bearing class delivered on reads only
+            const api = { name: 'api-route', pathRegexes: [], pathGlobs: ['app/api/**'], rules: ['Routes are thin wrappers'] };
+            const orient = { name: 'orient', pathRegexes: [], pathGlobs: ['src/**'], rules: ['Start at src/index.cjs'] };
+            const withTrigger = on => ({ ...enabled([api, { ...orient, on }]), portability: { inlinePathRules: false } });
+            const readOnly = withTrigger('read');
+            const unprinted = conventions.lookup(readOnly, fx.abs('src/a.cjs'), { projectDir: fx.project });
+            assert.ok(!unprinted.entries.some(e => e.name === 'orient') && !unprinted.text.includes('Start at src/index.cjs'), `premise: the lookup never prints a read-only class\n${unprinted.text}`);
+            // When the golden-rules section is regenerated
+            const golden = builders.buildGoldenRules(readOnly, fx.project);
+            const delivery = builders.pathRulesDelivery(readOnly, fx.project);
+            // Then the opt-out is refused: every short rule stays inline and the reason names the read-only class
+            assert.ok(!golden.includes('delivered just in time'), golden);
+            for (const rule of ['Start at src/index.cjs', 'Routes are thin wrappers']) assert.ok(golden.includes(rule), `inline keeps ${rule}`);
+            assert.equal(delivery.compact, false);
+            assert.match(delivery.reason, /`orient` are read-only \(on: read\)/);
+            // Counter-case: the same class on edit or both is printed by the lookup, so the compact form is kept
+            for (const on of ['edit', 'both']) {
+                const config = withTrigger(on);
+                assert.ok(conventions.lookup(config, fx.abs('src/a.cjs'), { projectDir: fx.project }).text.includes('Start at src/index.cjs'), `on: ${on} is printed by the lookup`);
+                assert.equal(builders.pathRulesDelivery(config, fx.project).compact, true, `on: ${on} stays compact`);
+            }
+            // Edge: a read-only class WITHOUT short rules does not block the compact form (nothing to lose)
+            const guideOnly = { name: 'guide-only', pathRegexes: [], pathGlobs: ['docs/**'], guideDoc: 'docs/g.md', on: 'read' };
+            const mixed = { ...enabled([api, guideOnly]), portability: { inlinePathRules: false } };
+            assert.equal(builders.pathRulesDelivery(mixed, fx.project).compact, true, 'a rule-less read-only class is not a precondition failure');
+        })
+    },
+
+    // TC-PFCI-084: injection off → the opt-out is refused and the rules stay inline, with a generator warning
+    {
+        name: 'TC-PFCI-084 path rules always reach the agent: inlinePathRules false with injection absent or disabled keeps rules inline and warns',
+        fn: async () => withFixture(async fx => {
+            const api = { name: 'api-route', pathRegexes: [], pathGlobs: ['app/api/**'], rules: ['Routes are thin wrappers'] };
+            const db = { name: 'db-schema', pathRegexes: [], pathGlobs: ['db/**'], rules: ['Tenant column required'] };
+            for (const conventionInjection of [undefined, { enabled: false }, { enabled: 'true' }]) {
+                // Given inlining opted out while the hook would deliver nothing (switch absent, off, or not boolean true)
+                const config = { contextGroups: [api, db], portability: { inlinePathRules: false }, ...(conventionInjection ? { conventionInjection } : {}) };
+                // When the golden-rules section is regenerated
+                const golden = builders.buildGoldenRules(config, fx.project);
+                // Then every rule is inline and no just-in-time pointer is rendered
+                assert.ok(golden.includes('Routes are thin wrappers') && golden.includes('Tenant column required'), golden);
+                assert.ok(!golden.includes('delivered just in time'), golden);
+                // And the refusal names the missing precondition
+                assert.deepEqual(
+                    { requested: true, compact: false, reason: 'conventionInjection.enabled is not true' },
+                    (({ requested, compact, reason }) => ({ requested, compact, reason }))(builders.pathRulesDelivery(config, fx.project))
+                );
+            }
+            // And the generator prints one [WARN] naming the precondition (process boundary, fixture project, isolated home/temp)
+            const generator = path.resolve(HOOKS_DIR, '..', 'skills', 'ai-context-refresh', 'scripts', 'generate-claude-md.cjs');
+            const env = { CLAUDE_PROJECT_DIR: fx.project, HOME: fx.root, USERPROFILE: fx.root, TMPDIR: fx.root, TEMP: fx.root, TMP: fx.root };
+            fx.write('CLAUDE.md', '# Fixture\n\n<!-- SECTION:golden-rules -->\n<!-- /SECTION:golden-rules -->\n');
+            fx.writeConfig({ project: { name: 'fixture' }, contextGroups: [api, db], portability: { inlinePathRules: false } });
+            const warned = await spawnNode([generator, '--check'], { cwd: fx.project, env });
+            assert.ok(warned.stdout.includes('[CHECK]'), `${warned.stdout}\n${warned.stderr}`);
+            const warnLines = warned.stderr.split(/\r?\n/).filter(line => line.includes('INLINE_PATH_RULES'));
+            assert.equal(warnLines.length, 1, warned.stderr);
+            assert.ok(warnLines[0].startsWith('[WARN]') && warnLines[0].includes('conventionInjection.enabled is not true'), warnLines[0]);
+            // Counter-case: with injection on the compact form renders and nothing is warned
+            fx.writeConfig({ project: { name: 'fixture' }, contextGroups: [api, db], portability: { inlinePathRules: false }, conventionInjection: { enabled: true } });
+            const quiet = await spawnNode([generator, '--check'], { cwd: fx.project, env });
+            assert.ok(quiet.stdout.includes('[CHECK]'), `${quiet.stdout}\n${quiet.stderr}`);
+            assert.ok(!quiet.stderr.includes('INLINE_PATH_RULES'), quiet.stderr);
+        })
+    },
+
+    // TC-PFCI-085: conventions lib unavailable → no hook, no lookup, so the rules stay inline
+    {
+        name: 'TC-PFCI-085 path rules always reach the agent: inlinePathRules false with the conventions lib unavailable keeps rules inline',
+        fn: async () => withFixture(async fx => {
+            // Given a mirrored copy of the builder (no sibling hooks/lib) in a project without .claude/hooks/lib,
+            // with inlining opted out and injection switched on
+            const mirror = path.join(fx.project, '.agents', 'skills', 'ai-context-refresh', 'scripts', 'section-builders.cjs');
+            fs.mkdirSync(path.dirname(mirror), { recursive: true });
+            fs.copyFileSync(path.resolve(HOOKS_DIR, '..', 'skills', 'ai-context-refresh', 'scripts', 'section-builders.cjs'), mirror);
+            const projectLib = fx.abs('.claude/hooks/lib/file-conventions.cjs');
+            const api = { name: 'api-route', pathRegexes: [], pathGlobs: ['app/api/**'], rules: ['Routes are thin wrappers'] };
+            const config = { ...enabled([api]), portability: { inlinePathRules: false } };
+            const savedRoot = process.env.CLAUDE_PROJECT_DIR;
+            try {
+                process.env.CLAUDE_PROJECT_DIR = fx.project;
+                assert.ok(!fs.existsSync(projectLib) && !fs.existsSync(path.join(fx.project, '.agents', 'hooks', 'lib', 'file-conventions.cjs')));
+                // When the golden-rules section is regenerated from that copy
+                const golden = require(mirror).buildGoldenRules(config, fx.project);
+                // Then the rules are inline and no just-in-time pointer is rendered
+                assert.ok(golden.includes('Routes are thin wrappers'), golden);
+                assert.ok(!golden.includes('delivered just in time'), golden);
+                assert.match(require(mirror).pathRulesDelivery(config, fx.project).reason, /conventions lib .* is unavailable/);
+                // Counter-case: the same copy with the project lib present renders the compact form (the lib is the only variable)
+                fs.mkdirSync(path.dirname(projectLib), { recursive: true });
+                fs.copyFileSync(LOOKUP_CLI, projectLib);
+                assert.ok(require(mirror).buildGoldenRules(config, fx.project).includes('delivered just in time'));
+            } finally {
+                if (savedRoot === undefined) delete process.env.CLAUDE_PROJECT_DIR;
+                else process.env.CLAUDE_PROJECT_DIR = savedRoot;
+                delete require.cache[mirror];
+                delete require.cache[projectLib];
+            }
+        })
     },
 
     // TC-PFCI-011: A well-formed class definition is accepted
@@ -638,20 +860,23 @@ const tests = [
                 project: { languages: ['TypeScript'] }
             };
             const byName = Object.fromEntries(merge.detectGroups(rich, { projectDir: fx.project, fileExists: () => true }).map(g => [g.name, g]));
-            // Each proposed class carries exactly its kind's patterns, rank band, documents and protocols
+            // Each proposed class carries exactly its kind's patterns, rank band, documents and protocols; every
+            // class with documents or protocols is proposed with the edit trigger (BR-PFCI-19, TC-PFCI-091)
             const excludes = ['**/node_modules/**', '**/dist/**', '**/build/**', '**/vendor/**', 'tmp/**', 'temp/**'];
             assert.deepEqual(byName, {
-                'feature-spec': { name: 'feature-spec', pathRegexes: [], priority: 100, pathGlobs: ['docs/specs/**/*.md'], referenceDocs: specDocs, skills: ['spec'] },
-                'integration-test': { name: 'integration-test', pathRegexes: [], priority: 100, pathGlobs: ['**/*.int.test.ts'], referenceDocs: ['docs/int.md'], skills: ['integration-test'] },
-                'e2e-test': { name: 'e2e-test', pathRegexes: [], priority: 100, pathGlobs: ['e2e/tests/**'], referenceDocs: ['docs/e2e.md'], skills: ['e2e-test'] },
-                test: { name: 'test', pathRegexes: [], priority: 100, pathGlobs: ['**/*.spec.ts'], referenceDocs: ['docs/testing.md'] },
-                // Front-end evidence (a frontend module / styling file types) proposes the framework UI/UX gate.
+                'feature-spec': { name: 'feature-spec', pathRegexes: [], priority: 100, pathGlobs: ['docs/specs/**/*.md'], referenceDocs: specDocs, skills: ['spec'], on: 'edit' },
+                'integration-test': { name: 'integration-test', pathRegexes: [], priority: 100, pathGlobs: ['**/*.int.test.ts'], referenceDocs: ['docs/int.md'], skills: ['integration-test'], on: 'edit' },
+                'e2e-test': { name: 'e2e-test', pathRegexes: [], priority: 100, pathGlobs: ['e2e/tests/**'], referenceDocs: ['docs/e2e.md'], skills: ['e2e-test'], on: 'edit' },
+                test: { name: 'test', pathRegexes: [], priority: 100, pathGlobs: ['**/*.spec.ts'], referenceDocs: ['docs/testing.md'], on: 'edit' },
+                // Front-end evidence (a frontend module / styling file types) proposes the framework UI/UX gate,
+                // which keeps its own trigger `both` (its Read delivery precedes the first edit).
                 'ui-ux-gate': { ...merge.UI_UX_GATE, excludePathGlobs: excludes },
-                backend: { name: 'backend', pathRegexes: ['src/api/'], priority: 500, referenceDocs: ['docs/be.md'] },
-                frontend: { name: 'frontend', pathRegexes: ['src/web/'], priority: 500, referenceDocs: ['docs/fe.md'] },
-                styling: { name: 'styling', pathRegexes: [], priority: 500, pathGlobs: ['**/*'], excludePathGlobs: excludes, fileExtensions: ['.scss'], referenceDocs: ['docs/styles.md'] },
-                'general-code': { name: 'general-code', pathRegexes: [], priority: 900, pathGlobs: ['**/*'], excludePathGlobs: excludes, fileExtensions: ['.ts', '.tsx', '.mts', '.cts'], referenceDocs: ['docs/review.md'] }
+                backend: { name: 'backend', pathRegexes: ['src/api/'], priority: 500, referenceDocs: ['docs/be.md'], on: 'edit' },
+                frontend: { name: 'frontend', pathRegexes: ['src/web/'], priority: 500, referenceDocs: ['docs/fe.md'], on: 'edit' },
+                styling: { name: 'styling', pathRegexes: [], priority: 500, pathGlobs: ['**/*'], excludePathGlobs: excludes, fileExtensions: ['.scss'], referenceDocs: ['docs/styles.md'], on: 'edit' },
+                'general-code': { name: 'general-code', pathRegexes: [], priority: 900, pathGlobs: ['**/*'], excludePathGlobs: excludes, fileExtensions: ['.ts', '.tsx', '.mts', '.cts'], referenceDocs: ['docs/review.md'], on: 'edit' }
             });
+            assert.equal(byName['ui-ux-gate'].on, 'both');
             assert.deepEqual(Object.keys(byName), ['feature-spec', 'integration-test', 'e2e-test', 'test', 'ui-ux-gate', 'backend', 'frontend', 'styling', 'general-code']);
             // And general classes skip dependency and build output anywhere, and temporary output only at the project root
             const general = byName['general-code'];
@@ -758,8 +983,9 @@ const tests = [
         fn: async () => withFixture(async fx => {
             const lib = { name: 'lib-context', pathRegexes: [], pathGlobs: ['.claude/hooks/lib/**'], rules: ['Libraries stay pure'] };
             const config = enabled([hooksGroup(), lib]);
-            // Given "hooks-context" was delivered a moment ago
-            assert.ok((await deliver(fx, config, post(fx, 'Read', '.claude/hooks/a.cjs'))).includes('hooks-context'));
+            // Given "hooks-context" was delivered on a change a moment ago (a read-form delivery followed by a
+            // change is the re-delivery case of TC-PFCI-092, not a duplicate)
+            assert.ok((await deliver(fx, config, post(fx, 'Edit', '.claude/hooks/a.cjs'))).includes('hooks-context'));
             // When another hook source file is changed / Then nothing is shown
             assert.equal(await deliver(fx, config, post(fx, 'Edit', '.claude/hooks/b.cjs', { tool_input: { file_path: fx.abs('.claude/hooks/b.cjs') } }), { now: NOW + 1000 }), '');
             // Edge: a file also matching a new class → only the new class is delivered
@@ -1374,6 +1600,16 @@ const tests = [
             assert.ok(interleaved);
             assert.equal(context, '', 'post-lock re-check drops a class a peer just delivered');
             assert.ok(!fs.existsSync(ledger.lockFile(fx.store, 'session-1', 'main', 'hooks-context')), 'claim released');
+            // The same interleaving when the peer started later than us, so its stamp is ahead of our
+            // `now` (a loaded host spreads concurrent starts): still the peer's delivery, still dropped.
+            // Without the re-check window the future-stamp guard reads it as absent → a second delivery.
+            const aheadSession = { session_id: 'session-ahead' };
+            const ahead = await deliver(fx, config, post(fx, 'Read', '.claude/hooks/a.cjs', aheadSession), {
+                afterLock: entry => {
+                    ledger.writeRecordAtomic(fx.store, 'session-ahead', 'main', entry.name, { hash: hashOf(group), deliveredAt: NOW + 1500, transcriptBytes: null, form: 'full' });
+                }
+            });
+            assert.equal(ahead, '', 'a peer stamp ahead of our clock, inside the lock window, is still present on re-check');
             // Given no delivery yet / When five hook sources are read at the same moment / Then exactly one section
             fx.writeConfig(config);
             const reads = [1, 2, 3, 4, 5].map(i => spawnHook(fx, post(fx, 'Read', `.claude/hooks/f${i}.cjs`, { session_id: 'session-par' })));
@@ -1573,8 +1809,9 @@ const tests = [
             const order = context.split('\n').filter(l => l.startsWith('[[convention:')).map(l => l.split(' ')[1]);
             assert.deepEqual(order, ['g1', 'g4', 'g2', 'g3']);
             assert.ok(context.includes('Earlier section wins on conflict'));
-            // Cap applies before presence: with the top four present, the fifth is still not delivered
-            assert.equal(await deliver(fx, config, post(fx, 'Edit', 'src/b.cjs'), { now: NOW + 1 }), '');
+            // Cap applies before presence: with the top four present, the fifth is still not delivered on the
+            // next read (a change would re-deliver the four in the mandatory wording, TC-PFCI-092)
+            assert.equal(await deliver(fx, config, post(fx, 'Read', 'src/b.cjs'), { now: NOW + 1 }), '');
             // Property: order == sort(rank asc, position asc) truncated to the maximum, for generated sets
             const rng = seeded(62);
             for (let run = 0; run < 200; run++) {
@@ -1793,15 +2030,56 @@ const tests = [
                     return group;
                 })));
             }
-            for (const config of configs) {
+            // Every configuration runs in both golden-rules modes: as given, and opted out of inlining with
+            // injection on — at the widest class cap and size budget, and at the configured (default) cap
+            // and budget, where the lookup check below proves compact mode never loses rule text.
+            const [widestChars, widestCap] = [conventions.RANGES.maxChars[1], conventions.RANGES.maxClassesPerEdit[1]];
+            const optedOut = (config, limits) => ({
+                ...config,
+                portability: { ...config.portability, inlinePathRules: false },
+                conventionInjection: { ...config.conventionInjection, enabled: true, ...limits }
+            });
+            const modes = configs.flatMap(config => [config, optedOut(config, { maxChars: widestChars, maxClassesPerEdit: widestCap }), optedOut(config, {})]);
+            const samplePaths = ['.claude/hooks/a.cjs', '.claude/hooks/tests/a.test.cjs', 'src/a.cjs', 'src/a.TS', 'src/a.md', 'src/x.test.cjs',
+                'docs/a/b.md', 'docs/specs/X/README.Y.md', 'tools/run.cjs', 'README.md', 'README.cjs', 'lib/x.test.cjs', 'a.scss', 'x.html',
+                '.claude/skills/x/SKILL.md', '.claude/agents/a.md', '.claude/scripts/a.cjs', '.codex/a.md', '.agents/a.md', 'app/a.js', 'a.py'];
+            let compactRuns = 0;
+            let lookupChecks = 0;
+            for (const config of modes) {
                 // Given any deliverable class / When its reminder items, static row, golden rules and lookup are compared
                 const table = builders.buildSkillActivation(config) || '';
                 const golden = builders.buildGoldenRules(config) || '';
                 const entries = conventions.injectableEntries(config);
+                // Path rules always reach the agent: compact only when the hook delivers every rule-bearing group
+                // on every path — each one injectable AND ranked inside the per-path class cap — else inline.
+                const delivery = builders.pathRulesDelivery(config);
+                const ruleBearing = (config.contextGroups || []).filter(g => g && Array.isArray(g.rules) && g.rules.some(r => typeof r === 'string' && r.trim()));
+                const hookDeliversAll = ruleBearing.every(g => entries.some(e => e.group === g && e.rules.length));
+                const ranked = conventions.sortEntries(entries);
+                const cap = conventions.resolveSettings(config).maxClassesPerEdit;
+                const withinCap = ranked.every((e, rank) => !e.rules.length || rank < cap);
+                // The size budget is the only other refusal: every other precondition met yet inline ⇒ budget reason.
+                const structural = config.portability?.inlinePathRules === false && conventions.isEnabled(config) && ruleBearing.length > 0 && hookDeliversAll && withinCap;
+                if (delivery.compact) assert.ok(structural, 'compact only when every structural precondition holds');
+                else if (structural) assert.match(delivery.reason, /exceeds conventionInjection\.maxChars/);
+                if (delivery.compact) compactRuns++;
                 for (const entry of entries) {
                     const row = table.split('\n').find(line => line.includes(conventions.conventionTag(entry)));
                     assert.ok(row, `static row for ${entry.name}`);
-                    for (const rule of entry.rules) assert.ok(golden.includes(rule), `golden rule ${rule}`);
+                    // Compact: the group is named and the lookup returns its rules for a path it matches.
+                    if (delivery.compact) {
+                        if (entry.rules.length) {
+                            assert.ok(golden.includes(`\`${entry.name.replace(/`/g, '\\`')}\``), `golden names ${entry.name}`);
+                            const rel = samplePaths.find(candidate => conventions.groupMatches(entry.group, candidate));
+                            if (rel) {
+                                const looked = conventions.lookup(config, fx.abs(rel), { projectDir: fx.project }).text;
+                                for (const rule of entry.rules) assert.ok(looked.includes(rule), `lookup ${rel} delivers ${entry.name}: ${rule}`);
+                                lookupChecks++;
+                            }
+                        }
+                    } else {
+                        for (const rule of entry.rules) assert.ok(golden.includes(rule), `golden rule ${rule}`);
+                    }
                     for (const item of [...entry.docs, ...entry.skills]) assert.ok(row.includes(`\`${item}\``), `${entry.name} row has ${item}`);
                     // And the row shows every include pattern of the class. Patterns render inside a
                     // markdown table cell, where the builder escapes `|` (e.g. an `(A|B)` alternation).
@@ -1830,6 +2108,9 @@ const tests = [
                     .sort((a, b) => a.at - b.at).map(item => item.name);
                 assert.deepEqual(rowOrder, conventions.sortEntries(entries).map(entry => entry.name));
             }
+            // And the compact branch really ran, with its delivery checked (not a vacuous pass)
+            assert.ok(compactRuns >= configs.length / 2, `compact runs ${compactRuns} of ${configs.length}`);
+            assert.ok(lookupChecks >= compactRuns, `lookup checks ${lookupChecks} for ${compactRuns} compact runs`);
             // And a mirrored copy of the static-table builder (no sibling hooks/lib) still renders tagged rows
             const mirror = path.join(fx.project, '.agents', 'skills', 'ai-context-refresh', 'scripts', 'section-builders.cjs');
             fs.mkdirSync(path.dirname(mirror), { recursive: true });
@@ -1867,11 +2148,12 @@ const tests = [
                 delete require.cache[fx.abs('.claude/hooks/lib/file-conventions.cjs')];
                 delete require.cache[path.join(fx.project, '.agents', 'hooks', 'lib', 'file-conventions.cjs')];
             }
-            // And lookup text equals the reminder text in a fresh context (fixture configuration)
+            // And lookup text equals the reminder a change receives in a fresh context (fixture configuration;
+            // the lookup answers "before editing this file", BR-PFCI-19)
             const config = configs[0];
             for (const rel of ['.claude/hooks/a.cjs', 'docs/specs/X/README.Y.md', 'tools/run.cjs', 'src/a.scss']) {
                 const looked = conventions.lookup(config, fx.abs(rel), { projectDir: fx.project }).text;
-                const delivered = await deliver(fx, config, post(fx, 'Read', rel, { session_id: `parity-${rel}` }));
+                const delivered = await deliver(fx, config, post(fx, 'Edit', rel, { session_id: `parity-${rel}` }));
                 assert.equal(looked, delivered, rel);
             }
             // Edge: unknown protocol name → name shown in both without a path
@@ -2223,6 +2505,301 @@ const tests = [
             fx.write('docs/project-config.json', '{ not json');
             assertSilent(await spawnHook(fx, post(fx, 'Edit', 'web/a.tsx', { session_id: 'cfg-malformed' }), { env: { CK_CONVENTIONS_DIR: store } }), 'malformed config');
             assert.equal(fs.readdirSync(store).length, 0, 'no delivery memory for an existing config that did not opt in');
+        })
+    },
+
+    // ── Read/Edit trigger (US-PFCI-08; BR-PFCI-05 read-form presence, BR-PFCI-19, BR-PFCI-20) ──────────
+
+    // TC-PFCI-086: A class triggered by edits is silent when its file is read
+    {
+        // INTENT: reading a file to understand it never pulls the authoring documents of an edit-only class.
+        name: 'TC-PFCI-086 [read-edit] edit-only class silent on read',
+        fn: async () => withFixture(async fx => {
+            // Given delivery is on and "feature-spec" (protocol + reference documents) is triggered by edits only
+            const spec = specGroup({ on: 'edit' });
+            fx.write('.claude/skills/spec/SKILL.md', '# spec');
+            const file = 'docs/specs/Bucket/README.Feature.md';
+            fx.write(file, '# Feature');
+            fx.writeConfig(enabled([spec]));
+            // When the assistant finishes reading a feature spec document (real hook process)
+            const result = await spawnHook(fx, post(fx, 'Read', file));
+            // Then no reminder is shown and the conversation does not count the class as reminded
+            assertSilent(result, 'edit-only class on a read');
+            assert.equal(ledger.readRecord(fx.store, 'session-1', 'main', 'feature-spec'), null, 'no delivery record');
+            assert.deepEqual(conventions.matchGroups(enabled([spec]), [file], null, 'read'), [], 'the class never matches a read');
+            // Edge: another class with trigger both matches the same file → only that class is delivered
+            const orientation = { name: 'spec-orientation', pathRegexes: [], pathGlobs: ['docs/specs/**'], rules: ['Specs stay tech-free'], on: 'both' };
+            const both = await deliver(fx, enabled([spec, orientation]), post(fx, 'Read', file, { session_id: 'session-2' }));
+            assert.ok(both.includes(tagOf(orientation)), both);
+            assert.ok(!both.includes('[[convention:feature-spec@') && !both.includes('spec-system-reference.md'), both);
+            assert.equal(ledger.readRecord(fx.store, 'session-2', 'main', 'feature-spec'), null);
+        })
+    },
+
+    // TC-PFCI-087: A class triggered by edits delivers when its file is changed
+    {
+        // INTENT: every edit stays guarded by its conventions after reads were quieted.
+        name: 'TC-PFCI-087 [read-edit] edit-only class delivers on edit',
+        fn: async () => withFixture(async fx => {
+            // Given delivery is on and "feature-spec" is triggered by edits only
+            const spec = specGroup({ on: 'edit' });
+            fx.write('.claude/skills/spec/SKILL.md', '# spec');
+            const file = 'docs/specs/Bucket/README.Feature.md';
+            fx.write(file, '# Feature');
+            fx.writeConfig(enabled([spec]));
+            // When the assistant changes a feature spec document (real hook process)
+            const context = contextOf((await spawnHook(fx, post(fx, 'Edit', file))).stdout);
+            // Then the reminder names the class, its must-read documents and its protocol, in the mandatory wording
+            assert.ok(context.startsWith(`[conventions] ${file} — MUST read first: ${spec.referenceDocs.join(', ')}; follow skill protocol: .claude/skills/spec/SKILL.md`), context);
+            assert.ok(context.includes(tagOf(spec)), context);
+            const record = ledger.readRecord(fx.store, 'session-1', 'main', 'feature-spec');
+            assert.deepEqual([record.hash, record.wording], [hashOf(spec), 'mandatory'], 'counts as reminded, mandatory wording');
+            // Edge: the file was read earlier in the same conversation → the change still delivers (the read delivered nothing)
+            const session = { session_id: 'read-then-edit' };
+            assert.equal(await deliver(fx, enabled([spec]), post(fx, 'Read', file, session)), '');
+            const afterRead = await deliver(fx, enabled([spec]), post(fx, 'Edit', file, session), { now: NOW + 1000 });
+            assert.ok(afterRead.includes('MUST read first') && afterRead.includes('follow skill protocol: .claude/skills/spec/SKILL.md'), afterRead);
+            // And every change operation counts (create, notebook, Codex patch)
+            for (const [label, input] of [
+                ['create', post(fx, 'Write', file, { session_id: 'op-write' })],
+                ['notebook', post(fx, 'NotebookEdit', 'docs/specs/Bucket/README.Other.md', { session_id: 'op-notebook' })],
+                ['patch', patch(fx, [`*** Update File: ${file}`], { session_id: 'op-patch' })]
+            ]) {
+                assert.ok((await deliver(fx, enabled([spec]), input)).includes(tagOf(spec)), label);
+            }
+        })
+    },
+
+    // TC-PFCI-088: A class that names no trigger is delivered on the same operations as before
+    {
+        // INTENT: existing configurations keep their delivery operations, class content and content version.
+        name: 'TC-PFCI-088 [read-edit] absent trigger equals both',
+        fn: async () => withFixture(async fx => {
+            // Given a class with a rule and a reference document and no trigger
+            const plain = hooksGroup();
+            const config = enabled([plain]);
+            // When a matching file is read in one conversation and changed in another
+            const read = await deliver(fx, config, post(fx, 'Read', '.claude/hooks/a.cjs', { session_id: 'reader' }));
+            const edit = await deliver(fx, config, post(fx, 'Edit', '.claude/hooks/a.cjs', { session_id: 'editor' }));
+            // Then the class is delivered both times
+            assert.ok(read.includes(tagOf(plain)) && edit.includes(tagOf(plain)), `${read}\n---\n${edit}`);
+            // And the change reminder equals the reminder this configuration gave before triggers existed,
+            // at the same content version (pinned: a class without a trigger keeps its pre-trigger version)
+            assert.equal(hashOf(plain), '302b672c', 'a class that names no trigger keeps its pre-trigger content version');
+            const before = [
+                '[conventions] .claude/hooks/a.cjs — MUST read first: docs/hooks-guide.md',
+                '[[convention:hooks-context@302b672c]] hooks-context (priority 500)',
+                '- Hooks use CommonJS',
+                '- read: docs/hooks-guide.md',
+                `[conventions] Earlier section wins on conflict. Re-read before editing: docs/hooks-guide.md. A file read or edited via Bash gets NO digest — run the lookup for those. Lookup: ${conventions.LOOKUP_COMMAND} .claude/hooks/a.cjs`
+            ];
+            assert.equal(edit, before.join('\n'));
+            // And the read reminder differs only by the conditional opening wording (BR-PFCI-20)
+            assert.deepEqual(read.split('\n').slice(1), before.slice(1), 'class sections and closing unchanged on a read');
+            assert.equal(read.split('\n')[0], '[conventions] .claude/hooks/a.cjs — If you will edit this file, read first: docs/hooks-guide.md');
+            // Property: for generated classes, no trigger matches exactly what trigger both matches, on every operation,
+            // and the two share one content version
+            const rng = seeded(88);
+            for (let run = 0; run < 150; run++) {
+                const size = rng.int(1, 6);
+                const set = Array.from({ length: size }, (_, i) => ({
+                    name: `c${i}`, pathRegexes: [], pathGlobs: [rng.pick(['src/**', 'src/*.cjs', 'docs/**', '**/*'])], rules: ['r'],
+                    ...(rng.pick([true, false]) ? { priority: rng.pick([100, 500, 900]) } : {})
+                }));
+                const asBoth = set.map(group => ({ ...group, on: 'both' }));
+                const rel = rng.pick(['src/a.cjs', 'src/deep/b.cjs', 'docs/x.md', 'other.txt']);
+                const max = rng.int(1, 10);
+                for (const trigger of ['read', 'edit']) {
+                    const names = groups => conventions.matchGroups(enabled(groups, { maxClassesPerEdit: max }), [rel], null, trigger).map(e => `${e.name}@${conventions.groupHash(e)}`);
+                    assert.deepEqual(names(set), names(asBoth), JSON.stringify({ set, rel, trigger, max }));
+                }
+            }
+            // Boundary counter-case: reads excluded project-wide → nothing on a read whatever the trigger, delivery on a change
+            for (const on of [undefined, 'both', 'read']) {
+                const group = on ? hooksGroup({ on }) : hooksGroup();
+                const offRead = enabled([group], { onRead: false });
+                assert.equal(await deliver(fx, offRead, post(fx, 'Read', '.claude/hooks/a.cjs', { session_id: `off-read-${on}` })), '', `on=${on}: read excluded`);
+            }
+            assert.ok((await deliver(fx, enabled([plain], { onRead: false }), post(fx, 'Edit', '.claude/hooks/a.cjs', { session_id: 'off-edit' }))).includes(tagOf(plain)));
+            // Edge: an unrecognized trigger at runtime behaves as the default (the validator reports it; delivery never guesses narrower)
+            assert.equal(conventions.injectableEntries(enabled([hooksGroup({ on: 'sometimes' })]))[0].on, 'both');
+            // Counter-cases (BR-PFCI-11): a near-miss spelling the validator rejects is not folded into a trigger.
+            // "Read" must not silence edits and " edit " must not silence reads: both behave as the default.
+            for (const [on, operation] of [['Read', 'Edit'], [' edit ', 'Read']]) {
+                const group = hooksGroup({ on });
+                assert.ok(validationDelta({ contextGroups: [group] }).errors.some(e => e.includes('read|edit|both')), `validator rejects on=${JSON.stringify(on)}`);
+                assert.equal(conventions.classTriggerOf(group), 'both', `on=${JSON.stringify(on)} is not narrowed`);
+                assert.equal(conventions.injectableEntries(enabled([group]))[0].on, 'both', `on=${JSON.stringify(on)} entry`);
+                const out = await deliver(fx, enabled([group]), post(fx, operation, '.claude/hooks/a.cjs', { session_id: `near-miss-${operation}` }));
+                assert.ok(out.includes(tagOf(group)), `on=${JSON.stringify(on)}: a ${operation} still delivers the class`);
+            }
+        })
+    },
+
+    // TC-PFCI-089: A reminder shown on a read is worded as conditional
+    {
+        // INTENT: on reads the assistant judges whether the documents are needed; the mandatory wording stays for edits.
+        name: 'TC-PFCI-089 [read-edit] conditional read wording',
+        fn: async () => withFixture(async fx => {
+            // Given a class with trigger both that lists a protocol and reference documents
+            const spec = specGroup({ on: 'both' });
+            fx.write('.claude/skills/spec/SKILL.md', '# spec');
+            const file = 'docs/specs/Bucket/README.Feature.md';
+            const config = enabled([spec]);
+            // When the assistant finishes reading a matching file
+            const lines = (await deliver(fx, config, post(fx, 'Read', file))).split('\n');
+            // Then the reminder opens with the conditional instruction and the references
+            assert.equal(lines[0], `[conventions] ${file} — If you will edit this file, read first: ${spec.referenceDocs.join(', ')}`);
+            // And it contains no instruction to follow the protocol and no mandatory wording
+            const text = lines.join('\n');
+            assert.ok(!text.includes('follow skill protocol') && !text.includes('MUST read first'), text);
+            // And the references are still named first and last (BR-PFCI-09 framing holds in both forms)
+            assert.ok(lines.at(-1).startsWith(`[conventions] Earlier section wins on conflict. Re-read before editing: ${spec.referenceDocs.join(', ')}.`), lines.at(-1));
+            assert.equal(ledger.readRecord(fx.store, 'session-1', 'main', 'feature-spec').wording, 'conditional', 'the class counts as reminded, conditionally');
+            // Edge: a class with rules only is still worded conditionally on a read
+            const rulesOnly = { name: 'rules-only', pathRegexes: [], pathGlobs: ['src/**'], rules: ['Keep it small'] };
+            const ruleRead = await deliver(fx, enabled([rulesOnly]), post(fx, 'Read', 'src/a.cjs', { session_id: 'rules-only' }));
+            assert.equal(ruleRead.split('\n')[0], '[conventions] src/a.cjs — If you will edit this file, follow the conventions below');
+            // Edge: the same file changed afterwards in a new conversation → mandatory wording
+            const fresh = await deliver(fx, config, post(fx, 'Edit', file, { session_id: 'session-new' }));
+            assert.ok(fresh.split('\n')[0].includes('MUST read first') && fresh.includes('follow skill protocol: .claude/skills/spec/SKILL.md'), fresh);
+        })
+    },
+
+    // TC-PFCI-090: A class triggered by reads is silent when its file is changed
+    {
+        // INTENT: a maintainer can keep orientation hints for readers without repeating them on every change.
+        name: 'TC-PFCI-090 [read-edit] read-only class silent on edit',
+        fn: async () => withFixture(async fx => {
+            // Given a class triggered by reads only, with one short rule
+            const orientation = { name: 'orientation', pathRegexes: [], pathGlobs: ['src/**'], rules: ['Start at src/index.cjs'], on: 'read' };
+            const config = enabled([orientation]);
+            fx.writeConfig(config);
+            fx.write('src/a.cjs', 'x');
+            // When the assistant changes a matching file (real hook process), creates one, or patches one
+            assertSilent(await spawnHook(fx, post(fx, 'Edit', 'src/a.cjs')), 'read-only class on a change');
+            assert.equal(await deliver(fx, config, post(fx, 'Write', 'src/b.cjs', { session_id: 'write' })), '');
+            assert.equal(await deliver(fx, config, patch(fx, ['*** Update File: src/a.cjs'], { session_id: 'patch' })), '');
+            // Then the class is not recorded as delivered
+            assert.equal(ledger.readRecord(fx.store, 'session-1', 'main', 'orientation'), null);
+            // And the lookup (what applies before editing) does not list it
+            assert.deepEqual(conventions.lookup(config, fx.abs('src/a.cjs'), { projectDir: fx.project }).entries, []);
+            // Edge: the same file read → the class is delivered
+            const read = await deliver(fx, config, post(fx, 'Read', 'src/a.cjs', { session_id: 'reader' }));
+            assert.ok(read.includes(tagOf(orientation)) && read.includes('- Start at src/index.cjs'), read);
+            // And the trigger is part of the content version (changing it re-delivers once)
+            assert.notEqual(hashOf(orientation), hashOf({ ...orientation, on: 'both' }));
+            assert.notEqual(hashOf({ ...orientation, on: 'edit' }), hashOf({ ...orientation, on: 'read' }));
+        })
+    },
+
+    // TC-PFCI-091: Setup writes the edit trigger on new classes and never changes a maintainer trigger
+    {
+        // INTENT: new projects get quiet reads by default while maintainer choices stay authoritative.
+        name: 'TC-PFCI-091 [merge] detect writes on:edit, keeps maintainer value',
+        fn: async () => withFixture(async fx => {
+            // Given a maintainer class with trigger both, a detected class a maintainer edited to trigger read,
+            // and detection proposing a new class with reference documents plus both existing names
+            const integrationDoc = 'docs/project-reference/integration-test-reference.md';
+            const specDocs = ['feature-spec-reference.md', 'spec-system-reference.md', 'spec-principles.md'].map(f => `docs/project-reference/${f}`);
+            for (const doc of [integrationDoc, ...specDocs]) fx.write(doc, '# doc');
+            fx.write('.claude/skills/integration-test/SKILL.md', '# skill');
+            const maintainer = { name: 'feature-spec', pathRegexes: [], pathGlobs: ['specs/**'], rules: ['Hand-written rule'], on: 'both' };
+            const detectedOriginal = { name: 'backend', pathRegexes: ['src/api/'], priority: 500, referenceDocs: ['docs/be.md'], on: 'edit' };
+            const editedDetected = { ...detectedOriginal, origin: 'detected', detectedFingerprint: merge.fingerprintGroup(detectedOriginal), on: 'read' };
+            fx.write('docs/be.md', '# be');
+            const config = {
+                project: { name: 'fixture' },
+                specRoots: { business: { path: 'docs/specs' } },
+                testing: { filePatterns: { integration: '*.test.cjs' } },
+                framework: { integrationTestDoc: integrationDoc, backendPatternsDoc: 'docs/be.md' },
+                modules: [{ kind: 'backend-service', pathRegex: 'src/api/' }],
+                contextGroups: [maintainer, editedDetected]
+            };
+            fx.writeConfig(config);
+            // When detection results are merged
+            const detected = merge.detectGroups(config, { projectDir: fx.project });
+            assert.deepEqual(detected.map(g => [g.name, g.on]), [['feature-spec', 'edit'], ['integration-test', 'edit'], ['backend', 'edit']]);
+            const result = merge.mergeDetected(config.contextGroups, detected);
+            // Then the new class is added with trigger edit, marked detected
+            assert.deepEqual(result.added, ['integration-test']);
+            const added = result.groups.find(g => g.name === 'integration-test');
+            assert.deepEqual([added.on, added.origin], ['edit', 'detected']);
+            // And the maintainer classes keep their triggers, byte-identical
+            assert.deepEqual(result.kept.sort(), ['backend', 'feature-spec']);
+            assert.deepEqual(result.groups.find(g => g.name === 'feature-spec'), maintainer);
+            assert.deepEqual(result.groups.find(g => g.name === 'backend'), editedDetected);
+            // And the merged configuration validates (the trigger key is accepted by the config schema)
+            assert.deepEqual(validationDelta({ contextGroups: result.groups }), { errors: [], warnings: [] });
+            // End-to-end: the setup CLI writes the same outcome to the configuration file
+            const configFile = fx.abs('docs/project-config.json');
+            const run = await spawnNode([MERGE_CLI, '--detect', '--merge', '--write', '--config', configFile], { cwd: fx.project, env: { CLAUDE_PROJECT_DIR: fx.project } });
+            assert.equal(run.code, 0, run.stderr);
+            const written = JSON.parse(fs.readFileSync(configFile, 'utf8')).contextGroups;
+            assert.deepEqual(written.map(g => [g.name, g.on]), [['feature-spec', 'both'], ['backend', 'read'], ['integration-test', 'edit']]);
+            // Edge: a proposed class with short rules only → no trigger written (it behaves as both)
+            const rulesOnly = merge.detectGroups({ testing: { filePatterns: { integration: '*.test.cjs' }, integrationRules: ['Assert the outcome'] } }, { projectDir: fx.project, fileExists: () => false });
+            assert.deepEqual(rulesOnly.map(g => [g.name, g.on, g.rules]), [['integration-test', undefined, ['Assert the outcome']]]);
+            // Edge: the framework UI/UX gate keeps its own trigger both (its read delivery precedes the first edit)
+            const gate = merge.detectGroups({ styling: { fileExtensions: ['.scss'] } }, { projectDir: fx.project, fileExists: () => true }).find(g => g.name === 'ui-ux-gate');
+            assert.equal(gate.on, 'both');
+        })
+    },
+
+    // TC-PFCI-092: A change after a read-form delivery re-delivers the class once with the mandatory wording
+    {
+        // INTENT: a read reminder that carried no protocol never suppresses the reminder a change needs.
+        name: 'TC-PFCI-092 [read-edit] read then change re-delivers the mandatory form once',
+        fn: async () => withFixture(async fx => {
+            fx.write('.claude/skills/spec/SKILL.md', '# spec');
+            for (const on of ['both', undefined]) {
+                // Given a class with trigger both (or none) that lists a protocol and reference documents
+                const group = hooksGroup({ skills: ['spec'], ...(on ? { on } : {}) });
+                const config = enabled([group]);
+                const session = { session_id: `seq-${on}` };
+                // And the class was delivered on a read in this conversation with the conditional wording
+                const read = await deliver(fx, config, post(fx, 'Read', '.claude/hooks/a.cjs', session));
+                assert.ok(read.startsWith('[conventions] .claude/hooks/a.cjs — If you will edit this file, read first: docs/hooks-guide.md') && !read.includes('follow skill protocol'), read);
+                // When the assistant changes a matching file
+                const first = await deliver(fx, config, post(fx, 'Edit', '.claude/hooks/a.cjs', session), { now: NOW + 1000 });
+                // Then the reminder names the class with the mandatory wording and its protocol
+                assert.ok(first.startsWith('[conventions] .claude/hooks/a.cjs — MUST read first: docs/hooks-guide.md; follow skill protocol: .claude/skills/spec/SKILL.md'), `on=${on}: ${first}`);
+                assert.ok(first.includes(tagOf(group)));
+                assert.equal(ledger.readRecord(fx.store, session.session_id, 'main', 'hooks-context').wording, 'mandatory');
+                // And when the assistant changes another matching file, no reminder is shown
+                assert.equal(await deliver(fx, config, post(fx, 'Edit', '.claude/hooks/b.cjs', session), { now: NOW + 2000 }), '', `on=${on}: second change`);
+                // Edge: a read after the mandatory delivery → no reminder (present for reads and changes)
+                assert.equal(await deliver(fx, config, post(fx, 'Read', '.claude/hooks/c.cjs', session), { now: NOW + 3000 }), '');
+            }
+            const group = hooksGroup({ skills: ['spec'] });
+            const config = enabled([group]);
+            // Edge: reads never re-deliver on their own — a second read after a read-form delivery stays silent
+            assert.ok(await deliver(fx, config, post(fx, 'Read', '.claude/hooks/a.cjs', { session_id: 'reads' })));
+            assert.equal(await deliver(fx, config, post(fx, 'Read', '.claude/hooks/b.cjs', { session_id: 'reads' }), { now: NOW + 1000 }), '');
+            // Edge: the class content changed between the read and the change → one delivery of the new version, mandatory
+            const changed = hooksGroup({ skills: ['spec'], rules: ['Hooks use CommonJS', 'New rule'] });
+            assert.ok(await deliver(fx, config, post(fx, 'Read', '.claude/hooks/a.cjs', { session_id: 'versioned' })));
+            const newVersion = await deliver(fx, enabled([changed]), post(fx, 'Edit', '.claude/hooks/a.cjs', { session_id: 'versioned' }), { now: NOW + 1000 });
+            assert.ok(newVersion.includes(tagOf(changed)) && newVersion.includes('MUST read first') && newVersion.includes('- New rule'), newVersion);
+            assert.equal(await deliver(fx, enabled([changed]), post(fx, 'Edit', '.claude/hooks/b.cjs', { session_id: 'versioned' }), { now: NOW + 2000 }), '');
+            // Edge: a condensation between the read and the change → the change delivers the mandatory wording
+            assert.ok(await deliver(fx, config, post(fx, 'Read', '.claude/hooks/a.cjs', { session_id: 'condensed' })));
+            await sessionStart(fx, 'compact', 'condensed', NOW + 500, config);
+            const afterCompact = await deliver(fx, config, post(fx, 'Edit', '.claude/hooks/a.cjs', { session_id: 'condensed' }), { now: NOW + 1000 });
+            assert.ok(afterCompact.includes('MUST read first') && afterCompact.includes('follow skill protocol'), afterCompact);
+            // Post-lock re-check holds the same rule: a peer's read-form record written during the claim does not
+            // satisfy this change, while a peer's mandatory record does (BR-PFCI-17 + BR-PFCI-05)
+            const peer = wording => ({ afterLock: entry => ledger.writeRecordAtomic(fx.store, `peer-${wording}`, 'main', entry.name, { hash: hashOf(group), deliveredAt: NOW, transcriptBytes: null, form: 'full', wording }) });
+            assert.ok((await deliver(fx, config, post(fx, 'Edit', '.claude/hooks/a.cjs', { session_id: 'peer-conditional' }), peer('conditional'))).includes('MUST read first'), 'peer read-form record does not cover a change');
+            assert.equal(await deliver(fx, config, post(fx, 'Edit', '.claude/hooks/a.cjs', { session_id: 'peer-mandatory' }), peer('mandatory')), '', 'peer mandatory record covers the change');
+            // End-to-end with real processes: read → conditional, change → mandatory, change → nothing
+            fx.writeConfig(config);
+            const e2e = rel => ({ ...post(fx, rel.tool, rel.file), session_id: 'session-e2e' });
+            const r1 = contextOf((await spawnHook(fx, e2e({ tool: 'Read', file: '.claude/hooks/a.cjs' }))).stdout);
+            const r2 = contextOf((await spawnHook(fx, e2e({ tool: 'Edit', file: '.claude/hooks/a.cjs' }))).stdout);
+            const r3 = await spawnHook(fx, e2e({ tool: 'Edit', file: '.claude/hooks/b.cjs' }));
+            assert.ok(r1.includes('If you will edit this file') && r2.includes('MUST read first'), `${r1}\n---\n${r2}`);
+            assertSilent(r3, 'second change after the mandatory re-delivery');
         })
     }
 ];

@@ -64,8 +64,10 @@ const REPORT_NOTES = [
   "Tool ids differ between hosts: opencode emits bash/edit/write/read/grep/glob/apply_patch/todowrite/webfetch/websearch/question/skill/lsp. The bridge maps each to the Claude matcher names the hook scripts are written against.",
   "opencode registers MCP tools as `<server>_<tool>`, so Claude matchers like `mcp__github__*` are matched against that convention. opencode does NOT expose MCP tool arguments to tool.execute.before, so MCP PreToolUse hooks that inspect tool_input cannot see arguments on this host.",
   "Claude's SessionStart is reproduced from event:session.created (source=startup) and event:session.compacted (source=compact); its additionalContext is injected through experimental.chat.system.transform.",
+  "opencode hook events carry no conversation record, so the protocol-delivery ledger cannot see a compaction on its own: on event:session.compacted the bridge reports it through .claude/hooks/lib/protocol-delivery.cjs recordCompaction, and the next skill load in that session delivers its protocols again.",
   "Claude's Notification matcher vocabulary (AskUserPrompt|permission_prompt) is reproduced from event:question.asked and event:permission.asked.",
   "Claude events opencode cannot reproduce are reported as skipped-events rather than silently dropped.",
+  "A handler's `if` is copied into the HOOKS table. The bridge evaluates the `Read(<glob>)` form before it spawns the hook (a read of any other file starts no process); it runs a hook whose `if` has any other form, so an unsupported condition can cost a spawn but never drops a hook.",
   "KNOWN HOST LIMITATION: opencode's `permission.ask` plugin hook is defined in the SDK but is NOT triggered by the host at the pinned version (upstream anomalyco/opencode issue #7006). The PermissionRequest -> permission.ask bridge is therefore present but inert until that is fixed; verify against the deployed opencode version before relying on PermissionRequest hooks.",
 ];
 
@@ -135,7 +137,10 @@ export function buildHooksConfig(settings) {
           report.skipped_groups.push({ event: eventName, group_index: index, matcher: matcher ?? null, reason: "unsupported-command-shape" });
           continue;
         }
-        mappedHooks.push({ type: "command", command: hookPath });
+        // A handler's `if` rides along so the bridge can skip the spawn in-process; every handler
+        // without one keeps the `{ type, command }` shape, so the rest of the table is unchanged.
+        const condition = typeof hook.if === "string" && hook.if.trim() ? hook.if : undefined;
+        mappedHooks.push(condition ? { type: "command", command: hookPath, if: condition } : { type: "command", command: hookPath });
       }
       if (mappedHooks.length === 0) {
         // Each unsupported command was already recorded above; only an empty

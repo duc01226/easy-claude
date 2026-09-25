@@ -382,7 +382,7 @@ const HEADING_MAP = [
 // Builder function map
 const BUILDER_MAP = {
     tldr: c => builders.buildTldr(c),
-    'golden-rules': c => builders.buildGoldenRules(c),
+    'golden-rules': (c, d) => builders.buildGoldenRules(c, d),
     'decision-quick-ref': c => builders.buildDecisionQuickRef(c),
     'key-locations': c => builders.buildKeyLocations(c),
     'dev-commands': c => builders.buildDevCommands(c),
@@ -424,7 +424,18 @@ function buildSections(config) {
         const content = builder(config, PROJECT_DIR);
         if (content) sections[key] = content;
     }
+    reportInlinePathRules(config);
     return sections;
+}
+
+// `portability.inlinePathRules: false` is a request, not a guarantee: without hook delivery the
+// builder keeps the rules inline so none is lost. Say so, naming the missing precondition.
+function reportInlinePathRules(config) {
+    const delivery = builders.pathRulesDelivery(config, PROJECT_DIR);
+    if (delivery.requested && !delivery.compact && delivery.reason) {
+        console.warn(`[WARN] INLINE_PATH_RULES: portability.inlinePathRules is false but ${delivery.reason}; ` +
+            'SECTION:golden-rules keeps the path rules inline.');
+    }
 }
 
 function populateTemplate(template, sections) {

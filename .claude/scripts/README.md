@@ -211,3 +211,18 @@ its own line only — never doc-wide — so later rot in the same file still fai
 
 Tests: `node .claude/hooks/tests/run-all-tests.cjs --filter=doc-impact-map`
 `node .claude/hooks/tests/run-all-tests.cjs --filter=reference-doc-freshness`
+
+## Protocol, profile and report tools
+
+Run every command from the project root; each works the same on Windows, macOS and Linux (`node <script>`; Python modules are imported, not run).
+
+| Script | Command | Purpose |
+| --- | --- | --- |
+| `build-protocol-projection.cjs` | `node .claude/scripts/build-protocol-projection.cjs [--check]` | Generates `.claude/skills/shared/protocols/` (one `<tag>.md` per shared protocol, `<tag>.part-<n>.md` for a tag over the bin, and `index.json`) from `.claude/skills/shared/sync-inline-versions.md` and `.claude/skills/shared/protocol-groups.json`. Rebuild in the same change as any canonical protocol edit; `--check` is read-only and exits 1 when the output is stale or the group data is invalid |
+| `lib/protocol-guide-carrier.cjs` | `require` only | JavaScript recognizer of the `PROTOCOL-GUIDES` guide-line format (twin of `format_guide_line` in `sync_blocks.py`); sensors and injectors call it instead of copying the regex |
+| `sync-skill-profile.cjs` | `node .claude/scripts/sync-skill-profile.cjs [--check]` | Applies `skillProfile` from `docs/project-config.json` to `.claude/settings.json` `skillOverrides` (owned keys only, ledger `.claude/skill-profile.generated.json`); exports `resolveProfile`, which the Codex and OpenCode syncs use for the called-skill set (workflow steps, agent skills, `calledByOthers`, `entrySkills`) and refusals, plus the crash-consistent writers `writeTextAtomic` and `writePairCrashConsistent` they share. Read `.claude/config/README.md#skill-profile` for the contract |
+| `session-usage-report.cjs` | `node .claude/scripts/session-usage-report.cjs --transcript <path> [--compare <path>] [--run <runId>] [--json]` | Offline token usage of one Claude session (main + sub-agents, each response once; non-cached total apart from cache reads), an A/B comparison, and a run's deviation log (step id and kind only, never evidence text) |
+| `open-report.cjs` | `node .claude/scripts/open-report.cjs <path>` | Opens a generated report under the project `tmp/` or `temp/` in the default viewer with a literal argv — only report file types (`.html`, `.htm`, `.md`, `.txt`, `.pdf`, `.png`, `.jpg`, `.jpeg`, `.svg`, `.json`, checked case-insensitively on the resolved file); opens nothing under `CI` or `CK_NO_AUTO_OPEN=1`, or on Linux without a display, and always prints the path |
+| `line_endings.py` | imported by the block injectors | `read_text`/`write_text` keep a file's own line-ending style (any CRLF → CRLF, else LF; new files LF), so an injector never flips a file's newlines on Windows |
+
+Tests: `node --test .claude/scripts/tests/build-protocol-projection.test.cjs` · `sync-skill-profile.test.cjs` · `open-report.test.cjs` · `injectors-respect-guides.test.cjs` (same folder); `node .claude/hooks/tests/run-all-tests.cjs --filter=session-usage`

@@ -123,12 +123,14 @@
         ".cjs"
       ],
       "guideDoc": ".claude/docs/hooks/README.md",
+      "on": "edit",
       "rules": [
         "Hooks use CommonJS (require/module.exports)",
         "Hook files read stdin JSON and write to stdout/stderr",
         "Shared utilities go in .claude/hooks/lib/",
         "Test hooks via node .claude/hooks/tests/test-all-hooks.cjs",
-        "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs"
+        "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs",
+        "Hook code and tests ship to any project layout and OS — read docs/project-reference/integration-test-reference.md (Portable Test Contract) when writing or changing a hook test"
       ]
     },
     {
@@ -140,6 +142,7 @@
         ".md"
       ],
       "guideDoc": ".claude/docs/skills/README.md",
+      "on": "edit",
       "rules": [
         "Each skill is a directory with SKILL.md as entry point",
         "Skills may have scripts/, references/, and tests/ subdirectories",
@@ -156,6 +159,7 @@
         ".md"
       ],
       "guideDoc": ".claude/docs/agents/README.md",
+      "on": "edit",
       "rules": [
         "Agent definitions are markdown files in .claude/agents/",
         "Follow patterns in .claude/docs/agents/agent-patterns.md",
@@ -174,10 +178,12 @@
         ".py"
       ],
       "guideDoc": ".claude/docs/framework-portability.md",
+      "on": "edit",
       "rules": [
         "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs",
         "Verifiers and generators under .claude/scripts/ are portable framework surfaces — gate them with the residue and root-literal checks before commit",
-        "Resolve every root from project config with the framework default as fallback; never hardcode a spec, docs, or package path"
+        "Resolve every root from project config with the framework default as fallback; never hardcode a spec, docs, or package path",
+        "Scripts and their tests ship to any project layout and OS — read docs/project-reference/integration-test-reference.md (Portable Test Contract) when writing or changing a script test"
       ]
     },
     {
@@ -193,6 +199,7 @@
         ".cjs"
       ],
       "guideDoc": ".claude/docs/framework-portability.md",
+      "on": "edit",
       "rules": [
         "Every AI-agent folder (.claude/, .codex/, .agents/, .opencode/) ships to other projects: keep it portable and configurable — no project names, absolute paths, or consumer-specific terms; project specifics belong in docs/project-config.json or project-reference docs",
         "These folders are GENERATED mirrors of .claude/ — never hand-edit them; fix the .claude/** source and regenerate, or the next sync reverts the edit",
@@ -214,8 +221,9 @@
       "skills": [
         "spec"
       ],
+      "on": "edit",
       "origin": "detected",
-      "detectedFingerprint": "ced81f62cf9ef9f0"
+      "detectedFingerprint": "0cee1040dbc07de9"
     },
     {
       "name": "integration-test",
@@ -230,11 +238,25 @@
       "skills": [
         "integration-test"
       ],
+      "on": "edit",
       "origin": "detected",
-      "detectedFingerprint": "342fb4bf9f19054a"
+      "detectedFingerprint": "c0b869c526a6da6c"
+    },
+    {
+      "name": "shipped-tests",
+      "pathRegexes": [
+        "[\\\\/]\\.claude[\\\\/].*\\.test\\.(cjs|mjs)$"
+      ],
+      "priority": 200,
+      "on": "both",
+      "origin": "user",
+      "rules": [
+        "Shipped tests under .claude/ must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repo's config, docs, specs or git state (guard authoring-repo self-checks with the framework-repo signal); blank or delete inherited feature-switch and provider env keys and point HOME, USERPROFILE, TMPDIR, TEMP and TMP at the temp dir; before commit run node .claude/hooks/tests/run-all-tests.cjs on a machine that has those switches set, plus node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only — read docs/project-reference/integration-test-reference.md (Portable Test Contract) when writing or changing a test"
+      ]
     },
     {
       "name": "ui-ux-gate",
+      "on": "both",
       "priority": 100,
       "pathRegexes": [
         "/res/layout[^/]*/[^/]+\\.xml$"
@@ -305,8 +327,9 @@
       "referenceDocs": [
         "docs/project-reference/code-review-rules.md"
       ],
+      "on": "edit",
       "origin": "detected",
-      "detectedFingerprint": "48230fd6183bdc93"
+      "detectedFingerprint": "831d962b67931825"
     }
   ],
   "conventionInjection": {
@@ -338,7 +361,7 @@
       "hook tests": "node .claude/hooks/tests/test-all-hooks.cjs",
       "all suites": "node .claude/hooks/tests/run-all-tests.cjs"
     },
-    "commandsNote": "**Platform (Windows):** invoke Python via `py -3` or `py` — NEVER `python3` (MS Store alias exits 49). Scripts resolve `python` then `py -3` (see `count-drift.test.cjs:29-32`). macOS/Linux: use `python3`."
+    "commandsNote": "**Platform (Windows):** invoke Python via `py -3` or `py` — NEVER `python3` (MS Store alias exits 49). Scripts resolve `python` then `py -3` (see `count-drift.test.cjs:40-45`). macOS/Linux: use `python3`."
   },
   "e2eTesting": {
     "framework": "none",

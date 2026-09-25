@@ -14,6 +14,8 @@
  * Per-class delivery policy (not rendered, not hashed): `reinjectAfterTokens` narrows the class's
  * re-arm distance; `evidenceDocs` / `evidenceSkills` let a transcript read of every listed doc, or a
  * load of any listed skill, count as the class being present (convention-ledger scanEvidence).
+ * Per-class trigger `on` (read | edit | both, default both; BR-PFCI-19) filters matching by operation,
+ * and a digest delivered on a read uses the conditional opening wording (BR-PFCI-20).
  */
 'use strict';
 
@@ -26,6 +28,14 @@ const RENDERER_VERSION = 'pfci-2';
 const PATH_CAP = 1024;
 const DEFAULT_PRIORITY = 500;
 const LOOKUP_COMMAND = 'node .claude/hooks/lib/file-conventions.cjs --lookup';
+
+// Per-class trigger `on` (BR-PFCI-19): which operations deliver a class. A class that names none
+// (or names a value outside this set, which the config validator reports) behaves as `both`.
+// The operation itself is `read` (a file read) or `edit` (a creation, change or move).
+const TRIGGER_READ = 'read';
+const TRIGGER_EDIT = 'edit';
+const TRIGGER_BOTH = 'both';
+const CLASS_TRIGGERS = Object.freeze([TRIGGER_READ, TRIGGER_EDIT, TRIGGER_BOTH]);
 
 const DEFAULTS = Object.freeze({
     enabled: false,
@@ -91,6 +101,11 @@ const UI_UX_GATE = Object.freeze({
         '\\.component\\.ts$'
     ]),
     excludePathGlobs: GENERAL_EXCLUDES,
+    // Explicitly both, so setup detection does not give it the edit-only default for doc-bearing
+    // classes: the Read delivery is what puts the gate in context BEFORE the first edit of an existing
+    // file (delivery is PostToolUse-only). `both` is the default content version, so the fallback and
+    // the detected gate still share one version.
+    on: TRIGGER_BOTH,
     referenceDocs: Object.freeze(['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md', '.claude/docs/design-review-calibration.md']),
     rules: Object.freeze([
         'UI/UX gate: have UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
@@ -355,6 +370,27 @@ function classSettings(entry, settings) {
         : base;
 }
 
+/**
+ * A class's trigger (BR-PFCI-19): `read` | `edit` | `both`; absent or unrecognized → `both`.
+ * Exact match, like the config validator: a value it rejects (`"Read"`, `" edit "`) is never
+ * narrowed to a trigger, so delivery uses the default (BR-PFCI-11).
+ */
+function classTriggerOf(group) {
+    const value = isPlainObject(group) ? group.on : undefined;
+    return CLASS_TRIGGERS.includes(value) ? value : TRIGGER_BOTH;
+}
+
+/** The operation a trigger tool performs: a read, or a creation/change/move (edit). */
+function operationOf(trigger) {
+    return trigger === TRIGGER_READ ? TRIGGER_READ : TRIGGER_EDIT;
+}
+
+/** Whether a class with trigger `on` is delivered by operation `trigger` (BR-PFCI-19 table). */
+function acceptsTrigger(on, trigger) {
+    const classTrigger = CLASS_TRIGGERS.includes(on) ? on : TRIGGER_BOTH;
+    return classTrigger === TRIGGER_BOTH || classTrigger === operationOf(trigger);
+}
+
 /** Normalized, deliverable groups in declaration order (first occurrence of a name wins). */
 function injectableEntries(config) {
     const groups = isPlainObject(config) && Array.isArray(config.contextGroups) ? config.contextGroups : [];
@@ -369,6 +405,7 @@ function injectableEntries(config) {
             name,
             index,
             priority: priorityOf(group),
+            on: classTriggerOf(group),
             rules: stringList(group.rules),
             skills: stringList(group.skills),
             docs: docsOf(group),
@@ -388,11 +425,15 @@ function sortEntries(entries) {
 /**
  * BR-PFCI-04: union of groups matching any target, ordered by priority asc then
  * declaration index, capped to maxClassesPerEdit (cap applies before presence).
+ * BR-PFCI-19: only classes whose trigger accepts the operation are matched, before the cap.
+ * `trigger` is `read` or `edit`; absent → `edit` (the lookup answers "before editing this file").
  */
-function matchGroups(config, rels, settings) {
+function matchGroups(config, rels, settings, trigger = TRIGGER_EDIT) {
     const resolved = settings || resolveSettings(config);
     const targets = Array.isArray(rels) ? rels : [rels];
-    const matched = injectableEntries(config).filter(entry => targets.some(rel => groupMatches(entry.group, rel)));
+    const matched = injectableEntries(config)
+        .filter(entry => acceptsTrigger(entry.on, trigger))
+        .filter(entry => targets.some(rel => groupMatches(entry.group, rel)));
     return sortEntries(matched).slice(0, resolved.maxClassesPerEdit);
 }
 
@@ -420,9 +461,13 @@ function skillDisplay(name, opts) {
  * Content version: stable across machines (skill names, not resolved paths). Covers the
  * deliverable items AND membership (includes, excludes, extension filter), because the static
  * instructions render both: a membership edit without regeneration must withdraw static credit.
+ * The class trigger is part of the version (BR-PFCI-19) only when it narrows delivery: `both` and
+ * an absent trigger deliver on the same operations, so they share one version and every
+ * configuration written before triggers existed keeps its version (and its static tags).
  */
 function groupHash(entry) {
     const group = isPlainObject(entry.group) ? entry.group : {};
+    const on = CLASS_TRIGGERS.includes(entry.on) ? entry.on : classTriggerOf(group);
     const payload = JSON.stringify({
         v: RENDERER_VERSION,
         name: entry.name,
@@ -435,7 +480,8 @@ function groupHash(entry) {
         fileNameRegexes: stringList(group.fileNameRegexes),
         excludePathRegexes: stringList(group.excludePathRegexes),
         excludePathGlobs: stringList(group.excludePathGlobs),
-        fileExtensions: normalizedExtensions(group)
+        fileExtensions: normalizedExtensions(group),
+        ...(on !== TRIGGER_BOTH ? { on } : {})
     });
     return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 8);
 }
@@ -473,14 +519,26 @@ function targetLabel(rels) {
     return rels.length > 1 ? `${first} (+${rels.length - 1} more)` : first;
 }
 
+/**
+ * Opening instruction (BR-PFCI-20). An edit keeps the mandatory wording: must-read references and
+ * the protocols to follow. A read is conditional — the assistant may only be looking — so it names
+ * the references behind "if you will edit this file" and gives no instruction to follow a protocol.
+ */
+function openingInstruction(docs, skills, trigger) {
+    if (operationOf(trigger) === TRIGGER_READ) {
+        return docs.length ? `If you will edit this file, read first: ${docs.join(', ')}` : 'If you will edit this file, follow the conventions below';
+    }
+    const parts = [];
+    if (docs.length) parts.push(`MUST read first: ${docs.join(', ')}`);
+    if (skills.length) parts.push(`follow skill protocol: ${skills.join(', ')}`);
+    return parts.length ? parts.join('; ') : 'follow the conventions below';
+}
+
 function frameLines(activeEntries, rels, opts) {
     const docs = unique(activeEntries.flatMap(e => e.docs));
     const skills = unique(activeEntries.flatMap(e => e.skills)).map(s => skillDisplay(s, opts));
     const label = targetLabel(rels);
-    const parts = [];
-    if (docs.length) parts.push(`MUST read first: ${docs.join(', ')}`);
-    if (skills.length) parts.push(`follow skill protocol: ${skills.join(', ')}`);
-    const opening = `[conventions] ${label} — ${parts.length ? parts.join('; ') : 'follow the conventions below'}`;
+    const opening = `[conventions] ${label} — ${openingInstruction(docs, skills, opts.trigger)}`;
     const reread = docs.length ? ` Re-read before editing: ${docs.join(', ')}.` : '';
     // State the delivery boundary explicitly. This digest is produced by a
     // PostToolUse hook matched on the file TOOLS (Read/Edit/Write/MultiEdit/
@@ -509,6 +567,7 @@ function composeText(entries, forms, rels, opts) {
  * BR-PFCI-08/09 digest with deterministic reduction:
  * all full → while too long: lowest-precedence full → references, else lowest non-omitted → omitted.
  * Never re-expands; all omitted ⇒ empty text (no delivery).
+ * `opts.trigger` picks the opening wording: `read` → conditional, anything else → mandatory (BR-PFCI-20).
  * @returns {{ text: string, forms: Object<string, 'full'|'references'|'omitted'> }}
  */
 function buildDigest(entries, rels, settings, opts = {}) {
@@ -533,14 +592,18 @@ function buildDigest(entries, rels, settings, opts = {}) {
     return { text, forms };
 }
 
-/** Fresh-context digest for one path (no delivery memory) — parity with the hook. */
+/**
+ * Fresh-context digest for one path (no delivery memory) — parity with the hook's delivery on a
+ * change: the lookup answers "what applies before editing this file" (BR-PFCI-19), so it matches
+ * and words the digest for the edit operation.
+ */
 function lookup(config, filePath, opts = {}) {
     const projectDir = opts.projectDir || process.cwd();
     const rel = toRepoRelative(filePath, projectDir, opts.cwd || projectDir);
     if (!rel) return { rel: null, entries: [], text: '', forms: {} };
     const settings = resolveSettings(config);
-    const entries = matchGroups(config, [rel], settings);
-    const { text, forms } = buildDigest(entries, [rel], settings, { ...opts, projectDir });
+    const entries = matchGroups(config, [rel], settings, TRIGGER_EDIT);
+    const { text, forms } = buildDigest(entries, [rel], settings, { ...opts, projectDir, trigger: TRIGGER_EDIT });
     return { rel, entries, text, forms };
 }
 
@@ -552,6 +615,10 @@ module.exports = {
     CLASS_REINJECT_TOKENS_RANGE,
     PATH_CAP,
     LOOKUP_COMMAND,
+    TRIGGER_READ,
+    TRIGGER_EDIT,
+    TRIGGER_BOTH,
+    CLASS_TRIGGERS,
     UI_UX_GATE,
     builtinFallbackConfig,
     effectiveConfig,
@@ -564,6 +631,8 @@ module.exports = {
     groupMatches,
     isInjectable,
     injectableEntries,
+    classTriggerOf,
+    acceptsTrigger,
     classReinjectBytes,
     classSettings,
     sortEntries,

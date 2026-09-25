@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **16 top-level hook files**, **124 skills**, **19 workflows**, and **23 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->125<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->20<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->23<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -134,7 +134,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (16 top-level `.cjs` files, 44 lib modules)
+### Hooks (<!-- COUNT:hooks -->23<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->46<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -144,7 +144,8 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 | **Quality**            | `doc-sync-gate`                                                                                                                      | Warn on doc⇄code drift                                                                                                                                                                                                                                            |
 | **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                           | Initialize state, load config, seed the graph                                                                                                                                                                                                                     |
 | **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, and remind the judgement-integrity check on verdict requests |
-| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`                                                                  | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits                                                                                                                                                         |
+| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`, `token-budget-checkpoint`                                       | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits, emit an advisory token checkpoint at task steps                                                                                                        |
+| **Protocol delivery**  | `protocol-inject-review`, `-evidence-trace`, `-workflow-task`, `-spec-test`, `-design`, `-universal`                                 | Deliver the full shared-protocol texts a skill declares, once per session, on a skill load, a typed `/command`, or a skill-preloading sub-agent start                                                                                                             |
 
 > **De-hooked enforcement & context injection.** Earlier versions ran runtime
 > enforcement/lifecycle hooks — per-edit/per-prompt inject dispatchers plus task/skill/edit
@@ -162,7 +163,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 (and the `AGENTS.md` mirror). Re-reading these static files restores rules and lessons after
 compaction. This stateless-per-turn design prevents context drift over long sessions.
 
-### Skills (124 definitions)
+### Skills (125 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -179,9 +180,9 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs the project-reference gate reads |
 | **Documents**      | `/pdf-convert`, `/docx-convert`                                                                            | Document format conversion (both directions via `--to`)  |
 
-### Workflows (19 definitions)
+### Workflows (<!-- COUNT:workflows -->20<!-- /COUNT --> definitions)
 
-End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all 19 (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-seed-test-data`, and `workflow-visualize`).
+End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all <!-- COUNT:workflows -->20<!-- /COUNT --> (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-seed-test-data`, and `workflow-visualize`).
 
 **Pick a workflow by use case:**
 
@@ -221,9 +222,9 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | `/plan-review`                 | Plan validity, correctness, and best-practice gaps (recursive)           |
 | `/artifact-review`             | PBI / story / test-spec / design artifact quality before handoff         |
 
-### Agents (23 specialists)
+### Agents (<!-- COUNT:agents -->23<!-- /COUNT --> specialists)
 
-Subagent definitions for parallelized, specialized work. The table below shows 9 of the 23 — see `.claude/docs/agents/README.md` for the full roster.
+Subagent definitions for parallelized, specialized work. The table below shows 9 of the <!-- COUNT:agents -->23<!-- /COUNT --> — see `.claude/docs/agents/README.md` for the full roster.
 
 | Agent                   | Role                                           |
 | ----------------------- | ---------------------------------------------- |
@@ -245,11 +246,11 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 23 specialized agent definitions
-│   ├── hooks/                # 16 top-level hook files + lib/ utilities
+│   ├── hooks/                # 23 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 124 skill definitions
+│   ├── skills/               # 125 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -281,7 +282,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 16 Hook Files + 124 Skills + 19 Flows │
+│ 23 Hook Files + 125 Skills + 20 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -298,17 +299,19 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 
 ### Hook Lifecycle
 
-Hooks register on these Claude Code events (there is no `SubagentStart` hook — agent context is static in the agent `.md` files; `PreCompact` has no live hook, recovery is static re-anchoring):
+Hooks register on these Claude Code events (`SubagentStart` and `UserPromptExpansion` carry only the six protocol-delivery handlers — standing agent context is static in the agent `.md` files; `PreCompact` has no live hook, recovery is static re-anchoring):
 
-| Event              | When                     | Example Hook                                       |
-| ------------------ | ------------------------ | -------------------------------------------------- |
-| `SessionStart`     | Claude Code starts       | `session-init.cjs` — load config, inject context   |
-| `SessionEnd`       | Claude Code exits        | `session-end.cjs` — persist final state            |
-| `UserPromptSubmit` | Before each user message | `init-prompt-gate.cjs` — gate until config ready   |
-| `PreToolUse`       | Before tool execution    | `review-commit-gate.cjs` — gate unreviewed commits |
-| `PostToolUse`      | After tool execution     | `post-edit-prettier.cjs` — format edited files     |
-| `Notification`     | Desktop notify event     | `notifications/notify.cjs` — unified notify router |
-| `Stop`             | Response complete        | `notifications/notify.cjs` — desktop notification  |
+| Event                 | When                     | Example Hook                                              |
+| --------------------- | ------------------------ | --------------------------------------------------------- |
+| `SessionStart`        | Claude Code starts       | `session-init.cjs` — load config, inject context          |
+| `SessionEnd`          | Claude Code exits        | `session-end.cjs` — persist final state                   |
+| `UserPromptSubmit`    | Before each user message | `init-prompt-gate.cjs` — gate until config ready          |
+| `PreToolUse`          | Before tool execution    | `review-commit-gate.cjs` — gate unreviewed commits        |
+| `PostToolUse`         | After tool execution     | `post-edit-prettier.cjs` — format edited files            |
+| `SubagentStart`       | Sub-agent starts         | `protocol-inject-*.cjs` — protocols of the agent's skills |
+| `UserPromptExpansion` | Typed `/command` expands | `protocol-inject-*.cjs` — protocols of the expanded skill |
+| `Notification`        | Desktop notify event     | `notifications/notify.cjs` — unified notify router        |
+| `Stop`                | Response complete        | `notifications/notify.cjs` — desktop notification         |
 
 ### Workflow Detection
 
@@ -327,15 +330,15 @@ The gate **auto-selects** the route — it does not ask you to choose between di
 
 Seven principles that make this framework work reliably across any project:
 
-| Principle                         | What it means                                                                                                                                                 |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Stateless-per-turn invariants** | Rules are re-injected at every prompt turn — never trust context retention over long sessions                                                                 |
-| **Defense in depth**              | Quality gates exist across hooks (programmatic), skills (protocol), workflows (sequence), and agents (specialized review). Bypassing one is caught by another |
-| **Self-contained skill units**    | Each skill is a complete prompt unit via `SYNC` tags — protocols are inlined, not indirectly referenced. Skills work standalone                               |
-| **Project-agnostic generality**   | One `project-config.json` drives all context injection. The same hooks, skills, and workflows adapt to any tech stack                                         |
-| **Full lifecycle coverage**       | idea → research → TDD spec → plan → implement → review → test → E2E → docs. No stage left to chance                                                           |
-| **Structural intelligence**       | The code graph makes the AI reason about systems as systems — implicit relationships (events, API contracts, bus messages) are first-class                    |
-| **Evidence-based AI**             | Every recommendation requires `file:line` citations. The confidence framework (>80% act, <60% don't) quantifies certainty                                     |
+| Principle                         | What it means                                                                                                                                                              |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stateless-per-turn invariants** | Rules are re-injected at every prompt turn — never trust context retention over long sessions                                                                              |
+| **Defense in depth**              | Quality gates exist across hooks (programmatic), skills (protocol), workflows (sequence), and agents (specialized review). Bypassing one is caught by another              |
+| **Self-contained skill units**    | Each skill names every shared protocol it needs in a guide line; a hook delivers the full text, and the guide's file path is the hookless fallback. Skills work standalone |
+| **Project-agnostic generality**   | One `project-config.json` drives all context injection. The same hooks, skills, and workflows adapt to any tech stack                                                      |
+| **Full lifecycle coverage**       | idea → research → TDD spec → plan → implement → review → test → E2E → docs. No stage left to chance                                                                        |
+| **Structural intelligence**       | The code graph makes the AI reason about systems as systems — implicit relationships (events, API contracts, bus messages) are first-class                                 |
+| **Evidence-based AI**             | Every recommendation requires `file:line` citations. The confidence framework (>80% act, <60% don't) quantifies certainty                                                  |
 
 ## What's Project-Agnostic vs Project-Specific
 

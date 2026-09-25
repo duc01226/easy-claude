@@ -193,6 +193,8 @@ function runPromptHook({ unchanged = false, available = true, locked = false, ca
             const record = value => fs.appendFileSync(path.join(root, 'calls.jsonl'), JSON.stringify(value) + '\\n');
             require.cache[${JSON.stringify(UTILS)}] = { exports: {
                 getGraphDbPath: () => path.join(root, 'graph.db'),
+                // Graph mode has its own suite (code-graph-opt-in); these cases run in active mode.
+                codeGraphMode: () => 'active',
                 getGitHead: () => ${JSON.stringify(head)},
                 readLastSeenHead: () => fs.readFileSync(path.join(root, '.last-seen-head'), 'utf8'),
                 writeLastSeenHead: value => { record(['write', value]); fs.writeFileSync(path.join(root, '.last-seen-head'), value); },
@@ -205,7 +207,7 @@ function runPromptHook({ unchanged = false, available = true, locked = false, ca
                 invokeGraph: (...args) => { record(['sync', ...args]); return ${JSON.stringify(result)}; }
             } };
             require.cache[${JSON.stringify(path.join(path.dirname(UTILS), 'project-config-loader.cjs'))}] = {
-                exports: { isConfigPopulated: () => true }
+                exports: { isConfigPopulated: () => true, loadProjectConfig: () => ({}) }
             };
             require(${JSON.stringify(HOOK)});
         `;

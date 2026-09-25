@@ -8,10 +8,6 @@
     "opencode-go": {
       "models": {
         "deepseek-v4.1-flash": {
-          "limit": {
-            "context": 500000,
-            "output": 384000
-          },
           "options": {
             "reasoningEffort": "high"
           }

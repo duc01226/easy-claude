@@ -15,7 +15,8 @@
  * Tests:
  *   TC-PRG-001 — every workflow step skill is an adoption target or an exemption with a reason.
  *   TC-PRG-002 — every adoption target carries the top block AND the reminder, each byte-equal
- *                to canonical (exactly once).
+ *                to canonical (exactly once). A skill may carry the top block as a guide entry
+ *                backed by `shared/protocols/<tag>.md` instead (TC-PDL-065 fixture case).
  *   TC-PRG-003 — every carrier anywhere (skills + agents) is byte-equal to canonical; no
  *                exempt step skill carries the block.
  *   TC-PRG-004 — the canonical gate states the phase routing and the ~200K-token dedup rule,
@@ -114,11 +115,24 @@ function carrierFiles() {
     return files.filter(({ file }) => read(file).includes(`<!-- ${TAG}`));
 }
 
-function blockProblems(label, text, top, reminder) {
+// Guide carrier (P48): a converted SKILL carries the top block as one guide line in its
+// PROTOCOL-GUIDES block (shared P25 recognizer — never a copied line format) while the full text
+// lives in `shared/protocols/<tag>.md`. Agents keep full text, so they are never offered this branch.
+const guideCarrier = require(path.join(__dirname, '..', '..', '..', 'scripts', 'lib', 'protocol-guide-carrier.cjs'));
+const GUIDE_TAG = TAG.replace(/^SYNC:/, '');
+const guideCarried = (text, skillsDir) =>
+    guideCarrier.hasGuideEntry(text, GUIDE_TAG) && fs.existsSync(path.join(skillsDir, 'shared', 'protocols', `${GUIDE_TAG}.md`));
+
+function blockProblems(label, text, top, reminder, { acceptGuide = false, skillsDir = SKILLS_DIR } = {}) {
     const problems = [];
-    if (count(text, `<!-- ${TAG} -->`) !== 1) problems.push(`${label}: top block must appear exactly once`);
+    const topCount = count(text, `<!-- ${TAG} -->`);
+    // A guide stands in for the top block only when no top block is present; any body still
+    // present must equal canonical. The reminder stays required either way.
+    if (!(acceptGuide && topCount === 0 && guideCarried(text, skillsDir))) {
+        if (topCount !== 1) problems.push(`${label}: top block must appear exactly once (or, for a skill, a guide entry backed by shared/protocols/${GUIDE_TAG}.md)`);
+        if (!text.includes(top)) problems.push(`${label}: top block differs from canonical (run inject_project_reference_prefetch.py)`);
+    }
     if (count(text, `<!-- ${REMINDER_TAG} -->`) !== 1) problems.push(`${label}: reminder block must appear exactly once`);
-    if (!text.includes(top)) problems.push(`${label}: top block differs from canonical (run inject_project_reference_prefetch.py)`);
     if (!text.includes(reminder)) problems.push(`${label}: reminder differs from canonical (run sync_project_reference_block.py)`);
     return problems;
 }
@@ -158,7 +172,7 @@ module.exports = {
                         problems.push(`${skill}: SKILL.md missing`);
                         continue;
                     }
-                    problems.push(...blockProblems(skill, read(file), top, reminder));
+                    problems.push(...blockProblems(skill, read(file), top, reminder, { acceptGuide: true }));
                 }
                 // Then: every target exists and carries both blocks byte-equal to canonical, exactly once.
                 assertEqual(problems.length, 0, problems.join('\n  '));
@@ -171,7 +185,9 @@ module.exports = {
                 const reminder = canonicalWrapped(REMINDER_TAG);
                 const problems = [];
                 // Given: the canonical blocks. When: every skill/agent carrier and every exempt step skill is read.
-                for (const { label, file } of carrierFiles()) problems.push(...blockProblems(label, read(file), top, reminder));
+                for (const { label, file } of carrierFiles()) {
+                    problems.push(...blockProblems(label, read(file), top, reminder, { acceptGuide: !label.startsWith('agent:') }));
+                }
                 for (const skill of parseInjector().exemptions.keys()) {
                     const file = path.join(SKILLS_DIR, skill, 'SKILL.md');
                     if (fs.existsSync(file) && read(file).includes(`<!-- ${TAG}`)) problems.push(`${skill}: exempt but carries the block (an unrefreshed copy)`);
@@ -181,6 +197,46 @@ module.exports = {
                 const agentCarriers = carrierFiles().filter(c => c.label.startsWith('agent:')).length;
                 assertEqual(agentCarriers, agents.length, 'every agent must carry the gate (Core-6 tier)');
                 assertEqual(problems.length, 0, problems.join('\n  '));
+            },
+        },
+        {
+            // INTENT: a converted skill that carries the gate as a guide entry (+ the reminder) is
+            // still a carrier, but losing the guide as well, the projection file, or the reminder
+            // must still fail — and an agent never counts a guide. Temp fixture tree only.
+            name: 'TC-PDL-065 TC-PRG-002 accepts a guide entry + reminder backed by a projection file, and fails when both forms are missing',
+            fn: () => {
+                const os = require('os');
+                const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'prg-guide-'));
+                try {
+                    // Given: a fixture skills root with the gate's projection file, synthetic canonical
+                    // blocks, and a skill holding a guide entry + the reminder instead of the top block.
+                    const skillsDir = path.join(tmp, '.claude', 'skills');
+                    fs.mkdirSync(path.join(skillsDir, 'shared', 'protocols'), { recursive: true });
+                    const projection = path.join(skillsDir, 'shared', 'protocols', `${GUIDE_TAG}.md`);
+                    fs.writeFileSync(projection, '> Fixture gate.\n');
+                    const top = `<!-- ${TAG} -->\n\n> Fixture gate.\n\n<!-- /${TAG} -->`;
+                    const reminder = `<!-- ${REMINDER_TAG} -->\n\n- Fixture reminder.\n\n<!-- /${REMINDER_TAG} -->`;
+                    const guide = [guideCarrier.GUIDE_BLOCK_START, '',
+                        guideCarrier.formatGuideLine({ tag: GUIDE_TAG, summary: 'Fixture gate', when: 'before any phase', path: `.claude/skills/shared/protocols/${GUIDE_TAG}.md` }),
+                        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+                    const guided = `# Skill\n\n${guide}\n\n${reminder}\n`;
+                    const check = (text, acceptGuide = true) => blockProblems('fixture', text, top, reminder, { acceptGuide, skillsDir });
+
+                    // When/Then: the guide carrier passes, and the body carrier still passes.
+                    assertEqual(check(guided).length, 0, `guide carrier rejected: ${check(guided).join('; ')}`);
+                    assertEqual(check(`# Skill\n\n${top}\n\n${reminder}\n`).length, 0, 'body carrier must still pass');
+                    // When the guide is removed as well (both forms missing), Then it fails on the top block.
+                    assertTrue(check(`# Skill\n\n${reminder}\n`).some(p => /top block must appear exactly once/.test(p)), 'both forms missing must fail');
+                    // When the reminder is missing, Then it fails even with the guide.
+                    assertTrue(check(`# Skill\n\n${guide}\n`).some(p => /reminder block must appear exactly once/.test(p)), 'a guide never replaces the reminder');
+                    // When an agent carries only a guide, Then it fails (agents keep full text).
+                    assertTrue(check(guided, false).some(p => /top block must appear exactly once/.test(p)), 'an agent must not pass on a guide');
+                    // When the projection file is missing, Then the guide no longer counts.
+                    fs.rmSync(projection);
+                    assertTrue(check(guided).some(p => /top block must appear exactly once/.test(p)), 'a guide with no projection must fail');
+                } finally {
+                    fs.rmSync(tmp, { recursive: true, force: true });
+                }
             },
         },
         {

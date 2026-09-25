@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 123 runnable skills across 15+ domains + 10 shared reference/protocol files for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->125<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 123 runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->125<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -40,7 +40,7 @@ Skills Activated: fix, investigate
 | [Document Processing](#document-processing)       | 2      | PDF, DOCX, Markdown conversions                |
 | [Utility](#utility)                               | 1      | Skill creation                                 |
 
-**Additional:** Shared reference/protocol files (10) -- see [Shared Protocols](#shared-protocols-sync-inline)
+**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->12<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
 
 ---
 
@@ -97,7 +97,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill                         | Triggers                                                | Description                                          |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
-| `commit`                      | commit, stage, save changes                             | Git commits                                          |
+| `commit`                      | commit, stage, save changes                             | Git commits; adds a `Fix-Origin:` trailer only when `commit.fixOriginTrailer` is `true` in `docs/project-config.json` (new commits only) |
 | `code-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
@@ -108,7 +108,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill                | Triggers                                                                                                                        | Description                                                                                                      |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `graph-build`        | build graph, code graph, knowledge graph, sync graph, update graph, working tree, uncommitted changes, refresh graph after pull | Build, update, or sync the code review knowledge graph via `--scope={full\|update\|sync}` (Tree-sitter + SQLite) |
+| `graph-build`        | build graph, code graph, knowledge graph, sync graph, update graph, working tree, uncommitted changes, refresh graph after pull | Build, update, or sync the code review knowledge graph via `--scope={full\|update\|sync}` (Tree-sitter + SQLite); installs the Python graph tooling on first use; refused while `hooks.codeGraph.enabled` is `off` |
 | `graph-blast-radius` | blast radius, impact analysis, structural impact                                                                                | Analyze structural impact of current changes using knowledge graph                                               |
 | `graph-export`       | export graph, JSON dump, mermaid, diagram, visualize                                                                            | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                  |
 | `graph-query`        | graph query, callers, tests_for                                                                                                 | Natural language graph relationship queries                                                                      |
@@ -176,13 +176,13 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 ---
 
-## Shared Protocols (SYNC Inline)
+## Shared Protocols (SYNC bodies and guides)
 
-All shared protocols are now **inlined** into consuming skills via `<!-- SYNC:tag -->` blocks. Standalone protocol files have been deleted. The canonical source for all SYNC content is `.claude/skills/shared/sync-inline-versions.md`.
+Shared protocols follow the hybrid policy (`SYNC:shared-protocol-duplication-policy`). A converted skill carries one guide line per protocol in its `PROTOCOL-GUIDES` block, and a hook delivers the full text from the generated projection `.claude/skills/shared/protocols/` (the guide path is the fallback). The five review-family skills (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`), SYNC bodies in `references/*.md` and agents keep full `<!-- SYNC:tag -->` bodies. The canonical source for all SYNC content is `.claude/skills/shared/sync-inline-versions.md`.
 
-**Why inline?** AI compliance drops ~40% when protocols are behind file-read indirection. Inline SYNC blocks are always present in the skill's context window.
+**Why hybrid?** A rule in context is followed more reliably than one the model must choose to read, so hooks put the full text in context when the skill loads; full bodies stay only where hook delivery cannot reach the reader or carry the text.
 
-**To update a protocol:** Edit `sync-inline-versions.md` first, then `grep SYNC:protocol-name` and update all copies. Use `/sync-skills-shared-protocols` skill to automate.
+**To update a protocol:** Edit `sync-inline-versions.md` first, then run `/sync-skills-shared-protocols` (it propagates every body and rebuilds the projection with `node .claude/scripts/build-protocol-projection.cjs`); `grep SYNC:protocol-name` for copies outside the tool's scope.
 
 ---
 
@@ -197,10 +197,12 @@ Each skill is located at `.claude/skills/{skill-name}/`:
     |-- topic-1.md
     +-- topic-2.md
 
-.claude/skills/shared/          # SYNC canonical source (protocols inlined into skills)
+.claude/skills/shared/          # SYNC canonical source (hybrid: guide lines + hook delivery, full bodies in review-family skills and agents)
 |-- affirmative-rewrite-rubric.md
 |-- e2e-quality-protocol.md
 |-- product-roadmap-contract.md
+|-- protocol-groups.json       # Hook delivery groups + inlineSkills (review-family skills keeping full bodies)
+|-- protocols/                 # GENERATED projection the protocol-inject hooks deliver (build-protocol-projection.cjs)
 |-- releasable-pbi-contract.md
 |-- sdd-artifact-contract.md
 |-- sub-agent-selection-guide.md
@@ -217,7 +219,7 @@ Each skill is located at `.claude/skills/{skill-name}/`:
 name: skill-name
 version: 1.0.0
 description: '[Domain] Use when... (semantic trigger keywords belong in this description)'
-disable-model-invocation: false
+disable-model-invocation: false # true = manual-only: the model never invokes it, `/skill-name` still works
 ---
 
 ## Overview
@@ -236,6 +238,16 @@ disable-model-invocation: false
 
 [What to avoid]
 ```
+
+Set `disable-model-invocation: true` on a skill the model must never start on its own, such as a `manual`-tier workflow wrapper. Claude drops its description from context but still runs `/skill-name`. Codex ignores the flag, so the Codex sync writes `agents/openai.yaml` with `policy.allow_implicit_invocation: false` into that skill's mirror, where `$skill-name` still runs it.
+
+**Manual-only skills shipped here** (list them with `grep -l "^disable-model-invocation: true" .claude/skills/*/SKILL.md`):
+
+- **Command-only utilities** — `ck-help`, `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-notes`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
+- **Mirror syncs** — `sync-codex`, `sync-opencode`: they rewrite generated folders, so only the user starts them.
+- **Other** — `product-roadmap`, and the `manual`-tier workflow wrappers `workflow-big-feature`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-spec-to-pbi`.
+
+`commit` and `learn` stay model-callable by decision. `content-presence.test.cjs` (TC-ADS-008) fails when a command-only utility loses the flag or `commit`/`learn` gains it, and `migrate-claude-to-codex.test.mjs` (TC-ADS-009) checks the Codex policy file for each utility.
 
 ---
 
@@ -284,4 +296,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 123 runnable skills across 15+ domains + 10 shared reference/protocol files (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->125<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_

@@ -57,6 +57,41 @@
  *               is load-bearing — dropping any one silently lets an overloaded or ancestor-broken
  *               surface pass review again.
  *
+ *   TC-GWF-006/058/059/060/041/042/007/010 — the guided workflow flex rules: start-workflow (their single
+ *               owner) keeps gate steps fixed, lets core/optional steps flex intent-first with one
+ *               deviation-log line each under the baseline runId (closed kind set), keeps data
+ *               dependencies and changed-behaviour tests green; workflow-end first checks evidence
+ *               for every outcome gate (review-converged via the receipt JSON or a logged cited
+ *               report); both review skills read the deviation log; the nested review stays inline.
+ *
+ *   TC-GWF-019/020/044 — the lean route wrapper (workflow-implement-spec) stops at its gap review on a
+ *               vague, contradictory or incomplete spec and escalates to workflow-feature; its plan
+ *               scope is anchored to the supplied spec baseline; the two wrapper descriptions route
+ *               spec-complete work and spec gaps to opposite routes.
+ *
+ *   TC-PDL-028 — the shipped hooks guide carries the second-host trust note in one paragraph: a new or
+ *               changed delivery step runs only after the user reviews it, the review step (`/hooks`)
+ *               is named, the guides deliver until then, and unchanged steps keep their earlier review.
+ *
+ *   TC-ADS-006 — the commit skill's default message template carries no `Fix-Origin` trailer and no text
+ *               claims a sensor or a mandatory trailer (opt-in via `commit.fixOriginTrailer`).
+ *   TC-ADS-007 — the commit skill names `commit.fixOriginTrailer`, limits the trailer to new commits only
+ *               and never advises rewording existing commits.
+ *   TC-ADS-004 — graph-build installs the graph tooling with the cross-OS node `ensurePythonDeps` command
+ *               before any graph CLI call, and stops when the install fails.
+ *
+ *   TC-ADS-008 — the command-only utility skills (decision D-2) each declare exactly one
+ *               `disable-model-invocation: true` in frontmatter, and `commit` / `learn` / `git-conflict-resolve` stay
+ *               model-callable. Framework-repo guarded (synchronous signal + parity tripwire):
+ *               it asserts this repo's own skill defaults, which an adopting project may change.
+ *
+ *   TC-ADS-025 — emphasis diet (P32) keeps the primacy/recency anchors: in each G3-selected skill the
+ *               top region (the STEP-TASK anchor block through the end of `## Quick Summary`) and the
+ *               `## Closing Reminders` section keep at least their recorded emphasis-marker counts
+ *               (MUST/NEVER/CRITICAL/IMPORTANT/BLOCKING, SYNC bodies and frontmatter excluded), so an
+ *               anchors-only body edit can never strip the anchors themselves. A fixture row proves the
+ *               rule names each stripped anchor; the live row is framework-repo guarded.
+ *
  * The 3 per-context inject hooks (design-system-canonical-guide / ba-refinement-context /
  * graph-grep-suggester) are now presence-asserted by TC-CP-004, TC-CP-006 and TC-CP-007
  * against the verbatim load-bearing phrases their guidance relocated to. A future skill edit
@@ -64,7 +99,9 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const { assertTrue } = require('../lib/assertions.cjs');
 
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR;
@@ -74,6 +111,128 @@ const SKILLS_DIR = path.resolve(PROJECT_DIR, '.claude', 'skills');
 const readFile = p => fs.readFileSync(p, 'utf8');
 const readAgent = name => readFile(path.join(AGENTS_DIR, `${name}.md`));
 const readSkill = name => readFile(path.join(SKILLS_DIR, name, 'SKILL.md'));
+
+// TC-CP-009/-010 carrier rule (R2-19). A family skill holds each pinned fragment inline in SKILL.md,
+// OR carries the protocol as a guide entry (shared P25 recognizer, never a copied line format) while
+// `<skills root>/shared/protocols/<tag>.md` holds the fragment. Returns one line per missing rule,
+// naming the skill and the rule. The fragment and family-skill lists belong to each test.
+const guideCarrier = require(path.join(__dirname, '..', '..', '..', 'scripts', 'lib', 'protocol-guide-carrier.cjs'));
+function familyRuleGaps(skillsDir, familySkills, tag, rules) {
+    const projectionFile = path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
+    const projection = fs.existsSync(projectionFile) ? readFile(projectionFile) : '';
+    const missing = [];
+    for (const skill of familySkills) {
+        const body = readFile(path.join(skillsDir, skill, 'SKILL.md'));
+        const guided = guideCarrier.hasGuideEntry(body, tag);
+        for (const [rule, phrase] of Object.entries(rules)) {
+            if (!body.includes(phrase) && !(guided && projection.includes(phrase))) {
+                missing.push(`${skill} → missing rule "${rule}" ("${phrase}")`);
+            }
+        }
+    }
+    return missing;
+}
+
+// Self-check guard for assertions about this framework repo's own skill defaults: the shared
+// synchronous CJS guard (an async guard in a CJS suite reports a false pass). The tripwire test
+// below proves it resolves exactly like .claude/scripts/codex/tests/framework-repo.helper.mjs for
+// every CJS suite that uses it.
+const frameworkRepoGuard = require('../lib/framework-repo-guard.cjs');
+const FRAMEWORK_REPO_HELPER = frameworkRepoGuard.frameworkRepoHelperPath(PROJECT_DIR);
+const IS_FRAMEWORK_REPO = frameworkRepoGuard.isFrameworkRepo(PROJECT_DIR);
+
+// Owner decision D-2 (command-only utilities): plain utility skills that no workflow, agent preload,
+// Skill call or hook starts are manual-only — the user runs them as `/name` (`$name` on Codex), the
+// model never self-triggers them. `commit`, `learn` and `git-conflict-resolve` stay model-callable (an agent preloads
+// `commit`; `learn` auto-activates by design; the agent resolves conflicts from its own pull-before-commit step).
+const COMMAND_ONLY_UTILITIES = [
+    'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
+    'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-notes',
+    'git-developer-performance', 'skill-creator', 'scan-codebase-health', 'graph-export',
+    'ck-help', 'project-help', 'custom-prompt',
+];
+const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve'];
+
+// TC-ADS-025 (emphasis diet). The five most emphasis-dense step skills of the four annotated
+// workflows (feature, bugfix, refactor, big-feature: top five by markers per KB of own body),
+// each with the emphasis-marker counts its two anchors held when selected. An anchors-only (G2) edit
+// changes body prose only; lowering a floor is a deliberate anchor change, never a side effect.
+const EMPHASIS_MARKERS = /\b(?:MUST|NEVER|CRITICAL|IMPORTANT|BLOCKING)\b/g;
+const EMPHASIS_ANCHOR_FLOORS = {
+    'deep-research': { top: 12, closing: 47 },
+    'web-research': { top: 7, closing: 35 },
+    'business-evaluation': { top: 9, closing: 41 },
+    test: { top: 11, closing: 38 },
+    'dor-gate': { top: 6, closing: 35 },
+};
+// Returns one line per anchor that lost markers (or is missing). Frontmatter and SYNC bodies are
+// excluded: they are not the skill's own anchor text.
+function emphasisAnchorGaps(body, floors) {
+    const text = String(body).replace(/\r\n?/g, '\n')
+        .replace(/^---\n[\s\S]*?\n---\n/, '')
+        .replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
+    const count = region => (region.match(EMPHASIS_MARKERS) || []).length;
+    const gaps = [];
+    const summary = text.indexOf('\n## Quick Summary');
+    if (summary === -1) gaps.push('top anchor: no `## Quick Summary` section');
+    else {
+        const next = text.indexOf('\n## ', summary + 1);
+        const top = count(text.slice(0, next === -1 ? undefined : next));
+        if (top < floors.top) gaps.push(`top anchor (STEP-TASK anchor + Quick Summary) holds ${top} emphasis markers, floor ${floors.top}`);
+    }
+    const closingAt = text.indexOf('\n## Closing Reminders');
+    if (closingAt === -1) gaps.push('closing anchor: no `## Closing Reminders` section');
+    else {
+        const closing = count(text.slice(closingAt));
+        if (closing < floors.closing) gaps.push(`closing anchor (Closing Reminders) holds ${closing} emphasis markers, floor ${floors.closing}`);
+    }
+    return gaps;
+}
+// Every `disable-model-invocation` value declared in a skill's YAML frontmatter (body text ignored).
+const modelInvocationValues = body => {
+    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(body);
+    if (!frontmatter) return null;
+    return [...frontmatter[1].matchAll(/^disable-model-invocation:[ \t]*(.*?)[ \t]*$/gm)].map(m => m[1]);
+};
+
+// The graph-build first step (TC-ADS-004 Test Data): one install command, identical on Windows, macOS and Linux.
+const GRAPH_TOOLING_INSTALL_COMMAND =
+    'node -e "const r=require(\'./.claude/hooks/lib/graph-utils.cjs\').ensurePythonDeps(); process.exit(r && r.ok ? 0 : 1)"';
+// Text from `start` up to (not including) the next `end` after it; '' when `start` is absent.
+const sectionBetween = (body, start, end) => {
+    const from = body.indexOf(start);
+    if (from === -1) return '';
+    const to = body.indexOf(end, from + start.length);
+    return body.slice(from, to === -1 ? undefined : to);
+};
+// Guided workflow execution (spec: docs/specs/WorkflowExecution/README.GuidedWorkflow.md, BR-GWF-01…16).
+// start-workflow's Step Execution Protocol is the single owner of the flex rules; workflow-end's first
+// step is the outcome-gate evidence check. The closed deviation-kind set is shared with workflow-end and
+// the usage report, so it is pinned exactly (TC-GWF-041).
+const DEVIATION_KINDS = ['when-false', 'pre-action', 'intent-skip', 'merged', 'simplified', 'reordered', 'review-report'];
+const stepContract = () => sectionBetween(readSkill('start-workflow'), '## Step Execution Protocol', '\n## ');
+const outcomeGateCheck = () => sectionBetween(readSkill('workflow-end'), '0. **Outcome-gate evidence check**', '\n1. ');
+// Paragraphs (blank or bare `>` lines separate them, so block quotes split too) that match `pattern`.
+const paragraphsMentioning = (body, pattern) => body.split(/\r?\n[ \t>]*\r?\n/).filter(p => pattern.test(p));
+
+// TC-PDL-028 (spec: docs/specs/ContextDelivery/README.ProtocolDelivery.md, BR-PDL-05/15). The hooks guide
+// ships with `.claude/`, so its second-host trust note is pinned unconditionally. All four notes must
+// sit in ONE paragraph that names the host's review step (`/hooks`), so a note cannot be stitched
+// together from unrelated sentences elsewhere in the guide.
+const HOOKS_GUIDE = path.resolve(PROJECT_DIR, '.claude', 'docs', 'hooks', 'README.md');
+const HOOK_TRUST_NOTES = {
+    'a new or changed step runs only after review': /\bnew or changed\b[^.]*\b(?:skipped|not run|never runs?)\b[^.]*\buntil\b[^.]*\breview/i,
+    'the review step is named': /\breview\w*\b[^.]{0,60}\bin `\/hooks`/i,
+    'guides deliver until the review': /\buntil then\b[^.]*\bguide/i,
+    'an unchanged step keeps its earlier review': /\b(?:did not change|unchanged)\b[^.]*\bearlier review still holds\b/i,
+};
+// The trust notes the best `/hooks` paragraph lacks; every note name when no paragraph names `/hooks`.
+function hookTrustNoteGaps(guide) {
+    const missingIn = paragraph => Object.keys(HOOK_TRUST_NOTES).filter(note => !HOOK_TRUST_NOTES[note].test(paragraph));
+    const candidates = paragraphsMentioning(guide, /`\/hooks`/).map(missingIn);
+    if (candidates.length === 0) return Object.keys(HOOK_TRUST_NOTES);
+    return candidates.reduce((best, gaps) => (gaps.length < best.length ? gaps : best));
+}
 
 // Assert a relocated inject-hook's guidance survives in its target skill. Each phrase is a
 // verbatim load-bearing fragment of the deleted hook's output — NOT a tautology. Fails loudly
@@ -239,6 +398,326 @@ module.exports = {
             },
         },
         {
+            // Guards activation-tier INTENT: the model never starts a `manual` workflow on its own
+            // selection, asks exactly once before a `confirm` workflow, and an explicit request runs every
+            // tier. A surface that loses the rule lets that surface auto-start a heavy workflow again.
+            name: '[content-presence] TC-CP-017 activation tiers reach every routing surface',
+            fn: () => {
+                // Given every surface the model routes from
+                const gate = readFile(path.join(SKILLS_DIR, 'shared', 'workflow-first-gate.md'));
+                const { buildWorkflowSkillsCatalog } = require(path.resolve(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs'));
+                const guide = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['routing'] });
+                const skill = readSkill('start-workflow');
+                const generatedCopies = ['CLAUDE.md', 'AGENTS.md', path.join('.codex', 'CODEX_CONTEXT.md')]
+                    .map(rel => [rel, path.join(PROJECT_DIR, rel)])
+                    .filter(([, abs]) => fs.existsSync(abs))
+                    .map(([rel, abs]) => [rel, readFile(abs)])
+                    .filter(([, body]) => body.includes('<!-- CK:WORKFLOW-GATE -->'));
+                // The always-loaded gate is byte-budgeted, so it carries the compact rule; start-workflow and the
+                // runtime catalog carry the full procedure (question contents, best non-manual route).
+                const GATE = [
+                    'never ask the user to choose the execution path (`confirm` tier excepted)',
+                    '**Tiers** (workflow `activation`)',
+                    'never self-start a `manual` workflow — name it in your route',
+                    'ask once before self-starting a `confirm` one',
+                    'explicit requests run any tier',
+                ];
+                const surfaces = [
+                    ['workflow-first-gate.md', gate, GATE],
+                    ...generatedCopies.map(([rel, body]) => [rel, body, GATE]),
+                    ['Routing Decision Guide', guide, [
+                        'except the one question a `confirm`-tier workflow requires',
+                        'ask ONCE with its step count and your lean custom-simple alternative',
+                        'a `manual` workflow is never selected or started by you',
+                        'An explicit user request runs every tier directly',
+                    ]],
+                    ['start-workflow/SKILL.md', skill, [
+                        '**Activation tier**',
+                        'never on your own selection — take the best non-manual route and name the manual workflow in the route declaration',
+                        'ask ONCE before activating',
+                        'an explicit request skips the question',
+                        'Never auto-activate a `manual`-tier workflow.',
+                    ]],
+                ];
+                // When each surface is checked for its tier phrases
+                const gaps = surfaces.flatMap(([label, body, phrases]) =>
+                    phrases.filter(phrase => !body.includes(phrase)).map(phrase => `${label} → "${phrase}"`));
+                // Then none has lost the rule
+                assertTrue(gaps.length === 0, `activation-tier rule diverges across routing surfaces:\n  ${gaps.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-GWF-01 + BR-GWF-13 (the quality floor of the flex rules): `core`/`optional` steps
+            // may flex, `gate` steps never do, and every deviation leaves a log line. Losing either rule
+            // lets a run silently drop tests, review or spec sync.
+            name: '[content-presence] TC-GWF-006 start-workflow: gate steps never skip and every deviation writes a log line',
+            fn: () => {
+                // Given the single owner of the flex rules
+                const protocol = stepContract();
+                // When its Step Execution Protocol is read
+                const required = [
+                    '`gate` steps ALWAYS run and are NEVER skipped, merged away, simplified away or reordered',
+                    'every deviation writes one line',
+                    'only after both the comment and the deviation-log line',
+                ];
+                const missing = required.filter(p => !protocol.includes(p));
+                // Then the gate-never-skips rule and the log requirement are both stated
+                assertTrue(protocol.length > 0, 'start-workflow lost its Step Execution Protocol section');
+                assertTrue(missing.length === 0,
+                    `start-workflow step contract lost load-bearing rules:\n  ${missing.join('\n  ')}`);
+                // And the task list shows each task's role, so gate tasks stay visible
+                assertTrue(readSkill('start-workflow').includes('subject="[Workflow] [{role}] {step-name}'),
+                    'start-workflow task subjects no longer show the occurrence role');
+                // And the always-read closing reminder repeats the gate rule
+                assertTrue(readSkill('start-workflow').includes('`gate` steps never skip;'),
+                    'start-workflow closing reminder lost the gate-never-skips rule');
+            },
+        },
+        {
+            // Guards BR-GWF-13 + BR-GWF-16: intent first, core/optional steps may be skipped, merged,
+            // simplified or reordered, each logged; the rules live in one owner fed by workflows.json.
+            name: '[content-presence] TC-GWF-058 start-workflow: core and optional steps flex intent-first with a logged kind; gates do not',
+            fn: () => {
+                // Given the flex rules
+                const protocol = stepContract();
+                // When they are read
+                const required = [
+                    'single owner of the flex rules (BR-GWF-16)',
+                    "read the manifest's `intent`",
+                    '`outcomeGates`',
+                    '`core` and `optional` steps are recommendations',
+                    'Intent first, you may skip, merge, simplify or reorder one when every applicable outcome gate can still be satisfied',
+                    'Simplified and reordered steps still invoke their Skill tool and add their line',
+                ];
+                const missing = required.filter(p => !protocol.includes(p));
+                // Then the freedom, its limit and its log are all stated
+                assertTrue(missing.length === 0, `start-workflow flex rules lost:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-GWF-14: a review of unfinished work, or of an unsynced spec, proves nothing.
+            name: '[content-presence] TC-GWF-059 start-workflow: no flex decision breaks a data dependency',
+            fn: () => {
+                // Given the flex rules
+                const protocol = stepContract();
+                // When the dependency rule is read
+                const required = [
+                    'Data dependencies never flex',
+                    'a change is made before it is reviewed and before its tests run',
+                    'the spec sync runs before the review that checks it',
+                    'the close runs last',
+                    'A reorder or merge that breaks one of these is not allowed.',
+                ];
+                const missing = required.filter(p => !protocol.includes(p));
+                // Then all three standing dependencies and the prohibition are stated
+                assertTrue(missing.length === 0, `start-workflow dependency rule lost:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-GWF-15: "tests are recommendations" covers which tests run, never whether the
+            // changed behaviour is tested and green — in the rule owner AND in the close check.
+            name: '[content-presence] TC-GWF-060 test choice flexes but changed behaviour is tested green before close',
+            fn: () => {
+                // Given the rule owner and the close step
+                const protocol = stepContract();
+                const check = outcomeGateCheck();
+                // When the test rules are read
+                const starterGaps = [
+                    'Tests are recommendations of which, never of whether',
+                    'The choice of test steps and test cases may flex',
+                    'every behaviour the run changed is covered by tests that ran green in this run',
+                    'A skip or merge that would leave changed behaviour untested or failing is not allowed.',
+                ].filter(p => !protocol.includes(p));
+                // Then the scope is stated in the starter
+                assertTrue(starterGaps.length === 0, `start-workflow test-scope rule lost:\n  ${starterGaps.join('\n  ')}`);
+                // And the close accepts only tests that cover the changed behaviour
+                const testsRule = check.split('\n').find(line => line.includes('`tests-pass`:')) || '';
+                assertTrue(testsRule.includes('cover every behaviour the run changed and ran green in this run'),
+                    'workflow-end tests-pass evidence no longer has to cover the changed behaviour');
+            },
+        },
+        {
+            // Guards BR-GWF-08: one deviation log per run, keyed by the baseline run id, with a closed
+            // deviation-kind set that workflow-end and the usage report parse. A second id format or a
+            // free-form kind makes deviations unreadable to review and to the usage report.
+            name: '[content-presence] TC-GWF-041 deviation log lives under the baseline runId with a closed kind set; reviewers read it',
+            fn: () => {
+                // Given start-workflow, workflow-end and both review skills
+                const protocol = stepContract();
+                const end = readSkill('workflow-end');
+                // When the log contract is read
+                for (const phrase of [
+                    'Deviation log (the skip log)',
+                    '`tmp/workflow-runs/<runId>/skips.md`',
+                    '`<occurrence-id> · <deviation-kind> · <evidence>`',
+                    'the baseline run id captured at activation',
+                    "a nested workflow writes to its parent's log",
+                    'there is no other id format',
+                ]) {
+                    assertTrue(protocol.includes(phrase), `start-workflow deviation-log contract lost "${phrase}"`);
+                }
+                // Then the deviation kinds form exactly the closed set
+                const marker = 'Deviation kinds (closed set; the reason code):';
+                const kindsLine = protocol.split('\n').find(line => line.includes(marker)) || '';
+                const kinds = [...kindsLine.slice(kindsLine.indexOf(marker)).matchAll(/`([a-z][a-z-]*)` \(/g)].map(m => m[1]);
+                assertTrue(JSON.stringify(kinds) === JSON.stringify(DEVIATION_KINDS),
+                    `deviation kinds changed: expected ${DEVIATION_KINDS.join(', ')}; got ${kinds.join(', ') || 'none'}`);
+                // And workflow-end writes only kinds from that set
+                const written = [...end.matchAll(/ · ([a-z][a-z-]*) · /g)].map(m => m[1]);
+                assertTrue(written.length > 0, 'workflow-end no longer writes a deviation-log line');
+                const unknown = written.filter(kind => !DEVIATION_KINDS.includes(kind));
+                assertTrue(unknown.length === 0, `workflow-end writes deviation kinds outside the closed set: ${unknown.join(', ')}`);
+                // And both review skills read the log when it exists
+                const readLine = "read the run's deviation log (`tmp/workflow-runs/<runId>/skips.md`) when present";
+                for (const name of ['workflow-review-changes', 'changes-review']) {
+                    assertTrue(readSkill(name).includes(readLine), `${name} no longer reads the deviation log as a review input`);
+                }
+            },
+        },
+        {
+            // Guards BR-GWF-03 + BR-GWF-15 (SC-3): a run cannot close while any declared outcome gate
+            // lacks evidence. The check comes first and covers every gate id the schema allows.
+            name: '[content-presence] TC-GWF-007 workflow-end first checks evidence for every outcome gate and blocks on a gap',
+            fn: () => {
+                // Given workflow-end and the schema's closed gate-id set
+                const end = readSkill('workflow-end');
+                const schema = JSON.parse(readFile(path.resolve(PROJECT_DIR, '.claude', 'workflows.schema.json')));
+                const gateIds = schema.definitions.OutcomeGate.properties.id.enum;
+                const steps = sectionBetween(end, '## What To Do', '\n---');
+                // When its first numbered step is read
+                const firstStep = /^(\d+)\. \*\*([^*]+)\*\*/m.exec(steps);
+                assertTrue(firstStep !== null && firstStep[1] === '0' && firstStep[2] === 'Outcome-gate evidence check',
+                    `workflow-end's first step is not step 0, the outcome-gate evidence check (found "${firstStep && firstStep[0]}")`);
+                const check = outcomeGateCheck();
+                // Then it refuses the close on missing evidence, names the gate, and maps every gate id
+                assertTrue(check.includes('**Missing evidence for any gate blocks the close:**'),
+                    'the outcome-gate check no longer blocks on missing evidence');
+                assertTrue(check.includes('name the gate and the missing evidence'),
+                    'the outcome-gate refusal no longer names the gate');
+                const unmapped = gateIds.filter(id => !check.includes(`\`${id}\`:`));
+                assertTrue(unmapped.length === 0, `outcome gates without an evidence rule: ${unmapped.join(', ')}`);
+                // And the ordered mandatory sequence starts with it
+                assertTrue(/\*\*IMPORTANT MANDATORY Steps:\*\* outcome-gate-evidence-check -> /.test(end),
+                    'workflow-end mandatory step list does not start with the outcome-gate evidence check');
+            },
+        },
+        {
+            // Guards BR-GWF-03 (R2-11): review-converged is machine-checked through the receipt CLI's
+            // JSON; a cited report from the gate's declared satisfier closes without a question and is
+            // logged, with a not-converged or stale report named in the log and the close message; the
+            // commit bar is unchanged.
+            name: '[content-presence] TC-GWF-042 review-converged reads the receipt JSON and accepts a cited report as a logged deviation',
+            fn: () => {
+                // Given workflow-end's outcome-gate check
+                const rule = outcomeGateCheck().split('\n').find(line => line.includes('`review-converged`:')) || '';
+                // When the review-converged rule is read
+                const required = [
+                    'node .claude/hooks/lib/review-receipt.cjs check',
+                    'read its JSON, not its exit code',
+                    '`ERROR` blocks',
+                    '`CLEAN` passes',
+                    '`CHANGED` with a non-null `review` passes',
+                    'a `skip` receipt alone is not a receipt',
+                    '`CHANGED` with `review: null` passes only when the run cites the review report',
+                    // the report comes from whichever step the gate declares as its satisfier (A-M1)
+                    'written by the occurrence that satisfies this gate',
+                    '`outcomeGates[].satisfiedBy`',
+                    '`<that occurrence-id> · review-report · <report path>`',
+                    'never block or ask when a report is cited',
+                    // a weak report still closes, but visibly (AC-GWF-07, A-M2)
+                    'not converged: <final status>',
+                    'stale: predates <occurrence-id>',
+                    'the close message repeats it',
+                    'Neither a receipt nor a cited report → block',
+                    'a commit still needs the receipt',
+                ];
+                const missing = required.filter(p => !rule.includes(p));
+                // Then every branch of the receipt contract is present
+                assertTrue(missing.length === 0,
+                    `workflow-end review-converged rule lost:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-GWF-01 + BR-GWF-14: a nested workflow-review-changes stays in the main session,
+            // and the flex rules keep that as a fixed dependency rather than a flexible step.
+            name: '[content-presence] TC-GWF-010 nested workflow-review-changes stays inline under the flex rules',
+            fn: () => {
+                // Given start-workflow
+                const skill = readSkill('start-workflow');
+                // When the nested-workflow gate and the flex rules are read
+                // Then both keep the inline rule
+                assertTrue(skill.includes('**EXCEPTION — `workflow-review-changes` runs INLINE in the main session (never a sub-agent):**'),
+                    'start-workflow lost the workflow-review-changes inline exception');
+                assertTrue(stepContract().includes('a nested `workflow-review-changes` runs inline'),
+                    'the flex rules no longer keep the nested review inline as a data dependency');
+            },
+        },
+        {
+            // Guards BR-GWF-04: the lean route never builds behavior the supplied spec does not contain.
+            name: '[content-presence] TC-GWF-019 workflow-implement-spec: a vague, contradictory or incomplete spec stops the route and escalates',
+            fn: () => {
+                // Given the lean route wrapper
+                const [escalation] = paragraphsMentioning(readSkill('workflow-implement-spec'), /\[ESCALATION/);
+                // When its escalation paragraph is read
+                const required = [
+                    'the spec is vague or contradictory',
+                    'the requested behavior is not in the supplied spec',
+                    'STOP before `/plan`',
+                    'ask the user to clarify the spec or switch to `workflow-feature`, which updates the spec first',
+                    'Never guess the missing behavior and never drop it silently',
+                ];
+                // Then all three triggers, both options and the no-guess rule sit in that one paragraph
+                assertTrue(Boolean(escalation), 'workflow-implement-spec lost its escalation paragraph');
+                const missing = required.filter(p => !escalation.includes(p));
+                assertTrue(missing.length === 0, `workflow-implement-spec escalation lost:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-GWF-05: spec-supplied work does not grow beyond the spec it was given.
+            name: '[content-presence] TC-GWF-020 workflow-implement-spec: plan scope is anchored to the supplied spec baseline',
+            fn: () => {
+                // Given the lean route wrapper and the plan skill that records the baseline
+                const [anchor] = paragraphsMentioning(readSkill('workflow-implement-spec'), /\[PLAN SCOPE ANCHOR\]/);
+                // When the plan-scope paragraph is read
+                const required = [
+                    'Plan scope is anchored to the supplied spec baseline',
+                    '`spec_baseline` at plan start',
+                    'every plan task traces to that baseline',
+                    '`## Proposed additions (need approval)`',
+                    'never a planned task',
+                ];
+                // Then the anchor, the trace and the approval route for additions are stated
+                assertTrue(Boolean(anchor), 'workflow-implement-spec lost its plan-scope anchor paragraph');
+                const missing = required.filter(p => !anchor.includes(p));
+                assertTrue(missing.length === 0, `workflow-implement-spec plan-scope anchor lost:\n  ${missing.join('\n  ')}`);
+                // And the plan section it points to still exists under that name
+                assertTrue(anchor.includes('Supplied-Spec Scope Baseline') && readSkill('plan').includes('## Supplied-Spec Scope Baseline'),
+                    'the anchor must point at the plan skill section that records spec_baseline');
+            },
+        },
+        {
+            // Guards BR-GWF-09 + BR-GWF-04: missing behavior is specified first, never built from a guess.
+            name: '[content-presence] TC-GWF-044 workflow-implement-spec: a spec lacking the requested behavior stops at the gap review; the descriptions route it to workflow-feature',
+            fn: () => {
+                // Given the lean and feature route wrappers
+                const lean = readSkill('workflow-implement-spec');
+                const feature = readSkill('workflow-feature');
+                // When the gap-review paragraph and both descriptions are read
+                const [escalation] = paragraphsMentioning(lean, /\[ESCALATION/);
+                const description = body => (/^description:[ \t]*(.*)$/m.exec(body) || [])[1] || '';
+                // Then the lean route stops at its gap review, which runs before planning
+                assertTrue(Boolean(escalation) && escalation.includes('`/spec-clarify` runs as a gap review of the supplied spec against the request'),
+                    'workflow-implement-spec must run /spec-clarify as the gap review that can stop the route');
+                assertTrue(/IMPORTANT MANDATORY Steps:\*\* \/investigate -> \/spec-clarify -> \/plan ->/.test(lean),
+                    'the gap review must run between /investigate and /plan');
+                // And each description sends the other case to the other route
+                assertTrue(description(lean).includes('A spec that lacks the requested behavior goes to workflow-feature'),
+                    'the lean description must route a spec gap to workflow-feature');
+                assertTrue(description(feature).includes('Spec-complete work goes to workflow-implement-spec'),
+                    'the feature description must route spec-complete work to workflow-implement-spec');
+            },
+        },
+        {
             name: '[content-presence] TC-CP-002 universal subagent-bootstrap phrases present in sampled agents',
             fn: () => {
                 // Sample one code agent + one non-code agent — bootstrap is universal (all 29).
@@ -337,13 +816,7 @@ module.exports = {
                     'integration-test-verify',
                     'workflow-write-integration-test',
                 ];
-                const missing = [];
-                for (const skill of familySkills) {
-                    const body = readSkill(skill);
-                    for (const [rule, phrase] of Object.entries(rules)) {
-                        if (!body.includes(phrase)) missing.push(`${skill} → missing rule "${rule}" ("${phrase}")`);
-                    }
-                }
+                const missing = familyRuleGaps(SKILLS_DIR, familySkills, 'integration-test-execution-discipline', rules);
                 assertTrue(missing.length === 0,
                     `integration-test execution-discipline rule drift:\n  ${missing.join('\n  ')}\n` +
                     `Fix: re-sync SYNC:integration-test-execution-discipline ` +
@@ -381,17 +854,80 @@ module.exports = {
                     'e2e-test',
                     'workflow-bugfix',
                 ];
-                const missing = [];
-                for (const skill of familySkills) {
-                    const body = readSkill(skill);
-                    for (const [rule, phrase] of Object.entries(rules)) {
-                        if (!body.includes(phrase)) missing.push(`${skill} → missing rule "${rule}" ("${phrase}")`);
-                    }
-                }
+                const missing = familyRuleGaps(SKILLS_DIR, familySkills, 'test-failure-fault-adjudication', rules);
                 assertTrue(missing.length === 0,
                     `test-failure fault-adjudication rule drift:\n  ${missing.join('\n  ')}\n` +
                     `Fix: re-sync SYNC:test-failure-fault-adjudication ` +
                     `(py -3 .claude/scripts/sync-update-blocks.py test-failure-fault-adjudication).`);
+            },
+        },
+        {
+            // Guards R2-19: once a family skill carries either pinned protocol as a guide entry, the
+            // fragments must still be reachable — in the projection file — and a lost guide or a
+            // projection missing one fragment must still fail, naming the skill and the rule.
+            name: '[content-presence] TC-PDL-084 TC-CP-009/-010 accept a guide carrier only while the projection holds every fragment',
+            fn: () => {
+                const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cp-guide-'));
+                try {
+                    for (const tag of ['integration-test-execution-discipline', 'test-failure-fault-adjudication']) {
+                        // Given: a fixture family skill holding a guide entry for the tag, and a
+                        // projection file holding every pinned fragment.
+                        const skillsDir = path.join(tmp, tag, '.claude', 'skills');
+                        const projection = path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
+                        const skillFile = path.join(skillsDir, 'family-skill', 'SKILL.md');
+                        fs.mkdirSync(path.dirname(projection), { recursive: true });
+                        fs.mkdirSync(path.dirname(skillFile), { recursive: true });
+                        const rules = { 'first-rule': 'First pinned fragment', 'second-rule': 'Second pinned fragment' };
+                        fs.writeFileSync(projection, `> ${rules['first-rule']}.\n> ${rules['second-rule']}.\n`);
+                        const guideLine = guideCarrier.formatGuideLine({ tag, summary: 'Fixture protocol', when: 'testing', path: `.claude/skills/shared/protocols/${tag}.md` });
+                        fs.writeFileSync(skillFile, `# Family\n\n${guideCarrier.GUIDE_BLOCK_START}\n\n${guideLine}\n\n${guideCarrier.GUIDE_BLOCK_END}\n`);
+                        const gaps = () => familyRuleGaps(skillsDir, ['family-skill'], tag, rules);
+
+                        // When the rule check runs, Then it passes.
+                        assertTrue(gaps().length === 0, `${tag}: guide carrier rejected: ${gaps().join('; ')}`);
+                        // When the projection lacks one fragment, Then it fails naming the skill and rule.
+                        fs.writeFileSync(projection, `> ${rules['first-rule']}.\n`);
+                        assertTrue(gaps().length === 1 && gaps()[0].startsWith('family-skill → missing rule "second-rule"'),
+                            `${tag}: a projection missing a fragment must fail: ${gaps().join('; ')}`);
+                        // When the guide entry is removed (projection whole again), Then both rules fail.
+                        fs.writeFileSync(projection, `> ${rules['first-rule']}.\n> ${rules['second-rule']}.\n`);
+                        fs.writeFileSync(skillFile, '# Family\n\nNo carrier.\n');
+                        assertTrue(gaps().length === 2 && gaps().every(g => g.startsWith('family-skill → missing rule')),
+                            `${tag}: a skill with neither form must fail: ${gaps().join('; ')}`);
+                        // And the inline form still passes on its own.
+                        fs.writeFileSync(skillFile, `# Family\n\n${rules['first-rule']}. ${rules['second-rule']}.\n`);
+                        fs.rmSync(projection);
+                        assertTrue(gaps().length === 0, `${tag}: an inline carrier must still pass`);
+                    }
+                } finally {
+                    fs.rmSync(tmp, { recursive: true, force: true });
+                }
+            },
+        },
+        {
+            // Business Intent / Invariant Guarded (BR-PDL-05, BR-PDL-15): an unreviewed second-host step
+            // never runs, so users must learn from the guide that a new or changed step waits for their
+            // review, where to review it, that the guides deliver until then, and that unchanged steps
+            // keep their earlier review.
+            name: '[content-presence] TC-PDL-028 the hooks guide tells second-host users to review new delivery steps',
+            fn: () => {
+                // Given the shipped hooks guide
+                const guide = readFile(HOOKS_GUIDE);
+                // When its trust note is read, Then one paragraph carries every note
+                const gaps = hookTrustNoteGaps(guide);
+                assertTrue(gaps.length === 0, `.claude/docs/hooks/README.md trust note is missing: ${gaps.join('; ')}`);
+
+                // And removing a note (boundary counter-case) fails, naming exactly that note
+                const note = paragraphsMentioning(guide, /`\/hooks`/).find(p => hookTrustNoteGaps(p).length === 0);
+                const withoutUnchanged = note.replace(/[^.]*\bearlier review still holds\b[^.]*\./i, '');
+                assertTrue(JSON.stringify(hookTrustNoteGaps(withoutUnchanged)) === JSON.stringify(['an unchanged step keeps its earlier review']),
+                    `dropping the unchanged-step sentence must fail on that note alone: ${hookTrustNoteGaps(withoutUnchanged).join('; ')}`);
+                const withoutReviewGate = note.replace(/[^.]*\bnew or changed\b[^.]*\./i, '');
+                assertTrue(hookTrustNoteGaps(withoutReviewGate).includes('a new or changed step runs only after review'),
+                    `dropping the review-gate sentence must fail: ${hookTrustNoteGaps(withoutReviewGate).join('; ')}`);
+                // And a guide with no `/hooks` paragraph fails on every note
+                assertTrue(hookTrustNoteGaps('# Hooks\n\nNo trust note here.\n').length === Object.keys(HOOK_TRUST_NOTES).length,
+                    'a guide without the trust note must fail on every note');
             },
         },
         {
@@ -817,6 +1353,195 @@ module.exports = {
                 }
                 assertTrue(missing.length === 0,
                     `UI-review surface obligations lost:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-ADS-05: with the trailer switch off (the default) the commit guidance asks for no line
+            // that nothing reads, and no text promises an automated check of it. Skill text ships with the
+            // bundle, so this asserts unguarded (like TC-CP-004).
+            name: '[content-presence] TC-ADS-006 commit template omits Fix-Origin by default and claims no sensor',
+            fn: () => {
+                // Given the commit skill
+                const body = readSkill('commit');
+                const step4 = sectionBetween(body, '### Step 4: Commit', '### Step 5');
+                // When its default message template (the first bash block of Step 4) is read
+                const template = /```bash\r?\n([\s\S]*?)```/.exec(step4);
+                assertTrue(template !== null && template[1].includes('git commit -F -'),
+                    'commit Step 4 lost its default message template (bash block piping into git commit -F -)');
+                // Then the template carries no Fix-Origin trailer
+                assertTrue(!template[1].includes('Fix-Origin'), `default commit template still carries Fix-Origin:\n${template[1]}`);
+                // And the default (switch absent or false) is stated as "no Fix-Origin line"
+                assertTrue(step4.includes('When the key is absent or `false`, the message carries no `Fix-Origin` line.'),
+                    'commit Step 4 no longer states that the default message has no Fix-Origin line');
+                // And no paragraph about the trailer claims a sensor, a presence check or a mandatory field
+                const claims = paragraphsMentioning(body, /Fix-Origin|fixOriginTrailer/)
+                    .filter(p => /\bsensors?\b|verif(?:y|ies)\s+(?:its\s+)?presence|required on every/i.test(p));
+                assertTrue(claims.length === 0, `commit skill claims a Fix-Origin check or requirement:\n  ${claims.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-ADS-05: turning the trailer on never leads anyone to rewrite existing history.
+            name: '[content-presence] TC-ADS-007 commit skill names commit.fixOriginTrailer and limits the trailer to new commits',
+            fn: () => {
+                // Given the part of the commit skill that describes the trailer option
+                const step4 = sectionBetween(readSkill('commit'), '### Step 4: Commit', '### Step 5');
+                // When a maintainer reads it
+                const missing = [
+                    '`commit.fixOriginTrailer` is `true` in `docs/project-config.json`',
+                    'It applies to new commits only',
+                    'never reword existing commits to add it',
+                ].filter(p => !step4.includes(p));
+                // Then it names the switch and scopes the trailer to new commits only
+                assertTrue(missing.length === 0, `commit Fix-Origin opt-in text lost:\n  ${missing.join('\n  ')}`);
+                // And no sentence advises rewording existing commits
+                const rewordAdvice = step4.split(/(?<=[.!?])\s+/).filter(s => /\breword/i.test(s) && !/\bnever\b/i.test(s));
+                assertTrue(rewordAdvice.length === 0, `commit skill advises rewording commits:\n  ${rewordAdvice.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards BR-ADS-02: sessions no longer install the graph tooling, so the explicit build installs it
+            // first, with one command that is the same on every OS, and stops on failure.
+            name: '[content-presence] TC-ADS-004 graph-build installs the graph tooling as its first step',
+            fn: () => {
+                // Given the graph-build skill
+                const body = readSkill('graph-build');
+                const steps = body.slice(body.indexOf('## Steps'));
+                // When its Steps section is read
+                const installAt = steps.indexOf(GRAPH_TOOLING_INSTALL_COMMAND);
+                const firstGraphCallAt = steps.indexOf('python .claude/scripts/code_graph');
+                // Then the node install command is present and precedes every graph CLI call
+                assertTrue(body.includes('## Steps') && installAt !== -1, 'graph-build lost the node ensurePythonDeps install step');
+                assertTrue(firstGraphCallAt === -1 || installAt < firstGraphCallAt,
+                    'graph-build runs a graph CLI command before installing the graph tooling');
+                // And a failed install stops the build with a message
+                const step0 = sectionBetween(steps, '### Step 0', '### ');
+                assertTrue(/Non-zero exit:\*\*\s*stop\./.test(step0), 'graph-build Step 0 no longer stops when the install fails');
+            },
+        },
+        {
+            // Guards decision D-2: a utility that drops its manual-only flag re-enters the model's skill
+            // list and self-triggers again; a flipped `commit`/`learn` breaks the agent and lesson paths.
+            name: '[content-presence] TC-ADS-008 command-only utility skills are manual-only; commit, learn and git-conflict-resolve stay callable',
+            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skill defaults (framework-repo signal)',
+            fn: () => {
+                // Given the command-only utilities and the skills the owner keeps model-callable
+                const defects = [];
+                // When each SKILL.md frontmatter is parsed
+                for (const name of COMMAND_ONLY_UTILITIES) {
+                    const values = modelInvocationValues(readSkill(name));
+                    if (values === null) defects.push(`${name}: no YAML frontmatter`);
+                    else if (values.length !== 1 || values[0] !== 'true') {
+                        defects.push(`${name}: disable-model-invocation must be exactly one \`true\`, found ${JSON.stringify(values)}`);
+                    }
+                }
+                for (const name of MODEL_CALLABLE_BY_DECISION) {
+                    const values = modelInvocationValues(readSkill(name)) || [];
+                    if (values.includes('true')) defects.push(`${name}: must stay model-callable, found disable-model-invocation: true`);
+                }
+                // Then every utility is manual-only and the callable pair is untouched
+                assertTrue(defects.length === 0, `command-only skill policy (D-2) broken:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards the primacy/recency rule under the emphasis diet: body prose may go plain, the
+            // top and closing anchors may not.
+            name: '[content-presence] TC-ADS-025 anchors-only emphasis: a stripped top or closing anchor is named (fixture)',
+            fn: () => {
+                // Given a fixture skill whose anchors hold emphasis and whose body is plain
+                const floors = { top: 2, closing: 2 };
+                const skill = [
+                    '---', 'name: fx', "description: 'Fixture.'", '---', '',
+                    '<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->', '> **[BLOCKING]** Run steps in order.', '<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->', '',
+                    '## Quick Summary', '', 'NEVER skip the checklist.', '',
+                    '## Step 1', '', 'Read the input; stop when it is missing.', '',
+                    '<!-- SYNC:fx -->', 'MUST MUST MUST', '<!-- /SYNC:fx -->', '',
+                    '## Closing Reminders', '', '**IMPORTANT MUST ATTENTION** cite evidence.', '',
+                ].join('\n');
+                // When it is checked, Then no anchor gap is reported
+                assertTrue(emphasisAnchorGaps(skill, floors).length === 0, `unexpected gaps: ${emphasisAnchorGaps(skill, floors).join('; ')}`);
+                // When the Quick Summary loses its marker, Then the top anchor is named
+                const plainTop = emphasisAnchorGaps(skill.replace('NEVER skip', 'Do not skip'), floors);
+                assertTrue(plainTop.some(g => g.startsWith('top anchor')), `top anchor not named: ${plainTop.join('; ')}`);
+                // When the closing reminder goes plain, Then the closing anchor is named
+                const plainClose = emphasisAnchorGaps(skill.replace('**IMPORTANT MUST ATTENTION** cite', 'Cite'), floors);
+                assertTrue(plainClose.some(g => g.startsWith('closing anchor')), `closing anchor not named: ${plainClose.join('; ')}`);
+                // When a section is removed, Then its absence is named
+                assertTrue(emphasisAnchorGaps(skill.replace('## Closing Reminders', '## Notes'), floors).some(g => g.includes('no `## Closing Reminders`')), 'missing closing section not named');
+                // And a SYNC body's markers never count toward an anchor (moving the markers into SYNC fails)
+                const syncOnly = skill.replace('NEVER skip', 'Do not skip').replace('## Step 1', '<!-- SYNC:q -->\nNEVER NEVER\n<!-- /SYNC:q -->\n\n## Step 1');
+                assertTrue(emphasisAnchorGaps(syncOnly, floors).some(g => g.startsWith('top anchor')), 'SYNC markers were counted toward the top anchor');
+            },
+        },
+        {
+            name: '[content-presence] TC-ADS-025 the emphasis-diet skills keep their top and closing anchor markers',
+            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skill anchors (framework-repo signal)',
+            fn: () => {
+                // Given the five G3-selected skills and the anchor counts they held when selected
+                const gaps = [];
+                // When each SKILL.md is read
+                for (const [name, floors] of Object.entries(EMPHASIS_ANCHOR_FLOORS)) {
+                    for (const gap of emphasisAnchorGaps(readSkill(name), floors)) gaps.push(`${name}: ${gap}`);
+                }
+                // Then no anchor lost emphasis markers
+                assertTrue(gaps.length === 0, `emphasis anchors stripped:\n  ${gaps.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards lessons.md "a tripwire per guard": every CJS suite that gates a self-check on
+            // tests/lib/framework-repo-guard.cjs (content-presence, project-config-refactor-keys,
+            // workflow-routing-switch) must resolve exactly like the ESM helper, which PORT-011 locks
+            // active here. A drift makes a guarded self-check skip silently, so both the layouts that
+            // decide the signal and this checkout are compared.
+            name: '[content-presence] tripwire: the shared synchronous framework-repo guard agrees with framework-repo.helper',
+            skip: fs.existsSync(FRAMEWORK_REPO_HELPER) ? false : 'framework-repo helper not present in this bundle',
+            fn: async () => {
+                const helper = await import(pathToFileURL(FRAMEWORK_REPO_HELPER).href);
+                // Given fixture roots for each layout the signal depends on (the helpers read only files
+                // under the root they are given, so no env or home-dir state is involved)
+                const upstream = frameworkRepoGuard.DEFAULT_FRAMEWORK_PACKAGE_NAME;
+                const pkg = name => JSON.stringify({ name });
+                const tooling = name => JSON.stringify({ portability: { toolingPackageName: name } });
+                const cases = [
+                    { label: 'upstream name, no config', files: { 'package.json': pkg(upstream) }, expected: true },
+                    { label: 'adopter package', files: { 'package.json': pkg('adopter-app') }, expected: false },
+                    { label: 'no package.json', files: {}, expected: false },
+                    { label: 'malformed package.json', files: { 'package.json': '{bad' }, expected: false },
+                    {
+                        label: 'configured tooling name',
+                        files: { 'package.json': pkg('vendor-tooling'), 'docs/project-config.json': tooling('vendor-tooling') },
+                        expected: true
+                    },
+                    {
+                        label: 'config relocated by .ck.json',
+                        files: {
+                            'package.json': pkg('vendor-tooling'),
+                            '.claude/.ck.json': JSON.stringify({ portability: { projectConfigPath: 'config/team.json' } }),
+                            'config/team.json': tooling('vendor-tooling'),
+                            'docs/project-config.json': tooling('other-name')
+                        },
+                        expected: true
+                    }
+                ];
+                for (const { label, files, expected } of cases) {
+                    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-framework-guard-'));
+                    try {
+                        for (const [relative, body] of Object.entries(files)) {
+                            fs.mkdirSync(path.dirname(path.join(root, relative)), { recursive: true });
+                            fs.writeFileSync(path.join(root, relative), body, 'utf8');
+                        }
+                        // When both helpers resolve the signal
+                        const sync = frameworkRepoGuard.isFrameworkRepo(root);
+                        const esm = helper.isFrameworkRepo(root);
+                        // Then they agree, and on the expected answer
+                        assertTrue(sync === esm, `${label}: guard parity: helper=${esm} sync=${sync}`);
+                        assertTrue(sync === expected, `${label}: expected ${expected}, got ${sync}`);
+                    } finally {
+                        fs.rmSync(root, { recursive: true, force: true });
+                    }
+                }
+                // And this checkout resolves identically through both
+                assertTrue(helper.isFrameworkRepo(PROJECT_DIR) === IS_FRAMEWORK_REPO,
+                    `guard parity: helper=${helper.isFrameworkRepo(PROJECT_DIR)} sync=${IS_FRAMEWORK_REPO}`);
             },
         },
     ],

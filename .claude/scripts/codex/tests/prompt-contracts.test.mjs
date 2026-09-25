@@ -11,6 +11,21 @@ async function read(relativePath) {
     return fs.readFile(path.join(repoRoot, relativePath), 'utf8');
 }
 
+// A skill's contract is its SKILL.md plus every `references/*.md` (sorted), read as one text, so a
+// pinned phrase holds wherever the skill keeps it (a mode section may move to a point-of-use reference).
+async function readSkillContract(name) {
+    const dir = path.join(repoRoot, '.claude', 'skills', name);
+    const texts = [await fs.readFile(path.join(dir, 'SKILL.md'), 'utf8')];
+    const refs = await fs.readdir(path.join(dir, 'references')).catch(error => {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+    });
+    for (const file of refs.filter(entry => entry.endsWith('.md')).sort()) {
+        texts.push(await fs.readFile(path.join(dir, 'references', file), 'utf8'));
+    }
+    return texts.join('\n');
+}
+
 test('market-analysis template declares the knowledge-review citation contract (TC-PROMPT-001)', async () => {
     const template = await read('.claude/templates/market-analysis-template.md');
     const marketSkill = await read('.claude/skills/market-analysis/SKILL.md');
@@ -188,7 +203,7 @@ test('active-plan and workflow-end prompts agree with live state ownership (TC-P
 });
 
 test('why-review council suppression resolves the project-owned workflow state (TC-PROMPT-007)', async () => {
-    const whyReview = await read('.claude/skills/why-review/SKILL.md');
+    const whyReview = await readSkillContract('why-review');
     const workflowState = await read('.claude/hooks/lib/workflow-state.cjs');
 
     assert.match(whyReview, /resolve the current `workflowId` from host-injected workflow context/);

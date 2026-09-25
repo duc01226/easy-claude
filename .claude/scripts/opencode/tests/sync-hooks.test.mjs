@@ -78,7 +78,28 @@ const HOOK_SCRIPTS = {
     "  fs.appendFileSync(path.join(dir, 'hook-payloads.jsonl'), JSON.stringify(JSON.parse(raw)) + '\\n');",
     "});",
   ].join("\n"),
+  // Condition probes: each appends the file path it was started for to its own marker file.
+  ...Object.fromEntries(["probe", "probe-unknown"].map((name) => [`${name}.cjs`, [
+    "const fs = require('node:fs');",
+    "const path = require('node:path');",
+    "let raw = '';",
+    "process.stdin.on('data', (chunk) => { raw += chunk.toString(); });",
+    "process.stdin.on('end', () => {",
+    "  const dir = path.join(process.env.CLAUDE_PROJECT_DIR || process.cwd(), 'tmp');",
+    "  fs.mkdirSync(dir, { recursive: true });",
+    `  fs.appendFileSync(path.join(dir, '${name}.jsonl'), JSON.stringify(JSON.parse(raw).tool_input.file_path) + '\\n');`,
+    "});",
+  ].join("\n")])),
 };
+
+async function readMarkerLines(root, name) {
+  try {
+    return (await fs.readFile(path.join(root, "tmp", name), "utf8")).split("\n").filter(Boolean).map((line) => JSON.parse(line));
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
+}
 
 const NOTIFY_ROUTER = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../hooks/notifications/notify.cjs");
 
@@ -150,6 +171,15 @@ async function loadBridge(pluginPath) {
   const module = await import(`${pathToFileURL(pluginPath).href}?t=${Date.now()}-${Math.random()}`);
   assert.equal(typeof module.EasyClaudeHooks, "function", "generated plugin must export EasyClaudeHooks");
   return module.EasyClaudeHooks;
+}
+
+// The chat.message output opencode hands the plugin: every user part is already saved
+// with its own id plus the message's sessionID and messageID.
+function userMessage(text, { sessionID = "ses_test", messageID = "msg_test", partID = "prt_test" } = {}) {
+  return {
+    message: { id: messageID, sessionID, role: "user" },
+    parts: [{ id: partID, sessionID, messageID, type: "text", text }],
+  };
 }
 
 test("extractHookPath parses node $CLAUDE_PROJECT_DIR hook commands", () => {
@@ -290,7 +320,7 @@ test("generated bridge injects UserPromptSubmit context and SessionStart system 
     const factory = await loadBridge(pluginPath);
     const hooks = await factory({ directory: root });
 
-    const message = { parts: [{ type: "text", text: "hello" }] };
+    const message = userMessage("hello", { sessionID: "s1" });
     await hooks["chat.message"]({ sessionID: "s1" }, message);
     assert.ok(message.parts.some((part) => part.text === "PROMPT_CTX" && part.synthetic === true));
 
@@ -323,7 +353,7 @@ test("generated bridge injects plain-text UserPromptSubmit stdout as context, ke
     const hooks = await factory({ directory: root });
 
     // When a user message goes through the real generated bridge
-    const message = { parts: [{ type: "text", text: "hello" }] };
+    const message = userMessage("hello", { sessionID: "s1" });
     await hooks["chat.message"]({ sessionID: "s1" }, message);
 
     // Then exactly the trimmed plain text and the JSON additionalContext are injected, in hook order
@@ -347,8 +377,74 @@ test("generated bridge injects nothing when every UserPromptSubmit hook prints n
     const factory = await loadBridge(pluginPath);
     const hooks = await factory({ directory: root });
 
+    const message = userMessage("hello", { sessionID: "s1" });
+    await hooks["chat.message"]({ sessionID: "s1" }, message);
+    assert.deepEqual(message.parts, userMessage("hello", { sessionID: "s1" }).parts);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge gives every injected UserPromptSubmit part the id, sessionID and messageID opencode requires", async () => {
+  // Given two UserPromptSubmit hooks that both add context (JSON additionalContext and plain stdout)
+  const settings = {
+    hooks: {
+      UserPromptSubmit: [
+        { hooks: [{ type: "command", command: hookCommand("prompt.cjs") }] },
+        { hooks: [{ type: "command", command: hookCommand("prompt-plain.cjs") }] },
+      ],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+    const identity = { sessionID: "ses_abc", messageID: "msg_abc", partID: "prt_abc" };
+
+    // When an opencode user message goes through the generated bridge
+    const message = userMessage("hello", identity);
+    await hooks["chat.message"]({ sessionID: identity.sessionID, messageID: identity.messageID }, message);
+
+    // Then each injected part carries the message's sessionID and messageID, because opencode
+    // rejects a user part missing any of id, sessionID or messageID and fails the whole prompt
+    const injected = message.parts.filter((part) => part.synthetic === true);
+    assert.deepEqual(injected.map((part) => part.text), ["PROMPT_CTX", "PLAIN_PROMPT_CTX"]);
+    for (const part of injected) {
+      assert.equal(part.sessionID, identity.sessionID, "injected part must carry the message sessionID");
+      assert.equal(part.messageID, identity.messageID, "injected part must carry the message messageID");
+      assert.equal(part.type, "text");
+    }
+    // And each part id is the first part's id plus a 2-digit index, unique within the message
+    const ids = message.parts.map((part) => part.id);
+    assert.equal(new Set(ids).size, ids.length, "part ids must be unique within the message");
+    for (const part of injected) {
+      assert.match(part.id, /^prt_abc\d{2}$/, "injected part id is the first part id plus a 2-digit index");
+    }
+    assert.deepEqual(message.parts[0], userMessage("hello", identity).parts[0], "the user's own part is unchanged");
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("generated bridge drops UserPromptSubmit context rather than push a part opencode would reject", async () => {
+  // Given a UserPromptSubmit hook that adds context
+  const settings = {
+    hooks: {
+      UserPromptSubmit: [{ hooks: [{ type: "command", command: hookCommand("prompt.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When the message offers no part id and no messageID to attach the context to
     const message = { parts: [{ type: "text", text: "hello" }] };
     await hooks["chat.message"]({ sessionID: "s1" }, message);
+
+    // Then no part lacking the required keys is pushed, so the prompt is not failed
     assert.deepEqual(message.parts, [{ type: "text", text: "hello" }]);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
@@ -416,6 +512,68 @@ process.stdin.on("end", () => {
     assert.equal(observed.git, "C:\\Program Files\\Git\\cmd\\git.exe");
     assert.match(observed.path, /^C:\\Program Files\\Git\\cmd;/);
     assert.match(observed.input, /"hook_event_name":"SessionStart"/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+const PROTOCOL_DELIVERY_LIB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../hooks/lib/protocol-delivery.cjs");
+
+test("[TC-PDL-015] generated bridge reports session.compacted to the protocol-delivery ledger so the next skill load re-delivers", async () => {
+  // Given a project whose protocol-delivery lib is the real one, a session that already received a
+  // delivery (its record is in the ledger store) and a session that never did
+  const root = await createProject();
+  try {
+    await fs.mkdir(path.join(root, ".claude", "hooks", "lib"), { recursive: true });
+    await fs.writeFile(
+      path.join(root, ".claude", "hooks", "lib", "protocol-delivery.cjs"),
+      `module.exports = require(${JSON.stringify(PROTOCOL_DELIVERY_LIB)});\n`,
+      "utf8"
+    );
+    const store = path.join(root, "tmp", "protocol-delivery");
+    await fs.mkdir(path.join(store, "ses_delivered", "main"), { recursive: true });
+    await fs.writeFile(path.join(store, "ses_delivered", "main", "review-alpha.json"), JSON.stringify({ hash: "h", deliveredAt: 1, form: "full" }), "utf8");
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When opencode compacts both sessions
+    const before = Date.now();
+    await hooks.event({ event: { type: "session.compacted", properties: { sessionID: "ses_delivered" } } });
+    await hooks.event({ event: { type: "session.compacted", properties: { sessionID: "ses_never" } } });
+    const after = Date.now();
+
+    // Then the delivered session is stamped as compacted in the ledger store, after its delivery
+    const stamp = JSON.parse(await fs.readFile(path.join(store, "ses_delivered", "_session.json"), "utf8"));
+    assert.ok(stamp.compactedAt >= before && stamp.compactedAt <= after, `compactedAt ${stamp.compactedAt} outside [${before}, ${after}]`);
+    // And a session with nothing delivered gets no store entry
+    await assert.rejects(fs.access(path.join(store, "ses_never")), "a session without deliveries must not be written");
+    // And the SessionStart hooks still run for the compacted session
+    const system = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "ses_delivered" }, system);
+    assert.deepEqual(system.system, ["SESSION_CTX"]);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("[TC-PDL-015] generated bridge keeps session.compacted working when the protocol-delivery lib fails", async () => {
+  // Given a protocol-delivery lib that throws as soon as it is loaded
+  const root = await createProject();
+  try {
+    await fs.mkdir(path.join(root, ".claude", "hooks", "lib"), { recursive: true });
+    await fs.writeFile(path.join(root, ".claude", "hooks", "lib", "protocol-delivery.cjs"), 'throw new Error("broken lib");\n', "utf8");
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When opencode compacts a session
+    await hooks.event({ event: { type: "session.compacted", properties: { sessionID: "s1" } } });
+
+    // Then the event completes and the SessionStart hooks still run (the report is best effort)
+    const system = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "s1" }, system);
+    assert.deepEqual(system.system, ["SESSION_CTX"]);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }
@@ -518,6 +676,45 @@ test("[TC-NT-071] generated bridge still runs SessionEnd cleanup when session me
   }
 });
 
+test("[TC-NT-014] generated bridge marks a child session going idle so only the main session's turn end alerts", async () => {
+  // Given the real generated OpenCode bridge with a Stop hook configured
+  const settings = {
+    hooks: {
+      Stop: [{ hooks: [{ type: "command", command: hookCommand("record-all.cjs") }] }],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+
+    // When the main session delegates to two child sessions, each child goes idle, then the main one
+    await hooks.event({ event: { type: "session.created", properties: { info: { id: "main-session" } } } });
+    await hooks.event({ event: { type: "session.created", properties: { info: { id: "child-a", parentID: "main-session" } } } });
+    await hooks.event({ event: { type: "session.updated", properties: { info: { id: "child-b", parentID: "main-session" } } } });
+    for (const sessionID of ["child-a", "child-b", "main-session"]) {
+      await hooks.event({ event: { type: "session.idle", properties: { sessionID } } });
+    }
+
+    // Then every idle still reaches the Stop hooks
+    const payloads = await readRecordedPayloads(root);
+    assert.deepEqual(payloads.map((p) => p.session_id), ["child-a", "child-b", "main-session"]);
+    // And only the child idles carry the delegated-conversation marker
+    const [childA, childB, main] = payloads;
+    assert.equal(childA.agent_id, "child-a");
+    assert.equal(childB.agent_id, "child-b");
+    assert.equal(Object.hasOwn(main, "agent_id"), false, "the main session idle must not look delegated");
+
+    // And the real notification router alerts once, for the main session only
+    assert.match(routeThroughRealRouter(childA, root), /Skipped: subagent Stop/);
+    assert.match(routeThroughRealRouter(childB, root), /Skipped: subagent Stop/);
+    assert.doesNotMatch(routeThroughRealRouter(main, root), /Skipped/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("[TC-NT-011] generated bridge defers only the question tool precursor so one question alert is raised", async () => {
   // Given the real generated OpenCode bridge with a PreToolUse hook for the question and shell tools
   const settings = {
@@ -543,6 +740,58 @@ test("[TC-NT-011] generated bridge defers only the question tool precursor so on
     assert.equal(shell.notification_deferred, false);
     // And the real notification router skips the deferred precursor, leaving question.asked as the one alert
     assert.match(routeThroughRealRouter(question, root), /Skipped: deferred question precursor/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("[TC-PDL-068] generated bridge checks a handler's Read condition before it starts the hook", async () => {
+  // Given file-read hooks: a probe conditioned on skill files, a hook with no condition, and a
+  // probe whose condition has a form the bridge does not evaluate
+  const settings = {
+    hooks: {
+      PostToolUse: [
+        {
+          matcher: "Read",
+          hooks: [
+            { type: "command", command: hookCommand("probe.cjs"), if: "Read(**/SKILL.md)" },
+            { type: "command", command: hookCommand("record-all.cjs") },
+            { type: "command", command: hookCommand("probe-unknown.cjs"), if: "Bash(git *)" },
+          ],
+        },
+      ],
+    },
+  };
+  const root = await createProject(settings);
+  try {
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    // And the bridge table carries each condition only on the handler that declared it
+    assert.deepEqual(buildHooksConfig(settings).hooks.PostToolUse[0].hooks, [
+      { type: "command", command: ".claude/hooks/probe.cjs", if: "Read(**/SKILL.md)" },
+      { type: "command", command: ".claude/hooks/record-all.cjs" },
+      { type: "command", command: ".claude/hooks/probe-unknown.cjs", if: "Bash(git *)" },
+    ]);
+    const factory = await loadBridge(pluginPath);
+    const hooks = await factory({ directory: root });
+    const read = (filePath) => hooks["tool.execute.after"]({ tool: "read", sessionID: "s-read", callID: "c", args: { filePath } }, { output: "file text" });
+
+    // When the bridge receives a read of an ordinary source file
+    await read("src/app.js");
+    // Then the conditioned probe is never started, while the unconditioned hook and the unknown form run
+    assert.deepEqual(await readMarkerLines(root, "probe.jsonl"), [], "the probe started for an ordinary file");
+    assert.equal((await readRecordedPayloads(root)).length, 1, "the unconditioned hook runs once");
+    assert.deepEqual(await readMarkerLines(root, "probe-unknown.jsonl"), ["src/app.js"], "an unknown condition form must never drop a hook");
+
+    // When it receives reads of a skill file, relative and as a drive-letter path with backslashes
+    await read(".claude/skills/x/SKILL.md");
+    await read("C:\\p\\.claude\\skills\\x\\SKILL.md");
+    // Then the probe starts for each
+    assert.deepEqual(await readMarkerLines(root, "probe.jsonl"), [".claude/skills/x/SKILL.md", "C:\\p\\.claude\\skills\\x\\SKILL.md"]);
+    // And a file that only resembles a skill file does not start it
+    await read("docs/SKILL.md.bak");
+    await read("notes/my-SKILL.md");
+    assert.equal((await readMarkerLines(root, "probe.jsonl")).length, 2, "the probe started for a file that is not a skill file");
+    assert.equal((await readRecordedPayloads(root)).length, 5, "the unconditioned hook runs for every read");
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

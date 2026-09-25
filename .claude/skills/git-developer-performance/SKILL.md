@@ -2,6 +2,7 @@
 name: git-developer-performance
 version: 1.0.0
 description: '[Git] Use when generating developer KPI, contribution, story point, man-day, or code-quality reports from git commit history.'
+disable-model-invocation: true
 ---
 
 ## Quick Summary
@@ -106,209 +107,21 @@ Before delivering a generated report:
 2. Run the command for the requested repo/range.
 3. Confirm the output path is outside `.claude`.
 
-<!-- SYNC:ai-mistake-prevention -->
+<!-- PROTOCOL-GUIDES:START -->
 
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-<!-- /SYNC:ai-mistake-prevention -->
+- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
+- `estimation-framework` — Bottom-up estimation with derived story points and a min-max range; estimating effort → .claude/skills/shared/protocols/estimation-framework.md
+- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 
-<!-- SYNC:estimation-framework -->
-
-> **Estimation Framework** — Bottom-up first; SP DERIVED; output min-max range when likely ≥3d. Stack-agnostic. Baseline: 3-5yr dev, 6 productive hrs/day. AI estimate assumes Claude Code + project context.
->
-> **Method:**
->
-> 1. **Blast Radius pass** (below) — drives code AND test cost
-> 2. Decompose phases → hours/phase → `bottom_up_hours = Σ phase_hours`
-> 3. `likely_days = ceil(bottom_up_hours / 6) × productivity_factor`
-> 4. Sum **Risk Margin** (base + add-ons) → `max_days = likely_days × (1 + margin)`
-> 5. `min_days = likely_days × 0.9`
-> 6. Output as range when `likely_days ≥3`; single point allowed `<3` (still record margin)
-> 7. `man_days_ai` = same range × AI speedup
-> 8. `story_points` DERIVED from `likely_days` via SP-Days — NEVER driver. Disagreement >50% → trust bottom-up
->
-> **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
->
-> **Cost Driver Heuristic (apply BEFORE work-type row):**
->
-> - **UI dominates** in CRUD/business apps — 1.5-3x backend (states, validation, responsive, a11y, polish)
-> - **Backend dominates ONLY:** multi-aggregate invariants, cross-service contracts, schema migrations, heavy query/perf, new event flows
->
-> **Reuse-vs-Create axis (PRIMARY lever, per layer):**
->
-> | UI tier                                      | Cost     |
-> | -------------------------------------------- | -------- |
-> | Reuse component on existing screen           | 0.1-0.3d |
-> | Add control/column to existing screen        | 0.3-0.8d |
-> | Compose components into NEW screen           | 1-2d     |
-> | NEW screen, custom layout/states/validation  | 2-4d     |
-> | NEW shared/common component (themed, tested) | 3-6d+    |
->
-> | Backend tier                                         | Cost      |
-> | ---------------------------------------------------- | --------- |
-> | Reuse query/handler from new place                   | 0.1-0.3d  |
-> | Small update existing handler/entity                 | 0.3-0.8d  |
-> | NEW query on existing repo/model                     | 0.5-1d    |
-> | NEW command/handler on existing aggregate (additive) | 1-2d      |
-> | NEW aggregate/entity (repo, validation, events)      | 2-4d      |
-> | NEW cross-service contract OR schema migration       | 2-4d each |
-> | Multi-aggregate invariant / heavy domain rule        | 3-5d      |
->
-> **Rule:** Sum tiers across UI+backend+tests, apply productivity factor. Reuse short-circuits tiers — call out.
->
-> **Test-Scope drivers (compute test_count EXPLICITLY — "+tests" hand-wave is #1 failure):**
->
-> | Driver                            | Count                                                  |
-> | --------------------------------- | ------------------------------------------------------ |
-> | Happy-path journeys               | 1 per story / AC main flow                             |
-> | State-machine transitions         | reachable transitions × allowed actors                 |
-> | Multi-entity state combos         | state(A) × state(B) — REACHABLE only, not Cartesian    |
-> | Authorization matrix              | (owner, non-owner, elevated, unauth) × each mutation   |
-> | Validation rules                  | 1 per required field / boundary / format / cross-field |
-> | UI states (per new screen/dialog) | happy, loading, empty, error, partial — present only   |
-> | Negative paths / invariants       | 1 per violatable business rule                         |
->
-> | Test tier (Trad, incl. setup+assert+flake) | Cost     |
-> | ------------------------------------------ | -------- |
-> | 1-5 cases, fixtures reused                 | 0.3-0.5d |
-> | 6-12 cases, 1 new fixture                  | 0.5-1d   |
-> | 13-25 cases, multi-entity setup            | 1-2d     |
-> | 26-50 cases OR new state-machine coverage  | 2-3d     |
-> | >50 cases OR full E2E journey              | 3-5d     |
->
-> **Test multipliers:** new fixture/seed harness +0.5d · cross-service/bus assertion +0.3d each · UI E2E ×1.5 · each new role +1-2 cases
->
-> **Blast Radius (mandatory pre-pass — affects code AND test):**
->
-> 1. Files/components directly modified — count
-> 2. Of those, "complex" (>500 LOC, multi-handler, central, frequently-modified) — count
-> 3. Downstream consumers (callers, event subscribers, cross-service) — list
-> 4. Shared/common code touched (multi-app blast) — yes/no
-> 5. Regression scope — areas needing re-test
->
-> **Rule:** Complex touch → add `risk_factors`. Each downstream consumer → +1-3 regression cases. Blast >5 areas OR >2 complex → re-evaluate SPLIT before estimating.
->
-> **Risk Margin (drives max bound):**
->
-> | likely_days         | Base margin                     |
-> | ------------------- | ------------------------------- |
-> | <1d trivial         | +10%                            |
-> | 1-2d small additive | +20%                            |
-> | 3-4d real feature   | +35%                            |
-> | 5-7d large          | +50%                            |
-> | 8-10d very large    | +75%                            |
-> | >10d                | +100% AND **flag SHOULD SPLIT** |
->
-> **Risk-factor add-ons (additive — enumerate in `risk_factors`):**
->
-> | Factor                                                                | +margin |
-> | --------------------------------------------------------------------- | ------- |
-> | `touches-complex-existing-feature` (>500 LOC, multi-handler, central) | +20%    |
-> | `cross-service-contract` change                                       | +25%    |
-> | `schema-migration-on-populated-data`                                  | +25%    |
-> | `new-tech-or-unfamiliar-pattern`                                      | +30%    |
-> | `regression-fan-out` (≥3 downstream areas re-test)                    | +20%    |
-> | `performance-or-latency-critical`                                     | +20%    |
-> | `concurrency-race-event-ordering`                                     | +25%    |
-> | `shared-common-code` (multi-consumer/multi-app)                       | +25%    |
-> | `unclear-requirements-or-design`                                      | +30%    |
->
-> **Collapse rule:** total margin >100% → STOP, split (padding past 2x is dishonesty). Margin <15% on `likely_days ≥5` → under-estimated, widen.
->
-> **Work-Type Caps (hard ceilings on `likely_days`):**
-> | Work type | Max SP | Max likely |
-> | --- | --- | --- |
-> | Single field / config flag / style fix | 1 | 0.5d |
-> | Add property to existing model + bind to existing UI | 2 | 1d |
-> | **Additive endpoint + minor UI control** (button/menu/column), reuses fixtures | **3** | **2-3d** |
-> | Additive endpoint + **NEW UI surface** OR additive multi-layer + new domain rule + 2+ test files | 5 | 3-5d |
-> | NEW model/aggregate OR migration OR cross-module contract OR heavy test (>1.5d) OR NEW UI + non-trivial backend | 8 | 5-7d |
-> | NEW UI surface + (NEW aggregate OR migration OR cross-service contract) | 13 | SHOULD split |
-> | Cross-service contract + migration combined | 13 | SHOULD split |
-> | Beyond | 21 | MUST split |
->
-> **SP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
-> **AI speedup:** SP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
->
-> **MANDATORY frontmatter:**
->
-> ```yaml
-> story_points: <n>
-> complexity: low | medium | high | critical
-> man_days_traditional: '<min>-<max>d' # range when likely ≥3d; '<N>d' when <3d
-> man_days_ai: '<min>-<max>d'
-> risk_margin_pct: <n> # base + add-ons
-> risk_factors: [touches-complex-existing-feature, regression-fan-out] # closed-list from add-ons; [] if none
-> blast_radius:
->     touched_areas: <n>
->     complex_touched: <n>
->     downstream_consumers: [list or count]
->     shared_common_code: yes | no
-> estimate_scope_included: [code, integration-tests, frontend, i18n, docs]
-> estimate_scope_excluded: [unit-tests, e2e, perf, deployment, code-review-rounds]
-> estimate_reasoning: |
->     5-7 lines covering:
->     (a) UI tier — row applied
->     (b) Backend tier — row applied
->     (c) Test scope — case breakdown by driver, file count, fixtures, tier row
->     (d) Cost driver — dominant tier + why
->     (e) Blast radius — touched, complex, regression scope
->     (f) Risk factors — list driving margin; why not larger/smaller
->     Example: "UI: compose Form/Table/Dialog → NEW screen (~1.5d). Backend: NEW command on existing aggregate,
->     reuses validation+repo (~1d). Tests: 4 transitions × 2 actors + 3 validation + 2 UI states = 13 cases,
->     1 new fixture → tier 13-25 ~1.5d. Driver: UI composition + new states. Blast: 4 areas, 1 complex.
->     Risk: base 35% + touches-complex +20% = 55% → max 3.9d → range 2.5-4d."
-> ```
->
-> **Sanity self-check:**
->
-> - `likely_days ≥3d` and single-point? → reject, must be range
-> - Margin <15% on `likely_days ≥5d`? → under-estimated, widen
-> - Margin >100%? → STOP, split instead of buffer
-> - Complex existing feature touched, no regression budget in `(c)`? → reject
-> - Blast `>5` areas OR `>2` complex, no split discussion? → reject
-> - Purely additive on existing model AND existing UI? → cap SP 3 unless tests >1.5d
-> - NEW UI surface (page/complex form/dashboard)? → SP 5+ even if backend one endpoint
-> - Backend cross-service / migration / multi-aggregate? → SP 8+ regardless of UI
-> - `bottom_up_hours / 6` vs SP-Days disagreement >50%? → trust bottom-up, downgrade SP
-> - Without tests, SP drops ≥1 bucket? → tests dominate; state explicitly
-> - Reasoning called out UI vs backend vs blast vs risk factors? → if missing, add
-
-<!-- /SYNC:estimation-framework -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
+<!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
+
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders

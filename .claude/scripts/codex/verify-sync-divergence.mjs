@@ -374,14 +374,20 @@ async function checkHookMirror(rootDir) {
 // Verify against that doc before editing this map; do not infer an event's
 // existence from this repo's own history.
 const EXPECTED_SKIPPED_EVENTS = new Map([
-    ['Notification', 'unsupported-by-codex']
+    ['Notification', 'unsupported-by-codex'],
+    // Reviewed 2026-09-25 (protocol delivery). Codex has no UserPromptExpansion event;
+    // an explicit `$skill` on UserPromptSubmit injects the skill with no tool call, so
+    // the protocol entries registered on UserPromptExpansion render on UserPromptSubmit
+    // instead. Not a drop: the reason records where they went. SubagentStart is NOT
+    // here — Codex supports it and it mirrors (a skip of it is a real loss).
+    ['UserPromptExpansion', 'remapped-to-user-prompt-submit']
 ]);
 
 // Group-level skips that ARE reviewed. Keyed by `${event}:${reason}` rather than
 // group_index, which renumbers whenever settings.json gains or loses a group and
 // would turn an unrelated edit into a gate failure. Any group skip NOT listed here
 // still fails — the point of the gate is that a hook may not quietly stop
-// mirroring, and these two reasons are the only ways that is currently intended.
+// mirroring, and the reasons below are the only ways that is currently intended.
 const EXPECTED_SKIPPED_GROUPS = new Set([
     // A SessionStart group carrying no allowlisted producer. Intended: the
     // static-startup-context rationale still governs everything off the allowlist.
@@ -389,7 +395,13 @@ const EXPECTED_SKIPPED_GROUPS = new Set([
     // Claude's SessionEnd matcher (clear|exit|compact) has no Codex counterpart —
     // Codex accepts only `other` — so the hook mirrors UNSCOPED rather than not at
     // all. Recorded because running unscoped is a real semantic difference.
-    'SessionEnd:matcher-unsupported-on-codex-hook-runs-unscoped'
+    'SessionEnd:matcher-unsupported-on-codex-hook-runs-unscoped',
+    // Reviewed 2026-09-25 (protocol delivery). A protocol-entry group keyed only to
+    // Claude's Read or Skill tool, neither of which Codex has, so it could never fire
+    // there. Codex covers those loads elsewhere: `$skill` on UserPromptSubmit, and the
+    // Read group's entries re-rendered on the shell tool (`Bash`). Scoped to protocol
+    // entries by the renderer; any other hook keeps its verbatim render.
+    'PostToolUse:matcher-names-no-codex-tool'
 ]);
 
 // Exported so the guard can be tested on SYNTHETIC reports. Driving it only from

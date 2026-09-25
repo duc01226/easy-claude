@@ -80,16 +80,16 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->16<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
-| Hook Libraries | <!-- COUNT:lib-modules -->44<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
-| Skills         | <!-- COUNT:skills -->124<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
+| Hooks          | <!-- COUNT:hooks -->23<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
+| Hook Libraries | <!-- COUNT:lib-modules -->46<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
+| Skills         | <!-- COUNT:skills -->125<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->23<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
-| Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
+| Workflows      | <!-- COUNT:workflows -->20<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                     |
 | Scripts        | 34                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
-| Codex Scripts  | 17                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                 |
-| Hook Tests     | 47 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
-| Codex Mirrors  | <!-- COUNT:skills -->124<!-- /COUNT --> skills, <!-- COUNT:agents -->23<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
+| Codex Scripts  | 16                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, and verification tools                               |
+| Hook Tests     | 63 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Codex Mirrors  | <!-- COUNT:skills -->125<!-- /COUNT --> skills, <!-- COUNT:agents -->23<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 ## Project Directory Tree
 
@@ -132,19 +132,19 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->16<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->44<!-- /COUNT --> shared utility modules for hooks                                              |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->124<!-- /COUNT --> task automation skill definitions                                                 |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->23<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->46<!-- /COUNT --> shared utility modules for hooks                                              |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->125<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->23<!-- /COUNT --> specialized subagent role definitions                                              |
-| WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->19<!-- /COUNT --> end-to-end process orchestrations                                               |
+| WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->20<!-- /COUNT --> end-to-end process orchestrations                                               |
 | SC   | Scripts        | `.claude/scripts/`             | 34 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                        |
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | 17 top-level ESM sync, migration, notification, and verification scripts                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                    |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 47 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 63 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
-## Hooks (<!-- COUNT:hooks -->16<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->23<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
@@ -165,18 +165,20 @@ easy-claude/
 
 > Backend/frontend/SCSS/design/lessons/mindset/role guidance lives in `CLAUDE.md`, the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), and relevant skills. Read it through the project-reference docs gate; the static copy is authoritative. The opt-in `file-convention-inject` hook only re-reminds per-file convention classes (`contextGroups[]`) that are missing from the current context.
 
-| Hook                     | Event                                                              | Purpose                                                                                            |
-| ------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `file-convention-inject` | PostToolUse, SessionStart (compact)                                | Per-file convention reminder; records condensation, no output                                      |
-| `prompt-ledger`          | UserPromptSubmit, PostToolUse, SessionStart (compact/resume/clear) | Record each user prompt; re-anchor the original request after condensation and at task checkpoints |
+| Hook                                                                                                           | Event                                                                             | Purpose                                                                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `file-convention-inject`                                                                                       | PostToolUse, SessionStart (compact)                                               | Per-file convention reminder; records condensation, no output                                                                                                         |
+| `prompt-ledger`                                                                                                | UserPromptSubmit, PostToolUse, SessionStart (compact/resume/clear)                | Record each user prompt; re-anchor the original request after condensation and at task checkpoints                                                                    |
+| `token-budget-checkpoint`                                                                                      | PostToolUse (task/plan steps)                                                     | Advisory note each time the session's non-cached tokens cross the next `hooks.tokenBudget.checkpointTokens` multiple                                                  |
+| `protocol-inject-<group>` (6: `review`, `evidence-trace`, `workflow-task`, `spec-test`, `design`, `universal`) | PostToolUse (`Skill`, `Read` of a `SKILL.md`), UserPromptExpansion, SubagentStart | Deliver a converted skill's shared protocols once per session (lib `protocol-delivery.cjs`); read `.claude/docs/hooks/README.md#protocol-delivery` when changing them |
 
 ### Graph Hooks
 
-| Hook                 | Event            | Purpose                                                     |
-| -------------------- | ---------------- | ----------------------------------------------------------- |
-| `graph-session-init` | SessionStart     | Report graph status / install guidance, then sync with HEAD |
-| `graph-auto-update`  | PostToolUse      | Incremental graph update after edits                        |
-| `graph-prompt-sync`  | UserPromptSubmit | Re-sync when git HEAD moved since the last prompt           |
+| Hook                 | Event            | Purpose                                                                                                                      |
+| -------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `graph-session-init` | SessionStart     | Report graph status / install guidance, then sync with HEAD, only while the code graph is active (`hooks.codeGraph.enabled`) |
+| `graph-auto-update`  | PostToolUse      | Incremental graph update after edits, only while the code graph is active (`hooks.codeGraph.enabled`)                        |
+| `graph-prompt-sync`  | UserPromptSubmit | Re-sync when git HEAD moved since the last prompt, only while the code graph is active (`hooks.codeGraph.enabled`)           |
 
 ### Session Management Hooks
 
@@ -201,26 +203,26 @@ easy-claude/
 
 ### Utility Hooks
 
-| Hook                                     | Event                                   | Purpose                                                                                                                                                                                                           |
-| ---------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `post-edit-prettier`                     | PostToolUse                             | Run prettier after edits                                                                                                                                                                                          |
-| `.claude/hooks/notifications/notify.cjs` | SessionEnd/Stop/PreToolUse/Notification | Main-session end alert; direct Claude `AskUserQuestion`; Codex `Stop` question when the final message ends in `?`; existing turn-complete and input/permission alerts (desktop + optional Telegram/Discord/Slack) |
+| Hook                                     | Event                                   | Purpose                                                                                                                                                                                                                                                                |
+| ---------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `post-edit-prettier`                     | PostToolUse                             | Run prettier after edits                                                                                                                                                                                                                                               |
+| `.claude/hooks/notifications/notify.cjs` | SessionEnd/Stop/PreToolUse/Notification | Main-session end alert; direct Claude `AskUserQuestion`; Codex `Stop` question when the final message ends in `?`; turn-complete alert only when the main session has no delegated work left, plus input/permission alerts (desktop + optional Telegram/Discord/Slack) |
 
 > **Post-processing:** no large-output swap, post-agent validator, or bash-cleanup hook is registered.
 
-> **Sub-agent context:** `.claude/agents/*.md` carries static context; no `SubagentStart` hook supplies it.
+> **Sub-agent context:** `.claude/agents/*.md` carries static context; `SubagentStart` runs only the protocol delivery steps.
 
-## Workflows (<!-- COUNT:workflows -->19<!-- /COUNT -->)
+## Workflows (<!-- COUNT:workflows -->20<!-- /COUNT -->)
 
 | Category                   | Registered Workflows                                                                                            |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Core Development**       | `workflow-feature`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature`                              |
+| **Core Development**       | `workflow-feature`, `workflow-implement-spec`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature`   |
 | **Discovery & Planning**   | `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-greenfield-init`, `workflow-spec-to-pbi`             |
 | **Spec & Documentation**   | `workflow-code-to-spec`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`                     |
 | **Testing**                | `workflow-write-integration-test`, `workflow-e2e`, `workflow-seed-test-data`, `workflow-integration-test-green` |
 | **Review & Visualization** | `workflow-review-changes`, `workflow-architecture-audit`, `workflow-visualize`                                  |
 
-> **Also available as a workflow skill** (invokeable via `/workflow-<name>` but not registered in `workflows.json`): `workflow-end` — the lifecycle terminator. It is the only one of the 20 `.claude/skills/workflow-*` skills without a `workflows.json` entry; the other 19 map 1:1 to the registered workflows above.
+> **Also available as a workflow skill** (invokeable via `/workflow-<name>` but not registered in `workflows.json`): `workflow-end` — the lifecycle terminator. It is the only one of the 21 `.claude/skills/workflow-*` skills without a `workflows.json` entry; the other 20 map 1:1 to the registered workflows above.
 
 ## Agents (<!-- COUNT:agents -->23<!-- /COUNT -->)
 
@@ -257,7 +259,7 @@ easy-claude/
 | `.claude/settings.json`                  | Hook registration, permissions, features                             |
 | `.claude/hooks/session-init.cjs`         | Session startup — loads config, sets state                           |
 | `CLAUDE.md` / `SKILL.md`                 | Static rules/lessons re-anchored after compaction (no recovery hook) |
-| `.claude/workflows.json`                 | All <!-- COUNT:workflows -->19<!-- /COUNT --> workflow definitions   |
+| `.claude/workflows.json`                 | All <!-- COUNT:workflows -->20<!-- /COUNT --> workflow definitions   |
 | `docs/project-config.json`               | Project-specific runtime configuration                               |
 | `.claude/hooks/tests/test-all-hooks.cjs` | Main test runner                                                     |
 | `CLAUDE.md`                              | Project instructions for Claude                                      |

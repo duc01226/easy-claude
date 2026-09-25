@@ -98,15 +98,15 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 - Interactive mode is primary use case
 - Skill applies to many contexts
 
-## Shared Protocol Pattern (SYNC Inline)
+## Shared Protocol Pattern (SYNC bodies and guides)
 
 ### `shared/` Directory
 
-**Purpose:** Contains the canonical source for all SYNC-inlined protocol content.
+**Purpose:** Contains the canonical source for all shared protocol content and its generated projection.
 
 **Location:** `.claude/skills/shared/sync-inline-versions.md` (single canonical file)
 
-**Architecture:** Standalone protocol files have been deleted. All protocol content is now inlined directly into consuming skills via `<!-- SYNC:tag -->` blocks. This approach improves AI compliance by ~40% compared to file-read indirection.
+**Architecture:** One canonical file owns every protocol; every other copy is a projection of it (hybrid policy, `SYNC:shared-protocol-duplication-policy`). Converted skills carry guide lines and a hook delivers the full text from the generated `.claude/skills/shared/protocols/`; the five review-family skills, `references/*.md` bodies and agents keep full `<!-- SYNC:tag -->` blocks. Never hand-write a protocol file or a file reference: the projection is generated, and guide lines are written only by `sync-update-blocks.py --mode=guide`.
 
 **To update protocols:**
 

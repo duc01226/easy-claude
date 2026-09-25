@@ -339,6 +339,7 @@ If any of these are detected during review, the review must flag them as **CRITI
 | ES module syntax in a `.cjs` hook                         | Block — will break hook loading            |
 | Hook exits non-zero on non-critical error                 | Block — will break Claude Code operations  |
 | Hardcoded file paths that should come from config         | Block — breaks portability                 |
+| Shipped test uses the host repo or unscrubbed inherited env/home-dir config, or a shipped test/script assumes one OS's tools — no temp fixture, env scrub or guard | Block — passes here, fails in adopter projects or on another OS; read `integration-test-reference.md` § Portable Test Contract when fixing it |
 | Missing SKILL.md in a skill directory                     | Block — skill is undiscoverable            |
 | Agent `name` field doesn't match filename                 | Block — agent routing will fail            |
 | Sensitive data in committed files (.env, keys)            | Block — security violation                 |

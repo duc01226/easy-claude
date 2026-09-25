@@ -658,6 +658,44 @@ function captureCarriers(config = realConfig) {
     return [...new Set([...discovered, ...floors])].sort();
 }
 
+// Sensor row N4 (P26 scratch run). A converted skill carries a shared protocol as a guide line (the
+// shared P25 recognizer, never a copied line format) and the hook delivers the projection file
+// `<skills root>/shared/protocols/<tag>.md`. The delivered text joins that file only while the guide
+// entry is present, so a skill that lost both forms reads as the bare skill and still fails.
+const guideCarrier = require('../lib/protocol-guide-carrier.cjs');
+function deliveredSkillText(relative, tag, root = repoRoot) {
+    const text = fs.readFileSync(path.join(root, relative), 'utf8');
+    if (text.includes(`<!-- SYNC:${tag} -->`) || !guideCarrier.hasGuideEntry(text, tag)) return text;
+    const projection = path.join(root, '.claude', 'skills', 'shared', 'protocols', `${tag}.md`);
+    return fs.existsSync(projection) ? `${text}\n${fs.readFileSync(projection, 'utf8')}` : text;
+}
+
+test('TC-PDL-065 the e2e-test non-vacuity mutant reads a guide carrier through its projection (N4)', () => {
+    const tmp = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'n4-guide-'));
+    try {
+        // Given a skill that carries the visual contract only as a guide line, and its projection
+        const tag = 'e2e-visual-design-contract';
+        const skill = path.join(tmp, '.claude', 'skills', 'fx-e2e', 'SKILL.md');
+        const projection = path.join(tmp, '.claude', 'skills', 'shared', 'protocols', `${tag}.md`);
+        fs.mkdirSync(path.dirname(skill), { recursive: true });
+        fs.mkdirSync(path.dirname(projection), { recursive: true });
+        fs.writeFileSync(skill, ['# fx', guideCarrier.GUIDE_BLOCK_START, '',
+            guideCarrier.formatGuideLine({ tag, summary: 'Visual evidence rules', when: 'handling visual review', path: `.claude/skills/shared/protocols/${tag}.md` }),
+            '', guideCarrier.GUIDE_BLOCK_END, ''].join('\n'));
+        fs.writeFileSync(projection, '> 5. Capture each state-changing transition under the configured `uiStateCapture.mode`.\n');
+        const rel = '.claude/skills/fx-e2e/SKILL.md';
+        const mutate = text => unqualifiedCaptureImperatives(text.replaceAll('uiStateCapture.mode', 'capture setting')).length;
+        // When the qualifier is deleted from the delivered text, Then the mutant is caught
+        assert.equal(unqualifiedCaptureImperatives(deliveredSkillText(rel, tag, tmp)).length, 0, 'the qualified projection passes as is');
+        assert.equal(mutate(deliveredSkillText(rel, tag, tmp)), 1, 'the qualifier mutant must be caught through the projection');
+        // When the projection is missing, Then nothing is joined and the mutant has nothing to catch
+        fs.rmSync(projection);
+        assert.equal(mutate(deliveredSkillText(rel, tag, tmp)), 0, 'no projection joins no text');
+    } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+    }
+});
+
 test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by uiStateCapture.mode', () => {
     const carriers = captureCarriers();
     const projectReferenceFloor = path.posix.join(getDocsRoot('projectReference', realConfig), 'e2e-test-reference.md');
@@ -712,7 +750,9 @@ test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by u
         [],
         'a padded Markdown mode row keeps its own transition qualification'
     );
-    const e2eTest = fs.readFileSync(path.join(repoRoot, '.claude/skills/e2e-test/SKILL.md'), 'utf8');
+    // The real carrier is the text a model reads for e2e-test: the skill, plus the projection of its
+    // visual contract once that contract is carried as a guide line (sensor row N4).
+    const e2eTest = deliveredSkillText('.claude/skills/e2e-test/SKILL.md', 'e2e-visual-design-contract');
     assert.ok(unqualifiedCaptureImperatives(e2eTest.replaceAll('uiStateCapture.mode', 'capture setting')).length > 0,
         'deleting the mode qualifier from a real carrier must be caught');
     // Restoring the pre-fix shared quality-gate row inside the real table must be caught in place.

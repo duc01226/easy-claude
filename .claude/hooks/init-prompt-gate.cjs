@@ -23,6 +23,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
 const { isHookEntryPoint } = require('./lib/hook-runner.cjs');
 const {
@@ -47,6 +48,9 @@ const {
     SCAN_STALE_DISMISSED_PATH: SCAN_DISMISS_FLAG,
     GRAPH_DISMISSED_PATH: GRAPH_DISMISS_FLAG,
     SCAN_STALE_PATH: SCAN_STALE_FLAG,
+    MARKERS_DIR,
+    SESSION_ID_DEFAULT,
+    ensureDir,
     ensureProjectTmpDir
 } = require('./lib/ck-paths.cjs');
 
@@ -422,15 +426,105 @@ function isGraphDismissRequest(prompt) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Check graph gate after config + staleness gates pass.
- * Guides when graph.db doesn't exist. If Python is not available,
- * tells the model which setup route or prerequisite remains.
- * @param {string} userPrompt - The user's prompt text
- * @returns {void} Emits guidance when graph is missing; returns otherwise
+ * Marker recording that the graph-not-built note was shown in this session.
+ * Lives in the session-scoped OS temp markers dir, keyed by project and session,
+ * so a new session (or another project in the same session id) may show it again.
+ * @param {string} [sessionId] - Host session id; absent → the shared fallback id
+ * @returns {string}
  */
-function handleGraphGate(userPrompt) {
+function getGraphNoteMarkerPath(sessionId) {
+    const sessionKey = String(sessionId || SESSION_ID_DEFAULT).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 128);
+    return path.join(MARKERS_DIR, `${graphNoteMarkerPrefix()}${sessionKey}`);
+}
+
+/** File-name prefix shared by every graph-note marker of THIS project. */
+function graphNoteMarkerPrefix() {
+    const projectKey = crypto.createHash('sha256').update(PROJECT_DIR).digest('hex').slice(0, 12);
+    return `graph-note-${projectKey}-`;
+}
+
+/**
+ * Delete this project's graph-note markers older than GRAPH_DISMISS_TTL_MS.
+ * One marker is written per session and nothing else removes them, so they would
+ * otherwise pile up in OS temp. Other projects' markers are never touched.
+ */
+function pruneStaleGraphNoteMarkers() {
+    const prefix = graphNoteMarkerPrefix();
+    let names;
+    try {
+        names = fs.readdirSync(MARKERS_DIR);
+    } catch {
+        return;
+    }
+    const now = Date.now();
+    for (const name of names) {
+        if (!name.startsWith(prefix)) continue;
+        const file = path.join(MARKERS_DIR, name);
+        try {
+            if (now - fs.statSync(file).mtimeMs >= GRAPH_DISMISS_TTL_MS) fs.unlinkSync(file);
+        } catch {
+            /* non-critical — a marker that cannot be removed stays until the OS cleans temp */
+        }
+    }
+}
+
+/**
+ * Was the graph-not-built note already shown in this session?
+ * Without a host session id every session shares one fallback marker, so that
+ * marker expires after GRAPH_DISMISS_TTL_MS instead of silencing the note forever.
+ * @param {string} [sessionId]
+ * @returns {boolean}
+ */
+function isGraphNoteShown(sessionId) {
+    try {
+        const stat = fs.statSync(getGraphNoteMarkerPath(sessionId));
+        return sessionId ? true : Date.now() - stat.mtimeMs < GRAPH_DISMISS_TTL_MS;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Record that the graph-not-built note was shown in this session, first pruning
+ * this project's markers that are past their 24 h lifetime.
+ * @param {string} [sessionId]
+ */
+function markGraphNoteShown(sessionId) {
+    try {
+        ensureDir(MARKERS_DIR);
+        pruneStaleGraphNoteMarkers();
+        fs.writeFileSync(getGraphNoteMarkerPath(sessionId), new Date().toISOString() + '\n', 'utf-8');
+    } catch {
+        /* non-critical — worst case the note shows once more */
+    }
+}
+
+/**
+ * Check graph gate after config + staleness gates pass.
+ *
+ * The code graph is opt-in (`hooks.codeGraph.enabled` in docs/project-config.json):
+ * the graph-not-built note appears only in mode 'on' without a built graph, at most
+ * once per session, and never while dismissed. Mode 'auto' without a graph is
+ * dormant (silent); mode 'off' emits nothing at all. If Python is not available,
+ * the note tells the model which setup route or prerequisite remains.
+ * @param {string} userPrompt - The user's prompt text
+ * @param {{ config?: object, sessionId?: string }} [context] - Validated project config and host session id
+ * @returns {void} Emits guidance when the graph is on but missing; returns otherwise
+ */
+function handleGraphGate(userPrompt, { config, sessionId } = {}) {
     // Only guide graph setup after the required project config validates.
     if (!isConfigPopulated()) return;
+
+    let graphUtils;
+    try {
+        graphUtils = require('./lib/graph-utils.cjs');
+    } catch {
+        return; // graph tooling not shipped — nothing to guide
+    }
+    const mode = graphUtils.codeGraphMode({ config, projectDir: PROJECT_DIR });
+
+    // Mode off → no graph output of any kind.
+    if (mode === 'off') return;
 
     // Graph already built → pass through
     if (fs.existsSync(GRAPH_DB_PATH)) return;
@@ -444,25 +538,27 @@ function handleGraphGate(userPrompt) {
         process.exit(0);
     }
 
+    // Mode auto without a graph is dormant: the project never chose the graph.
+    if (mode !== 'active') return;
+
     if (isAllowlistedPrompt(userPrompt)) return;
+
+    // Once per session: the reminder is useful once, noise afterwards.
+    if (isGraphNoteShown(sessionId)) return;
 
     // Detect Python availability to provide targeted instructions
     let hasPython = false;
     try {
-        const { isGraphAvailable } = require('./lib/graph-utils.cjs');
-        const status = isGraphAvailable();
+        const status = graphUtils.isGraphAvailable();
         hasPython = status.python && status.deps;
     } catch {
-        /* graph-utils not available — assume no Python */
+        /* toolchain probe failed — assume no Python */
     }
 
     const instructions = hasPython
         ? ['  /graph-build          — Build the knowledge graph before structural investigation']
         : [
-              'Python 3.10+ with tree-sitter is required. Install first:',
-              '  pip install tree-sitter tree-sitter-language-pack networkx',
-              '',
-              'Then run:',
+              'Python 3.10+ required; `/graph-build` installs the rest.',
               '  /graph-build          — Build the knowledge graph'
           ];
 
@@ -481,6 +577,7 @@ function handleGraphGate(userPrompt) {
             ''
         ].join('\n')
     );
+    markGraphNoteShown(sessionId);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -530,9 +627,11 @@ function main() {
 
         // Parse stdin — UserPromptSubmit provides { prompt: "..." }
         let userPrompt = '';
+        let sessionId = '';
         try {
             const payload = JSON.parse(stdin);
             userPrompt = payload.prompt || '';
+            sessionId = typeof payload.session_id === 'string' ? payload.session_id : '';
         } catch {
             // Fail-open if we can't parse
             process.exit(0);
@@ -572,7 +671,7 @@ function main() {
         // /ai-context-refresh depends on the (now-populated) config.
         handleAgentFilesGate(userPrompt);
         handleStalenessGate(userPrompt);
-        handleGraphGate(userPrompt);
+        handleGraphGate(userPrompt, { config: configStatus.config, sessionId });
         process.exit(0);
     } catch {
         // Optional setup guidance remains fail-open. Required-config verification
@@ -607,6 +706,9 @@ module.exports = {
     writeGraphDismissFlag,
     isGraphDismissRequest,
     GRAPH_DISMISS_TTL_MS,
+    handleGraphGate,
+    getGraphNoteMarkerPath,
+    isGraphNoteShown,
     // Agent-files gate
     handleAgentFilesGate,
     // Project protocol overlay gate (Plane 3 accelerator — deletable)

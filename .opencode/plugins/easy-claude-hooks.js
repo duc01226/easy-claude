@@ -20,7 +20,8 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 // Compiled from .claude/settings.json by the sync writer. Shape:
-// { PreToolUse: [{ matcher?: string, hooks: [{ type: "command", command: "relative/hook.cjs" }] }], ... }
+// { PreToolUse: [{ matcher?: string, hooks: [{ type: "command", command: "relative/hook.cjs", if?: string }] }], ... }
+// `if` is the Claude handler condition, copied only for handlers that declare one.
 const HOOKS = {
   "Notification": [
     {
@@ -69,6 +70,79 @@ const HOOKS = {
         }
       ],
       "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/token-budget-checkpoint.cjs"
+        }
+      ],
+      "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-review.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-evidence-trace.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-workflow-task.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-spec-test.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-design.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal.cjs"
+        }
+      ],
+      "matcher": "Skill"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-review.cjs",
+          "if": "Read(**/SKILL.md)"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-evidence-trace.cjs",
+          "if": "Read(**/SKILL.md)"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-workflow-task.cjs",
+          "if": "Read(**/SKILL.md)"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-spec-test.cjs",
+          "if": "Read(**/SKILL.md)"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-design.cjs",
+          "if": "Read(**/SKILL.md)"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal.cjs",
+          "if": "Read(**/SKILL.md)"
+        }
+      ],
+      "matcher": "Read"
     }
   ],
   "PreToolUse": [
@@ -289,6 +363,23 @@ function childEnvironment(root) {
   }
 }
 
+// Protocol delivery re-arms after a compaction (BR-PDL-02). opencode hook events carry no
+// conversation record the delivery ledger could scan for the compaction, so on session.compacted
+// the bridge reports it to the ledger directly. Best effort, like the Git capability above: a
+// missing or failing lib costs one missed re-delivery, never the event.
+function recordProtocolCompaction(root, sessionID) {
+  if (!sessionID) return;
+  const libPath = path.join(root, ".claude", "hooks", "lib", "protocol-delivery.cjs");
+  try {
+    if (!fs.existsSync(libPath)) return;
+    const delivery = require(libPath);
+    if (typeof delivery.recordCompaction !== "function") return;
+    delivery.recordCompaction({ session_id: sessionID, cwd: root }, { projectRoot: root });
+  } catch {
+    /* fail-open: the skill's guide entries remain the path */
+  }
+}
+
 function claudeToolNames(tool) {
   if (typeof tool !== "string" || tool.length === 0) return [String(tool ?? "")];
   if (Object.prototype.hasOwnProperty.call(TOOL_ALIASES, tool)) return TOOL_ALIASES[tool];
@@ -326,6 +417,54 @@ function matchToken(token, names) {
 function matcherMatches(matcher, names) {
   if (!matcher || matcher === "*") return true;
   return matcher.split("|").some((raw) => matchToken(raw.trim(), names));
+}
+
+// Claude's handler `if` condition, checked in-process so a hook the condition excludes is never
+// spawned (the bridge runs hooks one after another, so every avoided spawn saves a Node start).
+// Supported form: `Read(<glob>)` — true when the tool is Read and `tool_input.file_path`, with `\`
+// turned into `/`, matches the glob as given or relative to the project root. In the glob `**/`
+// matches any directory prefix (including none), `**` anything, `*` and `?` stay within one path
+// segment. Every other form returns true, so an unsupported condition can cost a spawn but never
+// drops a hook. The glob only ever becomes an escaped regular expression; it is never run as code.
+const READ_CONDITION = /^\s*Read\(\s*(\S(?:.*\S)?)\s*\)\s*$/;
+
+function globToRegExp(glob) {
+  let source = "";
+  for (let index = 0; index < glob.length; index += 1) {
+    const char = glob[index];
+    if (char === "*" && glob[index + 1] === "*") {
+      if (glob[index + 2] === "/") {
+        source += "(?:.*/)?";
+        index += 2;
+      } else {
+        source += ".*";
+        index += 1;
+      }
+    } else if (char === "*") {
+      source += "[^/]*";
+    } else if (char === "?") {
+      source += "[^/]";
+    } else {
+      source += char.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+    }
+  }
+  return new RegExp(`^${source}$`, process.platform === "win32" ? "i" : "");
+}
+
+function hookConditionHolds(condition, root, payload) {
+  if (typeof condition !== "string" || !condition.trim()) return true;
+  const match = READ_CONDITION.exec(condition);
+  if (!match) return true;
+  if (!payload || payload.tool_name !== "Read") return false;
+  const filePath = payload.tool_input && payload.tool_input.file_path;
+  if (typeof filePath !== "string" || !filePath) return false;
+  const pattern = globToRegExp(match[1].replaceAll("\\", "/"));
+  const candidates = [filePath.replaceAll("\\", "/")];
+  if (path.isAbsolute(filePath)) {
+    const relative = path.relative(root, filePath);
+    if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) candidates.push(relative.replaceAll("\\", "/"));
+  }
+  return candidates.some((candidate) => pattern.test(candidate));
 }
 
 // opencode argument names -> the Claude tool_input field names hooks read.
@@ -423,6 +562,7 @@ async function runEventHooks(root, eventName, { matcher, payload } = {}) {
     if (matcher && !matcherMatches(group.matcher, matcher)) continue;
     for (const hook of Array.isArray(group.hooks) ? group.hooks : []) {
       if (!hook || hook.type !== "command" || typeof hook.command !== "string") continue;
+      if (!hookConditionHolds(hook.if, root, payload)) continue;
       outcome.ran += 1;
       const result = await runHook(root, path.resolve(root, hook.command), payload);
       if (result.stdout) outcome.stdout += result.stdout;
@@ -474,11 +614,42 @@ function sessionKey(sessionID) {
   return sessionID || "default";
 }
 
+// opencode validates every user part before it saves the message: a part without
+// id, sessionID and messageID fails the whole prompt. An injected context part takes
+// the message identity from its first part (falling back to the message and the hook
+// input), and a unique id made from the first part's id plus a 2-digit index.
+// Returns null when no identity is available, so the caller drops the context
+// instead of failing the prompt.
+function contextPartIdentity(hookInput, output, parts) {
+  const first = parts.find((part) => part && typeof part.id === "string" && part.id);
+  const message = output && output.message && typeof output.message === "object" ? output.message : {};
+  const sessionID = (first && first.sessionID) || message.sessionID || (hookInput && hookInput.sessionID) || "";
+  const messageID = (first && first.messageID) || message.id || (hookInput && hookInput.messageID) || "";
+  if (!first || !sessionID || !messageID) return null;
+  return { baseId: first.id, sessionID, messageID };
+}
+
+function nextPartId(baseId, parts) {
+  const taken = new Set(parts.map((part) => part && part.id));
+  for (let index = parts.length; ; index += 1) {
+    const id = `${baseId}${String(index).padStart(2, "0")}`;
+    if (!taken.has(id)) return id;
+  }
+}
+
 export const EasyClaudeHooks = async (input) => {
   const seed = input && (input.directory || input.worktree) ? input.directory || input.worktree : process.cwd();
   const root = findRoot(seed);
   const startedSessions = new Set();
   const sessionStartContext = new Map();
+  // Child (delegated) sessions, learned from the SessionInfo on created/updated events. session.idle
+  // carries only the session id, so this is how a child going idle is told apart from the main one.
+  const delegatedSessions = new Set();
+
+  function rememberSessionKind(props) {
+    const info = props.info && typeof props.info === "object" ? props.info : null;
+    if (info && info.id && info.parentID) delegatedSessions.add(sessionKey(info.id));
+  }
 
   async function ensureSessionStart(sessionID, source) {
     const key = sessionKey(sessionID);
@@ -497,9 +668,14 @@ export const EasyClaudeHooks = async (input) => {
       const sessionID = props.sessionID || props.session_id || (props.info && props.info.id) || "";
       switch (event.type) {
         case "session.created":
+          rememberSessionKind(props);
           await ensureSessionStart(sessionID, "startup");
           break;
+        case "session.updated":
+          rememberSessionKind(props);
+          break;
         case "session.compacted":
+          recordProtocolCompaction(root, sessionID);
           sessionStartContext.delete(sessionKey(sessionID));
           startedSessions.delete(sessionKey(sessionID));
           await ensureSessionStart(sessionID, "compact");
@@ -507,6 +683,7 @@ export const EasyClaudeHooks = async (input) => {
         case "session.deleted": {
           startedSessions.delete(sessionKey(sessionID));
           sessionStartContext.delete(sessionKey(sessionID));
+          delegatedSessions.delete(sessionKey(sessionID));
           // Every ended session is forwarded so per-session cleanup hooks always run; only the
           // main-session alert depends on knowing which conversation ended. OpenCode includes
           // SessionInfo on session.deleted, and parentID marks a delegated session: carry it as
@@ -521,9 +698,11 @@ export const EasyClaudeHooks = async (input) => {
           break;
         }
         case "session.idle": {
-          const result = await runEventHooks(root, "Stop", {
-            payload: { hook_event_name: "Stop", session_id: sessionID, cwd: seed },
-          });
+          // A child session goes idle each time its delegated work finishes; mark it with agent_id
+          // so the notification router keeps the turn-complete alert for the main session only.
+          const payload = { hook_event_name: "Stop", session_id: sessionID, cwd: seed };
+          if (delegatedSessions.has(sessionKey(sessionID))) payload.agent_id = sessionID;
+          const result = await runEventHooks(root, "Stop", { payload });
           warn("Stop", result);
           break;
         }
@@ -622,10 +801,16 @@ export const EasyClaudeHooks = async (input) => {
         payload: { hook_event_name: "UserPromptSubmit", prompt, session_id: sessionID, cwd: seed },
       });
       if (result.contexts.length > 0) {
-        for (const text of result.contexts) {
-          parts.push({ type: "text", text, synthetic: true });
+        const identity = contextPartIdentity(hookInput, output, parts);
+        if (identity) {
+          for (const text of result.contexts) {
+            const id = nextPartId(identity.baseId, parts);
+            parts.push({ id, sessionID: identity.sessionID, messageID: identity.messageID, type: "text", text, synthetic: true });
+          }
+          if (output) output.parts = parts;
+        } else {
+          process.stderr.write("[opencode-hooks] UserPromptSubmit: context dropped, the message has no part id, sessionID or messageID\n");
         }
-        if (output) output.parts = parts;
       }
       warn("UserPromptSubmit", result);
     },

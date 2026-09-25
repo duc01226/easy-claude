@@ -12,9 +12,11 @@
 // No npm dependency — pure node + spawned subprocesses.
 //
 // Scope: opencode SURFACE = the generated hooks bridge, recommended root
-// `opencode.json` defaults, and the generated sub-agent mirror. opencode
-// auto-discovers skills from `.claude/skills` and `.agents/skills`, so skill
-// files themselves are not copied here (unlike sync-codex).
+// `opencode.json` defaults, the skill-selection policy (`permission.skill` in the
+// root `opencode.json` plus a `.opencode/commands/<name>.md` per hidden skill),
+// and the generated sub-agent mirror. opencode auto-discovers skills from
+// `.claude/skills` and `.agents/skills`, so skill files themselves are not copied
+// here (unlike sync-codex).
 
 import { spawn } from "node:child_process";
 import { readdir } from "node:fs/promises";
@@ -82,10 +84,12 @@ const testConcurrencyArgs = supportsTestConcurrencyFlag ? ["--test-concurrency=1
 const testsDir = path.join(sourceScriptsDir, "tests");
 const stages = [
     { id: "config", label: "sync-opencode-config", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-config.mjs")] },
+    { id: "skills", label: "sync-opencode-skills", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-skills.mjs")] },
     { id: "hooks", label: "sync-opencode-hooks", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "agents", label: "sync-opencode-agents", mutate: true, cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-agents.mjs")] },
     { id: "tests", label: "test-opencode", cmd: process.execPath, argsAsync: async () => ["--test", ...testConcurrencyArgs, ...await listTestFiles(testsDir)] },
     { id: "verify-config", label: "verify-opencode-config", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-config.mjs"), "--check"] },
+    { id: "verify-skills", label: "verify-opencode-skills", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-skills.mjs"), "--check"] },
     { id: "verify-hooks", label: "verify-opencode-hooks", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-hooks.mjs"), "--check"] },
     { id: "verify-agents", label: "verify-opencode-agents", cmd: process.execPath, args: [path.join(sourceScriptsDir, "sync-agents.mjs"), "--check"] },
 ];

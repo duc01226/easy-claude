@@ -378,3 +378,443 @@ test("TC-DOCROOT-049 empty-config catalog rendering resolves every token to its 
     buildWorkflowSkillsCatalog({ rootDir: repoRoot })
   );
 });
+
+// TC-WSC-012 — activation tiers. Intent: a heavy workflow marked `manual` must never be startable by
+// the model on its own, so the catalog must say so AND the wrapper skill must hide itself from model
+// invocation (Claude `disable-model-invocation`; the Codex mirror derives its policy from that flag).
+// A tier and a flag that disagree leave one host auto-starting the workflow the other forbids.
+test("TC-WSC-012 activation tiers render per row and agree with the wrapper skill invocation flag", () => {
+  const { activationTier, ACTIVATION_TIERS } = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
+  // Framework tiers only (`activation: null`): this checks the shipped registry against the wrapper
+  // flag, so a developer's local tier settings must not reach it (the effective tier is TC-WFR-009).
+  const out = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"], activation: null });
+  assert.match(out, /\| Workflow \| Activation \| When to use \| Steps \|/);
+  assert.match(out, /\*\*Activation:\*\* `auto` = .*`confirm` = .*`manual` = never select or start it yourself/);
+  const mismatches = [];
+  for (const [workflowId, workflow] of Object.entries(workflowsDoc.workflows)) {
+    if (workflow.activation !== undefined) {
+      assert.ok(ACTIVATION_TIERS.includes(workflow.activation), `${workflowId}: unknown activation ${workflow.activation}`);
+    }
+    const tier = activationTier(workflow);
+    const counts = resolvedModeSequences(repoRoot, workflowId, workflow).map(({ sequence }) => sequence.length);
+    const label = Math.min(...counts) === Math.max(...counts) ? `${counts[0]} steps` : `${Math.min(...counts)}–${Math.max(...counts)} steps`;
+    const row = out.split("\n").find((line) => line.startsWith(`| \`${workflowId}\` |`));
+    assert.ok(row && row.includes(`| ${tier} · ${label} |`), `${workflowId}: expected Activation cell "${tier} · ${label}"`);
+
+    const wrapper = path.join(repoRoot, ".claude", "skills", workflowId, "SKILL.md");
+    if (!fs.existsSync(wrapper)) continue;
+    const frontmatter = normalizeEol(fs.readFileSync(wrapper, "utf8")).split("\n---\n")[0];
+    const hidden = /^disable-model-invocation:\s*true\s*$/m.test(frontmatter);
+    if (hidden !== (tier === "manual")) mismatches.push(`${workflowId}: activation=${tier}, disable-model-invocation=${hidden}`);
+  }
+  assert.deepEqual(mismatches, [], `manual tier and wrapper invocation flag disagree:\n${mismatches.join("\n")}`);
+});
+
+// TC-WFR-004 — compact rows (runtime-hook form). Intent: the routing payload fits the hook cap
+// only if rows drop their step lists, yet the model still needs each workflow's id, tier, size and
+// trigger to route, and the parallel phases it must start together and wait on.
+test("TC-WFR-004 compact rows: id, tier, step count and capped hint; barrier tokens only; names-only skills", () => {
+  const { COMPACT_HINT_MAX } = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
+  // Given a fixture registry with a grouped workflow, a plain one, and one whose only hint source
+  // (its name) is far longer than the cap, built in a temp project that HOME and temp point at
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "wsc-compact-"));
+  const envKeys = ["HOME", "USERPROFILE", "TMPDIR", "TEMP", "TMP"];
+  const savedEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+  for (const key of envKeys) process.env[key] = tmp;
+  try {
+    fs.mkdirSync(path.join(tmp, ".claude"), { recursive: true });
+    const longName = Array.from({ length: 60 }, (_, index) => `word${index}`).join(" ");
+    fs.writeFileSync(
+      path.join(tmp, ".claude", "workflows.json"),
+      JSON.stringify({
+        version: "1.0.0",
+        workflows: {
+          "workflow-grouped": {
+            name: "Grouped",
+            activation: "confirm",
+            whenToUse: "review a change with parallel reviewers",
+            preActions: { injectContext: "Use the selected workflow context." },
+            sequence: ["investigate", "review-a", "review-b", "review-c", "finish"],
+            parallelGroups: [
+              { id: "reviews", members: ["review-a", "review-b", "review-c"], conditionalMembers: ["review-c"], barrier: true },
+            ],
+          },
+          "workflow-plain": {
+            name: "Plain",
+            whenToUse: "do one plain thing",
+            preActions: { injectContext: "Use the selected workflow context." },
+            sequence: ["investigate", "plain-step", "finish"],
+          },
+          "workflow-long-name": {
+            name: longName,
+            activation: "manual",
+            preActions: { injectContext: "Use the selected workflow context." },
+            sequence: ["plain-step", "finish"],
+          },
+        },
+      })
+    );
+    assert.ok(longName.length > COMPACT_HINT_MAX + 100, "fixture name must exceed the hint cap");
+
+    // When the catalog is rendered in compact mode
+    const out = buildWorkflowSkillsCatalog({ rootDir: tmp, sections: ["workflows", "skills"], compact: true });
+    const row = (id) => out.split("\n").find((line) => line.startsWith(`| \`${id}\` |`));
+
+    // Then each row carries id, tier and step count, and a hint within the cap
+    const grouped = row("workflow-grouped");
+    const plain = row("workflow-plain");
+    const longRow = row("workflow-long-name");
+    assert.ok(grouped && grouped.includes("| confirm · 5 steps | review a change with parallel reviewers |"), grouped);
+    assert.ok(plain && plain.includes("| auto · 3 steps | do one plain thing |"), plain);
+    assert.ok(longRow && longRow.includes("| manual · 2 steps | word0 word1"), longRow);
+    const longHint = longRow.split(" | ")[2];
+    assert.ok(longHint.length <= COMPACT_HINT_MAX && longHint.endsWith("…"), `hint must be capped and marked: ${longHint}`);
+    // And no full step list survives: a grouped row keeps only its barrier token, a plain row nothing
+    assert.ok(grouped.endsWith("| [review-a ∥ review-b ∥ review-c*] |"), grouped);
+    for (const step of ["investigate", "finish", "plain-step", " → "]) {
+      for (const line of [grouped, plain, longRow]) {
+        assert.ok(!line.includes(step), `compact row leaked step list text "${step}": ${line}`);
+      }
+    }
+    assert.ok(/\|\s*\|$/.test(plain), `plain row must end with an empty barrier cell: ${plain}`);
+    // And the barrier legend (the advancement rule) and the names-only skills line replace the rest
+    assert.match(out, /advance only after ALL return/);
+    assert.match(out, /\| Workflow \| Activation \| When to use \| Parallel phases \|/);
+    assert.ok(out.includes("Step skills: finish, investigate, plain-step, review-a, review-b, review-c"), out);
+    assert.ok(!out.includes("### Workflow Skills"), "compact mode must not render the skills table");
+    assert.ok(!out.includes("| Skill | Use for |"), "compact mode must not render the skills table");
+  } finally {
+    for (const key of envKeys) {
+      if (savedEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = savedEnv[key];
+    }
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// TC-WFR-004 (shipped registry) — the compact row of every shipped workflow keeps exactly the
+// barrier tokens the full row renders, and no plain step outside them.
+test("TC-WFR-004 compact rows of the shipped registry keep every barrier token and drop the steps", () => {
+  const full = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"] });
+  const compact = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"], compact: true });
+  const token = /\[[^\]]*∥[^\]]*\]/g;
+  for (const workflowId of Object.keys(workflowsDoc.workflows)) {
+    const pick = (text) => text.split("\n").find((line) => line.startsWith(`| \`${workflowId}\` |`));
+    const fullRow = pick(full);
+    const compactRow = pick(compact);
+    assert.ok(compactRow, `missing compact row: ${workflowId}`);
+    assert.deepEqual(compactRow.match(token) || [], fullRow.match(token) || [], `${workflowId}: barrier tokens differ`);
+    assert.ok(!compactRow.includes(" → "), `${workflowId}: compact row carries a step chain`);
+    assert.equal(compactRow.split(" | ")[1], fullRow.split(" | ")[1], `${workflowId}: tier/step-count cell differs`);
+  }
+});
+
+// TC-GWF-016 — roles describe steps; they never add or remove one. Intent: the routing catalog
+// sizes each workflow by its declared steps, so annotating a step as gate/optional (which turns a
+// name into a record) must leave every rendered step count unchanged.
+test("TC-GWF-016 declaring roles, gates and intent leaves every rendered step count unchanged", () => {
+  // Given a fixture registry holding one annotated workflow and its unannotated twin, in a temp
+  // project that HOME and temp point at
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "wsc-roles-"));
+  const envKeys = ["HOME", "USERPROFILE", "TMPDIR", "TEMP", "TMP"];
+  const savedEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+  for (const key of envKeys) process.env[key] = tmp;
+  try {
+    const plainSequence = ["investigate", "plan", "demo-guide", "test", "workflow-end"];
+    const base = { whenToUse: "fixture", preActions: { injectContext: "Use the selected workflow context." } };
+    fs.mkdirSync(path.join(tmp, ".claude"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmp, ".claude", "workflows.json"),
+      JSON.stringify({
+        version: "1.0.0",
+        workflows: {
+          "workflow-annotated": {
+            ...base,
+            name: "Annotated",
+            intent: "Ship the fixture change with green tests.",
+            outcomeGates: [
+              { id: "tests-pass", satisfiedBy: ["test"] },
+              { id: "run-closed", satisfiedBy: ["workflow-end"] },
+            ],
+            sequence: [
+              "investigate",
+              { id: "draft", skill: "plan", role: "core" },
+              { id: "demo", skill: "demo-guide", role: "optional", applicability: { when: "User-facing", skipReason: "Backend only" } },
+              { id: "verify", skill: "test", role: "gate" },
+              { id: "close", skill: "workflow-end", role: "gate" },
+            ],
+          },
+          "workflow-plain": { ...base, name: "Plain", sequence: plainSequence },
+        },
+      })
+    );
+
+    // When the compact routing catalog is rendered
+    const out = buildWorkflowSkillsCatalog({ rootDir: tmp, sections: ["workflows"], compact: true });
+    const row = (id) => out.split("\n").find((line) => line.startsWith(`| \`${id}\` |`));
+
+    // Then both rows count the same five steps: a step written as a record is counted once
+    const expected = `| auto · ${plainSequence.length} steps |`;
+    assert.ok(row("workflow-plain")?.includes(expected), row("workflow-plain"));
+    assert.ok(row("workflow-annotated")?.includes(expected), row("workflow-annotated"));
+    // And no annotation field leaks into the routing text
+    for (const leaked of ["Ship the fixture change", "tests-pass", "optional", "User-facing"]) {
+      assert.ok(!out.includes(leaked), `catalog leaked annotation text: ${leaked}`);
+    }
+  } finally {
+    for (const key of envKeys) {
+      if (savedEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = savedEnv[key];
+    }
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // And on the shipped registry every row counts exactly the declared steps of each mode
+  const compact = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"], compact: true });
+  for (const [workflowId, workflow] of Object.entries(workflowsDoc.workflows)) {
+    const counts = workflow.variants
+      ? Object.values(workflow.variants).map((variant) => variant.sequence.length)
+      : [workflow.sequence.length];
+    const min = Math.min(...counts);
+    const max = Math.max(...counts);
+    const label = min === max ? `${min} steps` : `${min}–${max} steps`;
+    const compactRow = compact.split("\n").find((line) => line.startsWith(`| \`${workflowId}\` |`));
+    assert.ok(compactRow && compactRow.includes(` · ${label} |`), `${workflowId}: expected "${label}" in ${compactRow}`);
+  }
+});
+
+test("TC-WSC-013 an absent or unknown activation value renders as auto", () => {
+  const { activationTier } = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
+  const [id, shipped] = Object.entries(workflowsDoc.workflows)[0];
+  const { activation: _dropped, ...withoutTier } = shipped;
+  for (const [entry, expected] of [
+    [withoutTier, "auto"],
+    [{ ...shipped, activation: "someday" }, "auto"],
+    [{ ...shipped, activation: " Manual " }, "manual"],
+  ]) {
+    assert.equal(activationTier(entry), expected);
+    const row = renderWorkflowsSection([[id, entry]], repoRoot, {}).split("\n").find((line) => line.startsWith(`| \`${id}\` |`));
+    assert.ok(row.includes(`| ${expected} · `), `expected ${expected} tier in: ${row}`);
+  }
+});
+
+// ── Per-project activation tiers (BR-WFR-04/05, release A phase P05) ───────────────────────────
+// Every case builds its own temp project (registry, team config, personal file) with HOME and the
+// temp dirs pointed at it and the inherited framework switches blanked, so neither this repo's
+// config nor the developer's own `.claude/.ck.local.json` can reach the assertions.
+const routingConfig = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-routing-config.cjs"));
+const { buildWorkflowPointerCatalog } = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
+
+const TIER_FIXTURE_WORKFLOWS = {
+  "workflow-auto": { name: "Auto", activation: "auto", whenToUse: "fix a small thing", sequence: ["investigate", "fix"] },
+  "workflow-feature": { name: "Feature", activation: "confirm", whenToUse: "build a feature", sequence: ["plan", "build", "review"] },
+  "workflow-heavy": { name: "Heavy", activation: "manual", whenToUse: "run a large program", sequence: ["plan", "build", "review", "ship"] },
+  "workflow-untiered": { name: "Untiered", whenToUse: "do an untiered thing", sequence: ["investigate"] },
+};
+const TIER_FRAMEWORK = { "workflow-auto": "auto", "workflow-feature": "confirm", "workflow-heavy": "manual", "workflow-untiered": "auto" };
+
+function withTierProject({ team, personal, raw = {} }, fn) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "wsc-tier-"));
+  const redirected = ["HOME", "USERPROFILE", "TMPDIR", "TEMP", "TMP"];
+  const blanked = Object.keys(process.env).filter((key) => /^CK_/.test(key)).concat(["CLAUDE_PROJECT_DIR"]);
+  const saved = Object.fromEntries([...redirected, ...blanked].map((key) => [key, process.env[key]]));
+  for (const key of redirected) process.env[key] = tmp;
+  for (const key of blanked) delete process.env[key];
+  try {
+    fs.mkdirSync(path.join(tmp, ".claude"), { recursive: true });
+    fs.mkdirSync(path.join(tmp, "docs"), { recursive: true });
+    const workflows = Object.fromEntries(Object.entries(TIER_FIXTURE_WORKFLOWS).map(([id, wf]) => [
+      id, { ...wf, preActions: { injectContext: "Use the selected workflow context." } },
+    ]));
+    fs.writeFileSync(path.join(tmp, ".claude", "workflows.json"), JSON.stringify({ version: "1.0.0", workflows }));
+    const write = (rel, value) => fs.writeFileSync(path.join(tmp, rel), typeof value === "string" ? value : JSON.stringify(value, null, 2));
+    if (team !== undefined) write(path.join("docs", "project-config.json"), team);
+    if (personal !== undefined) write(path.join(".claude", ".ck.local.json"), personal);
+    for (const [rel, value] of Object.entries(raw)) write(rel, value);
+    return fn(tmp);
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+const teamConfig = (workflowActivation) => ({ project: { name: "fixture" }, portability: { workflowActivation } });
+// The tier cell of one workflow row in a catalog body: `| <tier> · N steps |` or pointer `| <tier> |`.
+function rowTiers(body) {
+  const tiers = {};
+  for (const line of body.split("\n")) {
+    const match = line.match(/^\| `(workflow-[a-z-]+)` \| (auto|confirm|manual)\b/);
+    if (match) tiers[match[1]] = match[2];
+  }
+  return tiers;
+}
+// Every catalog form the route hook can deliver, each resolved from the project under `rootDir`.
+const catalogForms = (rootDir) => ({
+  full: buildWorkflowSkillsCatalog({ rootDir, sections: ["workflows"] }),
+  compact: buildWorkflowSkillsCatalog({ rootDir, sections: ["workflows", "skills"], compact: true }),
+  groups: buildWorkflowPointerCatalog({ rootDir, rows: "groups" }),
+  tiers: buildWorkflowPointerCatalog({ rootDir, rows: "tiers" }),
+});
+
+// TC-WFR-006 — a broad project default can never loosen a workflow the framework marked stricter.
+test("TC-WFR-006 effective tier tightens: default raises auto to confirm and never lowers manual", () => {
+  // Property: for EVERY (framework tier, default tier) pair the effective tier is the stricter one.
+  const order = routingConfig.ACTIVATION_TIERS;
+  assert.deepEqual([...order], ["auto", "confirm", "manual"], "tier order is auto < confirm < manual");
+  for (const framework of order) {
+    for (const floor of order) {
+      const expected = order[Math.max(order.indexOf(framework), order.indexOf(floor))];
+      const actual = routingConfig.effectiveActivationTier("workflow-x", { activation: framework }, { default: floor, overrides: {} });
+      assert.equal(actual, expected, `framework ${framework} + default ${floor}`);
+    }
+  }
+  // Boundary counter-case: framework manual with default auto stays manual, never auto.
+  assert.equal(routingConfig.effectiveActivationTier("workflow-x", { activation: "manual" }, { default: "auto" }), "manual");
+
+  // Given a project whose team config sets the default to confirm
+  withTierProject({ team: teamConfig({ default: "confirm" }) }, (dir) => {
+    // When the effective tiers of an auto and a manual workflow are resolved
+    const resolve = (workflowId) => routingConfig.resolveActivationTier({ rootDir: dir, workflowId, workflow: TIER_FIXTURE_WORKFLOWS[workflowId] });
+    // Then the auto workflow is raised to confirm and the manual one stays manual
+    assert.equal(resolve("workflow-auto"), "confirm");
+    assert.equal(resolve("workflow-untiered"), "confirm", "an untiered workflow counts as auto, so it is raised too");
+    assert.equal(resolve("workflow-heavy"), "manual");
+    // And no catalog form the hook can deliver shows an auto row (SC-6), while manual stays manual
+    for (const [form, body] of Object.entries(catalogForms(dir))) {
+      const tiers = rowTiers(body);
+      assert.deepEqual(tiers, { "workflow-auto": "confirm", "workflow-feature": "confirm", "workflow-heavy": "manual", "workflow-untiered": "confirm" }, `${form} rows`);
+    }
+  });
+
+  // Edge: with no default and no override every workflow keeps its framework tier
+  withTierProject({ team: { project: { name: "fixture" } } }, (dir) => {
+    assert.deepEqual(rowTiers(catalogForms(dir).full), TIER_FRAMEWORK);
+  });
+});
+
+// TC-WFR-007 — an override pins one workflow's tier, even when that loosens it.
+test("TC-WFR-007 override loosens explicitly: a named workflow gets exactly its override tier", () => {
+  // Given default confirm and the feature workflow overridden to auto (plus a stale override naming
+  // a workflow that does not exist)
+  const settings = { default: "confirm", overrides: { "workflow-feature": "auto", "workflow-heavy": "auto", "workflow-gone": "manual" } };
+  withTierProject({ team: teamConfig(settings) }, (dir) => {
+    const resolve = (workflowId) => routingConfig.resolveActivationTier({ rootDir: dir, workflowId, workflow: TIER_FIXTURE_WORKFLOWS[workflowId] });
+    // When the overridden workflows are resolved, Then each is exactly its override — the override
+    // wins over the default AND over a stricter framework tier
+    assert.equal(resolve("workflow-feature"), "auto");
+    assert.equal(resolve("workflow-heavy"), "auto", "an override may loosen a framework manual tier");
+    // And the workflows it does not name still follow the default; the unknown id changes nothing
+    assert.equal(resolve("workflow-auto"), "confirm");
+    assert.equal(resolve("workflow-untiered"), "confirm");
+    // And the catalog row of the overridden workflow shows its override
+    assert.deepEqual(rowTiers(catalogForms(dir).compact), {
+      "workflow-auto": "confirm", "workflow-feature": "auto", "workflow-heavy": "auto", "workflow-untiered": "confirm",
+    });
+  });
+  // An override is looked up by the workflow's own id only — never through an inherited key.
+  assert.equal(routingConfig.effectiveActivationTier("toString", {}, routingConfig.readWorkflowActivation(teamConfig({}))), "auto");
+});
+
+// TC-WFR-009 — the tier the assistant reads is the tier the project enforces.
+test("TC-WFR-009 catalog shows effective tier: default manual renders manual on every row of every form", () => {
+  // Given default manual and no override
+  withTierProject({ team: teamConfig({ default: "manual", overrides: {} }) }, (dir) => {
+    // When every catalog form is rendered, Then each row reads manual, never its framework tier
+    for (const [form, body] of Object.entries(catalogForms(dir))) {
+      const tiers = rowTiers(body);
+      assert.deepEqual(Object.keys(tiers).sort(), Object.keys(TIER_FIXTURE_WORKFLOWS).sort(), `${form}: a workflow row is missing`);
+      for (const [workflowId, tier] of Object.entries(tiers)) assert.equal(tier, "manual", `${form}: ${workflowId}`);
+    }
+    // And the legend tells the reader the rows are effective tiers, not the registry values
+    assert.match(catalogForms(dir).compact, /Rows show the effective tier: project config may tighten/);
+    // And the pointer-only form, which renders no rows, still tells the reader the registry tier
+    // is not final and names the project setting plus the resolver (BR-WFR-04 in every form)
+    const pointerOnly = buildWorkflowPointerCatalog({ rootDir: dir, rows: "none" });
+    assert.deepEqual(rowTiers(pointerOnly), {}, "the pointer-only form has no workflow rows");
+    assert.match(pointerOnly, /tier[^\n]*may be tightened or overridden by `portability\.workflowActivation`[^\n]*`start-workflow` resolves the effective tier/);
+  });
+  // Edge: the same project with one override to auto shows auto on that row alone
+  withTierProject({ team: teamConfig({ default: "manual", overrides: { "workflow-feature": "auto" } }) }, (dir) => {
+    const tiers = rowTiers(catalogForms(dir).full);
+    assert.equal(tiers["workflow-feature"], "auto");
+    for (const workflowId of ["workflow-auto", "workflow-heavy", "workflow-untiered"]) assert.equal(tiers[workflowId], "manual", workflowId);
+  });
+});
+
+// TC-WFR-011 (tier layering) — a developer tightens routing for their own checkout without touching
+// the team configuration. (The routing-switch half of this case is TC-WRS-025 in the hook suite.)
+test("TC-WFR-011 personal file wins over the team configuration for tier settings", () => {
+  const team = teamConfig({ overrides: { "workflow-feature": "auto" } });
+  // Given the team sets no default and the personal file sets default manual
+  withTierProject({ team, personal: { portability: { workflowAutoDetect: false, workflowActivation: { default: "manual" } } } }, (dir) => {
+    const teamPath = path.join(dir, "docs", "project-config.json");
+    const before = fs.readFileSync(teamPath, "utf8");
+    // When the catalog is rendered, Then the personal default applies to every row the team did not
+    // pin, and the team's per-workflow override still stands (no personal override for it)
+    const tiers = rowTiers(catalogForms(dir).compact);
+    assert.deepEqual(tiers, { "workflow-auto": "manual", "workflow-feature": "auto", "workflow-heavy": "manual", "workflow-untiered": "manual" });
+    const resolved = routingConfig.resolveWorkflowActivation({ rootDir: dir });
+    assert.equal(resolved.default, "manual");
+    assert.equal(resolved.defaultSource, routingConfig.SOURCE_LOCAL_OVERRIDE);
+    // And the team scope (tracked generators) never sees the personal value
+    const teamScope = routingConfig.resolveWorkflowActivation({ rootDir: dir, scope: routingConfig.SCOPE_TEAM });
+    assert.equal(teamScope.default, null);
+    // And the team configuration is untouched
+    assert.equal(fs.readFileSync(teamPath, "utf8"), before);
+  });
+  // A personal override for the same workflow wins over the team override for that workflow only
+  withTierProject({ team, personal: { portability: { workflowActivation: { overrides: { "workflow-feature": "manual" } } } } }, (dir) => {
+    assert.deepEqual(rowTiers(catalogForms(dir).full), { ...TIER_FRAMEWORK, "workflow-feature": "manual" });
+  });
+  // Each override is its own value: a personal override for another workflow keeps the team's
+  // override for the feature workflow (per-key layering, not a wholesale replacement)
+  withTierProject({ team, personal: { portability: { workflowActivation: { overrides: { "workflow-heavy": "confirm" } } } } }, (dir) => {
+    assert.deepEqual(rowTiers(catalogForms(dir).full), { ...TIER_FRAMEWORK, "workflow-feature": "auto", "workflow-heavy": "confirm" });
+  });
+  // Edge: an unreadable personal file, or an invalid personal value, expresses no opinion — the team value applies
+  for (const personal of ["{not json", { portability: { workflowActivation: { default: "strict", overrides: { "workflow-feature": "sometimes" } } } }]) {
+    withTierProject({ team: teamConfig({ default: "confirm", overrides: { "workflow-feature": "auto" } }), personal }, (dir) => {
+      assert.deepEqual(rowTiers(catalogForms(dir).full), {
+        "workflow-auto": "confirm", "workflow-feature": "auto", "workflow-heavy": "manual", "workflow-untiered": "confirm",
+      }, `personal ${JSON.stringify(personal)}`);
+    });
+  }
+  // And the team layer honours a relocated project-config path declared in .claude/.ck.json
+  withTierProject({ raw: {
+    [path.join(".claude", ".ck.json")]: { portability: { projectConfigPath: "config/team.json" } },
+  } }, (dir) => {
+    fs.mkdirSync(path.join(dir, "config"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "config", "team.json"), JSON.stringify(teamConfig({ default: "manual" })));
+    assert.equal(rowTiers(catalogForms(dir).tiers)["workflow-auto"], "manual");
+  });
+});
+
+// BR-WFR-07 — only known tiers are accepted: a typo never changes a tier at runtime, and every
+// validator that reads these settings (team project config, personal `.ck.local.json`) names it.
+test("TC-WSC-014 activation tiers: runtime ignores an unknown tier and both validators name it", () => {
+  const { WORKFLOW_ACTIVATION_TIERS: projectTiers, validateConfig } = require(path.join(repoRoot, ".claude", "hooks", "lib", "project-config-schema.cjs"));
+  const { WORKFLOW_ACTIVATION_TIERS: ckTiers, validateCkConfig } = require(path.join(repoRoot, ".claude", "hooks", "lib", "ck-config-schema.cjs"));
+  assert.deepEqual([...projectTiers], [...routingConfig.ACTIVATION_TIERS], "project-config schema tiers drifted from the resolver");
+  assert.deepEqual([...ckTiers], [...routingConfig.ACTIVATION_TIERS], "ck-config schema tiers drifted from the resolver");
+
+  // Runtime: an invalid team default or override is no opinion — framework tiers apply
+  withTierProject({ team: teamConfig({ default: "Manual", overrides: { "workflow-auto": 3 } }) }, (dir) => {
+    assert.deepEqual(rowTiers(catalogForms(dir).full), TIER_FRAMEWORK);
+  });
+
+  // Personal file validator: valid settings pass without an unknown-key warning
+  const valid = validateCkConfig({ portability: { workflowActivation: { default: "confirm", overrides: { "workflow-feature": "auto" } } } });
+  assert.ok(valid.valid, valid.errors.join("; "));
+  assert.ok(!valid.warnings.some((warning) => warning.includes("workflowActivation")), valid.warnings.join("; "));
+  // ...and an unknown tier is an error naming the setting and the three allowed tiers
+  const badDefault = validateCkConfig({ portability: { workflowActivation: { default: "strict" } } });
+  assert.ok(!badDefault.valid);
+  assert.ok(badDefault.errors.some((error) => error.includes("portability.workflowActivation.default") && error.includes("auto, confirm, manual")), badDefault.errors.join("; "));
+  const badOverride = validateCkConfig({ portability: { workflowActivation: { overrides: { "workflow-feature": "sometimes" } } } });
+  assert.ok(badOverride.errors.some((error) => error.includes("portability.workflowActivation.overrides.workflow-feature") && error.includes("auto, confirm, manual")), badOverride.errors.join("; "));
+  // Team validator accepts the same valid shape
+  assert.ok(validateConfig({ project: { name: "fixture" }, portability: { workflowActivation: { default: "confirm", overrides: { "workflow-feature": "auto" } } } }).valid);
+});

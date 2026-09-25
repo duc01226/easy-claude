@@ -21,10 +21,18 @@ const SCRIPT = path.join(REPO_ROOT, '.claude', 'scripts', 'generate_catalogs.py'
 // the guard previously asserted only 6 regexes, so 14 hand-typed counts sat in
 // files it never opened (team-collaboration-guide.md claimed 164 skills against
 // a real 167) while the suite reported 8/8 green.
+// A listed file that is absent is skipped, and `--check-counts` passes a file that
+// carries no markers, so an adopter's own root README (no markers) never fails here.
 const PILOT_FILES = [
     'CLAUDE.md',
+    'README.md',
     'docs/project-reference/project-structure-reference.md',
-    '.claude/docs/team-collaboration-guide.md'
+    '.claude/docs/README.md',
+    '.claude/docs/claude-ai-agent-framework-guide.md',
+    '.claude/docs/hooks/README.md',
+    '.claude/docs/skills/README.md',
+    '.claude/docs/team-collaboration-guide.md',
+    '.claude/docs/universal-setup-guide.md'
 ];
 
 let pythonCommand = null;

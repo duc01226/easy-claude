@@ -338,15 +338,42 @@ async function testGraphSessionInit() {
         }
     }
 
-    // Test 2: Config populated → stays silent while preserving side effects
-    // Pin CLAUDE_PROJECT_DIR to the repo root: without it the loader falls back to
-    // process.cwd(), which resolves to the empty tests/docs fixture when the suite
-    // is launched from the tests directory (cwd-sensitive false failure).
+    // Test 2: Config populated and graph active → stays silent. Runs over a temp fixture project (a
+    // populated config plus a built graph.db, so the mode is 'active'), never this repository: the
+    // graph venv now lives in the per-user cache, so a real run could create a venv and pip-install
+    // into the developer's cache. Every process graph-utils would start goes to the spawn-stub log
+    // instead, and every home, cache and temp variable points into the fixture (Portable Test Contract).
     {
-        const repoRoot = path.resolve(__dirname, '..', '..', '..');
-        const result = await runHook('graph-session-init.cjs', { source: 'startup' }, { timeout: 30000, env: { CLAUDE_PROJECT_DIR: repoRoot } });
-        logResult('Exits 0 when config populated', result.code === 0);
-        logResult('No graph output when config populated', result.stdout === '');
+        const tmpDir = createTempDir();
+        try {
+            const home = path.join(tmpDir, 'home');
+            const cache = path.join(tmpDir, 'cache');
+            const temp = path.join(tmpDir, 'temp');
+            for (const dir of [path.join(tmpDir, '.claude'), path.join(tmpDir, 'docs'), path.join(tmpDir, '.code-graph'), home, cache, temp]) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(path.join(tmpDir, 'docs', 'project-config.json'), JSON.stringify({ project: { name: 'fixture-project' } }));
+            fs.writeFileSync(path.join(tmpDir, '.code-graph', 'graph.db'), '');
+            const stubLog = path.join(tmpDir, 'spawn-stub.jsonl');
+            const env = {
+                CLAUDE_PROJECT_DIR: tmpDir,
+                HOME: home, USERPROFILE: home, LOCALAPPDATA: cache, XDG_CACHE_HOME: cache,
+                TMPDIR: temp, TEMP: temp, TMP: temp
+            };
+            for (const key of Object.keys(process.env)) {
+                if (/^CK_/i.test(key)) env[key] = ''; // inherited feature switches blanked
+            }
+            env.CK_GRAPH_SPAWN_STUB = stubLog;
+            const result = await runHook('graph-session-init.cjs', { source: 'startup' }, { cwd: tmpDir, timeout: 30000, env });
+            logResult('Exits 0 when config populated', result.code === 0);
+            logResult('No graph output when config populated', result.stdout === '');
+            // Control: the populated, active path really ran (it tried to start the graph toolchain)
+            const starts = fs.existsSync(stubLog) ? fs.readFileSync(stubLog, 'utf8').trim().split('\n').filter(Boolean) : [];
+            logResult('Populated config reaches the graph toolchain check (stubbed, nothing started)', starts.length > 0);
+            logResult('Nothing written to the per-user graph cache', fs.readdirSync(cache).length === 0);
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
     }
 }
 
@@ -646,11 +673,11 @@ async function testSessionEnd() {
 }
 
 // ============================================================================
-// Test Cases: Subagent — REMOVED
-// SubagentStart context-injection dispatchers (subagent-init.cjs / -2 / -3) were
-// removed in the inject-hook removal (Claude/Codex skill-parity). Their guidance
-// now lives in agent .md SYNC:agent-bootstrap blocks (Phase 03). Genuine lifecycle
-// asserts (state libs, session-end) remain in suites/lifecycle.test.cjs.
+// Test Cases: Subagent — not covered here
+// Agent bootstrap guidance lives in agent .md SYNC:agent-bootstrap blocks. The
+// SubagentStart hooks that exist (protocol-inject-*.cjs) are tested in
+// suites/protocol-delivery.test.cjs and suites/protocol-host-mapping.test.cjs;
+// lifecycle asserts (state libs, session-end) are in suites/lifecycle.test.cjs.
 // ============================================================================
 
 // ============================================================================
@@ -1041,29 +1068,50 @@ async function testInitPromptGate() {
     // ── Graph Gate: Config Guard Tests ──
     logSubsection('Graph Gate — Config Guard');
 
-    // Test 13: Config populated + no graph.db + no dismiss → exit 0 with graph guidance
+    // The graph-not-built note is opt-in (hooks.codeGraph.enabled): it shows only in mode "on"
+    // without a graph; the default "auto" stays silent until a graph exists.
+    const writeGraphGateProject = (tmpDir, codeGraphEnabled) => {
+        const docsDir = path.join(tmpDir, 'docs');
+        const srcDir = path.join(tmpDir, 'src');
+        fs.mkdirSync(docsDir, { recursive: true });
+        fs.mkdirSync(srcDir, { recursive: true }); // hasProjectContent needs a content dir
+        const config = {
+            project: { name: 'TestProject' },
+            modules: [{ name: 'mod', kind: 'library', pathRegex: 'src/' }]
+        };
+        if (codeGraphEnabled !== undefined) config.hooks = { codeGraph: { enabled: codeGraphEnabled } };
+        fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify(config));
+        // Root agent files present and complete so the agent-files gate passes through to the graph gate under test.
+        fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), completeAgentFileStub);
+        fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), completeAgentFileStub);
+    };
+    // The once-per-session note marker lives under the OS temp dir: keep it inside the fixture.
+    const graphGateEnv = tmpDir => ({ CLAUDE_PROJECT_DIR: tmpDir, TMPDIR: tmpDir, TEMP: tmpDir, TMP: tmpDir });
+
+    // Test 13: Config populated + graph mode "on" + no graph.db + no dismiss → exit 0 with graph guidance
     {
         const tmpDir = createMarkedTestProject();
         try {
-            const docsDir = path.join(tmpDir, 'docs');
-            const srcDir = path.join(tmpDir, 'src');
-            fs.mkdirSync(docsDir, { recursive: true });
-            fs.mkdirSync(srcDir, { recursive: true }); // hasProjectContent needs a content dir
-            fs.writeFileSync(
-                path.join(docsDir, 'project-config.json'),
-                JSON.stringify({
-                    project: { name: 'TestProject' },
-                    modules: [{ name: 'mod', kind: 'library', pathRegex: 'src/' }]
-                })
-            );
-            // Root agent files present and complete so the agent-files gate passes through to the graph gate under test.
-            fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), completeAgentFileStub);
-            fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), completeAgentFileStub);
+            writeGraphGateProject(tmpDir, 'on');
             // No .code-graph/graph.db, no dismiss flag
-            const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
-            logResult('Graph gate warns/allows when config populated + no graph.db', result.code === 0);
+            const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X', session_id: 'test-13' }, { env: graphGateEnv(tmpDir) });
+            logResult('Graph gate warns/allows when mode on + config populated + no graph.db', result.code === 0);
             logResult('Graph guidance mentions /graph-build', result.stdout.includes('/graph-build'));
             logResult('Graph guidance avoids skip prompt', !result.stdout.includes('skip graph'));
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
+    }
+
+    // Test 13b: Config populated + graph mode left at the default (auto) + no graph.db → no graph note
+    {
+        const tmpDir = createMarkedTestProject();
+        try {
+            writeGraphGateProject(tmpDir, undefined);
+            const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X', session_id: 'test-13b' }, { env: graphGateEnv(tmpDir) });
+            logResult('Graph gate allows when default auto mode + no graph.db', result.code === 0);
+            logResult('Default auto mode without a graph shows no graph note', !result.stdout.includes('Knowledge graph not built'));
+            logResult('Default auto mode without a graph does not route to /graph-build', !result.stdout.includes('/graph-build'));
         } finally {
             cleanupTempDir(tmpDir);
         }

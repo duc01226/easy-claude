@@ -467,6 +467,29 @@ const routerExecutionTests = [
         }
     },
     {
+        name: '[TC-NT-014] Stop while background agents still run is skipped by the router',
+        fn: async () => {
+            // Given Claude's main-session Stop fired while two delegated agents are still running
+            const input = {
+                hook_event_name: 'Stop',
+                cwd: '/test/project',
+                session_id: 'bg-wait-' + Date.now(),
+                last_assistant_message: 'Waiting for the review agents.',
+                background_tasks: [
+                    { id: 'a1', type: 'subagent', status: 'running', agent_type: 'code-reviewer' },
+                    { id: 'a2', type: 'subagent', status: 'running', agent_type: 'tester' }
+                ],
+                session_crons: []
+            };
+            // When the router processes the turn end
+            const result = await runRouter(input);
+            // Then it skips the turn-complete alert and names why
+            assertEqual(result.code, 0, 'Suppressed Stop should exit cleanly');
+            assertContains(result.stderr, 'Skipped: Stop while 2 delegated task(s) still run',
+                'A turn that still waits on background work must not alert');
+        }
+    },
+    {
         name: '[notification] router skips SubagentStop event (not in whitelist)',
         fn: async () => {
             // WHITELIST: Only Stop and idle_prompt are allowed - SubagentStop is blocked
@@ -585,6 +608,51 @@ const routerContractTests = [
                 // Then the session-ended alert stays eligible
                 assertTrue(isEligible(input), `SessionEnd with reason ${JSON.stringify(reason)} must still alert`);
             }
+        }
+    },
+    {
+        name: '[TC-NT-014] a turn-complete alert waits until the main session has no delegated work left',
+        fn: () => {
+            // Given the router's event classifier and Claude's Stop payload shape
+            const { isEligible, normalizeEvent } = loadRouterContracts();
+            const agentTask = { id: 'a1', type: 'subagent', status: 'running', agent_type: 'researcher' };
+            const serverTask = { id: 'b1', type: 'shell', status: 'running', command: 'npm run dev' };
+            // When the main turn ends while delegated agents, a workflow or an MCP task still run
+            // Then no turn-complete alert is eligible: each of them wakes the session again
+            for (const tasks of [
+                [agentTask],
+                [agentTask, serverTask],
+                [{ id: 'c1', type: 'workflow', status: 'running' }],
+                [{ id: 'd1', type: 'MCP task', status: 'Running' }]
+            ]) {
+                assertFalse(isEligible({ hook_event_name: 'Stop', background_tasks: tasks }),
+                    `Stop with delegated work in flight ${JSON.stringify(tasks)} must not alert`);
+            }
+            // And a one-shot wakeup that will resume the session holds the alert back too
+            assertFalse(isEligible({ hook_event_name: 'Stop', background_tasks: [],
+                session_crons: [{ id: 'w1', schedule: '5 14 24 9 *', recurring: false }] }),
+            'Stop with a pending one-shot wakeup must not alert');
+            // And a delegated conversation going idle is never the main session finishing
+            assertFalse(isEligible({ hook_event_name: 'Stop', agent_id: 'child-1' }),
+                'A delegated conversation Stop must not raise a turn-complete alert');
+            // When the turn ends with no delegated work left — the last agent already settled (in any
+            // casing), only a server, log tail or monitor that may never end still runs, only a
+            // recurring or unreadable schedule remains, or the host sends no task list at all
+            for (const input of [
+                { hook_event_name: 'Stop', background_tasks: [], session_crons: [] },
+                { hook_event_name: 'Stop', background_tasks: [{ id: 'a1', type: 'subagent', status: 'Completed' }] },
+                { hook_event_name: 'Stop', background_tasks: [serverTask, { id: 'm1', type: 'monitor', status: 'running' }] },
+                { hook_event_name: 'Stop', background_tasks: [null, 'x'], session_crons: [null, { id: 'q1' }] },
+                { hook_event_name: 'Stop', background_tasks: [], session_crons: [{ id: 'r1', schedule: '0 9 * * 1-5', recurring: true }] },
+                { hook_event_name: 'Stop', turn_id: 'codex-turn', last_assistant_message: 'Done.' },
+                { hook_event_name: 'Stop' }
+            ]) {
+                // Then the main session's finished job stays eligible for its alert
+                assertTrue(isEligible(input), `Stop with no delegated work left must alert: ${JSON.stringify(input)}`);
+            }
+            // And a question is never held back by background work: the developer is needed now
+            assertTrue(isEligible(normalizeEvent({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', background_tasks: [agentTask] })),
+                'A direct question must alert even while background work runs');
         }
     },
     {

@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Framework inventory:** **16 top-level hook files · 44 direct hook-library modules · 124 skills · 19 workflows · 23 agents**. Multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential thinking are documented here.
+> **Framework inventory:** **<!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->46<!-- /COUNT --> direct hook-library modules · <!-- COUNT:skills -->125<!-- /COUNT --> skills · <!-- COUNT:workflows -->20<!-- /COUNT --> workflows · <!-- COUNT:agents -->23<!-- /COUNT --> agents**. Multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential thinking are documented here.
 
 > **Relocatable roots — read this before any path in this guide.** Diagrams, tables, and examples below name roots by ROLE ("the plans root", "the business spec root"). Each role resolves as follows:
 >
@@ -58,7 +58,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **16 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **23 top-level hook files**, **125 skills**, **20 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -78,7 +78,7 @@ It is also **harness- and project-agnostic**: the `.claude/` source compiles to 
 │  AI drifts from plan   │  CLAUDE.md task rule│  Model-driven gate│
 │  AI injects duplicates │  Hooks (dedup)      │  File-based dedup│
 │  AI skips test specs   │  TDD skills/flows   │  Unified TC IDs  │
-│  AI misses lifecycle   │  19 workflows       │  Full SDLC cover │
+│  AI misses lifecycle   │  20 workflows       │  Full SDLC cover │
 │  AI skips research   │  big-feature wf      │  Step-select gate  │
 │  AI skips E2E tests    │  E2E skills/flows   │  Recording→test  │
 │  AI ignores doc format │  buildSpecContext   │  8-section inject  │
@@ -130,14 +130,14 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 124 Skills"
-        SP[Shared Protocols<br/>10 files]
+    subgraph "Intelligence Layer — 125 Skills"
+        SP[Shared Protocols<br/>12 entries]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, why-review]
         PS[Planning Skills<br/>plan, investigate]
     end
 
-    subgraph "Orchestration Layer — 19 Workflows"
+    subgraph "Orchestration Layer — 20 Workflows"
         FW[Feature Workflow]
         BW[Bugfix Workflow]
         RW[Refactor Workflow]
@@ -274,7 +274,13 @@ graph LR
         STOP[Stop]
     end
 
-    %% No SubagentStart hook — sub-agent context is static in agents/*.md
+    subgraph "Protocol Delivery Events"
+        SAS["SubagentStart<br/>(protocol-inject-* only)"]
+        UPE["UserPromptExpansion<br/>(protocol-inject-* only)"]
+    end
+
+    %% SubagentStart and UserPromptExpansion carry ONLY the six protocol-inject-<group>.cjs
+    %% handlers (full protocol texts); standing sub-agent context stays static in agents/*.md
     %% PreCompact is an available Claude Code event but this framework registers NO PreCompact
     %% hook — compaction recovery is static re-anchoring (re-read CLAUDE.md / SKILL.md, TaskList).
 
@@ -290,12 +296,12 @@ graph LR
 > **Guidance layer (current architecture).** Path-scoped guidance, mindset principles, and
 > sub-agent context live **statically** in `CLAUDE.md`, agent `.md` files, and skill
 > `SKILL.md` files. The workflow route gate is present in those carriers; a default-on prompt hook
-> re-delivers the live catalog unless tracked team config opts out. A local override controls runtime delivery.
+> re-delivers a compact catalog unless tracked team config opts out. A local override controls runtime delivery.
 > The tree below lists only hooks that map to a real registration in
 > `.claude/settings.json`.
 
 ```
-HOOK SYSTEM (16 top-level .cjs hooks)
+HOOK SYSTEM (23 top-level .cjs hooks)
 │
 ├── SESSION LIFECYCLE (5 hooks)
 │   ├── verify-install.cjs ────────── Integrity preflight + guarded startup dependency install
@@ -322,15 +328,23 @@ HOOK SYSTEM (16 top-level .cjs hooks)
 │                                      commit ships behavioral code in an enforced
 │                                      area without its Feature Spec update
 │
-├── POST-PROCESSING (3 hooks)
+├── POST-PROCESSING (4 hooks)
 │   ├── post-edit-prettier.cjs ────── Auto-format after edits
 │   ├── graph-auto-update.cjs ─────── Incremental graph update after edits (debounced)
-│   └── file-convention-inject.cjs ── Opt-in per-file convention reminder after reads/edits
+│   ├── file-convention-inject.cjs ── Opt-in per-file convention reminder after reads/edits
+│   └── token-budget-checkpoint.cjs ─ Advisory token checkpoint at task steps
 │
-└── SUPPORT INFRASTRUCTURE (44 lib modules)
+├── PROTOCOL DELIVERY (6 hooks)
+│   └── protocol-inject-<group>.cjs ─ review, evidence-trace, workflow-task, spec-test,
+│                                      design, universal: deliver a skill's full protocol
+│                                      texts once per session (PostToolUse Skill/Read,
+│                                      UserPromptExpansion, SubagentStart)
+│
+└── SUPPORT INFRASTRUCTURE (46 lib modules)
     ├── State: ck-session-state, workflow-state, todo-state, agent-files-state
     ├── Context: prompt-injections, prompt-ledger-store, prompt-route-utils
     ├── Conventions: file-conventions, convention-merge, convention-ledger, skill-protocol-overlay
+    ├── Protocol delivery: protocol-delivery
     ├── Memory: swap-engine (externalize large outputs), temp-file-cleanup
     ├── Config: ck-paths, ck-config-loader, project-config-loader, project-config-schema, ck-config-utils, ck-config-schema
     ├── Security: command-inspection, sensitive-path-policy, git-operation-lease, project-root
@@ -483,11 +497,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (124 skills)
+### 5.2 Skill Categories (<!-- COUNT:skills -->125<!-- /COUNT --> skills)
 
 ```mermaid
 mindmap
-  root((124 Skills))
+  root((125 Skills))
     Quality & Verification
       code-review
       dor-gate
@@ -561,23 +575,25 @@ mindmap
       workflow-bugfix
       workflow-greenfield-init
       workflow-refactor
-      ... 13 more
+      ... 15 more
 ```
 
 ### 5.3 Shared Protocols — The Foundation
 
-10 shared reference/protocol files provide canonical reusable behavior for skills. Inline protocol blocks are **inlined** into each skill via `<!-- SYNC:tag -->` blocks (not file-read references) for maximum AI compliance; the shared E2E quality protocol remains a direct reference because it is consumed as a common gate by E2E writers and reviewers.
+<!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (files plus the generated `protocols/` projection) provide canonical reusable behavior for skills. Shared protocols follow the hybrid policy (`SYNC:shared-protocol-duplication-policy`): converted skills carry one guide line per protocol, group hooks deliver the full text, and the five review-family skills and every agent keep full `<!-- SYNC:tag -->` bodies inline; the shared E2E quality protocol remains a direct reference because it is consumed as a common gate by E2E writers and reviewers.
 
-**Architecture:** The canonical source is `.claude/skills/shared/sync-inline-versions.md`. Each protocol is wrapped in `<!-- SYNC:protocol-name -->` / `<!-- /SYNC:protocol-name -->` HTML comment tags. Closing Reminders use `:reminder` suffix variants. To update a protocol: edit the canonical file first, then `grep SYNC:protocol-name` and update all copies.
+**Architecture:** The canonical source is `.claude/skills/shared/sync-inline-versions.md`, one `## SYNC:protocol-name` section per protocol; carriers fence full bodies with `<!-- SYNC:protocol-name -->` / `<!-- /SYNC:protocol-name -->` HTML comment tags. Closing Reminders use `:reminder` suffix variants. To update a protocol: edit the canonical file first; run `py -3 .claude/scripts/sync-update-blocks.py <tag>` (macOS/Linux `python3`), which rewrites every skill and agent carrier; rebuild the hook-delivered projection with `node .claude/scripts/build-protocol-projection.cjs`; then grep `SYNC:<tag>` only for copies outside the tool's scope, such as `.claude/docs/development-rules.md`.
 
 ```
 .claude/skills/shared/
-└── sync-inline-versions.md             ← CANONICAL source for all SYNC blocks
+├── sync-inline-versions.md             ← CANONICAL source for all SYNC blocks
+├── protocol-groups.json                ← hook delivery groups + inlineSkills
+└── protocols/                          ← GENERATED projection the hooks deliver
 ```
 
-> **Note:** Protocol content is inlined into consuming skills via `<!-- SYNC:tag -->` blocks. `sync-inline-versions.md` is the canonical source for shared inline protocol text; adjacent shared files hold related reusable contracts and reference guidance.
+> **Note:** Protocol content reaches a consuming skill under the hybrid policy (`SYNC:shared-protocol-duplication-policy`): a converted skill carries one guide line per protocol in its `PROTOCOL-GUIDES` block and a hook delivers the full text from the generated projection `.claude/skills/shared/protocols/`; the five review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full `<!-- SYNC:tag -->` bodies. `sync-inline-versions.md` is the canonical source for all shared protocol text; adjacent shared files hold related reusable contracts and reference guidance.
 
-**Why inline instead of file-read?** AI compliance drops significantly when protocols are behind `MUST ATTENTION READ file.md` indirection. AI agents skip the file-read step ~40% of the time. Inline SYNC blocks are always present in the skill's context window.
+**Why hybrid?** A rule the model has in context is followed more reliably than one it must choose to go read, so where a host runs hooks the full text is delivered into context when the skill loads, and the guide path is only the fallback when it is not. Full bodies stay where hook delivery cannot carry them (the review-family skills), where no hook fires for the reader (agents, reviewer prompts) and in mode-only `references/*.md` files.
 
 #### Protocol 1: Understand Code First
 
@@ -723,7 +739,7 @@ Three new review skills create quality checkpoints between artifact-producing st
 
 #### Pattern 4: SYNC Tag Inline Protocols
 
-Shared protocols are inlined directly into skills wrapped in HTML comment tags:
+Shared protocols follow the hybrid policy (§5.3, §13.5): the five review-family skills, `references/*.md` bodies, agents and reviewer prompts carry the full body wrapped in HTML comment tags, while every other skill carries one `PROTOCOL-GUIDES` guide line per protocol and a hook delivers the full text from `.claude/skills/shared/protocols/`. A full-body carrier looks like:
 
 ```markdown
 <!-- SYNC:understand-code-first -->
@@ -736,7 +752,7 @@ Shared protocols are inlined directly into skills wrapped in HTML comment tags:
 <!-- /SYNC:understand-code-first -->
 ```
 
-Bottom of each skill has condensed `:reminder` variants:
+Bottom of each carrier has condensed `:reminder` variants:
 
 ```markdown
 <!-- SYNC:understand-code-first:reminder -->
@@ -746,9 +762,9 @@ Bottom of each skill has condensed `:reminder` variants:
 <!-- /SYNC:understand-code-first:reminder -->
 ```
 
-**Update workflow:** Edit `sync-inline-versions.md` (canonical) → `grep SYNC:tag-name` → update all copies. The `SYNC:shared-protocol-duplication-policy` tag in `code-simplifier` and `development-rules.md` prevents AI from "helpfully" extracting inline content back to file references.
+**Update workflow:** Edit `sync-inline-versions.md` (canonical) → `sync-update-blocks.py <tag>` (rewrites every skill and agent body) → `node .claude/scripts/build-protocol-projection.cjs` (guide targets) → `grep SYNC:tag-name` for copies outside the tool's scope. The `SYNC:shared-protocol-duplication-policy` tag in `code-simplifier` and `development-rules.md` keeps AI from hand-extracting, deduplicating or replacing a body outside those rules.
 
-**Why this matters:** AI compliance with file-read directives (`MUST ATTENTION READ shared/*.md`) was inconsistent. Inlining ensures protocols are always in the context window. The SYNC tag system enables bulk updates via grep while maintaining the duplication intentionally.
+**Why this matters:** AI compliance with hand-written file-read directives (`MUST ATTENTION READ shared/*.md`) was inconsistent. Hook delivery puts the full text in the context window where hooks run; the full bodies that remain keep it there where they do not. The SYNC tag system and the guide tooling keep every copy a projection of one canonical source.
 
 ---
 
@@ -789,15 +805,16 @@ Doc paths inside the example resolve against the project-reference docs root —
 }
 ```
 
-### 6.2 Workflow Catalog (19 Workflows)
+### 6.2 Workflow Catalog (20 Workflows)
 
 ```
 WORKFLOW CATALOG
 │
-├── DEVELOPMENT (3)
+├── DEVELOPMENT (4)
 │   ├── workflow-big-feature
 │   ├── workflow-bugfix
-│   └── workflow-feature
+│   ├── workflow-feature (no canonical spec has the behavior yet)
+│   └── workflow-implement-spec (behavior already written in a canonical spec or TC set)
 │
 ├── REFACTORING (1)
 │   └── workflow-refactor
@@ -873,7 +890,7 @@ sequenceDiagram
     end
 ```
 
-**Auto-selection is default-on for the session's first task only.** Mid-session work (follow-ups, corrections, new asks) runs directly, with the best-fit skill, or with a lean chain of at most 3 skills; an explicit workflow request (`/start-workflow <id>`, `/workflow-*`, or asking in words) always runs. `docs/project-config.json` can disable it for the team, while git-ignored `.claude/.ck.local.json` can override runtime refresh for one developer. The runtime reminder can also carry a project-supplied `portability.workflowRouteProtocol` (team or developer-local, local replaces team) — inline markdown or a repo-relative file read at runtime — appended by the route hook and never stamped into tracked context. With routing disabled, an explicitly named workflow or skill still runs normally.
+**Auto-selection is default-on for the session's first task only.** Mid-session work (follow-ups, corrections, new asks) runs directly, with the best-fit skill, or with a lean chain of at most 3 skills; an explicit workflow request (`/start-workflow <id>`, `/workflow-*`, or asking in words) always runs. `docs/project-config.json` can disable it for the team, while git-ignored `.claude/.ck.local.json` can override runtime refresh for one developer. The runtime reminder can also carry a project-supplied `portability.workflowRouteProtocol` (team or developer-local, local replaces team) — inline markdown or a repo-relative file read at runtime — appended by the route hook and never stamped into tracked context. With routing disabled, the route hook delivers a short routing-OFF notice that overrides the tracked gate's auto-select and skill-level workflow recommendations, and an explicitly named workflow or skill still runs normally. Each workflow also has an `activation` tier in `.claude/workflows.json`: `auto`, `confirm` (ask once before self-starting — default `workflow-feature`) or `manual` (never self-started — defaults `workflow-big-feature`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-spec-to-pbi`; their wrapper skills set `disable-model-invocation: true`, mirrored to Codex as `agents/openai.yaml` `allow_implicit_invocation: false`). To run one session with the whole framework off, use `claude --settings .claude/config/vanilla-settings.json --disable-slash-commands` (see `.claude/config/README.md`).
 
 ### 6.4 Pre-Actions — Context Loading Before Execution
 
@@ -901,9 +918,9 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 ```mermaid
 graph LR
     subgraph "Generic Framework (reusable)"
-        H[16 Hook Files]
-        S[124 Skills]
-        W[19 Workflows]
+        H[23 Hook Files]
+        S[125 Skills]
+        W[20 Workflows]
     end
 
     subgraph "Project-Specific (swappable)"
@@ -989,7 +1006,6 @@ Beyond `project-config.json`, `settings.json` governs Claude Code's runtime beha
 | Setting                           | Value                                               | Purpose                                                                                                                         |
 | --------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `autoMemoryEnabled`               | `false`                                             | Disables Claude Code's built-in memory — framework uses its own external state (swap engine, todo state, lessons.md)            |
-| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | `500000`                                            | Auto-compact window of 500K tokens (capped by the model max context), giving longer sessions before recovery kicks in           |
 | `CLAUDE_CODE_DISABLE_AUTO_MEMORY` | `1`                                                 | Env-level memory disable (belt-and-suspenders with `autoMemoryEnabled`)                                                         |
 | `enableAllProjectMcpServers`      | `false`                                             | Opt-in MCP only — prevents auto-enabling untrusted servers                                                                      |
 | `enabledMcpjsonServers`           | `["context7","github"]`                             | Only context7 (optional library-docs accelerator) and github MCP active; memory disabled (the framework handles state natively) |
@@ -1067,7 +1083,7 @@ graph TB
 
     subgraph "The Reminder Solution"
         R1[Static universal rules in CLAUDE.md + SKILL.md;<br/>re-read by the model every prompt]
-        R2[Default-on route hook re-injects the live catalog<br/>after compaction or about 4.5 MB growth]
+        R2[Default-on route hook re-injects the compact catalog<br/>after compaction or about 4.5 MB growth]
     end
 
     F1 --> F2 --> F3
@@ -1087,7 +1103,7 @@ graph TB
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  DEFAULT MODE: Auto-Select the Best Route, Never Confirm-First   │
+│  DEFAULT MODE: Auto-Select the Best Route, Confirm Only by Tier  │
 │                                                                   │
 │  PROBLEM: AI detects "feature" keyword and immediately starts    │
 │  implementing without evaluating whether a workflow, a single    │
@@ -1104,7 +1120,8 @@ graph TB
 │                    ↓                                              │
 │  AI evaluates: direct edit? single skill? feature workflow?      │
 │                    ↓                                              │
-│  Best match: feature workflow → activates immediately            │
+│  Best match: feature workflow (confirm tier) → asks once, then   │
+│  runs the chosen route                                            │
 │  (steps: investigate→spec [mode=tests]→plan→plan-execute→test→docs)      │
 │                                                                   │
 │  EXCEPTION: explicit invocation — when the user names a          │
@@ -1116,6 +1133,12 @@ graph TB
 │  directly or with a lean chain of at most 3 skills. An explicit   │
 │  request always runs, mid-session included: a workflow skill      │
 │  call (start-workflow X, /workflow-*) or asking in words.         │
+│                                                                   │
+│  TIERS: a `confirm` workflow (default: feature) gets ONE          │
+│  question first — its step count vs. the lean route. A `manual`   │
+│  workflow (big-feature, greenfield-init, idea-to-pbi,             │
+│  spec-to-pbi) is never self-started: the AI names it in its       │
+│  route and the user runs it.                                      │
 │                                                                   │
 │  WHY: Prevents misrouting without blocking. "Fix this test"      │
 │  could be:                                                        │
@@ -1162,8 +1185,9 @@ flowchart TB
 │  BEST PRACTICE: Force Sequential Thinking for Complex Problems   │
 │                                                                   │
 │  TOOLS:                                                           │
-│  1. SYNC:sequential-thinking-protocol — inlined in planning,     │
-│     review, and debug skills; Thought N/M + REVISION/BRANCH      │
+│  1. SYNC:sequential-thinking-protocol — full body in agents and  │
+│     review-family skills; guide line + hook delivery in other    │
+│     planning/debug skills (§5.3); Thought N/M + REVISION/BRANCH  │
 │  2. /debug-investigate skill — Systematic root cause investigation           │
 │                                                                   │
 │  WHEN ACTIVATED:                                                  │
@@ -2582,8 +2606,9 @@ This section maps **established prompt engineering techniques** to specific fram
 │     Each step produces an intermediate artifact that feeds       │
 │     the next step's reasoning.                                   │
 │                                                                   │
-│  2. SYNC:sequential-thinking-protocol — structured reasoning     │
-│     inlined in every planning/review/debug skill:                │
+│  2. SYNC:sequential-thinking-protocol — structured reasoning;    │
+│     full body in agents + review-family skills, guide line +     │
+│     hook delivery in planning/debug skills (§5.3):               │
 │     Step 1: State the problem precisely                          │
 │     Step 2: List ALL hypotheses                                  │
 │     Step 3: For EACH, find supporting/contradicting evidence     │
@@ -2765,7 +2790,7 @@ Context engineering is the discipline of **managing what information reaches the
 ┌─────────────────────────────────────────────────────────────────┐
 │  WHY CONTEXT ENGINEERING MATTERS                                  │
 │                                                                   │
-│  Claude Code context window: ~200K tokens (auto-compact at 500K) │
+│  Claude Code context window: ~200K tokens (host-default compact) │
 │  A typical project's full context: >>200K tokens                 │
 │  Backend patterns doc alone: ~60KB (~15K tokens)                 │
 │  Frontend patterns doc: ~57KB (~14K tokens)                      │
@@ -3097,7 +3122,7 @@ Skills that **automatically receive graph context** when graph.db exists: `/code
 
 #### Auto-Maintenance
 
-The graph requires **zero manual maintenance** after initial build:
+The graph requires **zero manual maintenance** after initial build. The graph hooks run only while the code graph is active (`hooks.codeGraph.enabled`: `on`, or the default `auto` once `.code-graph/graph.db` exists; read `.claude/docs/hooks/README.md#code-graph-mode` for the modes):
 
 - **Every edit:** `graph-auto-update.cjs` re-parses the edited file (3s debounce, atomic lock)
 - **Every session:** `graph-session-init.cjs` diffs `last_synced_commit` vs HEAD, syncs changed files from git pull/checkout/merge
@@ -3126,7 +3151,7 @@ The graph requires **zero manual maintenance** after initial build:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-> **Setup:** `pip install tree-sitter tree-sitter-language-pack networkx` then `/graph-build`. See [code-graph-mechanism.md](./code-graph-mechanism.md) for full technical details.
+> **Setup:** Python 3.10+ required; `/graph-build` installs the rest into the hooks' environment — run `/graph-build`. `hooks.codeGraph.enabled` in `docs/project-config.json` (`auto` default, `on`, `off`) gates the graph hooks. See [code-graph-mechanism.md](./code-graph-mechanism.md) for full technical details.
 
 ---
 
@@ -3453,16 +3478,16 @@ sequenceDiagram
 
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
-| `test-all-hooks.cjs` (primary gate)  | **130** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **743** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `test-all-hooks.cjs` (primary gate)  | **133** | All hook behaviors + bridged suites + count-drift guard                                    |
+| `run-all-tests.cjs` (full aggregate) | **985** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> The primary suite passes with 130 tests.
-> The full aggregate discovers 743 tests; 4 of them skip on host-capability or repo-state gates.
+> The primary suite passes with 133 tests.
+> The full aggregate discovers 985 tests; 4 of them skip on host-capability or repo-state gates.
 > Both counts are checked against live totals by the runners on full runs.
 
-> Live-verified: `test-all-hooks.cjs` = 130; `run-all-tests.cjs` = 743 discovered.
+> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 985 discovered.
 
-Suites under `tests/suites/` (47): agent-files-gate, agent-universal-rules, bash-hook-contract, bugfix-regression, check-subagent-routing, ck-path-utils, code-graph-storage-portability, codex-launcher, command-inspection, commit-skill-route, content-presence, count-drift, desktop-argv, doc-impact-map, doc-stamp-guard, doc-sync-gate, docroot-relocation, emit-prompt-context, failure-log-hygiene, file-convention-inject, git-operation-lease, graph-head-staleness, init-prompt-gate, init-reference-docs, integration, judgement-integrity-route, lifecycle, notification, plan-naming, project-protocol-drift, project-reference-gate-coverage, prompt-ledger, protocol-text-parity, python-fallback, reference-doc-freshness, review-commit-gate, runner-await-contract, skill-protocol-overlay, standalone-scripts, startup-install, swap-engine, sync-carrier-parity, ui-ux-gate-inject, windows-git, windows-stdio-portability, workflow-routing-switch, workflow.
+Suites under `tests/suites/` (63): agent-files-gate, agent-universal-rules, bash-hook-contract, bugfix-regression, check-subagent-routing, ck-path-utils, code-graph-cli-off, code-graph-config-agreement, code-graph-opt-in, code-graph-storage-portability, codex-launcher, command-inspection, commit-skill-route, content-presence, count-drift, desktop-argv, doc-impact-map, doc-stamp-guard, doc-sync-gate, docroot-relocation, emit-prompt-context, failure-log-hygiene, file-convention-inject, git-operation-lease, graph-head-staleness, graph-venv, init-prompt-gate, init-reference-docs, integration, judgement-integrity-route, lifecycle, notification, plan-naming, plan-speed-contract, project-config-refactor-keys, project-protocol-drift, project-reference-gate-coverage, prompt-ledger, protocol-delivery, protocol-host-mapping, protocol-inject-hook, protocol-text-parity, python-fallback, reference-doc-freshness, review-commit-gate, review-mode-sections, runner-await-contract, scope-guard, session-usage, session-usage-report, skill-protocol-overlay, standalone-scripts, startup-install, step-skill-description, swap-engine, sync-carrier-parity, token-budget-checkpoint, ui-ux-gate-inject, watzup-session-summary, windows-git, windows-stdio-portability, workflow, workflow-routing-switch.
 
 Run the primary gate with `node .claude/hooks/tests/test-all-hooks.cjs`; the full aggregate with `node .claude/hooks/tests/run-all-tests.cjs`. See CLAUDE.md "Development Commands" for the full list.
 
@@ -3488,7 +3513,8 @@ flowchart TB
     B -->|No| BLOCK1[❌ Block until config exists]
     B -->|Yes| C{workflowAutoDetect enabled?}
     C -->|Yes| C1[Inject deduplicated live route catalog]
-    C -->|No| D[Tracked route gate only]
+    C -->|No| C2[Inject deduplicated routing-OFF notice]
+    C2 --> D
     C1 --> D[Static dev rules + route gate + lessons<br/>from CLAUDE.md / SKILL.md]
 
     D --> H{LLM processes prompt<br/>with static context}
@@ -3518,10 +3544,10 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md plus an opt-in PostToolUse convention reminder                | Skills/Hooks  |
 | **Reminder rules prevent forgetting**          | Static SYNC rules plus configurable default-on route injection re-armed after compaction or long transcript growth     | Skills/Hooks  |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                                    | Config        |
-| **Prompt engineering quality**                 | 124 skills with YAML frontmatter + behavior protocols                                                                  | Skills        |
-| **Auto-select workflow path before acting**    | The default-on prompt hook supplies the live catalog for semantic route selection; tracked team config can opt out     | Workflows     |
+| **Prompt engineering quality**                 | <!-- COUNT:skills -->125<!-- /COUNT --> skills with YAML frontmatter + behavior protocols                                     | Skills        |
+| **Auto-select workflow path before acting**    | The default-on prompt hook supplies the compact catalog for semantic route selection; tracked team config can opt out     | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                                | Skills        |
-| **Sequential thinking for complex problems**   | `SYNC:sequential-thinking-protocol` inlined in skills + /debug-investigate skill                                       | Skills        |
+| **Sequential thinking for complex problems**   | `SYNC:sequential-thinking-protocol` (full body in agents + review-family skills; guide line + hook delivery elsewhere, §5.3) + /debug-investigate skill | Skills        |
 | **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol                                                                                      | Skills        |
 | **State survives context compaction**          | Disk-backed task list (TaskList) + workflow state + plans-root files                                                   | State         |
 | **Lessons persist across sessions**            | `lessons.md` in the project-reference docs root + static read contract; restored by the model re-reading that contract | Skills/Config |
@@ -3556,12 +3582,12 @@ flowchart TB
 
 ```
 .claude/
-├── settings.json ──────── Hook registration (7 events, 21 registrations)
+├── settings.json ──────── Hook registration (9 events, 49 registrations)
 ├── ccstatusline.json ──── Status line display config (model, context, tokens, tok/s estimator)
 ├── .ck.json ──────────── Hook-specific config
-├── workflows.json ─────── 19 workflow definitions
+├── workflows.json ─────── 20 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
-├── hooks/ ─────────────── 16 top-level .cjs hooks + 44 lib modules
+├── hooks/ ─────────────── 23 top-level .cjs hooks + 46 lib modules
 │   ├── session-init.cjs
 │   ├── ...
 │   ├── lib/ ──────────── Shared modules
@@ -3570,9 +3596,9 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 124 skill definitions
+├── skills/ ────────────── 125 skill definitions
 │   ├── {skill-name}/SKILL.md
-│   ├── shared/ ───────── 10 shared reference/protocol files
+│   ├── shared/ ───────── 12 shared reference/protocol entries
 │   └── _templates/ ───── Skill scaffolding
 ├── agents/ ────────────── 23 agent definitions
 ├── docs/ ─────────────── Framework documentation (co-located)
@@ -3735,7 +3761,7 @@ The mirror preserves static rules and separately projects runtime hooks:
 
 | Behavior on Claude Code                                 | How the mirror delivers it to another host (hooks optional)                                                      |
 | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Workflow routing emitted by `workflow-route-inject.cjs` | Static context carries the gate; hooks registered in `.codex/hooks.json` and OpenCode refresh the live catalog   |
+| Workflow routing emitted by `workflow-route-inject.cjs` | Static context carries the gate; hooks registered in `.codex/hooks.json` and OpenCode refresh the compact catalog   |
 | Static `lessons.md` read contract                       | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
 | Static project-config + reference-doc read contract     | A loading gate instructs the tool to read `docs/project-config.json` + `docs/project-reference/**` at task start |
 | `/skill` slash invocation                               | Rewritten to Codex's `$skill` invocation syntax; `Agent(...)` → `spawn_agent`, `subagent_type` → `agent_type`    |
@@ -3747,7 +3773,7 @@ So the mirror is not a copy — it is a **transform** that converts host-specifi
 | Skill               | Scope                                                                   | Mechanics                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`sync-codex`**    | Full Claude → Codex mirror                                              | `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` (or the skill). `disable-model-invocation: true` — user-invoked only; an explicit `ai-context-refresh` completion may call the standalone runner with `--skip=claude-md`. Sequential, fail-fast stages.                                                                                                                                                                                                                                                                                                          |
-| **`sync-opencode`** | opencode surfaces: hooks bridge + recommended config + sub-agent mirror | `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs`. Seven fail-fast stages — `config`, `hooks`, `agents`, `tests`, `verify-config`, `verify-hooks`, `verify-agents`. Generates `.opencode/plugins/easy-claude-hooks.js`, the project-root `opencode.json`, and `.opencode/agent/*.md` (one per `.claude/agents/*.md`, `mode: subagent`, canonical body verbatim). Skills are **not** mirrored — opencode auto-discovers `.claude/skills`; sub-agents are not auto-discovered, so they are. `$sync-codex` hands off to this runner once its own roster passes. |
+| **`sync-opencode`** | opencode surfaces: hooks bridge + recommended config + skill permissions and commands + sub-agent mirror | `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs`. Nine fail-fast stages — `config`, `skills`, `hooks`, `agents`, `tests`, `verify-config`, `verify-skills`, `verify-hooks`, `verify-agents`. Generates `.opencode/plugins/easy-claude-hooks.js`, the project-root `opencode.json` including its `permission.skill` entries (the skill-selection policy), `.opencode/skill-permissions.generated.json` (the per-project ownership ledger of those entries), `.opencode/commands/<name>.md` (an explicit `/name` for each skill hidden from the model), and `.opencode/agent/*.md` (one per `.claude/agents/*.md`, `mode: subagent`, canonical body verbatim). Skills are **not** mirrored — opencode auto-discovers `.claude/skills`; sub-agents are not auto-discovered, so they are. `$sync-codex` hands off to this runner once its own roster passes. |
 
 **`sync-codex`'s stages** (CLAUDE preflight, mutate mirrors, verify-only after, configured failures abort): **claude-md** → **migrate** → **hooks** → **context** → **tests** → **scripts-tests** → **tech-spec-freshness** → **feature-registry** → **hooks-count-drift** → **hooks-parity** → **hooks-doc-sync** → **wf-cycle** → **sk-proto** → **residue** → **sdd** → **review-validate-coverage** → **sync-adoption-parity** → **provenance-markers** → **sync-divergence**. The first stage initializes a missing `CLAUDE.md`, updates a marker-managed stale root, and stops for markerless smart-merge unless `portability.requireUniversalGuides: false` is explicit. The tech-spec and feature-registry stages are optional capabilities: when their project-config contracts are absent, the runner records an explicit skip; when declared, they fail closed on invalid or stale data. The feature-registry stage reads `specSystem.featureRegistryRoots` from project config and automatically includes continuation parts. The sync is not "done" until every configured read-only gate passes — a stale derived view, invalid adopted registry root, or non-portable mirror **fails the pipeline** rather than shipping silently.
 
@@ -3773,14 +3799,14 @@ The `tech-spec-freshness` stage runs `generate-tech-specs.mjs --check`; it compa
 
 ### 13.5 The SYNC-Tag Mechanism — One Protocol, Identical Everywhere
 
-The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across all 124 skills _and_ across both tools. They are kept identical by **inlining, not referencing**:
+The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across all <!-- COUNT:skills -->125<!-- /COUNT --> skills _and_ across both tools. They are kept identical by **one canonical source and generated projections** (the hybrid policy):
 
-1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~67 tagged protocols).
-2. In every consuming skill the content is inlined **verbatim** between `<!-- SYNC:{tag} -->` … `<!-- /SYNC:{tag} -->` fences.
+1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~100 tagged protocols, plus their `:reminder` variants).
+2. Carriers hold either the **verbatim** body between `<!-- SYNC:{tag} -->` … `<!-- /SYNC:{tag} -->` fences (the five review-family skills, `references/*.md`, agents) or one guide line in a `PROTOCOL-GUIDES` block (every other skill), whose full text a hook delivers from `.claude/skills/shared/protocols/`.
 3. The **`sync-skills-shared-protocols`** skill propagates a canonical edit: find every file carrying the tag, replace the text between its fences, verify fence balance. Bulk inserts across all ~183 skill/agent files go through `sync-hooks-to-skills.py`, never by hand.
 4. The Codex context stage re-emits the same SYNC blocks into `CODEX_CONTEXT.md` / `AGENTS.md`.
 
-**Why inline instead of reference?** The explicit policy (`SYNC:shared-protocol-duplication-policy`): _"Inline protocol content … is INTENTIONAL duplication. Do NOT extract, deduplicate, or replace with file references. AI compliance drops significantly when protocols are behind file-read indirection."_ This is a deliberate trade — storage/duplication cost for adherence. An LLM follows a rule in front of it far more reliably than a rule it must choose to go read. The verifiers (13.4) make the duplication safe by failing the build the moment copies diverge.
+**Why hybrid instead of all-inline?** The explicit policy (`SYNC:shared-protocol-duplication-policy`): _"Skills keep guides. Hooks deliver the full text where the host runs hooks … The guide path is the fallback."_ An LLM follows a rule in front of it far more reliably than a rule it must choose to go read, so the text is still put in front of it — by the hook instead of by a copy in every skill — and full bodies stay wherever no hook can deliver them (review-family skills, agents, reviewer prompts). The verifiers (13.4) make the remaining copies safe by failing the build the moment a body, a guide line or its projection diverges from canonical.
 
 ### 13.6 The Portability Contract — How It Works on Any Project
 
@@ -3831,7 +3857,7 @@ This framework answers that question with **defense in depth**: multiple indepen
 | **Plan before implement**         | A static `CLAUDE.md` rule requires a `TaskCreate` item before any file edit (model-driven, no longer hook-gated). Combined with model-driven workflow progression, this ensures AI doesn't skip from question to code without a plan.                                   |
 | **State survives amnesia**        | External state files (disk-backed task list, workflow progress, plans-root files) persist to disk. After context compaction, the model re-reads them via `TaskList` and audits git/filesystem — resuming where it left off.                                             |
 | **Stateless-per-turn invariants** | Critical universal rules are carried as static SYNC-tagged invariants in `CLAUDE.md` / agent `.md` / skill `SKILL.md` bodies and restored after compaction by re-reading those files. Optional workflow routing uses its own content-hash and transcript-growth ledger. |
-| **Self-contained skill units**    | Skills inline shared protocols via `<!-- SYNC:tag -->` blocks rather than referencing external files. Each skill is a complete, deployable prompt unit. The `sync-skills-shared-protocols` skill keeps copies synchronized from a canonical source.                     |
+| **Self-contained skill units**    | Every skill ships its protocols with it under the hybrid policy (§5.3): the review-family skills and agents inline full `<!-- SYNC:tag -->` bodies; other skills carry a guide line whose full text a hook delivers, with the guide path as fallback. The `sync-skills-shared-protocols` skill keeps every copy a projection of one canonical source. |
 | **Structural intelligence first** | The code graph (`code_graph.py`) is a HARD-GATE before any investigation concludes. Grep finds files; graph traces reveal callers, events, bus consumers, and API contracts — relationships that textual search cannot find.                                            |
 
 ### What Makes This Framework Different
@@ -3887,7 +3913,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**16 top-level hook files**, **124 skills**, **19 registered workflows**, and **23 specialized agents** working in concert to deliver:
+**23 top-level hook files**, **125 skills**, **20 registered workflows**, and **23 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3895,7 +3921,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 124 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across <!-- COUNT:skills -->125<!-- /COUNT --> skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

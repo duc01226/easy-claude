@@ -154,13 +154,15 @@ Register hooks for Claude Code lifecycle events.
 | `SessionStart`     | `startup`, `resume`, `clear`, `compact` | Session begins            |
 | `SessionEnd`       | `clear`, `exit`, `compact`              | Session ends              |
 | `UserPromptSubmit` | (none)                                  | User submits prompt       |
+| `UserPromptExpansion` | (none)                               | A typed `/command` expands |
 | `PreToolUse`       | Tool names                              | Before tool execution     |
 | `PostToolUse`      | Tool names                              | After tool execution      |
 | `PreCompact`       | `manual`, `auto`                        | Before context compaction |
-| `SubagentStart`    | `*`                                     | Subagent spawning         |
+| `SubagentStart`    | Agent type names                        | Subagent spawning         |
 | `Notification`     | (none)                                  | Waiting for user input    |
+| `Stop`             | (none)                                  | Main agent finishes responding |
 
-> Claude Code supports these events for hook registration. This framework registers no `SubagentStart` hook (sub-agent context is static in `agents/*.md`); it is listed here as an available event only.
+> Claude Code supports these events for hook registration. This framework registers `UserPromptExpansion` and `SubagentStart` only for the protocol delivery steps (`protocol-inject-<group>.cjs`; the `SubagentStart` matcher lists exact agent names); standing sub-agent context stays static in `agents/*.md`. `Stop` registers only the notification router (`hooks/notifications/notify.cjs`) for the turn-complete alert. Read [../hooks/README.md § Protocol Delivery](../hooks/README.md#protocol-delivery) when changing those registrations.
 
 ### Tool Matchers
 
@@ -223,6 +225,7 @@ The `hooks` object above only REGISTERS hooks — it carries no behavior knobs. 
 | Startup dependency install    | `docs/project-config.json` | `hooks.startupInstall` |
 | Per-file convention reminders | `docs/project-config.json` | `conventionInjection`  |
 | Session prompt ledger         | `.claude/.ck.json`         | `promptLedger`         |
+| Advisory token checkpoint     | `docs/project-config.json` | `hooks.tokenBudget`    |
 
 `hooks.startupInstall` accepts `enabled` (boolean, default `true`), `packageManager` (`auto` | `npm` | `pnpm` | `yarn` | `bun`, default `"auto"`) and `allowLifecycleScripts` (boolean, default `false`). Those defaults apply identically when the property, the `hooks` section, or the whole project-config file is absent; a non-`auto` `packageManager` is one manager signal and never an override (a value contradicting the lockfile skips with `skip-manager-conflict`); `enabled: false` disables installation only and never the `.claude` install-integrity verification; and neither the manager executable nor its arguments are configurable — the hook runs a fixed, version-matched argv from its own support matrix. `allowLifecycleScripts: true` is only a repository REQUEST: it takes effect solely on a host that also sets `CK_STARTUP_INSTALL_TRUST=1` (an `env` entry in the git-ignored `.claude/settings.local.json` is the intended place), and that same grant stops the runner sanitizing registry credentials out of the manager's environment. Setting the config key alone fails silently — the install runs with suppression intact. Full contract, including the supported manager/lockfile/platform breadth: [README.md § Startup dependency installation](./README.md#startup-dependency-installation).
 
@@ -278,7 +281,7 @@ Set environment variables for all tool executions.
 | Variable                                   | Value      | Purpose                                                                                                                                                                                                                                                                             |
 | ------------------------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR` | `"1"`      | Keep Bash in project directory                                                                                                                                                                                                                                                      |
-| `CLAUDE_CODE_AUTO_COMPACT_WINDOW`          | `"500000"` | Auto-compact window in tokens. The effective threshold is the MIN of this and the model max context, so a 200K-context model is unaffected and a 1M-context model gets the full 500K window. Equivalent to the `autoCompactWindow` setting; the env var wins when both are present. |
+| `CK_NO_AUTO_OPEN`                          | `"1"`      | `.claude/scripts/open-report.cjs` (used by the `watzup` and `understand` HTML reports) prints the report path and opens nothing. It also opens nothing when `CI` is set (non-empty, not `0`/`false`) or on Linux with neither `DISPLAY` nor `WAYLAND_DISPLAY` |
 
 ---
 
@@ -312,11 +315,21 @@ Custom status line command for terminal display.
 {
     "statusLine": {
         "type": "command",
-        "command": "npx -y ccstatusline@2.2.30 --config .claude/ccstatusline.json",
+        "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx -y ccstatusline@2.2.30 --config .claude/ccstatusline.json",
         "padding": 0
     }
 }
 ```
+
+**Run from the project root — never the session cwd.** Claude Code runs the status
+line in the session's current directory, which follows every `cd`, and exports
+`CLAUDE_PROJECT_DIR` (the session root) to it as it does for hooks. ccstatusline
+resolves `--config` against its own cwd and writes a default config when the file
+is missing, and its `custom-command` widgets (`node .claude/scripts/...`) inherit
+that cwd. The leading `cd "$CLAUDE_PROJECT_DIR" &&` anchors all of them; `&&` keeps
+a failed `cd` from falling back to the session cwd. Widget commands cannot anchor
+themselves: ccstatusline runs them through `cmd.exe` on Windows and `sh` elsewhere,
+so no single variable spelling works inside the widget string.
 
 **Pin the version — never `@latest`.** The status line command re-runs on every
 assistant message, after `/compact`, and on timers, so `@latest` means any newly

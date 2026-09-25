@@ -292,7 +292,7 @@ A named sequence of skill steps that orchestrates a multi-step process (feature 
 
 ## 5. Context Group
 
-A configuration value record in `docs/project-config.json` mapping file paths/extensions to guidance and rules. The AI-context generator converts context-group rules and documents into Golden Rules and path-based pre-read routing (`.claude/skills/ai-context-refresh/scripts/section-builders.cjs:223-252,530-568`).
+A configuration value record in `docs/project-config.json` mapping file paths/extensions to guidance and rules. The AI-context generator converts context-group rules and documents into Golden Rules and path-based pre-read routing (`.claude/skills/ai-context-refresh/scripts/section-builders.cjs:223-306,584-622`); `portability.inlinePathRules: false` swaps the inlined Golden Rules for group names plus the conventions `--lookup` pointer when hook delivery can carry every rule (`pathRulesDelivery`).
 
 **Location:** `docs/project-config.json` under `contextGroups[]`
 

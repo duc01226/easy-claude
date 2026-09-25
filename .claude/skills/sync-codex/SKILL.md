@@ -29,7 +29,7 @@ disable-model-invocation: true
 
 > **Renamed:** formerly `/codex-sync` — that name no longer resolves as a slash command; use `/sync-codex`.
 
-Also bootstraps team-wide Codex completion notifications by copying the portable `.claude/scripts/codex/codex-notify.mjs` helper into `.codex/scripts/codex/` and upserting notification plus TUI status-line keys into `.codex/config.toml`. The same upsert delivers the bundle's 500K compaction default, `model_auto_compact_token_limit = 500000`, so an adopting project matches `env.CLAUDE_CODE_AUTO_COMPACT_WINDOW` in `.claude/settings.json` and the pinned model's `limit.context` in `.opencode/opencode.recommended.json`.
+Also upserts the TUI notification and status-line keys into `.codex/config.toml`. Alerts come from the mirrored `Stop`/`SessionEnd` hooks, which Codex runs for the main thread only. The sync removes the retired legacy `notify = ["node", ".codex/scripts/codex/codex-notify.mjs"]` line and its generated helper: Codex ran that command after every turn of every thread, subagent threads included, which duplicated the hook alerts. A project's own `notify` command is kept. The bundle pins no auto-compaction budget, so Codex applies its own default: the sync never writes `model_auto_compact_token_limit`, and it retires a top-level one only when its value is exactly the formerly bundled `500000` (plus the unchanged bundled comment block above it). Any other value is the user's — kept, with one `kept user-set model_auto_compact_token_limit=<v>` line.
 
 **Workflow:**
 
@@ -48,7 +48,7 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
   optional tech-spec freshness and feature-registry validation, 3 hook-suite gates, the other Codex
   verifiers, and the cross-surface divergence oracle)
 - Stage 2 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
-- Stage 2 also upserts top-level `model_auto_compact_token_limit = 500000` — the bundle-wide compaction budget; change it here AND in the other two surfaces, never in one alone
+- Stage 2 never upserts `model_auto_compact_token_limit`; it retires the top-level key only when its value equals the formerly bundled `500000` and keeps any other value. No host pins a compaction budget — any compaction default change goes here AND in the other two surfaces, never in one alone
 - Stage 2 also raises top-level `project_doc_max_bytes` to 98304 (never lowers a larger value): Codex silently stops reading `AGENTS.md` at 32 KiB by default, which cut the generated root mid-file. The projection still emits Doc Lookup and Git discipline first, so they survive a host that ignores the project value; there, set the key in `~/.codex/config.toml` instead. The budget covers every `AGENTS.md` concatenated from the project root to the working directory, not the root alone.
 - Stage 4 generates the bounded `AGENTS.md` projection and `.codex/CODEX_CONTEXT.md` quality-protocol mirror. Automatic route selection is deliberately absent; the opt-in `UserPromptSubmit` hook owns runtime routing.
 - Stage 2 must not inline `lessons.md` content — it lives in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — into `.agents/skills/**`; generated skill mirrors reference the project-reference loading gate instead
@@ -108,6 +108,20 @@ the user-facing skills separate, but use this runner as their one portable execu
 - Do not recursively invoke the other skill or hand-edit mirrors. If `.claude` (and optionally stale
   `.codex`) is copied into another project, run the full runner from the copied bundle; `.claude` is
   authoritative and `.codex`, `.agents`, and `AGENTS.md` are disposable generated outputs.
+
+## Skill profile on Codex
+
+Stage 2 maps the project config's `skillProfile` onto each skill mirror's `agents/openai.yaml`. The host-independent rules (presets, lists, the called set, refusals) belong to `resolveProfile()` in `.claude/scripts/sync-skill-profile.cjs`; read `.claude/config/README.md` → Skill profile for them. The called set is every workflow step, every agent `skills:` entry, and the curated `calledByOthers` and `entrySkills` lists in `.claude/config/skill-profiles.json`.
+
+| Profile list | Skill nothing starts | Called skill |
+| --- | --- | --- |
+| `nameOnly` | `policy.allow_implicit_invocation: false` (Codex has no name-only listing) | Keeps implicit invocation, with one `kept implicit invocation for <name> ...` note line — a workflow step does not reach a Codex skill whose implicit invocation is off (`CODEX_STEP_REACHES_HIDDEN_SKILL = false`), so preset `standard` hides nothing on Codex |
+| `commandOnly` / `off` | `allow_implicit_invocation: false`; `$name` still runs it | Refused, unless `allowHidingCalledSkills: true`; with the opt-in, `allow_implicit_invocation: false` plus a warning line |
+
+- **No profile, no change.** The resolver loads only when `skillProfile` is declared, so a project without one gets a byte-identical mirror.
+- **Refused profile stops everything.** A refusal prints the resolver's message and `skill-profile: nothing was written`, then exits `1` before any mirror, agent or config write — `--no-skills` included. The stage-19 divergence oracle fails the same way.
+- **Fail-closed inputs.** A project config that exists but is not valid JSON fails the sync, because it cannot tell whether the config hides skills; a `.claude/workflows.json` without a `workflows` map fails the resolver.
+- **A skill that ships its own `agents/openai.yaml`** without the policy is kept as it is: the profile is skipped for it with one `conflict:` line.
 
 ## Stages
 
@@ -173,54 +187,21 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 
 **Exit codes:** `0` all pass · `1` orchestrator failure · non-zero propagates from failing stage.
 
-<!-- SYNC:ai-discovery-doc-quality -->
+<!-- PROTOCOL-GUIDES:START -->
 
-> **AI-Discovery Doc Quality** — Applies to every doc an AI agent reads to do its job: root instruction files (`CLAUDE.md`, `AGENTS.md`) and their templates, project-reference docs, the docs index, `lessons.md`, and prompt/protocol registries. Such a doc is a routing prompt: the agent must find the right fact fast and never miss a critical rule. Doc layouts differ per project — resolve roots from project config (framework default as fallback) and discover docs by glob; never assume a fixed file set.
->
-> 1. **Top (primacy):** the first screen states the doc's purpose, when to read it, and its 1–3 most critical rules — before any detail.
-> 2. **Bottom (recency):** a long doc (roughly >150 lines) or one carrying MUST/NEVER rules ends with closing reminders that repeat the goal and those critical rules.
-> 3. **Navigate with triggers:** point to another doc as `read <path> when <situation>`, never a bare link or "see also". A root or index doc routes every question/task class to one doc; every AI-read doc is reachable from the root or index — no orphans.
-> 4. **Existing targets only:** glob-verify every referenced path and drop dead rows; name a not-applicable doc once as a skip, never as a route.
-> 5. **One owner per fact:** state a fact where it is owned and route elsewhere with a trigger. Generated sections and mirrors are fixed at their source (generator, template, config) and regenerated — never hand-edited.
-> 6. **Token-efficient:** apply `/prompt-enhance` principles — compress prose, lead with the answer, no counts/trees/TOCs an agent can derive (unless a repository-owned check or ADR requires them, e.g. `<!-- COUNT:… -->` markers), one example per non-obvious rule. Never compress code, tables, paths, commands or evidence; never lower rule density.
-> 7. **Truncating readers:** when a host reads only a byte budget, place routing and irreversible-action guardrails first and measure their offsets.
->
-> **Final gate (each changed doc, before reporting done):** purpose + critical rules on the first screen · reminders at the end when long · every cross-doc pointer has a trigger and an existing target · no orphan doc · hand-owned doc enhanced with `/prompt-enhance` unless the owning skill records a documented skip (e.g. a stamp/count-only edit, or the user asked for no enhance); a generated doc → enhance its source or template, then regenerate. Surgical: apply to what the change touched plus the top/bottom anchors — never a license to rewrite a whole doc.
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-<!-- /SYNC:ai-discovery-doc-quality -->
+- `ai-discovery-doc-quality` — Keep AI-read docs discoverable: rules first, routed pointers, closing reminders; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
+- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
+- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->
-
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
+<!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
+
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
@@ -232,8 +213,8 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 
 **MUST ATTENTION** keep the `/sync-codex` skill user-invoked-only. An explicit `/ai-context-refresh` completion may invoke the standalone runner directly with `--skip=claude-md` after final source verification; `/project-skill-protocol` may likewise run its documented completion handoff. No unrelated skill, agent, or workflow may auto-run the mutating pipeline.
 **MUST ATTENTION** edit source `.claude/skills/sync-codex/**`, NEVER the `.agents/skills/sync-codex/**` mirror
-**MUST ATTENTION** keep `.codex/scripts/codex/codex-notify.mjs` generated from `.claude/scripts/codex/codex-notify.mjs`; edit the `.claude` source first
-**MUST ATTENTION** keep Codex config upserts surgical; preserve unrelated `.codex/config.toml` keys and tables while updating the managed notification/status-line/auto-compact keys
+**MUST ATTENTION** never reinstall a Codex legacy `notify` command — it runs for every thread, subagents included; alerts belong to the main-thread `Stop`/`SessionEnd` hooks
+**MUST ATTENTION** keep Codex config upserts surgical; preserve unrelated `.codex/config.toml` keys and tables while updating the managed notification/status-line keys; retire the old compaction budget only on an exact bundled-value match
 **MUST ATTENTION** keep `AGENTS.md` sync comprehensive; mirror full `CLAUDE.md` plus generated hook/context blocks, and preserve unmanaged `AGENTS.md` preface text
 **MUST ATTENTION** keep `AGENTS.md` discoverable under Codex's read budget — Doc Lookup and Git discipline project first; a discovery defect in `AGENTS.md` is fixed in `CLAUDE.md`, its template or the projection script, then re-synced
 **MUST ATTENTION** keep learned-lessons content out of `.agents/skills/**`; skills may point to `lessons.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) but must not embed its entries
@@ -251,13 +232,6 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 
 > **[FAILS FAST]** First non-zero stage exit aborts chain. Re-run failing stage manually to debug.
 > **[REPO ROOT]** Orchestrator auto-resolves repo root from its own path. NEVER pass `--cwd`.
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

@@ -16,6 +16,11 @@
 // SCHEMA DEFINITION
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Workflow activation tiers. Lockstep with WORKFLOW_ACTIVATION_TIERS in project-config-schema.cjs
+// and ACTIVATION_TIERS in .claude/scripts/lib/workflow-routing-config.cjs (asserted by the
+// workflow-skills-catalog suite); kept local so this validator loads without the larger schema.
+const WORKFLOW_ACTIVATION_TIERS = ["auto", "confirm", "manual"];
+
 const CK_SCHEMA = {
   locale: {
     type: "object",
@@ -103,6 +108,17 @@ const CK_SCHEMA = {
         ],
       },
       requireUniversalGuides: { type: "boolean", required: false },
+      // Per-project workflow activation tiers (auto < confirm < manual). The tracked team value
+      // lives in the project-config file; a developer overrides it in git-ignored
+      // `.claude/.ck.local.json` (a later valid `default` / per-workflow override wins).
+      workflowActivation: {
+        type: "object",
+        required: false,
+        properties: {
+          default: { type: "string", required: false, enum: WORKFLOW_ACTIVATION_TIERS },
+          overrides: { type: "map", required: false, valuesEnum: WORKFLOW_ACTIVATION_TIERS },
+        },
+      },
     },
   },
 };
@@ -235,6 +251,24 @@ function validateField(value, fieldSchema, path, errors, warnings) {
       }
       break;
 
+    // Map: an object with arbitrary keys whose every value is one of `valuesEnum`
+    // (e.g. `portability.workflowActivation.overrides`: { <workflowId>: tier }).
+    case "map":
+      if (typeof value !== "object" || Array.isArray(value)) {
+        errors.push(
+          `${path}: expected object, got ${Array.isArray(value) ? "array" : typeof value}`,
+        );
+        return;
+      }
+      for (const [key, entry] of Object.entries(value)) {
+        if (Array.isArray(fieldSchema.valuesEnum) && !fieldSchema.valuesEnum.includes(entry)) {
+          errors.push(
+            `${path}.${key}: invalid value ${JSON.stringify(entry)} — expected one of: ${fieldSchema.valuesEnum.join(", ")}`,
+          );
+        }
+      }
+      break;
+
     default:
       warnings.push(`${path}: unknown schema type "${fieldSchema.type}"`);
   }
@@ -300,7 +334,7 @@ function formatCkValidationResult(result) {
   return lines.join("\n");
 }
 
-module.exports = { CK_SCHEMA, validateCkConfig, formatCkValidationResult };
+module.exports = { CK_SCHEMA, WORKFLOW_ACTIVATION_TIERS, validateCkConfig, formatCkValidationResult };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLI ENTRY POINT

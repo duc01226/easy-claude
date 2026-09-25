@@ -4,7 +4,7 @@
  * Legacy compatibility wrapper for old prompt-injection helpers.
  *
  * Static quality protocol text is owned by `.claude/skills/shared/sync-inline-versions.md`.
- * Automatic workflow routing has a dedicated opt-in hook (`workflow-route-inject.cjs`) with
+ * Automatic workflow routing has a dedicated default-on hook (`workflow-route-inject.cjs`) with
  * session-aware delivery; it is intentionally absent from this line-window legacy wrapper.
  */
 

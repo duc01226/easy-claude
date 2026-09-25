@@ -11,7 +11,10 @@ are read at activation and at every step by the orchestrating assistant.
 Layout (same contract as inject_nested_task_creation.py):
   TOP block:  immediately BEFORE the SYNC region start (sync_blocks.find_sync_region_start)
   BOTTOM:     SYNC:...:reminder block immediately BEFORE `## Closing Reminders` (else EOF)
-Existing blocks are refreshed in place from the canonical text (idempotent).
+Existing blocks are refreshed in place from the canonical text (idempotent). A skill
+that carries a guide entry for the tag (sync_blocks.has_guide_entry: converted to guide
+lines) never gets the TOP block back; its reminder is still refreshed. Files keep their
+own line-ending style.
 
 Usage: py -3 .claude/scripts/inject_session_goal_ledger.py [--check | --dry-run]
 """
@@ -21,7 +24,8 @@ import re
 import sys
 from pathlib import Path
 
-from sync_blocks import find_sync_region_start, load_wrapped_sync_block
+from line_endings import read_text, write_text
+from sync_blocks import find_sync_region_start, has_guide_entry, load_wrapped_sync_block
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
@@ -78,6 +82,8 @@ def inject(text: str) -> tuple[str, list[str]]:
         text, changed = _replace(text, TOP_BLOCK_RE, TOP_BLOCK)
         if changed:
             actions.append("top-refreshed")
+    elif has_guide_entry(text, TAG.removeprefix("SYNC:")):
+        pass  # carried as a guide line: no body; the reminder below is still refreshed
     else:
         # Insert the TOP block before the SYNC region start (computed before the reminder exists).
         insert_at = find_sync_region_start(text)
@@ -108,7 +114,7 @@ def main() -> int:
     pending = 0
     for path in target_skills():
         rel = path.relative_to(PROJECT_ROOT).as_posix()
-        original = path.read_text(encoding="utf-8")
+        original, newline = read_text(path)
         if original.count(TOP_OPEN) > 1 or original.count(REMINDER_OPEN) > 1:
             print(f"MALFORMED  {rel} (duplicate block)")
             return 1
@@ -120,7 +126,7 @@ def main() -> int:
         if check or dry_run:
             print(f"{'WOULD-FIX ' if check else 'DRY-RUN   '} {rel} ({', '.join(actions)})")
             continue
-        path.write_text(updated, encoding="utf-8")
+        write_text(path, updated, newline)
         print(f"UPDATED    {rel} ({', '.join(actions)})")
     print(f"\n{pending} file(s) {'need an update' if check else 'changed' if not dry_run else 'would change'}")
     return 1 if check and pending else 0

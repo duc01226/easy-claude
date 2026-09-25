@@ -521,8 +521,9 @@ const sharedSyncBlockExtractor = loadSyncBlockExtractor();
 
 // CRLF-safe local TWIN of .claude/scripts/lib/extract-sync-block.cjs — fallback only.
 // Normalizing CRLF→LF up front is REQUIRED: the canonical markdown is committed LF but a
-// Windows checkout is CRLF, and the `\n---\n\n## SYNC:` boundary never matches
-// `\r\n---\r\n\r\n` — an un-normalized parse silently over-captures to EOF. Keep
+// Windows checkout is CRLF, and the LF block-end boundary never matches `\r\n---\r\n` —
+// an un-normalized parse silently over-captures to EOF. A block ends at the first `---`
+// line or the first line starting with `## SYNC:` (the lib's BLOCK-END RULE). Keep
 // byte-equivalent to the shared lib.
 function extractSyncBlock(markdown, tag) {
   if (sharedSyncBlockExtractor) return sharedSyncBlockExtractor.extractSyncBlock(markdown, tag);
@@ -545,8 +546,10 @@ function extractSyncBlock(markdown, tag) {
     from = idx + marker.length;
   }
   if (start === -1) return null;
-  const next = md.indexOf("\n---\n\n## SYNC:", start + marker.length);
-  const end = next === -1 ? md.length : next;
+  const endRe = /\n(?:---[ \t]*(?:\n|$)|## SYNC:)/g;
+  endRe.lastIndex = start + marker.length;
+  const next = endRe.exec(md);
+  const end = next ? next.index : md.length;
   return md.slice(start, end).trim();
 }
 

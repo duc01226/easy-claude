@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { resolveWorkflowManifest, resolveAllWorkflowManifests } = require("../lib/workflow-manifest.cjs");
 const { resolveProjectRoot, isInvokedAsScript } = require("../lib/project-root.cjs");
+const { buildWorkflowPointerCatalog } = require("../lib/workflow-skills-catalog.cjs");
 
 // Prose-only semantic anchor for the advancement+barrier rule in the runtime routing payload:
 // "advance only after ALL/EVERY member(s) return". Deliberately
@@ -24,6 +25,7 @@ const TARGET_WORKFLOW_IDS = [
   "workflow-big-feature",
   "workflow-bugfix",
   "workflow-feature",
+  "workflow-implement-spec",
   "workflow-spec-sync",
 ];
 
@@ -44,6 +46,7 @@ const REVIEW_GATE_WORKFLOW_IDS = new Set([
   "workflow-big-feature",
   "workflow-bugfix",
   "workflow-feature",
+  "workflow-implement-spec",
   "workflow-spec-sync",
 ]);
 
@@ -51,6 +54,7 @@ const IMPLEMENTATION_WORKFLOW_IDS = new Set([
   "workflow-big-feature",
   "workflow-bugfix",
   "workflow-feature",
+  "workflow-implement-spec",
 ]);
 
 const DOMAIN_ENTITY_REFERENCE_REFRESH_WORKFLOW_IDS = new Set([
@@ -294,6 +298,22 @@ const START_WORKFLOW_PREACTION_FORBIDDEN = [
   },
 ];
 
+// Workflow wrappers follow the guided step contract that start-workflow owns (BR-GWF-13/16): `gate`
+// steps are fixed, other steps may flex with a logged reason. A blanket no-deviation banner in a
+// wrapper contradicts that contract; non-workflow skills keep it for their own internal steps.
+const WORKFLOW_WRAPPER_FORBIDDEN_BANNERS = [
+  {
+    label: "blanket no-skip/reorder/merge banner (steps follow the guided contract in start-workflow)",
+    re: /NEVER skip, reorder, or merge steps without explicit user approval/i,
+  },
+];
+
+export function checkWorkflowWrapperStepContract(rel, content) {
+  return WORKFLOW_WRAPPER_FORBIDDEN_BANNERS.filter(({ re }) => re.test(content)).map(
+    ({ label }) => `Workflow wrapper step-contract violation (${rel}): ${label}`
+  );
+}
+
 export function checkStartWorkflowPreActionPolicy(rel, content) {
   if (rel !== START_WORKFLOW_PREACTION_SURFACE) return [];
   const failures = START_WORKFLOW_PREACTION_REQUIREMENTS.flatMap(({ label, re }) =>
@@ -365,8 +385,10 @@ export function resolveWorkflowManifestsForVerification(
 // canonical resolver intentionally rejects string steps when `variants` is present, so resolve
 // that compatibility preview through an isolated legacy projection instead of interpreting it a
 // second time in the verifier.  This keeps wrapper parity backwards-compatible while all selected
-// variants continue to use the real manifest above.
-function resolveCompatibilityWorkflowManifest(workflowsDoc, workflowId, rootDir) {
+// variants continue to use the real manifest above.  The projection drops `outcomeGates`: gates
+// are proven against every real mode, and a gate satisfied only by a variant step would otherwise
+// fail against the legacy preview.
+export function resolveCompatibilityWorkflowManifest(workflowsDoc, workflowId, rootDir) {
   const workflow = workflowsDoc.workflows[workflowId];
   if (!Array.isArray(workflow?.sequence) || workflow.sequence.length === 0) return null;
   if (!workflow.variants) {
@@ -375,6 +397,7 @@ function resolveCompatibilityWorkflowManifest(workflowsDoc, workflowId, rootDir)
   const legacyEntry = { ...workflow };
   delete legacyEntry.variants;
   delete legacyEntry.defaultMode;
+  delete legacyEntry.outcomeGates;
   const legacyDoc = {
     ...workflowsDoc,
     workflows: { ...workflowsDoc.workflows, [workflowId]: legacyEntry },
@@ -971,9 +994,39 @@ export function checkResolvedParallelGroupsStructure(workflowId, manifest, failu
   return failures;
 }
 
+// Catalog forms the runtime route hook can emit (workflow-route-inject.cjs buildInjection). The
+// compact catalog and the index with parallel-phase marks carry every barrier token per workflow
+// row; the tiers-only index and the pointer-only form omit them by design (`start-workflow <id>`
+// loads a workflow's phases).
+const RUNTIME_CATALOG_FORMS = Object.freeze({
+  CATALOG: "catalog",
+  INDEX_MARKED: "index-marked",
+  INDEX_TIERS: "index-tiers",
+  POINTER_ONLY: "pointer-only",
+});
+
+// Identify a pointer form by the exact body the shared catalog builder renders for this root, so no
+// header text is duplicated here. The pointer-only body is a prefix of both index bodies, so the
+// marked index is tested first. A payload that matches no pointer body (the compact catalog, the
+// full catalog, or an unrecognised one) is reported as `catalog` and stays under the parity check.
+export function runtimeCatalogForm(runtimeText, rootDir) {
+  const rendered = (rows) => {
+    try {
+      return buildWorkflowPointerCatalog({ rootDir, rows });
+    } catch {
+      return "";
+    }
+  };
+  const carries = (body) => typeof body === "string" && body.length > 0 && runtimeText.includes(body);
+  if (carries(rendered("groups"))) return RUNTIME_CATALOG_FORMS.INDEX_MARKED;
+  if (carries(rendered("tiers"))) return RUNTIME_CATALOG_FORMS.INDEX_TIERS;
+  if (carries(rendered("none"))) return RUNTIME_CATALOG_FORMS.POINTER_ONLY;
+  return RUNTIME_CATALOG_FORMS.CATALOG;
+}
+
 // W5(b)+(c) — runtime-payload proof. (b) every expected barrier token is present in the text the
-// runtime prompt hook emits; (c) the advancement clause reached that payload. Static root/mirror
-// files carry the route gate without the live catalog.
+// runtime prompt hook emits, when that text is a marked form; (c) the advancement clause reached
+// that payload, in every form. Static root/mirror files carry the route gate without the live catalog.
 async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, resolvedByWorkflow = []) {
   const grouped = Object.entries(workflows).filter(
     ([, wf]) => Array.isArray(wf?.parallelGroups) && wf.parallelGroups.length > 0
@@ -1004,9 +1057,13 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures, res
   }
   // The runtime catalog intentionally shows human-readable route summaries rather than the
   // resolver's internal occurrence IDs. Structural checks above own exact membership and
-  // barriers; this boundary check proves every grouped workflow still exposes parallel notation.
+  // barriers; this boundary check proves every grouped workflow still exposes parallel notation
+  // in the marked forms. The tiers-only index skips it; the pointer-only form renders no rows, so
+  // a grouped row that still appears there is checked.
+  const form = runtimeCatalogForm(runtimeText, rootDir);
   for (const [workflowId, workflow] of grouped) {
     const row = runtimeText.split(/\r?\n/).find(line => line.startsWith(`| \`${workflowId}\` |`));
+    if (form === RUNTIME_CATALOG_FORMS.INDEX_TIERS || (form === RUNTIME_CATALOG_FORMS.POINTER_ONLY && !row)) continue;
     const renderedGroups = (row?.match(/\[[^\]]*∥[^\]]*\]/g) || []).length;
     const expectedGroups = workflow.parallelGroups.length;
     if (renderedGroups < expectedGroups) {
@@ -1064,8 +1121,14 @@ async function main() {
     // when a workflow is variant-only, use its selected default mode as that preview.  Every mode
     // is still resolved and structurally checked below, so the preview can never hide a malformed
     // or duplicate variant occurrence.
-    const compatibilityManifest =
-      resolveCompatibilityWorkflowManifest(workflowsDoc, workflowId, rootDir) ?? manifests[0];
+    let compatibilityManifest;
+    try {
+      compatibilityManifest =
+        resolveCompatibilityWorkflowManifest(workflowsDoc, workflowId, rootDir) ?? manifests[0];
+    } catch (error) {
+      failures.push(`Workflow compatibility-sequence violation (${workflowId}): ${error.message}`);
+      continue;
+    }
     const workflowSequence = compatibilityManifest?.sequence ?? [];
     if (workflowSequence.length === 0) {
       failures.push(`Workflow has empty sequence: ${workflowId}`);
@@ -1093,6 +1156,10 @@ async function main() {
       }
 
       const skillContent = await fs.readFile(skillPath, "utf8");
+      // Source wrappers only: the mirrors are regenerated from them.
+      if (skillRoot.label === ".claude") {
+        failures.push(...checkWorkflowWrapperStepContract(normalizePath(skillPath, rootDir), skillContent));
+      }
       const rawSkillSteps = parseStepsFromSkill(skillContent);
       if (rawSkillSteps.length === 0) {
         if (!workflowSkillName.startsWith("workflow-")) {
@@ -1221,6 +1288,7 @@ export {
   renderExpectedBarrierToken,
   checkParallelGroupsStructure,
   checkParallelGroupsMirrorParity,
+  RUNTIME_CATALOG_FORMS,
   REVIEW_CHANGES_INLINE_SURFACES,
   GOAL_CONTRACT_MARKER,
   GOAL_CONTRACT_SKILL_IDS,

@@ -18,6 +18,13 @@
  * carrying inline `text` and/or a repo-relative `path` to a markdown file read at runtime.
  * It is advisory text appended to the runtime route reminder — never a blocking decision, and
  * never stamped into tracked CLAUDE.md/AGENTS.md, which stay team-only.
+ *
+ * The same cascade also resolves per-project workflow activation tiers
+ * (`portability.workflowActivation`: `{ default?, overrides? }`). Each setting is its own value:
+ * a later valid `default` wins, and each `overrides[<workflowId>]` wins per workflow id (the
+ * deep-merge rule `.claude/.ck.local.json` already follows). A workflow's effective tier is its
+ * override when one is set, otherwise the stricter of its framework tier and the default
+ * (tier order auto < confirm < manual) — a broad default only tightens; an override may loosen.
  */
 
 const fs = require('fs');
@@ -38,6 +45,12 @@ const SOURCE_LOCAL_OVERRIDE = 'local-override';
 // Tracked generators consume the team scope; runtime hooks consume the effective scope.
 const SCOPE_TEAM = 'team';
 const SCOPE_EFFECTIVE = 'effective';
+// Activation tiers in strictness order (auto < confirm < manual). Lockstep with the schema enum
+// `WORKFLOW_ACTIVATION_TIERS` in .claude/hooks/lib/project-config-schema.cjs (asserted by the
+// catalog suite); the ORDER is owned here because only the resolver ranks tiers.
+const ACTIVATION_TIERS = Object.freeze(['auto', 'confirm', 'manual']);
+// A workflow without a valid `activation` in .claude/workflows.json behaves as before tiers existed.
+const DEFAULT_ACTIVATION_TIER = 'auto';
 
 function readJson(filePath) {
     try {
@@ -251,6 +264,118 @@ function readWorkflowRouteProtocol(source) {
     return resolved.text || '';
 }
 
+/** A configured tier: exactly one of ACTIVATION_TIERS, otherwise undefined (no opinion). */
+function readConfiguredTier(value) {
+    return typeof value === 'string' && ACTIVATION_TIERS.includes(value) ? value : undefined;
+}
+
+/** A workflow's framework tier from its `.claude/workflows.json` entry; absent or unknown = auto. */
+function frameworkActivationTier(workflow) {
+    const value = workflow && typeof workflow.activation === 'string' ? workflow.activation.trim().toLowerCase() : '';
+    return ACTIVATION_TIERS.includes(value) ? value : DEFAULT_ACTIVATION_TIER;
+}
+
+function stricterTier(left, right) {
+    return ACTIVATION_TIERS.indexOf(left) >= ACTIVATION_TIERS.indexOf(right) ? left : right;
+}
+
+/**
+ * Read one config layer's `portability.workflowActivation`, keeping only valid values: an invalid
+ * `default` or override entry expresses no opinion, so a typo never changes a tier silently (the
+ * schema validators report it by name). `overrides` is prototype-free so a workflow id can never
+ * resolve through an inherited key.
+ * @param {object|null} config parsed config object
+ * @returns {{default: string|undefined, overrides: Record<string, string>}}
+ */
+function readWorkflowActivation(config) {
+    const layer = { default: undefined, overrides: Object.create(null) };
+    const block = config?.portability?.workflowActivation;
+    if (!block || typeof block !== 'object' || Array.isArray(block)) return layer;
+    layer.default = readConfiguredTier(block.default);
+    const overrides = block.overrides;
+    if (overrides && typeof overrides === 'object' && !Array.isArray(overrides)) {
+        for (const [workflowId, tier] of Object.entries(overrides)) {
+            const valid = readConfiguredTier(tier);
+            if (valid !== undefined) layer.overrides[workflowId] = valid;
+        }
+    }
+    return layer;
+}
+
+/**
+ * Resolve the activation settings across the cascade: framework (none) -> team project config ->
+ * local `.ck.local.json` (effective scope only). `default` takes the later valid layer; overrides
+ * merge per workflow id with the later valid layer winning. Passing `config` (a parsed project
+ * config object) reads that object alone as the team layer, like `isWorkflowAutoDetectEnabled`.
+ *
+ * @param {string|object} [source] rootDir string, or { rootDir, scope, config, configPath, localPath }
+ * @returns {{default: string|null, overrides: Record<string, string>, defaultSource: string, scope: string, configPath: string|null, localPath: string|null}}
+ */
+function resolveWorkflowActivation(source) {
+    const options = typeof source === 'string' ? { rootDir: source } : (source || {});
+    if (options.config !== undefined && options.config !== null) {
+        const team = readWorkflowActivation(options.config);
+        return {
+            default: team.default || null,
+            overrides: team.overrides,
+            defaultSource: team.default ? SOURCE_PROJECT_CONFIG : SOURCE_DEFAULT,
+            scope: SCOPE_TEAM,
+            configPath: null,
+            localPath: null
+        };
+    }
+    const rootDir = options.rootDir || process.cwd();
+    const scope = options.scope === SCOPE_TEAM ? SCOPE_TEAM : SCOPE_EFFECTIVE;
+    const configPath = options.configPath || resolveProjectConfigPath(rootDir);
+    const localPath = options.localPath || resolveLocalOverridePath(rootDir);
+
+    const layers = [[readWorkflowActivation(readJson(configPath)), SOURCE_PROJECT_CONFIG]];
+    if (scope === SCOPE_EFFECTIVE) layers.push([readWorkflowActivation(readJson(localPath)), SOURCE_LOCAL_OVERRIDE]);
+
+    let tierDefault = null;
+    let defaultSource = SOURCE_DEFAULT;
+    const overrides = Object.create(null);
+    for (const [layer, layerSource] of layers) {
+        if (layer.default !== undefined) {
+            tierDefault = layer.default;
+            defaultSource = layerSource;
+        }
+        Object.assign(overrides, layer.overrides);
+    }
+    return { default: tierDefault, overrides, defaultSource, scope, configPath, localPath };
+}
+
+/**
+ * A workflow's effective tier: its override when the project names it, otherwise the stricter of
+ * its framework tier and the project default. No settings = the framework tier unchanged.
+ * @param {string} workflowId
+ * @param {object} workflow its `.claude/workflows.json` entry
+ * @param {{default?: string|null, overrides?: object}|null} activation resolved settings
+ * @returns {'auto'|'confirm'|'manual'}
+ */
+function effectiveActivationTier(workflowId, workflow, activation) {
+    const framework = frameworkActivationTier(workflow);
+    if (!activation) return framework;
+    const overrides = activation.overrides;
+    if (overrides && typeof workflowId === 'string' && Object.prototype.hasOwnProperty.call(overrides, workflowId)) {
+        const pinned = readConfiguredTier(overrides[workflowId]);
+        if (pinned !== undefined) return pinned;
+    }
+    const floor = readConfiguredTier(activation.default);
+    return floor === undefined ? framework : stricterTier(framework, floor);
+}
+
+/**
+ * Resolve one workflow's effective tier from project settings. Pass `activation` (from
+ * `resolveWorkflowActivation`) to resolve many workflows against one read of the settings.
+ * @param {{rootDir?: string, workflowId: string, workflow: object, scope?: string, config?: object, configPath?: string, localPath?: string, activation?: object|null}} options
+ * @returns {'auto'|'confirm'|'manual'}
+ */
+function resolveActivationTier(options = {}) {
+    const activation = options.activation !== undefined ? options.activation : resolveWorkflowActivation(options);
+    return effectiveActivationTier(options.workflowId, options.workflow, activation);
+}
+
 function isWorkflowAutoDetectEnabled(source) {
     const options = typeof source === 'string' ? { rootDir: source } : (source || {});
     if (options.config !== undefined && options.config !== null) {
@@ -260,6 +385,8 @@ function isWorkflowAutoDetectEnabled(source) {
 }
 
 module.exports = {
+    ACTIVATION_TIERS,
+    DEFAULT_ACTIVATION_TIER,
     DEFAULT_PROJECT_CONFIG_PATH,
     LOCAL_OVERRIDE_PATH,
     MAX_PROTOCOL_FILE_BYTES,
@@ -268,7 +395,12 @@ module.exports = {
     SOURCE_LOCAL_OVERRIDE,
     SCOPE_TEAM,
     SCOPE_EFFECTIVE,
+    effectiveActivationTier,
+    frameworkActivationTier,
     isWorkflowAutoDetectEnabled,
+    readWorkflowActivation,
+    resolveActivationTier,
+    resolveWorkflowActivation,
     readWorkflowAutoDetect,
     readWorkflowRouteProtocol,
     resolveLocalOverridePath,

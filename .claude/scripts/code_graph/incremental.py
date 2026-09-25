@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
+import json
 import logging
 import os
 import subprocess
@@ -19,29 +20,115 @@ from .graph import GraphStore
 from .parser import CodeParser
 
 
-def find_project_config(root: Path) -> Optional[Path]:
-    """Find project-config.json by searching common locations.
+# ---------------------------------------------------------------------------
+# Project config location — the SAME resolution the hooks use.
+#
+# Mirrors `.claude/hooks/lib/ck-config-loader.cjs` (`loadConfig` layer order and
+# `sanitizeConfig`) and `.claude/hooks/lib/project-config-loader.cjs`
+# (`getConfiguredProjectConfigPath`, `getProjectConfigStatus`). Two readers of
+# one setting must agree, or the CLI answers graph queries in a project whose
+# hooks treat the graph as off. The cross-language parity suite
+# `.claude/hooks/tests/suites/code-graph-config-agreement.test.cjs` pins both.
+# ---------------------------------------------------------------------------
 
-    Searches in order: docs/, .claude/, project root, .ai/.
-    Returns the first match or None. Works for any project structure.
+DEFAULT_PROJECT_CONFIG_PATH = "docs/project-config.json"
+
+# Lowest priority first: user-global, project, project-local override.
+_CK_CONFIG_LAYERS = (
+    lambda root: Path.home() / ".claude" / ".ck.json",
+    lambda root: root / ".claude" / ".ck.json",
+    lambda root: root / ".claude" / ".ck.local.json",
+)
+
+
+def _reject_json_constant(name: str):
+    # JSON.parse rejects NaN/Infinity; json.loads accepts them unless told otherwise.
+    raise ValueError(f"invalid JSON constant {name}")
+
+
+def _read_json_file(path: Path):
+    """`loadConfigFromPath`: parsed JSON, or None when absent or unreadable."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        return json.loads(text, parse_constant=_reject_json_constant)
+    except (OSError, ValueError):
+        return None
+
+
+def _node_is_absolute(value: str) -> bool:
+    """`path.isAbsolute` of the host OS (Python 3.13 no longer treats a rooted Windows path as absolute)."""
+    if os.name == "nt":
+        return value[:1] in ("/", "\\") or (
+            len(value) >= 3 and value[0].isalpha() and value[1] == ":" and value[2] in ("/", "\\")
+        )
+    return value.startswith("/")
+
+
+def _sanitize_path(value, project_root: str) -> Optional[str]:
+    """`ck-path-utils.sanitizePath`: keep absolute values, reject relative values that escape the root."""
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().rstrip("/\\")
+    if not normalized or "\x00" in normalized:
+        return None
+    if _node_is_absolute(normalized):
+        return normalized
+    resolved = os.path.abspath(os.path.join(project_root, normalized))
+    if resolved != project_root and not resolved.startswith(project_root + os.sep):
+        return None
+    return normalized
+
+
+def configured_project_config_path(root: Path) -> Path:
+    """The project config path the hooks resolve, whether or not the file exists.
+
+    Precedence (highest first): `.claude/.ck.local.json`, `.claude/.ck.json`,
+    `~/.claude/.ck.json` — key `portability.projectConfigPath` — then the
+    default `docs/project-config.json`. A value that is not a string, is blank,
+    or is relative and escapes the project root falls back to the default.
     """
-    for subdir in ["docs", ".claude", ".", ".ai"]:
-        candidate = root / subdir / "project-config.json"
-        if candidate.is_file():
-            return candidate
-    return None
+    project_root = os.path.abspath(str(root))
+    declared = DEFAULT_PROJECT_CONFIG_PATH
+    portability_is_object = True
+    for layer_path in _CK_CONFIG_LAYERS:
+        layer = _read_json_file(layer_path(root))
+        # deepMerge ignores a falsy, primitive or array layer for the `portability` key.
+        if not isinstance(layer, dict) or "portability" not in layer:
+            continue
+        section = layer["portability"]
+        if isinstance(section, dict):
+            if "projectConfigPath" in section:
+                declared = section["projectConfigPath"]
+            elif not portability_is_object:
+                declared = None
+            portability_is_object = True
+        else:
+            # A non-object `portability` replaces the merged section; sanitizeConfig then
+            # finds no projectConfigPath and restores the default.
+            portability_is_object = False
+            declared = None
+    if not _sanitize_path(declared, project_root):
+        declared = DEFAULT_PROJECT_CONFIG_PATH
+    if _node_is_absolute(declared):
+        return Path(declared)
+    return Path(os.path.normpath(project_root + os.sep + declared))
+
+
+def find_project_config(root: Path) -> Optional[Path]:
+    """The configured project config file, or None when it does not exist."""
+    candidate = configured_project_config_path(root)
+    return candidate if candidate.is_file() else None
 
 
 _PROJECT_CONFIG_CACHE: dict[str, tuple[float, dict]] = {}
 
 
 def load_project_config(root: Path) -> dict:
-    """Load project-config.json if it exists. Returns {} if not found.
+    """Load the configured project config. Returns {} when missing, unreadable or not an object.
 
     Cached per resolved path and mtime so the 2-3 reads in one invocation
     parse the file once; a changed file (new mtime) is always re-read.
     """
-    import json
     config_path = find_project_config(root)
     if not config_path:
         return {}
@@ -53,9 +140,8 @@ def load_project_config(root: Path) -> dict:
     cached = _PROJECT_CONFIG_CACHE.get(cache_key)
     if cached is not None and cached[0] == mtime:
         return cached[1]
-    try:
-        data = json.loads(config_path.read_text(encoding="utf-8", errors="replace"))
-    except (json.JSONDecodeError, OSError):
+    data = _read_json_file(config_path)
+    if not isinstance(data, dict):
         return {}
     _PROJECT_CONFIG_CACHE[cache_key] = (mtime, data)
     return data

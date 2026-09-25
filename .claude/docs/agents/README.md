@@ -180,9 +180,11 @@ Task({
 
 ## Agent Configuration
 
-### Subagent Context (no SubagentStart hook)
+### Subagent Context (static; `SubagentStart` delivers protocols only)
 
-> There is **no** portable `SubagentStart` contract shared by every host. Each agent's context contract — project rules,
+> There is **no** portable `SubagentStart` contract shared by every host. On Claude, `SubagentStart` carries only the six
+> `protocol-inject-<group>.cjs` protocol-delivery handlers, which add the full protocol texts of the skills an agent
+> preloads (`skills:` frontmatter; `Explore`/`Plan` get the universal group). Each agent's context contract — project rules,
 > reports path, naming, and the development-rules / lessons read contract — is baked
 > statically into the agent's `.md` system prompt and the shared SYNC blocks it inlines,
 > so Claude and Codex get identical guidance whether a host hook is available or not. Each agent's `.md`
@@ -377,7 +379,7 @@ Partition: 17 Code-10 + 2 Readonly-Code + 4 Core-6 = 23 agents (pairwise disjoin
 
 - [agent-patterns.md](./agent-patterns.md) - Detailed agent usage patterns
 - [../skills/README.md](../skills/README.md) - Skills that enhance agent capabilities
-- [../hooks/README.md](../hooks/README.md) - Hook lifecycle (no `SubagentStart` hook; sub-agent context is static in `agents/*.md`)
+- [../hooks/README.md](../hooks/README.md) - Hook lifecycle (`SubagentStart` runs only the protocol-delivery handlers; standing sub-agent context is static in `agents/*.md`)
 - [../configuration/README.md](../configuration/README.md) - Agent configuration options
 
 ---

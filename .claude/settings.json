@@ -17,7 +17,6 @@
     "typescript-lsp@claude-plugins-official": false
   },
   "env": {
-    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000",
     "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
     "MCP_TIMEOUT": "30000"
   },
@@ -69,6 +68,79 @@
           }
         ],
         "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/token-budget-checkpoint.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-review.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-evidence-trace.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-workflow-task.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-spec-test.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-design.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Skill"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-review.cjs",
+            "if": "Read(**/SKILL.md)",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-evidence-trace.cjs",
+            "if": "Read(**/SKILL.md)",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-workflow-task.cjs",
+            "if": "Read(**/SKILL.md)",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-spec-test.cjs",
+            "if": "Read(**/SKILL.md)",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-design.cjs",
+            "if": "Read(**/SKILL.md)",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal.cjs",
+            "if": "Read(**/SKILL.md)",
+            "type": "command"
+          }
+        ],
+        "matcher": "Read"
       }
     ],
     "PreToolUse": [
@@ -190,6 +262,67 @@
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-review.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-evidence-trace.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-workflow-task.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-spec-test.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-design.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Explore|Plan|architect|code-reviewer|code-simplifier|docs-manager|fullstack-developer|git-manager|tester"
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-review.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-evidence-trace.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-workflow-task.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-spec-test.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-design.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal.cjs",
+            "type": "command"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
@@ -251,31 +384,31 @@
       "Bash(rm -rf ~/*)",
       "Bash(rm -rf .)",
       "Bash(rm -rf /)",
-      "Bash(*rm -rf:*)",
+      "Bash(*rm -rf*)",
       "Bash(del /s:*)",
-      "Bash(*del /s:*)",
+      "Bash(*del /s*)",
       "Bash(git push --force:*)",
-      "Bash(*git push --force:*)",
+      "Bash(*git push --force*)",
       "Bash(git push -f:*)",
-      "Bash(*git push -f:*)",
+      "Bash(*git push -f*)",
       "Bash(git reset:*)",
-      "Bash(*git reset:*)",
+      "Bash(*git reset*)",
       "Bash(git clean -fd:*)",
-      "Bash(*git clean -fd:*)",
+      "Bash(*git clean -fd*)",
       "Bash(git clean -f:*)",
-      "Bash(*git clean -f:*)",
+      "Bash(*git clean -f*)",
       "Bash(git branch -D:*)",
-      "Bash(*git branch -D:*)",
+      "Bash(*git branch -D*)",
       "Bash(git stash drop:*)",
-      "Bash(*git stash drop:*)",
+      "Bash(*git stash drop*)",
       "Bash(git checkout -- .)",
       "Bash(*git checkout -- .)",
       "Bash(git checkout -- :*)",
-      "Bash(*git checkout --:*)",
+      "Bash(*git checkout --*)",
       "Bash(git restore .)",
       "Bash(*git restore .)",
       "Bash(git restore --staged:*)",
-      "Bash(*git restore --staged:*)",
+      "Bash(*git restore --staged*)",
       "Edit(**/.git/**)",
       "Edit(.git/**)",
       "Edit(**/.env!(.example))",
@@ -302,7 +435,7 @@
   },
   "skillListingBudgetFraction": 0.05,
   "statusLine": {
-    "command": "npx -y ccstatusline@2.2.30 --config .claude/ccstatusline.json",
+    "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx -y ccstatusline@2.2.30 --config .claude/ccstatusline.json",
     "padding": 0,
     "type": "command"
   },

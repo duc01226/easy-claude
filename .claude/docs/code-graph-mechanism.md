@@ -243,7 +243,7 @@ The skills/gates below pull graph context on demand. Only the two graph hooks (`
 
 | Event                                  | Mechanism                                  | What's Surfaced                                                     |
 | -------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
-| Session start                          | `graph-session-init.cjs` (hook)            | Status: "Graph active. 94 files, 875 nodes" or install instructions |
+| Session start                          | `graph-session-init.cjs` (hook)            | Status: "Graph active. 94 files, 875 nodes" — only while the code graph is active (`hooks.codeGraph.enabled`: `on`, or `auto` with a built graph) |
 | `/code-review` running                 | skill runs `code_graph graph-blast-radius` | Blast radius summary, risk level, impacted files                    |
 | `/changes-review` running              | skill runs `code_graph graph-blast-radius` | Same as above                                                       |
 | `/investigate` running                 | skill runs `code_graph` trace/connections  | Structural overview for exploration                                 |
@@ -383,7 +383,7 @@ The trace engine automatically discovers all edge kinds present in the DB. No ha
 
 ### Config Path Discovery
 
-`find_project_config()` searches for `project-config.json` in: `docs/`, `.claude/`, project root, `.ai/`. Works for any project layout without hardcoded paths.
+`find_project_config()` resolves the same path as the hooks: `portability.projectConfigPath` from `.claude/.ck.local.json`, then `.claude/.ck.json`, then `~/.claude/.ck.json`, else `docs/project-config.json`. A missing file means no config.
 
 ## Frontend↔Backend API Auto-Detection (Zero-Config)
 
@@ -1052,14 +1052,9 @@ $ python code_graph build --json
 
 ## Setup
 
-See [code-graph-setup.md](./code-graph-setup.md) for installation instructions.
+Read [code-graph-setup.md](./code-graph-setup.md) when installing or enabling the graph.
 
-**Quick start:**
-
-```bash
-pip install tree-sitter tree-sitter-language-pack networkx
-python .claude/scripts/code_graph build --json
-```
+**Quick start:** Python 3.10+ required; `/graph-build` installs the rest into the hooks' environment. Run `/graph-build` to install and build. `hooks.codeGraph.enabled` in `docs/project-config.json` (`auto` default, `on`, `off`) decides whether the graph hooks run.
 
 ## Attribution
 

@@ -1,7 +1,7 @@
 ---
 name: why-review
 version: 1.7.0
-description: '[Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, or reports. Flag: --fix-loop fixes validated findings and re-reviews until the severity bar clears.'
+description: '[Code Quality] Use when a workflow step or the user asks for a rationale and change-quality review of plans, PBIs, commits, diffs, docs, specs or reports. Flag: --fix-loop fixes validated findings and re-reviews until the severity bar clears.'
 ---
 
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
@@ -27,17 +27,17 @@ description: '[Code Quality] Use when reviewing rationale and change quality for
 
 - **PURPOSE** — be the adversarial rationale reviewer: every plan/PBI/diff/doc/spec/report/finding survives a SKEPTIC pass before downstream work proceeds; success metric is Easy-to-Change (lower future change cost or reject). Gate EVERY finding on `file:line` + severity + confidence.
 - **STEP 1 — DETECT MODE FIRST** (recursion control): `--validate-findings` is TERMINAL — NEVER re-invokes `/why-review`, NEVER runs the gate, NEVER spawns a sub-agent; full mode may call itself ONCE in validate-findings mode. Non-negotiable guard. — why: any of these from terminal mode loops infinitely.
-- **STEP 2 — FULL-MODE FIRST ACTION** → bind the self-recursive review loop: the **protocol loop is the primary, host-independent binding** (you self-drive review → validate → reconcile → full re-review until the findings report validates CLEAN; retained target findings are returned by handoff to the fixing caller; at most 1 re-do for report defects, for 2 full review cycles total, then escalate), and a `/goal` gate is an **optional accelerator invoked WHEN available** (its absence never weakens the loop) — NEVER bind it in terminal mode; "self-fix" = reconcile this review's OWN findings set, not code. THEN Task Bootstrap: create phase tasks + the MANDATORY Findings Validation Gate closing task.
+- **STEP 2 — FULL-MODE FIRST ACTION** → read `references/full-mode.md` in full (BLOCKING; see **Mode References**), then bind the self-recursive review loop: the **protocol loop is the primary, host-independent binding** (you self-drive review → validate → reconcile → full re-review until the findings report validates CLEAN; retained target findings are returned by handoff to the fixing caller; at most 1 re-do for report defects, for 2 full review cycles total, then escalate), and a `/goal` gate is an **optional accelerator invoked WHEN available** (its absence never weakens the loop) — NEVER bind it in terminal mode; "self-fix" = reconcile this review's OWN findings set, not code. THEN Task Bootstrap: create phase tasks + the MANDATORY Findings Validation Gate closing task.
 - **STEP 3 — RESOLVE TARGET TYPE** before any review (commit/PR/diff → code-change; PBI/spec/doc → artifact; "no active plan" ONLY for an unresolved plan-rationale request — NEVER silently convert), read the active Goal Contract, then route by concern (code-reviewer / security-auditor / performance-optimizer / general-purpose). **Integration tests in the target → apply the Integration-Test-Review Linkage** (read `/integration-test-review`'s 8 gates, or delegate in standalone full mode) — SKIPPED under its 4-row recursion guard.
 - **STEP 4 — REVIEW as SKEPTIC** → complete ALL 7 Anti-Bias Gate boxes (steel-man rejected alt · unseen alternative · args against · stressed assumptions · pre-mortem · pros/cons symmetry · **Trade-Off Interrogation Gate**) + Validation Checklist (presence AND quality depth) + Round 2 re-review; triangulate spec↔tests↔code — any disagreeing face is a finding, presence is NEVER a pass.
 - **TRADE-OFF GATE — ALWAYS ASK, on every decision AND every recommendation YOU make:** (1) **is there any trade-off?** name the sacrifice — "none" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain vs cost, who pays, when → WORTH IT / NOT WORTH IT / UNCLEAR; (3) **is it material enough to confirm with the user?** irreversible · cost shifted elsewhere · quality attribute traded · boundary crossed · high-consequence path · UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**. Emit the `Trade-Off Assessment` table; a material trade-off unconfirmed = NEVER PASS.
 - **STEP 5 — FINDINGS VALIDATION GATE** on your OWN findings (any severity): re-invoke terminal `--validate-findings`, reconcile, and RE-DO the full review only when validation finds report defects or missed findings (at most 1 re-do; 2 full review cycles total); CLEAN validates the report, not the target, then ask next step via `AskUserQuestion` (+ conditional `/llm-council`). Dual-feedback: a behavior-changing finding needs BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync) AND a test-feedback action; SPEC-SILENT requires enriching the configured canonical owner with its profile-declared requirement/invariant and scenario/case, plus a guarding test mapped to the actual executor and assertion. Only the strict default profile uses the §4 BR/§3 AC + §8 TC representation. A missing axis is HAS-ISSUES, never clean.
 - **STEP 6 — CLOSE WITH USER OWNERSHIP:** **MUST ATTENTION** ask the required next-step question in full mode only after validation/re-review; apply the workflow-suppression and frontmatter gates before any optional `/llm-council` follow-up, and keep `validate-findings` terminal. **NEVER** auto-proceed past a material trade-off or unresolved blocking finding.
 <!-- FIX-LOOP-MODE:START -->
-- **OPTIONAL `--fix-loop` MODE (opt-in; absent flag = everything above unchanged)** — pairs this review with `/fix` in a bounded outer loop: resolve target + Goal Contract → bind the convergence loop (protocol-first, `/goal` optional) → per round { run the DEFAULT full-mode review pass INLINE (never with the flag, never as a sub-agent) → Trade-Off Gate on each validated blocking fix → `/fix` at the owning layer → log } → converge on a fresh full re-review of the changed target at the round bar (round 1: zero findings; from round 2: LOW-only deferred) → recap. Round cap 2, one CRITICAL/HIGH extension to round 3, failing tests uncapped, non-shrinking/increasing blockers escalate. Read-only callers (the `/plan-review` wave, `/changes-review` Phase 0.8) NEVER pass it. Full protocol: **Fix-Loop Mode** section.
+- **OPTIONAL `--fix-loop` MODE (opt-in; absent flag = everything above unchanged)** — pairs this review with `/fix` in a bounded outer loop: resolve target + Goal Contract → bind the convergence loop (protocol-first, `/goal` optional) → per round { run the DEFAULT full-mode review pass INLINE (never with the flag, never as a sub-agent) → Trade-Off Gate on each validated blocking fix → `/fix` at the owning layer → log } → converge on a fresh full re-review of the changed target at the round bar (round 1: zero findings; from round 2: LOW-only deferred) → recap. Round cap 2, one CRITICAL/HIGH extension to round 3, failing tests uncapped, non-shrinking/increasing blockers escalate. Read-only callers (the `/plan-review` wave, `/changes-review` Phase 0.8) NEVER pass it. Full protocol: `references/fix-loop.md` — read it FIRST when the flag is present (BLOCKING).
 <!-- FIX-LOOP-MODE:END -->
 
-**Workflow:** Detect mode/target → (full mode only) bind the self-recursive review loop (protocol-primary; optional `/goal` accelerator when available) → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review when validation identifies report defects or missed findings (at most 1 re-do; 2 full review cycles total); otherwise hand off retained target findings → ask next step in full mode.
+**Workflow:** Detect mode/target → (full mode only) read `references/full-mode.md`, then bind the self-recursive review loop (protocol-primary; optional `/goal` accelerator when available) → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review when validation identifies report defects or missed findings (at most 1 re-do; 2 full review cycles total); otherwise hand off retained target findings → ask next step in full mode.
 
 **Key Rules:** MUST ATTENTION resolve target type BEFORE review. MUST ATTENTION every finding needs `file:line`, severity, confidence, best-practice rationale. MUST ATTENTION ask the 3 trade-off questions on every decision AND every recommendation (trade-off? worth it? material → confirm with user); NEVER accept "no trade-off" unexamined, NEVER decide a material trade-off silently. NEVER say "No active plan" except unresolved plan-rationale request. NEVER call `/why-review` from `validate-findings`. MUST ATTENTION judge by Easy-to-Change: lower future change cost or reject.
 
@@ -53,52 +53,22 @@ Detect mode from `$ARGUMENTS` BEFORE any review work:
 
 | Mode                   | Trigger in `$ARGUMENTS`                                                                          | What it runs                                                                                                                                                                                                              | Recursion                                                                                          |
 | ---------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| **full** (default)     | no `validate-findings` or `--fix-loop` token                                                     | Full design-rationale review (Validation Checklist + Adversarial Rounds below), THEN the **Findings Validation Gate** closing task — which re-invokes THIS skill in `validate-findings` mode on its own findings. | May call itself **ONCE** in `validate-findings` mode (same session).                               |
+| **full** (default)     | no `validate-findings` or `--fix-loop` token                                                     | Full design-rationale review (Validation Checklist + Adversarial Rounds in `references/full-mode.md`), THEN the **Findings Validation Gate** closing task — which re-invokes THIS skill in `validate-findings` mode on its own findings. | May call itself **ONCE** in `validate-findings` mode (same session).                               |
 | **validate-findings**  | `$ARGUMENTS` contains `--validate-findings` / `mode=validate-findings` / `validate findings in` | ONLY the **Findings Validation Routine** against the supplied findings/report — verify each finding is correct, proof-backed, reasonable, best-practice; surface missed enhancements; emit a CLEAN / HAS-ISSUES verdict.   | **TERMINAL — NEVER calls `/why-review`, NEVER runs the gate, NEVER spawns a sub-agent.** Stops recursion. |
-| **fix-loop** (opt-in)  | `$ARGUMENTS` contains `--fix-loop` AND no `validate-findings` token                              | The **Fix-Loop Mode** section: an outer review → fix → fresh full re-review loop whose every review pass is THIS skill's **full** (default) mode, run inline without the flag. Main session only. | Round passes NEVER carry `--fix-loop` (no nested outer loop); each pass keeps its own single validate-findings call. |
+| **fix-loop** (opt-in)  | `$ARGUMENTS` contains `--fix-loop` AND no `validate-findings` token                              | The **Fix-Loop Mode** in `references/fix-loop.md`: an outer review → fix → fresh full re-review loop whose every review pass is THIS skill's **full** (default) mode, run inline without the flag. Main session only. | Round passes NEVER carry `--fix-loop` (no nested outer loop); each pass keeps its own single validate-findings call. |
 
 > **Recursion guard (NON-NEGOTIABLE):** `validate-findings` terminates. MUST NOT invoke `/why-review` or validation gate — prevents infinite recursion. Re-do loop lives in CALLER, at most 1 re-do for 2 full review cycles total, SAME main-agent session, NEVER spawned sub-agent. **Flag precedence:** `validate-findings` beats `--fix-loop` — terminal mode ignores the flag. `--fix-loop` never nests: its round passes run full mode WITHOUT the flag.
 
-> **In `validate-findings` mode:** skip full Validation Checklist, Adversarial Rounds, Task Bootstrap, Next-Steps council gate. Jump straight to **Findings Validation Routine**, emit verdict, return to caller.
+> **In `validate-findings` mode:** skip full Validation Checklist, Adversarial Rounds, Task Bootstrap, Next-Steps council gate, and never read `references/full-mode.md` or `references/fix-loop.md`. Jump straight to **Findings Validation Routine**, emit verdict, return to caller.
 
 > **Full-mode sub-agent callers (parallel, report-only):** `/changes-review` Phase 0.8 spawns this skill beside its dimensional reviewers; `/plan-review`'s Parallel Review Wave spawns it on EVERY review round beside the core pass and triggered lenses, targeting the plan dir (`plan.md`, `goal.md`, `phase-*.md`). In these runs: never edit the target, record `/goal accelerator unavailable — sub-agent context`, return material Trade-Off / owner-judgment questions UNANSWERED for the caller to ask, skip Next Steps, and never invoke the caller. The caller later runs `/why-review --validate-findings` on its merged report — a separate, sequential invocation. **These callers NEVER pass `--fix-loop`** — they are read-only and a sub-agent cannot own an outer fix loop; the `/plan-review` wave member is ALWAYS plain full mode. If `--fix-loop` ever reaches a sub-agent run, refuse it, record `--fix-loop refused — sub-agent context; ran report-only full mode`, and return retained findings for the caller to fix.
 
-## Bind the Self-Recursive Review Loop (full mode — FIRST ACTION, after mode detection; protocol-first, `/goal` optional)
+## Mode References (read at point of use — BLOCKING)
 
-> **MUST ATTENTION:** In **full mode only**, the FIRST action after mode detection — before Task Bootstrap, before any review work — binds this skill's self-recursive review loop so you cannot stop until this review's findings are validated and any required holistic report re-review is complete or a bounded escalation fires. The loop is bound by TWO layers: the **protocol loop (primary, host-independent)** and an **optional `/goal` accelerator**. Correctness rides on the protocol loop — the project rule is that hooks/commands are accelerators only, so `/goal`'s absence NEVER weakens the loop.
+Mode-only text lives in this skill's `references/` folder and loads only when its mode runs. `validate-findings` mode reads neither file: its whole body is the **Findings Validation Routine** below. The protocol bodies both files cite (the `SYNC:*` blocks) stay in this file.
 
-**Entry gate:**
-
-- **Run** in full mode (no `validate-findings` token).
-- **SKIP** in `validate-findings` terminal mode — that mode only returns a verdict to its caller and MUST NOT bind a loop, install a goal, create a closing task, or loop (recursion guard). Record nothing.
-- **`--fix-loop` mode:** bind the OUTER convergence loop first (Fix-Loop Mode Step FL-0b); each round's full-mode pass then binds THIS inner report loop for its own findings.
-
-**1. Protocol loop — ALWAYS binding (hook/command-independent).** You, the running agent, are personally responsible for not stopping until the loop converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
-
-> Run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run `/why-review --validate-findings` on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → when reconciliation changes the report, re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until validation returns CLEAN, or a bounded blocker escalates. At most 1 re-do round (2 full review cycles total), then escalate via `AskUserQuestion`. Do not stop with unvalidated findings or incomplete required review coverage. Retain valid target findings for handoff; their severity does not require local target fixes.
-
-Treat this as a standing obligation you re-read at the Findings Validation Gate — NOT a one-time note you can rationalize away after the first pass.
-
-**2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it in this environment, ALSO invoke it (a real command call, NOT a paraphrase, NOT a Goal Contract file substituted for it) with a condition encoding THIS skill's self-recursive loop, so a session Stop hook mechanically enforces it:
-
-```
-/goal why-review self-recursive loop: run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run /why-review --validate-findings on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → when reconciliation changes the report, re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until validation returns CLEAN, or a bounded blocker escalates. At most 1 re-do round (2 full review cycles total), then escalate via AskUserQuestion. Do not stop with unvalidated findings or incomplete required review coverage. Retain valid target findings for handoff; their severity does not require local target fixes.
-```
-
-The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
-
-**If `/goal` is unavailable, unregistered, or not permitted** (e.g. Codex/Copilot, or a Claude run without the command): DO NOT error, DO NOT block, and DO NOT invent a stand-in gate. Record ONE line where you track the review (the closing Findings Validation Gate task, or the active Goal Contract if one exists) — `/goal accelerator unavailable — review loop bound by protocol (above)` — and proceed. The protocol loop IS the gate, enforced by discipline instead of a hook.
-
-> **why-review fixes its OWN findings set, not code.** "Self-fix" here = reconcile the findings report so every surviving finding is correct, proof-backed, reasonable, best-practice, and nothing is missed — the same loop the Findings Validation Gate runs, now made unabandonable by the goal gate. Code/spec/test fixes remain the caller's job; this skill is review-only.
-
-## Task Bootstrap (full mode — do at skill START)
-
-Before review work, `TaskCreate` phase tasks AND required closing task:
-
-- [ ] `[Why-Review] Bind self-recursive review loop — protocol-primary; optional /goal accelerator when available (full mode only)` — in_progress **(MANDATORY FIRST TASK — skip in `validate-findings` mode)**
-- [ ] `[Why-Review] Findings Validation Gate — if ANY findings exist, run /why-review --validate-findings on them; re-do validation until the findings set is reconciled (at most 1 re-do; 2 full review cycles total)` — pending **(MANDATORY CLOSING TASK)**
-
-> Create at START. Keep the closing task `pending` until findings exist; then execute before skill completes. In `validate-findings` mode, do NOT create either task.
+- **Full mode (default):** your FIRST action after mode detection is to read `references/full-mode.md` in full (BLOCKING) — before Task Bootstrap and before any review work. Its first section, **Bind the Self-Recursive Review Loop**, is the first action after that read. It also holds Task Bootstrap, the adversarial mindset and the Anti-Bias and Trade-Off gates, Target Resolution, the Validation Checklist, the Output Format, Round 2, the Report Closure Contract and the Findings Validation Gate. A full-mode run that skips the read has not run the review.
+- **`--fix-loop` (opt-in):** read `references/fix-loop.md` first (BLOCKING); each round's full-mode pass then follows the full-mode rule above.
 
 ## First Principle — Easy to Change
 
@@ -114,331 +84,6 @@ Apply before any rule/checklist below; if downstream rule raises change cost, th
 
 ---
 
-## Adversarial Review Mindset (NON-NEGOTIABLE)
-
-**Default stance: SKEPTIC, not validator. Your job is to find what's wrong, not confirm what's right.**
-
-> **Confirmation bias trap:** After reading a coherent plan, AI naturally finds reasons to agree. Current context (post-plan, post-fix) amplifies this — you already saw the reasoning and rationalized it. This section breaks that loop. — why: a reviewer who already endorsed the reasoning cannot also be its skeptic without a forced reset.
-
-### Adversarial Techniques (apply ALL before concluding)
-
-| Technique              | Think                                                                                                            |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Steel-Man              | Argue FOR rejected alternative. Would a 10-year domain senior choose it? If yes, dismissal needs stronger proof. |
-| Why NOT?               | For every "chose X because Y", ask what X sacrifices.                                                            |
-| Assumption Stress Test | List top 3 assumptions; ask impact if wrong. Strong plan survives 2/3 false.                                     |
-| Pre-Mortem             | Assume 3-month production failure; write one plausible scenario.                                                 |
-| Unseen Alternatives    | Identify 1-2 approaches not mentioned; absence without exclusion reasoning = weak coverage.                      |
-| Pros/Cons Symmetry     | Count chosen-approach pros/cons. Pros > cons by 2:1 means likely bias.                                           |
-| Contrarian Pass        | Before finding/verdict, argue opposite conclusion in 2 sentences; choose stronger argument.                      |
-| Trade-Off Interrogation | Ask the 3 questions (below): is there a trade-off? · is it worth it? · is it material enough to confirm with the user? |
-
-### Forbidden Patterns
-
-| Forbidden pattern      | Required correction                                      |
-| ---------------------- | -------------------------------------------------------- |
-| "Looks good because..." | Lead with challenges first.                             |
-| Presence = quality     | Test quality depth; real alternatives, causal rationale. |
-| Vague rationale        | Demand metric + cost: better at what cost?               |
-| Asymmetric trade-offs  | Treat 3 pros / 1 con as incomplete analysis.             |
-| "Looks fine"           | Provide adversarial challenge evidence.                  |
-| "No trade-off" / "pure win" | Name the dimensions checked and why each is unaffected; unexamined ≠ absent. |
-| Material trade-off decided silently | Escalate to the user via `AskUserQuestion`; a one-way door is never yours to walk through. |
-
-### Anti-Bias Gate (MANDATORY before finalizing verdict)
-
-Complete ALL 7 checks before writing the final verdict (MUST ATTENTION):
-
-- steel-man at least one rejected alternative (argue FOR it)
-- identify at least 1 alternative NOT in the plan
-- list 2-3 arguments AGAINST the chosen approach
-- surface 2-3 hidden assumptions with stress tests
-- run the pre-mortem (one concrete failure scenario)
-- check pros/cons symmetry
-- run the **Trade-Off Interrogation Gate** below (trade-off named · worth-it verdict · materiality escalation decided)
-
-Any check incomplete → adversarial review NOT complete. Go back.
-
-## Trade-Off Interrogation Gate (MANDATORY — no verdict, no finding, no recommendation without it)
-
-> **[BLOCKING]** Ask these THREE questions EVERY time — about the decision under review AND about every recommendation YOU make. — why: a review that names benefits without naming their price is an endorsement, not a review; and the biggest trade-offs are the ones nobody wrote down.
-
-**1. Is there any trade-off?** Name what this decision/recommendation SACRIFICES. Every choice buys something with something. "None" is NOT an acceptable answer — it is an unfinished analysis. To claim no material trade-off, state which dimensions you checked and why each is unaffected:
-
-> future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational/ops load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
-
-**2. Is it worth it?** Weigh gain against sacrifice EXPLICITLY — **what is gained · what it costs · who pays · when it comes due** — then emit one verdict: **WORTH IT / NOT WORTH IT / UNCLEAR**. Anchor on Easy-to-Change: a trade-off raising future change cost needs a proportionate, named payoff, not a vague one. "Better" without a metric and a cost FAILS this question.
-
-**3. Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. MATERIAL when ANY row below holds:
-
-| Material when the trade-off…                     | Examples                                                                          |
-| ------------------------------------------------ | --------------------------------------------------------------------------------- |
-| Is irreversible — a one-way door                 | data migration, public API/contract shape, storage format, framework/vendor lock-in |
-| Shifts cost onto someone else                    | another team, ops/on-call, the future maintainer, the end user                     |
-| Trades one quality attribute for another          | correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility     |
-| Crosses a boundary                               | client↔server tier seam, service contract, event contract, shared library         |
-| Sits on a high-consequence path                  | auth, money, data integrity, breaking change, High/Medium residual risk            |
-| Cannot be evidenced (worth-it verdict = UNCLEAR) | gain or cost unquantifiable from available evidence                                |
-
-- **MATERIAL → STOP and confirm via `AskUserQuestion`** BEFORE the verdict stands: state the trade-off, both options, what each sacrifices, your recommendation. NEVER resolve a material trade-off silently on the user's behalf, and NEVER bury it as a Low-severity note.
-- **NOT material → record it inline** in the Trade-Off Assessment table with a one-line justification and proceed; no escalation needed.
-- In `validate-findings` terminal mode: **assess and record, do NOT escalate** — that mode asks nothing (see Next Steps exemption); flag the unescalated material trade-off in the verdict so the CALLER escalates it.
-
-**Output:** every review emits the `Trade-Off Assessment` table (see Output Format) — one row per reviewed decision and per recommendation you make. An empty table with findings present is an incomplete review.
-
-## Target Resolution (DO THIS BEFORE REVIEW)
-
-Analyze user request, not only literal argument shape. Determine target, then choose matching path.
-
-| User request / evidence                              | Review path                         | Required target work                                                                                                                |
-| ---------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Explicit plan directory, `plan.md`, phase files      | Plan-rationale review               | Read `plan.md` and all `phase-*.md` files.                                                                                          |
-| PBI/story/spec planning artifact, rationale request  | PBI/artifact rationale review       | Read the named artifact and related acceptance/design/risk sections; if it references plan files, read those too.                    |
-| Commit SHA, `Commit: ...`, PR/merge commit, git diff | Code-change review                  | Establish the diff range, read changed files, run graph impact when available, and apply code-review/adversarial review protocols.  |
-| Branch comparison or uncommitted changes             | Code-change review                  | Use the requested branch/diff or `git diff`; read changed files and tests/docs touched by the diff.                                  |
-| Docs/spec/report/findings path                       | Artifact review                     | Read the target artifact and verify claims against source evidence; use rationale checklist only where the artifact is a plan/PBI.   |
-| Ambiguous request                                    | Infer from evidence; ask if unsafe  | Prefer a reasonable target from the request and repo evidence. Ask only when two plausible review paths would produce different work. |
-
-**Important defaults:**
-
-1. Commit hash / `Commit:` block => code-change review, not "no active plan."
-2. PBI file => review that PBI/artifact; no `**/plan.md` wrapper under the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path) required.
-3. "No active plan found. Run `/plan` first." valid ONLY for unresolved plan-rationale requests.
-4. MUST ATTENTION record target type, evidence, confidence; NEVER silently convert target types.
-
-**Active-goal read (BEFORE judging rationale):** Resolve active Goal Contract per goal-contract-satisfaction-loop protocol (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json`). When one exists, review artifact's rationale AGAINST saved Original Request, Purpose, Success Criteria — flag rationale justifying work the saved goal never asked for, and saved required criteria the artifact's reasoning never addresses. When none exists, record `No active goal — rationale reviewed against the current request only.` Full mode only; `--validate-findings` terminal mode skips this read.
-
-### Review Focus Routing
-
-| Detected concern                 | Primary focus / sub-agent route                                                                 |
-| -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Source code / diff               | `code-reviewer` + embedded code-review protocols.                                                |
-| Integration/E2E tests in the target, OR a behavior change whose code has covering integration tests | Apply the **Integration-Test-Review Linkage** below — `/integration-test-review` owns the 8 test-quality gates; this skill reads its protocol (Mode A) or delegates to it (Mode B), never re-derives them. |
-| Auth, secrets, permissions, data | `security-auditor` if available; otherwise `code-reviewer` with explicit security pass.          |
-| Latency, scale, memory, queries  | `performance-optimizer` if available; otherwise `code-reviewer` with explicit performance pass.  |
-| Plan / PBI / doc / spec          | `general-purpose` with rationale/artifact dimensions.                                            |
-| Mixed target                     | Split focused passes by concern; aggregate findings after all passes.                            |
-
-### Code-Change Review Path
-
-When target is code changes:
-
-1. Resolve the diff source:
-    - Commit SHA: use `git show --name-status` and diff against its first parent.
-    - Merge commit: default to first-parent diff unless the user specifies another parent/range.
-    - Branch/range: use the user-supplied range.
-    - Uncommitted changes: use `git diff` plus staged diff if relevant.
-2. **Comprehend change context + trace full pipeline across BOTH boundaries (MANDATORY for code-change targets; N/A for pure plan/PBI/doc targets).** Before deep file judging, write a one-line Change Context (what · intent · originating tier · main affected flow), then apply BOTH inlined blocks below: `SYNC:cross-stack-impact-trace` for the client↔server tier seam (BE→FE forward, FE→BE backward) and `SYNC:cross-service-check` for the microservice / event / external / loosely-coupled boundary. Classify each seam/touchpoint NONE / ADDITIVE / BREAKING; a BREAKING seam whose other-side consumer is un-updated in the same diff is a HIGH-min finding. State `Single-tier / monolith — N/A` when no cross-boundary seam exists.
-3. Read the changed files and any nearby tests/docs required to prove behavior.
-4. **Integration-test detection (CONDITIONAL).** If the target contains integration/E2E test files, OR changes behavior-bearing code that has covering integration tests, run the **Integration-Test-Review Linkage** below before judging the `Test/spec/doc sync` dimension. State `No integration tests in target — linkage N/A` when neither holds.
-5. Read project reference docs based on changed file types before judging patterns.
-6. If `.code-graph/graph.db` exists, run graph blast-radius or trace on key changed files before concluding.
-7. Apply embedded code-review protocols by serial focused pass: bug detection, design patterns quality, logic/intention, test/spec verification, graph investigation, Easy-to-Change.
-8. Output findings first, with `file:line` evidence, severity, confidence, and tests/docs gaps.
-
-### Integration-Test-Review Linkage (CONDITIONAL — advisory, guarded)
-
-> **Purpose:** this skill's `Test/spec/doc sync` dimension asks *"does evidence prove tests/specs/docs protect the intended invariant?"* — but the 8 gates answering it (assertion value · data state · repeatability · domain logic · spec traceability · three-way sync · change coverage · scenario fidelity) belong to `/integration-test-review`. Route to that owner; NEVER re-derive a weaker copy here. — why: a rationale review judging test quality by eye endorses assertions it never mutation-tested.
-
-**Recursion guard — SKIP entirely when ANY row holds.** Record the deferral line, then proceed; NEVER invoke or read:
-
-| Suppressing context | Evidence | Deferral line to record |
-| --- | --- | --- |
-| Mode is `validate-findings` | Terminal mode — no sub-skill calls at all | `Linkage N/A — validate-findings is terminal.` |
-| Invoked by `/integration-test-review` Phase 9 | Its Phase 9 gate (`integration-test-review/SKILL.md:454`) calls this skill at `:463` and guards the reverse edge at `:471` | `Linkage deferred — invoked by /integration-test-review Phase 9.` |
-| Invoked by `changes-review` in ANY phase — 0.8 parallel rationale dimension, 6 validate-findings, or 7.5 holistic — or inside `/workflow-review-changes` | `changes-review/SKILL.md:433` (Phase 0.8, whose sub-agent brief states this deferral as a binding constraint at `:452`), `:940` (Phase 6), `:1011` (Phase 7.5); its Phase 3.7 (`:646`) already owns the gate | `Linkage deferred to changes-review Phase 3.7 / parent workflow step.` |
-| Invoked by `/plan-review`'s Parallel Review Wave (full-mode rationale sub-agent, every round; read-only — NEVER `--fix-loop`) | `plan-review/SKILL.md:81-110` (brief carries this deferral as a binding constraint); its Impact-Aware matrix dispatches `/integration-test-review` as a separate wave member when triggered | `Linkage deferred — plan-review Impact-Aware wave owns /integration-test-review.` |
-| Invoked by `/debug-investigate`'s Root Cause Validation gate | `debug-investigate/SKILL.md:167`; inside `integration-test-verify --fix-loop` that gate fires in a round already running `/integration-test-review` (`integration-test-verify/SKILL.md` → Fix-Loop Key Rules, FL-0b nested gates, FL-1 step 5) | `Linkage deferred — debug-investigate gate; the verify loop owns the audit.` |
-
-> — why: unguarded, this edge closes a cycle (`why-review` → `integration-test-review` → Phase 9 → `why-review`) and re-creates the duplicate-ownership defect that `integration-test-verify --fix-loop` removes (`integration-test-verify/SKILL.md` → "Why this mode exists").
-
-**Mode A — READ the protocol (DEFAULT).** Read `.claude/skills/integration-test-review/SKILL.md` §"The 8 Quality Gates"; apply Gates 1-8 as review lenses over target tests. Cheap — no recursion, no sub-skill call. Findings enter this review's normal finding set with `file:line` evidence + severity.
-
-**Mode B — DELEGATE to `/integration-test-review` (ESCALATION).** Invoke ONLY when ALL hold: no guard row fired · standalone full-mode review · target diff itself contains integration test files. Its GAP / SPEC-GAP verdicts become ordinary findings for this review's Findings Validation Gate.
-
-**Advisory, NEVER blocking** — matches this skill's `Enforcement: Advisory` scope; mandatory coverage lives in `changes-review` Phase 3.7. — why: without this linkage a standalone rationale review silently skips test quality.
-
-### Rationale / Artifact Review Dimensions
-
-Run one focused pass per applicable dimension; do NOT scan all dimensions simultaneously.
-
-| Dimension          | Think                                                                                     |
-| ------------------ | ----------------------------------------------------------------------------------------- |
-| Target fit         | Did we resolve what user asked, with evidence and confidence?                              |
-| Goal alignment     | Does the rationale serve the saved Goal Contract's purpose and success criteria — or drift past them? |
-| Rationale depth    | Are alternatives real, causal, symmetric, assumption-aware?                                |
-| Trade-off honesty  | What does this SACRIFICE, is it worth it, and is the trade-off material enough to confirm with the user? An unpriced benefit is a rationale gap. |
-| Behavioral risk    | What breaks in happy, error, edge, and rollback paths?                                     |
-| Cross-boundary impact | Does a changed contract break a consumer on the other client↔server tier (BE↔FE), or a loosely-coupled/external service or event consumer? (tier seam + service/event) |
-| Test/spec/doc sync | Does evidence prove tests/specs/docs protect the intended invariant and avoid stale claims? |
-| Future change cost | Does recommendation reduce coupling, hidden state, duplication, unclear intent?            |
-
-## Validation Checklist
-
-For plan/PBI/artifact rationale reviews, read resolved target first. If plan directory, read `plan.md` and all `phase-*.md` files. Check **presence AND quality depth**.
-
-For code-change reviews, use Code-Change Review Path instead of forcing plan checklist. Still include adversarial analysis, pre-mortem, assumptions, evidence, findings validation.
-
-> **Rule:** Presence alone is NOT a pass. A section that exists but contains weak, asymmetric, or unverified reasoning FAILS quality depth.
-
-### Required Sections (in plan.md or phase files)
-
-| #   | Section                     | Presence Check                                    | Quality Depth Check (adversarial)                                                                                                                                                  |
-| --- | --------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Problem Statement**       | 2-3 sentences describing the problem              | Is the problem scoped correctly? Could it be framed differently to lead to a different solution? Are symptoms confused with root cause?                                            |
-| 2   | **Alternatives Considered** | Minimum 2 alternatives listed with pros/cons      | Are alternatives real (not strawmen)? Would a domain expert seriously consider each? Are the cons of the CHOSEN approach listed, not just cons of the others?                      |
-| 3   | **Design Rationale**        | Explicit reasoning linking decision to trade-offs | Is reasoning causal (X leads to Y) or just descriptive (X is better)? Are hidden assumptions surfaced? Does it address failure modes, not just success modes?                      |
-| 4   | **Risk Assessment**         | At least 1 risk per phase                         | Are risks ranked by severity? Are mitigations concrete actions or vague intentions ("monitor closely")? Is there at least one risk about the approach itself (not just execution)? |
-| 5   | **Ownership**               | Clear who maintains code post-merge               | Implicit OK (author owns), explicit better                                                                                                                                         |
-
-## Residual Risk Gate
-
-- Challenge over-broad scope, weak rejected alternatives, and any High/Medium residual risk.
-- High/Medium risks must be fixed, reduced, or explicitly accepted by user/owner before PASS.
-- AI-extracted spec or test-case artifacts are not accepted evidence unless the configured canonical owner/review gate accepted them.
-
-### Optional (Flag if Missing, Don't Fail)
-
-| #   | Section                  | When Required                           | Quality Depth Check                                                |
-| --- | ------------------------ | --------------------------------------- | ------------------------------------------------------------------ |
-| 6   | **Operational Impact**   | Service-layer or API changes            | Are rollback steps defined? What breaks if this is reverted?       |
-| 7   | **Cross-Service Impact** | Changes touching multiple microservices | Are all downstream consumers identified? Who needs to be notified? |
-| 8   | **Migration Strategy**   | Database schema or data changes         | Is there a rollback plan? Is it tested on a data sample?           |
-
-## Output Format
-
-```markdown
-## Why-Review Results
-
-**Plan:** {plan path}
-**Target Type:** {plan/PBI/code changes/docs/spec/report/artifact}
-**Target:** {path, commit, branch range, or artifact}
-**Date:** {date}
-**Verdict:** PASS / NEEDS WORK
-
-### Checklist
-
-| #   | Check                   | Presence | Quality Depth | Notes                            |
-| --- | ----------------------- | -------- | ------------- | -------------------------------- |
-| 1   | Problem Statement       | ✅/❌    | ✅/⚠️/❌      | {what's strong / what's weak}    |
-| 2   | Alternatives Considered | ✅/❌    | ✅/⚠️/❌      | {are they real or strawmen?}     |
-| 3   | Design Rationale        | ✅/❌    | ✅/⚠️/❌      | {causal or just descriptive?}    |
-| 4   | Risk Assessment         | ✅/❌    | ✅/⚠️/❌      | {concrete mitigations or vague?} |
-| 5   | Ownership               | ✅/❌    | ✅/⚠️/❌      | {details}                        |
-| 6   | Bugfix Debugger Trace   | ✅/❌/N/A | ✅/⚠️/❌     | {final state, feeder paths, hypothesis matrix, owner, forward proof} |
-| 7   | Trade-Off Gate          | ✅/❌    | ✅/⚠️/❌      | {trade-off named? worth-it verdict? material → user confirmed?}  |
-
-> ✅ Strong ⚠️ Weak/Partial ❌ Missing
-
-### Adversarial Analysis
-
-**Strongest arguments AGAINST the chosen approach:**
-
-1. {argument 1 — cite specific plan text that weakens under this pressure}
-2. {argument 2}
-3. {argument 3 if applicable}
-
-**Unexamined alternatives** (not mentioned in the plan):
-
-- {alternative A} — why it might be worth considering
-- {alternative B if applicable}
-
-**Weakest assumptions** (if wrong, the plan breaks):
-
-1. {assumption} — impact if false: {consequence}
-2. {assumption} — impact if false: {consequence}
-
-**Bugfix trace challenge** (required for bugfix, failed verification, stale/incorrect final output, regression, or behavior-changing fix plans):
-
-- Observed final state and final reader proven? {yes/no/N/A}
-- All feeder paths enumerated or explicitly bounded? {yes/no/N/A}
-- Hypothesis matrix includes ruled-out and latent causes, not only the chosen cause? {yes/no/N/A}
-- Owning fix layer protects all downstream consumers? {yes/no/N/A}
-- Forward convergence proof and tests/proof mapping make the symptom impossible or detect recurrence? {yes/no/N/A}
-
-**Pre-mortem** (assume it ships and fails in 3 months):
-
-> {One concrete, plausible failure scenario based on the plan's approach}
-
-**Pros/Cons symmetry:** Pros listed: {N} | Cons listed: {N} | Bias: {balanced / leans toward pros / leans toward cons}
-
-### Trade-Off Assessment (MANDATORY — one row per reviewed decision AND per recommendation you make)
-
-| # | Decision / recommendation | Trade-off — what it sacrifices | Gain (metric) | Who pays, when | Worth it? | Material? | Confirmed with user? |
-| - | ------------------------- | ------------------------------ | ------------- | -------------- | --------- | --------- | -------------------- |
-| 1 | {decision or my recommendation} | {sacrifice — or dimensions checked + why unaffected} | {gain + metric} | {payer / when due} | WORTH IT / NOT WORTH IT / UNCLEAR | YES / NO ({which materiality row}) | asked / N/A (not material) |
-
-> Material trade-off with `Confirmed with user? = no` → verdict CANNOT be PASS. Escalate via `AskUserQuestion` first.
-
-**Cross-Boundary Impact:** (code-change targets) {per client↔server seam AND per service/event/external touchpoint: NONE / ADDITIVE / BREAKING with routed fix; or `Single-tier / monolith — N/A`}
-
-### Missing Items (if any)
-
-- {specific item to add before implementation}
-
-### Recommendation
-
-{Proceed to /feature-implement | Add missing sections first | Add adversarial analysis to plan/PBI | Fix code findings | Update docs or specs | Continue manually}
-```
-
-## Round 2: Adversarial Re-Review (MANDATORY)
-
-> **Protocol:** Deep Multi-Round Review (inlined via SYNC:double-round-trip-review above)
-
-After Round 1, execute **second full adversarial round**:
-
-1. **Assume Round 1 was wrong** — start with: "Round 1 missed something. Find it."
-2. **Challenge every PASS item** from Round 1 — generate at least 2 sentences arguing the opposite for each
-3. **Complete the Anti-Bias Gate** (all 7 boxes from Adversarial Review Mindset section, including the Trade-Off Interrogation Gate)
-4. **Populate Adversarial Analysis** — MANDATORY:
-    - At least 2 arguments against the chosen approach
-    - At least 1 unexamined alternative
-    - At least 2 hidden assumptions with failure consequences
-    - Pre-mortem scenario
-    - Pros/Cons symmetry count
-    - Trade-Off Assessment table — every decision AND every recommendation of yours: trade-off named, worth-it verdict, materiality decided; re-ask the 3 questions on any trade-off Round 1 called "none" — why: Round 1's most common miss is an unpriced benefit.
-5. **Focus on Round-1 misses:**
-    - Alternatives that are strawmen (too easy to dismiss)
-    - Risks stated vaguely without concrete mitigations
-    - Assumptions embedded in the problem statement itself
-    - Scope creep disguised as "related improvements"
-6. **Update verdict** if Round 2 found new issues
-7. **Final verdict** incorporates BOTH rounds + Adversarial Analysis
-
-## Scope
-
-- **Applies to:** Features, refactors, architectural changes, commits/diffs/code changes, docs/spec/report reviews
-- **Exempt from plan-rationale advisory only:** trivial config changes, tiny single-file tweaks when active workflow permits documented skip
-- **Enforcement:** Advisory (soft warning) — does not block implementation
-
-## Important Notes
-
-- Review only — do NOT modify target files or implement changes (the opt-in `--fix-loop` mode lands validated fixes ONLY through its Step FL-1 fix half; every review pass inside it stays review-only)
-- Keep output concise — actionable in <2 minutes
-- Simple plans still require Anti-Bias Gate; findings may be brief, but gate cannot be skipped
-
----
-
-## Report Closure Contract
-
-**CLEAN validates the report, not the target.** A full review with complete coverage may return a CLEAN findings-validation result while retaining CRITICAL/HIGH/MEDIUM findings. Preserve every retained target finding in the handoff, with severity, proof, trade-offs and dual-feedback; mark the target NEEDS WORK rather than PASS. A clean empty finding set may support target PASS only when all required review and evidence gates are complete.
-
-This skill is report-only. Shared fix/re-review guidance applies here as validated repair handoff, not authority to edit the target. The fixing caller (for example, this skill's own `--fix-loop` mode or `/workflow-review-changes`) owns repairs, durable target-round eligibility and fresh post-fix review. Local re-dos repair report quality and never reset the caller's target-round budget. Terminal validation remains non-recursive; it neither edits the report nor performs target fixes.
-
-## Findings Validation Gate (full mode — MANDATORY CLOSING TASK when findings exist)
-
-> **Purpose:** Before handoff, re-validate THIS review's OWN findings: **correct, proof-backed, reasonable, best-practice**. Catch finding issues and missed enhancements.
-
-**Trigger:** Full mode with ANY finding, weakness, missing item, or NEEDS WORK verdict — of ANY severity (Critical, High, Medium, OR Low). A Medium or Low severity NEVER exempts a finding from validation; even one low-severity nit triggers the gate. Skip ONLY unconditional PASS with a literally empty finding set (zero findings/missing items of any severity); record skip reason. **NEVER run in `validate-findings` mode**. — why: "it's only Low" is itself a severity claim the validation pass must confirm, not a reason to skip it.
-
-**Caller-side re-do loop (bounded — owned HERE, not by validate mode):**
-
-1. Ensure findings written to a report (`tmp/reports/why-review-{date}.md`).
-2. **Invoke `/why-review --validate-findings tmp/reports/why-review-{date}.md`** in SAME main-agent session, NOT sub-agent. Returns CLEAN / HAS-ISSUES. Each call terminal.
-3. **CLEAN** → append `## Findings Validation` line to report ("All N findings re-validated; correct, proof-backed, reasonable, best-practice; no changes."), gate PASSES, exit the report loop and hand off retained target findings; this is not target clearance.
-4. **HAS ISSUES** → reconcile: drop/demote unproven or inflated findings (including any finding below the **≥85% finding-survival bar** — see the Findings Validation Routine's Confidence bar), fix proof gaps, add surfaced findings/enhancements, re-derive verdict, record `## Findings Validation Notes` citing what changed and why.
-5. **RE-DO holistically** — because the reconciled findings changed the picture, re-run the FULL review (Validation Checklist + both Adversarial Rounds) over the WHOLE target combined with the reconciled findings — NOT just re-validate the changed findings in isolation — then re-invoke `/why-review --validate-findings` on the UPDATED report. Repeat until the findings report validates CLEAN, or **at most 1 re-do round (2 full review cycles total)**. Still HAS ISSUES → record unresolved state, mark the goal-gate blocker, and escalate via `AskUserQuestion` in `## Next Steps`.
-
 ## Findings Validation Routine (validate-findings mode body — TERMINAL)
 
 > Executed ONLY in `validate-findings` mode. **TERMINAL: do NOT call `/why-review`, do NOT run gate, do NOT spawn sub-agent, do NOT create closing task.** Validate, emit verdict, return.
@@ -449,12 +94,12 @@ Read supplied findings/report (path from `$ARGUMENTS`). For EACH finding, weakne
 - **Proof-backed** — concrete `file:line` or quoted plan/report section present; reject "probably / should be / I think".
 - **Reasonable** — severity/weight proportionate, not inflated; steel-man of opposing view does not dissolve it.
 - **Best-practice** — recommendation reflects project conventions and Easy-to-Change metric (lowers future change cost), not preference or speculative generality.
-- **Trade-off priced** — the finding's recommendation names what it SACRIFICES, carries a WORTH IT / NOT WORTH IT / UNCLEAR verdict, and has its materiality decided (per the Trade-Off Interrogation Gate). A recommendation presented as a pure win, or with `Trade-off: none` and no dimensions-checked justification, is a validation FAIL — flag HAS-ISSUES naming the unpriced recommendation. A **material** trade-off left unconfirmed with the user is HAS-ISSUES: name it so the CALLER escalates (terminal mode assesses, never asks). NOT WORTH IT → the finding is dropped or its recommendation replaced, never kept as-is. — why: a fix that costs more than the bug it removes is a finding the review should have withdrawn.
+- **Trade-off priced** — the finding's recommendation names what it SACRIFICES, carries a WORTH IT / NOT WORTH IT / UNCLEAR verdict, and has its materiality decided (per the `SYNC:trade-off-interrogation-gate` block in this file). A recommendation presented as a pure win, or with `Trade-off: none` and no dimensions-checked justification, is a validation FAIL — flag HAS-ISSUES naming the unpriced recommendation. A **material** trade-off left unconfirmed with the user is HAS-ISSUES: name it so the CALLER escalates (terminal mode assesses, never asks). NOT WORTH IT → the finding is dropped or its recommendation replaced, never kept as-is. — why: a fix that costs more than the bug it removes is a finding the review should have withdrawn.
 - **Dual-feedback (behavior-changing findings only)** — if ANY finding changes observable behavior, confirm both axes: (1) a spec-drift verdict — CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync (per `SYNC:spec-drift-adjudication`) — AND (2) a test-feedback action mapped through the project's configured profile to an executing assertion/result. For SPEC-SILENT, enrich the configured canonical owner with the missing requirement/invariant and canonical scenario/case, then ensure the actual guarding test is mapped at the declared cardinality. The strict default profile represents this as §4 BR/§3 AC plus a §8 TC via `/spec [update]` + `/spec [mode=tests]`; a configured native profile uses its declared owner, IDs, carrier and mapping. A missing axis is HAS-ISSUES, never clean.
 - **Confidence bar (distinct from the >80% act-gate)** — a finding survives ONLY if its own stated confidence that it is a real issue is **≥85%**. This is a HIGHER bar than the generic >80% act-gate, and a DIFFERENT question: the act-gate asks "may I act on this evidence?"; this bar asks "is this reported finding strong enough to KEEP?". A finding at 80-84% is demoted or dropped, not kept. The ≥85% must rest on the Proof-backed check above (a cited `file:line` + a traced failure path); confidence resting on inference alone caps below the bar.
 - **Premise-neutral (`SYNC:judgement-integrity`)** — when the reviewed report or drafted answer responds to a leading request (a gap/issue hunt, the user's own theory, "is this right?"), each finding or verdict must survive the reverse question: would it still be reported had the requester asked the opposite? A finding that exists only because the request presumed one is dropped; a verdict that simply echoes the requester's premise without the opposite having been tested is HAS-ISSUES, and so is a verdict on external facts (library/tool behavior, versions, standards, best practice) that cites no current source — it stays `Unverified` until web research confirms it. "No material issues found" with the checked scope named is a valid, CLEAN outcome — never pad the list to avoid it, and never invent disagreement to look independent.
 
-Then **sweep for misses** — apply Adversarial Techniques once more: unexamined alternative, hidden assumption, enhancement opportunity?
+Then **sweep for misses** — apply the adversarial techniques once more (steel-man the opposing view, why-NOT, assumption stress test, pre-mortem, pros/cons symmetry, contrarian pass): unexamined alternative, hidden assumption, enhancement opportunity?
 
 **Emit a verdict** to `tmp/reports/why-review-validate-{date}.md`:
 
@@ -463,129 +108,6 @@ Then **sweep for misses** — apply Adversarial Techniques once more: unexamined
 
 Return verdict path + status. **Caller owns reconciliation and bounded re-do; routine does NOT modify caller report and does NOT loop.**
 
-<!-- FIX-LOOP-MODE:START -->
-
-## Fix-Loop Mode (`--fix-loop` — OPTIONAL outer review + fix loop)
-
-> **Scope gate:** this section runs ONLY when `$ARGUMENTS` carries `--fix-loop` and no `validate-findings` token. Without the flag NOTHING here applies — full mode, `validate-findings`, `--target=...`, and every sub-agent caller behave exactly as documented above. It is the ONLY path through which this skill changes a review target, and only via the Step FL-1 fix half.
-
-**Goal:** Drive a review target to a **clean pass** by pairing this skill's default full-mode review pass with `/fix` in a recursive loop — each round runs the full-mode `/why-review` pass INLINE to surface validated findings, then `/fix` to resolve them, then loops again over the CHANGED target — stopping when a complete full-mode pass clears the round's exit bar: **zero findings** in round 1, and **zero CRITICAL/HIGH/MEDIUM** from round 2 (LOW-only ENDS the loop, deferred not fixed).
-
-**Mode summary:**
-
-- **Each round = full-mode review pass + `/fix`** — the review pass is review-ONLY and never edits the target, so the loop MUST pair it with a fix half for **validated blocking findings only**; one without the other never converges.
-- **Steps (in order):** (FL-0) resolve target + Goal Contract → (FL-0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (FL-1) round loop { run the full-mode pass INLINE → clear the **Trade-Off Gate** on the blocking fix set → run `/fix` on the VALIDATED blocking findings at the owning layer → log iteration } → (FL-2) converge when the current round's exit bar is clear OR escalate on non-progress → (FL-3) recap.
-- **Convergence:** stop ONLY when a **fresh full** review pass over the CURRENT (post-fix) target clears that round's exit bar — not a stale PASS predating the last fix.
-- **Severity floor — from round 2, LOW stops blocking.** Round 1 converge on an **empty validated-finding set** (any severity). **From round 2 the bar is zero validated CRITICAL/HIGH/MEDIUM — a round whose validated findings are ALL LOW ENDS the loop.** Never open another round to fix LOW alone; list every deferred LOW in the recap and Goal Contract instead, and NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to LOW to reach the exit (`SYNC:severity-rubric`).
-- **Inline invariant:** run each review pass in the main session — the `Skill` tool or the full-mode sections above, NEVER the `Agent` tool — because the pass self-binds its OWN review-loop obligation (and a session `/goal` gate WHEN available, **Bind the Self-Recursive Review Loop**), which a sub-agent cannot own or carry back to this loop.
-- **Apply ONLY validated findings:** the full-mode pass already validates its findings to the ≥85% survival bar (**Findings Validation Routine** → Confidence bar); the loop applies THOSE, at the invariant-owning component identified from project architecture and source evidence, routed by target type — NEVER unvalidated findings.
-- **Bounded:** round cap default 2 plus one conditional extension to round 3, granted ONLY when round 2 leaves a validated CRITICAL/HIGH open (round 3 is the review hard cap); a failing test gate has NO round cap — keep fixing and re-running until the tests pass; review blockers not shrinking across 2 rounds, or the budget spent with findings still open → **STOP & escalate** via `AskUserQuestion`. Increasing review blockers → STOP (fixes regressing). Both count-based stops are checked only after the round-2 CRITICAL/HIGH extension, which is granted first.
-- **TRADE-OFF GATE before every fix (ALWAYS ASK):** apply the **Trade-Off Interrogation Gate** above to each fix — (1) trade-off? (2) worth it? NOT WORTH IT → do NOT apply, report it back instead; (3) material? → **STOP the loop and confirm via `AskUserQuestion` BEFORE applying**. NEVER auto-apply a material-trade-off fix just because the loop wants to converge.
-
-**Why this mode exists:** full mode is **review-only** (**Important Notes**: *"Review only — do NOT modify target files"*; **Bind the Self-Recursive Review Loop**: *"Code/spec/test fixes remain the caller's job"*). Its self-recursive loop converges the **findings REPORT** to CLEAN but never touches the code and never re-reviews a fixed target, so nothing loops back to confirm a FIX is correct or introduced no new defect. This mode is that fixing caller: it applies the validated blocking fixes and re-runs a **fresh full** review pass over the changed target until the current round's exit bar is clear; from round 2 onward, LOW-only findings are recorded as deferred rather than fixed-and-looped — catching fix-induced regressions without spending rounds on non-material polish.
-
-**Workflow:** resolve target + Goal Contract → bind the convergence loop (protocol loop + optional `/goal` accelerator) → **round loop** { run the full-mode pass INLINE → clear the Trade-Off Gate on the blocking fix set (trade-off? worth it? material → confirm with user) → run `/fix` on the validated blocking findings at owning layer → log iteration } → converge when a fresh full review clears the current round's exit bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → recap.
-
-**Key rules:**
-
-- **Each blocking round pairs the full-mode pass (find) + `/fix` (resolve).** A round is complete when BOTH have run, or when the current bar is already clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOW deferred).
-- **NEVER self-invoke with the flag.** Each round's pass is plain full mode (`/why-review {target}`), never `/why-review --fix-loop` — one outer loop, no nesting.
-- **MUST run INLINE in the main session — NEVER dispatch the review pass or this mode as a sub-agent.** As a sub-agent the in-session loop guarantee is silently lost; a sub-agent that receives `--fix-loop` refuses it (see **Full-mode sub-agent callers**).
-- **Convergence = a fresh full review pass over the post-fix target clears the round's exit bar.** Round 1: PASS with an empty validated-finding set. **Round 2: zero validated CRITICAL/HIGH/MEDIUM — LOW-only converges.** A PASS produced BEFORE the latest fix landed does NOT count — re-review the changed target.
-- **The severity floor bounds ITERATION, never the standard.** It ends the loop; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, never lowers the ≥85% finding-survival bar, and never applies to a binary gate (a failing test is a failure, not a LOW finding).
-- **`/fix` applies ONLY validated findings**, at the lowest owning layer, routed by target type (code → `/fix` with its intelligent routing, or a direct edit at Entity/Service; plan/PBI → `/refine`; spec → update the configured canonical owner and reconcile its profile-declared scenario/case and mapped test evidence (use `/spec [update]` + `/spec [mode=tests]` only for the strict default profile); docs → `/docs-update`; tests → `/integration-test`). NEVER apply an unvalidated or demoted finding.
-- **The target base is FIXED across rounds; its content changes as fixes land.** Re-review the SAME target (same plan/diff/artifact) each round so convergence is measured against a stable subject.
-- **Round cap (default 2, extendable ONCE to 3)** and **review-blockers-not-shrinking / increasing → STOP & escalate** via `AskUserQuestion`. NEVER loop open-ended. Round 3 is granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL), is checked before the count-based stops, never renews, and round 2 blocked by MEDIUM alone escalates instead. A failing test gate is never capped: the loop keeps fixing and re-running until the tests pass.
-- **Per-round Next Steps deferred:** each round's full-mode pass skips its `## Next Steps` next-step question and council gate; the loop asks once at Step FL-3. Material trade-off confirmations and escalations are NEVER deferred.
-- **ALWAYS ask the 3 trade-off questions before applying ANY fix**; a MATERIAL trade-off **PAUSES the loop for an `AskUserQuestion` before the fix lands** — convergence pressure NEVER authorizes walking through a one-way door on the user's behalf. — why: an autonomous fix loop is exactly where an unpriced trade-off ships silently, because each round only asks "did findings shrink?".
-
-### First Principle — Convergence, Not Motion
-
-> A round that changes the target is progress **only if** the next fresh review finds fewer things to fix.
-> The loop exists to reach a fixed point (no blocking findings), not to keep editing the target.
-> The bar tightens by round: everything blocks in round 1; from round 2 only CRITICAL/HIGH/MEDIUM block, so a LOW-only round is the fixed point.
-> If findings stop shrinking, that is a signal to **escalate**, not to spin another round — except the one round-2 CRITICAL/HIGH extension, which is granted first.
-
-### Step FL-0 — Resolve Target + Goal Contract (FIRST ACTION)
-
-1. **Parse the review target** into a stable, reusable target reference — exactly the kinds **Target Resolution** resolves: plan / PBI / story; code change (commit SHA, PR/merge commit, branch or PR diff, uncommitted working tree); docs / spec / report path. Record target type, evidence, and confidence. **NEVER silently convert target types.**
-2. **Resolve/create the Goal Contract** per `SYNC:goal-contract-satisfaction-loop` (`goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root — default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` — template `.claude/templates/goal-contract-template.md`). Its single **required** Success Criterion:
-   > *A fresh full `/why-review` over `{target}` clears the round's exit bar: **round 1** → PASS with **zero validated findings** (no finding, weakness, or missing item of any severity); **round 2** → **zero validated CRITICAL/HIGH/MEDIUM findings**, with any remaining LOW findings recorded as deferred rather than fixed.*
-   Record the round cap (default 2, extendable once to 3 on an open CRITICAL/HIGH at round 2; failing test gates uncapped until green), the severity floor (LOW non-blocking from round 2), and the target reference in **Constraints**.
-3. **Plan the loop tasks FIRST:** create a detailed todo-task plan enumerating every step and planned round; REGENERATE a fresh task plan before each new round — never reuse the prior round's list.
-
-### Step FL-0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)
-
-The **protocol loop (Steps FL-1–FL-2) is the BINDING mechanism** and MUST be self-driven by you on every host, with or without any command or hook. The **`/goal` command is an OPTIONAL accelerator**; its absence NEVER weakens the loop.
-
-**1. Protocol loop — ALWAYS binding (hook/command-independent).** You are personally responsible for not stopping until the loop converges or bounded-escalates:
-
-> Repeatedly run the full-mode `/why-review` pass INLINE over `{target}`. After each review, apply only VALIDATED findings that block the current round at their owning layer, then re-run a FRESH full review pass over the CHANGED target. Do NOT stop while the last review still produced findings that BLOCK at the current round's bar. Converge when a fresh full review pass clears that bar: **round 1** → PASS with zero validated findings; **round 2** → zero validated CRITICAL/HIGH/MEDIUM (LOW-only ENDS the loop, with the LOWs recorded as deferred). Cap at `{N=2}` rounds, extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); a failing test gate is outside the cap and the no-progress rule — keep fixing and re-running until the tests pass, never forcing green; if review blockers do not shrink across 2 consecutive rounds or increase (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget (round 2, or round 3 when extended) is spent with CRITICAL/HIGH/MEDIUM still open → STOP and escalate via `AskUserQuestion`. Never loop open-ended.
-
-Re-read this standing obligation at every Step FL-2 checkpoint. The Goal Contract's required Success Criterion (Step FL-0) is its durable, host-independent record.
-
-**2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it, ALSO invoke it (a real command call, NOT a paraphrase, NOT a Goal Contract file substituted for it) with the SAME condition:
-
-```
-/goal why-review fix-loop convergence: repeatedly run the full-mode /why-review pass INLINE over {target}. After each review, apply only VALIDATED findings that block the current round (all severities in round 1; CRITICAL/HIGH/MEDIUM from round 2) at their owning layer, then re-run a FRESH full review pass over the CHANGED target. If the current round's blocking findings >0 → apply fixes and run another round; if a fresh full review pass clears the current bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → CONVERGED, clear the gate. Do NOT open another round for LOW-only findings from round 2. Cap at {N=2} rounds, extendable ONCE to round 3 only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); a failing test gate is outside the cap and the no-progress rule — keep fixing and re-running until the tests pass, never forcing green; if review blockers do not shrink across 2 consecutive rounds or increase (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget (round 2, or round 3 when extended) is spent with review blockers still open → STOP and escalate via AskUserQuestion. Never loop open-ended.
-```
-
-The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it. **If `/goal` is unavailable, unregistered, or not permitted:** DO NOT error, block, or invent a stand-in gate. Record ONE line in the Goal Contract — `/goal accelerator unavailable — loop bound by protocol (Steps FL-1–FL-2) + this Goal Contract` — and proceed.
-
-> **Nested gates (by design, safe):** each round's full-mode pass self-binds its OWN report loop (and its own `/goal` gate WHEN available) that clears when THAT round's findings validate CLEAN. This OUTER loop persists across rounds and **subsumes** the inner ones. All self-clear on satisfaction — no orphaned gate.
-
-### Step FL-1 — Round Loop (full-mode pass → `/fix` → log)
-
-For each round `R` (starting at 1), do ALL of:
-
-**Before each full-mode pass, capture its qualifying candidate.** Only a pass that covers the complete current-repository changeset for a supported commit can issue a receipt. Run `node .claude/hooks/lib/review-receipt.cjs snapshot --target=<worktree|staged|commit-descriptor> [--descriptor-json='exact descriptor JSON']` before that pass, including the exact descriptor JSON for `commit-descriptor`, and retain the complete JSON output. Artifact-only targets (plan/PBI/story/spec/doc/report), external PR/commit targets, and reviewed subsets never qualify. `CLEAN` needs no receipt; `ERROR` blocks issuance and is never clean. After a fix, capture a new snapshot before the next full-mode pass; use only the pre-review snapshot from the final converged pass at issuance.
-1. **Run the full-mode review pass INLINE** on `{target}` — `/why-review {target}` WITHOUT `--fix-loop` via the `Skill` tool, or the full-mode sections above in this session (NEVER the `Agent` tool). Let it run its full adversarial review + its own Findings Validation Gate, so the findings it returns are already **validated**.
-2. **Read the validated finding set** from its report (`tmp/reports/why-review-*.md`). If the verdict is PASS with **zero blocking findings at the current round bar** → no fix half is needed; go to Step FL-2, which converges only while no test gate is failing. At round 1 that means zero findings of any severity; from round 2 it permits LOW findings only, which must be recorded as deferred.
-3. **Trade-Off Gate on the blocking fix set (BLOCKING — before any edit lands).** For EACH validated finding that blocks the current round, run the **Trade-Off Interrogation Gate** on applying its fix: (a) name what it sacrifices — "none" is an unfinished analysis; (b) **WORTH IT / NOT WORTH IT / UNCLEAR** — NOT WORTH IT → do NOT apply, report it back as a withdrawn-fix note and count it as still-open, never as fixed; (c) MATERIAL (irreversible · cost shifted onto another team/ops/maintainer/user · quality attribute traded · tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change path · UNCLEAR) → **PAUSE the loop and confirm via `AskUserQuestion` BEFORE the edit**, stating the trade-off, both options, what each sacrifices, and your recommendation. Log each fix's verdict in the round's Iteration Log entry.
-4. **Run `/fix` on the validated blocking findings** (findings>0 only, trade-off gate cleared). Resolve each at its owning layer: code → `/fix` (its `--target` routing) or a direct edit at the invariant-owning component identified from project architecture and source evidence; plan/PBI → `/refine`; spec → update the configured canonical owner and reconcile its profile-declared scenario/case and mapped test evidence (use `/spec [update]` + `/spec [mode=tests]` only for the strict default profile); docs → `/docs-update`; behavior-changing → honor the finding's dual-feedback (spec verdict + test action per the **Findings Validation Routine** Dual-feedback check). Fix ONLY validated findings that block this round — never an unvalidated, demoted, or round-2 LOW-only finding.
-5. **Append an Iteration Log entry** to the Goal Contract: round number, validated findings count, files/artifacts changed (`file:line`), fixes applied, per-fix trade-off verdict (WORTH IT / NOT WORTH IT / UNCLEAR + material? + confirmed?), and remaining gaps.
-
-### Step FL-2 — Convergence & Escalation Gate
-
-Evaluate after every round, **in this order — the first matching row decides** (rows (1), (4), (5) and (6) are the outcomes `SYNC:double-round-trip-review` and `review-policy.cjs` enforce; the count-based stops (2) and (3) are this loop's stricter exit on top of them, evaluated after the extension so they never pre-empt it; count only review blockers — validated findings at each round's own bar plus failed non-test binary gates, never failing test gates): (1) round 2 left a validated CRITICAL/HIGH review blocker open → the one extension round, even when the blocker count did not shrink; (2) review blockers increased vs the prior round → STOP & escalate; (3) review blockers are still open and did not shrink across 2 consecutive rounds → STOP & escalate (the EARLIER exit before the budget); (4) the review budget is spent with a review blocker still open (round 2 without a CRITICAL/HIGH, or round 3 and later) → STOP & escalate, even while a test gate is also red; (5) a test gate is failing and no review blocker is open → keep looping with no round cap, and never converge while it is red; (6) the current round bar is clear (LOW-only from round 2) and no test gate is failing → CONVERGED; (7) review blockers are open within budget and shrank (or this is round 1) → fix them and any failing test, then run the next round. A MATERIAL trade-off pauses the loop at any step before its fix lands.
-
-| Condition | Action |
-| --- | --- |
-| Fresh full review pass returned **PASS with zero blocking findings at the current round bar** AND no test gate is failing | **CONVERGED** → mark the required criterion PASS in the Goal Satisfaction matrix → clear the `/goal` gate → go to Step FL-3. At round 1 this is zero findings; from round 2 it may include deferred LOW findings. |
-| Round `R ≥ 2` AND the fresh review's validated findings are **ALL LOW** (zero CRITICAL/HIGH/MEDIUM) AND no test gate is failing | **CONVERGED on the severity floor** → do NOT run another round for LOW alone → record every remaining LOW as a deferred finding in the recap + Goal Contract → mark the required criterion PASS → go to Step FL-3. |
-| Blocking findings > 0 AND round `< N` AND blocking findings shrank vs prior round | Clear the Trade-Off Gate (Step FL-1.3), apply the validated fixes (Step FL-1.4), then run round `R+1` (fresh full re-review of the changed target). Round 1 counts every severity as blocking; round 2 counts only CRITICAL/HIGH/MEDIUM. |
-| A fix carries a **MATERIAL** trade-off (irreversible · cost shifted elsewhere · quality attribute traded · boundary crossed · high-consequence path · worth-it UNCLEAR) | **PAUSE the loop → confirm via `AskUserQuestion` BEFORE applying that fix.** Convergence pressure NEVER authorizes deciding a material trade-off for the user. |
-| Review blockers are still open and did **not shrink** across 2 consecutive rounds (same/increasing count; failing tests excluded — they loop until green; a round-2 CRITICAL/HIGH takes the extension row first) | **STOP & escalate** via `AskUserQuestion` — a non-converging loop is a signal, not a reason to spin. |
-| Round 2 completed with a validated **CRITICAL or HIGH** still open | **ONE extension round is granted** → apply the validated fixes and run round 3 (fresh full re-review), even when the blocker count did not shrink. Granted once per loop; it never renews. A failed non-test binary gate counts as CRITICAL here. |
-| A **test gate** is failing (a suite that must actually pass) and no review blocker is open, at any round within or past the budget | **Keep looping — NO round cap.** Run the failed-test investigation gate, fix at the owning layer, re-run the tests, and continue past round 3 until they pass. NEVER weaken an assertion, add a skip, or relax a timeout to force green. A failing test never counts toward the no-progress escalation or the round-3 extension. |
-| Round cap `N` hit with CRITICAL/HIGH/MEDIUM still open — round 2 blocked by MEDIUM or an unresolved `NOT VERIFIABLE` alone, or round 3 (the review hard cap) blocked by any review blocker | **STOP & escalate** via `AskUserQuestion` — report the still-open findings; do not silently continue. (LOW-only at the cap converges via the severity-floor row above.) |
-
-> **Increasing review blockers = STOP.** If round `R` surfaces MORE review blockers (validated findings at its own bar plus failed non-test binary gates) than round `R-1`, the fixes are regressing the target — STOP and escalate immediately, unless round 2 left a validated CRITICAL/HIGH open, which takes the one extension round first. A LOW-only round 2 has zero review blockers, so it is never an increase. Never trade one fix for two new findings across rounds.
-
-### Step FL-3 — Recap
-
-Emit a concise convergence recap: rounds run, validated findings per round (the shrinking sequence, split by severity), the fixes applied each round, the final PASS evidence (zero findings, or zero CRITICAL/HIGH/MEDIUM when the loop ended on the round-2 severity floor), a `## Deferred LOW Findings (severity floor, round ≥2)` list of every LOW left unfixed with `file:line`, and the Goal Satisfaction matrix (required criterion PASS). Point to each round's report under `tmp/reports/` and the Goal Contract Iteration Log. Then ask the deferred next-step question via `AskUserQuestion`. Do NOT commit or push unless the user explicitly asks.
-
-**Mint the review receipt (MANDATORY terminal action).** Only when the final converged full-mode pass reviewed the complete `CHANGED` current-repository candidate, issue:
-
-```bash
-node .claude/hooks/lib/review-receipt.cjs issue --kind=why-review --scope=full-changeset --snapshot-json='<exact JSON captured before the final converged pass>'
-```
-
-This records — for the review-before-commit gate (`review-commit-gate.cjs`) — that this exact candidate passed `why-review --fix-loop`. Pass the original snapshot JSON; issuance rechecks that same target and refuses if it changed. Do not capture or reconstruct a snapshot at terminal issuance. Artifact-only, external, subset, or `CLEAN` targets receive `review-receipt: N/A — no full changeset candidate`; issue nothing. If issuance rejects target drift, issue nothing and restart the fix-loop from a new pre-review snapshot. Treat `ERROR` as blocked, never as clean. Run issuance as the last candidate-mutating action.
-
-### Convergence Detection — Why a Fresh Full Re-Review Is Required
-
-A round converges ONLY when a full-mode pass that ran over the **current, post-fix** target returns PASS with zero findings that block the current round bar. Both properties are required because:
-
-- **Fresh over the changed target** — a PASS verdict from a review that predates the last fix proves nothing about the fix. Every applied fix invalidates the prior verdict (`SYNC:double-round-trip-review`); the loop MUST re-review after fixing, never reuse a stale clean verdict.
-- **Zero *blocking* validated findings** — the Findings Validation Gate already dropped inflated/unproven findings below the ≥85% bar; convergence rides on that validated set, so the loop never chases a nit the review itself would demote. "Blocking" means every severity in round 1, and CRITICAL/HIGH/MEDIUM only from round 2 — the surviving LOWs are polish whose fix cost exceeds the risk of deferring them. — why: a loop that cannot exit on nits converges on exhaustion instead of on quality.
-
-When findings remain but cannot be fixed (owner/product input needed) → **escalate**, do not loop. When a fix lands but the next fresh review still finds issues → run another round. Convergence is a fixed point, not a single clean read.
-
-**IMPORTANT MANDATORY fix-loop sequence:** Step FL-0 (resolve target + Goal Contract + loop task plan) → Step FL-0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step FL-1 (round loop: full-mode pass INLINE → Trade-Off Gate on the fix set → `/fix` on validated findings → log) → Step FL-2 (converge on a fresh review with zero blocking findings at that round's bar / escalate on non-progress) → Step FL-3 (recap + mint the review receipt).
-
-<!-- FIX-LOOP-MODE:END -->
 
 ---
 
@@ -780,16 +302,15 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 > **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Re-read files after context changes.** Compaction, resume, or long-running work makes memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts; check the source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Map the docs, generated mirrors, configs, and callers a removal can stale.
+> **Trace the full impact chain after edits, and verify ALL affected outputs.** A changed definition reaches derived outputs and consumers; one green check is not all green checks.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never delivery/retry bookkeeping in shared infrastructure that any co-running process can write; such a check passes alone and flakes once anything shares that infrastructure.
 > **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -814,78 +335,61 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 
 > **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle or an explicitly declared independent-pass minimum, not by a round number alone. Review purpose: `review → validate findings → fix validated findings that block the current round → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop once the persisted `minRounds` is met (default 1); an explicitly declared minimum such as 2 still requires that independent pass.**
 >
-> _aka **Self-Review Convergence Loop**._ The name is historical — "double-round-trip" means a validated-finding fix cycle forces at least one fresh re-review. It runs until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred), bounded by the **2-round ceiling — extendable ONCE to round 3 when CRITICAL/HIGH remain** — defined below. A failing **test gate** (a suite that must actually pass) is outside that ceiling: the loop keeps fixing and re-running until the tests pass.
+> _aka **Self-Review Convergence Loop**._ "Double-round-trip" means a validated-finding fix cycle forces at least one fresh re-review. The loop is bounded by the **2-round ceiling — extendable ONCE to round 3 when CRITICAL/HIGH remain**. A failing **test gate** (a suite that must actually pass) is outside that ceiling: the loop keeps fixing and re-running until the tests pass.
 >
-> **Round cap — 2 rounds MAX, extendable ONCE to round 3 (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds` — round 1 included with the default minimum; the cap never obliges an extra round. What happens when round 2 completes with blocking findings still open (severity floor applied) depends on WHAT is still open:
+> **Round cap — 2 rounds MAX, extendable ONCE to round 3 (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds`; the cap never obliges an extra round. When round 2 completes with blocking findings still open (severity floor applied):
 >
-> - **Validated CRITICAL or HIGH still open → ONE extra round is granted (round 3, the review hard cap).** A failed non-test binary gate (security must-fix, required artifact, generated parity, policy compliance) counts as a CRITICAL blocker here. The extension is earned by that evidence alone, is never a default, is granted at most once per run, and never renews. Record the granting findings in the run record and report.
+> - **Validated CRITICAL or HIGH still open → ONE extra round is granted (round 3, the review hard cap).** A failed non-test binary gate (security must-fix, required artifact, generated parity, policy compliance) counts as a CRITICAL blocker here. The extension is earned by that evidence alone, granted at most once per run, and never renews.
 > - **Only MEDIUM (or an unresolved `NOT VERIFIABLE`) still open → NO extension.** → **STOP and escalate via `AskUserQuestion`** with the still-open findings listed.
-> - **Round 3 completes with ANY review blocker still open → STOP and escalate via `AskUserQuestion`.** Round 3 is the review hard cap; no review finding or non-test gate opens a round 4.
-> - **A failing TEST gate → NO round cap, at any round.** Failing tests never escalate for budget or no-progress and never buy or spend the extension: run the failed-test investigation gate, fix at the owning layer, and re-run until the tests pass — past round 3 if needed. NEVER weaken an assertion, add a skip, or relax a timeout to force green. Review blockers open beside failing tests still follow the bullets above.
+> - **Round 3 completes with ANY review blocker still open → STOP and escalate via `AskUserQuestion`.** No review finding or non-test gate opens a round 4.
+> - **A failing TEST gate → NO round cap, at any round.** Failing tests never escalate for budget or no-progress and never buy or spend the extension: run the failed-test investigation gate, fix at the owning layer, and re-run until the tests pass — past round 3 if needed. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
 >
-> NEVER emit a silent "good enough" PASS on cap exhaustion, NEVER let the cap substitute for the clean-review requirement, and NEVER loop past round 3 on review blockers — only failing test gates continue beyond it. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
+> NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER loop past round 3 on review blockers. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
 >
-> **Severity floor — from round 2, LOW stops blocking.** The exit bar tightens after the first review pass, so the loop converges on consequence instead of spinning on polish:
-
-> Define one predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in round 1 and only validated CRITICAL/HIGH/MEDIUM findings from round 2 onward. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so; in practice binary gates always remain blocking when they fail.
+> **Severity floor — from round 2, LOW stops blocking.** One predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in round 1 and only validated CRITICAL/HIGH/MEDIUM findings from round 2 onward. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so; in practice binary gates always remain blocking when they fail.
 >
 > | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
 > | --- | --- | --- |
 > | 1 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
 > | 2 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
-> | 3 — extension round, reachable ONLY when round 2 left CRITICAL/HIGH open (or failing tests were the only blocker) | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
-> | 4+ — test-gate continuation, reachable ONLY while failing test gates were the sole blocker | the tests pass and no review blocker is open | failing tests; any review blocker here escalates |
+> | 3 — extension, ONLY when round 2 left CRITICAL/HIGH open (or failing tests were the only blocker) | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
+> | 4+ — test-gate continuation, ONLY while failing test gates were the sole blocker | the tests pass and no review blocker is open | failing tests; any review blocker here escalates |
 >
-> From round 2 onward LOW findings are **NOT required to be fixed**: a round whose validated findings are ALL LOW **ENDS the loop once the persisted minimum is met** — do not open another fix/re-review round for them. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM must clear the current round · LOW record/defer); round 1 remains strict, so a LOW found initially is still validated and fixed when warranted before the floor can apply.
+> From round 2 onward a round whose validated findings are ALL LOW **ENDS the loop once the persisted minimum is met**. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM must clear the current round · LOW record/defer); round 1 stays strict.
 >
 > **Severity-floor rules:**
 >
-> - **Never silently drop a deferred LOW.** Every unfixed LOW is listed in the final report under `## Deferred LOW Findings (severity floor, round ≥2)` with file, line, and description, so the owner can schedule it. Dropping it from the report is a protocol violation, not a clean pass.
-> - **Never re-tier a finding to trigger the exit.** Downgrading a real CRITICAL/HIGH/MEDIUM to LOW so the loop can end is a FALSE PASS. Severity is set by consequence per `SYNC:severity-rubric` before the round bar is applied — never after, and never with the exit in view. — why: a floor that can be reached by relabeling is not a floor.
-> - **Never re-tier a finding to reach — or to dodge — the extension.** The extension is unlocked by a real CRITICAL/HIGH, so promoting a MEDIUM to HIGH to buy round 3, or demoting a real CRITICAL/HIGH to MEDIUM to force an earlier escalation, are both FALSE classifications. Severity is set by consequence before the round bar and the extension test are applied. — why: an extension that can be reached by relabeling bounds nothing.
-> - **The floor bounds the loop, not the standard.** It ends *iteration*; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, and it never lowers the finding-survival bar that admits a finding in the first place.
-> - **The floor never applies to a hard gate.** Test-green gates (a suite must actually pass), security must-fix gates, and any gate whose criterion is binary rather than severity-rated are unaffected — a failing test is a failure, not a LOW finding.
+> - **Never silently drop a deferred LOW.** List every unfixed LOW under `## Deferred LOW Findings (severity floor, round ≥2)` with file, line, and description; dropping it is a protocol violation, not a clean pass.
+> - **Never re-tier a finding to trigger the exit, or to reach or dodge the extension.** Demoting a real CRITICAL/HIGH/MEDIUM to LOW, promoting a MEDIUM to HIGH to buy round 3, or demoting a CRITICAL/HIGH to force an earlier escalation is a FALSE classification. Severity is set by consequence before the round bar and the extension test apply. — why: a bound reachable by relabeling bounds nothing.
+> - **The floor bounds the loop, not the standard.** It ends *iteration*; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, and never lowers the finding-survival bar.
+> - **The floor never applies to a hard gate.** Test-green, security must-fix, and any binary (not severity-rated) gate are unaffected — a failing test is a failure, not a LOW finding.
 >
-> **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `/why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** — before that output is treated as final. This loop is the default convergence contract for ANY work-producing skill, not review skills only.
+> **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `/why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** before it is final.
 >
-> **Routing invariant (author-facing):** a skill that validates findings MUST route them through `/why-review --validate-findings` (the terminal validator) — NEVER fork an inline finding-validation. Routing through why-review is what makes the finding-survival bar and this loop apply; the `verify-review-validate-coverage` sensor enforces this exact route mechanically.
+> **Routing invariant (author-facing):** a skill that validates findings MUST route them through `/why-review --validate-findings` (the terminal validator) — NEVER fork an inline finding-validation; the `verify-review-validate-coverage` sensor enforces this route mechanically.
 >
-> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
->
-> **Decision after Round 1:**
+> **Round 1:** Main-session review; output findings + verdict (PASS / FAIL). Then:
 >
 > - **No issues found (PASS, zero findings)** → review ENDS if `round >= minRounds`; otherwise perform the explicitly required independent pass. Do NOT invent a confirmation pass.
-> - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings that block the current round, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first (default `/why-review --validate-findings <report-path>`). Fix only validated findings that block the current round, then restart the full review protocol with a fresh task breakdown.
 >
-> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
+> **Fresh full re-review after every fix cycle:** re-run the whole review protocol over the current full target. When it uses sub-agents, spawn NEW `Agent` calls — never reuse prior agents; reviewers re-read ALL files with ZERO memory of prior rounds (`SYNC:fresh-context-review` for the spawn mechanism, `SYNC:review-protocol-injection` for the prompt template). Each pass hunts missed cross-cutting concerns, interactions between changed files, convention drift, missing pieces, rationalized edge cases, and regressions from the fixes.
 >
-> - Cross-cutting concerns missed in the prior round
-> - Interaction bugs between changed files
-> - Convention drift (new code vs existing patterns)
-> - Missing pieces that should exist but don't
-> - Subtle edge cases the prior round rationalized away
-> - Regressions introduced by the fixes themselves
->
-> **Loop termination:** After each full re-review, repeat the same decision against **that round's exit bar**: bar cleared and persisted minimum met → END; blocking findings remain → validate findings → fix → restart from the first review phase. Round 1 clears only on zero findings at any severity; **from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted minimum is met** (deferred LOWs go in the report). Capped at **2 rounds, extendable ONCE to round 3 when round 2 leaves validated CRITICAL/HIGH open**. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 2 completes with MEDIUM-only (or `NOT VERIFIABLE`) blocking, which earns no extension · round 3 completes with any review blocker still open. A failing test gate triggers none of these escalations — it loops until green. NEVER loop past round 3 on review blockers, and NEVER convert cap exhaustion into a PASS.
+> **Loop termination:** after each full re-review, apply **that round's exit bar**: bar cleared and persisted minimum met → END; otherwise validate → fix → restart. Escalate via `AskUserQuestion` at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 2 completes with MEDIUM-only (or `NOT VERIFIABLE`) blocking · round 3 completes with any review blocker open. A failing test gate triggers none of these — it loops until green. NEVER convert cap exhaustion into a PASS.
 >
 > **Rules:**
 >
 > - A clean Round 1 ENDS the review when `minRounds=1`; an explicitly declared `minRounds=2` requires the independent second pass
-> - From round 2 on, a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met — never open round N+1 to fix LOW alone; list those LOWs as deferred instead
-> - NEVER re-tier a CRITICAL/HIGH/MEDIUM down to LOW to reach the round-2 exit — severity is assigned by consequence before the bar is applied
+> - LOW-only rounds from round 2 are listed as deferred, never fixed in a new round N+1
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
-> - Every surviving finding must additionally clear the **finding-survival bar** defined in why-review's Findings Validation Routine (a deliberately higher bar than the generic act-gate — "keep this finding?" is a stricter question than "act on this evidence?"); a finding below the bar is demoted or dropped, not kept
-> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
-> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
+> - Every surviving finding must also clear why-review's **finding-survival bar** (Findings Validation Routine — stricter than the generic act-gate); a finding below it is demoted or dropped
+> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict); NEVER reuse a sub-agent across rounds
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - The round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early once the persisted minimum is met, and cap exhaustion escalates rather than passes
-> - Enforce the base cap of 2 rounds, the single conditional extension to round 3 (unlocked ONLY by validated CRITICAL/HIGH open at round 2; a failed non-test binary gate counts as CRITICAL), and the 2 repeated-no-progress blocker rule together; all three are escalation triggers for review blockers, none is a completion criterion
-> - The extension is granted at most ONCE per run and never renews — round 3 is the review hard cap regardless of what it finds
-> - Failing test gates are outside the round budget: never escalate them for budget or no-progress, never let them buy the extension, and keep fixing and re-running until the tests pass — never forcing green
+> - The cap, the single extension (ONLY validated CRITICAL/HIGH or a failed non-test binary gate at round 2), and the 2 repeated-no-progress rule are escalation triggers for review blockers, never completion criteria; the cap never replaces the clean-review requirement
 > - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 > - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever the loop ended on the severity floor with LOWs still open. When round 3 ran, the report must name the CRITICAL/HIGH findings that granted the extension; when rounds continued on failing tests, it must name the failing test gates of each such round.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever LOWs stayed open. When round 3 ran, name the CRITICAL/HIGH findings that granted it; when rounds continued on failing tests, name each round's failing test gates.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -901,7 +405,7 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 > **How:**
 >
 > 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
-> 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
+> 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. A reviewer prompt carries every protocol body inline and is never handed a path to go read (the reviewer-prompt rule of `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
 > 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
@@ -920,7 +424,7 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 
 > **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM, copied WHOLESALE and unmodified. They are the review-tier renderings of their canonical `SYNC:` tags, not literal copies; when a canonical protocol changes, update the matching body here in the same edit. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
-> **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 11 protocol bodies pre-embedded.
+> **Why inline expansion:** A fresh reviewer must hold every rule it reviews against from its first token; a path or a placeholder would make it depend on a file read, or on a hook that may not fire for it. Reviewer prompts are therefore the one place the hybrid policy (`SYNC:shared-protocol-duplication-policy`) always keeps full bodies: the template carries all 11 protocol bodies pre-embedded, and the orchestrator copies it wholesale.
 
 ### Subagent Type Selection
 
@@ -1105,39 +609,39 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier has the same meaning everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
 >
 > **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
 >
 > | Severity | Action | Definition and examples |
 > | --- | --- | --- |
-> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; or a silent failure on a critical path. A failed binary gate that makes the result untrustworthy is represented as a separate synthetic blocker by the executable policy (not as an ordinary severity judgment). |
-> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; or a missing proof for a behavior-changing fix. |
-> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift whose impact is real but not immediate material loss. An explicit follow-up records the escalation/residual risk; it does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never open another fix/re-review round from round 2 onward, and never counts toward the round-3 extension | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, or a cosmetic/refinement suggestion. |
+> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
+> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
+> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
+> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never counts toward the round-3 extension | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
 >
-> **Consequence decision tree (apply in order):** (1) Is a binary gate failed? Keep it as a separate hard blocker (the executable helper represents it as synthetic CRITICAL); do not use the ordinary severity label to hide what failed. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Otherwise, does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material user/downstream impact? → **HIGH**. (3) Otherwise, is there a bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with a credible impact? → **MEDIUM**. (4) Otherwise, is the evidence sufficient to show only non-blocking polish with no credible present material impact? → **LOW**. (5) If the evidence needed to choose between steps 1–4 is missing, → **NOT VERIFIABLE**, not LOW. When multiple tiers fit, select the highest credible consequence; effort, implementation cost, reviewer discomfort, frequency alone, proximity to the round cap, and whether a tier would unlock or forfeit the conditional round-3 extension never decide the tier.
+> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and unlocking or forfeiting the round-3 extension never decide the tier.
 >
-> **Boundary examples (normalize before applying the round predicate):** an auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate is **CRITICAL**; a wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix is **HIGH**; a bounded retry/timeout/alert/testability gap or credible maintainability drift is **MEDIUM**; a typo, formatting inconsistency, optional cleanup, or cosmetic suggestion proven not to affect present behavior is **LOW**. A missing fact about any of those boundaries is **NOT VERIFIABLE** until evidence or an explicitly documented residual-risk decision exists.
+> **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
 >
-> **Classification procedure (required for every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if the issue ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest tier justified by those facts; (5) cite `file:line` or equivalent evidence and a confidence percentage. Effort, implementation cost, reviewer discomfort, and proximity to the round cap are never severity inputs. `NOT VERIFIABLE` is a pending evidence state, not one of the four tiers and never a LOW escape hatch: if the unresolved claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it remains an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify an item LOW only when evidence supports the absence of credible present material impact.
+> **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
 >
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not ordinary severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker solely so one predicate can carry it; the report must still name the gate and failure evidence. A failed gate blocks at every round, including when all ordinary findings are LOW; never disguise a failed gate as LOW. A failed non-test gate counts as CRITICAL for the round-3 extension; a failing test gate is outside the round budget and loops until the tests pass.
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate counts as CRITICAL for the round-3 extension; a failing test gate is outside the round budget and loops until the tests pass.
 >
-> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+> **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
 >
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass (no finding). If the criterion is only polish, use LOW rather than forcing a `0`.
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact and low exposure → LOW. Record the axes and why the selected tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic CRITICAL/HIGH/MEDIUM/LOW label; classify each underlying gap by the consequence decision tree and keep advisory score deductions separate from blocking findings.
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
+> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
 >
-> **Domain-vocabulary normalization (mandatory):** Specialized skills may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
+> **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
 >
-> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL label. Classify the underlying consequence as CRITICAL when it is an immediate material risk or failed binary gate; otherwise classify it as HIGH or MEDIUM with evidence, while preserving the local block until the owning gate is satisfied.
-> - `WARN` is not permission to ignore a finding. Map it to MEDIUM when the gap is consequential, to LOW only when evidence supports no credible present material impact, or upward to HIGH/CRITICAL when the consequence warrants it. `PASS`/compliant is not a finding.
-> - UI `P0`/`P1`/`P2`/`P3`/`P4` map to CRITICAL/HIGH/MEDIUM/LOW/LOW respectively as a starting point; override upward only when the evidence shows a higher shipped consequence. A P0/P1 accessibility or task-completion floor remains a blocking gate even when a local UI report calls it a priority rather than a severity.
-> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not replacement tiers. Emit the score, the consequence, and the normalized CRITICAL/HIGH/MEDIUM/LOW tier together. `INFO`/advisory observations are not findings unless the evidence shows a material consequence.
+> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL: CRITICAL for an immediate material risk or failed binary gate, otherwise HIGH or MEDIUM with evidence, while the local block holds until the owning gate is satisfied.
+> - `WARN` is not permission to ignore: MEDIUM when consequential, LOW only when evidence shows no credible present material impact, HIGH/CRITICAL when the consequence warrants. `PASS`/compliant is not a finding.
+> - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
+> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
 >
-> A finding's tier drives the gate: CRITICAL/HIGH/MEDIUM remain actionable and blocking under the round policy, and only an open CRITICAL/HIGH at round 2 (a failed non-test binary gate counts as CRITICAL) unlocks the single conditional extension round; LOW may be tracked as a follow-up and, from round 2, does not by itself justify another fix/re-review. An owner decision may explain or schedule an open MEDIUM but does not turn it into a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; only an open CRITICAL/HIGH at round 2 (a failed non-test binary gate counts as CRITICAL) unlocks the single conditional extension round; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -1272,10 +776,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:parallel-subagent-dispatch -->
 
-> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — serial execution of provably independent tasks wastes wall-clock. Applies to every multi-step job (workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync). **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
 >
-> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
-> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`; else `SEQ`, naming the dependency that forces it.
+> 2. **Group `PAR` into waves.** No edge between members; two writers of one file NEVER share a wave; read-only work parallelizes freely.
 > 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
 > 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
 > 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
@@ -1306,6 +810,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
+
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:review-principle-awareness -->
@@ -1338,7 +843,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Resolve the requested review target and apply the matching adversarial review path (plan/PBI rationale, code changes, docs/spec/report, findings, or explicit artifact) so decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
 
-**IMPORTANT MUST ATTENTION Main steps (full mode) — execute in order, the skill AI keeps forgetting:** (1) DETECT MODE — `--validate-findings` is TERMINAL; (2) bind the self-recursive review loop — protocol loop primary (host-independent), optional `/goal` gate WHEN available — + Task Bootstrap (phase tasks + closing Findings Validation Gate task); (3) RESOLVE TARGET TYPE + read active Goal Contract + route by concern; (4) REVIEW as SKEPTIC — 7 Anti-Bias boxes (incl. the **Trade-Off Interrogation Gate**: trade-off? worth it? material → confirm with user) + Validation Checklist (presence AND quality depth) + Round 2 re-review + spec↔tests↔code triangulation; (5) FINDINGS VALIDATION GATE — re-invoke terminal `--validate-findings`, reconcile, then re-DO the full review only for report defects or missed findings identified by validation (at most 1 re-do; 2 full review cycles total); hand off retained target findings without claiming target PASS, then ask next step via `AskUserQuestion`. NEVER skip, reorder, or merge a step without explicit user approval. — why: the steps ARE the review's integrity; dropping one ships an unproven verdict.
+**IMPORTANT MUST ATTENTION Main steps (full mode) — execute in order, the skill AI keeps forgetting:** (1) DETECT MODE — `--validate-findings` is TERMINAL; (2) read `references/full-mode.md` in full (BLOCKING), then bind the self-recursive review loop — protocol loop primary (host-independent), optional `/goal` gate WHEN available — + Task Bootstrap (phase tasks + closing Findings Validation Gate task); (3) RESOLVE TARGET TYPE + read active Goal Contract + route by concern; (4) REVIEW as SKEPTIC — 7 Anti-Bias boxes (incl. the **Trade-Off Interrogation Gate**: trade-off? worth it? material → confirm with user) + Validation Checklist (presence AND quality depth) + Round 2 re-review + spec↔tests↔code triangulation; (5) FINDINGS VALIDATION GATE — re-invoke terminal `--validate-findings`, reconcile, then re-DO the full review only for report defects or missed findings identified by validation (at most 1 re-do; 2 full review cycles total); hand off retained target findings without claiming target PASS, then ask next step via `AskUserQuestion`. NEVER skip, reorder, or merge a step without explicit user approval. — why: the steps ARE the review's integrity; dropping one ships an unproven verdict.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** these are signposts — the canonical bodies above are binding; MUST ATTENTION honor each, NEVER treat a digest line as the full rule.
 

@@ -8,6 +8,7 @@
  * (review checklist) — without re-sending them while they are still in the last ~100K tokens.
  * Invariants guarded here:
  *   - first front-end read/edit delivers the gate; a non-front-end file never does;
+ *   - a read delivers it in the conditional wording, so the first change after it re-delivers once, mandatory;
  *   - no re-delivery inside the class window (100K tokens x 22 bytes); re-delivery at the window edge;
  *   - condensation (transcript mark or host report) voids the earlier delivery;
  *   - the protocol already loaded by a tool Read of the docs or by a UI skill counts as delivered,
@@ -27,6 +28,7 @@ const conventions = require(path.join(HOOKS_DIR, 'lib', 'file-conventions.cjs'))
 const ledger = require(path.join(HOOKS_DIR, 'lib', 'convention-ledger.cjs'));
 const merge = require(path.join(HOOKS_DIR, 'lib', 'convention-merge.cjs'));
 const schema = require(path.join(HOOKS_DIR, 'lib', 'project-config-schema.cjs'));
+const { childEnv } = require('../lib/hook-runner.cjs');
 
 const NOW = Math.floor(Date.now() / 1000) * 1000;
 const MINUTE = 60 * 1000;
@@ -105,9 +107,14 @@ const gateDelivered = text => text.includes(TAG);
 /** Spawned hook in a project with NO config: the real defaultConfig → built-in fallback path. */
 function spawnNoConfig(fx, input) {
     const { spawnSync } = require('node:child_process');
+    // Clean machine (Portable Test Contract): no inherited CK_* switch, home and temp inside the fixture
+    const overrides = { HOME: fx.root, USERPROFILE: fx.root, TMPDIR: fx.root, TEMP: fx.root, TMP: fx.root, CLAUDE_HOOK_DEBUG: undefined };
+    for (const key of Object.keys(process.env)) {
+        if (/^CK_/i.test(key)) overrides[key] = undefined;
+    }
+    Object.assign(overrides, { CLAUDE_PROJECT_DIR: fx.project, CK_CONVENTIONS_DIR: fx.store });
     const result = spawnSync(process.execPath, [path.join(HOOKS_DIR, 'file-convention-inject.cjs')], {
-        cwd: fx.project, input: JSON.stringify(input), encoding: 'utf8', windowsHide: true,
-        env: { ...process.env, CK_DEBUG: '', CLAUDE_HOOK_DEBUG: '', CLAUDE_PROJECT_DIR: fx.project, CK_CONVENTIONS_DIR: fx.store }
+        cwd: fx.project, input: JSON.stringify(input), encoding: 'utf8', windowsHide: true, env: childEnv(overrides)
     });
     assert.equal(result.status, 0, result.stderr);
     return result.stdout ? JSON.parse(result.stdout).hookSpecificOutput.additionalContext : '';
@@ -131,11 +138,15 @@ const tests = [
                     CHECKLIST, KNOWLEDGE, '.claude/docs/design-review-calibration.md', 'sync-inline-versions.md']) {
                     assert.ok(text.includes(needle), `${rel}: digest names ${needle}`);
                 }
-                assert.ok(/^\[conventions\] .*MUST read first: .*design-review-checklist\.md/.test(text), 'first line tells the model to read the docs');
+                // A read only looks: the opening is conditional and never mandatory (BR-PFCI-20)
+                assert.ok(/^\[conventions\] .*If you will edit this file, read first: .*design-review-checklist\.md/.test(text), 'first line tells the model which docs to read before an edit');
+                assert.equal(text.includes('MUST read first'), false, 'a read digest carries no mandatory instruction');
                 assert.ok(text.length <= 2000, `digest stays compact (${text.length} chars)`);
             }
-            // And an Edit/Write trigger delivers too (new file created without a prior Read)
-            assert.ok(gateDelivered(await deliver(fx, gateConfig(), post(fx, 'Write', 'web/New.jsx', { session_id: 'write-session' }))));
+            // And an Edit/Write trigger delivers too (new file created without a prior Read), in the mandatory wording
+            const written = await deliver(fx, gateConfig(), post(fx, 'Write', 'web/New.jsx', { session_id: 'write-session' }));
+            assert.ok(gateDelivered(written));
+            assert.ok(/^\[conventions\] .*MUST read first: .*design-review-checklist\.md/.test(written), 'a change is told to read the docs first');
         })
     },
     {
@@ -155,7 +166,8 @@ const tests = [
         fn: async () => withFixture(async fx => {
             assert.equal(WINDOW_BYTES, 2200000, '100000 tokens x 22 bytes');
             const config = gateConfig();
-            assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Read', 'web/a.css'))), 'first delivery');
+            // First delivery on a change: a read-form delivery would not cover the change below (BR-PFCI-05)
+            assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.css'))), 'first delivery');
             // Same file and another front-end file inside the window: nothing
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.css'), NOW + MINUTE), '');
             fx.grow(WINDOW_BYTES - 1);
@@ -193,7 +205,8 @@ const tests = [
         name: 'TC-UIG-005 condensation — transcript mark or host SessionStart report — re-arms the gate',
         fn: async () => withFixture(async fx => {
             const config = gateConfig();
-            assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Read', 'web/a.html'))));
+            // First delivery on a change: a read-form delivery would not cover the change below (BR-PFCI-05)
+            assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.html'))));
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.html'), NOW + 1000), '');
             // Transcript condensation mark after the delivery
             fx.append(boundary(NOW + 2000));
@@ -310,8 +323,12 @@ const tests = [
             assert.equal(fs.existsSync(path.join(fx.project, 'docs', 'project-config.json')), false, 'no project config');
             const edit = (rel, extra) => post(fx, 'Edit', rel, extra);
 
-            // First front-end touch in the main conversation delivers; any further front-end file does not
-            assert.ok(gateDelivered(spawnNoConfig(fx, post(fx, 'Read', 'web/a.tsx'))), 'first touch delivers');
+            // First front-end touch in the main conversation delivers; a read gets the conditional form, so the
+            // first change re-delivers once in the mandatory form (BR-PFCI-05 read-form presence); then no file does
+            const firstRead = spawnNoConfig(fx, post(fx, 'Read', 'web/a.tsx'));
+            assert.ok(gateDelivered(firstRead) && firstRead.includes('If you will edit this file, read first:'), 'first touch delivers, conditional on a read');
+            const firstChange = spawnNoConfig(fx, edit('web/a.tsx'));
+            assert.ok(gateDelivered(firstChange) && firstChange.includes('MUST read first:'), 'first change after the read re-delivers, mandatory');
             for (const rel of ['web/a.tsx', 'web/b.vue', 'web/site.scss']) {
                 assert.equal(spawnNoConfig(fx, edit(rel)), '', `${rel}: already present, not repeated`);
             }

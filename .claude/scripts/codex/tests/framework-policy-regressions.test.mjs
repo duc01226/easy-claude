@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +13,21 @@ const { getDocsRoot } = require("../../../hooks/lib/project-config-loader.cjs");
 
 async function read(rel) {
   return fs.readFile(path.join(repoRoot, ...rel.split("/")), "utf8");
+}
+
+// A skill's contract is its SKILL.md plus every `references/*.md` (sorted), read as one text, so a
+// pinned phrase holds wherever the skill keeps it (a mode section may move to a point-of-use reference).
+async function readSkillContract(name) {
+  const dir = path.join(repoRoot, ".claude", "skills", name);
+  const texts = [await fs.readFile(path.join(dir, "SKILL.md"), "utf8")];
+  const refs = await fs.readdir(path.join(dir, "references")).catch((error) => {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  });
+  for (const file of refs.filter((entry) => entry.endsWith(".md")).sort()) {
+    texts.push(await fs.readFile(path.join(dir, "references", file), "utf8"));
+  }
+  return texts.join("\n");
 }
 
 async function readIfExists(rel) {
@@ -217,11 +233,23 @@ test("parallel and adjudication contracts retain fixed-order and exact artifact 
   assert.match(canonical, /verdict before trace\/edit|provisional verdict[\s\S]{0,160}before touching/i);
 });
 
+// CR-017 carrier predicate. The one round-eligibility predicate lives in SYNC:double-round-trip-review;
+// a converted skill carries that protocol as a guide line (shared P25 recognizer, never a copied
+// line format) and the text lives in its projection file `shared/protocols/<tag>.md`.
+const BLOCKING_PREDICATE_TAG = "double-round-trip-review";
+const BLOCKING_PREDICATE_RE = /blocking_findings\(round, findings\)/;
+const guideCarrier = require("../../lib/protocol-guide-carrier.cjs");
+function carriesBlockingPredicate(content, projectionText, { acceptGuide }) {
+  if (BLOCKING_PREDICATE_RE.test(content)) return true;
+  return acceptGuide && projectionText != null && guideCarrier.hasGuideEntry(content, BLOCKING_PREDICATE_TAG) &&
+    BLOCKING_PREDICATE_RE.test(projectionText);
+}
+
 test("review convergence uses one blocking predicate and byte-identical low-only exit (CR-017, CR-018)", async () => {
   const [canonical, loop] = await Promise.all([
     read(".claude/skills/shared/sync-inline-versions.md"),
-    // The outer zero-fix loop is workflow-review-changes' optional `--fix-loop` mode.
-    read(".claude/skills/workflow-review-changes/SKILL.md"),
+    // The outer zero-fix loop is workflow-review-changes' optional `--fix-loop` mode (references/fix-loop.md).
+    readSkillContract("workflow-review-changes"),
   ]);
   assert.match(canonical, /blocking_findings\(round, findings\)/);
   assert.match(canonical, /binary gate/i);
@@ -252,11 +280,33 @@ test("review convergence uses one blocking predicate and byte-identical low-only
     ".claude/skills/ui-review/SKILL.md",
     ".claude/skills/why-review/SKILL.md",
   ];
+  const projection = await readIfExists(`.claude/skills/shared/protocols/${BLOCKING_PREDICATE_TAG}.md`);
   for (const rel of reviewCarriers) {
     const content = await read(rel);
-    assert.match(content, /blocking_findings\(round, findings\)/, rel);
+    // Agents keep full text (owner decision); a skill may carry the protocol as a guide entry.
+    assert.ok(carriesBlockingPredicate(content, projection, { acceptGuide: rel.startsWith(".claude/skills/") }),
+      `${rel} must carry blocking_findings(round, findings) inline, or (skills only) a ${BLOCKING_PREDICATE_TAG} guide entry whose projection file carries it`);
     assert.doesNotMatch(content, /Issues found \(FAIL, or any non-zero findings\)/, rel);
   }
+});
+
+test("CR-017 carrier predicate accepts a guide entry backed by its projection and fails when both forms are missing (TC-PDL-065)", () => {
+  // Given a skill that holds a guide entry for the protocol instead of its body, and a projection that holds the predicate
+  const guided = [guideCarrier.GUIDE_BLOCK_START, "",
+    guideCarrier.formatGuideLine({ tag: BLOCKING_PREDICATE_TAG, summary: "Fix loop", when: "running a review", path: `.claude/skills/shared/protocols/${BLOCKING_PREDICATE_TAG}.md` }),
+    "", guideCarrier.GUIDE_BLOCK_END].join("\n");
+  const projection = "> Compute blocking_findings(round, findings) once per round.";
+  // When the skill is checked, Then it passes
+  assert.equal(carriesBlockingPredicate(guided, projection, { acceptGuide: true }), true);
+  // When the guide is removed too (both forms missing), Then it fails
+  assert.equal(carriesBlockingPredicate("# Skill\n", projection, { acceptGuide: true }), false);
+  // When the projection is missing or lost the predicate, Then it fails
+  assert.equal(carriesBlockingPredicate(guided, null, { acceptGuide: true }), false);
+  assert.equal(carriesBlockingPredicate(guided, "> no predicate here", { acceptGuide: true }), false);
+  // When an agent carries only a guide, Then it fails (agents keep full text)
+  assert.equal(carriesBlockingPredicate(guided, projection, { acceptGuide: false }), false);
+  // And an inline body still passes for both
+  assert.equal(carriesBlockingPredicate(projection, null, { acceptGuide: false }), true);
 });
 
 test("investigation and fan-out skills retain graph and shard discipline (CR-020..023)", async () => {
@@ -295,7 +345,7 @@ test("mutating workflow closures refresh domain-entity references before docs-up
   // it — the nested workflow owns the scan -> docs-update refresh and the cited-skip-reason rule.
   for (const id of ["workflow-greenfield-init", "workflow-refactor"]) {
     assert.ok(
-      workflows[id].sequence.includes("workflow-review-changes"),
+      workflows[id].sequence.some((step) => (typeof step === "string" ? step : step?.skill) === "workflow-review-changes"),
       `${id} must delegate the terminal domain-entity refresh to workflow-review-changes`
     );
   }
@@ -304,7 +354,7 @@ test("mutating workflow closures refresh domain-entity references before docs-up
 test("plan-review runs an unconditional why-review sub-agent in every review wave, primacy and recency", async () => {
   const [review, whyReview, plan] = await Promise.all([
     read(".claude/skills/plan-review/SKILL.md"),
-    read(".claude/skills/why-review/SKILL.md"),
+    readSkillContract("why-review"),
     read(".claude/skills/plan/SKILL.md"),
   ]);
   const text = review.replace(/\r\n/g, "\n");
@@ -416,7 +466,7 @@ test("plan-review caps its review loop at 2 rounds with no extension round", asy
 
   // The siblings that DO grant the extension keep it — this narrowing is plan-review-only.
   const siblings = await Promise.all(
-    ["why-review", "changes-review", "workflow-review-changes"].map(n => read(`.claude/skills/${n}/SKILL.md`)),
+    ["why-review", "changes-review", "workflow-review-changes"].map(n => readSkillContract(n)),
   );
   for (const sibling of siblings) {
     assert.match(sibling, /extendable ONCE to round 3/, "sibling loop skills keep the canonical extension");
@@ -469,7 +519,8 @@ function assertChangesReviewFixLoop(text) {
 }
 
 test("changes-review --fix-loop carries the retired loop skill's gates without changing the default path", async () => {
-  const text = (await read(".claude/skills/changes-review/SKILL.md")).replace(/\r\n/g, "\n");
+  // The mode lives in references/fix-loop.md; the contract is SKILL.md + references.
+  const text = (await readSkillContract("changes-review")).replace(/\r\n/g, "\n");
   assertChangesReviewFixLoop(text);
   for (const [before, after] of [
     ["### Fix-Loop Step 2 — Convergence & Escalation Gate", "### Fix-Loop Step 2 — Wrap Up"],
@@ -493,6 +544,44 @@ test("changes-review --fix-loop carries the retired loop skill's gates without c
 // recursing the flag, or re-introducing the standalone loop skill fails here.
 // Built from parts so the repo-wide "no retired skill id" grep stays at zero hits.
 const RETIRED_IT_LOOP_SKILL = ["integration", "test", "verify", "loop"].join("-");
+
+// Sensor row N1 (P26 scratch run). A converted skill carries a shared protocol as a guide line (the
+// shared P25 recognizer, never a copied line format) that the hook resolves to the projection file
+// `<skills root>/shared/protocols/<tag>.md`; the guide counts only while that file exists and is
+// non-empty. A skill with neither form still fails.
+function carriesProtocolTag(text, tag, skillsDir = path.join(repoRoot, ".claude", "skills")) {
+  if (text.includes(`<!-- SYNC:${tag} -->`)) return true;
+  if (!guideCarrier.hasGuideEntry(text, tag)) return false;
+  const projection = path.join(skillsDir, "shared", "protocols", `${tag}.md`);
+  return existsSync(projection) && readFileSync(projection, "utf8").trim().length > 0;
+}
+
+test("integration-test-verify protocol carrier check accepts a guide entry backed by its projection (TC-PDL-065, N1)", async () => {
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "n1-guide-"));
+  try {
+    // Given a skills root whose projection file holds the protocol, and a skill carrying only its guide line
+    const tag = "goal-contract-satisfaction-loop";
+    const skillsDir = path.join(tmp, "skills");
+    const projection = path.join(skillsDir, "shared", "protocols", `${tag}.md`);
+    await fs.mkdir(path.dirname(projection), { recursive: true });
+    await fs.writeFile(projection, "> **Goal Contract** — fixture body.\n");
+    const guided = [guideCarrier.GUIDE_BLOCK_START, "",
+      guideCarrier.formatGuideLine({ tag, summary: "Save the goal", when: "executing work", path: `.claude/skills/shared/protocols/${tag}.md` }),
+      "", guideCarrier.GUIDE_BLOCK_END].join("\n");
+    // When the carrier check runs, Then the guide carrier passes and an inline body still passes
+    assert.equal(carriesProtocolTag(guided, tag, skillsDir), true);
+    assert.equal(carriesProtocolTag(`<!-- SYNC:${tag} -->\n\nbody\n\n<!-- /SYNC:${tag} -->`, tag, skillsDir), true);
+    // When the guide is removed too (both forms missing), Then it fails
+    assert.equal(carriesProtocolTag("# Skill\n", tag, skillsDir), false);
+    // When the projection file is empty or missing, Then the guide alone fails
+    await fs.writeFile(projection, "  \n");
+    assert.equal(carriesProtocolTag(guided, tag, skillsDir), false);
+    await fs.rm(projection);
+    assert.equal(carriesProtocolTag(guided, tag, skillsDir), false);
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true });
+  }
+});
 
 function assertIntegrationTestVerifyFixLoop(text) {
   assert.equal(text.split("<!-- FIX-LOOP-MODE:START -->").length - 1, 1, "exactly one delimited --fix-loop mode opener");
@@ -535,7 +624,7 @@ function assertIntegrationTestVerifyFixLoop(text) {
   assert.match(mode, /are carried once below; never re-copy them into this section/);
   assert.doesNotMatch(mode, /<!-- SYNC:/, "mode section references shared protocols instead of duplicating SYNC blocks");
   for (const tag of ["goal-contract-satisfaction-loop", "trade-off-interrogation-gate", "test-failure-fault-adjudication", "integration-test-execution-discipline"]) {
-    assert.ok(text.includes(`<!-- SYNC:${tag} -->`), `carries SYNC:${tag}`);
+    assert.ok(carriesProtocolTag(text, tag), `carries SYNC:${tag} (inline body, or a guide entry backed by its projection file)`);
   }
   assert.ok(!text.includes(RETIRED_IT_LOOP_SKILL), "no reference to the retired standalone loop skill");
 }
@@ -562,6 +651,6 @@ test("integration-test-verify --fix-loop carries the retired loop skill's gates 
   // The green workflow drives the loop through the flag on the surviving skill.
   const workflows = JSON.parse(await read(".claude/workflows.json")).workflows;
   const sequence = workflows["workflow-integration-test-green"].sequence;
-  assert.equal(sequence[1], "integration-test-verify --fix-loop");
+  assert.equal(typeof sequence[1] === "string" ? sequence[1] : [sequence[1].skill, sequence[1].args].filter(Boolean).join(" "), "integration-test-verify --fix-loop");
   assert.ok(!JSON.stringify(workflows).includes(RETIRED_IT_LOOP_SKILL), "workflows.json must not name the retired loop skill");
 });

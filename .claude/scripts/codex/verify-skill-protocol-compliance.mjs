@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,7 +51,30 @@ const AGENTS_ROOT_PROJECTION_END = '/CK:CODEX-ROOT-PROJECTION';
 // 2026-09-24: raised 69632 -> 81920 (68 -> 80 KiB) in lockstep with the generator to restore
 // headroom; 80 KiB + 8 KiB context allowance still fits the 96 KiB Codex host budget.
 export const AGENTS_ROOT_LIMIT_BYTES = 81920;
-const DEBUGGER_TRACE_MARKER = '<!-- SYNC:end-to-start-debugger-trace -->';
+// The Codex manual-only policy line (`agents/openai.yaml`). A LOCAL copy for the same reason as the budget
+// above; `verify-skill-protocol-compliance.test.mjs` asserts it equals the generator's shared constant.
+export const CODEX_IMPLICIT_OFF_RE = /^\s*allow_implicit_invocation:\s*false\s*$/m;
+// Guide carriers. A converted skill carries a shared protocol as one guide line inside its
+// PROTOCOL-GUIDES block instead of the full `<!-- SYNC:tag -->` body; the full text lives in the
+// projection file `<skills root>/shared/protocols/<tag>.md`. The recognizer is the shared P25 owner
+// (`../lib/protocol-guide-carrier.cjs`) — this file never copies its line format. It is loaded
+// LAZILY and only for text that holds a guide block, because this verifier is also copied into
+// isolated roots with nothing but its root resolver beside it (`verifier-root-contract.test.mjs`),
+// and text without the block marker cannot hold a guide entry by the recognizer's own rule.
+// `verify-skill-protocol-compliance.test.mjs` pins GUIDE_BLOCK_HINT to the recognizer's marker.
+export const GUIDE_BLOCK_HINT = 'PROTOCOL-GUIDES:START';
+const PROTOCOL_TAG_RE = /^[a-z0-9][a-z0-9-]*$/;
+let guideCarrier = null;
+const loadGuideCarrier = () => (guideCarrier ??= require('../lib/protocol-guide-carrier.cjs'));
+
+/** Tags `content` carries as guide entries (the shared recognizer), in first-seen order. */
+export function guideTagsIn(content) {
+    const text = String(content ?? '');
+    return text.includes(GUIDE_BLOCK_HINT) ? loadGuideCarrier().guideTags(text) : [];
+}
+
+export const DEBUGGER_TRACE_TAG = 'end-to-start-debugger-trace';
+const DEBUGGER_TRACE_MARKER = `<!-- SYNC:${DEBUGGER_TRACE_TAG} -->`;
 const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
     'End-to-Start Debugger Trace',
     'observed final state',
@@ -86,7 +110,7 @@ const REQUIRED_CONTRACT_SNIPPETS = [
     'Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.',
     'Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.',
     'Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.',
-    'For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.',
+    'For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.',
     'If a required step/tool cannot run in this environment, stop and ask the user before adapting.'
 ];
 
@@ -367,7 +391,10 @@ export function checkOrphanHeadings(content, relativePath) {
     return `${relativePath} has ${orphans.length} orphan heading(s) — a heading immediately followed by a same-or-shallower-level heading with no body (empty section). Add content or remove the heading. Examples: ${firstFew}.`;
 }
 
-export function checkDebuggerTraceCoverage(content, relativePath) {
+// `projectionText` opts a SKILL into the guide carrier: the caller passes the projection file's text
+// (null when that file is missing) for a skill path and leaves it undefined for an agent, because
+// agents keep the full protocol text (owner decision) and so only ever pass through the body branch.
+export function checkDebuggerTraceCoverage(content, relativePath, { projectionText } = {}) {
     const missing = [];
     if (!content.includes(DEBUGGER_TRACE_MARKER)) {
         missing.push(DEBUGGER_TRACE_MARKER);
@@ -378,7 +405,112 @@ export function checkDebuggerTraceCoverage(content, relativePath) {
         }
     }
     if (missing.length === 0) return null;
+    if (projectionText !== undefined && guideTagsIn(content).includes(DEBUGGER_TRACE_TAG)) {
+        if (projectionText === null) {
+            return `${relativePath} carries a ${DEBUGGER_TRACE_TAG} guide entry but its projection file shared/protocols/${DEBUGGER_TRACE_TAG}.md is missing`;
+        }
+        const projectionMissing = DEBUGGER_TRACE_REQUIRED_SNIPPETS.filter(snippet => !projectionText.includes(snippet));
+        if (projectionMissing.length === 0) return null;
+        return `${relativePath} carries a ${DEBUGGER_TRACE_TAG} guide entry but its projection file lacks snippet(s): ${projectionMissing.join(' | ')}`;
+    }
     return `${relativePath} missing end-to-start debugger trace gate snippet(s): ${missing.join(' | ')}`;
+}
+
+// Guide-carrier rules for ONE source file under the skills root. Per file on purpose: a
+// `references/*.md` that keeps a protocol's full text beside a SKILL.md that carries its guide is a
+// valid split (BR-PDL-12); the same file carrying both forms is not. Returns failure lines.
+//   - a guide naming a tag with no projection file: the pointer leads nowhere;
+//   - one file carrying the full `<!-- SYNC:tag -->` body AND a guide for that tag;
+//   - a skill named in `inlineSkills` (protocol-groups.json) carrying any guide entry (BR-PDL-11).
+export function checkGuideCarrierRules({ relativePath, skillName, content, inlineSkills = [], projectionExists }) {
+    const failures = [];
+    const tags = guideTagsIn(content);
+    if (tags.length === 0) return failures;
+    if (inlineSkills.includes(skillName)) {
+        failures.push(`${relativePath}: skill "${skillName}" is listed in inlineSkills (shared/protocol-groups.json) and must keep full SYNC bodies, but it carries guide entries: ${tags.join(', ')}`);
+    }
+    for (const tag of tags) {
+        if (!PROTOCOL_TAG_RE.test(tag) || !projectionExists(tag)) {
+            failures.push(`${relativePath}: guide entry names protocol "${tag}" but its projection file shared/protocols/${tag}.md does not exist`);
+        }
+        if (hasStandaloneMarker(content, `SYNC:${tag}`)) {
+            failures.push(`${relativePath}: carries both the full <!-- SYNC:${tag} --> body and a guide entry for "${tag}" — keep exactly one form per file`);
+        }
+    }
+    return failures;
+}
+
+const GUIDE_SCAN_SKIPPED_DIRS = new Set(['node_modules', '.venv', 'venv', '__pycache__', '.git']);
+
+async function collectMarkdownFiles(dirPath) {
+    let entries;
+    try {
+        entries = await fs.readdir(dirPath, { withFileTypes: true });
+    } catch (error) {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+    }
+    const collected = [];
+    for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+            if (!GUIDE_SCAN_SKIPPED_DIRS.has(entry.name)) collected.push(...(await collectMarkdownFiles(fullPath)));
+        } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
+            collected.push(fullPath);
+        }
+    }
+    return collected;
+}
+
+// `inlineSkills` from `shared/protocol-groups.json`. An absent file means no list (the rule has
+// nothing to enforce); a present but malformed one fails closed rather than silently allowing guides.
+async function readInlineSkills(failures) {
+    const groupsPath = path.join(claudeSkillsRoot, 'shared', 'protocol-groups.json');
+    if (!(await exists(groupsPath))) return [];
+    let parsed;
+    try {
+        parsed = JSON.parse(await fs.readFile(groupsPath, 'utf8'));
+    } catch (error) {
+        failures.push(`${toRelativeNormalized(groupsPath, rootDir)} is not valid JSON (${error.message}); cannot check inlineSkills`);
+        return [];
+    }
+    const list = parsed?.inlineSkills;
+    if (!Array.isArray(list) || !list.every(name => typeof name === 'string' && name)) {
+        failures.push(`${toRelativeNormalized(groupsPath, rootDir)} has no valid inlineSkills array of skill names; cannot check inline skills`);
+        return [];
+    }
+    return list;
+}
+
+async function checkSourceGuideCarriers(failures) {
+    const inlineSkills = await readInlineSkills(failures);
+    const protocolsDir = path.join(claudeSkillsRoot, 'shared', 'protocols');
+    const projectionCache = new Map();
+    const projectionExists = tag => {
+        if (!projectionCache.has(tag)) projectionCache.set(tag, fsSync.existsSync(path.join(protocolsDir, `${tag}.md`)));
+        return projectionCache.get(tag);
+    };
+    for (const filePath of await collectMarkdownFiles(claudeSkillsRoot)) {
+        const [skillName] = toRelativeNormalized(filePath, claudeSkillsRoot).split('/');
+        if (skillName === 'shared') continue; // canonical text and its projection, not a skill
+        const content = await fs.readFile(filePath, 'utf8');
+        failures.push(...checkGuideCarrierRules({
+            relativePath: toRelativeNormalized(filePath, rootDir),
+            skillName,
+            content,
+            inlineSkills,
+            projectionExists
+        }));
+    }
+}
+
+// Codex ignores `disable-model-invocation`, so a manual-only skill stays manual on Codex only through
+// its `agents/openai.yaml` policy. `policyText` is that file's text ('' when it is absent). Returns the
+// failure line, or null when the skill is not manual-only or its policy turns implicit invocation off.
+export function checkManualOnlyPolicy(sourceDisable, policyText, relativePath) {
+    if (sourceDisable !== true) return null;
+    if (CODEX_IMPLICIT_OFF_RE.test(String(policyText ?? ''))) return null;
+    return `${relativePath} is manual-only (disable-model-invocation: true) but agents/openai.yaml does not set policy.allow_implicit_invocation: false`;
 }
 
 // Actionable remediation for a FAILing run. Every failure this gate raises is a generated-mirror
@@ -562,7 +694,15 @@ async function checkRequiredDebuggerTraceFiles(relativePaths, failures) {
             continue;
         }
         const content = await fs.readFile(fullPath, 'utf8');
-        const failure = checkDebuggerTraceCoverage(content, relPath);
+        // A skill (source or mirror) may carry the gate as a guide entry; its projection lives in
+        // that same skills root. Agents are not offered the guide branch (they keep full text).
+        const skillsRootMatch = relPath.match(/^(.*\/skills)\//);
+        const options = {};
+        if (skillsRootMatch) {
+            const projectionPath = path.join(rootDir, ...skillsRootMatch[1].split('/'), 'shared', 'protocols', `${DEBUGGER_TRACE_TAG}.md`);
+            options.projectionText = (await exists(projectionPath)) ? await fs.readFile(projectionPath, 'utf8') : null;
+        }
+        const failure = checkDebuggerTraceCoverage(content, relPath, options);
         if (failure) failures.push(failure);
     }
 }
@@ -579,6 +719,7 @@ async function main() {
             const orphanFailure = checkOrphanHeadings(sourceContent, toRelativeNormalized(sourcePath, rootDir));
             if (orphanFailure) failures.push(orphanFailure);
         }
+        await checkSourceGuideCarriers(failures);
     }
 
     if (!(await exists(skillsRoot))) {
@@ -636,6 +777,12 @@ async function main() {
                 const generatedDisableModelInvocation = parseBooleanFrontmatterValue(frontmatter.values?.['disable-model-invocation']);
                 if (sourceDisableModelInvocation !== generatedDisableModelInvocation) {
                     failures.push(`${relativePath} disable-model-invocation mismatch with source (.claude/skills/${generatedRel})`);
+                }
+                // Codex ignores the frontmatter flag, so a manual-only skill needs its invocation policy file.
+                if (sourceDisableModelInvocation === true) {
+                    const policyText = await fs.readFile(path.join(path.dirname(skillPath), 'agents', 'openai.yaml'), 'utf8').catch(() => '');
+                    const policyFailure = checkManualOnlyPolicy(sourceDisableModelInvocation, policyText, relativePath);
+                    if (policyFailure) failures.push(policyFailure);
                 }
             }
 

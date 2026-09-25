@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { buildSkillReferenceMap, prependCodexCompatibilityNote, rewriteClaudeToolTermsForCodex, rewriteSkillMentionsForCodex } from './compat-rewrite.mjs';
-import { parseFrontmatter, parseFrontmatterBoolean, stripQuotes } from '../lib/agent-frontmatter.mjs';
+import { CODEX_IMPLICIT_OFF_RE, parseFrontmatter, parseFrontmatterBoolean, stripQuotes } from '../lib/agent-frontmatter.mjs';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
@@ -54,8 +54,24 @@ export const codexAgentsDir = path.join(rootDir, '.codex', 'agents');
 export const agentsSkillsDir = path.join(rootDir, '.agents', 'skills');
 const codexConfigPath = path.join(rootDir, '.codex', 'config.toml');
 const codexScriptsDir = path.join(rootDir, '.codex', 'scripts', 'codex');
-const codexNotificationScriptPath = path.join(codexScriptsDir, 'codex-notify.mjs');
-const bundledNotificationScriptPath = path.join(rootDir, '.claude', 'scripts', 'codex', 'codex-notify.mjs');
+// Retired helper: earlier syncs installed it as Codex's legacy `notify` command. Codex runs that
+// command after every turn of every thread, delegated subagent threads included, and it duplicated
+// the main-thread Stop/SessionEnd hook alerts, so each sync now removes the copy and its config line.
+const legacyNotificationScriptPath = path.join(codexScriptsDir, 'codex-notify.mjs');
+const LEGACY_NOTIFY_ARGV = ['node', '.codex/scripts/codex/codex-notify.mjs'];
+const LEGACY_NOTIFY_COMMENT = '# Shared completion notifications. Codex passes a JSON payload to this command.';
+// Retired pin: earlier bundles set a top-level auto-compaction budget, which overrides the host's
+// own default and any value a user sets elsewhere. The bundle pins none now, so each sync removes
+// the key — together with the comment block the bundle's config carried above it — but only while
+// both still read exactly as the bundle wrote them. Any other value belongs to the project and stays.
+const RETIRED_COMPACTION_KEY = 'model_auto_compact_token_limit';
+const RETIRED_COMPACTION_VALUE = '500000';
+const RETIRED_COMPACTION_COMMENT = [
+    '# Auto-compaction budget — 500K tokens, matching the Claude Code',
+    '# CLAUDE_CODE_AUTO_COMPACT_WINDOW and the opencode model limit.context so all three',
+    '# surfaces of the portable framework compact at the same point.',
+    '# Scope defaults to "total" (full active context).',
+];
 const agentsSkillsMirrorSentinelPath = path.join(agentsSkillsDir, '.codex-mirror.json');
 
 const useSkills = !args.has('--no-skills');
@@ -278,27 +294,80 @@ function upsertTomlKey(lines, key, value, start, end) {
     return { inserted: true, lineDelta: 1 };
 }
 
-export function upsertCodexNotificationConfig(configText) {
+/**
+ * Remove a key this bundle once wrote, only while its value is still exactly the bundled value.
+ * The comment block directly above it goes too, but only when every line matches the bundled text;
+ * a project's own comment stays. Any other value is the project's choice: it is left untouched and
+ * returned as `keptValue` so the caller can report it. Mutates `lines`.
+ */
+function retireBundledTomlKey(lines, key, bundledValue, start, end, bundledComment = []) {
+    const keyPattern = new RegExp(`^\\s*${escapeRegExp(key)}\\s*=`);
+    const index = lines.findIndex((line, lineIndex) => lineIndex >= start && lineIndex < end && keyPattern.test(line));
+    if (index === -1) return { removed: false, keptValue: null };
+
+    const assignmentEnd = findTomlAssignmentEnd(lines, index, end);
+    const assignment = lines.slice(index, assignmentEnd).join('\n');
+    const value = (assignmentEnd === index + 1 ? stripTomlComment(assignment) : assignment).replace(keyPattern, '').trim();
+    if (value !== bundledValue) return { removed: false, keptValue: value };
+
+    let removeStart = index;
+    const commentStart = index - bundledComment.length;
+    if (bundledComment.length > 0 && commentStart >= start &&
+        bundledComment.every((comment, offset) => lines[commentStart + offset].trim() === comment)) {
+        removeStart = commentStart;
+    }
+    lines.splice(removeStart, assignmentEnd - removeStart);
+    // The block sat between two blank lines; keep one.
+    if (removeStart > 0 && lines[removeStart - 1]?.trim() === '' && lines[removeStart]?.trim() === '') lines.splice(removeStart, 1);
+    return { removed: true, keptValue: null };
+}
+
+/**
+ * Remove the top-level `notify` assignment only when it is exactly the retired framework helper.
+ * A project's own notify command is a user choice and stays untouched.
+ */
+function removeLegacyNotifyKey(lines) {
+    let topLevelEnd = lines.findIndex(isTomlTableHeader);
+    if (topLevelEnd === -1) topLevelEnd = lines.length;
+    const index = lines.findIndex((line, lineIndex) => lineIndex < topLevelEnd && /^\s*notify\s*=/.test(line));
+    if (index === -1) return;
+    const end = findTomlAssignmentEnd(lines, index, topLevelEnd);
+    const assignment = lines.slice(index, end).join('\n').replace(/^\s*notify\s*=/, '').replace(/#.*$/gm, '').trim();
+    let argv;
+    try {
+        argv = JSON.parse(assignment.replace(/,\s*\]$/, ']'));
+    } catch {
+        return;
+    }
+    const isLegacyHelper = Array.isArray(argv) && argv.length === LEGACY_NOTIFY_ARGV.length &&
+        argv.every((part, partIndex) => part === LEGACY_NOTIFY_ARGV[partIndex]);
+    if (!isLegacyHelper) return;
+    // Drop the line and the one comment the bundle's own config placed above it; any other
+    // comment belongs to the project and stays.
+    let start = index;
+    if (start > 0 && lines[start - 1].trim() === LEGACY_NOTIFY_COMMENT) start -= 1;
+    lines.splice(start, end - start);
+    if (start > 0 && lines[start - 1]?.trim() === '' && lines[start]?.trim() === '') lines.splice(start, 1);
+}
+
+/**
+ * @param {string} configText current `.codex/config.toml` text
+ * @param {{ onNotice?: (message: string) => void }} [options] receives one line per value kept for the user
+ */
+export function upsertCodexNotificationConfig(configText, options = {}) {
+    const notice = typeof options.onNotice === 'function' ? options.onNotice : () => {};
     const lines = configText.replace(/\r\n/g, '\n').split('\n');
     if (lines.length === 1 && lines[0] === '') {
         lines.pop();
     }
 
-    let firstTableIndex = lines.findIndex(isTomlTableHeader);
-    if (firstTableIndex === -1) firstTableIndex = lines.length;
+    removeLegacyNotifyKey(lines);
 
-    const notifyResult = upsertTomlKey(lines, 'notify', '["node", ".codex/scripts/codex/codex-notify.mjs"]', 0, firstTableIndex);
-    if (notifyResult.inserted && firstTableIndex < lines.length) {
-        lines.splice(firstTableIndex + 1, 0, '');
-    }
-
-    // Framework default: a 500K auto-compact budget, matching
-    // env.CLAUDE_CODE_AUTO_COMPACT_WINDOW in .claude/settings.json and the pinned model's
-    // limit.context in .opencode/opencode.recommended.json, so all three surfaces of the
-    // portable bundle compact at the same point in every adopting project.
+    // No compaction pin: Codex applies its own default, and a user-set value is kept and reported.
     let topLevelEnd = lines.findIndex(isTomlTableHeader);
     if (topLevelEnd === -1) topLevelEnd = lines.length;
-    upsertTomlKey(lines, 'model_auto_compact_token_limit', '500000', 0, topLevelEnd);
+    const compaction = retireBundledTomlKey(lines, RETIRED_COMPACTION_KEY, RETIRED_COMPACTION_VALUE, 0, topLevelEnd, RETIRED_COMPACTION_COMMENT);
+    if (compaction.keptValue !== null) notice(`kept user-set ${RETIRED_COMPACTION_KEY}=${compaction.keptValue}`);
 
     // Codex silently stops reading AGENTS.md at `project_doc_max_bytes` (32 KiB by default), and the
     // generated root runs up to AGENTS_ROOT_LIMIT_BYTES (sync-context-workflows.mjs) plus the context
@@ -422,11 +491,93 @@ function stripTrailingWhitespace(text) {
     return text.replace(/[ \t]+$/gm, '');
 }
 
+// Codex inline list: shared protocols the Codex skill mirror carries as full text instead of a guide
+// entry. Decided EMPTY: every Codex load path delivered the full protocol text by hook in the
+// confirmation run, so with this default the mirror's guide blocks match the source. It is the
+// escape hatch for a protocol that new confirmation evidence shows Codex cannot receive by hook.
+// A listed protocol leaves the mirror's guide block, so hook delivery (which reads that block on
+// Codex) never sends it a second time.
+export const CODEX_INLINE_TAGS = Object.freeze([]);
+
+let guideCarrier = null;
+function loadGuideCarrier() {
+    if (!guideCarrier) guideCarrier = require('../lib/protocol-guide-carrier.cjs');
+    return guideCarrier;
+}
+
+/** The tag a line carries as a well-formed guide entry, read by the one owner of the format; else null. */
+function guideLineTag(line) {
+    const { GUIDE_BLOCK_START, GUIDE_BLOCK_END, guideTags } = loadGuideCarrier();
+    const [tag] = guideTags(`${GUIDE_BLOCK_START}\n${line}\n${GUIDE_BLOCK_END}`);
+    return tag ?? null;
+}
+
+/**
+ * Turn the guide entries of listed protocols back into full `<!-- SYNC:<tag> -->` bodies. Each
+ * listed entry leaves its PROTOCOL-GUIDES block, and the bodies follow the block in the order the
+ * entries were declared; a block left with no entry is removed. Text with no listed entry — every
+ * skill under the empty default list — is returned unchanged.
+ *
+ * @param {string} markdown skill text
+ * @param {Iterable<string>} inlineTags protocols to carry in full
+ * @param {(tag: string) => string|null} bodyFor canonical body of a protocol, or null when it has none
+ */
+export function inlineListedProtocols(markdown, inlineTags, bodyFor) {
+    const listed = new Set(inlineTags || []);
+    if (listed.size === 0 || typeof markdown !== 'string') return markdown;
+    const { GUIDE_BLOCK_START, GUIDE_BLOCK_END } = loadGuideCarrier();
+    const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
+    const out = [];
+    let block = null;
+    let changed = false;
+    for (const line of lines) {
+        const marker = line.trim();
+        if (block === null) {
+            if (marker === GUIDE_BLOCK_START) block = { start: line, kept: [], inlined: [] };
+            else out.push(line);
+            continue;
+        }
+        if (marker === GUIDE_BLOCK_END) {
+            if (block.inlined.length > 0) {
+                changed = true;
+                if (block.kept.some(kept => kept.trim())) out.push(block.start, ...block.kept, line, '');
+                out.push(block.inlined.map(({ tag, body }) => `<!-- SYNC:${tag} -->\n\n${body}\n\n<!-- /SYNC:${tag} -->`).join('\n\n'));
+            } else {
+                out.push(block.start, ...block.kept, line);
+            }
+            block = null;
+            continue;
+        }
+        const tag = guideLineTag(line);
+        if (tag === null || !listed.has(tag)) {
+            block.kept.push(line);
+            continue;
+        }
+        const body = bodyFor(tag);
+        if (typeof body !== 'string' || !body.trim()) {
+            throw new Error(`Codex inline list names "${tag}", but the canonical protocol source has no body for it`);
+        }
+        if (!block.inlined.some(entry => entry.tag === tag)) block.inlined.push({ tag, body });
+    }
+    // An unclosed block is not a guide block: keep its lines exactly as they were.
+    if (block !== null) out.push(block.start, ...block.kept);
+    return changed ? out.join('\n') : markdown;
+}
+
+/** `bodyFor` over the canonical protocol source, read only when the inline list is not empty. */
+async function canonicalProtocolBodies(inlineTags) {
+    if ([...(inlineTags || [])].length === 0) return null;
+    const { extractSyncBody } = require('../lib/extract-sync-block.cjs');
+    const canonical = await fs.readFile(path.join(claudeSkillsDir, 'shared', 'sync-inline-versions.md'), 'utf8');
+    return tag => extractSyncBody(canonical, tag);
+}
+
 function buildCodexSkillManifest(markdown, fallbackName, skillReferenceMap, protocolBlock, options = {}) {
-    const { frontmatter, body } = parseFrontmatter(markdown);
+    const { frontmatter, body: sourceBody } = parseFrontmatter(markdown);
     const name = stripQuotes(options.overrideName || frontmatter.name || fallbackName || 'unnamed-skill') || 'unnamed-skill';
-    const description = stripQuotes(frontmatter.description) || deriveSkillDescription(body, name);
+    const description = stripQuotes(frontmatter.description) || deriveSkillDescription(sourceBody, name);
     const disableModelInvocation = parseFrontmatterBoolean(frontmatter['disable-model-invocation']);
+    const body = options.inline ? inlineListedProtocols(sourceBody, options.inline.tags, options.inline.bodyFor) : sourceBody;
     const bodyWithProtocols = appendManagedProtocolBlock(body, protocolBlock);
     const rewrittenBody = rewriteCodexBody(bodyWithProtocols, skillReferenceMap);
 
@@ -440,6 +591,172 @@ function buildCodexSkillManifest(markdown, fallbackName, skillReferenceMap, prot
     const sanitizedFrontmatter = sanitizedFrontmatterLines.join('\n');
 
     return `${sanitizedFrontmatter}\n\n${rewrittenBody.trim()}\n`;
+}
+
+// Codex ignores `disable-model-invocation`; its per-skill `agents/openai.yaml` invocation policy is
+// the equivalent control. Generating it from the Claude flag keeps a manual-only skill manual-only in
+// the Codex mirror, while an explicit `$skill` mention still runs it.
+export const CODEX_SKILL_POLICY_REL = path.join('agents', 'openai.yaml');
+
+/**
+ * The generated policy file. `profileList` names the skill-profile list that asked for it
+ * (nameOnly | commandOnly | off); without it the source is the SKILL.md flag.
+ */
+export function buildCodexSkillPolicy(profileList = null) {
+    const source = profileList
+        ? `# Generated by codex-sync from skillProfile.${profileList} in the project config. Change the profile, not this file.`
+        : '# Generated by codex-sync from `disable-model-invocation: true` in the source SKILL.md. Edit that flag, not this file.';
+    return [source, 'policy:', '  allow_implicit_invocation: false', ''].join('\n');
+}
+
+/**
+ * Write a skill's generated policy. A skill that ships its own openai.yaml (interface/dependencies)
+ * owns that file and it is never clobbered. When that file leaves implicit invocation on, a flag-driven
+ * policy fails the sync; a profile-driven one (`profileList` set) is skipped and returned as a conflict
+ * line, because the profile is a project choice layered on a skill the skill author owns.
+ * @returns {Promise<string|null>} the conflict line, or null
+ */
+async function writeCodexSkillPolicy(skillDir, relativeLabel, profileList = null) {
+    const policyPath = path.join(skillDir, CODEX_SKILL_POLICY_REL);
+    let existing = null;
+    try {
+        existing = await fs.readFile(policyPath, 'utf8');
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+    }
+    if (existing !== null) {
+        if (CODEX_IMPLICIT_OFF_RE.test(existing)) return null;
+        if (profileList) {
+            return (
+                `conflict: ${relativeLabel} ships its own ${CODEX_SKILL_POLICY_REL.split(path.sep).join('/')} without ` +
+                `policy.allow_implicit_invocation: false; kept that file, skillProfile.${profileList} is not applied on Codex`
+            );
+        }
+        // Backstop only: main() and materializeSkillMirror() refuse this case before any write
+        // (findCodexSkillPolicyRefusals), so reaching it means the source changed mid-sync.
+        throw new Error(flagPolicyRefusalMessage(relativeLabel));
+    }
+    await fs.mkdir(path.dirname(policyPath), { recursive: true });
+    await fs.writeFile(policyPath, buildCodexSkillPolicy(profileList), 'utf8');
+    return null;
+}
+
+function flagPolicyRefusalMessage(relativeLabel) {
+    return (
+        `${relativeLabel} sets disable-model-invocation: true but its own ${CODEX_SKILL_POLICY_REL} does not set ` +
+        'policy.allow_implicit_invocation: false. Add that policy to the source file so Codex keeps the skill manual-only.'
+    );
+}
+
+/**
+ * The flag-policy refusals `writeCodexSkillPolicy` would raise, found over the SOURCE skills before
+ * anything is written: a skill that sets `disable-model-invocation: true` and ships its own
+ * `agents/openai.yaml` without `policy.allow_implicit_invocation: false`. Checking up front keeps a
+ * refused sync from leaving `.agents/skills` wiped or half sanitized and `.codex/agents` rewritten.
+ * Reads only the files the mirror copies, with line endings normalized as the mirror does.
+ * @param {string} [skillsDir] source skills dir
+ * @returns {Promise<string[]>} one message per refused skill, sorted by path
+ */
+export async function findCodexSkillPolicyRefusals(skillsDir = claudeSkillsDir) {
+    if (!(await pathExists(skillsDir))) return [];
+    const refusals = [];
+    for (const skillPath of (await collectSkillFiles(skillsDir)).sort()) {
+        const relativeSkill = path.relative(skillsDir, skillPath);
+        if (!isMirroredSkillSource(relativeSkill)) continue;
+        const skillText = await fs.readFile(skillPath, 'utf8');
+        if (parseFrontmatterBoolean(parseFrontmatter(skillText).frontmatter['disable-model-invocation']) !== true) continue;
+        const policyRel = path.join(path.dirname(relativeSkill), CODEX_SKILL_POLICY_REL);
+        if (!isMirroredSkillSource(policyRel)) continue;
+        let existing;
+        try {
+            existing = await fs.readFile(path.join(skillsDir, policyRel), 'utf8');
+        } catch (error) {
+            if (error.code === 'ENOENT') continue;
+            throw error;
+        }
+        if (CODEX_IMPLICIT_OFF_RE.test(existing.replace(/\r\n?/g, '\n'))) continue;
+        // The mirror canonicalizes the manifest name, so the label always ends in SKILL.md.
+        refusals.push(flagPolicyRefusalMessage(path.join(path.dirname(relativeSkill), 'SKILL.md')));
+    }
+    return refusals;
+}
+
+// ─── Skill profile (the project config's `skillProfile`) → Codex policies ───
+//
+// The host-independent rules (presets, lists, the called set, refusals) belong to
+// `.claude/scripts/sync-skill-profile.cjs` `resolveProfile()`; this mirror only maps its result:
+//   commandOnly / off                 → allow_implicit_invocation: false ($name still runs it)
+//   nameOnly, a skill nothing starts  → allow_implicit_invocation: false (Codex has no name-only listing)
+//   nameOnly, a called skill          → follows CODEX_STEP_REACHES_HIDDEN_SKILL
+// A refused profile (a called skill in commandOnly/off without allowHidingCalledSkills) stops the sync
+// before any mirror file is written.
+
+/**
+ * Q-E probe result for Codex: does a workflow step's `$skill` still load a skill whose policy turns
+ * implicit invocation off? Recorded FAIL: the step's sub-agent reviewed without loading the hidden
+ * skill, and the host never injects a `$skill` that comes from skill text. So a called nameOnly skill
+ * keeps implicit invocation, with one note line per skill. Flip only on new PASS evidence.
+ */
+export const CODEX_STEP_REACHES_HIDDEN_SKILL = false;
+
+const SKILL_PROFILE_PREFIX = 'skill-profile:';
+const HIDING_PROFILE_LISTS = new Set(['commandOnly', 'off']);
+const EMPTY_SKILL_PROFILE = Object.freeze({ declared: false, policies: new Map(), notes: [], warnings: [], refusals: [] });
+
+/**
+ * Map a resolved profile (`resolveProfile()` result) to Codex policies. Pure.
+ * @returns {{policies: Map<string, string>, notes: string[]}} skill folder → profile list, plus note lines
+ */
+export function planCodexSkillPolicies(resolved, { stepReachesHiddenSkill = CODEX_STEP_REACHES_HIDDEN_SKILL } = {}) {
+    const policies = new Map();
+    const notes = [];
+    for (const name of Object.keys(resolved?.overrides || {}).sort()) {
+        const list = resolved.overrides[name];
+        const callers = resolved.called?.get(name);
+        if (!HIDING_PROFILE_LISTS.has(list) && callers && !stepReachesHiddenSkill) {
+            notes.push(
+                `kept implicit invocation for ${name} (nameOnly) on Codex: started by ${callers.join(', ')}, ` +
+                    'and a workflow step does not reach a Codex skill with implicit invocation off'
+            );
+            continue;
+        }
+        policies.set(name, list);
+    }
+    return { policies, notes };
+}
+
+/**
+ * Resolve the project's skill profile for the Codex mirror. The resolver is loaded only when the
+ * project config declares `skillProfile`, so a project without one keeps today's mirror exactly.
+ * A project config that exists but is not valid JSON throws: whether it hides skills is unknown.
+ */
+export async function resolveCodexSkillProfile(projectRoot = rootDir) {
+    const { resolveProjectConfigPath } = require('../lib/workflow-routing-config.cjs');
+    const configPath = resolveProjectConfigPath(projectRoot);
+    let text;
+    try {
+        text = await fs.readFile(configPath, 'utf8');
+    } catch (error) {
+        if (error.code === 'ENOENT') return EMPTY_SKILL_PROFILE;
+        throw error;
+    }
+    let config;
+    try {
+        config = JSON.parse(text);
+    } catch (error) {
+        throw new Error(`project config is not valid JSON (${configPath}): ${error.message}`);
+    }
+    if (config?.skillProfile === undefined || config?.skillProfile === null) return EMPTY_SKILL_PROFILE;
+    const { resolveProfile } = require('../sync-skill-profile.cjs');
+    const resolved = resolveProfile(projectRoot, config);
+    return { declared: true, ...planCodexSkillPolicies(resolved), warnings: resolved.warnings, refusals: resolved.refusals };
+}
+
+/** An Error carrying the resolver's refusals; its message is the refusal lines. */
+function skillProfileRefusedError(refusals) {
+    const error = new Error(refusals.map(refusal => refusal.message).join('\n'));
+    error.refusals = refusals;
+    return error;
 }
 
 function reserveUniqueName(baseName, usedNames) {
@@ -614,7 +931,7 @@ async function collectMarkdownFiles(dirPath) {
     return markdownFiles;
 }
 
-async function sanitizeSkillMirror(skillsRootDir, skillReferenceMap, protocolBlock) {
+async function sanitizeSkillMirror(skillsRootDir, skillReferenceMap, protocolBlock, inline = null, profile = EMPTY_SKILL_PROFILE, onNotice = () => {}) {
     const skillFiles = await collectSkillFiles(skillsRootDir);
     const skillSources = [];
 
@@ -636,8 +953,19 @@ async function sanitizeSkillMirror(skillsRootDir, skillReferenceMap, protocolBlo
         const hasDeclaredCollision = (declaredNameCounts.get(source.declaredName) || 0) > 1;
         const preferredName = hasDeclaredCollision ? source.folderName : source.declaredName;
         const exportedName = reserveUniqueName(preferredName, usedExportNames);
-        const sanitizedSkill = buildCodexSkillManifest(source.skillText, exportedName, skillReferenceMap, protocolBlock, { overrideName: exportedName });
+        const sanitizedSkill = buildCodexSkillManifest(source.skillText, exportedName, skillReferenceMap, protocolBlock, { overrideName: exportedName, inline });
         await fs.writeFile(source.skillPath, sanitizedSkill, 'utf8');
+        const relativeLabel = path.relative(skillsRootDir, source.skillPath);
+        if (parseFrontmatterBoolean(parseFrontmatter(source.skillText).frontmatter['disable-model-invocation']) === true) {
+            await writeCodexSkillPolicy(path.dirname(source.skillPath), relativeLabel);
+            continue;
+        }
+        // Profile keys are top-level skill folder names; a nested SKILL.md is never a profile target.
+        const topLevel = path.dirname(relativeLabel) === source.folderName;
+        if (topLevel && profile.policies.has(source.folderName)) {
+            const conflict = await writeCodexSkillPolicy(path.dirname(source.skillPath), relativeLabel, profile.policies.get(source.folderName));
+            if (conflict) onNotice(`${SKILL_PROFILE_PREFIX} ${conflict}`);
+        }
     }
 
     const markdownFiles = await collectMarkdownFiles(skillsRootDir);
@@ -777,7 +1105,17 @@ async function migrateAgents() {
 // Called by the real writer (setupSkills → agentsSkillsDir) AND by the sync-divergence
 // oracle gate (→ throwaway staging dir). Sharing this path means the gate's "expected"
 // output can never drift from real sync behavior. Returns the sanitized manifest count.
-export async function materializeSkillMirror(targetDir, skillReferenceMap) {
+// `options.inlineTags` replaces the Codex inline list (default CODEX_INLINE_TAGS, empty).
+// `options.skillProfile` is a resolveCodexSkillProfile() result; when omitted (the oracle gate) it is
+// resolved here, so a refused profile fails the gate the same way it fails the sync — before any write.
+// `options.onNotice` receives the profile conflict lines.
+export async function materializeSkillMirror(targetDir, skillReferenceMap, options = {}) {
+    const skillProfile = options.skillProfile ?? (await resolveCodexSkillProfile(rootDir));
+    if (skillProfile.refusals.length > 0) throw skillProfileRefusedError(skillProfile.refusals);
+    const policyRefusals = await findCodexSkillPolicyRefusals(claudeSkillsDir);
+    if (policyRefusals.length > 0) throw new Error(policyRefusals.join('\n'));
+    const inlineTags = options.inlineTags ?? CODEX_INLINE_TAGS;
+    const bodyFor = await canonicalProtocolBodies(inlineTags);
     await fs.cp(claudeSkillsDir, targetDir, {
         recursive: true,
         force: true,
@@ -786,10 +1124,17 @@ export async function materializeSkillMirror(targetDir, skillReferenceMap) {
     await normalizeTextLineEndingsUnderDir(targetDir);
     await canonicalizeSkillManifestNames(targetDir);
     const alwaysInjectedProtocolBlock = await buildAlwaysInjectedPromptProtocolBlock();
-    return sanitizeSkillMirror(targetDir, skillReferenceMap, alwaysInjectedProtocolBlock);
+    return sanitizeSkillMirror(
+        targetDir,
+        skillReferenceMap,
+        alwaysInjectedProtocolBlock,
+        bodyFor ? { tags: inlineTags, bodyFor } : null,
+        skillProfile,
+        options.onNotice
+    );
 }
 
-async function setupSkills() {
+async function setupSkills(skillProfile) {
     if (!useSkills) return 'skipped (--no-skills)';
 
     const sourceExists = await pathExists(claudeSkillsDir);
@@ -815,7 +1160,10 @@ async function setupSkills() {
         await fs.rm(agentsSkillsDir, { recursive: true, force: true });
     }
 
-    const sanitizedCount = await materializeSkillMirror(agentsSkillsDir, skillReferenceMap);
+    const sanitizedCount = await materializeSkillMirror(agentsSkillsDir, skillReferenceMap, {
+        skillProfile,
+        onNotice: message => console.log(`[codex-migrate] ${message}`)
+    });
     await writeAgentsSkillsMirrorSentinel();
     await writeAgentsMirrorGitignore();
     const modeLabel = copySkills ? 'copied' : 'mirrored';
@@ -823,14 +1171,7 @@ async function setupSkills() {
 }
 
 async function setupCodexNotifications() {
-    if (!(await pathExists(bundledNotificationScriptPath))) {
-        return 'skipped (.claude/scripts/codex/codex-notify.mjs not found)';
-    }
-
     await ensureDir(path.dirname(codexConfigPath));
-    await ensureDir(codexScriptsDir);
-    await fs.copyFile(bundledNotificationScriptPath, codexNotificationScriptPath);
-    await normalizeTextFileLineEndings(codexNotificationScriptPath);
 
     let existingConfig = '';
     try {
@@ -840,18 +1181,49 @@ async function setupCodexNotifications() {
         existingConfig = ['# Team-wide Codex defaults for this repository.', '# Applied when the project is trusted by Codex.', ''].join('\n');
     }
 
-    const updatedConfig = upsertCodexNotificationConfig(existingConfig);
+    const updatedConfig = upsertCodexNotificationConfig(existingConfig, {
+        onNotice: message => console.log(`[codex-migrate] ${message}`)
+    });
     if (updatedConfig !== existingConfig) {
         await fs.writeFile(codexConfigPath, updatedConfig, 'utf8');
     }
 
-    return `configured ${path.relative(rootDir, codexConfigPath)} + ${path.relative(rootDir, codexNotificationScriptPath)}`;
+    // Delete the retired helper only once no kept notify command still runs it.
+    const removedLegacyScript = !updatedConfig.includes('codex-notify.mjs') && await pathExists(legacyNotificationScriptPath);
+    if (removedLegacyScript) {
+        await fs.rm(legacyNotificationScriptPath, { force: true });
+        // rmdir fails on a non-empty directory, so anything else kept there stays as it is.
+        await fs.rmdir(codexScriptsDir).catch(() => {});
+        await fs.rmdir(path.dirname(codexScriptsDir)).catch(() => {});
+    }
+
+    const cleanup = removedLegacyScript ? ` (removed retired ${path.relative(rootDir, legacyNotificationScriptPath)})` : '';
+    return `configured ${path.relative(rootDir, codexConfigPath)}${cleanup}`;
 }
 
 async function main() {
+    // The profile is resolved first: a refused profile must stop the sync before any mirror file is written.
+    const skillProfile = await resolveCodexSkillProfile(rootDir);
+    if (skillProfile.refusals.length > 0) {
+        for (const refusal of skillProfile.refusals) console.error(`[codex-migrate] ${refusal.message}`);
+        console.error(`[codex-migrate] ${SKILL_PROFILE_PREFIX} nothing was written`);
+        process.exitCode = 1;
+        return;
+    }
+    // The flag-policy refusal is checked over the source skills for the same reason: it must stop the
+    // sync before .agents/skills is wiped and before .codex/agents is rewritten.
+    const policyRefusals = useSkills ? await findCodexSkillPolicyRefusals(claudeSkillsDir) : [];
+    if (policyRefusals.length > 0) {
+        for (const message of policyRefusals) console.error(`[codex-migrate] ${message}`);
+        console.error('[codex-migrate] nothing was written');
+        process.exitCode = 1;
+        return;
+    }
+    for (const line of [...skillProfile.warnings, ...skillProfile.notes]) console.log(`[codex-migrate] ${SKILL_PROFILE_PREFIX} ${line}`);
+
     const normalizedClaudeSkills = normalizeSourceSkills ? await sanitizeClaudeSkillSourceManifests() : 0;
     const migratedAgentsCount = await migrateAgents();
-    const skillsResult = await setupSkills();
+    const skillsResult = await setupSkills(skillProfile);
     const notificationsResult = await setupCodexNotifications();
 
     if (normalizeSourceSkills) {

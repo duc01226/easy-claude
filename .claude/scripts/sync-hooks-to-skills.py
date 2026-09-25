@@ -3,6 +3,8 @@
 sync-hooks-to-skills.py
 Inserts SYNC: blocks sourced from canonical (sync-inline-versions.md) into all
 SKILL.md and agent .md files. Idempotent: skips files that already contain a block.
+A guide entry (`sync_blocks.has_guide_entry`) counts as the block, so a skill converted
+to guide lines never gets its body back. Files keep their own line-ending style.
 
 Tiered blocks (agents):
   Core-6 (every agent):
@@ -52,6 +54,10 @@ import os
 import re
 import sys
 import glob as glob_module
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from line_endings import read_text, write_text  # noqa: E402  (path set up above: runs from any cwd)
+from sync_blocks import has_guide_entry  # noqa: E402
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -533,8 +539,15 @@ def _normalize_block(text):
     return "\n".join(out)
 
 
+def main_carried(content, block_name):
+    """The file carries the protocol itself: its full body, or a guide entry for it (a skill
+    converted by `sync-update-blocks.py --mode=guide`). A guide entry counts exactly like the
+    body, so no run of this script puts a converted body back."""
+    return f"<!-- SYNC:{block_name} -->" in content or has_guide_entry(content, block_name)
+
+
 def block_present(content, block_name):
-    return f"<!-- SYNC:{block_name} -->" in content or f"<!-- SYNC:{block_name}:reminder -->" in content
+    return main_carried(content, block_name) or f"<!-- SYNC:{block_name}:reminder -->" in content
 
 
 # Idempotent fence repair: a real SYNC fence must sit at column 0 (the balance
@@ -582,8 +595,7 @@ def prune_blocks(content, block_order):
 
 
 def process_file(path, block_order, dry_run=False, prune=False):
-    with open(path, "r", encoding="utf-8") as f:
-        original = f.read()
+    original, newline = read_text(path)
 
     # Repair malformed (indented) fences first so the work is idempotent even when
     # no block is missing — covers present-but-malformed blocks (see TC-UAR-006).
@@ -606,17 +618,17 @@ def process_file(path, block_order, dry_run=False, prune=False):
     # already carries the main block and deliberately omits the reminder (e.g.
     # workflow-* orchestration skills). Do NOT drop the 3rd clause — verified:
     # removing it retrofits 32 reminders across 16 workflow/setup skills.
+    # A guide entry is a carried main block here too (`main_carried`).
     missing_reminders = [name for name in block_order
                          if name in REMINDERS
                          and f"<!-- SYNC:{name}:reminder -->" not in content
-                         and f"<!-- SYNC:{name} -->" not in content]
+                         and not main_carried(content, name)]
 
     if not missing_blocks and not missing_reminders:
         # Nothing to insert — but a fence repair may still have changed content.
         if content != original:
             if not dry_run:
-                with open(path, "w", encoding="utf-8", newline="\n") as f:
-                    f.write(content)
+                write_text(path, content, newline)
             return "updated"
         return "skip"
 
@@ -636,8 +648,7 @@ def process_file(path, block_order, dry_run=False, prune=False):
         new_content = before + "\n\n" + block_text + "\n\n" + after + "\n"
 
     if not dry_run:
-        with open(path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(new_content)
+        write_text(path, new_content, newline)
 
     return "updated"
 

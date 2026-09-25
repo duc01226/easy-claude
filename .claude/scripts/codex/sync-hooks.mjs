@@ -117,10 +117,14 @@ export function mapMatcherForCodex(matcher) {
 // no-op — it silently drops a hook the host would have run. Verify against the
 // doc before adding or removing a row.
 //
-// Deliberately NOT mirrored even though Codex supports them, because this repo
-// registers no hook on them: SubagentStart, SubagentStop, PreCompact,
-// PostCompact, Interrupt. `Notification` is absent from the Codex reference
-// entirely, so its skip is correct.
+// SubagentStart (2026-09-25): mirrored. The protocol delivery entries register on
+// it, the Codex reference lists the event with `additionalContext` in its output,
+// and the protocol-delivery confirmation run (25 Sep 2026) delivered a full
+// 9,500-char payload to a Codex sub-agent with the agent-type matcher honored.
+// Codex supports SubagentStop, PreCompact, PostCompact and Interrupt
+// too; they stay off this list only because this repo registers no hook on them —
+// add the row, after checking the doc, the day one is registered. `Notification`
+// is absent from the Codex reference entirely, so its skip is correct.
 const supportedEvents = new Set([
   "SessionStart",
   "SessionEnd",
@@ -129,7 +133,68 @@ const supportedEvents = new Set([
   "PostToolUse",
   "UserPromptSubmit",
   "Stop",
+  "SubagentStart",
 ]);
+
+// ── Protocol delivery entries (.claude/hooks/protocol-inject-<group>.cjs) ──
+//
+// These six entries deliver shared protocol text when a skill loads. Their Codex
+// mapping differs from every other hook's, and ONLY theirs: each rule below keys
+// on the entry path, so every other handler renders exactly as before (a changed
+// render lands untrusted on Codex and is skipped until the user re-reviews it,
+// which would silently switch off guards such as the commit gate).
+const PROTOCOL_HOOK_PATH = /^\.claude\/hooks\/protocol-inject-[a-z0-9-]+\.cjs$/;
+
+/** True when `hookPath` (project-relative, `/` separators) is a protocol delivery entry. */
+export function isProtocolHookPath(hookPath) {
+  return typeof hookPath === "string" && PROTOCOL_HOOK_PATH.test(hookPath);
+}
+
+// Per-handler additionalContext allowance, in Codex's token estimate (about chars/4).
+// The Codex default (2,500) only just fits a 9,500-char payload; 3,000 fits 11,000
+// and leaves room for JSON escaping (protocol-delivery confirmation run, 25 Sep 2026).
+export const PROTOCOL_CONTEXT_LIMIT = 3000;
+
+// Claude events Codex does not have, mapped to the Codex event that carries the same
+// load path. Codex has no UserPromptExpansion; an explicit `$skill` there injects the
+// SKILL.md with no tool call, so UserPromptSubmit is the Codex load path. Only
+// protocol entries are remapped (their early exit reads either event's input); any
+// other handler on the event is reported, never silently re-targeted.
+const codexEventRemaps = new Map([
+  ["UserPromptExpansion", { target: "UserPromptSubmit", reason: "remapped-to-user-prompt-submit" }],
+]);
+
+// Claude tools Codex never emits. A protocol group whose matcher names ONLY these
+// can never fire on Codex, so it is not mirrored (reported as
+// `matcher-names-no-codex-tool`). Scoped to protocol entries: other handlers keep
+// today's verbatim render. Never alias these to a Codex tool — `codexToolAliases`
+// stays mutation-only.
+const CODEX_ABSENT_TOOLS = new Set(["Read", "Skill"]);
+const TOOL_EVENTS = new Set(["PreToolUse", "PostToolUse", "PermissionRequest"]);
+
+// Codex reads a skill file implicitly through its shell (`Get-Content -Raw
+// .agents/skills/<name>/SKILL.md` on Windows), never through a `Read` tool, and no
+// `$skill` reaches UserPromptSubmit for that load (protocol-delivery confirmation
+// run, 25 Sep 2026: the Codex shell mapping stays ON). So the protocol handlers of a PostToolUse group keyed
+// to `Read` render once more, in that group's place, on the Codex shell tool. Their
+// in-process early exit ends every command that does not name SKILL.md.
+const CODEX_SHELL_READ = { from: "Read", matcher: "Bash", reason: "codex-reads-skill-files-through-the-shell" };
+
+// Claude matches a matcher of only names, `-`, `_` and `|` as an EXACT name list;
+// Codex evaluates every matcher as an unanchored regex, so `tester` would also match
+// `integration-tester`. Agent-type lists therefore render anchored on Codex.
+const EXACT_NAME_LIST = /^[A-Za-z0-9_-]+(?:\|[A-Za-z0-9_-]+)*$/;
+
+/** A SubagentStart exact agent-type list, anchored for Codex's regex matcher. */
+export function anchorAgentTypeMatcher(matcher) {
+  if (typeof matcher !== "string" || !EXACT_NAME_LIST.test(matcher)) return matcher;
+  return `^(?:${matcher})$`;
+}
+
+function matcherNamesNoCodexTool(matcher) {
+  if (typeof matcher !== "string" || matcher.length === 0 || matcher === "*") return false;
+  return matcher.split("|").every(tool => CODEX_ABSENT_TOOLS.has(tool));
+}
 
 // Matcher support differs per event on Codex, and the two failure shapes are NOT
 // equally bad:
@@ -146,7 +211,9 @@ const supportedEvents = new Set([
 // Only an UNMATCHABLE matcher belongs in this set; an ignored one does not.
 const CODEX_MATCHER_UNSUPPORTED = new Set(["SessionEnd"]);
 
-const nodeHookLauncher = [
+// The launcher is three parts so the lean variant is the full one minus exactly
+// its Git step, and the full render stays byte-identical to its earlier one-array form.
+const launcherRootSteps = [
   "const fs = require('node:fs');",
   "const path = require('node:path');",
   "const hookPath = process.argv[1];",
@@ -157,12 +224,35 @@ const nodeHookLauncher = [
   "}",
   "process.chdir(root);",
   "process.env.CLAUDE_PROJECT_DIR = root;",
+];
+const launcherGitSteps = [
   "const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs');",
   "try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {}",
-  "require(path.join(root, hookPath));",
-].join(" ");
+];
+const launcherRunStep = "require(path.join(root, hookPath));";
 
-function normalizeCommand(command) {
+const nodeHookLauncher = [...launcherRootSteps, ...launcherGitSteps, launcherRunStep].join(" ");
+
+// Protocol delivery entries run no Git, and they start on every Codex prompt and
+// shell call, so they skip the Windows Git probe (about 430 ms on a loaded machine;
+// the lean launcher's shell-call p90 was 2.5x lower in the confirmation run).
+const leanHookLauncher = [...launcherRootSteps, launcherRunStep].join(" ");
+
+const NODE_PROJECT_HOOK = /^\s*node\s+"?\$(?:\{CLAUDE_PROJECT_DIR\}|CLAUDE_PROJECT_DIR)"?((?:[/\\][^\s"']+)+)\s*$/;
+
+/** The project-relative hook path of a `node "$CLAUDE_PROJECT_DIR"/<path>` command, or null. */
+function projectHookPath(command) {
+  const match = typeof command === "string" ? command.match(NODE_PROJECT_HOOK) : null;
+  return match ? match[1].replace(/^[\\/]+/, "").replaceAll("\\", "/") : null;
+}
+
+/**
+ * Render one Claude hook command as the Codex command. Exported so tests can pin the
+ * render of an existing hook byte for byte and the lean render of a protocol entry.
+ * @param {string} command - The Claude settings.json command
+ * @returns {string|null} The Codex command, or null for an empty command
+ */
+export function normalizeCommand(command) {
   if (typeof command !== "string" || command.trim().length === 0) {
     return null;
   }
@@ -172,12 +262,10 @@ function normalizeCommand(command) {
   // cross-platform resolver: nearest .claude parent in either a worktree or a
   // bare framework copy. This avoids an embedded checkout path and a Git
   // subprocess on every hook invocation.
-  const nodeProjectHook = command.match(
-    /^\s*node\s+"?\$(?:\{CLAUDE_PROJECT_DIR\}|CLAUDE_PROJECT_DIR)"?((?:[/\\][^\s"']+)+)\s*$/
-  );
-  if (nodeProjectHook) {
-    const hookPath = nodeProjectHook[1].replace(/^[\\/]+/, "").replaceAll("\\", "/");
-    return `node -e "${nodeHookLauncher}" -- ${JSON.stringify(hookPath)}`;
+  const hookPath = projectHookPath(command);
+  if (hookPath) {
+    const launcher = isProtocolHookPath(hookPath) ? leanHookLauncher : nodeHookLauncher;
+    return `node -e "${launcher}" -- ${JSON.stringify(hookPath)}`;
   }
 
   // Preserve the previous cwd-relative behavior for non-Node commands whose
@@ -240,6 +328,7 @@ async function main(targetDir = codexDir) {
       "Hooks belong in .codex/hooks.json ONLY. Codex loads ALL matching hook sources (~/.codex and <repo>/.codex, hooks.json and config.toml) rather than letting a higher layer replace a lower one, so declaring the same hook in both .codex/config.toml and .codex/hooks.json runs it twice. Repo-level hooks load automatically but only when the project layer is trusted.",
       "SessionStart hooks are omitted from the generated Codex config by default so startup context is not duplicated; both hosts load the same static files, and an adopter may add a local startup hook as an optional accelerator.",
       "EXCEPTION: SessionStart hooks on the codexSessionStartMirrors allowlist ARE mirrored. They produce a runtime signal that a mirrored non-SessionStart hook consumes, so skipping them would leave the consumer registered and permanently unreachable rather than merely un-accelerated. The report's session_start_mirrors array names each one and the consumer that forces it.",
+      "Protocol delivery entries (.claude/hooks/protocol-inject-<group>.cjs) map differently, and only they do: UserPromptExpansion groups join UserPromptSubmit (reported as remapped-to-user-prompt-submit); groups keyed only to Read or Skill, tools Codex never emits, are not mirrored (matcher-names-no-codex-tool); the Read group's entries render once more on the Codex shell tool, Bash (codex_only_groups); a SubagentStart agent-type list is anchored because Codex matchers are unanchored regexes; each entry carries additionalContextLimit 3000 and a launcher without the Git step. Every other handler renders as before, so existing Codex hook trust holds; the new entries need review in Codex /hooks before they run.",
     ],
     session_start_mirrors: [...codexSessionStartMirrors].map(([hook, reason]) => ({
       hook,
@@ -249,7 +338,12 @@ async function main(targetDir = codexDir) {
     skipped_events: [],
     converted_groups_total: 0,
     skipped_groups: [],
+    codex_only_groups: [],
   };
+
+  // Remapped groups join their target event AFTER that event's own groups, so every
+  // existing group keeps its index and render.
+  const pendingRemaps = [];
 
   for (const [eventName, groups] of Object.entries(claudeHooks)) {
     const disabledReason = disabledCodexEvents.get(eventName);
@@ -274,7 +368,8 @@ async function main(targetDir = codexDir) {
       continue;
     }
 
-    if (!supportedEvents.has(eventName)) {
+    const remap = codexEventRemaps.get(eventName);
+    if (!supportedEvents.has(eventName) && !remap) {
       report.skipped_events.push({
         event: eventName,
         reason: "unsupported-by-codex",
@@ -296,10 +391,21 @@ async function main(targetDir = codexDir) {
       const group = groups[i] ?? {};
       const matcher = typeof group.matcher === "string" ? group.matcher : undefined;
       const hooks = Array.isArray(group.hooks) ? group.hooks : [];
+      const noCodexTool = TOOL_EVENTS.has(eventName) && matcherNamesNoCodexTool(matcher);
+      const shellRead =
+        noCodexTool && eventName === "PostToolUse" && matcher.split("|").includes(CODEX_SHELL_READ.from);
 
       const mappedHooks = [];
+      const shellReadHooks = [];
+      let droppedNonProtocolOnRemap = false;
+      let droppedProtocolNoCodexTool = false;
       for (const hook of hooks) {
         if (mirrorOnly && !sessionStartMirrorReason(hook?.command)) continue;
+        const isProtocol = isProtocolHookPath(projectHookPath(hook?.command));
+        if (remap && !isProtocol) {
+          droppedNonProtocolOnRemap = true;
+          continue;
+        }
         const command = normalizeCommand(hook?.command);
         if (!command) continue;
 
@@ -310,10 +416,34 @@ async function main(targetDir = codexDir) {
         if (typeof hook?.timeout === "number" && Number.isFinite(hook.timeout)) {
           mappedHook.timeout = hook.timeout;
         }
+        if (isProtocol) mappedHook.additionalContextLimit = PROTOCOL_CONTEXT_LIMIT;
+        if (isProtocol && noCodexTool) {
+          droppedProtocolNoCodexTool = true;
+          if (shellRead) shellReadHooks.push(mappedHook);
+          continue;
+        }
         mappedHooks.push(mappedHook);
       }
 
-      if (mappedHooks.length === 0) {
+      if (droppedNonProtocolOnRemap) {
+        // Recorded and unreviewed: only protocol entries may change event on Codex.
+        pushSkip(report, eventName, i, "remap-limited-to-protocol-entries", matcher);
+      }
+      if (droppedProtocolNoCodexTool) {
+        pushSkip(report, eventName, i, "matcher-names-no-codex-tool", matcher);
+      }
+
+      if (mappedHooks.length > 0) {
+        const mappedGroup = { hooks: mappedHooks };
+        if (matcher && matcher !== "*" && !CODEX_MATCHER_UNSUPPORTED.has(eventName)) {
+          mappedGroup.matcher =
+            eventName === "SubagentStart" ? anchorAgentTypeMatcher(matcher) : mapMatcherForCodex(matcher);
+        } else if (matcher && matcher !== "*") {
+          // Recorded, not silently dropped: the hook still mirrors, but UNSCOPED.
+          pushSkip(report, eventName, i, "matcher-unsupported-on-codex-hook-runs-unscoped", matcher);
+        }
+        mappedGroups.push(mappedGroup);
+      } else if (!droppedNonProtocolOnRemap && !droppedProtocolNoCodexTool) {
         pushSkip(
           report,
           eventName,
@@ -321,17 +451,29 @@ async function main(targetDir = codexDir) {
           mirrorOnly ? "session-start-not-on-mirror-allowlist" : "no-command-hooks",
           matcher
         );
-        continue;
       }
 
-      const mappedGroup = { hooks: mappedHooks };
-      if (matcher && matcher !== "*" && !CODEX_MATCHER_UNSUPPORTED.has(eventName)) {
-        mappedGroup.matcher = mapMatcherForCodex(matcher);
-      } else if (matcher && matcher !== "*") {
-        // Recorded, not silently dropped: the hook still mirrors, but UNSCOPED.
-        pushSkip(report, eventName, i, "matcher-unsupported-on-codex-hook-runs-unscoped", matcher);
+      if (shellReadHooks.length > 0) {
+        // The Codex shell stands in for the Claude `Read` tool, in the Read group's place.
+        mappedGroups.push({ hooks: shellReadHooks, matcher: CODEX_SHELL_READ.matcher });
+        report.codex_only_groups.push({
+          event: eventName,
+          matcher: CODEX_SHELL_READ.matcher,
+          hooks: shellReadHooks.length,
+          derived_from: { group_index: i, matcher },
+          reason: CODEX_SHELL_READ.reason,
+        });
       }
-      mappedGroups.push(mappedGroup);
+    }
+
+    if (remap) {
+      if (mappedGroups.length > 0) {
+        pendingRemaps.push({ target: remap.target, groups: mappedGroups });
+        report.skipped_events.push({ event: eventName, reason: remap.reason });
+      } else {
+        report.skipped_events.push({ event: eventName, reason: "no-compatible-groups-after-filtering" });
+      }
+      continue;
     }
 
     if (mappedGroups.length > 0) {
@@ -347,6 +489,14 @@ async function main(targetDir = codexDir) {
         reason: "no-compatible-groups-after-filtering",
       });
     }
+  }
+
+  for (const { target, groups } of pendingRemaps) {
+    codexHooks[target] = [...(codexHooks[target] ?? []), ...groups];
+    const converted = report.converted_events.find(entry => entry.event === target);
+    if (converted) converted.groups += groups.length;
+    else report.converted_events.push({ event: target, groups: groups.length });
+    report.converted_groups_total += groups.length;
   }
 
   await fs.mkdir(targetDir, { recursive: true });

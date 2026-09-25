@@ -5,7 +5,7 @@ feature_code: 'PFCI'
 entities: ['ConventionClass', 'ClassMatcher', 'ConventionDigest', 'DeliveryRecord', 'WorkingContext']
 status: draft
 owner: 'Framework maintainers'
-last_updated: '2026-09-23'
+last_updated: '2026-09-24'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -50,7 +50,7 @@ In long working sessions an AI assistant tends to change a file after the conven
 | Precedence Rank     | A whole number ordering classes when several match; lower means more specific and comes first                                      | Default ranks: specific 100, default 500, general 900                                                          |
 | Deliverable Item    | A short rule, a protocol reference, or a reference document attached to a class                                                    | A class with at least one is deliverable                                                                       |
 | Delivery Switch     | The project-level setting that turns automatic delivery on                                                                         | Off unless the project explicitly turns it on; a project with no configuration file gets the built-in fallback |
-| Trigger             | The assistant opening a file for reading, or finishing a change to files                                                           | Reading can be excluded by setting                                                                             |
+| Trigger             | An operation that can deliver conventions: the assistant opening a file for reading, or finishing a change to files                | Reading can be excluded by setting; which operations deliver a given class is its class trigger                |
 | Convention Digest   | The short reminder assembled for one trigger from all matched classes not currently present                                        | Bounded in size                                                                                                |
 | Working Context     | One assistant conversation window: the main conversation, or one helper agent's own conversation                                   | Each keeps its own delivery memory                                                                             |
 | Condensation        | The assistant host shortening a long conversation, which may drop earlier reminders                                                | Invalidates earlier deliveries in the affected conversation                                                    |
@@ -60,6 +60,7 @@ In long working sessions an AI assistant tends to change a file after the conven
 | Static Instructions | The always-loaded project instruction files every assistant reads at the start of work                                             | Carry the same conventions without automatic delivery                                                          |
 | Convention Lookup   | An on-demand command that prints the conventions for a given file                                                                  | Fallback for hosts without automatic delivery                                                                  |
 | Detected Class      | A class created by setup detection rather than written by a maintainer                                                             | Setup may refresh it only while nobody has edited it                                                           |
+| Class Trigger       | Which of the two triggers deliver a class: reads, changes, or both                                                                 | Both unless the class says otherwise (BR-PFCI-19)                                                              |
 
 ---
 
@@ -86,8 +87,8 @@ In long working sessions an AI assistant tends to change a file after the conven
 
 **Acceptance Criteria:**
 
-- **AC-PFCI-04** — **Given** a file of a deliverable class **When** the assistant finishes reading it **Then** a digest naming that class, its must-read references and its short rules is shown before the assistant's next step
-- **AC-PFCI-05** — **Given** a file of a deliverable class **When** the assistant finishes creating, changing or moving it **Then** the digest is shown before the assistant's next step
+- **AC-PFCI-04** — **Given** a file of a deliverable class whose class trigger includes reads **When** the assistant finishes reading it **Then** a digest naming that class, its must-read references and its short rules is shown before the assistant's next step
+- **AC-PFCI-05** — **Given** a file of a deliverable class whose class trigger includes changes **When** the assistant finishes creating, changing or moving it **Then** the digest is shown before the assistant's next step
 - **AC-PFCI-06** — **Given** a file matching an include pattern and also an exclude pattern of the same class **When** it is read or edited **Then** that class is not delivered
 - **AC-PFCI-07** — **Given** a file matching several classes **When** it is read or edited **Then** the classes appear ordered by precedence rank (lower first), then by definition order, limited to the per-trigger maximum
 - **AC-PFCI-08** — **Given** a change that only removes a file, or a file outside the project **When** it happens **Then** nothing is delivered
@@ -101,7 +102,7 @@ In long working sessions an AI assistant tends to change a file after the conven
 
 **Acceptance Criteria:**
 
-- **AC-PFCI-10** — **Given** a class was delivered in this working context at the same content version, with no condensation since and a small reminder distance **When** another matching file is read or edited **Then** it is not delivered again
+- **AC-PFCI-10** — **Given** a class was delivered in this working context at the same content version, with no condensation since and a small reminder distance **When** another matching file is read or edited **Then** it is not delivered again, except that a delivery made on a read does not cover a later change (AC-PFCI-35)
 - **AC-PFCI-11** — **Given** a class was delivered and the conversation was condensed afterwards **When** a matching file is read or edited **Then** the class is delivered again
 - **AC-PFCI-12** — **Given** a class was delivered and its deliverable items then changed **When** a matching file is read or edited **Then** the new version is delivered
 - **AC-PFCI-13** — **Given** a class was delivered in the main conversation **When** a helper agent reads or edits a matching file in its own conversation **Then** the class is delivered to the helper agent
@@ -130,8 +131,9 @@ In long working sessions an AI assistant tends to change a file after the conven
 
 **Acceptance Criteria:**
 
-- **AC-PFCI-21** — **Given** the project configuration **When** the static instructions are regenerated **Then** every deliverable class appears with its include patterns, file-type filter, exclusions, protocol references, reference documents and version tag, and its short rules appear among the golden rules
+- **AC-PFCI-21** — **Given** the project configuration **When** the static instructions are regenerated **Then** every deliverable class appears with its include patterns, file-type filter, exclusions, protocol references, reference documents and version tag, and its short rules appear among the golden rules unless the project opted out under BR-PFCI-13's exception
 - **AC-PFCI-22** — **Given** any file **When** the convention lookup is run for it **Then** it prints the same classes, in the same order, with the same content automatic delivery would use
+- **AC-PFCI-29** — **Given** the project opted out of repeating short rules in the static instructions **When** the static instructions are regenerated **Then** if automatic delivery is switched on and the convention lookup is available and can print every class that has short rules on every file it matches (none of them delivered on reads only, each ranked within the per-file class limit, and the largest possible digest within the size limit), the golden rules name every class that has short rules and point to the lookup without repeating any rule text, and the lookup for a matching file prints each named class's rules; otherwise every short rule stays among the golden rules and the maintainer is warned that the opt-out was not honored
 
 ### US-PFCI-06: Setup detects classes without overwriting maintainer work
 
@@ -155,6 +157,21 @@ In long working sessions an AI assistant tends to change a file after the conven
 
 - **AC-PFCI-26** — **Given** an unreadable, malformed, or partially invalid configuration, or unwritable delivery memory **When** a file is read or edited **Then** the work proceeds and no error is shown to the assistant
 - **AC-PFCI-27** — **Given** a condensation is reported by the host **When** it is recorded **Then** nothing is shown to the assistant
+
+### US-PFCI-08: Reading a file does not pull authoring context
+
+**As an** AI assistant that opens files to understand them
+**I want** a class's must-read documents and protocols to reach me when I change a file of that kind, and only when its maintainer wants it, when I merely read one
+**So that** reading stays cheap while every edit is still guarded by its conventions
+
+**Acceptance Criteria:**
+
+- **AC-PFCI-30** — **Given** a class whose trigger is edit **When** a matching file is read **Then** that class delivers nothing, and **When** a matching file is changed **Then** its references and protocols are delivered
+- **AC-PFCI-31** — **Given** a class that sets no trigger **When** a matching file is read or changed **Then** it behaves as trigger both and is delivered on the same operations as before this story, while a digest delivered on a read uses the conditional wording of AC-PFCI-33
+- **AC-PFCI-32** — **Given** a class whose trigger is read **When** a matching file is changed **Then** that class delivers nothing
+- **AC-PFCI-33** — **Given** a class delivered on a read **When** the digest is shown **Then** its opening line is conditional ("if you will edit this file, read first") and it carries no instruction to follow a protocol
+- **AC-PFCI-34** — **Given** setup detection proposes a new class that carries reference documents or protocols **When** it is merged **Then** it is written with trigger edit (the framework's user-interface design class keeps trigger both, BR-PFCI-19), and a trigger a maintainer set is never changed
+- **AC-PFCI-35** — **Given** a class delivered on a read in this working context, with the conditional wording **When** a matching file is then created, changed or moved **Then** the class is delivered once more with the mandatory wording and its protocol, and after that it is not delivered again on reads or changes while it stays present
 
 ---
 
@@ -182,6 +199,8 @@ In long working sessions an AI assistant tends to change a file after the conven
 | BR-PFCI-16 | Static instructions count as an early delivery          | Deduplication | [SOFT]      |
 | BR-PFCI-17 | Record only completed deliveries                        | Deduplication | [HARD]      |
 | BR-PFCI-18 | Bounded retention of delivery memory                    | Safety        | [HARD]      |
+| BR-PFCI-19 | Per-class trigger                                       | Matching      | [HARD]      |
+| BR-PFCI-20 | Conditional wording on reads                            | Presentation  | [HARD]      |
 
 ### BR-PFCI-01: Explicit opt-in and silence when nothing is deliverable [HARD]
 
@@ -226,6 +245,14 @@ ELSE
 | Yes                       | Yes                               | No                   | DELIVER |
 | Yes                       | Yes                               | Yes                  | SKIP    |
 
+**Read-form presence:** A delivery made on a read, in the conditional wording of BR-PFCI-20, counts as present only for later reads, because it carried no instruction to follow a protocol. The first creation, change or move of a matching file after it delivers the class once more in the mandatory wording, with the must-read references and the protocol; from then on the class is present for reads and changes alike under the table above. The delivery record therefore remembers which wording it delivered.
+
+| Wording of the recorded delivery | Current trigger          | Outcome when the table above says SKIP |
+| -------------------------------- | ------------------------ | -------------------------------------- |
+| Conditional (read)               | read                     | SKIP                                   |
+| Conditional (read)               | creation, change or move | DELIVER once, mandatory wording        |
+| Mandatory (change)               | read or change           | SKIP                                   |
+
 ### BR-PFCI-06: Condensation invalidates earlier deliveries [HARD]
 
 **Statement:** A condensation found in a working context's own history invalidates earlier deliveries in that context. A condensation reported by the host at session level does not say which context was condensed, so it invalidates earlier deliveries in the main conversation and in every helper agent whose own history cannot be inspected; a helper agent whose history can be inspected relies on the marks in that history instead, so a sibling's condensation does not repeat its reminders. When too much history accumulated between two checks to inspect it, a condensation is assumed (repeat rather than miss). A condensation seen without its own time counts as happening just before the check, so a reminder delivered in that same check counts as after it.
@@ -267,6 +294,15 @@ Detection proposes classes only from project knowledge the configuration already
 
 **Statement:** Everything that can be delivered automatically — class name, include patterns, protocol references, reference documents, version tag and short rules — is also present in the static instructions, whose class rows also state the file-type filter and the exclusions so a row never claims files the class skips, and printed by the convention lookup, which uses the same ordering and rendering as automatic delivery. Automatic delivery is an accelerator, never the only carrier.
 
+**Opt-out exception (compact golden rules):** A project may opt out of repeating short rules in the static instructions. The opt-out is honored only when automatic delivery is switched on AND the convention lookup is available and can print every class that has short rules (a class it cannot identify — one without a name, or sharing its name with another — counts as not printable) AND no class that has short rules is delivered on reads only (BR-PFCI-19), because the lookup prints what a change of the file delivers and so never prints such a class, AND every class that has short rules ranks within the per-file class limit of BR-PFCI-04, so no file's digest or lookup can leave it out, AND the largest digest any file could receive — the longest accepted path, every class's references, and the largest rule sets that limit admits — fits the size limit of BR-PFCI-08, so no reduction can drop rule text; the golden rules then name every class that has short rules and point the reader to the convention lookup instead of repeating the rule text. The lookup stays the non-automatic carrier of those rules, so automatic delivery is still never the only carrier. When any precondition is missing, the opt-out is refused: every short rule stays among the golden rules and the maintainer regenerating the static instructions is warned with the missing precondition named. A project with no class carrying short rules has nothing to compact and gets no warning. In both modes every class row keeps its include patterns, file-type filter, exclusions, protocol references, reference documents and version tag.
+
+| Project opted out | Automatic delivery switched on | Lookup available for every rule-bearing class                                                                | Golden rules carry                      | Maintainer warned |
+| ----------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ----------------- |
+| No (default)      | any                            | any                                                                                                          | Every short rule                        | No                |
+| Yes               | Yes                            | Yes                                                                                                          | Class names and a pointer to the lookup | No                |
+| Yes               | No, or never configured        | any                                                                                                          | Every short rule                        | Yes               |
+| Yes               | Yes                            | No — unnamed, duplicated, delivered on reads only, ranked beyond the per-file class limit, or a worst-case digest over the size limit | Every short rule                        | Yes               |
+
 ### BR-PFCI-14: Relevant triggers and targets only [HARD]
 
 **Statement:** Only successful reads and successful creations, changes or moves are triggers. Removals, folders, files outside the project root, and operations the host reports as failed are ignored. Reading is a trigger unless the project excludes it. A moved file counts only at its new location: its former location no longer exists, like a removal. One change may touch several files; the digest combines their matched classes without duplicates.
@@ -297,6 +333,24 @@ A blind working context is one where the condensation check in BR-PFCI-05 cannot
 
 **Statement:** Delivery memory of a session is removed once its newest entry is more than seven days old. Removal happens when a condensation is recorded and, on the delivering path, at most once a day. A session's memory is removed only when it is **both** marked as this system's own — a mark the system writes when it first creates that memory — **and** shaped exactly like delivery memory. Resembling delivery memory is not sufficient on its own: the memory location is configurable and may point anywhere, so an unrelated folder can match the shape by coincidence, and removing on shape alone would destroy someone else's data. Anything failing either test — other files, nested folders, source trees, and memory created before the system began marking its own — is never removed, even when old. Each sweep removes a bounded number of sessions. Paths that deliver nothing never write to the memory location.
 
+### BR-PFCI-19: Per-class trigger [HARD]
+
+**Statement:** Each class may name the operations that deliver it: read, edit or both. A class that names none behaves as both, so existing configurations are delivered on the same operations as before; the wording of a digest delivered on a read follows BR-PFCI-20 for every class, including those that name no trigger. A read delivers only classes whose trigger is read or both; a creation, change or move delivers only classes whose trigger is edit or both. The project-wide exclusion of reads (BR-PFCI-14) still wins: when reading is excluded, no class is delivered on a read whatever its trigger. The convention lookup answers "what applies before editing this file", so it lists the classes a change would deliver. A class's trigger is part of its content version (BR-PFCI-05), so changing it re-delivers the class once. Setup detection writes trigger edit on each new class it proposes that carries reference documents or protocols, except the framework's user-interface design class (see the note below the table), and never changes a trigger on a class it may not refresh (BR-PFCI-12).
+
+| Class trigger                    | On a read           | On a creation, change or move |
+| -------------------------------- | ------------------- | ----------------------------- |
+| none (default)                   | delivered (as both) | delivered                     |
+| both                             | delivered           | delivered                     |
+| read                             | delivered           | nothing                       |
+| edit                             | nothing             | delivered                     |
+| any, reads excluded project-wide | nothing             | per the row above             |
+
+**Design class keeps trigger both:** the framework's user-interface design class carries reference documents, yet setup detection proposes it with trigger both, never edit. A class is delivered only after an operation completes, so an edit-only class would first reach the assistant after its first change of an existing front-end file, while the design rules must be in context before that change; the read that precedes the change is what delivers them. Trigger both is also the content version of a class that names no trigger, so the built-in fallback copy (BR-PFCI-01) and the detected copy keep one content version, and a project that runs setup later is not re-sent the class.
+
+### BR-PFCI-20: Conditional wording on reads [HARD]
+
+**Statement:** A digest delivered on a read opens with a conditional instruction — "if you will edit this file, read first:" followed by the must-read references — and carries no instruction to follow a protocol, so the assistant decides whether the documents are needed for what it is doing. A digest delivered on a creation, change or move keeps the mandatory wording ("must read first" and "follow the protocol"). Because the conditional wording carries no protocol, a read-form delivery never satisfies a later change: the first change of a matching file after it re-delivers the class once in the mandatory wording (BR-PFCI-05, read-form presence). The first-and-last framing of BR-PFCI-09 holds in both forms.
+
 ---
 
 ## 5. Domain Model
@@ -315,20 +369,21 @@ ConventionDigest     1──N DigestSection       (one per delivered class)
 
 ### Entity: ConventionClass
 
-| Property              | Type         | Required                                     | Constraints                   | Business Meaning                                          |
-| --------------------- | ------------ | -------------------------------------------- | ----------------------------- | --------------------------------------------------------- |
-| Name                  | text         | Yes                                          | Unique in the configuration   | Stable identity of the file kind                          |
-| Location patterns     | list of text | Yes (may be empty if another include exists) | Well-formed                   | Include by location                                       |
-| Wildcard locations    | list of text | No                                           | —                             | Include by wildcard location                              |
-| File-name patterns    | list of text | No                                           | Well-formed                   | Include by file name                                      |
-| Exclude patterns      | list of text | No                                           | Well-formed                   | Carve files out of the class                              |
-| File-type filter      | list of text | No                                           | —                             | Restricts the class to certain file types                 |
-| Precedence rank       | number       | No                                           | Whole number; default 500     | Ordering among matched classes                            |
-| Short rules           | list of text | No                                           | One sentence each             | Critical rules shown inline and in the golden rules       |
-| Protocol references   | list of text | No                                           | Names of working protocols    | Which protocols must be followed                          |
-| Reference documents   | list of text | No                                           | Project-relative              | Which documents must be read first                        |
-| Origin                | enum         | No                                           | Detected or maintainer        | Who authored the class                                    |
-| Detection fingerprint | text         | No                                           | Set only for detected classes | Shows whether a detected class was edited since detection |
+| Property              | Type         | Required                                     | Constraints                      | Business Meaning                                          |
+| --------------------- | ------------ | -------------------------------------------- | -------------------------------- | --------------------------------------------------------- |
+| Name                  | text         | Yes                                          | Unique in the configuration      | Stable identity of the file kind                          |
+| Location patterns     | list of text | Yes (may be empty if another include exists) | Well-formed                      | Include by location                                       |
+| Wildcard locations    | list of text | No                                           | —                                | Include by wildcard location                              |
+| File-name patterns    | list of text | No                                           | Well-formed                      | Include by file name                                      |
+| Exclude patterns      | list of text | No                                           | Well-formed                      | Carve files out of the class                              |
+| File-type filter      | list of text | No                                           | —                                | Restricts the class to certain file types                 |
+| Precedence rank       | number       | No                                           | Whole number; default 500        | Ordering among matched classes                            |
+| Short rules           | list of text | No                                           | One sentence each                | Critical rules shown inline; golden rules per BR-PFCI-13  |
+| Protocol references   | list of text | No                                           | Names of working protocols       | Which protocols must be followed                          |
+| Reference documents   | list of text | No                                           | Project-relative                 | Which documents must be read first                        |
+| Origin                | enum         | No                                           | Detected or maintainer           | Who authored the class                                    |
+| Detection fingerprint | text         | No                                           | Set only for detected classes    | Shows whether a detected class was edited since detection |
+| Trigger               | enum         | No                                           | Read, edit or both; default both | Which operations deliver the class (BR-PFCI-19)           |
 
 ### Enum: Origin
 
@@ -336,6 +391,14 @@ ConventionDigest     1──N DigestSection       (one per delivered class)
 | ---------- | ----------------------------------------------------------- |
 | Maintainer | Written or adopted by a person; never changed by setup      |
 | Detected   | Created by setup detection; may be refreshed while unedited |
+
+### Enum: ClassTrigger
+
+| Value | Meaning                                                                                                           |
+| ----- | ----------------------------------------------------------------------------------------------------------------- |
+| Both  | Delivered on reads and on changes (default when the class names nothing)                                          |
+| Read  | Delivered on reads only                                                                                           |
+| Edit  | Delivered on creations, changes and moves only; setup detection's default for classes with documents or protocols |
 
 ### Entity: DeliverySettings
 
@@ -348,6 +411,7 @@ ConventionDigest     1──N DigestSection       (one per delivered class)
 | Time limit                 | number       | No       | 1–1440 minutes; default 30                              | Fade rule when size cannot be measured   |
 | Read trigger               | yes-no       | No       | Default yes                                             | Whether reading a file triggers delivery |
 | Extra condensation markers | list of text | No       | Well-formed                                             | Additional host signals of condensation  |
+| Inline short rules         | yes-no       | No       | Default yes; "no" honored only under BR-PFCI-13         | Repeat short rules in the golden rules   |
 
 ### Entity: DeliveryRecord
 
@@ -359,6 +423,7 @@ ConventionDigest     1──N DigestSection       (one per delivered class)
 | Delivered at                  | date   | Yes      | —                                     | Compared with the latest condensation and the time limit |
 | Conversation size at delivery | number | No       | —                                     | Base for the reminder distance                           |
 | Form                          | enum   | Yes      | Full or ReferencesOnly                | What was delivered                                       |
+| Wording                       | enum   | Yes      | Conditional or Mandatory              | Whether a later change must re-deliver (BR-PFCI-05)      |
 
 ### Enum: DeliveryForm
 
@@ -366,6 +431,13 @@ ConventionDigest     1──N DigestSection       (one per delivered class)
 | -------------- | -------------------------------------------- |
 | Full           | Tag, short rules and references              |
 | ReferencesOnly | Tag and references, used when space is short |
+
+### Enum: DeliveryWording
+
+| Value       | Meaning                                                                                       |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| Conditional | Delivered on a read: "if you will edit this file, read first", no protocol; covers reads only |
+| Mandatory   | Delivered on a change: "must read first" and the protocol; covers reads and changes           |
 
 ### Relationships (detail)
 
@@ -401,14 +473,14 @@ ConventionDigest     1──N DigestSection       (one per delivered class)
 └────────────┘   └──────────────┘   └──────────────┘   └────────────┘   └───────────┘
 ```
 
-| Step | Actor     | Action                                                                | System Response                                                            | Next     |
-| ---- | --------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------- |
-| 1    | Assistant | Successfully reads, creates, changes or moves files                   | Delivery switch and deliverable classes checked; otherwise nothing happens | 2 or end |
-| 2    | System    | Identifies target files                                               | Removals, folders, outside-project files and failed operations ignored     | 3        |
-| 3    | System    | Matches every class against every target                              | Matched classes ordered by rank then definition order, capped              | 4        |
-| 4    | System    | Determines working context, latest condensation and reminder distance | Present classes skipped                                                    | 5 or end |
-| 5    | System    | Assembles the digest within the size limit                            | Critical references first and last; overflow reduced to references         | 6        |
-| 6    | System    | Hands the digest to the host, then records delivery                   | The assistant sees the digest before its next step                         | end      |
+| Step | Actor     | Action                                                                        | System Response                                                                            | Next     |
+| ---- | --------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------- |
+| 1    | Assistant | Successfully reads, creates, changes or moves files                           | Delivery switch and deliverable classes checked; otherwise nothing happens                 | 2 or end |
+| 2    | System    | Identifies target files                                                       | Removals, folders, outside-project files and failed operations ignored                     | 3        |
+| 3    | System    | Matches every class whose trigger accepts this operation against every target | Matched classes ordered by rank then definition order, capped; read wording per BR-PFCI-20 | 4        |
+| 4    | System    | Determines working context, latest condensation and reminder distance         | Present classes skipped; a read-form delivery does not count on a change (BR-PFCI-05)      | 5 or end |
+| 5    | System    | Assembles the digest within the size limit                                    | Critical references first and last; overflow reduced to references                         | 6        |
+| 6    | System    | Hands the digest to the host, then records delivery                           | The assistant sees the digest before its next step                                         | end      |
 
 ### Flow: Record a condensation
 
@@ -419,10 +491,10 @@ ConventionDigest     1──N DigestSection       (one per delivered class)
 
 ### Flow: Look up conventions without automatic delivery
 
-| Step | Actor                   | Action                                       | System Response                                                                                             | Next |
-| ---- | ----------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---- |
-| 1    | Assistant or maintainer | Reads the static instructions before editing | Sees every deliverable class with patterns, references and version tags; short rules among the golden rules | 2    |
-| 2    | Assistant or maintainer | Runs the convention lookup for a file        | Prints the same ordered classes and content automatic delivery would use                                    | end  |
+| Step | Actor                   | Action                                       | System Response                                                                                     | Next |
+| ---- | ----------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---- |
+| 1    | Assistant or maintainer | Reads the static instructions before editing | Sees every deliverable class with patterns, references and version tags; short rules per BR-PFCI-13 | 2    |
+| 2    | Assistant or maintainer | Runs the convention lookup for a file        | Prints the same ordered classes and content automatic delivery would use                            | end  |
 
 ### Flow: Merge detected classes during setup
 
@@ -464,14 +536,14 @@ Setup detection acts on the delivery switch only on a maintainer's explicit requ
 
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
-| P0        | 6      | 6         | 0      |
-| P1        | 29     | 29        | 0      |
-| P2        | 9      | 9         | 0      |
-| **Total** | **44** | **44**    | **0**  |
+| P0        | 8      | 8         | 0      |
+| P1        | 38     | 38        | 0      |
+| P2        | 10     | 10        | 0      |
+| **Total** | **56** | **56**    | **0**  |
 
 | Category                     | TCs                                                                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Core Delivery Tests          | TC-PFCI-001, TC-PFCI-002, TC-PFCI-003, TC-PFCI-004, TC-PFCI-005                                                                  |
+| Core Delivery Tests          | TC-PFCI-001, TC-PFCI-002, TC-PFCI-003, TC-PFCI-004, TC-PFCI-005, TC-PFCI-083, TC-PFCI-084, TC-PFCI-085                           |
 | Validation Tests             | TC-PFCI-011, TC-PFCI-012, TC-PFCI-013, TC-PFCI-014, TC-PFCI-015, TC-PFCI-016, TC-PFCI-017, TC-PFCI-018                           |
 | Setup Merge Permission Tests | TC-PFCI-021, TC-PFCI-022, TC-PFCI-023                                                                                            |
 | Delivery Lifecycle Tests     | TC-PFCI-031, TC-PFCI-032, TC-PFCI-033, TC-PFCI-034, TC-PFCI-035, TC-PFCI-036, TC-PFCI-037, TC-PFCI-038, TC-PFCI-039, TC-PFCI-040 |
@@ -479,6 +551,7 @@ Setup detection acts on the delivery switch only on a maintainer's explicit requ
 | Edge and Failure Tests       | TC-PFCI-051, TC-PFCI-082, TC-PFCI-052, TC-PFCI-053, TC-PFCI-054, TC-PFCI-055, TC-PFCI-056                                        |
 | Reminder Shape Tests         | TC-PFCI-061, TC-PFCI-062                                                                                                         |
 | Invariant / Property Tests   | TC-PFCI-071, TC-PFCI-072, TC-PFCI-073, TC-PFCI-074, TC-PFCI-075, TC-PFCI-076, TC-PFCI-077, TC-PFCI-078, TC-PFCI-079              |
+| Read/Edit Trigger Tests      | TC-PFCI-086, TC-PFCI-087, TC-PFCI-088, TC-PFCI-089, TC-PFCI-090, TC-PFCI-091, TC-PFCI-092, TC-PFCI-093                           |
 
 ### Core Delivery Tests
 
@@ -786,12 +859,204 @@ And the row for the class with a guide document lists that document as a referen
 
 - Class with only a styling link → not rendered as deliverable
 - Class with a file-type filter and exclusions → its row states the file types and every exclusion after its include patterns
+- Project opted out of repeating short rules → the golden rules follow BR-PFCI-13's exception (TC-PFCI-083, TC-PFCI-084, TC-PFCI-085)
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: component/hooks/static-convention-table]`
 > **Related Behaviors:** `component/hooks/static-convention-table` · `test/hooks/file-convention-inject`
 > **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-005 static table renders every injectable group` · **Status:** Tested
+
+---
+
+#### TC-PFCI-083: Opting out of inline rules names each class and leaves its rules to the lookup [P1]
+
+**Objective:** Prove that when a project opts out of repeating short rules and both preconditions hold, the golden rules name every class that has short rules without repeating their text, and the lookup prints each named class's rules for a matching file.
+
+**Business Intent / Invariant Guarded:** Shorter static instructions never cost a convention — the lookup remains a non-automatic carrier, so automatic delivery is still never the only one (BR-PFCI-13).
+
+**Traces:** AC-PFCI-29 / AC-PFCI-21 / BR-PFCI-13
+
+**Preconditions:**
+
+- Automatic delivery is switched on
+- The convention lookup is available
+- The project opted out of repeating short rules in the static instructions
+- Two classes with short rules exist, and one class with only a reference document
+
+**Real-World Reachability:** A maintainer with many classes trims the always-loaded instructions to save the assistant's attention budget.
+
+**Demo Flow:** Regenerate the static instructions, read the golden rules, then run the lookup for a file of each named class.
+
+```gherkin
+Given the project opted out of repeating short rules in the static instructions
+And automatic delivery is switched on
+And the convention lookup is available
+When the static instructions are regenerated
+Then the golden rules name every class that has short rules and point to the convention lookup
+And none of those classes' rule text appears among the golden rules
+And every class row still shows its patterns, file-type filter, exclusions, references and version tag
+And the lookup for a file of each named class prints that class's rules
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the observable surface is the static instructions and the lookup output                        |
+| **System behavior**     | Compact golden rules rendered; no warning to the maintainer                                                     |
+| **Business data state** | Class rows and version tags unchanged from the default mode                                                     |
+| **Data shown on UI**    | One golden-rules entry naming the rule-bearing classes and the lookup; the lookup shows each class's full rules |
+
+**Acceptance Criteria:**
+
+- ✅ Every rule-bearing class named; each named class's rules returned by the lookup for a matching file
+- ❌ Any rule text among the golden rules, a rule-bearing class missing from the names, or a named class whose rules the lookup does not print
+
+**Test Data:**
+
+```yaml
+inputDomain: 'configurations that opt out, switch delivery on and have the lookup available, with classes that do and do not carry short rules'
+invariant: 'every short rule reachable through the lookup and absent from the golden rules; class names in precedence order'
+boundaryCounterCase: 'a class with only a reference document → keeps its row but is not named among the golden rules; a class with short rules ranked beyond the per-file class limit (two overlapping rule-bearing classes, limit one) → the opt-out is refused and every short rule stays inline, and raising the limit to cover both restores the compact form; a class whose rules make the largest possible digest exceed the size limit (minimum size limit, long rules) → refused and inline, while the widest size limit admits it'
+```
+
+**Edge Cases:**
+
+- Class name containing characters that would break the rendered text → escaped the same way as its table row
+- Default (not opted out) regenerated right after → every short rule returns to the golden rules
+- No class carries short rules → nothing to compact and no warning
+- A rule-bearing class the lookup cannot print (no name, or a name shared with another class) → opt-out refused, every rule stays inline and the warning names that class
+- A rule-bearing class delivered on reads only → opt-out refused (TC-PFCI-093)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: constraint/hooks/static-parity]`
+> **Related Behaviors:** `constraint/hooks/static-parity` · `component/hooks/static-convention-table` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-083 path rules always reach the agent: compact golden rules name every group and the lookup delivers its rules` · **Status:** Tested
+
+---
+
+#### TC-PFCI-084: Opting out without automatic delivery keeps rules inline [P1]
+
+**Objective:** Prove that the opt-out is refused when automatic delivery is switched off or never configured, so every short rule stays among the golden rules and the maintainer is warned.
+
+**Business Intent / Invariant Guarded:** On a project where nothing delivers reminders automatically, the static instructions must keep carrying every rule (BR-PFCI-13).
+
+**Traces:** AC-PFCI-29 / AC-PFCI-21 / BR-PFCI-13
+
+**Preconditions:**
+
+- The project opted out of repeating short rules in the static instructions
+- Automatic delivery is switched off, or its switch was never configured
+- A class with short rules exists
+
+**Real-World Reachability:** A maintainer copies an opted-out configuration into a project that never switched automatic delivery on.
+
+**Demo Flow:** Regenerate the static instructions and read the golden rules and the regeneration messages.
+
+```gherkin
+Given the project opted out of repeating short rules in the static instructions
+And automatic delivery is switched off or was never configured
+When the static instructions are regenerated
+Then every short rule appears among the golden rules exactly as in the default mode
+And the maintainer is warned that the opt-out was not honored
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                              |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the observable surface is the static instructions and the lookup output |
+| **System behavior**     | Opt-out refused; default rendering used                                                  |
+| **Business data state** | Static instructions identical to the default mode                                        |
+| **Data shown on UI**    | Every short rule among the golden rules; a warning in the regeneration messages          |
+
+**Acceptance Criteria:**
+
+- ✅ Every short rule inline and the maintainer warned
+- ❌ Compact golden rules while automatic delivery is off, or a silent refusal
+
+**Test Data:**
+
+```yaml
+inputDomain: 'opted-out configurations whose delivery switch is off or absent'
+invariant: 'golden rules equal the default mode for ALL such configurations'
+boundaryCounterCase: 'the same configuration with delivery switched on and the lookup available → compact (TC-PFCI-083)'
+```
+
+**Edge Cases:**
+
+- Delivery switch explicitly off and delivery switch absent → same inline outcome
+- Project not opted out → inline with no warning
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: constraint/hooks/static-parity]`
+> **Related Behaviors:** `constraint/hooks/static-parity` · `rule/hooks/explicit-opt-in` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-084 path rules always reach the agent: inlinePathRules false with injection absent or disabled keeps rules inline and warns` · **Status:** Tested
+
+---
+
+#### TC-PFCI-085: Opting out without the convention lookup keeps rules inline [P1]
+
+**Objective:** Prove that the opt-out is refused when the convention lookup is not available, even with automatic delivery switched on, so every short rule stays among the golden rules and the maintainer is warned.
+
+**Business Intent / Invariant Guarded:** Without the lookup, automatic delivery would become the only carrier of the rules — the one outcome BR-PFCI-13 forbids.
+
+**Traces:** AC-PFCI-29 / AC-PFCI-21 / BR-PFCI-13
+
+**Preconditions:**
+
+- The project opted out of repeating short rules in the static instructions
+- Automatic delivery is switched on
+- The convention lookup is not available in the project
+- A class with short rules exists
+
+**Real-World Reachability:** An adopter copies only part of the framework, leaving out the lookup, into a project whose configuration already opted out.
+
+**Demo Flow:** Regenerate the static instructions in a project without the lookup and read the golden rules and the regeneration messages.
+
+```gherkin
+Given the project opted out of repeating short rules in the static instructions
+And automatic delivery is switched on
+And the convention lookup is not available
+When the static instructions are regenerated
+Then every short rule appears among the golden rules exactly as in the default mode
+And the maintainer is warned that the opt-out was not honored
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                              |
+| ----------------------- | ---------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the observable surface is the static instructions and the lookup output |
+| **System behavior**     | Opt-out refused; default rendering used                                                  |
+| **Business data state** | Static instructions identical to the default mode                                        |
+| **Data shown on UI**    | Every short rule among the golden rules; a warning in the regeneration messages          |
+
+**Acceptance Criteria:**
+
+- ✅ Every short rule inline and the maintainer warned
+- ❌ Compact golden rules pointing to a lookup that does not exist
+
+**Test Data:**
+
+```yaml
+inputDomain: 'opted-out configurations with delivery switched on in a project lacking the convention lookup'
+invariant: 'golden rules equal the default mode whenever the lookup is unavailable'
+boundaryCounterCase: 'the lookup restored → the next regeneration renders compact golden rules (TC-PFCI-083)'
+```
+
+**Edge Cases:**
+
+- A partial framework copy that carries the static-instructions generator but not the lookup → rules stay inline; adding the lookup to that same project is the only change needed to render compact golden rules
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: constraint/hooks/static-parity]`
+> **Related Behaviors:** `constraint/hooks/static-parity` · `component/hooks/static-convention-table` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-085 path rules always reach the agent: inlinePathRules false with the conventions lib unavailable keeps rules inline` · **Status:** Tested
 
 ---
 
@@ -1521,9 +1786,9 @@ Then the class covers both test projects and carries a new fingerprint
 
 - "hooks-context" delivered moments ago in this conversation
 
-**Real-World Reachability:** The assistant reads a hook file, then edits it a minute later.
+**Real-World Reachability:** The assistant changes one hook file, then another a minute later.
 
-**Demo Flow:** Read a hook file, then change it; observe reminders.
+**Demo Flow:** Change a hook file, then change another; observe reminders.
 
 ```gherkin
 Given "hooks-context" was delivered in this conversation a moment ago
@@ -1549,13 +1814,14 @@ Then no reminder is shown
 
 ```json
 {
-    "sequence": ["read .claude/hooks/a.cjs", "edit .claude/hooks/b.cjs"]
+    "sequence": ["edit .claude/hooks/a.cjs", "edit .claude/hooks/b.cjs"]
 }
 ```
 
 **Edge Cases:**
 
 - Second file also matches a new class → only the new class is delivered
+- The earlier delivery came from a read, with the conditional wording → the change delivers the class once more with the mandatory wording (TC-PFCI-092)
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -2272,7 +2538,7 @@ boundaryCounterCase: 'switch on with one deliverable matching class → reminder
 
 **Business Intent / Invariant Guarded:** A framework installed without setup still puts the design rules in front of the assistant before it edits a user-facing surface, without adding noise elsewhere (BR-PFCI-01, BR-PFCI-05).
 
-**Traces:** AC-PFCI-28 / BR-PFCI-01 / BR-PFCI-05 / BR-PFCI-13
+**Traces:** AC-PFCI-28 / AC-PFCI-35 / BR-PFCI-01 / BR-PFCI-05 / BR-PFCI-13 / BR-PFCI-20
 
 **Preconditions:**
 
@@ -2280,12 +2546,14 @@ boundaryCounterCase: 'switch on with one deliverable matching class → reminder
 
 **Real-World Reachability:** An adopter copies the framework into a front-end repository and starts working before running setup.
 
-**Demo Flow:** Open a component file, then a stylesheet, then a logic file.
+**Demo Flow:** Open a component file, then a stylesheet, then a logic file; then read a component file in a fresh working context and change it.
 
 ```gherkin
 Given no project configuration file exists
 When the assistant reads or changes a component, template, stylesheet or native layout file
-Then the design reminder is shown once for the working context
+Then the design reminder is shown on the first such file of the working context
+And when that first delivery was on a read, it has the conditional wording and the first change of a front-end file shows it once more in the mandatory wording
+And after that no front-end file shows it again in that working context
 And a logic file or an excluded dependency folder file receives nothing
 And an existing configuration without the switch, or an unreadable one, stays silent
 ```
@@ -2302,6 +2570,7 @@ And an existing configuration without the switch, or an unreadable one, stays si
 **Acceptance Criteria:**
 
 - ✅ Front-end file → design reminder; repeated front-end files in the same context → nothing
+- ✅ A read first → conditional reminder; the first change after it → one mandatory reminder; later reads and changes → nothing
 - ✅ Helper agent, reminder distance past the class window, and condensation each re-arm it once
 - ✅ A design skill already loaded counts as present
 - ❌ Any reminder on a non-front-end file, or any delivery when a configuration exists without the switch
@@ -2310,7 +2579,7 @@ And an existing configuration without the switch, or an unreadable one, stays si
 
 ```yaml
 inputDomain: 'component, template, stylesheet and native layout files with no configuration file'
-invariant: 'exactly one design reminder per working context until it may have faded'
+invariant: 'per working context, until it may have faded: exactly one mandatory-wording design reminder by the first change of a front-end file, preceded by at most one conditional-wording reminder when a read came first; nothing after that'
 boundaryCounterCase: 'a configuration that exists without the switch → silent'
 ```
 
@@ -3020,6 +3289,7 @@ boundaryCounterCase: 'first and last lines alone exceed the limit → nothing de
 Given any deliverable class in the configuration
 When a maintainer reads that class's reminder, its row in the static instructions, the golden rules and the lookup output side by side
 Then every rule is in the golden rules, every include pattern, protocol reference and document and the tag are in its table row
+And when the project opted out under BR-PFCI-13's exception, the golden rules instead name the class and the lookup prints every one of its rules
 And the rows follow the delivery precedence order
 And lookup text equals the reminder text for a fresh context
 ```
@@ -3042,7 +3312,7 @@ And lookup text equals the reminder text for a fresh context
 
 ```yaml
 inputDomain: 'every deliverable class of any valid configuration'
-invariant: 'items(reminder) ⊆ items(static) AND lookup == reminder — for ALL classes'
+invariant: 'lookup == reminder AND (default: items(reminder) ⊆ items(static); opted out with preconditions met: every rule-bearing class named in the golden rules and every other item in its row) — for ALL classes'
 boundaryCounterCase: 'non-deliverable class → absent from both'
 ```
 
@@ -3052,6 +3322,7 @@ boundaryCounterCase: 'non-deliverable class → absent from both'
 - Class matched only by a file-name pattern → the row shows that pattern as `name:<pattern>`
 - Class with a file-type filter or exclusions → the row shows each file type and each exclusion
 - Regeneration names the project folder explicitly → the project's convention renderer is used even when the environment points elsewhere; an incomplete renderer copy is skipped; a complete renderer beside the static-table builder is preferred
+- Project opted out of repeating short rules → the compact form is expected exactly when BR-PFCI-13's preconditions hold, and each named class's rules come back from the lookup for a file it matches
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -3295,6 +3566,524 @@ boundaryCounterCase: 'host provides no helper identity → helper work shares th
 > **Evidence:** `[Source: rule/hooks/separate-helper-contexts]`
 > **Related Behaviors:** `rule/hooks/separate-helper-contexts` · `test/hooks/file-convention-inject`
 > **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-079 context isolation property` · **Status:** Tested
+
+---
+
+### Read/Edit Trigger Tests
+
+> Numbering note: these cases use the feature-specific block 086–092 (081–085 were already taken).
+
+#### TC-PFCI-086: A class triggered by edits is silent when its file is read [P1]
+
+**Objective:** Prove that reading a file of a class whose trigger is edit delivers nothing for that class.
+
+**Business Intent / Invariant Guarded:** Reading a file to understand it no longer pulls authoring documents the assistant may not need (US-PFCI-08).
+
+**Traces:** AC-PFCI-30 / BR-PFCI-19
+
+**Preconditions:**
+
+- Delivery switch is on
+- The "feature spec" class has trigger edit, a protocol and reference documents
+- No other class matches the file
+
+**Real-World Reachability:** The assistant opens a spec to answer a question about it, with no intention to change it.
+
+**Demo Flow:** Read a feature spec document in a fresh conversation and look for a reminder after the file content.
+
+```gherkin
+Given delivery is on and the "feature spec" class is triggered by edits only
+When the assistant finishes reading a feature spec document
+Then no reminder is shown for "feature spec"
+And the read result is unchanged
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, validation messages, and the lookup output |
+| **System behavior**     | Skips the class on reads                                                                                                                                      |
+| **Business data state** | The conversation does not count "feature spec" as reminded                                                                                                    |
+| **Data shown on UI**    | No reminder text after the read                                                                                                                               |
+
+**Acceptance Criteria:**
+
+- ✅ No reminder for the class on a read
+- ❌ The class delivered on a read
+
+**Test Data:**
+
+```json
+{
+    "class": "feature-spec",
+    "on": "edit",
+    "operation": "read",
+    "file": "docs/specs/Bucket/README.Feature.md"
+}
+```
+
+**Edge Cases:**
+
+- Another class with trigger both matches the same file → only that class is delivered
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/per-class-trigger]`
+> **Related Behaviors:** `operation/hooks/deliver-conventions` · `rule/hooks/per-class-trigger` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-086 [read-edit] edit-only class silent on read` · **Status:** Tested
+
+---
+
+#### TC-PFCI-087: A class triggered by edits delivers when its file is changed [P1]
+
+**Objective:** Prove that changing a file of a class whose trigger is edit delivers its must-read documents and protocol.
+
+**Business Intent / Invariant Guarded:** Every edit stays guarded by its conventions after reads were quieted (US-PFCI-08).
+
+**Traces:** AC-PFCI-30 / BR-PFCI-19
+
+**Preconditions:**
+
+- Delivery switch is on
+- The "feature spec" class has trigger edit, a protocol and reference documents
+
+**Real-World Reachability:** After reading a spec, the assistant changes it as part of a task.
+
+**Demo Flow:** Change a feature spec document and read the reminder shown after the change.
+
+```gherkin
+Given delivery is on and the "feature spec" class is triggered by edits only
+When the assistant changes a feature spec document
+Then a reminder names "feature spec", its must-read documents and its protocol
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, validation messages, and the lookup output |
+| **System behavior**     | Delivers the class after the change                                                                                                                           |
+| **Business data state** | "feature spec" counts as reminded in this conversation                                                                                                        |
+| **Data shown on UI**    | The mandatory "must read first" line and the protocol reference                                                                                               |
+
+**Acceptance Criteria:**
+
+- ✅ Reminder with documents and protocol after the change
+- ❌ No reminder after a change
+
+**Test Data:**
+
+```json
+{
+    "class": "feature-spec",
+    "on": "edit",
+    "operation": "edit",
+    "skills": ["spec"]
+}
+```
+
+**Edge Cases:**
+
+- The file was read earlier in the same conversation → the change still delivers, because the read delivered nothing
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/per-class-trigger]`
+> **Related Behaviors:** `operation/hooks/deliver-conventions` · `rule/hooks/per-class-trigger` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-087 [read-edit] edit-only class delivers on edit` · **Status:** Tested
+
+---
+
+#### TC-PFCI-088: A class that names no trigger is delivered on the same operations as before [P0]
+
+**Objective:** Prove that a class without a trigger is delivered on reads and on changes with the same class sections as before the trigger existed, and that only the wording of a read digest changes (BR-PFCI-20).
+
+**Business Intent / Invariant Guarded:** Existing configurations keep their delivery operations and class content; the trigger is opt-in (BR-PFCI-19).
+
+**Traces:** AC-PFCI-31 / BR-PFCI-19
+
+**Preconditions:**
+
+- Delivery switch is on
+- A class with a rule and a reference document and no trigger
+
+**Real-World Reachability:** A project upgrades the framework without touching its classes.
+
+**Demo Flow:** Read, then change, a file of that class in two fresh conversations and compare with the reminders from before the upgrade.
+
+```gherkin
+Given a class that names no trigger
+When a matching file is read in one conversation and changed in another
+Then the class is delivered both times
+And each reminder matches the reminder the same configuration gave before triggers existed, apart from the read wording of BR-PFCI-20
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, validation messages, and the lookup output |
+| **System behavior**     | Treats the missing trigger as both                                                                                                                            |
+| **Business data state** | Delivery records as before                                                                                                                                    |
+| **Data shown on UI**    | The same class sections as before                                                                                                                             |
+
+**Acceptance Criteria:**
+
+- ✅ Delivered on read and on change
+- ✅ Class sections equal to the earlier reminders; the read digest differs only by the conditional wording of BR-PFCI-20
+- ❌ A class without a trigger skipped on either operation
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any class without a trigger, any matching file, read or change'
+invariant: 'for ALL such inputs the matched classes equal those of the same class with trigger both'
+boundaryCounterCase: 'reads excluded project-wide → nothing on a read whatever the trigger, delivery on a change'
+```
+
+```json
+{
+    "class": "hook-source",
+    "on": null,
+    "operations": ["read", "edit"]
+}
+```
+
+**Edge Cases:**
+
+- Trigger value outside read, edit and both → rejected by validation, never guessed
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/per-class-trigger]`
+> **Related Behaviors:** `operation/hooks/deliver-conventions` · `rule/hooks/per-class-trigger` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-088 [read-edit] absent trigger equals both`, `.claude/hooks/tests/suites/project-config-refactor-keys.test.cjs::[project-config-refactor-keys] contextGroups[].on accepts read|edit|both and names the group on a bad trigger` · **Status:** Tested
+
+---
+
+#### TC-PFCI-089: A reminder shown on a read is worded as conditional [P2]
+
+**Objective:** Prove that a class delivered on a read opens with "if you will edit this file, read first" and gives no instruction to follow a protocol.
+
+**Business Intent / Invariant Guarded:** On reads the assistant judges whether the documents are needed; the mandatory wording stays for edits (BR-PFCI-20).
+
+**Traces:** AC-PFCI-33 / BR-PFCI-20
+
+**Preconditions:**
+
+- Delivery switch is on
+- A class with trigger both, a protocol and reference documents
+
+**Real-World Reachability:** The assistant opens a hook source file while tracing a behavior.
+
+**Demo Flow:** Read a file of that class and read the first line of the reminder.
+
+```gherkin
+Given a class with trigger both that lists a protocol and reference documents
+When the assistant finishes reading a matching file
+Then the reminder opens with "If you will edit this file, read first:" and the references
+And it contains no instruction to follow the protocol
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, validation messages, and the lookup output |
+| **System behavior**     | Uses the conditional read wording                                                                                                                             |
+| **Business data state** | The class counts as reminded                                                                                                                                  |
+| **Data shown on UI**    | Conditional opening line; references still named first and last                                                                                               |
+
+**Acceptance Criteria:**
+
+- ✅ Conditional opening line
+- ✅ No follow-the-protocol line
+- ❌ Mandatory wording on a read
+
+**Test Data:**
+
+```json
+{
+    "operation": "read",
+    "expectedOpening": "If you will edit this file, read first:",
+    "absent": "follow skill protocol"
+}
+```
+
+**Edge Cases:**
+
+- The same file changed afterwards in a new conversation → mandatory wording
+- The same file changed afterwards in the same conversation → the class is delivered once more with the mandatory wording (TC-PFCI-092)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/read-wording]`
+> **Related Behaviors:** `operation/hooks/deliver-conventions` · `rule/hooks/read-wording` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-089 [read-edit] conditional read wording` · **Status:** Tested
+
+---
+
+#### TC-PFCI-090: A class triggered by reads is silent when its file is changed [P1]
+
+**Objective:** Prove that changing a file of a class whose trigger is read delivers nothing for that class.
+
+**Business Intent / Invariant Guarded:** A maintainer can keep orientation hints for readers without repeating them on every change (BR-PFCI-19).
+
+**Traces:** AC-PFCI-32 / BR-PFCI-19
+
+**Preconditions:**
+
+- Delivery switch is on
+- A class with trigger read and one short rule
+
+**Real-World Reachability:** A maintainer marks an orientation-only class for readers.
+
+**Demo Flow:** Change a file of that class and look for a reminder.
+
+```gherkin
+Given a class triggered by reads only
+When the assistant changes a matching file
+Then no reminder is shown for that class
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, validation messages, and the lookup output |
+| **System behavior**     | Skips the class on changes                                                                                                                                    |
+| **Business data state** | The class is not recorded as delivered                                                                                                                        |
+| **Data shown on UI**    | No reminder text after the change                                                                                                                             |
+
+**Acceptance Criteria:**
+
+- ✅ Nothing delivered on a change
+- ❌ The class delivered on a change
+
+**Test Data:**
+
+```json
+{
+    "class": "orientation",
+    "on": "read",
+    "operation": "edit"
+}
+```
+
+**Edge Cases:**
+
+- The same file read → the class is delivered
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/per-class-trigger]`
+> **Related Behaviors:** `operation/hooks/deliver-conventions` · `rule/hooks/per-class-trigger` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-090 [read-edit] read-only class silent on edit` · **Status:** Tested
+
+---
+
+#### TC-PFCI-091: Setup writes the edit trigger on new classes and never changes a maintainer trigger [P1]
+
+**Objective:** Prove that detection gives a new class with documents or protocols the edit trigger, and leaves a trigger a maintainer set unchanged.
+
+**Business Intent / Invariant Guarded:** New projects get quiet reads by default while maintainer choices stay authoritative (BR-PFCI-19, BR-PFCI-12).
+
+**Traces:** AC-PFCI-34 / BR-PFCI-19 / BR-PFCI-12
+
+**Preconditions:**
+
+- A configuration with a maintainer class whose trigger is both
+- Detection proposes a new class with reference documents and a class with the maintainer class name
+
+**Real-World Reachability:** A maintainer re-runs setup after adding a new test folder.
+
+**Demo Flow:** Run the setup merge and read the merged classes.
+
+```gherkin
+Given a maintainer class with trigger both and detection proposing a new class with reference documents
+When detection results are merged
+Then the new class is added with trigger edit
+And the maintainer class keeps trigger both
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, validation messages, and the lookup output |
+| **System behavior**     | Merge adds the new class with the edit trigger; maintainer classes untouched                                                                                  |
+| **Business data state** | New class marked detected with trigger edit; maintainer class unchanged                                                                                       |
+| **Data shown on UI**    | The merge summary and the merged configuration                                                                                                                |
+
+**Acceptance Criteria:**
+
+- ✅ Edit trigger on the new class
+- ✅ Maintainer trigger unchanged
+- ❌ A maintainer trigger overwritten
+- ❌ A new documented class, other than the framework design class, without the edit trigger
+
+**Test Data:**
+
+```json
+{
+    "maintainerClass": {
+        "name": "hook-source",
+        "on": "both"
+    },
+    "proposed": {
+        "name": "integration-test",
+        "referenceDocs": ["docs/project-reference/integration-test-reference.md"]
+    }
+}
+```
+
+**Edge Cases:**
+
+- A proposed class with short rules only → no trigger written; it behaves as both
+- The framework design class proposed on front-end evidence → written with trigger both (BR-PFCI-19 design-class note)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: operation/hooks/convention-merge]`
+> **Related Behaviors:** `operation/hooks/convention-merge` · `rule/hooks/merge-never-overwrites` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-091 [merge] detect writes on:edit, keeps maintainer value`, `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-021 merge adds detected group` · **Status:** Tested
+
+---
+
+#### TC-PFCI-092: A change after a read-form delivery re-delivers the class once with the mandatory wording [P1]
+
+**Objective:** Prove that when a class was delivered on a read, with the conditional wording, the first change of a matching file in the same conversation delivers the class again with the mandatory wording and its protocol, and that a further change does not.
+
+**Business Intent / Invariant Guarded:** Every edit stays guarded by its conventions: a read reminder that carried no protocol never suppresses the reminder a change needs (US-PFCI-08, BR-PFCI-05, BR-PFCI-20).
+
+**Traces:** AC-PFCI-35 / BR-PFCI-05 / BR-PFCI-20
+
+**Preconditions:**
+
+- Delivery switch is on
+- A class with trigger both (or no trigger), a protocol and reference documents
+- No earlier delivery of the class in this conversation
+
+**Real-World Reachability:** The assistant reads a hook source file to understand it, then changes it a minute later; this read-then-change sequence is the usual path to an edit.
+
+**Demo Flow:** Read a file of that class, then change it, then change another file of the same class, and read each reminder.
+
+```gherkin
+Given a class with trigger both that lists a protocol and reference documents
+And the class was delivered on a read in this conversation with the conditional wording
+When the assistant changes a matching file
+Then the reminder names the class with the mandatory "must read first" wording and its protocol
+And when the assistant changes another matching file
+Then no reminder is shown for that class
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, validation messages, and the lookup output |
+| **System behavior**     | Treats a read-form delivery as present only for reads; re-delivers once on the first change                                                                   |
+| **Business data state** | The delivery record now holds the mandatory wording, so the class counts as reminded for reads and changes                                                    |
+| **Data shown on UI**    | Conditional reminder after the read, mandatory reminder with the protocol after the first change, nothing after the second change                             |
+
+**Acceptance Criteria:**
+
+- ✅ Mandatory reminder with the protocol on the first change after a read-form delivery
+- ✅ No reminder on the second change
+- ❌ No reminder on the first change because the read counted as present
+- ❌ A mandatory reminder on every change
+
+**Test Data:**
+
+```json
+{
+    "class": "hook-source",
+    "on": "both",
+    "sequence": ["read .claude/hooks/a.cjs", "edit .claude/hooks/a.cjs", "edit .claude/hooks/b.cjs"],
+    "expected": ["conditional", "mandatory", "none"]
+}
+```
+
+**Edge Cases:**
+
+- A read after the mandatory delivery → no reminder (the class is present for reads and changes)
+- The class content changed between the read and the change → the change delivers the new version with the mandatory wording (BR-PFCI-05, one delivery)
+- A condensation between the read and the change → the change delivers the mandatory wording, as for any delivery after a condensation
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/read-form-presence]`
+> **Related Behaviors:** `operation/hooks/deliver-conventions` · `rule/hooks/presence-decides-delivery` · `rule/hooks/read-wording` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-092 [read-edit] read then change re-delivers the mandatory form once` · **Status:** Tested
+
+---
+
+#### TC-PFCI-093: Opting out of inline rules is refused while a rule-bearing class is delivered on reads only [P1]
+
+**Objective:** Prove that the opt-out from repeating short rules is refused when a class that has short rules is delivered on reads only, because the convention lookup never prints such a class, so every short rule stays among the golden rules and the maintainer is warned.
+
+**Business Intent / Invariant Guarded:** Automatic delivery is never the only carrier of a convention, even when a class limits its delivery to reads (BR-PFCI-13, BR-PFCI-19).
+
+**Traces:** AC-PFCI-29 / BR-PFCI-13 / BR-PFCI-19
+
+**Preconditions:**
+
+- Automatic delivery is switched on and the convention lookup is available
+- The project opted out of repeating short rules in the static instructions
+- One class with short rules is delivered on reads only; another class with short rules uses the default trigger
+
+**Real-World Reachability:** A maintainer marks an orientation class as read-only so it stops repeating on edits, while the same project trims its always-loaded instructions.
+
+**Demo Flow:** Regenerate the static instructions and read the golden rules and the maintainer warning; then run the lookup for a file of the read-only class.
+
+```gherkin
+Given the project opted out of repeating short rules in the static instructions
+And automatic delivery is switched on and the convention lookup is available
+And a class with short rules is delivered on reads only
+When the static instructions are regenerated
+Then every short rule, including that class's, stays among the golden rules
+And the maintainer is warned with the read-only class named
+And when the same class is delivered on changes or on both, the golden rules name it and point to the lookup
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the observable surface is the static instructions, the maintainer warning and the lookup output |
+| **System behavior**     | Opt-out refused; the refusal reason names the read-only class                                                   |
+| **Business data state** | No change                                                                                                       |
+| **Data shown on UI**    | Every short rule among the golden rules; the lookup for a file of the read-only class prints nothing for it     |
+
+**Acceptance Criteria:**
+
+- ✅ Every short rule stays among the golden rules and the warning names the read-only class
+- ✅ The same class delivered on changes or on both keeps the compact golden rules
+- ❌ Compact golden rules naming a read-only class whose rules no non-automatic carrier prints
+
+**Test Data:**
+
+```json
+{
+    "inlinePathRules": false,
+    "groups": [
+        { "name": "api-route", "pathGlobs": ["app/api/**"], "rules": ["Routes are thin wrappers"] },
+        { "name": "orient", "pathGlobs": ["src/**"], "rules": ["Start at src/index.cjs"], "on": "read" }
+    ]
+}
+```
+
+**Edge Cases:**
+
+- A read-only class without short rules → nothing to lose, so the compact form is kept
+- A trigger value validation rejects (a different letter case, surrounding spaces) → the class counts as both (BR-PFCI-11), so it does not refuse the opt-out
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: constraint/hooks/static-parity]` · `[Source: rule/hooks/per-class-trigger]`
+> **Related Behaviors:** `constraint/hooks/static-parity` · `component/hooks/static-convention-table` · `test/hooks/file-convention-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-093 path rules always reach the agent: a read-only rule-bearing class keeps the rules inline` · **Status:** Tested
 
 ---
 

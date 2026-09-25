@@ -12,7 +12,7 @@ const COMPATIBILITY_NOTE_LINES = [
   "> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.",
   "> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.",
   "> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.",
-  "> - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.",
+  "> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.",
   "> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.",
   "",
 ];

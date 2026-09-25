@@ -1,8 +1,10 @@
 """Inject SYNC:project-reference-docs-guide block (TOP + reminder BOTTOM) into
 implementation/planning/review/investigation skills.
 
-Idempotent — a file that already carries the SYNC tag is only refreshed in place
-(delegated to sync_project_reference_block.refresh, the single refresh owner).
+Idempotent — a file that already carries the protocol (the SYNC tag, or a guide
+entry from a skill converted to guide lines: sync_project_reference_block.carries)
+is only refreshed in place (delegated to sync_project_reference_block.refresh, the
+single refresh owner), so no run puts a converted body back.
 Block content is GENERIC (project-agnostic) — works for any project that uses
 the canonical .claude harness with hook-initialized docs/project-reference/.
 
@@ -17,7 +19,9 @@ import re
 import sys
 from pathlib import Path
 
+from line_endings import read_text, write_text
 from sync_blocks import find_sync_region_start, load_wrapped_sync_block
+from sync_project_reference_block import carries
 from sync_project_reference_block import refresh as refresh_existing
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -108,7 +112,7 @@ def inject(text: str, top_block: str | None = None, bottom_block: str | None = N
     bottom_block = BOTTOM_BLOCK if bottom_block is None else bottom_block
     status = {"top": "skipped", "bottom": "skipped", "already_present": False}
 
-    if TAG in text:
+    if carries(text):
         # Refresh has ONE owner (sync_project_reference_block.refresh), which
         # replaces blocks whitespace-stripped so repeated canonical edits never
         # accumulate blank lines around the markers.
@@ -158,7 +162,7 @@ def main() -> int:
         if path is None:
             results.append((name, "MISSING", {}))
             continue
-        original = path.read_text(encoding="utf-8")
+        original, newline = read_text(path)
         new_text, status = inject(original)
         if status["already_present"] and new_text == original:
             results.append((name, "ALREADY-PRESENT", status))
@@ -169,7 +173,7 @@ def main() -> int:
         if check or dry_run:
             results.append((name, "WOULD-UPDATE" if check else "DRY-RUN", status))
             continue
-        path.write_text(new_text, encoding="utf-8", newline="\n")
+        write_text(path, new_text, newline)
         results.append((name, "UPDATED", status))
 
     print(f"{'SKILL':<30} {'STATUS':<18} TOP / BOTTOM")

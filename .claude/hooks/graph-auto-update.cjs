@@ -6,12 +6,15 @@
  * Trigger: PostToolUse → Edit|Write|MultiEdit
  * Behavior: If graph available and not recently updated (3s debounce),
  *           run incremental graph update. Fails silently.
+ *           Graph mode 'off' (`hooks.codeGraph.enabled` in docs/project-config.json)
+ *           keeps it inert even when an old graph.db exists.
  *
  * Exit: Always 0 (non-blocking).
  */
 
 const { runHook } = require("./lib/hook-runner.cjs");
 const {
+  codeGraphMode,
   isGraphAvailable,
   isDepsUnavailableCached,
   markDepsUnavailable,
@@ -32,6 +35,10 @@ runHook(
 
     // Fast-path: skip expensive Python checks if no graph.db exists
     if (!require("fs").existsSync(getGraphDbPath())) return;
+
+    // Mode check only past the stat, so a project without a graph never reads config.
+    const { loadProjectConfig } = require("./lib/project-config-loader.cjs");
+    if (codeGraphMode({ config: loadProjectConfig() }) !== "active") return;
 
     // A recent check already found the toolchain missing — skip the two
     // Python spawns isGraphAvailable() would cost to learn that again.

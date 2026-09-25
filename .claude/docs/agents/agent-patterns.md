@@ -626,7 +626,7 @@ Agents carry the same applicable role-specific quality SYNC blocks as their twin
 
 - [README.md](./README.md) - Agent overview and catalog
 - [../skills/README.md](../skills/README.md) - Skills that enhance agents
-- [../hooks/README.md](../hooks/README.md) - Hook lifecycle (sub-agent context is now static in `agents/*.md`, no `SubagentStart` hook)
+- [../hooks/README.md](../hooks/README.md) - Hook lifecycle (standing sub-agent context is static in `agents/*.md`; `SubagentStart` runs only the protocol-delivery handlers)
 
 ---
 

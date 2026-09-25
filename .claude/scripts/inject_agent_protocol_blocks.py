@@ -38,6 +38,7 @@ from __future__ import annotations
 import re
 import sys
 
+from line_endings import read_text, write_text
 from sync_blocks import SYNC_SOURCE, find_sync_region_start, load_wrapped_sync_block
 from agent_protocol_matrix import (
     AGENT_QUALITY_BLOCKS,
@@ -195,7 +196,7 @@ def main() -> int:
         if not path.exists():
             results.append((agent, "MISSING", {}))
             continue
-        original = path.read_text(encoding="utf-8")
+        original, newline = read_text(path)
         text, reconciled = reconcile_excluded_blocks(original, agent)
         per_tag = {}
         for tag in tags:
@@ -209,7 +210,7 @@ def main() -> int:
             results.append((agent, "NO-CHANGE", per_tag))
             continue
         if not dry_run:
-            path.write_text(text, encoding="utf-8")
+            write_text(path, text, newline)
         if reconciled:
             per_tag["reconciled-excluded"] = {"removed": reconciled}
         results.append((agent, "DRY-RUN" if dry_run else "UPDATED", per_tag))

@@ -61,7 +61,7 @@ async function pathExists(filePath) {
 }
 
 /** Quote a value as a single-line YAML double-quoted scalar. */
-function yamlQuote(value) {
+export function yamlQuote(value) {
   return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
 

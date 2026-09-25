@@ -287,6 +287,16 @@ const EXPECTED_RENDERED_GROUPS = [
     // compact|resume|clear group DOES render a Codex row as of 2026-09-17 — see below.
     // Already carries Codex's own `update_plan`, so no file-tool widening applies.
     ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
+    // token-budget-checkpoint (2026-09-25): advisory note each time the session's non-cached
+    // tokens cross the next hooks.tokenBudget.checkpointTokens multiple. Its own group on the
+    // prompt-ledger matcher, so the prompt-ledger group above renders byte-identical.
+    ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
+    // Protocol delivery (2026-09-25): the six protocol-inject-<group> entries. Their Claude
+    // `Skill` and `Read` groups are not mirrored — Codex has neither tool — and are reported
+    // as `matcher-names-no-codex-tool`. Codex reads a skill file implicitly through its shell,
+    // so the Read group's entries render here, in that group's place, on `Bash`; their
+    // in-process early exit ends every command that does not name SKILL.md.
+    ['PostToolUse', 'Bash', 6],
     ['PreToolUse', 'AskUserQuestion', 1],
     // The Bash PreToolUse chain, in settings.json order: doc-sync-gate,
     // review-commit-gate (2026-09-19, the review-before-commit receipt gate).
@@ -313,6 +323,11 @@ const EXPECTED_RENDERED_GROUPS = [
     ['SessionStart', 'compact|clear', 1],
     ['SessionStart', 'compact|resume|clear', 1],
     ['Stop', null, 1],
+    // SubagentStart (2026-09-25): Codex supports it and it now mirrors — the six protocol
+    // entries, filtered to the skill-preloading agent types plus Explore and Plan. The list
+    // renders anchored because Codex matchers are unanchored regexes (Claude reads the same
+    // list as exact names), so `tester` does not also fire for `integration-tester`.
+    ['SubagentStart', '^(?:Explore|Plan|architect|code-reviewer|code-simplifier|docs-manager|fullstack-developer|git-manager|tester)$', 6],
     ['UserPromptSubmit', null, 1],
     ['UserPromptSubmit', null, 1],
     // workflow-route-inject: default-on, configurable runtime workflow router.
@@ -322,7 +337,12 @@ const EXPECTED_RENDERED_GROUPS = [
     // judgement-integrity-route (2026-09-24): anti-confirmation-bias answer why-review on verdict prompts.
     ['UserPromptSubmit', null, 1],
     // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.
-    ['UserPromptSubmit', null, 1]
+    ['UserPromptSubmit', null, 1],
+    // Protocol delivery (2026-09-25): the six entries Claude registers on UserPromptExpansion,
+    // which Codex lacks. An explicit `$skill` on UserPromptSubmit is the Codex load path, so
+    // they render here, after every native UserPromptSubmit group (reported as
+    // `remapped-to-user-prompt-submit`).
+    ['UserPromptSubmit', null, 6]
 ];
 
 test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surface', async () => {
@@ -392,9 +412,11 @@ test('TC-HOOKMIRROR-003: a fresh render produces exactly the expected hook surfa
 test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and rejects every drift', () => {
     // 2026-09-17: SessionEnd and SessionStart left this baseline because Codex supports
     // both (verified against the official hook reference). Notification is the only event
-    // the reference still does not list.
+    // the reference still does not list. 2026-09-25: UserPromptExpansion joined it with a
+    // reason that records where its protocol entries went (UserPromptSubmit), not a drop.
     const BASELINE = [
-        { event: 'Notification', reason: 'unsupported-by-codex' }
+        { event: 'Notification', reason: 'unsupported-by-codex' },
+        { event: 'UserPromptExpansion', reason: 'remapped-to-user-prompt-submit' }
     ];
 
     assert.deepEqual(
@@ -431,18 +453,21 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
         skipped_events: [],
         skipped_groups: []
     });
-    assert.equal(staleBaseline.length, 1);
+    assert.equal(staleBaseline.length, BASELINE.length);
     assert.match(staleBaseline[0], /Notification is no longer skipped/);
+    assert.match(staleBaseline[1], /UserPromptExpansion is no longer skipped/);
 
-    // The two REVIEWED group skips pass. They are the only intended ways a group stops
-    // mirroring: a SessionStart group carrying no allowlisted producer, and SessionEnd's
-    // matcher, which names nothing Codex emits and so is dropped to let the hook run.
+    // The REVIEWED group skips pass. They are the only intended ways a group stops
+    // mirroring: a SessionStart group carrying no allowlisted producer, SessionEnd's
+    // matcher, which names nothing Codex emits and so is dropped to let the hook run, and
+    // (2026-09-25) a protocol-entry PostToolUse group keyed only to Read or Skill.
     assert.deepEqual(
         unexpectedHookSkips({
             skipped_events: BASELINE,
             skipped_groups: [
                 { event: 'SessionStart', group_index: 0, matcher: 'startup|resume', reason: 'session-start-not-on-mirror-allowlist' },
-                { event: 'SessionEnd', group_index: 0, matcher: 'clear|exit|compact', reason: 'matcher-unsupported-on-codex-hook-runs-unscoped' }
+                { event: 'SessionEnd', group_index: 0, matcher: 'clear|exit|compact', reason: 'matcher-unsupported-on-codex-hook-runs-unscoped' },
+                { event: 'PostToolUse', group_index: 5, matcher: 'Skill', reason: 'matcher-names-no-codex-tool' }
             ]
         }),
         [],
@@ -460,8 +485,53 @@ test('TC-HOOKMIRROR-004: the skip guard accepts the reviewed baseline and reject
     assert.match(reasonOnWrongEvent[0], /PreToolUse\[1\]/);
 
     // A renderer that returned no skip fields at all must not read as "nothing skipped":
-    // the three baseline events are still expected, so their absence is reported.
+    // the baseline events are still expected, so their absence is reported.
     assert.equal(unexpectedHookSkips({}).length, BASELINE.length);
+});
+
+// TC-PDL-069 — the protocol delivery rows on the Codex surface. The live render (TC-HOOKMIRROR-003
+// and -005) now carries the UserPromptSubmit, PostToolUse `Bash` and SubagentStart protocol rows
+// and only the reviewed skips. This case pins the one that is easiest to lose silently: Codex DOES
+// support SubagentStart, so a render that skipped it as `unsupported-by-codex` (a wrong
+// `supportedEvents` row) would drop agent-start delivery while every table still looked reviewed.
+test('TC-PDL-069: the skip guard rejects SubagentStart skipped as unsupported and a wrong protocol reason', () => {
+    // Given the reviewed baseline events
+    const baseline = [
+        { event: 'Notification', reason: 'unsupported-by-codex' },
+        { event: 'UserPromptExpansion', reason: 'remapped-to-user-prompt-submit' }
+    ];
+
+    // When a report skips SubagentStart as unsupported-by-codex
+    const subagentDropped = unexpectedHookSkips({
+        skipped_events: [...baseline, { event: 'SubagentStart', reason: 'unsupported-by-codex' }],
+        skipped_groups: []
+    });
+    // Then the guard reports it
+    assert.equal(subagentDropped.length, 1);
+    assert.match(subagentDropped[0], /SubagentStart is now skipped \(unsupported-by-codex\)/);
+
+    // When UserPromptExpansion is reported as unsupported instead of remapped (its entries lost)
+    const expansionDropped = unexpectedHookSkips({
+        skipped_events: [baseline[0], { event: 'UserPromptExpansion', reason: 'unsupported-by-codex' }],
+        skipped_groups: []
+    });
+    // Then the guard reports the changed reason
+    assert.equal(expansionDropped.length, 1);
+    assert.match(expansionDropped[0], /UserPromptExpansion is skipped for a new reason: unsupported-by-codex/);
+
+    // When the no-Codex-tool reason appears on an event it was never reviewed for, or a
+    // non-protocol handler is dropped from the remapped event
+    const wrongPlaces = unexpectedHookSkips({
+        skipped_events: baseline,
+        skipped_groups: [
+            { event: 'PreToolUse', group_index: 0, matcher: 'Read', reason: 'matcher-names-no-codex-tool' },
+            { event: 'UserPromptExpansion', group_index: 0, matcher: null, reason: 'remap-limited-to-protocol-entries' }
+        ]
+    });
+    // Then both are reported
+    assert.equal(wrongPlaces.length, 2);
+    assert.match(wrongPlaces[0], /PreToolUse\[0\].*matcher-names-no-codex-tool/);
+    assert.match(wrongPlaces[1], /UserPromptExpansion\[0\].*remap-limited-to-protocol-entries/);
 });
 
 // TC-HOOKMIRROR-005 — the guard, wired. TC-HOOKMIRROR-004 proves the function's logic

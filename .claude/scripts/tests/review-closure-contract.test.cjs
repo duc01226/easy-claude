@@ -8,8 +8,24 @@ const path = require('node:path');
 const policy = require('../lib/review-policy.cjs');
 const baseline = require('../lib/workflow-baseline.cjs');
 const { spawnSync } = require('node:child_process');
-const readSkill = name => fs.readFileSync(path.resolve(__dirname, '../../skills', name, 'SKILL.md'), 'utf8');
-const why = readSkill('why-review');
+// A skill's contract is its SKILL.md plus every `references/*.md` (sorted), read as one text: a mode
+// section moved to a point-of-use reference is still the skill's contract, so every pinned phrase
+// must hold wherever it lives. `readSkillParts` keeps the files apart for position-aware checks.
+function readSkillParts(name) {
+    const dir = path.resolve(__dirname, '../../skills', name);
+    const parts = [['SKILL.md', fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8')]];
+    const refs = path.join(dir, 'references');
+    if (fs.existsSync(refs)) {
+        for (const file of fs.readdirSync(refs).filter(entry => entry.endsWith('.md')).sort()) {
+            parts.push([`references/${file}`, fs.readFileSync(path.join(refs, file), 'utf8')]);
+        }
+    }
+    return parts;
+}
+const joinParts = parts => parts.map(([, text]) => text).join('\n');
+const readSkill = name => joinParts(readSkillParts(name));
+const whyParts = readSkillParts('why-review');
+const why = joinParts(whyParts);
 const workflow = readSkill('workflow-review-changes');
 const local = text => text.replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, '');
 const FIX_LOOP_BLOCK = /<!-- FIX-LOOP-MODE:START -->[\s\S]*?<!-- FIX-LOOP-MODE:END -->/g;
@@ -77,19 +93,32 @@ test('R2-14/15: contradictory closure and session-reset mutants are rejected', (
     }
 });
 
-function assertFixLoopMode(text) {
-    const source = local(text).replace(/\r\n/g, '\n');
-    const blocks = source.match(FIX_LOOP_BLOCK) ?? [];
-    assert.equal(blocks.length, 3, 'quick summary, mode section, and closing reminders are the only delimited blocks');
-    // Balanced, non-nested fences: an extra opener would silently swallow default-mode prose.
+// `parts` is the skill as [relative path, text] pairs (see readSkillParts). The mode section lives in
+// `references/fix-loop.md` (read at point of use); the summary and closing blocks stay in SKILL.md, so
+// the position checks run per file while the fence count runs over the whole contract.
+function assertFixLoopMode(parts) {
+    const files = new Map(parts.map(([rel, text]) => [rel, local(text).replace(/\r\n/g, '\n')]));
+    const router = files.get('SKILL.md') ?? '';
+    const reference = files.get('references/fix-loop.md') ?? '';
+    const source = [...files.values()].join('\n');
+    // Balanced, non-nested fences across every file: an extra opener would silently swallow default-mode prose.
     assert.equal(source.split('<!-- FIX-LOOP-MODE:START -->').length - 1, 3, 'exactly three openers');
     assert.equal(source.split('<!-- FIX-LOOP-MODE:END -->').length - 1, 3, 'exactly three closers');
+    const routerBlocks = router.match(FIX_LOOP_BLOCK) ?? [];
+    const referenceBlocks = reference.match(FIX_LOOP_BLOCK) ?? [];
+    assert.equal(routerBlocks.length, 2, 'quick summary and closing reminders are the only delimited blocks in SKILL.md');
+    assert.equal(referenceBlocks.length, 1, 'the mode section is the only delimited block in references/fix-loop.md');
+    const blocks = [...routerBlocks, ...referenceBlocks];
     for (const block of blocks) assert.match(block, /--fix-loop/, 'every delimited block belongs to the flag');
-    const [summary, section, closing] = blocks;
+    const [summary, closing] = routerBlocks;
+    const [section] = referenceBlocks;
     // Primacy and recency: the mode is announced before the mission body and restated at the end.
-    assert.ok(source.indexOf(summary) < source.indexOf('## Your Mission'), 'mode summary sits in the Quick Summary');
-    assert.ok(source.indexOf(closing) > source.indexOf('## Closing Reminders'), 'mode reminders sit in Closing Reminders');
-    assert.match(text, /^description: '[^'\n]*--fix-loop[^'\n]*'\r?$/m);
+    assert.ok(router.indexOf(summary) < router.indexOf('## Your Mission'), 'mode summary sits in the Quick Summary');
+    assert.ok(router.indexOf(closing) > router.indexOf('## Closing Reminders'), 'mode reminders sit in Closing Reminders');
+    // Point of use: a --fix-loop run reads the reference before anything else, and SKILL.md holds no mode section.
+    assert.match(summary, /`references\/fix-loop\.md` — read it FIRST when the flag is present \(BLOCKING\)/);
+    assert.doesNotMatch(router, /^## Fix-Loop Mode/m, 'the mode section moved to references/fix-loop.md');
+    assert.match(parts[0][1], /^description: '[^'\n]*--fix-loop[^'\n]*'\r?$/m);
     // Opt-in: explicit detection row, terminal-mode precedence, and a no-flag scope gate.
     assert.match(source, /\| \*\*fix-loop\*\* \(opt-in\)\s*\| `\$ARGUMENTS` contains `--fix-loop` AND no `validate-findings` token/);
     assert.match(source, /`validate-findings` beats `--fix-loop`/);
@@ -115,10 +144,12 @@ function assertFixLoopMode(text) {
 }
 
 test('R2-14/FL: why-review --fix-loop is opt-in, delimited, and carries the outer loop gates', () => {
-    // Given the merged skill source.
-    const source = why.replace(/\r\n/g, '\n');
+    // Given the skill's files (SKILL.md + references/*.md) with LF line endings.
+    const parts = whyParts.map(([rel, text]) => [rel, text.replace(/\r\n/g, '\n')]);
+    const source = joinParts(parts);
+    const mutate = (before, after) => parts.map(([rel, text]) => [rel, text.split(before).join(after)]);
     // When the mode contract and the unchanged default-mode closure are evaluated.
-    assertFixLoopMode(source);
+    assertFixLoopMode(parts);
     assertReportClosure(source);
     // Then each weakened clause is rejected by the same assertion used on the real source.
     for (const [before, after] of [
@@ -132,12 +163,17 @@ test('R2-14/FL: why-review --fix-loop is opt-in, delimited, and carries the oute
         ['<!-- FIX-LOOP-MODE:END -->\n\n**Workflow:**', '\n\n**Workflow:**'],
     ]) {
         assert.ok(source.includes(before), `mutation anchor exists: ${before}`);
-        const mutant = source.split(before).join(after);
-        assert.throws(() => assertFixLoopMode(mutant), { code: 'ERR_ASSERTION' }, before);
+        assert.throws(() => assertFixLoopMode(mutate(before, after)), { code: 'ERR_ASSERTION' }, before);
     }
-    // Wrapping default-mode closure prose in a mode block cannot hide it from the closure contract.
-    const hidden = source.replace('3. **CLEAN**', '<!-- FIX-LOOP-MODE:START -->\n3. **CLEAN**');
-    assert.throws(() => assertFixLoopMode(hidden), { code: 'ERR_ASSERTION' });
+    // Wrapping default-mode closure prose in a mode block cannot hide it from the closure contract,
+    // whichever file of the skill holds that prose.
+    assert.ok(source.includes('3. **CLEAN**'), 'mutation anchor exists: 3. **CLEAN**');
+    assert.throws(() => assertFixLoopMode(mutate('3. **CLEAN**', '<!-- FIX-LOOP-MODE:START -->\n3. **CLEAN**')), { code: 'ERR_ASSERTION' });
+    // Moving the mode section back into SKILL.md, or dropping the point-of-use pointer, is rejected.
+    const inlined = [[parts[0][0], `${parts[0][1]}\n${parts.find(([rel]) => rel === 'references/fix-loop.md')[1]}`],
+        ...parts.filter(([rel]) => rel !== 'SKILL.md' && rel !== 'references/fix-loop.md')];
+    assert.throws(() => assertFixLoopMode(inlined), { code: 'ERR_ASSERTION' });
+    assert.throws(() => assertFixLoopMode(mutate('`references/fix-loop.md` — read it FIRST when the flag is present (BLOCKING)', 'the **Fix-Loop Mode** section')), { code: 'ERR_ASSERTION' });
 });
 
 test('R2-15: CLEAN report with a retained HIGH hands off without clearing the outer target', () => {

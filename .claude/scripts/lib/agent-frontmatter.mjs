@@ -87,3 +87,7 @@ export function parseFrontmatter(markdown) {
 
     return { frontmatter, body };
 }
+
+// Codex reads a skill's `agents/openai.yaml` instead of `disable-model-invocation`; this line in that
+// file is the manual-only equivalent. Shared by the Codex mirror generator and its parity verifier.
+export const CODEX_IMPLICIT_OFF_RE = /^\s*allow_implicit_invocation:\s*false\s*$/m;

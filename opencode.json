@@ -6,10 +6,6 @@
         "deepseek-v4.1-flash": {
           "options": {
             "reasoningEffort": "high"
-          },
-          "limit": {
-            "context": 500000,
-            "output": 384000
           }
         }
       }
@@ -18,5 +14,32 @@
   "model": "opencode-go/deepseek-v4.1-flash",
   "compaction": {
     "auto": true
+  },
+  "permission": {
+    "skill": {
+      "ck-help": "deny",
+      "custom-agent": "deny",
+      "custom-prompt": "deny",
+      "docx-convert": "deny",
+      "git-developer-performance": "deny",
+      "graph-export": "deny",
+      "pdf-convert": "deny",
+      "playwright-cli": "deny",
+      "presentation-builder": "deny",
+      "product-roadmap": "deny",
+      "project-help": "deny",
+      "release-notes": "deny",
+      "remotion": "deny",
+      "scan-codebase-health": "deny",
+      "skill-creator": "deny",
+      "sync-codex": "deny",
+      "sync-opencode": "deny",
+      "sync-skills-shared-protocols": "deny",
+      "workflow-big-feature": "deny",
+      "workflow-feature": "ask",
+      "workflow-greenfield-init": "deny",
+      "workflow-idea-to-pbi": "deny",
+      "workflow-spec-to-pbi": "deny"
+    }
   }
 }

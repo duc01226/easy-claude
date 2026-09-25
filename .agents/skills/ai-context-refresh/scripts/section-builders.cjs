@@ -220,13 +220,101 @@ function buildTldr(config) {
     return lines.join('\n');
 }
 
-function buildGoldenRules(config) {
-    const groups = (config.contextGroups || []).filter(group =>
+const literal = value => `\`${String(value).replace(/`/g, '\\`')}\``;
+
+function ruleBearingGroups(config) {
+    return (config.contextGroups || []).filter(group =>
         group && Array.isArray(group.rules) && group.rules.some(rule => typeof rule === 'string' && rule.trim())
     );
+}
+
+/**
+ * How `SECTION:golden-rules` delivers path-scoped rules. Invariant: path rules always reach the
+ * agent — inline, or via the convention hook plus its `--lookup` CLI. Compact (names + pointer)
+ * requires ALL of: `portability.inlinePathRules === false`, a usable conventions lib,
+ * `conventionInjection.enabled === true`, every rule-bearing group deliverable by that lib
+ * (a nameless or duplicate-named group is not), no rule-bearing group read-only (`on: read`; the
+ * lookup prints only what a change delivers), and every rule-bearing group ranked within the
+ * per-path class cap (`maxClassesPerEdit`), and a worst-case digest within `maxChars`. A path's
+ * matches are a subset of the global order, so a global rank inside the cap can never be cut on
+ * any path; a digest within the budget is never reduced, so no rule text is dropped. Any missing
+ * precondition keeps the rules inline; `reason` names it so the generator can warn.
+ * @returns {{ requested: boolean, compact: boolean, reason: string|null, conventions: object|null, entries: object[] }}
+ */
+function pathRulesDelivery(config, projectDir) {
+    const requested = config.portability?.inlinePathRules === false;
+    const groups = ruleBearingGroups(config);
+    const inline = reason => ({ requested, compact: false, reason, conventions: null, entries: [] });
+    if (!requested || groups.length === 0) return inline(null);
+    const conventions = loadFileConventions(process.env, process.cwd(), projectDir);
+    if (!conventions || typeof conventions.isEnabled !== 'function') return inline('the conventions lib (.claude/hooks/lib/file-conventions.cjs) is unavailable');
+    if (!conventions.isEnabled(config)) return inline('conventionInjection.enabled is not true');
+    const ordered = conventions.sortEntries(conventions.injectableEntries(config));
+    const entries = ordered.filter(entry => entry.rules.length);
+    const delivered = new Set(entries.map(entry => entry.group));
+    const label = group => (typeof group.name === 'string' && group.name.trim() ? literal(group.name) : '(unnamed)');
+    const undeliverable = groups.filter(group => !delivered.has(group));
+    if (undeliverable.length) {
+        return inline(`rule-bearing group(s) ${undeliverable.map(label).join(', ')} cannot be delivered by the hook (nameless or duplicate name)`);
+    }
+    const readOnly = entries.filter(entry => entry.on === (conventions.TRIGGER_READ || 'read'));
+    if (readOnly.length) {
+        return inline(`rule-bearing group(s) ${readOnly.map(entry => literal(entry.name)).join(', ')} are read-only (on: read); the lookup prints only what a change delivers`);
+    }
+    if (typeof conventions.resolveSettings !== 'function') return inline('the conventions lib does not expose resolveSettings');
+    const settings = conventions.resolveSettings(config);
+    const cap = settings.maxClassesPerEdit;
+    const beyondCap = entries.filter(entry => ordered.indexOf(entry) >= cap);
+    if (beyondCap.length) {
+        return inline(`rule-bearing group(s) ${beyondCap.map(entry => literal(entry.name)).join(', ')} rank beyond the per-path class cap (maxClassesPerEdit ${cap}), so a path matching more classes could drop them`);
+    }
+    if (typeof conventions.buildDigest !== 'function' || !Number.isInteger(conventions.PATH_CAP)) return inline('the conventions lib does not expose the digest budget');
+    const worst = digestUpperBound(conventions, ordered, cap);
+    if (worst > settings.maxChars) {
+        return inline(`a worst-case digest (${worst} chars) exceeds conventionInjection.maxChars ${settings.maxChars}, so an oversized digest could drop rule text`);
+    }
+    return { requested, compact: true, reason: null, conventions, entries };
+}
+
+/**
+ * Upper bound on any digest the hook or lookup can build: the frame and every class's non-rule
+ * lines rendered once with the longest accepted path and a multi-file label, plus the `cap`
+ * largest rule sets. The frame is measured in both wordings — a read opens conditionally and an
+ * edit with the mandatory instruction (BR-PFCI-20) — and the longer one counts, since either can
+ * reach a file. Rule de-duplication only shrinks a real digest, so a digest within this bound is
+ * never reduced (BR-PFCI-08) and keeps every rule-bearing class in full form.
+ */
+function digestUpperBound(conventions, ordered, cap) {
+    const worstPath = 'x'.repeat(conventions.PATH_CAP);
+    const rels = new Array(1000).fill(worstPath);
+    const bare = ordered.map(entry => ({ ...entry, rules: [] }));
+    const triggers = [conventions.TRIGGER_EDIT || 'edit', conventions.TRIGGER_READ || 'read'];
+    const frame = Math.max(...triggers.map(trigger =>
+        conventions.buildDigest(bare, rels, { maxChars: Infinity }, { fileExists: () => true, trigger }).text.length));
+    const ruleLengths = ordered
+        .map(entry => entry.rules.reduce((sum, rule) => sum + rule.length + 3, 0))
+        .sort((a, b) => b - a)
+        .slice(0, cap);
+    return frame + ruleLengths.reduce((sum, length) => sum + length, 0);
+}
+
+function buildGoldenRules(config, projectDir) {
+    const groups = ruleBearingGroups(config);
     if (groups.length === 0) return null;
 
-    const literal = value => `\`${String(value).replace(/`/g, '\\`')}\``;
+    const delivery = pathRulesDelivery(config, projectDir);
+    if (delivery.compact) {
+        const names = delivery.entries.map(entry => literal(entry.name)).join(', ');
+        return [
+            `**Path-scoped project rules** — delivered just in time, not inlined here. Groups with rules: ${names}.`,
+            '',
+            "- The convention hook injects each matching group's full rule text and required docs when a matching file is read or edited, per the group's trigger, through the host's file tools.",
+            `- A shell read or edit, or a host without hooks, gets no digest: run \`${delivery.conventions.LOOKUP_COMMAND} <path>\` before the first read, edit or test of that path.`,
+            "- Before planning a change, run the lookup for each target path; the Skill Activation table below indexes every group's matchers and pre-read docs.",
+            "- Apply a group's rules only to files it matches; never promote a path-scoped rule to a global reminder."
+        ].join('\n');
+    }
+
     const renderMatchers = (label, values) => values.length
         ? `${label}: ${values.map(literal).join(', ')}`
         : null;
@@ -764,6 +852,7 @@ module.exports = {
     REDACTED_CREDENTIAL,
     renderCredentialReference,
     buildGoldenRules,
+    pathRulesDelivery,
     buildDecisionQuickRef,
     buildKeyLocations,
     buildDevCommands,

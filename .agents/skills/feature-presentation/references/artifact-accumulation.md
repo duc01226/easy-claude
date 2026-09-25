@@ -65,7 +65,7 @@ Fill missing downstream artifacts so the deck is complete:
 
 | Gap                                              | Fill action                                                                                          |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Targeted spec has NO PBIs                         | Invoke `workflow-spec-to-pbi` **AS A SUB-AGENT** (`spawn_agent` tool) — returns a summary, writes full findings to `tmp/reports/` |
+| Targeted spec has NO PBIs                         | `manual`-tier: ask the user once; on a yes, invoke `workflow-spec-to-pbi` **AS A SUB-AGENT** (`spawn_agent` tool) briefed to run `$start-workflow workflow-spec-to-pbi` with the user's yes as the explicit request — returns a summary, writes full findings to `tmp/reports/`; otherwise report the gap |
 | PBIs lack `-mockup.html` AND workflow is mockup-bearing (`idea-to-pbi`) | Invoke `pbi-mockup` per PBI to generate the missing mockup                       |
 | Spec-only `idea-to-spec` context                 | SKIP all mockup generation — never invoke `pbi-mockup` (deck uses design-spec visuals only)          |
 

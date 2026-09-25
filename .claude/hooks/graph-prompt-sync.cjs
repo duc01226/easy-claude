@@ -39,11 +39,15 @@
  * caller of `sync` gets it. This hook still records the HEAD as evaluated so
  * the no-op is not recomputed on every subsequent prompt.
  *
+ * Graph mode 'off' (`hooks.codeGraph.enabled` in docs/project-config.json) keeps
+ * this hook inert even when an old graph.db exists: no git, no Python.
+ *
  * Exit: Always 0 (non-blocking). The prompt is never gated on graph freshness.
  */
 
 const { runHook } = require('./lib/hook-runner.cjs');
 const {
+    codeGraphMode,
     isGraphAvailable,
     isDepsUnavailableCached,
     markDepsUnavailable,
@@ -56,7 +60,7 @@ const {
     acquireUpdateLock,
     releaseUpdateLock
 } = require('./lib/graph-utils.cjs');
-const { isConfigPopulated } = require('./lib/project-config-loader.cjs');
+const { isConfigPopulated, loadProjectConfig } = require('./lib/project-config-loader.cjs');
 const { debug } = require('./lib/debug-log.cjs');
 
 const TAG = 'graph-prompt-sync';
@@ -84,6 +88,9 @@ runHook(
 
         // Fast-path: no graph to keep fresh. Checked before anything spawns.
         if (!require('fs').existsSync(getGraphDbPath())) return;
+
+        // Graph switched off: an old graph.db must not keep sync work running.
+        if (codeGraphMode({ config: loadProjectConfig() }) !== 'active') return;
 
         const head = getGitHead();
         if (!head) return; // not a git repo, or git unavailable

@@ -36,6 +36,15 @@ const SESSION_FILE_NAME = /^(?:_owner\.json|_session\.json|.+\.tmp)$/;
 const OWNER_FILE = '_owner.json';
 const OWNER_TAG = 'ck-convention-ledger';
 const BUILTIN_BOUNDARY = '"subtype":"compact_boundary"';
+/**
+ * The second host (Codex) writes a compaction into its conversation record as a TOP-LEVEL
+ * `{"timestamp":…,"ordinal":…,"type":"compacted","payload":{…}}` line, never the primary host's
+ * `compact_boundary` subtype. Anchored at the line start with no brace or bracket before the key, so
+ * only a record's own top-level `type` matches: the same words inside a nested payload, or inside a
+ * string (where the quotes are escaped), never do. A false match costs one extra delivery. Ledger
+ * users that re-arm on compaction pass it in their `compactionMarkers` setting.
+ */
+const CODEX_COMPACTION_MARKER = '^\\{[^{}\\[\\]]*"type"\\s*:\\s*"compacted"';
 const FILESYSTEM_SAFE_ID = /^[A-Za-z0-9._-]+$/;
 // Forms that put a class in the working context. A class left out of the digest ('omitted')
 // was never delivered, so it can neither be recorded nor count as present (BR-PFCI-08).
@@ -415,6 +424,19 @@ function isPresent(record, hash, ctx, settings) {
     return elapsed >= 0 && elapsed < minutes * 60 * 1000;
 }
 
+/**
+ * The context for the post-lock re-check (BR-PFCI-17). A peer that delivered between this
+ * process's check and its claim stamped `deliveredAt` from its own clock reading, which is
+ * taken after ours when it started later — so the plain `isPresent` future-stamp guard would
+ * read the peer's fresh record as absent and deliver the same class twice. A live peer can only
+ * have claimed and written inside the lock window, so the re-check reads the clock up to
+ * LOCK_STALE_MS ahead. The cost stays on the safe side everywhere else: a record within that
+ * window of expiring reads expired (one extra reminder).
+ */
+function recheckContext(ctx) {
+    return { ...ctx, now: ctx.now + LOCK_STALE_MS };
+}
+
 function normalizedDocPath(value) {
     const slashed = String(value).replace(/\\/g, '/').replace(/^\.\//, '');
     return process.platform === 'win32' ? slashed.toLowerCase() : slashed;
@@ -642,6 +664,7 @@ function maybePrune(root, now = Date.now(), intervalMs = PRUNE_INTERVAL_MS) {
 
 module.exports = {
     MAIN_SCOPE,
+    CODEX_COMPACTION_MARKER,
     LOCK_STALE_MS,
     SCAN_CAP_BYTES,
     PRUNE_AGE_MS,
@@ -665,6 +688,7 @@ module.exports = {
     recordSessionCompaction,
     lastCompactionAt,
     isPresent,
+    recheckContext,
     staticCredit,
     scanEvidence,
     pruneStale,

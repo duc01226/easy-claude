@@ -31,6 +31,35 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+GRAPH_OFF_MESSAGE = "code graph is off for this project (hooks.codeGraph)"
+
+
+CODE_GRAPH_SETTINGS = ("auto", "on", "off")
+
+
+def _graph_mode_is_off(repo: str | None) -> bool:
+    """True when the hooks resolve the graph mode to off (graph-utils.cjs `codeGraphMode`).
+
+    Off: hooks.codeGraph.enabled is "off", a value outside auto|on|off, or a
+    codeGraph section that is not an object — validation rejects the last two,
+    and until the config is fixed the graph stays inert rather than guessing.
+    Omitted, "auto" and "on" are not off. The config is found the way the hooks
+    find it (see incremental.configured_project_config_path). Reads only the
+    project config; it never opens or creates graph.db.
+    """
+    from .incremental import find_project_root, load_project_config
+
+    root = Path(repo) if repo else find_project_root()
+    config = load_project_config(root)
+    hooks = config.get("hooks") if isinstance(config, dict) else None
+    if not isinstance(hooks, dict) or "codeGraph" not in hooks:
+        return False
+    section = hooks["codeGraph"]
+    if not isinstance(section, dict):
+        return True
+    enabled = section.get("enabled", "auto")
+    return not isinstance(enabled, str) or enabled not in CODE_GRAPH_SETTINGS or enabled == "off"
+
 
 def main() -> None:
     ap = argparse.ArgumentParser(
@@ -179,6 +208,14 @@ def main() -> None:
         return
 
     use_json = getattr(args, "json_output", False)
+    if _graph_mode_is_off(getattr(args, "repo", None)):
+        # Refuse before any command opens graph.db, so no caller reads a graph nobody keeps fresh.
+        if use_json:
+            print(json.dumps({"status": "off", "message": GRAPH_OFF_MESSAGE}, indent=2))
+        else:
+            print(GRAPH_OFF_MESSAGE, file=sys.stderr)
+        sys.exit(1)
+
     if not use_json:
         logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -606,7 +643,8 @@ def _generate_build_suggestions(config: dict, build_result: dict) -> list[str]:
 
         if not has_config:
             suggestions.append(
-                "No project-config.json found. Create one in docs/ or .claude/ "
+                "No project config found (docs/project-config.json, or the path "
+                ".claude/.ck.json names in portability.projectConfigPath). Add one "
                 "with graphConnectors.implicitConnections for framework-specific "
                 "edges (message bus, entity events, CQRS dispatch)."
             )

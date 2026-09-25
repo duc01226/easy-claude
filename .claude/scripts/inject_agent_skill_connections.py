@@ -20,6 +20,7 @@ from __future__ import annotations
 import re
 import sys
 
+from line_endings import read_text, write_text
 from agent_protocol_matrix import (
     AGENT_SKILL_CONNECTIONS,
     AGENT_SKILL_CONNECTIONS_CLOSE,
@@ -109,10 +110,10 @@ def main() -> int:
         if not path.exists():
             results.append((agent, "MISSING"))
             continue
-        original = path.read_text(encoding="utf-8")
+        original, newline = read_text(path)
         updated, status = replace_or_insert(original, agent)
         if status != "present" and not dry_run:
-            path.write_text(updated, encoding="utf-8")
+            write_text(path, updated, newline)
         results.append((agent, "DRY-RUN" if dry_run and status != "present" else status.upper()))
 
     print(f"{'AGENT':<26} STATUS")

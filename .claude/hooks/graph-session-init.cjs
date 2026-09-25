@@ -13,11 +13,17 @@
  *           case where the working tree moved without this session seeing it.
  *           Mid-session HEAD changes are covered by `graph-prompt-sync`.
  *
+ * Opt-in: acts only while the code graph is active (`codeGraphMode`, set by
+ *         `hooks.codeGraph.enabled` in docs/project-config.json). Mode 'auto'
+ *         without a built graph, and mode 'off', install nothing and start no
+ *         process — a project that never chose the graph gets no surprise venv.
+ *
  * Exit: Always 0 (non-blocking).
  */
 
 const { runHook } = require('./lib/hook-runner.cjs');
 const {
+    codeGraphMode,
     isGraphAvailable,
     invokeGraph,
     ensurePythonDeps,
@@ -26,13 +32,16 @@ const {
     markDepsUnavailable,
     clearDepsUnavailable
 } = require('./lib/graph-utils.cjs');
-const { isConfigPopulated } = require('./lib/project-config-loader.cjs');
+const { isConfigPopulated, loadProjectConfig } = require('./lib/project-config-loader.cjs');
 
 runHook(
     'graph-session-init',
     async () => {
         // Config not initialized; project init/prompt gates own user-facing guidance.
         if (!isConfigPopulated()) return;
+
+        // Install and sync only for a graph the project uses (BR-ADS-02).
+        if (codeGraphMode({ config: loadProjectConfig() }) !== 'active') return;
 
         let status = isGraphAvailable();
 

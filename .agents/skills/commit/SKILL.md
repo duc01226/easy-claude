@@ -11,7 +11,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
+> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
 ## Codex Project-Reference Loading (Hook-Independent)
@@ -61,7 +61,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **STEP 2.9 — DERIVE THE ESTIMATE** via the carried `SYNC:estimation-framework` against the STAGED diff (or reuse the implemented plan/PBI/story frontmatter with `(source: <path>)`). SP is DERIVED from `likely_days`, never eyeballed; discount generated/lockfile/docs churn first.
 - **STEP 3 — GENERATE MESSAGE.** Subject `type(scope): description`; body OPENS with the Estimate line, then purpose/kind → what changed → how it works, then the Reviewers block.
 - **STEP 3.5 — TEST-VERIFY GATE (BLOCKING when code changed).** ask the user directly, default **verify** via `$workflow-integration-test-green`. Only an explicit **Yes — already verified** or **Skip** proceeds; NEVER choose skip on the user's behalf. If the gate mutates the staged set, **re-stage AND re-derive the estimate**.
-- **STEP 3.6 — REVIEW GATE (BLOCKING — always).** Check the exact prepared commit candidate with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`. Proceed only for `CLEAN`, or a matching `review`/user-approved `skip` receipt; `ERROR` blocks. Otherwise ask the user directly in this order: `$workflow-review-changes --fix-loop` (recommended), `$changes-review --fix-loop`, `$why-review --fix-loop`, then user-approved skip using a snapshot and `issue --kind=skip` bound to this descriptor. NEVER choose skip for the user. A review receipt proves candidate identity only; it does not waive tests, spec reconciliation, other review gates, or the project CI overlay.
+- **STEP 3.6 — REVIEW GATE (BLOCKING — always).** Check the exact prepared commit candidate with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`. Proceed only for `CLEAN`, or a matching `review`/user-approved `skip` receipt; `ERROR` blocks. Otherwise ask the user directly offering all three `--fix-loop` reviews with ONE marked `(Recommended)` per **Review selection** (size and risk; heavier on a tie), plus user-approved skip using a snapshot and `issue --kind=skip` bound to this descriptor. NEVER choose skip for the user. A review receipt proves candidate identity only; it does not waive tests, spec reconciliation, other review gates, or the project CI overlay.
 - **STEP 4 — COMMIT** with the HEREDOC form (subject → blank → Estimate → body → Reviewers → footer).
 - **STEP 5 — VERIFY** via `git status` + `git log`; confirm the first body line IS the Estimate line, then re-present the reviewer assignment.
 - **STEP 6 — REFRESH THE CODE GRAPH (post-commit, BACKGROUND, non-blocking).** Only when `.code-graph/` exists: fire `$graph-build --scope=sync` in the background so the commit that just moved HEAD is re-parsed AND the graph's `last_synced_commit` advances with it. NEVER blocks or gates the commit; a failure is reported, never retried inline.
@@ -76,7 +76,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 5. **Derive Estimate** — Apply the carried `SYNC:estimation-framework` to the staged diff (or reuse the frontmatter of the plan/PBI/story this commit implements) to derive `story_points` + `man_days_ai` — computed BEFORE the message so the numbers can head the body
 6. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, open the body with the **Estimate** line from step 5, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 4
 7. **Test-Verify Gate** — When staged changes include code that might need tests, ask the user (ask the user directly, default **verify**) to verify via `$workflow-integration-test-green`, confirm **Yes — already verified**, or explicitly **Skip**. Default = verify first, and verify means drive the suite to green, not merely report it
-8. **Review Gate** — Check the exact prepared commit candidate using `check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`; block on `ERROR`. A clean candidate needs no receipt; a changed candidate needs a matching full-review or explicitly user-approved skip receipt. If absent, ask the user to run `$workflow-review-changes --fix-loop` (recommended), `$changes-review --fix-loop`, `$why-review --fix-loop`, or explicitly skip using `snapshot` + `issue --kind=skip` for this exact descriptor, in that order. NEVER skip on the user's behalf. The `review-commit-gate.cjs` hook independently checks the actual commit invocation.
+8. **Review Gate** — Check the exact prepared commit candidate using `check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`; block on `ERROR`. A clean candidate needs no receipt; a changed candidate needs a matching full-review or explicitly user-approved skip receipt. If absent, ask the user to choose one of the three `--fix-loop` reviews, recommending one per **Review selection** (Step 3.6), or to explicitly skip using `snapshot` + `issue --kind=skip` for this exact descriptor. NEVER skip on the user's behalf. The `review-commit-gate.cjs` hook independently checks the actual commit invocation.
 9. **Commit** — Create commit with HEREDOC (title + Estimate line + detailed summary + Reviewers block + attribution footer)
 10. **Verify** — Confirm with git status and git log
 
@@ -86,7 +86,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - Write a detailed body — **purpose/kind → what changed → how it works** — so the next human reading `git log`/`git blame` understands the change without opening the diff. As detailed as the change needs (wrap ~72 chars); no title-only commits for non-trivial changes
 - Embed a **Reviewers** block in the commit message — the per-area reviewers (last author per touched file vs `HEAD`, commit author excluded) — computed BEFORE committing so it lives in the message body, not just as a side report
 - When staged changes include code that might need tests, **gate the commit on test verification** — ask the user to verify via `$workflow-integration-test-green` (default), confirm already-verified, or explicitly skip; only an explicit **Yes** or **Skip** proceeds straight to commit, and the agent NEVER chooses skip on the user's behalf
-- **Gate the commit on the exact candidate (Step 3.6, blocking — always)** — derive the descriptor from the prepared commit invocation and check it with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`. `ERROR` blocks; `CLEAN` needs no receipt; a `CHANGED` candidate needs a matching full-review receipt or an explicitly user-approved skip receipt for that descriptor. Otherwise ASK the user to choose in order: `$workflow-review-changes --fix-loop` (recommended), `$changes-review --fix-loop`, `$why-review --fix-loop`, then explicitly approve Skip by capturing this descriptor and issuing kind `skip`. NEVER choose skip yourself; `review-commit-gate.cjs` independently checks the actual commit invocation.
+- **Gate the commit on the exact candidate (Step 3.6, blocking — always)** — derive the descriptor from the prepared commit invocation and check it with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`. `ERROR` blocks; `CLEAN` needs no receipt; a `CHANGED` candidate needs a matching full-review receipt or an explicitly user-approved skip receipt for that descriptor. Otherwise ASK the user to choose a `--fix-loop` review — recommend exactly one per **Review selection** (Step 3.6) and state the signal that chose it — or explicitly approve Skip by capturing this descriptor and issuing kind `skip`. NEVER choose skip yourself; `review-commit-gate.cjs` independently checks the actual commit invocation.
 - Stop after the commit; push only when the user explicitly requests it (or passes `--push` / says "commit and push" → stage + commit + push via `git-manager`)
 - Never commit secrets, credentials, or .env files
 - Never use `--amend` or `--no-verify` unless explicitly requested
@@ -385,11 +385,11 @@ Use the descriptor matching the prepared invocation. Read the JSON:
 
   > Header: `Review gate`
   > Question: `No review fix-loop has covered this exact changeset. Review before committing, or skip?`
-  > Options (in order — first is the default and recommended):
-  > 1. `Run $workflow-review-changes --fix-loop` (Recommended) — do NOT commit yet; invoke the `workflow-review-changes` workflow with this exact descriptor JSON (including `"amend":true` for an amend) so its review steps measure the same candidate. It runs the required reviews, validates findings, fixes at the owning layer, and repeats the full review workflow until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files).
-  > 2. `Run $changes-review --fix-loop` — do NOT commit yet; activate the `changes-review` skill in `--fix-loop` mode with the same exact descriptor JSON. It reviews, validates findings, fixes at the owning layer, and runs a fresh full re-review until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files).
-  > 3. `Run $why-review --fix-loop` — same (pass the same exact descriptor JSON), using the rationale-review loop (`why-review` in `--fix-loop` mode); it mints the receipt on convergence.
-  > 4. `Skip — commit without review` — the user's explicit, recorded decision. Ask them to confirm, then mint the approved skip and proceed:
+  > Options — the review chosen by [Review selection](#review-selection) first, labelled `(Recommended)`; then the other two reviews; Skip last:
+  > - `Run $workflow-review-changes --fix-loop` — do NOT commit yet; invoke the `workflow-review-changes` workflow with this exact descriptor JSON (including `"amend":true` for an amend) so its review steps measure the same candidate. It runs the required reviews, validates findings, fixes at the owning layer, and repeats the full review workflow until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files).
+  > - `Run $changes-review --fix-loop` — do NOT commit yet; activate the `changes-review` skill in `--fix-loop` mode with the same exact descriptor JSON. It reviews, validates findings, fixes at the owning layer, and runs a fresh full re-review until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files).
+  > - `Run $why-review --fix-loop` — same (pass the same exact descriptor JSON), using the rationale-review loop (`why-review` in `--fix-loop` mode); it mints the receipt on convergence.
+  > - `Skip — commit without review` — the user's explicit, recorded decision. Ask them to confirm, then mint the approved skip and proceed:
 
      ```bash
      node .claude/hooks/lib/review-receipt.cjs snapshot --target=commit-descriptor --descriptor-json='{"mode":"staged","literalPaths":[]}'
@@ -400,7 +400,7 @@ Use the descriptor matching the prepared invocation. Read the JSON:
 
 Rules:
 
-- **Default is option 1 (review).** If the user does not actively choose a skip, review first — never commit unreviewed content on assumption.
+- **Default is the recommended review.** If the user does not actively choose a skip, review first — never commit unreviewed content on assumption.
 - **Skip is the user's call alone.** Offer it, never recommend it, and NEVER select it yourself — an agent that can skip its own gate has no gate.
 - **The receipt is bound to candidate identity** — repository/storage, base tree, and candidate tree — and `check` must use the same commit descriptor the hook will evaluate. Staging identical reviewed content preserves the tree identity; staging different content, changing the base/candidate, or selecting different paths does not. After a fix-loop, any later content change requires a fresh full review of that candidate before commit.
 - **Minting is the fix-loop's job, not yours.** The three fix-loop skills mint the receipt at their terminal step; you only mint a `skip` receipt, and only after the user explicitly approves.
@@ -408,6 +408,22 @@ Rules:
 - **Receipt scope:** a review receipt establishes only that a qualifying full review covered the same candidate. It never waives the Test-Verify Gate, spec/test reconciliation, other required reviews, or `commit-local-ci-gate` overlay requirements.
 - Re-run this gate only once per commit; after a review-or-skip decision, proceed to Step 4 without re-asking.
 - This gate is independent of `--push`: it runs before the commit in every mode.
+
+#### Review selection
+
+Recommend the review that fits the change's size and risk — why: a fixed heaviest-first default spends the full workflow on a typo fix and trains users to skip.
+
+| Review | What it does for the agent | Pick when |
+| --- | --- | --- |
+| `$why-review --fix-loop` | One adversarial pass over the rationale and correctness of a small, focused change, then a fresh full re-review. Cheapest. | Docs, config or comment-only changes; or one small module (roughly ≤3 files) with no behaviour or public-contract change. |
+| `$changes-review --fix-loop` | Multi-dimension diff review (correctness, tests, conventions, spec drift, integration), then validate, fix and re-review. Medium. | A focused behaviour change in one module, or a moderate diff with tests. |
+| `$workflow-review-changes --fix-loop` | The full review workflow: parallel architecture, security, performance, integration-test, production-readiness, domain and UI lenses plus why-review, re-run until it converges. Heaviest. | Any of: cross-module or public-contract change; security, auth, secrets or permissions; data or schema migration; hooks, gates or other framework enforcement; dependency upgrades; UI surfaces; a large diff. |
+
+- Read the objective signals first: the candidate's file list, paths and `--stat` (for an amend, the whole amended commit). Any heavier signal outranks a lighter one.
+- Tie or unclear → recommend the heavier review.
+- Mark exactly ONE option `(Recommended)` and state the signal that chose it, e.g. `Recommended: $changes-review — behaviour change in one module, with tests`.
+- All three reviews stay offered and the user chooses. Skip stays user-only: offered, never recommended. Every option is a fix-loop that mints the receipt; receipt semantics do not change.
+- **Autonomous runs:** when the user has pre-authorised the agent to choose, run the recommended review without asking. That authorisation never extends to Skip.
 
 ### Step 4: Commit
 
@@ -427,14 +443,20 @@ printf '%s\n' \
   '- <area>: Reviewer Name <reviewer@email> — focus on <what they own>' \
   '' \
   'Generated with [Claude Code]' \
-  '' \
-  'Fix-Origin: <feedback|regression|not-applicable>' \
   | git commit -F -
 ```
 
 > The **Estimate** line comes from Step 2.9 — re-derived after Step 3.5 if that gate changed the staged set — and is ALWAYS the first line of the body.
 > The **Reviewers** block comes from Step 2.7 (last author per staged file vs `HEAD`, commit author excluded, grouped by area). Omit the block only when every staged file is brand-new or author-owned with no external reviewer — in that case state `Reviewers: none (author-owned / new files)`.
-> `Fix-Origin:` is required on every authored commit so the PR range can measure feedback fixes separately from regressions. Use `feedback` for a fix requested through review or other feedback, `regression` for a defect introduced by earlier work, and `not-applicable` for commits that are not fixes. This is an author-declared measurement field; the sensor verifies presence and does not claim the label is true. Put the same field in the PR body so GitHub's squash message can preserve the measurement on `main`.
+> **`Fix-Origin:` trailer — opt-in, off by default.** Add it only if `commit.fixOriginTrailer` is `true` in `docs/project-config.json`. When the key is absent or `false`, the message carries no `Fix-Origin` line.
+>
+> When the project opts in, end the message with a blank line and then one trailer line, after `Generated with [Claude Code]`:
+>
+> ```text
+> Fix-Origin: <feedback|regression|not-applicable>
+> ```
+>
+> Use `feedback` for a fix requested through review or other feedback, `regression` for a defect introduced by earlier work, and `not-applicable` for commits that are not fixes. It is an author-declared measurement field for projects that opt in: the author states the label and nothing in the framework reads or checks it. It applies to new commits only — never reword existing commits to add it. Put the same field in the PR body so a squash merge keeps it on the default branch.
 
 ### Step 5: Verify
 
@@ -498,7 +520,7 @@ Generated by AI
 - **This skill is the ONLY supported commit path** — a raw ad-hoc `git commit` from the agent is refused by `review-commit-gate.cjs` unless a review fix-loop receipt (or a user-approved `skip` receipt) exists for the changeset. Always run the Review Gate (Step 3.6) before committing
 - **Stage only the user-authorized paths** before committing — never use a repository-wide `git add .` when unrelated work may be present; preserve other owners' index/worktree changes
 - **Test-Verify Gate (Step 3.5):** when staged changes include code that might need tests, ask the user to verify via `$workflow-integration-test-green` (default — it converges the suite to green), confirm already-verified, or explicitly skip; only an explicit **Yes** or user-chosen **Skip** commits without verifying, and the agent NEVER picks skip itself. Bypass the gate entirely only when the staged set is docs, specs, or config with no source-code change
-- **Review Gate (Step 3.6, blocking — ALWAYS):** check `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact prepared commit descriptor>'` against the exact planned commit candidate; `ERROR` blocks, `CLEAN` needs no receipt, and `CHANGED` requires a matching review or user-approved skip receipt. When needed, ask the user to run `$workflow-review-changes --fix-loop` (recommended), `$changes-review --fix-loop`, `$why-review --fix-loop`, or explicitly approve skip, in that order; after approval, capture and issue the skip against that same descriptor with the `snapshot --target=commit-descriptor` and `issue --kind=skip --scope=full-changeset --snapshot-json=...` flow above. The agent NEVER chooses skip on the user's behalf. Candidate identity changes invalidate the receipt; unrelated worktree edits outside the prepared commit candidate do not.
+- **Review Gate (Step 3.6, blocking — ALWAYS):** check `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact prepared commit descriptor>'` against the exact planned commit candidate; `ERROR` blocks, `CLEAN` needs no receipt, and `CHANGED` requires a matching review or user-approved skip receipt. When needed, ask the user to choose one of the three `--fix-loop` reviews (one recommended per **Review selection**, heavier on a tie) or explicitly approve skip; after approval, capture and issue the skip against that same descriptor with the `snapshot --target=commit-descriptor` and `issue --kind=skip --scope=full-changeset --snapshot-json=...` flow above. The agent NEVER chooses skip on the user's behalf. Candidate identity changes invalidate the receipt; unrelated worktree edits outside the prepared commit candidate do not.
 - **Estimate line is MANDATORY and comes FIRST in the body** — `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per the carried `SYNC:estimation-framework` against the STAGED diff (Step 2.9), or reused from the implemented plan/PBI/story frontmatter with `(source: <path>)`. Story points and AI man-days are required; discount generated/lockfile/docs churn before estimating
 - **Stop after the commit; push** to remote only when the user explicitly requests it
 - **Refresh the code graph after committing (Step 6)** — when `.code-graph/` exists, fire `$graph-build --scope=sync` in the BACKGROUND (`run_in_background: true`) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances with it; skip silently when the dir is absent. Non-blocking by design: it NEVER gates, delays, or fails the commit
@@ -532,204 +554,18 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
-<!-- SYNC:sub-agent-selection -->
+<!-- PROTOCOL-GUIDES:START -->
 
-> **Sub-Agent Selection** — Full routing contract: `.claude/skills/shared/sub-agent-selection-guide.md`
-> **Rule:** Route specialized domains (architecture, security, performance, DB, E2E, integration-test, git) to the matching specialist agent (see guide above) — NEVER use `code-reviewer` for these. — why: `code-reviewer` lacks each domain's checklist, so specialized issues slip through.
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-<!-- /SYNC:sub-agent-selection -->
+- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
+- `estimation-framework` — Bottom-up estimation with derived story points and a min-max range; estimating effort → .claude/skills/shared/protocols/estimation-framework.md
+- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
+- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
+- `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
 
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->
-
-<!-- SYNC:estimation-framework -->
-
-> **Estimation Framework** — Bottom-up first; SP DERIVED; output min-max range when likely ≥3d. Stack-agnostic. Baseline: 3-5yr dev, 6 productive hrs/day. AI estimate assumes Claude Code + project context.
->
-> **Method:**
->
-> 1. **Blast Radius pass** (below) — drives code AND test cost
-> 2. Decompose phases → hours/phase → `bottom_up_hours = Σ phase_hours`
-> 3. `likely_days = ceil(bottom_up_hours / 6) × productivity_factor`
-> 4. Sum **Risk Margin** (base + add-ons) → `max_days = likely_days × (1 + margin)`
-> 5. `min_days = likely_days × 0.9`
-> 6. Output as range when `likely_days ≥3`; single point allowed `<3` (still record margin)
-> 7. `man_days_ai` = same range × AI speedup
-> 8. `story_points` DERIVED from `likely_days` via SP-Days — NEVER driver. Disagreement >50% → trust bottom-up
->
-> **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
->
-> **Cost Driver Heuristic (apply BEFORE work-type row):**
->
-> - **UI dominates** in CRUD/business apps — 1.5-3x backend (states, validation, responsive, a11y, polish)
-> - **Backend dominates ONLY:** multi-aggregate invariants, cross-service contracts, schema migrations, heavy query/perf, new event flows
->
-> **Reuse-vs-Create axis (PRIMARY lever, per layer):**
->
-> | UI tier                                      | Cost     |
-> | -------------------------------------------- | -------- |
-> | Reuse component on existing screen           | 0.1-0.3d |
-> | Add control/column to existing screen        | 0.3-0.8d |
-> | Compose components into NEW screen           | 1-2d     |
-> | NEW screen, custom layout/states/validation  | 2-4d     |
-> | NEW shared/common component (themed, tested) | 3-6d+    |
->
-> | Backend tier                                         | Cost      |
-> | ---------------------------------------------------- | --------- |
-> | Reuse query/handler from new place                   | 0.1-0.3d  |
-> | Small update existing handler/entity                 | 0.3-0.8d  |
-> | NEW query on existing repo/model                     | 0.5-1d    |
-> | NEW command/handler on existing aggregate (additive) | 1-2d      |
-> | NEW aggregate/entity (repo, validation, events)      | 2-4d      |
-> | NEW cross-service contract OR schema migration       | 2-4d each |
-> | Multi-aggregate invariant / heavy domain rule        | 3-5d      |
->
-> **Rule:** Sum tiers across UI+backend+tests, apply productivity factor. Reuse short-circuits tiers — call out.
->
-> **Test-Scope drivers (compute test_count EXPLICITLY — "+tests" hand-wave is #1 failure):**
->
-> | Driver                            | Count                                                  |
-> | --------------------------------- | ------------------------------------------------------ |
-> | Happy-path journeys               | 1 per story / AC main flow                             |
-> | State-machine transitions         | reachable transitions × allowed actors                 |
-> | Multi-entity state combos         | state(A) × state(B) — REACHABLE only, not Cartesian    |
-> | Authorization matrix              | (owner, non-owner, elevated, unauth) × each mutation   |
-> | Validation rules                  | 1 per required field / boundary / format / cross-field |
-> | UI states (per new screen/dialog) | happy, loading, empty, error, partial — present only   |
-> | Negative paths / invariants       | 1 per violatable business rule                         |
->
-> | Test tier (Trad, incl. setup+assert+flake) | Cost     |
-> | ------------------------------------------ | -------- |
-> | 1-5 cases, fixtures reused                 | 0.3-0.5d |
-> | 6-12 cases, 1 new fixture                  | 0.5-1d   |
-> | 13-25 cases, multi-entity setup            | 1-2d     |
-> | 26-50 cases OR new state-machine coverage  | 2-3d     |
-> | >50 cases OR full E2E journey              | 3-5d     |
->
-> **Test multipliers:** new fixture/seed harness +0.5d · cross-service/bus assertion +0.3d each · UI E2E ×1.5 · each new role +1-2 cases
->
-> **Blast Radius (mandatory pre-pass — affects code AND test):**
->
-> 1. Files/components directly modified — count
-> 2. Of those, "complex" (>500 LOC, multi-handler, central, frequently-modified) — count
-> 3. Downstream consumers (callers, event subscribers, cross-service) — list
-> 4. Shared/common code touched (multi-app blast) — yes/no
-> 5. Regression scope — areas needing re-test
->
-> **Rule:** Complex touch → add `risk_factors`. Each downstream consumer → +1-3 regression cases. Blast >5 areas OR >2 complex → re-evaluate SPLIT before estimating.
->
-> **Risk Margin (drives max bound):**
->
-> | likely_days         | Base margin                     |
-> | ------------------- | ------------------------------- |
-> | <1d trivial         | +10%                            |
-> | 1-2d small additive | +20%                            |
-> | 3-4d real feature   | +35%                            |
-> | 5-7d large          | +50%                            |
-> | 8-10d very large    | +75%                            |
-> | >10d                | +100% AND **flag SHOULD SPLIT** |
->
-> **Risk-factor add-ons (additive — enumerate in `risk_factors`):**
->
-> | Factor                                                                | +margin |
-> | --------------------------------------------------------------------- | ------- |
-> | `touches-complex-existing-feature` (>500 LOC, multi-handler, central) | +20%    |
-> | `cross-service-contract` change                                       | +25%    |
-> | `schema-migration-on-populated-data`                                  | +25%    |
-> | `new-tech-or-unfamiliar-pattern`                                      | +30%    |
-> | `regression-fan-out` (≥3 downstream areas re-test)                    | +20%    |
-> | `performance-or-latency-critical`                                     | +20%    |
-> | `concurrency-race-event-ordering`                                     | +25%    |
-> | `shared-common-code` (multi-consumer/multi-app)                       | +25%    |
-> | `unclear-requirements-or-design`                                      | +30%    |
->
-> **Collapse rule:** total margin >100% → STOP, split (padding past 2x is dishonesty). Margin <15% on `likely_days ≥5` → under-estimated, widen.
->
-> **Work-Type Caps (hard ceilings on `likely_days`):**
-> | Work type | Max SP | Max likely |
-> | --- | --- | --- |
-> | Single field / config flag / style fix | 1 | 0.5d |
-> | Add property to existing model + bind to existing UI | 2 | 1d |
-> | **Additive endpoint + minor UI control** (button/menu/column), reuses fixtures | **3** | **2-3d** |
-> | Additive endpoint + **NEW UI surface** OR additive multi-layer + new domain rule + 2+ test files | 5 | 3-5d |
-> | NEW model/aggregate OR migration OR cross-module contract OR heavy test (>1.5d) OR NEW UI + non-trivial backend | 8 | 5-7d |
-> | NEW UI surface + (NEW aggregate OR migration OR cross-service contract) | 13 | SHOULD split |
-> | Cross-service contract + migration combined | 13 | SHOULD split |
-> | Beyond | 21 | MUST split |
->
-> **SP→Days (validation only):** 1=0.5d/0.25d · 2=1d/0.35d · 3=2d/0.65d · 5=4d/1.0d · 8=6d/1.5d · 13=10d/2.0d (Trad/AI likely)
-> **AI speedup:** SP 1≈2x · 2-3≈3x · 5-8≈4x · 13+≈5x. AI cost = `(code_gen × 1.3) + (test_gen × 1.3)` (30% review overhead).
->
-> **MANDATORY frontmatter:**
->
-> ```yaml
-> story_points: <n>
-> complexity: low | medium | high | critical
-> man_days_traditional: '<min>-<max>d' # range when likely ≥3d; '<N>d' when <3d
-> man_days_ai: '<min>-<max>d'
-> risk_margin_pct: <n> # base + add-ons
-> risk_factors: [touches-complex-existing-feature, regression-fan-out] # closed-list from add-ons; [] if none
-> blast_radius:
->     touched_areas: <n>
->     complex_touched: <n>
->     downstream_consumers: [list or count]
->     shared_common_code: yes | no
-> estimate_scope_included: [code, integration-tests, frontend, i18n, docs]
-> estimate_scope_excluded: [unit-tests, e2e, perf, deployment, code-review-rounds]
-> estimate_reasoning: |
->     5-7 lines covering:
->     (a) UI tier — row applied
->     (b) Backend tier — row applied
->     (c) Test scope — case breakdown by driver, file count, fixtures, tier row
->     (d) Cost driver — dominant tier + why
->     (e) Blast radius — touched, complex, regression scope
->     (f) Risk factors — list driving margin; why not larger/smaller
->     Example: "UI: compose Form/Table/Dialog → NEW screen (~1.5d). Backend: NEW command on existing aggregate,
->     reuses validation+repo (~1d). Tests: 4 transitions × 2 actors + 3 validation + 2 UI states = 13 cases,
->     1 new fixture → tier 13-25 ~1.5d. Driver: UI composition + new states. Blast: 4 areas, 1 complex.
->     Risk: base 35% + touches-complex +20% = 55% → max 3.9d → range 2.5-4d."
-> ```
->
-> **Sanity self-check:**
->
-> - `likely_days ≥3d` and single-point? → reject, must be range
-> - Margin <15% on `likely_days ≥5d`? → under-estimated, widen
-> - Margin >100%? → STOP, split instead of buffer
-> - Complex existing feature touched, no regression budget in `(c)`? → reject
-> - Blast `>5` areas OR `>2` complex, no split discussion? → reject
-> - Purely additive on existing model AND existing UI? → cap SP 3 unless tests >1.5d
-> - NEW UI surface (page/complex form/dashboard)? → SP 5+ even if backend one endpoint
-> - Backend cross-service / migration / multi-aggregate? → SP 8+ regardless of UI
-> - `bottom_up_hours / 6` vs SP-Days disagreement >50%? → trust bottom-up, downgrade SP
-> - Without tests, SP drops ≥1 bucket? → tests dominate; state explicitly
-> - Reasoning called out UI vs backend vs blast vs risk factors? → if missing, add
-
-<!-- /SYNC:estimation-framework -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
+<!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:estimation-framework:reminder -->
 
@@ -748,24 +584,6 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-<!-- SYNC:parallel-subagent-dispatch -->
-
-> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
->
-> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
-> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
-> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
-> 4. **Spawn each wave in ONE message** — every `spawn_agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
-> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
-> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
->
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
->
-> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
-
-<!-- /SYNC:parallel-subagent-dispatch -->
-
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
@@ -773,17 +591,10 @@ Spawn `git-manager` after committing when the user says "push", "create PR", or 
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
-
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
+
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
@@ -885,36 +696,25 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
 - **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 - **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-- **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
-- **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
-- **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
-- **After memory loss, check existing state before creating new.** Compaction wipes prior-work memory. Query current state to resume — never blindly duplicate.
+- **Re-read and re-verify after context compaction or resume.** Compaction wipes read state and memory; summaries describe intent, not environment state. Re-read before editing, audit current state (git status, files) before creating anything new, grep-verify sub-agent output — every "completed" claim is a hypothesis until evidence confirms it.
 - **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
-- **Trace full dependency chain after edits.** Changing a definition misses downstream consumers. Trace the full chain.
-- **When renaming, grep ALL consumer file types.** Some file types silently ignore missing refs (no compile error). Search code, templates, configs, generated files.
+- **Trace every consumer before and after a change.** Map referencing files before deleting; after bulk replacements, renames, or extractions, grep ALL consumer file types (templates, configs, catalogs and generated files fail silently) for every old or removed name; trace the full dependency chain of an edited definition; update docs that embed canonical data alongside their source.
 - **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
-- **Update docs that embed canonical data when source changes.** Docs inlining derived data (workflows, schemas, configs) go stale silently. Update all embedding docs alongside source.
-- **Verify sub-agent results after context recovery.** Background agents may finish while parent compacted — grep-verify output, don't trust assumed completion.
-- **Cross-check full target list against sub-agent assignments.** Parallel sub-agents by category miss boundary items. Reconcile union of assignments against target list before proceeding.
-- **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
-- **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
+- **Sub-agents: inherit, cover, persist.** Sub-agents know only their agent .md definition — use custom agent types, not built-in Explore. Reconcile the union of assignments against the full target list — category splits miss boundary items. Make the report write the first deliverable, appended per file/section with bounded scope; a truncated run with no report → spawn a narrower scope, never the same prompt.
 - **Ownership before action.** When investigating a failure, ask which part owns the behavior before changing anything. Trace the wrong state to the component responsible for its invariant, then make one authoritative correction there.
 - **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec if one exists (the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
-- **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
-- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
+- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting any constant/limit/flag/cutoff, read comments, git blame, the CALLER's ordering (the guarantee usually runs immediately BEFORE the cited line), and 2+ sibling call sites. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
 - **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
-- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, and state). Verify each against evidence, not intuition. Ask "what would falsify this?" — if nothing, it is not a hypothesis. The most expensive failure is going deeper into an assumed area while the real issue sits in an unexamined condition.
-- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem; avoid unrelated cleanup. For review or enhancement work, announce improvements beyond the main request rather than silently expanding scope. Ask: "Would this change exist if I were not addressing this request?" — if not, remove it or disclose it.
-- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
-- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
-- **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
-- **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
-- **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
-- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
+- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, state) and verify each against evidence. Ask "what would falsify this?" — if nothing, it is not a hypothesis.
+- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem: "Would this change exist if I were not addressing this request?" — if not, remove or disclose it; never silently expand scope.
+- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort ("(1) [N h], (2) [N h]. Which matters?"), list assumptions, name a simpler path when one exists.
+- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC: steel-man a rejected alternative, invert each reason ("what does it sacrifice?"), stress-test the top 2-3 assumptions, run a pre-mortem. Quality = causal reasoning + mitigations + evidence, not section presence.
+- **OOM/memory: check row count before row size.** An unbounded query (no DB filter for the trigger) → push the filter to the DB; then large rows → projection. Row reduction > projection in ROI.
+- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** For async work (queues, retries, background jobs, caches, replication) assert the final business/entity state — NEVER delivery bookkeeping (consume/send status, attempt counts, last-error, broker/scheduler/outbox rows) that ANY co-running process can write: green alone, flaky once anything shares that broker + database. Gate: "would this hold no matter WHICH process did the work?" Process-local fault injection is a stress amplifier (arm → bounded window → disarm → assert convergence), never a precondition.
 - **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before deep tracing and before any verdict, sweep environment preconditions (toolchain/dependency/lockfile state, stale build or cache artifacts, env vars and config profile, service dependencies up-migrated-seeded, ports/network/clock, OS-path/locale, permissions and locks, leftover processes/containers/test data) AND transient resource pressure (RAM/OOM, CPU saturation under parallel workers, disk/temp exhaustion, handle and connection-pool limits, network flakiness, a timeout that is really slowness). Tell-tale shape: non-deterministic, timing-dependent, passes alone but fails in parallel, fails only on one machine or only on CI, or an error naming resources rather than business rules. Cite the discriminator you ran (clean environment? did code on the failing path change since it last passed? one machine or all? concurrency 1 or a clean rebuild?) — a verdict without one is a guess, for code as much as for the environment. Fix an environment cause in the environment or setup; NEVER edit product code or weaken/skip a test to absorb it, and a failure that vanishes on retry stays unexplained until its mechanism is named. — why: forcing green against an environment fault hides the real defect and permanently rots the test.
-- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral Node APIs and literal argv vectors; never infer shell, temporary-path, executable-extension, ACL, or symlink semantics from the current host. A documented command, entry point, or wrapper script gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>` — a single-OS example is an incomplete protocol. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
-- **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
+- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before any verdict, sweep environment preconditions (toolchain/lockfile state, stale build/cache artifacts, env vars and config, service dependencies, ports/clock, OS path/locale, permissions, leftover processes/test data) AND transient resource pressure (RAM/OOM, CPU, disk/temp, handle and connection-pool limits, network, a timeout that is really slowness). Tell-tale: non-deterministic, fails only in parallel, on one machine or only on CI, or an error naming resources. Cite the discriminator you ran (clean environment? path changed? concurrency 1?) — a verdict without one is a guess. Fix an environment cause in the environment; NEVER edit product code or weaken/skip a test to absorb it; a failure that vanishes on retry stays unexplained until its mechanism is named.
+- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral APIs and literal argv vectors; never infer shell, temp-path, executable-extension, ACL, or symlink semantics from the current host. A documented command gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>`. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
+- **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer must reference NO consumer-specific domain concept (tenant/customer/product IDs, business entities, feature rules); such a leak compiles, runs, and passes review while coupling the layer to one consumer. Push domain fields/logic down into the consumer via subclass/composition.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

@@ -229,6 +229,37 @@ const managedProtocolDigestAliases = new Map([
 ]);
 const protocolDigestLinePattern = /^\s*-\s+\*\*([^:*]+):\*\*/;
 
+// ── Guide carriers (P48 pattern; P26 sensor rows N6, N7, N8) ─────────────────
+// A converted SKILL.md carries a shared protocol as one guide line (the shared P25
+// recognizer, never a copied line format) and the hook delivers the projection file
+// `<skills root>/shared/protocols/<tag>.md`. For SKILLS a guide entry backed by an
+// existing projection counts as carrying the protocol; AGENTS keep full text (owner
+// answer), so an agent guide never counts. A file with neither form still fails.
+const guideCarrier = require(path.join(__dirname, '..', '..', '..', 'scripts', 'lib', 'protocol-guide-carrier.cjs'));
+const skillGuides = (body, tag, skillsDir = SKILLS_DIR) =>
+    guideCarrier.hasGuideEntry(body, tag) && fs.existsSync(path.join(skillsDir, 'shared', 'protocols', `${tag}.md`));
+// Full block, `:reminder` or (skills) a guide entry: the TC-UAR-009/-010 notion of "carries".
+const skillCarriesAnyForm = (body, tag, skillsDir = SKILLS_DIR) =>
+    body.includes(`<!-- SYNC:${tag}`) || skillGuides(body, tag, skillsDir);
+// TC-UAR-009: a skill demanding code reading must also demand evidence discipline.
+const missesEvidencePair = (body, skillsDir = SKILLS_DIR) =>
+    skillCarriesAnyForm(body, 'understand-code-first', skillsDir) && !skillCarriesAnyForm(body, 'evidence-based-reasoning', skillsDir);
+// TC-UAR-013: a digest alias line needs its managed block, or (skills only) its guide entry.
+function digestAliasProblems(doc, skillsDir = SKILLS_DIR) {
+    const problems = [];
+    for (const line of doc.body.split(/\r?\n/)) {
+        const digestMatch = protocolDigestLinePattern.exec(line);
+        if (!digestMatch) continue;
+        const tag = managedProtocolDigestAliases.get(digestMatch[1]);
+        if (!tag) continue;
+        const guided = doc.kind === 'skill' && skillGuides(doc.body, tag.replace(/^SYNC:/, ''), skillsDir);
+        if (blockBody(doc.body, tag) === null && !guided) {
+            problems.push(`${doc.kind}:${doc.name} digest references absent ${tag}: ${line.trim()}`);
+        }
+    }
+    return problems;
+}
+
 // Count ONLY real fences at column 0 (multiline-anchored). A block body may
 // document the fence syntax inline — e.g. the shared-protocol-duplication-policy
 // body contains a backtick-wrapped `<!-- SYNC:tag -->` example mid-line. That is
@@ -371,16 +402,10 @@ module.exports = {
             name: '[agent-universal-rules] TC-UAR-009 skills with understand-code-first also carry evidence-based-reasoning',
             fn: () => {
                 // Prefix match catches both the full block (`<!-- SYNC:tag -->`) and the
-                // condensed reminder (`<!-- SYNC:tag:reminder -->`). A code-investigation
-                // skill that demands code reading must also demand evidence discipline.
-                const missing = [];
-                for (const name of skillNames) {
-                    const body = readSkill(name);
-                    const hasUnderstand = body.includes('<!-- SYNC:understand-code-first');
-                    if (!hasUnderstand) continue;
-                    const hasEvidence = body.includes('<!-- SYNC:evidence-based-reasoning');
-                    if (!hasEvidence) missing.push(name);
-                }
+                // condensed reminder (`<!-- SYNC:tag:reminder -->`); a converted skill's guide
+                // entry counts on both sides (N6). A code-investigation skill that demands code
+                // reading must also demand evidence discipline.
+                const missing = skillNames.filter(name => missesEvidencePair(readSkill(name)));
                 assertEqual(
                     missing.length, 0,
                     `skill(s) carry understand-code-first but NOT evidence-based-reasoning (add the EBR block — full or :reminder):\n  ${missing.join('\n  ')}`,
@@ -390,10 +415,11 @@ module.exports = {
         {
             name: '[agent-universal-rules] TC-UAR-010 web-research carries its own SYNC:web-research domain block',
             fn: () => {
+                // The block or, once converted, its guide entry backed by the projection (N7).
                 const body = readSkill('web-research');
                 assertTrue(
-                    body.includes('<!-- SYNC:web-research'),
-                    'web-research/SKILL.md is missing its own SYNC:web-research domain block',
+                    skillCarriesAnyForm(body, 'web-research'),
+                    'web-research/SKILL.md is missing its own SYNC:web-research domain block (or its guide entry)',
                 );
             },
         },
@@ -444,25 +470,58 @@ module.exports = {
         {
             name: '[agent-universal-rules] TC-UAR-013 protocol digest aliases require matching managed SYNC blocks',
             fn: () => {
-                const problems = [];
-                for (const doc of instructionDocs()) {
-                    for (const line of doc.body.split(/\r?\n/)) {
-                        const digestMatch = protocolDigestLinePattern.exec(line);
-                        if (!digestMatch) continue;
-
-                        const tag = managedProtocolDigestAliases.get(digestMatch[1]);
-                        if (!tag) continue;
-
-                        if (blockBody(doc.body, tag) === null) {
-                            problems.push(`${doc.kind}:${doc.name} digest references absent ${tag}: ${line.trim()}`);
-                        }
-                    }
-                }
+                // A skill's guide entry counts as the managed block (N8); an agent's never does.
+                const problems = instructionDocs().flatMap(doc => digestAliasProblems(doc));
                 assertEqual(
                     problems.length,
                     0,
                     `protocol digest references absent managed block(s):\n  ${problems.join('\n  ')}`,
                 );
+            },
+        },
+        {
+            // Sensor rows N6, N7, N8 (P26 scratch run): each check accepts a skill guide entry backed by
+            // its projection, and still fails when the guide is gone, the projection is missing, or the
+            // guide sits in an agent (agents keep full text).
+            name: '[agent-universal-rules] TC-PDL-065 TC-UAR-009/-010/-013 accept a skill guide carrier only while its projection exists',
+            fn: () => {
+                const os = require('os');
+                const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'uar-guide-'));
+                try {
+                    // Given a skills root with projection files and guide blocks built by the format owner
+                    const skillsDir = path.join(tmp, 'skills');
+                    const projectionFile = tag => path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
+                    fs.mkdirSync(path.dirname(projectionFile('x')), { recursive: true });
+                    for (const tag of ['evidence-based-reasoning', 'web-research', 'ui-system-context']) fs.writeFileSync(projectionFile(tag), `> ${tag} fixture body.\n`);
+                    const guides = (...tags) => [guideCarrier.GUIDE_BLOCK_START, '',
+                        ...tags.map(tag => guideCarrier.formatGuideLine({ tag, summary: 'Fixture summary', when: 'fixture work', path: `.claude/skills/shared/protocols/${tag}.md` })),
+                        '', guideCarrier.GUIDE_BLOCK_END].join('\n');
+                    const understand = '<!-- SYNC:understand-code-first:reminder -->\n\n> read first\n\n<!-- /SYNC:understand-code-first:reminder -->\n';
+
+                    // When TC-UAR-009 checks a skill whose evidence protocol is a guide, Then it passes
+                    assertEqual(missesEvidencePair(`${understand}${guides('evidence-based-reasoning')}`, skillsDir), false, 'N6: guide carrier must satisfy the pair');
+                    // When both forms of the evidence protocol are missing, Then it fails
+                    assertEqual(missesEvidencePair(understand, skillsDir), true, 'N6: a missing evidence protocol must fail');
+
+                    // When TC-UAR-010 checks web-research carried as a guide, Then it passes
+                    assertTrue(skillCarriesAnyForm(guides('web-research'), 'web-research', skillsDir), 'N7: guide carrier must count');
+                    assertTrue(!skillCarriesAnyForm('# web-research\n', 'web-research', skillsDir), 'N7: no block and no guide must fail');
+
+                    // When TC-UAR-013 checks a digest alias whose protocol is a guide, Then only a skill passes
+                    const digest = '- **UI System Context:** resolve UI conventions first.';
+                    const doc = (kind, body) => ({ kind, name: 'fx', body: `${body}\n${digest}\n` });
+                    assertEqual(digestAliasProblems(doc('skill', guides('ui-system-context')), skillsDir).length, 0, 'N8: skill guide carrier must satisfy the alias');
+                    assertEqual(digestAliasProblems(doc('skill', '# fx'), skillsDir).length, 1, 'N8: an alias with no block and no guide must fail');
+                    assertEqual(digestAliasProblems(doc('agent', guides('ui-system-context')), skillsDir).length, 1, 'N8: an agent guide must not satisfy the alias');
+
+                    // When the projection files are removed, Then every guide carrier stops counting
+                    for (const tag of ['evidence-based-reasoning', 'web-research', 'ui-system-context']) fs.rmSync(projectionFile(tag));
+                    assertEqual(missesEvidencePair(`${understand}${guides('evidence-based-reasoning')}`, skillsDir), true, 'N6: no projection, no carrier');
+                    assertTrue(!skillCarriesAnyForm(guides('web-research'), 'web-research', skillsDir), 'N7: no projection, no carrier');
+                    assertEqual(digestAliasProblems(doc('skill', guides('ui-system-context')), skillsDir).length, 1, 'N8: no projection, no carrier');
+                } finally {
+                    fs.rmSync(tmp, { recursive: true, force: true });
+                }
             },
         },
         {
@@ -517,7 +576,8 @@ module.exports = {
                 ];
                 for (const { kind, name, tag, label, labels } of removed) {
                     const body = kind === 'agent' ? read(name) : readSkill(name);
-                    if (body.includes(`SYNC:${tag}`)) {
+                    // A guide entry is a carrier too: a trimmed protocol must not come back as a guide line.
+                    if (body.includes(`SYNC:${tag}`) || guideCarrier.hasGuideEntry(body, tag)) {
                         problems.push(`${kind}:${name} still carries SYNC:${tag} (must be trimmed)`);
                     }
                     for (const digestLabel of labels || [label]) {
@@ -562,7 +622,9 @@ module.exports = {
 
                 const unclassified = [];
                 for (const tag of canonTags) {
-                    const skillCount = skillBodies.filter(b => hasBlock(b, tag)).length;
+                    // Skill reach counts guide carriers too; otherwise converting skills to guides
+                    // would drop every tag below the threshold and silence this gate.
+                    const skillCount = skillBodies.filter(b => hasBlock(b, tag) || skillGuides(b, tag)).length;
                     if (skillCount < AGENT_ADOPTION_MIN_SKILL_REACH) continue;
                     const agentCount = agentBodies.filter(b => hasBlock(b, tag)).length;
                     if (agentCount > 0) continue;

@@ -64,6 +64,54 @@ function getEventType(input) {
     return input.notification_type || input.hook_event_name || 'default';
 }
 
+// Background-task statuses that mean the task has already settled and will not
+// wake the main session again.
+const SETTLED_TASK_STATUSES = ['completed', 'failed', 'killed', 'stopped', 'cancelled', 'canceled'];
+
+// Background-task types the main session waits on: delegated work that reports
+// back into the conversation and then ends. Shell commands and monitors are left
+// out on purpose — a dev server or log tail may never end, and holding the alert
+// for one would silence a finished job for good.
+const AWAITED_TASK_TYPES = ['subagent', 'workflow', 'mcp task'];
+
+/**
+ * Whether the payload came from a delegated (subagent / child) conversation.
+ * Claude adds agent_id only for subagent hook events; host bridges reuse the marker.
+ * @param {Object} input - Event data
+ * @returns {boolean}
+ */
+function isDelegatedConversation(input) {
+    return Object.prototype.hasOwnProperty.call(input, 'agent_id');
+}
+
+/**
+ * Count the delegated tasks the main session is still waiting on at a turn end.
+ * Claude lists in-flight work in Stop's background_tasks; each delegated task
+ * wakes the main session again when it finishes, so the job is not done yet.
+ * Hosts that do not send the array report zero, which keeps their alert.
+ * @param {Object} input - Event data
+ * @returns {number}
+ */
+function countAwaitedTasks(input) {
+    if (!Array.isArray(input.background_tasks)) return 0;
+    const lower = value => (typeof value === 'string' ? value.toLowerCase() : '');
+    return input.background_tasks.filter(task => task &&
+        AWAITED_TASK_TYPES.includes(lower(task.type)) &&
+        !SETTLED_TASK_STATUSES.includes(lower(task.status))).length;
+}
+
+/**
+ * Whether a one-shot scheduled wakeup (ScheduleWakeup, a one-time cron) will
+ * resume the main session. A recurring cron never ends on its own, so it does
+ * not hold back the alert — otherwise a standing schedule would silence it forever.
+ * @param {Object} input - Event data
+ * @returns {boolean}
+ */
+function hasPendingWakeup(input) {
+    return Array.isArray(input.session_crons) &&
+        input.session_crons.some(cron => cron && cron.recurring === false);
+}
+
 /**
  * Explain why an event must not raise an alert.
  * Single owner of every suppression rule, so the router's skip log and its
@@ -83,9 +131,9 @@ function getSkipReason(input) {
     const eventType = getEventType(input);
 
     if (eventType === 'SessionEnd') {
-        // Claude adds agent_id only for subagent hook events. SessionEnd alerts
-        // belong to the main session; Codex SessionEnd is main-session-only too.
-        if (Object.prototype.hasOwnProperty.call(input, 'agent_id')) {
+        // SessionEnd alerts belong to the main session; Codex SessionEnd is
+        // main-session-only too.
+        if (isDelegatedConversation(input)) {
             return 'subagent SessionEnd';
         }
         // A host bridge that cannot tell whether the ended conversation was the
@@ -99,6 +147,24 @@ function getSkipReason(input) {
         // reason (e.g. Codex) still alert, because the end cannot be told apart.
         if (input.reason === 'clear') {
             return 'SessionEnd after conversation reset (clear)';
+        }
+    }
+
+    if (eventType === 'Stop') {
+        // A turn-complete alert means the main session finished its job. A
+        // delegated conversation going idle is not that.
+        if (isDelegatedConversation(input)) {
+            return 'subagent Stop';
+        }
+        // Each finished delegated task wakes the main session for another turn,
+        // so alerting on every such turn spams one alert per task. Hold the alert
+        // until the turn that ends with no delegated work left in flight.
+        const awaitedTasks = countAwaitedTasks(input);
+        if (awaitedTasks > 0) {
+            return `Stop while ${awaitedTasks} delegated task(s) still run`;
+        }
+        if (hasPendingWakeup(input)) {
+            return 'Stop while a scheduled wakeup will resume the session';
         }
     }
 

@@ -260,11 +260,12 @@ Register hooks in `.claude/settings.json`:
 | `PreToolUse`       | Tool names: `Read`, `Edit`, `Write`, `Bash`, `Glob`, `Grep`, `Skill` | Before tool execution          |
 | `PostToolUse`      | Tool names (same as above)                                           | After tool execution           |
 | `PreCompact`       | `manual`, `auto`                                                     | Before context compaction      |
-| `SubagentStart`    | `*`                                                                  | Subagent spawning              |
+| `SubagentStart`    | Agent type names (e.g. `Explore\|Plan`) or `*`                       | Subagent spawning              |
+| `UserPromptExpansion` | `*`                                                               | Typed `/command` expands       |
 | `Stop`             | (none needed)                                                        | Main agent finishes responding |
 | `Notification`     | (none needed)                                                        | Waiting for user input         |
 
-> These are the events Claude Code supports for new hooks. This framework registers no `SubagentStart` hook (sub-agent context is static in `agents/*.md`); it is listed here only because the event remains available if you add one.
+> These are the events Claude Code supports for new hooks. This framework registers no `PreCompact` hook. `SubagentStart` and `UserPromptExpansion` carry only the six `protocol-inject-<group>.cjs` protocol-delivery handlers; standing sub-agent context stays static in `agents/*.md`. Read `README.md#protocol-delivery` before adding another handler to either event.
 
 ### Matcher Patterns
 

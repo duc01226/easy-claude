@@ -5,6 +5,9 @@ const path = require("node:path");
 const { createHash } = require("node:crypto");
 
 const SLUG = /^[a-z][a-z0-9-]*$/;
+// Keep in lockstep with workflows.schema.json definitions.Occurrence.role and OutcomeGate.id.
+const ROLES = ["gate", "core", "optional"];
+const GATE_IDS = ["tests-pass", "review-converged", "spec-synced", "plan-approved", "root-cause-traced", "run-closed"];
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
 const nonempty = value => typeof value === "string" && value.trim().length > 0;
@@ -48,6 +51,46 @@ function normalizeApplicability(value, id) {
   return { when: value.when, skipReason: value.skipReason };
 }
 
+// role lives only on the occurrence object (never stepMeta) so it is checked beside applicability.
+function normalizeRole(step) {
+  if (step.role === undefined) return "core";
+  check(ROLES.includes(step.role), `Invalid role for ${step.id}: ${String(step.role)}`);
+  check(step.role !== "optional" || own(step, "applicability"), `Optional step ${step.id} requires applicability with when and skipReason`);
+  check(step.role !== "gate" || !own(step, "applicability"), `Gate step ${step.id} cannot carry applicability`);
+  return step.role;
+}
+
+function normalizeIntent(entry, workflowId) {
+  if (!own(entry, "intent")) return null;
+  check(nonempty(entry.intent) && !/[\r\n]/.test(entry.intent), `Invalid intent for ${workflowId}: expected one non-empty line`);
+  return entry.intent;
+}
+
+// satisfiedBy lists alternative skills. Every listed skill must exist somewhere in the workflow
+// (any mode), and the selected mode must contain at least one of them, or the gate is unprovable.
+function normalizeOutcomeGates(entry, workflowId, mode, occurrences) {
+  if (!own(entry, "outcomeGates")) return [];
+  check(Array.isArray(entry.outcomeGates) && entry.outcomeGates.length > 0, `Invalid outcomeGates for ${workflowId}: expected a non-empty array`);
+  const workflowSkills = new Set(own(entry, "variants")
+    ? Object.values(entry.variants).flatMap(variant => (Array.isArray(variant?.sequence) ? variant.sequence : []).map(step => step?.skill))
+    : occurrences.map(record => record.skill));
+  const modeSkills = new Set(occurrences.map(record => record.skill));
+  const seen = new Set();
+  return entry.outcomeGates.map(gate => {
+    fields(gate, ["id", "satisfiedBy", "when"], `outcome gate in ${workflowId}`);
+    check(GATE_IDS.includes(gate.id), `Invalid outcome gate ID in ${workflowId}: ${String(gate.id)}`);
+    check(!seen.has(gate.id), `Duplicate outcome gate in ${workflowId}: ${gate.id}`);
+    seen.add(gate.id);
+    check(Array.isArray(gate.satisfiedBy) && gate.satisfiedBy.length > 0, `Outcome gate ${gate.id} needs satisfiedBy skills`);
+    check(gate.satisfiedBy.every(skill => typeof skill === "string" && SLUG.test(skill)), `Invalid satisfiedBy skill in outcome gate ${gate.id}`);
+    check(new Set(gate.satisfiedBy).size === gate.satisfiedBy.length, `Duplicate satisfiedBy skill in outcome gate ${gate.id}`);
+    for (const skill of gate.satisfiedBy) check(workflowSkills.has(skill), `Outcome gate ${gate.id} names a skill not in the sequence of ${workflowId}: ${skill}`);
+    check(gate.satisfiedBy.some(skill => modeSkills.has(skill)), `Outcome gate ${gate.id} has no satisfying step in ${workflowId}/${mode}`);
+    check(gate.when === undefined || nonempty(gate.when), `Invalid when for outcome gate ${gate.id}`);
+    return { id: gate.id, satisfiedBy: [...gate.satisfiedBy], when: gate.when ?? null };
+  });
+}
+
 function normalizeGroups(groups, records, legacyKeys) {
   check(Array.isArray(groups), "Invalid parallelGroups: expected array");
   const groupIds = new Set();
@@ -75,6 +118,8 @@ function normalizeGroups(groups, records, legacyKeys) {
     const conditionalRecords = conditional.map(resolveMember);
     check(new Set(conditionalRecords.map(x => x.id)).size === conditionalRecords.length, `Duplicate conditionalMembers in barrier ${group.id}`);
     check(conditionalRecords.every(record => members.includes(record)), `Conditional member outside barrier ${group.id}`);
+    // A conditional member gets a synthesized applicability below; a gate may never be skippable.
+    for (const record of conditionalRecords) check(record.role !== "gate", `Gate step ${record.id} cannot be a conditional barrier member`);
     for (const member of members) {
       check(!assigned.has(member.id), `Overlapping barrier member: ${member.id}`);
       assigned.add(member.id);
@@ -119,14 +164,14 @@ function resolveWorkflowManifest(document, workflowId, options = {}) {
       check(!own(entry, "variants"), `Variant ${mode} requires explicit occurrence objects`);
       const match = step.trim().match(/^([a-z][a-z0-9-]*)(?:\s+([\s\S]*))?$/);
       check(match, `Invalid legacy command: ${step}`);
-      record = { id: `legacy-${sourceVersion}-${sourceHash.slice(0, 16)}-${index + 1}`, skill: match[1], args: match[2] ?? "", applicability: normalizeApplicability(undefined), barrier: null };
+      record = { id: `legacy-${sourceVersion}-${sourceHash.slice(0, 16)}-${index + 1}`, skill: match[1], args: match[2] ?? "", applicability: normalizeApplicability(undefined), role: "core", barrier: null };
       legacyKeys.set(record.id, step);
     } else {
-      fields(step, ["id", "skill", "args", "applicability"], "occurrence");
+      fields(step, ["id", "skill", "args", "applicability", "role"], "occurrence");
       check(typeof step.id === "string" && SLUG.test(step.id), `Invalid occurrence ID: ${step.id}`);
       check(typeof step.skill === "string" && SLUG.test(step.skill), `Invalid skill: ${step.skill}`);
       check(step.args === undefined || typeof step.args === "string", `Invalid args for ${step.id}`);
-      record = { id: step.id, skill: step.skill, args: step.args ?? "", applicability: normalizeApplicability(step.applicability, step.id), barrier: null };
+      record = { id: step.id, skill: step.skill, args: step.args ?? "", applicability: normalizeApplicability(step.applicability, step.id), role: normalizeRole(step), barrier: null };
     }
     check(!ids.has(record.id), `Duplicate occurrence ID: ${record.id}`);
     ids.add(record.id);
@@ -145,8 +190,10 @@ function resolveWorkflowManifest(document, workflowId, options = {}) {
     check(meta.contextBudget === undefined || ["low", "medium", "high", "critical"].includes(meta.contextBudget), `Invalid contextBudget for ${key}`);
     for (const target of targets) Object.defineProperty(stepMeta, target.id, { value: { ...meta }, enumerable: true });
   }
+  const intent = normalizeIntent(entry, workflowId);
+  const outcomeGates = normalizeOutcomeGates(entry, workflowId, mode, occurrences);
   const fingerprint = digest({ sourceHash, mode, occurrences, parallelGroups, stepMeta });
-  return { workflow: workflowId, mode, sourceVersion, fingerprint, occurrences,
+  return { workflow: workflowId, mode, sourceVersion, fingerprint, intent, outcomeGates, occurrences,
     sequence: occurrences.map(({ skill, args }) => args ? `${skill} ${args}` : skill), parallelGroups, stepMeta };
 }
 

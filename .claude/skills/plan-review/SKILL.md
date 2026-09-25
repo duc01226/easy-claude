@@ -1,7 +1,7 @@
 ---
 name: plan-review
-version: 1.5.0
-description: '[Planning] Use when auto-reviewing a plan for validity, correctness, and best practices — bounded at 2 rounds MAX, no extension.'
+version: 1.6.0
+description: '[Planning] Use when a workflow step or the user asks for a plan review. Auto-reviews validity, correctness and best practices — bounded at 2 rounds MAX, no extension.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -384,7 +384,7 @@ Before ANY checklist, read `plan.md` and classify the plan — why: the type dec
 
 Read the plan directory:
 
-- `plan.md` - Overview, phases list, frontmatter
+- `plan.md` - Overview, phases list, frontmatter (including `spec_baseline` when present), `## Proposed additions (need approval)`
 - `goal.md` - Goal Contract (when present): Original Request, Purpose, Success Criteria (required vs optional), Constraints
 - `phase-*.md` - All phase files
 - Extract: requirements, implementation steps, file listings, risks, `Reference docs read:`, `## Project Convention Alignment`, and every phase's `## Convention Alignment` evidence
@@ -446,6 +446,7 @@ PASSES after split: `"Phase 2A: Data Schema (1h, 3 files) — Create {source-roo
 - [ ] File paths follow project patterns
 - [ ] No conflicting or duplicate steps
 - [ ] Dependencies between steps are clear
+- [ ] **Plan speed** — flag as a finding any per-phase or per-release test, review, or "close" sub-phase (the plan has ONE final gate phase; each implementation phase ends with its targeted check), and any `SEQ` tag without a real data or write-set dependency.
 - [ ] **Anti-Hallucination & Code-Proof Gate** — FAIL if ANY plan claim about existing source code lacks `file:line` proof.
 
 | Claim type             | Required proof                    |
@@ -462,6 +463,13 @@ PASSES after split: `"Phase 2A: Data Schema (1h, 3 files) — Create {source-roo
 - [ ] **Conditional Project Pattern Alignment Gate:** Verify `docs/project-config.json`/docs-index routing, always `code-review-rules.md`, and the frontend/backend pattern reference(s) triggered by the plan. Check every major plan decision against the matrix and inspect source examples when implementation code exists (≥3 per decision when 3 exist, otherwise explicit scarcity/N/A). Missing/stale/generic-only/contradictory evidence or an unexplained deviation = FAIL.
 - [ ] **Test spec coverage** — Every phase has `## Test Specifications` section with TC mappings. "TBD" is valid for TDD-first mode.
 - [ ] **TC-requirement mapping** — Every functional requirement maps to ≥1 TC (or explicit "TBD" with rationale)
+- [ ] **Spec baseline trace (scope guard)** — When `plan.md` frontmatter carries `spec_baseline: [{path, blob}]`, trace requirements to the BASELINE content, never to the current spec file, which may have been edited later in the same run. For each entry:
+    1. Validate `blob` against `^[0-9a-f]{40}([0-9a-f]{24})?$` (a full SHA-1 or SHA-256 object id) BEFORE any git call. Reject anything else — a revision expression such as `HEAD:<path>`, an option such as `--batch`, a short id.
+    2. Read the content with `git cat-file -p <blob>`, run as an argv vector (`git`, `cat-file`, `-p`, `<blob>`), never a shell string — why: `blob` comes from editable frontmatter, and validation plus argv keep it from becoming an option or a revision expression.
+    3. An invalid value, or a failing `git cat-file -p` (for example, the blob was pruned by `git gc`), is the finding `baseline unrecoverable: <path>`. There is NO fallback to the current spec — why: tracing to the edited spec is exactly the growth path the guard exists to catch.
+    4. Every phase task traces to baseline content or to an `APPROVED` entry under `## Proposed additions (need approval)`. A phase task with no such trace is a finding; a requirement found only in the current spec belongs in that section as a question, not in a phase.
+
+    No `spec_baseline` (no spec supplied) → record `No spec baseline` and apply the other checks unchanged.
 - [ ] **Behavior preservation** — Behavior-changing phases name expected behavior, unchanged behavior to preserve, and TC/test proof.
 - [ ] **Docs/spec/test sync** — Relevant phases include canonical spec/doc/test updates or explicit N/A evidence.
 - [ ] **Artifact freshness** — AI-extracted specs/TCs are marked reference-only until accepted; generated mirror sync is included for shared workflow/skill/tooling changes.
@@ -471,7 +479,7 @@ PASSES after split: `"Phase 2A: Data Schema (1h, 3 files) — Create {source-roo
 
 | #   | Check                                                            | Presence                                                        | Quality Depth                                                                                                                           |
 | --- | ---------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **YAGNI** — No unnecessary features or over-engineering          | Is every planned component traceable to a stated requirement?   | Flag anything described as "might be useful" or added for future flexibility without a current requirement.                             |
+| 1   | **YAGNI** — No unnecessary features or over-engineering          | Is every planned component traceable to a stated requirement (the `spec_baseline` content when present)? | Flag anything described as "might be useful" or added for future flexibility without a current requirement.                             |
 | 2   | **KISS** — Simplest viable solution chosen                       | Is there a stated approach for each major step?                 | Could any planned abstraction be simpler with the same effect? Are there unnecessary layers, indirections, or framework choices?        |
 | 3   | **DRY** — No planned duplication of logic                        | Are there similar patterns described more than once?            | Does the plan introduce new patterns when existing ones work? Are there repeated steps that suggest duplication at implementation time? |
 | 4   | **Architecture** — Follows project patterns from `.claude/docs/` and triggered reference-docs (default root `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it) | Does the plan reference and align with local guidance? | Does it follow established patterns and applicable source examples, or deviate with explicit evidence/rationale?                              |
@@ -780,7 +788,7 @@ After ALL wave members return (all-return barrier):
 > **How:**
 >
 > 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
-> 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
+> 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. A reviewer prompt carries every protocol body inline and is never handed a path to go read (the reviewer-prompt rule of `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
 > 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
@@ -848,45 +856,45 @@ After ALL wave members return (all-return barrier):
 >
 > **Reuse-vs-Create axis (PRIMARY lever, per layer):**
 >
-> | UI tier                                      | Cost     |
-> | -------------------------------------------- | -------- |
-> | Reuse component on existing screen           | 0.1-0.3d |
-> | Add control/column to existing screen        | 0.3-0.8d |
-> | Compose components into NEW screen           | 1-2d     |
-> | NEW screen, custom layout/states/validation  | 2-4d     |
-> | NEW shared/common component (themed, tested) | 3-6d+    |
+> | UI tier | Cost |
+> | --- | --- |
+> | Reuse component on existing screen | 0.1-0.3d |
+> | Add control/column to existing screen | 0.3-0.8d |
+> | Compose components into NEW screen | 1-2d |
+> | NEW screen, custom layout/states/validation | 2-4d |
+> | NEW shared/common component (themed, tested) | 3-6d+ |
 >
-> | Backend tier                                         | Cost      |
-> | ---------------------------------------------------- | --------- |
-> | Reuse query/handler from new place                   | 0.1-0.3d  |
-> | Small update existing handler/entity                 | 0.3-0.8d  |
-> | NEW query on existing repo/model                     | 0.5-1d    |
-> | NEW command/handler on existing aggregate (additive) | 1-2d      |
-> | NEW aggregate/entity (repo, validation, events)      | 2-4d      |
-> | NEW cross-service contract OR schema migration       | 2-4d each |
-> | Multi-aggregate invariant / heavy domain rule        | 3-5d      |
+> | Backend tier | Cost |
+> | --- | --- |
+> | Reuse query/handler from new place | 0.1-0.3d |
+> | Small update existing handler/entity | 0.3-0.8d |
+> | NEW query on existing repo/model | 0.5-1d |
+> | NEW command/handler on existing aggregate (additive) | 1-2d |
+> | NEW aggregate/entity (repo, validation, events) | 2-4d |
+> | NEW cross-service contract OR schema migration | 2-4d each |
+> | Multi-aggregate invariant / heavy domain rule | 3-5d |
 >
 > **Rule:** Sum tiers across UI+backend+tests, apply productivity factor. Reuse short-circuits tiers — call out.
 >
 > **Test-Scope drivers (compute test_count EXPLICITLY — "+tests" hand-wave is #1 failure):**
 >
-> | Driver                            | Count                                                  |
-> | --------------------------------- | ------------------------------------------------------ |
-> | Happy-path journeys               | 1 per story / AC main flow                             |
-> | State-machine transitions         | reachable transitions × allowed actors                 |
-> | Multi-entity state combos         | state(A) × state(B) — REACHABLE only, not Cartesian    |
-> | Authorization matrix              | (owner, non-owner, elevated, unauth) × each mutation   |
-> | Validation rules                  | 1 per required field / boundary / format / cross-field |
-> | UI states (per new screen/dialog) | happy, loading, empty, error, partial — present only   |
-> | Negative paths / invariants       | 1 per violatable business rule                         |
+> | Driver | Count |
+> | --- | --- |
+> | Happy-path journeys | 1 per story / AC main flow |
+> | State-machine transitions | reachable transitions × allowed actors |
+> | Multi-entity state combos | state(A) × state(B) — REACHABLE only, not Cartesian |
+> | Authorization matrix | (owner, non-owner, elevated, unauth) × each mutation |
+> | Validation rules | 1 per required field / boundary / format / cross-field |
+> | UI states (per new screen/dialog) | happy, loading, empty, error, partial — present only |
+> | Negative paths / invariants | 1 per violatable business rule |
 >
-> | Test tier (Trad, incl. setup+assert+flake) | Cost     |
-> | ------------------------------------------ | -------- |
-> | 1-5 cases, fixtures reused                 | 0.3-0.5d |
-> | 6-12 cases, 1 new fixture                  | 0.5-1d   |
-> | 13-25 cases, multi-entity setup            | 1-2d     |
-> | 26-50 cases OR new state-machine coverage  | 2-3d     |
-> | >50 cases OR full E2E journey              | 3-5d     |
+> | Test tier (Trad, incl. setup+assert+flake) | Cost |
+> | --- | --- |
+> | 1-5 cases, fixtures reused | 0.3-0.5d |
+> | 6-12 cases, 1 new fixture | 0.5-1d |
+> | 13-25 cases, multi-entity setup | 1-2d |
+> | 26-50 cases OR new state-machine coverage | 2-3d |
+> | >50 cases OR full E2E journey | 3-5d |
 >
 > **Test multipliers:** new fixture/seed harness +0.5d · cross-service/bus assertion +0.3d each · UI E2E ×1.5 · each new role +1-2 cases
 >
@@ -902,28 +910,28 @@ After ALL wave members return (all-return barrier):
 >
 > **Risk Margin (drives max bound):**
 >
-> | likely_days         | Base margin                     |
-> | ------------------- | ------------------------------- |
-> | <1d trivial         | +10%                            |
-> | 1-2d small additive | +20%                            |
-> | 3-4d real feature   | +35%                            |
-> | 5-7d large          | +50%                            |
-> | 8-10d very large    | +75%                            |
-> | >10d                | +100% AND **flag SHOULD SPLIT** |
+> | likely_days | Base margin |
+> | --- | --- |
+> | <1d trivial | +10% |
+> | 1-2d small additive | +20% |
+> | 3-4d real feature | +35% |
+> | 5-7d large | +50% |
+> | 8-10d very large | +75% |
+> | >10d | +100% AND **flag SHOULD SPLIT** |
 >
 > **Risk-factor add-ons (additive — enumerate in `risk_factors`):**
 >
-> | Factor                                                                | +margin |
-> | --------------------------------------------------------------------- | ------- |
-> | `touches-complex-existing-feature` (>500 LOC, multi-handler, central) | +20%    |
-> | `cross-service-contract` change                                       | +25%    |
-> | `schema-migration-on-populated-data`                                  | +25%    |
-> | `new-tech-or-unfamiliar-pattern`                                      | +30%    |
-> | `regression-fan-out` (≥3 downstream areas re-test)                    | +20%    |
-> | `performance-or-latency-critical`                                     | +20%    |
-> | `concurrency-race-event-ordering`                                     | +25%    |
-> | `shared-common-code` (multi-consumer/multi-app)                       | +25%    |
-> | `unclear-requirements-or-design`                                      | +30%    |
+> | Factor | +margin |
+> | --- | --- |
+> | `touches-complex-existing-feature` (>500 LOC, multi-handler, central) | +20% |
+> | `cross-service-contract` change | +25% |
+> | `schema-migration-on-populated-data` | +25% |
+> | `new-tech-or-unfamiliar-pattern` | +30% |
+> | `regression-fan-out` (≥3 downstream areas re-test) | +20% |
+> | `performance-or-latency-critical` | +20% |
+> | `concurrency-race-event-ordering` | +25% |
+> | `shared-common-code` (multi-consumer/multi-app) | +25% |
+> | `unclear-requirements-or-design` | +30% |
 >
 > **Collapse rule:** total margin >100% → STOP, split (padding past 2x is dishonesty). Margin <15% on `likely_days ≥5` → under-estimated, widen.
 >
@@ -1146,7 +1154,7 @@ After ALL wave members return (all-return barrier):
 
 > **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM, copied WHOLESALE and unmodified. They are the review-tier renderings of their canonical `SYNC:` tags, not literal copies; when a canonical protocol changes, update the matching body here in the same edit. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
-> **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 11 protocol bodies pre-embedded.
+> **Why inline expansion:** A fresh reviewer must hold every rule it reviews against from its first token; a path or a placeholder would make it depend on a file read, or on a hook that may not fire for it. Reviewer prompts are therefore the one place the hybrid policy (`SYNC:shared-protocol-duplication-policy`) always keeps full bodies: the template carries all 11 protocol bodies pre-embedded, and the orchestrator copies it wholesale.
 
 ### Subagent Type Selection
 
@@ -1330,16 +1338,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Re-read files after context changes.** Compaction, resume, or long-running work makes memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts; check the source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Map the docs, generated mirrors, configs, and callers a removal can stale.
+> **Trace the full impact chain after edits, and verify ALL affected outputs.** A changed definition reaches derived outputs and consumers; one green check is not all green checks.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never delivery/retry bookkeeping in shared infrastructure that any co-running process can write; such a check passes alone and flakes once anything shares that infrastructure.
 > **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -1359,39 +1366,39 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:severity-rubric -->
 
-> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier has the same meaning everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
+> **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
 >
 > **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
 >
 > | Severity | Action | Definition and examples |
 > | --- | --- | --- |
-> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; or a silent failure on a critical path. A failed binary gate that makes the result untrustworthy is represented as a separate synthetic blocker by the executable policy (not as an ordinary severity judgment). |
-> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; or a missing proof for a behavior-changing fix. |
-> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift whose impact is real but not immediate material loss. An explicit follow-up records the escalation/residual risk; it does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never open another fix/re-review round from round 2 onward, and never counts toward the round-3 extension | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, or a cosmetic/refinement suggestion. |
+> | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
+> | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
+> | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
+> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never counts toward the round-3 extension | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
 >
-> **Consequence decision tree (apply in order):** (1) Is a binary gate failed? Keep it as a separate hard blocker (the executable helper represents it as synthetic CRITICAL); do not use the ordinary severity label to hide what failed. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Otherwise, does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material user/downstream impact? → **HIGH**. (3) Otherwise, is there a bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with a credible impact? → **MEDIUM**. (4) Otherwise, is the evidence sufficient to show only non-blocking polish with no credible present material impact? → **LOW**. (5) If the evidence needed to choose between steps 1–4 is missing, → **NOT VERIFIABLE**, not LOW. When multiple tiers fit, select the highest credible consequence; effort, implementation cost, reviewer discomfort, frequency alone, proximity to the round cap, and whether a tier would unlock or forfeit the conditional round-3 extension never decide the tier.
+> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and unlocking or forfeiting the round-3 extension never decide the tier.
 >
-> **Boundary examples (normalize before applying the round predicate):** an auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate is **CRITICAL**; a wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix is **HIGH**; a bounded retry/timeout/alert/testability gap or credible maintainability drift is **MEDIUM**; a typo, formatting inconsistency, optional cleanup, or cosmetic suggestion proven not to affect present behavior is **LOW**. A missing fact about any of those boundaries is **NOT VERIFIABLE** until evidence or an explicitly documented residual-risk decision exists.
+> **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
 >
-> **Classification procedure (required for every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if the issue ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest tier justified by those facts; (5) cite `file:line` or equivalent evidence and a confidence percentage. Effort, implementation cost, reviewer discomfort, and proximity to the round cap are never severity inputs. `NOT VERIFIABLE` is a pending evidence state, not one of the four tiers and never a LOW escape hatch: if the unresolved claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it remains an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify an item LOW only when evidence supports the absence of credible present material impact.
+> **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
 >
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not ordinary severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker solely so one predicate can carry it; the report must still name the gate and failure evidence. A failed gate blocks at every round, including when all ordinary findings are LOW; never disguise a failed gate as LOW. A failed non-test gate counts as CRITICAL for the round-3 extension; a failing test gate is outside the round budget and loops until the tests pass.
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate counts as CRITICAL for the round-3 extension; a failing test gate is outside the round budget and loops until the tests pass.
 >
-> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+> **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
 >
-> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass (no finding). If the criterion is only polish, use LOW rather than forcing a `0`.
-> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact with bounded exposure → HIGH/MEDIUM; low impact and low exposure → LOW. Record the axes and why the selected tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic CRITICAL/HIGH/MEDIUM/LOW label; classify each underlying gap by the consequence decision tree and keep advisory score deductions separate from blocking findings.
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
+> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
 >
-> **Domain-vocabulary normalization (mandatory):** Specialized skills may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
+> **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
 >
-> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL label. Classify the underlying consequence as CRITICAL when it is an immediate material risk or failed binary gate; otherwise classify it as HIGH or MEDIUM with evidence, while preserving the local block until the owning gate is satisfied.
-> - `WARN` is not permission to ignore a finding. Map it to MEDIUM when the gap is consequential, to LOW only when evidence supports no credible present material impact, or upward to HIGH/CRITICAL when the consequence warrants it. `PASS`/compliant is not a finding.
-> - UI `P0`/`P1`/`P2`/`P3`/`P4` map to CRITICAL/HIGH/MEDIUM/LOW/LOW respectively as a starting point; override upward only when the evidence shows a higher shipped consequence. A P0/P1 accessibility or task-completion floor remains a blocking gate even when a local UI report calls it a priority rather than a severity.
-> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not replacement tiers. Emit the score, the consequence, and the normalized CRITICAL/HIGH/MEDIUM/LOW tier together. `INFO`/advisory observations are not findings unless the evidence shows a material consequence.
+> - `BLOCKED`, `HARD FAIL`, or `FAIL` is a blocking local verdict, not an automatic CRITICAL: CRITICAL for an immediate material risk or failed binary gate, otherwise HIGH or MEDIUM with evidence, while the local block holds until the owning gate is satisfied.
+> - `WARN` is not permission to ignore: MEDIUM when consequential, LOW only when evidence shows no credible present material impact, HIGH/CRITICAL when the consequence warrants. `PASS`/compliant is not a finding.
+> - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
+> - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
 >
-> A finding's tier drives the gate: CRITICAL/HIGH/MEDIUM remain actionable and blocking under the round policy, and only an open CRITICAL/HIGH at round 2 (a failed non-test binary gate counts as CRITICAL) unlocks the single conditional extension round; LOW may be tracked as a follow-up and, from round 2, does not by itself justify another fix/re-review. An owner decision may explain or schedule an open MEDIUM but does not turn it into a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; only an open CRITICAL/HIGH at round 2 (a failed non-test binary gate counts as CRITICAL) unlocks the single conditional extension round; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -1514,10 +1521,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:parallel-subagent-dispatch -->
 
-> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
+> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — serial execution of provably independent tasks wastes wall-clock. Applies to every multi-step job (workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync). **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
 >
-> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
-> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
+> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`; else `SEQ`, naming the dependency that forces it.
+> 2. **Group `PAR` into waves.** No edge between members; two writers of one file NEVER share a wave; read-only work parallelizes freely.
 > 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
 > 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
 > 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
@@ -1655,6 +1662,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
+
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:design-review-checklist:reminder -->
@@ -1742,6 +1750,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MANDATORY IMPORTANT MUST ATTENTION** bootstrap `TaskCreate` task breakdown BEFORE reads/grep/edits (one task per file read); persist findings to `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` incrementally and synthesize from disk; add a final review task — why: long plan files exhaust context, the report file is ground truth.
 **MANDATORY IMPORTANT MUST ATTENTION** run a graph trace on each "files to modify" entry when `.code-graph/graph.db` exists; flag any downstream file NOT listed in the plan as "potentially missed" — why: catches cross-service/event-handler impact the author overlooked.
 **MANDATORY IMPORTANT MUST ATTENTION** Dimension 7 — Estimation Drift: re-derive `bottom_up_hours = Σ phase_hours` from the FINALIZED phase files per the carried `SYNC:estimation-framework` and compare against frontmatter. `|delta| > 20%` → frontmatter MUST carry `reestimate_delta_pct` + a 1-line `reestimate_reason`, and a missing update is a FAIL; `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface the rescope decision to the user BEFORE implementation — why: pre-completion estimates anchor on a scope guess, and locked phases are the first place the real cost is visible.
+**MANDATORY IMPORTANT MUST ATTENTION** when `spec_baseline` exists, trace to the baseline blob (validated against the object-id regex, read with argv `git cat-file -p`), never to the current spec; an invalid or unreadable blob is `baseline unrecoverable: <path>`, and an untraced phase task not listed as an `APPROVED` proposed addition is a finding — why: a spec edited mid-run otherwise launders scope growth.
 **MANDATORY IMPORTANT MUST ATTENTION** Dimension 8 — Domain Entity Design (CONDITIONAL): when the plan touches an entity, value object, or aggregate, apply `SYNC:domain-entity-change-gate` — the SAME protocol `/plan` authored under and `/changes-review` reviews under. An unanswered, hand-waved, or deferred-to-implementation decision point is a FINDING with `file:line` into the plan; the word "entity" in a task is NEVER an answer. Verify paradigm + subdomain fit are stated BEFORE any entity task, and that each triggered row names its OWNING FILE. State `No domain-entity surface — Dimension 8 N/A` when it does not fire — why: an aggregate boundary chosen by DB table or UI screen is the costliest decision to reverse after implementation.
 **MANDATORY IMPORTANT MUST ATTENTION** standalone runs end with `AskUserQuestion` presenting findings + next-step options; skip ONLY inside a workflow.
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every finding (confidence >80% to act, <60% DO NOT recommend); NEVER mark PASS while any spec/test/code face disagrees without a logged finding.

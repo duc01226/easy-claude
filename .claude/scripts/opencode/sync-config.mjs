@@ -7,7 +7,8 @@
 // opencode defaults. This writer DEEP-MERGES it into the project's root
 // `opencode.json` so recommended keys always win while any project-specific
 // keys survive untouched. A project with no root config receives the
-// recommended defaults verbatim.
+// recommended defaults verbatim. The one removal is a retired bundled value:
+// see `retireBundledModelLimit`.
 //
 // The recommended file is deliberately NOT named `.opencode/opencode.json`:
 // opencode auto-loads that path as project config, so it must stay a template,
@@ -95,6 +96,42 @@ export function mergeRecommendedConfig(existing, recommended) {
   return merged;
 }
 
+// Retired pin: earlier recommended defaults set this model's `limit`, which makes opencode compact at
+// a fixed budget instead of the model's own window. The deep merge can add and overwrite but never
+// delete, so the old value is removed explicitly — only while it still equals exactly what the bundle
+// wrote. Any other `limit` is the project's own and is kept.
+const RETIRED_MODEL_LIMIT = Object.freeze({
+  provider: "opencode-go",
+  model: "deepseek-v4.1-flash",
+  limit: Object.freeze({ context: 500000, output: 384000 }),
+});
+
+function isRetiredLimit(limit) {
+  if (!isPlainObject(limit)) return false;
+  const keys = Object.keys(limit);
+  const expected = Object.keys(RETIRED_MODEL_LIMIT.limit);
+  return keys.length === expected.length && expected.every(key => limit[key] === RETIRED_MODEL_LIMIT.limit[key]);
+}
+
+/**
+ * Drop the bundled model `limit` an earlier sync wrote, before the recommended defaults merge in.
+ * Pure: returns a copy of `existing` and, when a different `limit` is kept, one notice line.
+ *
+ * @param {object} existing parsed project-root config
+ * @returns {{ config: object, notice: string|null }}
+ */
+export function retireBundledModelLimit(existing) {
+  const { provider, model } = RETIRED_MODEL_LIMIT;
+  const entry = existing?.provider?.[provider]?.models?.[model];
+  if (!isPlainObject(entry) || !Object.hasOwn(entry, "limit")) return { config: existing, notice: null };
+  if (!isRetiredLimit(entry.limit)) {
+    return { config: existing, notice: `kept user-set provider.${provider}.models.${model}.limit=${JSON.stringify(entry.limit)}` };
+  }
+  const config = structuredClone(existing);
+  delete config.provider[provider].models[model].limit;
+  return { config, notice: null };
+}
+
 function renderConfig(config) {
   return `${JSON.stringify(config, null, 2)}\n`;
 }
@@ -115,7 +152,7 @@ function resolvePaths(options = {}) {
  * @param {string} [options.rootDir] project root (defaults to the resolved mutation root)
  * @param {string} [options.recommendedPath] override for `.opencode/opencode.recommended.json`
  * @param {string} [options.configPath] override for the root `opencode.json`
- * @returns {Promise<{configPath: string, recommendedPath: string, changed: boolean, existed: boolean, merged: object}>}
+ * @returns {Promise<{configPath: string, recommendedPath: string, changed: boolean, existed: boolean, merged: object, notices: string[]}>}
  */
 export async function materializeOpencodeConfig(options = {}) {
   const { recommendedPath, configPath } = resolvePaths(options);
@@ -131,7 +168,9 @@ export async function materializeOpencodeConfig(options = {}) {
     throw new Error(`project opencode.json must be a JSON object: ${configPath}`);
   }
 
-  const merged = existed ? mergeRecommendedConfig(existing, recommended) : structuredClone(recommended);
+  const retired = existed ? retireBundledModelLimit(existing) : { config: null, notice: null };
+  const notices = retired.notice ? [retired.notice] : [];
+  const merged = existed ? mergeRecommendedConfig(retired.config, recommended) : structuredClone(recommended);
   const serialized = renderConfig(merged);
   const current = existed ? await fs.readFile(configPath, "utf8") : null;
   const changed = current !== serialized;
@@ -141,7 +180,7 @@ export async function materializeOpencodeConfig(options = {}) {
     await fs.writeFile(configPath, serialized, "utf8");
   }
 
-  return { configPath, recommendedPath, changed, existed, merged };
+  return { configPath, recommendedPath, changed, existed, merged, notices };
 }
 
 /**
@@ -163,7 +202,7 @@ export async function checkOpencodeConfig(options = {}) {
 
   const recommended = await readJsonFile(recommendedPath, "recommended opencode config");
   const existing = await readJsonFile(configPath, "project opencode.json");
-  const expected = renderConfig(mergeRecommendedConfig(existing, recommended));
+  const expected = renderConfig(mergeRecommendedConfig(retireBundledModelLimit(existing).config, recommended));
   const actual = await fs.readFile(configPath, "utf8");
 
   if (actual !== expected) {
@@ -197,6 +236,9 @@ async function main() {
   const result = await materializeOpencodeConfig();
   const configRel = path.relative(defaultRootDir, result.configPath);
   const recommendedRel = path.relative(defaultRootDir, result.recommendedPath);
+  for (const notice of result.notices) {
+    console.log(`[opencode-config-sync] ${notice}`);
+  }
   if (result.changed) {
     console.log(`[opencode-config-sync] ${result.existed ? "updated" : "created"} ${configRel} from ${recommendedRel}`);
   } else {

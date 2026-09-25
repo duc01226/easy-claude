@@ -36,6 +36,50 @@
           }
         ],
         "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/token-budget-checkpoint.cjs\""
+          }
+        ],
+        "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-review.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-evidence-trace.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-workflow-task.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-spec-test.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-design.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-universal.cjs\"",
+            "additionalContextLimit": 3000
+          }
+        ],
+        "matcher": "Bash"
       }
     ],
     "PreToolUse": [
@@ -138,6 +182,43 @@
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-review.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-evidence-trace.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-workflow-task.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-spec-test.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-design.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-universal.cjs\"",
+            "additionalContextLimit": 3000
+          }
+        ],
+        "matcher": "^(?:Explore|Plan|architect|code-reviewer|code-simplifier|docs-manager|fullstack-developer|git-manager|tester)$"
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
@@ -184,6 +265,40 @@
           {
             "type": "command",
             "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; const gitHelperPath = path.join(root, '.claude', 'hooks', 'lib', 'windows-git.cjs'); try { if (fs.existsSync(gitHelperPath)) { const git = require(gitHelperPath); const result = git.resolveWindowsGit(); if (result && result.outcome === git.OUTCOMES.READY) Object.assign(process.env, git.withGitEnvironment(process.env, result.capability)); } } catch {} require(path.join(root, hookPath));\" -- \".claude/hooks/prompt-ledger.cjs\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-review.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-evidence-trace.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-workflow-task.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-spec-test.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-design.cjs\"",
+            "additionalContextLimit": 3000
+          },
+          {
+            "type": "command",
+            "command": "node -e \"const fs = require('node:fs'); const path = require('node:path'); const hookPath = process.argv[1]; let root = process.cwd(); for (let candidate = root; ; candidate = path.dirname(candidate)) { if (fs.existsSync(path.join(candidate, '.claude'))) { root = candidate; break; } if (path.dirname(candidate) === candidate) break; } process.chdir(root); process.env.CLAUDE_PROJECT_DIR = root; require(path.join(root, hookPath));\" -- \".claude/hooks/protocol-inject-universal.cjs\"",
+            "additionalContextLimit": 3000
           }
         ]
       }

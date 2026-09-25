@@ -7,11 +7,11 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - 124 skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->125<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - 16 top-level hook files deep-dive                                                           |
-| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - 19 workflows                                             |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files deep-dive                                                           |
+| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->20<!-- /COUNT --> workflows                                             |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
 | **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
@@ -26,11 +26,11 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   124 skills across 15+ domains
+|-- skills/                   125 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    16 top-level hook files, 44 lib modules
+|-- hooks/                    23 top-level hook files, 46 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -90,7 +90,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | How hooks intercept events                  | [hooks/README.md](./hooks/README.md) — hook catalog + lifecycle                                                 |
 | Hook execution order by event               | [hooks/README.md](./hooks/README.md) — hook catalog + execution order                                           |
 | Session lifecycle (init → compact → resume) | [hooks/README.md#session-lifecycle](./hooks/README.md#session-lifecycle)                                        |
-| Workflow detection and routing              | Opt-in `workflow-route-inject.cjs`; definitions in `.claude/workflows.json`                                     |
+| Workflow detection and routing              | Default-on `workflow-route-inject.cjs` (team opt-out in project config; `.claude/.ck.local.json` local override); definitions in `.claude/workflows.json` |
 | How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                                                          |
 | How to configure output                     | [configuration/output-styles.md](./configuration/output-styles.md)                                              |
 | How team collaboration works                | [team-collaboration-guide.md](./team-collaboration-guide.md)                                                    |
@@ -151,13 +151,13 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 124   |
-| Hook files (top-level) | 16    |
-| Lib Modules            | 44    |
-| Hook Events            | 8     |
-| Agents                 | 23    |
-| Workflows              | 19    |
-| Hook Tests             | 130   |
+| Skills                 | 125   |
+| Hook files (top-level) | 23    |
+| Lib Modules            | <!-- COUNT:lib-modules -->46<!-- /COUNT --> |
+| Hook Events            | 9     |
+| Agents                 | <!-- COUNT:agents -->23<!-- /COUNT --> |
+| Workflows              | 20    |
+| Hook Tests             | 133   |
 | Documentation Files    | 28    |
 
 ---

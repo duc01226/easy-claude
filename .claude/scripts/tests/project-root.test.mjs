@@ -389,7 +389,7 @@ for (const hook of ['graph-session-init.cjs', 'graph-prompt-sync.cjs', 'graph-au
             Module._load = function(name, ...args) {
                 if (name.endsWith('/hook-runner.cjs')) return { runHook: (_, action) => action() };
                 if (name.endsWith('/debug-log.cjs')) return { debug() {}, debugError() {} };
-                if (name.endsWith('/project-config-loader.cjs')) return { isConfigPopulated: () => true };
+                if (name.endsWith('/project-config-loader.cjs')) return { isConfigPopulated: () => true, loadProjectConfig: () => ({}) };
                 if (name === 'child_process') return { execFileSync: (bin, argv, options) => {
                     calls.push(['exec', bin, argv, options.cwd]);
                     return bin === 'git' ? 'fixture-head' : argv.includes('--version') ? 'Python 3.12.0' : '{}';
@@ -516,8 +516,8 @@ test('isInvokedAsScript matches the same file through a symlink/junction and not
     // Both sides are canonicalized: Windows keeps 8.3 short names in import.meta.url while argv may
     // carry the long form, so resolving only argv would still miss.
     assert.equal(isInvokedAsScript(self, path.join(link, 'entry.mjs')), true, 'linked self path is the same file');
-    const short = path.resolve('/DUC~1/entry.mjs');
-    const long = path.resolve('/duc.long/entry.mjs');
+    const short = path.resolve('/USERNA~1/entry.mjs');
+    const long = path.resolve('/username.long/entry.mjs');
     const expandShortName = p => (p === short ? long : p);
     assert.equal(isInvokedAsScript(long, short, { realpath: expandShortName }), true, 'self side is canonicalized');
     assert.equal(isInvokedAsScript(short, long, { realpath: expandShortName }), true, 'argv side is canonicalized');

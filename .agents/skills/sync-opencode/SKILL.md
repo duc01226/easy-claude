@@ -1,6 +1,6 @@
 ---
 name: sync-opencode
-description: '[opencode] Use when running the opencode sync and verify pipeline (reconcile the recommended root opencode.json, generate the .opencode hooks bridge plugin, run tooling tests, verify drift).'
+description: '[opencode] Use when running the opencode sync and verify pipeline (reconcile the recommended root opencode.json, write the skill-selection policy into permission.skill with its ownership ledger and the .opencode/commands/ files for hidden skills, generate the .opencode hooks bridge plugin and sub-agent mirror, run tooling tests, verify drift).'
 disable-model-invocation: true
 ---
 
@@ -12,7 +12,7 @@ disable-model-invocation: true
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
+> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
 ## Codex Project-Reference Loading (Hook-Independent)
@@ -67,7 +67,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 - opencode has **no shell-command hook system** — hooks are JavaScript plugin callbacks. This skill compiles `.claude/settings.json` into a bridge plugin whose runtime drives the original Claude hooks from opencode's plugin events.
 - **Recommended opencode config is part of the framework.** `.opencode/opencode.recommended.json` is the single source of truth for the framework's opencode defaults; the `config` stage deep-merges it into the project-root `opencode.json` (recommended keys win, project-only keys survive).
-- Scope is **hooks + recommended config + the sub-agent mirror**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `$sync-codex`). Sub-agents are NOT auto-discovered, so `.claude/agents/*.md` IS mirrored into `.opencode/agent/*.md` by the `agents` stage — that is what lets the workflow protocols dispatch the same specialists (`architect`, `code-reviewer`, `security-auditor`, …) on opencode.
+- Scope is **hooks + recommended config + skill permissions + the sub-agent mirror**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `$sync-codex`). opencode ignores `disable-model-invocation`, so the `skills` stage enforces the selection policy through `permission.skill` in the project-root `opencode.json` instead, and writes a `.opencode/commands/<name>.md` per hidden skill so its explicit `/name` keeps working — see [Skill permissions](#skill-permissions). Sub-agents are NOT auto-discovered, so `.claude/agents/*.md` IS mirrored into `.opencode/agent/*.md` by the `agents` stage — that is what lets the workflow protocols dispatch the same specialists (`architect`, `code-reviewer`, `security-auditor`, …) on opencode.
 - Keep `.claude` canonical: edit `.claude/settings.json` / `.claude/hooks/**` and re-run this pipeline; never hand-edit the generated `.opencode/plugins/easy-claude-hooks.js`.
 - To change a default opencode setting, edit `.opencode/opencode.recommended.json`, then re-run this pipeline to propagate it into the root config of every project the `.opencode/` folder is copied into.
 - The legacy hand-written `.opencode/plugins/notification.js` is superseded by the generated bridge; the runner backs it up under `tmp/opencode-legacy/` and removes it so notifications are not sent twice.
@@ -75,7 +75,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 **Workflow:**
 
 1. **Config** — `node .claude/scripts/opencode/sync-config.mjs` deep-merges `.opencode/opencode.recommended.json` into the project-root `opencode.json`.
-2. **Sync** — `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` regenerates the bridge plugin, the `.opencode/agent/*.md` mirror, and the sync report.
+2. **Sync** — `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs` rewrites `permission.skill` in the project-root `opencode.json` together with its ownership ledger `.opencode/skill-permissions.generated.json`, writes a marked `.opencode/commands/<name>.md` per hidden skill, and regenerates the bridge plugin, the `.opencode/agent/*.md` mirror, and the sync report.
 3. **Test** — the runner executes the opencode tooling tests (config + writer + generated-plugin runtime).
 4. **Verify** — the runner re-merges/re-renders in memory with the REAL writers and byte-compares against the tracked files.
 5. **Inspect** — on failure, re-run the failing stage with `--only=<stage> --verbose`.
@@ -89,7 +89,8 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - The generated plugin and `.opencode/plugins/**` are the only opencode hook surface; no skill mirror is produced (skills are auto-discovered, sub-agents are mirrored into `.opencode/agent/**`)
 - Only `node "$CLAUDE_PROJECT_DIR"/...` hook commands are compiled; other command shapes are reported as `unsupported-command-shape`
 - Claude events opencode cannot reproduce are reported as `skipped-events` in the sync report — never silently dropped
-- Idempotent — re-running the sync produces byte-identical plugin, config, and agent output
+- The `skills` stage changes only `permission.skill` keys recorded in `.opencode/skill-permissions.generated.json`; a user-set key is never adopted, overwritten or loosened, and a called skill is never hidden; it rewrites or deletes only `.opencode/commands/*.md` files that carry its generated marker
+- Idempotent — re-running the sync produces byte-identical plugin, config, permission, and agent output
 
 ## Why a bridge plugin (not a config mirror)
 
@@ -120,12 +121,13 @@ reconciles them into whatever project the `.opencode/` folder is copied into.
 
 **Merge semantics:** the writer deep-merges the recommended defaults into the existing root `opencode.json`. Recommended keys win at every leaf; object keys that exist only in the project survive untouched; arrays in the recommended file replace the project's array. A project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
 
-### Compaction budget — 500K tokens
+### Compaction: host default
 
-The framework targets the SAME 500K auto-compact budget on all three surfaces:
-Claude Code (`env.CLAUDE_CODE_AUTO_COMPACT_WINDOW` in `.claude/settings.json`), Codex
-(`model_auto_compact_token_limit` in `.codex/config.toml`) and opencode (the pinned
-model's `limit.context` here).
+The framework pins no auto-compaction budget on any of its three surfaces (Claude Code,
+Codex, opencode), so each host applies its own default and each user sets their own.
+The recommended file therefore carries no model `limit`: opencode takes the window from
+the model's registry entry (models.dev). For the pinned model that is `context: 1000000`,
+`output: 384000` (verified with `opencode models opencode-go --verbose`, v1.18.31).
 
 opencode has no absolute compaction threshold — it compacts relative to the model's
 declared window, so the window IS the knob. From `session/overflow.ts` (v1.18.31):
@@ -137,9 +139,18 @@ maxOutput = min(limit.output, 32_000)          // OUTPUT_TOKEN_MAX
 compaction happens once total tokens >= usable
 ```
 
-So `limit.context: 500000` + `limit.output: 384000` compacts at **468,000** tokens.
+So the registry window compacts at **968,000** tokens (1,000,000 − 32,000). A user who
+wants an earlier point sets their own `limit` on the model — in the project-root
+`opencode.json` or their global opencode config. For example, `limit.context: 500000` +
+`limit.output: 384000` compacts at 468,000.
 
-Two traps this encodes, both verified against the released source:
+**Retiring the old pin:** the `config` stage removes the model's `limit` from the root
+`opencode.json` only when it is exactly the formerly bundled
+`{ "context": 500000, "output": 384000 }` (the deep merge alone never deletes a key). Any
+other `limit` is the user's: it is kept and reported with one `kept user-set …` line. Keep
+a personal 500K budget in the global opencode config if the root file must stay untouched.
+
+Two traps for anyone setting their own `limit`, both verified against the released source:
 
 - **`compaction.reserved` is inert here.** It is only read on the `limit.input` branch,
   and models.dev declares no `input` for this model. Raising it does nothing.
@@ -148,7 +159,62 @@ Two traps this encodes, both verified against the released source:
   reporting, and the `limits` handed to the AI SDK. Capping `input` while leaving `context`
   at 1M shows ~48% in the TUI at the moment it compacts.
 
-**Copying the framework into a new project:** copy `.claude/` and `.opencode/` (including `.opencode/opencode.recommended.json`), then run `$sync-opencode` — it generates/updates that project's root `opencode.json`, bridge plugin, and reports.
+**Copying the framework into a new project:** copy `.claude/` and `.opencode/` (including `.opencode/opencode.recommended.json`), then run `$sync-opencode` — it generates/updates that project's root `opencode.json`, bridge plugin, and reports. Do NOT copy `.opencode/skill-permissions.generated.json` or `.opencode/commands/`: both are generated per project by the `skills` stage, and a copied ledger is ignored anyway because it names the other project — why: a ledger from another project would otherwise claim the adopter's own `permission.skill` entries.
+
+## Skill permissions
+
+opencode lists every discovered skill to the model and ignores `disable-model-invocation`, so the `skills` stage (`.claude/scripts/opencode/sync-skills.mjs`) writes the framework's selection policy into `permission.skill` of the project-root `opencode.json`. A `deny` entry hides the skill from the model and rejects loading it through the skill tool.
+
+| Skill | Effective tier or mark | `permission.skill` entry |
+| --- | --- | --- |
+| Command-only skill (`disable-model-invocation: true`) | — | `deny` |
+| Workflow wrapper (skill name = a `.claude/workflows.json` id) | manual | `deny` |
+| Workflow wrapper | confirm | `ask` |
+| Workflow wrapper | auto | none |
+| Skill in `skillProfile.nameOnly` | — | no entry from the profile; a stricter entry from a row above stays |
+| Skill in `skillProfile.commandOnly` or `skillProfile.off` | — | `deny` plus a generated command, so `/name` still runs it |
+| Any other skill | — | none |
+
+- **Effective tier, team scope.** A wrapper follows its effective tier — the project override for that workflow, otherwise the stricter of its framework tier and the project default (`portability.workflowActivation` in the project config, default `docs/project-config.json`) — never the raw `workflows.json` value. The tier wins over the wrapper's own `disable-model-invocation` mark, so an override that loosens a manual workflow to `auto` removes its entry. `opencode.json` is a project file, so a developer's `.claude/.ck.local.json` never lands in it.
+- **Called skills are never hidden.** A skill named as a step of any workflow (`sequence` or any `variants.*.sequence`), in an agent's `skills:` frontmatter list, or in the curated `calledByOthers` or `entrySkills` lists of `.claude/config/skill-profiles.json` gets no policy entry, and the run prints one line per skill: `skipped <name>: called by <callers>`. The called set has one owner, `resolveProfile().called` in `.claude/scripts/sync-skill-profile.cjs`. A `.claude/workflows.json` without a `workflows` map stops the stage instead of counting as empty.
+- **Skill profile.** The `skillProfile` rows come from the same `resolveProfile()` as the Claude sync (read `.claude/config/README.md` → Skill profile when you need the presets and lists). `nameOnly` writes nothing, because an `ask` would stop every workflow step that loads the skill; it never loosens an entry the policy already writes. A called skill in `commandOnly` or `off` is refused unless `skillProfile.allowHidingCalledSkills` is `true`: the stage prints the resolver's message and `skill-profile: nothing was written`, exits non-zero, and `--check` fails the same way. With the opt-in the `deny` is written and a warning line names the skill. Resolver warnings print as `warning: skill profile: ...` only when `skillProfile` is declared. Profile entries go through the same ownership ledger, so a user key is never adopted, overwritten or loosened.
+- **Ownership.** `.opencode/skill-permissions.generated.json` lists each key the generator owns, with the value it wrote. Only listed keys are updated or removed.
+- **The ledger is bound to its project.** It records `project` = `project.name` from the project config (default `docs/project-config.json`; `.claude/.ck.json` `portability.projectConfigPath` relocates it), or `null` when there is none. A ledger whose `project` is missing or differs — copied from another project, or left over from a rename — is ignored with one line, `warning: ignored .opencode/skill-permissions.generated.json: it belongs to another project (...)`, owns nothing, and is rewritten for this project, so every entry already in `opencode.json` stays the user's. A project config that exists but is not valid JSON stops the stage before anything is written.
+
+| Situation | Outcome |
+| --- | --- |
+| Key existed before the generator first wrote it | Kept and never recorded as owned; `conflict: permission.skill.<name> is <user value>, generator wants <value>; kept the user value` when it differs |
+| Key listed only in a ledger from another project | Treated as the previous row: never owned |
+| Owned key the user changed | Kept; the same conflict line |
+| Owned key the user deleted | Restored to the policy value with no conflict line — set an explicit value such as `allow` to keep a skill loadable |
+| `permission` or `permission.skill` is a single value, not a map | Unchanged; one conflict line; no skill entries written |
+| Wildcard key such as `internal-*` | Always the user's; never rewritten |
+
+- **Only the skill tool is restricted.** The stage writes no `read`, `edit` or other permission, so reading `.claude/skills/<name>/SKILL.md` by path keeps working for workflows that load a skill file directly.
+- A skill folder whose name is not lowercase letters, digits and hyphens (`^[a-z0-9][a-z0-9-]*$`) is skipped with a warning.
+- `--check` fails when `permission.skill`, the ledger or a generated command differs from a fresh sync. A kept user value or user command is not drift.
+
+### Commands for hidden skills
+
+A hidden skill keeps its explicit `/name`: the same stage writes `.opencode/commands/<name>.md` for every skill whose final exact `permission.skill` entry is `deny` — the policy's own entries and a user deny alike (wildcard keys are not evaluated). A skill the policy denies but whose kept user value is not `deny`, or whose entry could not be written because `permission` / `permission.skill` is not a map, gets no command.
+
+```markdown
+---
+description: "<the skill description, whitespace collapsed, YAML-escaped>"
+---
+
+<!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/<name>/SKILL.md — do not hand-edit; re-run:
+     node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs -->
+
+@.claude/skills/<name>/SKILL.md
+
+Arguments: $ARGUMENTS
+```
+
+- **Name.** The command name is the skill folder name, never the `name:` inside the skill; the write path must resolve inside `.opencode/commands/`.
+- **Marker ownership.** Only files carrying the `GENERATED OPENCODE COMMAND` marker are rewritten or deleted. A marked command whose skill is no longer hidden is removed.
+- **Same-name user command.** A command without the marker that already uses a hidden skill's name — in `.opencode/commands/` or opencode's singular `.opencode/command/` folder — is kept unchanged, no generated command replaces it, and the run prints `conflict: <path> is a user command without the generated marker; kept it, no command generated for skill <name>`.
+- **No shell in generated bodies.** Generated commands never contain `` !`…` ``. **Shell note:** opencode substitutes `$ARGUMENTS` before it runs `` !`cmd` `` injections, so typed arguments that themselves contain `` !`…` `` run as shell on that host. Do not paste untrusted text as command arguments.
 
 ## Hook mapping
 
@@ -214,6 +280,12 @@ node .claude/scripts/opencode/sync-config.mjs
 # Just verify the root opencode.json is current:
 node .claude/scripts/opencode/sync-config.mjs --check
 
+# Just write the skill permissions:
+node .claude/scripts/opencode/sync-skills.mjs
+
+# Just verify the skill permissions are current:
+node .claude/scripts/opencode/sync-skills.mjs --check
+
 # Skip a stage while debugging:
 node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 ```
@@ -222,17 +294,19 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 
 ## Stages
 
-7 stages, sequential — the complete opencode surface pipeline, owned entirely by this runner:
+9 stages, sequential — the complete opencode surface pipeline, owned entirely by this runner:
 
 | # | Stage | Script | Effect |
 | --- | --- | --- | --- |
 | 1 | config | `.claude/scripts/opencode/sync-config.mjs` | Deep-merge `.opencode/opencode.recommended.json` into the project-root `opencode.json` |
-| 2 | hooks | `.claude/scripts/opencode/sync-hooks.mjs` | Generate `.opencode/plugins/easy-claude-hooks.js` + `tmp/opencode-hooks.sync.report.json`; back up/remove legacy `notification.js` |
-| 3 | agents | `.claude/scripts/opencode/sync-agents.mjs` | Mirror `.claude/agents/*.md` into `.opencode/agent/*.md` (`mode: subagent` + the canonical body verbatim) |
-| 4 | tests | Runner discovers `.claude/scripts/opencode/tests/*.test.{mjs,cjs}` | Run opencode tooling tests; missing or empty discovery fails |
-| 5 | verify-config | `.claude/scripts/opencode/sync-config.mjs --check` | Re-merge with the REAL writer and byte-compare with the project-root `opencode.json` |
-| 6 | verify-hooks | `.claude/scripts/opencode/sync-hooks.mjs --check` | Re-render with the REAL writer and byte-compare with the tracked plugin |
-| 7 | verify-agents | `.claude/scripts/opencode/sync-agents.mjs --check` | Re-render every agent with the REAL writer and byte-compare with the tracked `.opencode/agent/*.md` |
+| 2 | skills | `.claude/scripts/opencode/sync-skills.mjs` | Write `permission.skill` in the project-root `opencode.json`, the ownership ledger `.opencode/skill-permissions.generated.json`, and a marked `.opencode/commands/<name>.md` per hidden skill (see [Skill permissions](#skill-permissions)) |
+| 3 | hooks | `.claude/scripts/opencode/sync-hooks.mjs` | Generate `.opencode/plugins/easy-claude-hooks.js` + `tmp/opencode-hooks.sync.report.json`; back up/remove legacy `notification.js` |
+| 4 | agents | `.claude/scripts/opencode/sync-agents.mjs` | Mirror `.claude/agents/*.md` into `.opencode/agent/*.md` (`mode: subagent` + the canonical body verbatim) |
+| 5 | tests | Runner discovers `.claude/scripts/opencode/tests/*.test.{mjs,cjs}` | Run opencode tooling tests; missing or empty discovery fails |
+| 6 | verify-config | `.claude/scripts/opencode/sync-config.mjs --check` | Re-merge with the REAL writer and byte-compare with the project-root `opencode.json` |
+| 7 | verify-skills | `.claude/scripts/opencode/sync-skills.mjs --check` | Re-plan with the REAL writer; fail when `permission.skill`, the ledger, or a generated command is missing, changed or stale |
+| 8 | verify-hooks | `.claude/scripts/opencode/sync-hooks.mjs --check` | Re-render with the REAL writer and byte-compare with the tracked plugin |
+| 9 | verify-agents | `.claude/scripts/opencode/sync-agents.mjs --check` | Re-render every agent with the REAL writer and byte-compare with the tracked `.opencode/agent/*.md` |
 
 ## Closing Reminders
 
@@ -262,46 +336,21 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 > **[FAILS FAST]** First non-zero stage exit aborts the chain. Re-run the failing stage with `--only=<id> --verbose`.
 > **[REPO ROOT]** The orchestrator auto-resolves the repo root from its own path.
 
-<!-- SYNC:ai-mistake-prevention -->
+<!-- PROTOCOL-GUIDES:START -->
 
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-<!-- /SYNC:ai-mistake-prevention -->
+- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
+- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
+<!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
+
 <!-- /SYNC:project-protocol-overlay:reminder -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -372,36 +421,25 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
 - **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 - **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-- **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
-- **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
-- **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
-- **After memory loss, check existing state before creating new.** Compaction wipes prior-work memory. Query current state to resume — never blindly duplicate.
+- **Re-read and re-verify after context compaction or resume.** Compaction wipes read state and memory; summaries describe intent, not environment state. Re-read before editing, audit current state (git status, files) before creating anything new, grep-verify sub-agent output — every "completed" claim is a hypothesis until evidence confirms it.
 - **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
-- **Trace full dependency chain after edits.** Changing a definition misses downstream consumers. Trace the full chain.
-- **When renaming, grep ALL consumer file types.** Some file types silently ignore missing refs (no compile error). Search code, templates, configs, generated files.
+- **Trace every consumer before and after a change.** Map referencing files before deleting; after bulk replacements, renames, or extractions, grep ALL consumer file types (templates, configs, catalogs and generated files fail silently) for every old or removed name; trace the full dependency chain of an edited definition; update docs that embed canonical data alongside their source.
 - **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
-- **Update docs that embed canonical data when source changes.** Docs inlining derived data (workflows, schemas, configs) go stale silently. Update all embedding docs alongside source.
-- **Verify sub-agent results after context recovery.** Background agents may finish while parent compacted — grep-verify output, don't trust assumed completion.
-- **Cross-check full target list against sub-agent assignments.** Parallel sub-agents by category miss boundary items. Reconcile union of assignments against target list before proceeding.
-- **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
-- **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
+- **Sub-agents: inherit, cover, persist.** Sub-agents know only their agent .md definition — use custom agent types, not built-in Explore. Reconcile the union of assignments against the full target list — category splits miss boundary items. Make the report write the first deliverable, appended per file/section with bounded scope; a truncated run with no report → spawn a narrower scope, never the same prompt.
 - **Ownership before action.** When investigating a failure, ask which part owns the behavior before changing anything. Trace the wrong state to the component responsible for its invariant, then make one authoritative correction there.
 - **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec if one exists (the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
-- **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
-- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
+- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting any constant/limit/flag/cutoff, read comments, git blame, the CALLER's ordering (the guarantee usually runs immediately BEFORE the cited line), and 2+ sibling call sites. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
 - **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
-- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, and state). Verify each against evidence, not intuition. Ask "what would falsify this?" — if nothing, it is not a hypothesis. The most expensive failure is going deeper into an assumed area while the real issue sits in an unexamined condition.
-- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem; avoid unrelated cleanup. For review or enhancement work, announce improvements beyond the main request rather than silently expanding scope. Ask: "Would this change exist if I were not addressing this request?" — if not, remove it or disclose it.
-- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
-- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
-- **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
-- **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
-- **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
-- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
+- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, state) and verify each against evidence. Ask "what would falsify this?" — if nothing, it is not a hypothesis.
+- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem: "Would this change exist if I were not addressing this request?" — if not, remove or disclose it; never silently expand scope.
+- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort ("(1) [N h], (2) [N h]. Which matters?"), list assumptions, name a simpler path when one exists.
+- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC: steel-man a rejected alternative, invert each reason ("what does it sacrifice?"), stress-test the top 2-3 assumptions, run a pre-mortem. Quality = causal reasoning + mitigations + evidence, not section presence.
+- **OOM/memory: check row count before row size.** An unbounded query (no DB filter for the trigger) → push the filter to the DB; then large rows → projection. Row reduction > projection in ROI.
+- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** For async work (queues, retries, background jobs, caches, replication) assert the final business/entity state — NEVER delivery bookkeeping (consume/send status, attempt counts, last-error, broker/scheduler/outbox rows) that ANY co-running process can write: green alone, flaky once anything shares that broker + database. Gate: "would this hold no matter WHICH process did the work?" Process-local fault injection is a stress amplifier (arm → bounded window → disarm → assert convergence), never a precondition.
 - **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before deep tracing and before any verdict, sweep environment preconditions (toolchain/dependency/lockfile state, stale build or cache artifacts, env vars and config profile, service dependencies up-migrated-seeded, ports/network/clock, OS-path/locale, permissions and locks, leftover processes/containers/test data) AND transient resource pressure (RAM/OOM, CPU saturation under parallel workers, disk/temp exhaustion, handle and connection-pool limits, network flakiness, a timeout that is really slowness). Tell-tale shape: non-deterministic, timing-dependent, passes alone but fails in parallel, fails only on one machine or only on CI, or an error naming resources rather than business rules. Cite the discriminator you ran (clean environment? did code on the failing path change since it last passed? one machine or all? concurrency 1 or a clean rebuild?) — a verdict without one is a guess, for code as much as for the environment. Fix an environment cause in the environment or setup; NEVER edit product code or weaken/skip a test to absorb it, and a failure that vanishes on retry stays unexplained until its mechanism is named. — why: forcing green against an environment fault hides the real defect and permanently rots the test.
-- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral Node APIs and literal argv vectors; never infer shell, temporary-path, executable-extension, ACL, or symlink semantics from the current host. A documented command, entry point, or wrapper script gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>` — a single-OS example is an incomplete protocol. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
-- **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
+- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before any verdict, sweep environment preconditions (toolchain/lockfile state, stale build/cache artifacts, env vars and config, service dependencies, ports/clock, OS path/locale, permissions, leftover processes/test data) AND transient resource pressure (RAM/OOM, CPU, disk/temp, handle and connection-pool limits, network, a timeout that is really slowness). Tell-tale: non-deterministic, fails only in parallel, on one machine or only on CI, or an error naming resources. Cite the discriminator you ran (clean environment? path changed? concurrency 1?) — a verdict without one is a guess. Fix an environment cause in the environment; NEVER edit product code or weaken/skip a test to absorb it; a failure that vanishes on retry stays unexplained until its mechanism is named.
+- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral APIs and literal argv vectors; never infer shell, temp-path, executable-extension, ACL, or symlink semantics from the current host. A documented command gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>`. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
+- **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer must reference NO consumer-specific domain concept (tenant/customer/product IDs, business entities, feature rules); such a leak compiles, runs, and passes review while coupling the layer to one consumer. Push domain fields/logic down into the consumer via subclass/composition.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

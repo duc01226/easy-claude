@@ -47,23 +47,24 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 
 ## 2. Glossary
 
-| Term                   | Definition                                                                                             | Context                                                                      |
-| ---------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Assistant session      | One conversation in which an assistant works with a developer.                                         | Has either a main conversation or a delegated conversation.                  |
-| Main conversation      | The developer's primary working conversation with the assistant.                                       | Only its end produces a main-session-ended alert.                            |
-| Delegated conversation | A separate conversation in which the assistant handles delegated work.                                 | Its end does not end the main conversation.                                  |
-| Alert channel          | A place an alert is delivered: the developer's desktop, or a remote chat channel.                      | Desktop is on unless the developer turns it off; remote channels are opt-in. |
-| Remote chat channel    | A team or personal chat destination the developer has configured to receive alerts.                    | Receives the same alert kinds with the same meaning as the desktop.          |
-| Workspace name         | The name of the project folder the conversation runs in.                                               | Every alert names it so the developer knows which conversation to open.      |
-| Session-ended alert    | An alert that says the main conversation has ended.                                                    | Distinct from an alert for a completed assistant turn.                       |
-| Question alert         | An attention-seeking alert that says the assistant has a question and asks the developer to answer it. | Names the workspace; the question itself is read in the conversation.        |
-| Turn-complete alert    | The alert that says the assistant has finished its turn and the conversation is still open.            | Never mentions a session ending or a question.                               |
-| Reply text             | What the assistant wrote in its response.                                                              | Never included in any alert on any channel.                                  |
-| Supported assistants   | Three assistants, listed first, second, and third in Related Documentation.                            | The first and third give direct question signals; the second gives none.     |
-| Final question mark    | A question mark that is the last non-whitespace character of the assistant's completed response.       | Used only on assistants that give no direct signal when they ask a question. |
-| Direct question signal | The assistant's own indication that it is asking the developer a question.                             | Some supported assistants give it; others give none.                         |
-| Conversation reset     | The developer clears the main conversation to start afresh in the same workspace.                      | Not treated as a finished session.                                           |
-| Blocking alert         | An alert that stays until the developer acknowledges it.                                               | A non-blocking alert appears and goes away on its own.                       |
+| Term                   | Definition                                                                                                                                   | Context                                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Assistant session      | One conversation in which an assistant works with a developer.                                                                               | Has either a main conversation or a delegated conversation.                                                                                                        |
+| Main conversation      | The developer's primary working conversation with the assistant.                                                                             | Only its end produces a main-session-ended alert.                                                                                                                  |
+| Delegated conversation | A separate conversation in which the assistant handles delegated work.                                                                       | Its end does not end the main conversation.                                                                                                                        |
+| Alert channel          | A place an alert is delivered: the developer's desktop, or a remote chat channel.                                                            | Desktop is on unless the developer turns it off; remote channels are opt-in.                                                                                       |
+| Remote chat channel    | A team or personal chat destination the developer has configured to receive alerts.                                                          | Receives the same alert kinds with the same meaning as the desktop.                                                                                                |
+| Workspace name         | The name of the project folder the conversation runs in.                                                                                     | Every alert names it so the developer knows which conversation to open.                                                                                            |
+| Session-ended alert    | An alert that says the main conversation has ended.                                                                                          | Distinct from an alert for a completed assistant turn.                                                                                                             |
+| Question alert         | An attention-seeking alert that says the assistant has a question and asks the developer to answer it.                                       | Names the workspace; the question itself is read in the conversation.                                                                                              |
+| Turn-complete alert    | The alert that says the assistant has finished its turn and the conversation is still open.                                                  | Never mentions a session ending or a question.                                                                                                                     |
+| Reply text             | What the assistant wrote in its response.                                                                                                    | Never included in any alert on any channel.                                                                                                                        |
+| Supported assistants   | Three assistants, listed first, second, and third in Related Documentation.                                                                  | The first and third give direct question signals; the second gives none.                                                                                           |
+| Final question mark    | A question mark that is the last non-whitespace character of the assistant's completed response.                                             | Used only on assistants that give no direct signal when they ask a question.                                                                                       |
+| Direct question signal | The assistant's own indication that it is asking the developer a question.                                                                   | Some supported assistants give it; others give none.                                                                                                               |
+| Conversation reset     | The developer clears the main conversation to start afresh in the same workspace.                                                            | Not treated as a finished session.                                                                                                                                 |
+| Work still in progress | Delegated work the main conversation handed off and that reports back when it ends, not yet finished, or a one-time resumption it scheduled. | Each one wakes the main conversation again when it finishes, so the job is not done yet. A background command or service that may run indefinitely does not count. |
+| Blocking alert         | An alert that stays until the developer acknowledges it.                                                                                     | A non-blocking alert appears and goes away on its own.                                                                                                             |
 
 ---
 
@@ -93,6 +94,7 @@ Alerts tell developers when the main assistant conversation ends, when the assis
 - **AC-NT-04** — **Given** the assistant directly asks the developer a question **When** the question is presented **Then** one question alert is shown that says the assistant has a question and names the workspace.
 - **AC-NT-05** — **Given** the second supported assistant, which gives no direct signal when it asks a question **When** its completed response ends in a final question mark, ignoring trailing whitespace **Then** one non-blocking question alert is shown.
 - **AC-NT-06** — **Given** a completed response not classified as a question (neither a direct question signal nor a qualifying final question mark) **When** the turn finishes **Then** no question alert is shown, and the ordinary turn-complete alert remains available.
+- **AC-NT-10** — **Given** the main conversation has work still in progress, or a delegated conversation finishes its own turn **When** that turn finishes **Then** no turn-complete alert is shown; exactly one is shown when a main-conversation turn finishes with no work still in progress.
 
 ### US-NT-03: Receive alerts away from the desk, without exposing the conversation
 
@@ -151,6 +153,18 @@ ELSE IF a delegated conversation ends OR only an assistant turn finishes OR the 
 ### BR-NT-04: Distinct turn-completion alerts [HARD]
 
 **Statement:** A completed turn not classified as a question keeps the turn-complete alert. Its title and message say the assistant finished its turn and the conversation is still open; they never say or suggest that the session completed or ended, and never read as a question.
+
+The turn-complete alert means the main conversation finished its job. A turn that ends while work is still in progress is not that: each piece of delegated work or one-time resumption wakes the main conversation for another turn, so alerting every such turn would send one alert per finished piece of work. Neither is a delegated conversation finishing its own turn. A background command or service (such as a development server or a log watcher) and a recurring schedule may never finish on their own, so they do not hold the alert back — otherwise a finished job would never be announced. A question is never held back: the developer is needed now.
+
+```
+IF a turn of the main conversation finishes AND it is not a question
+  IF work is still in progress (delegated work or a one-time resumption)
+    → SHOW no turn-complete alert
+  ELSE
+    → SHOW exactly one turn-complete alert
+ELSE IF a delegated conversation finishes its turn
+  → SHOW no turn-complete alert
+```
 
 ### BR-NT-05: A conversation reset is not a session end [HARD]
 
@@ -229,13 +243,13 @@ IF an alert is delivered on any channel
 
 ### Domain Events (business occurrences)
 
-| Occurrence                               | When it happens                                                         | Who/what reacts (business outcome)                                |
-| ---------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Main conversation ended                  | The developer's primary assistant conversation ends.                    | The developer receives one session-ended alert.                   |
-| Delegated conversation ended             | Delegated work finishes while the main conversation may continue.       | No main-session-ended alert is produced.                          |
-| Developer reset the conversation         | The developer clears the main conversation to start afresh.             | No session-ended alert is produced.                               |
-| Assistant asked the developer a question | The assistant requests information or a decision.                       | The developer receives a question alert and can return to answer. |
-| Assistant turn completed                 | The assistant finishes a response without ending the main conversation. | The existing turn-complete alert remains distinct.                |
+| Occurrence                               | When it happens                                                         | Who/what reacts (business outcome)                                     |
+| ---------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Main conversation ended                  | The developer's primary assistant conversation ends.                    | The developer receives one session-ended alert.                        |
+| Delegated conversation ended             | Delegated work finishes while the main conversation may continue.       | No main-session-ended alert is produced.                               |
+| Developer reset the conversation         | The developer clears the main conversation to start afresh.             | No session-ended alert is produced.                                    |
+| Assistant asked the developer a question | The assistant requests information or a decision.                       | The developer receives a question alert and can return to answer.      |
+| Assistant turn completed                 | The assistant finishes a response without ending the main conversation. | The turn-complete alert, once no work is still in progress (BR-NT-04). |
 
 ---
 
@@ -286,6 +300,7 @@ A delegated conversation ending first causes no main-session-ended alert. A rese
 | Conversation reset           | The developer resets the main conversation to start afresh.                                | No session-ended alert.                              | Continue in the fresh conversation.       |
 | Question needs an answer     | A direct question is asked or the fallback rule classifies the response as a question.     | One question alert.                                  | Return to the conversation and answer.    |
 | Ordinary turn completed      | A response finishes without a question classification while the conversation remains open. | The existing turn-complete alert.                    | Continue in the conversation.             |
+| Waiting on work in progress  | A main-conversation turn finishes while work it started is still in progress.              | No turn-complete alert yet.                          | Wait; the alert follows the last turn.    |
 
 ### 6.6 Per-Story Interaction Flow
 
@@ -318,14 +333,14 @@ A delegated conversation ending first causes no main-session-ended alert. A rese
 | Priority  |  Count | Automated | Manual |
 | --------- | -----: | --------: | -----: |
 | P0        |      0 |         0 |      0 |
-| P1        |     12 |        12 |      0 |
+| P1        |     13 |        13 |      0 |
 | P2        |      0 |         0 |      0 |
-| **Total** | **12** |    **12** |  **0** |
+| **Total** | **13** |    **13** |  **0** |
 
 | Category                              | TCs                                                   |
 | ------------------------------------- | ----------------------------------------------------- |
 | Main Conversation Outcomes            | TC-NT-001, TC-NT-002, TC-NT-003, TC-NT-004            |
-| Question and Turn-Completion Outcomes | TC-NT-011, TC-NT-012, TC-NT-013                       |
+| Question and Turn-Completion Outcomes | TC-NT-011, TC-NT-012, TC-NT-013, TC-NT-014            |
 | Invariant / Property Tests            | TC-NT-071, TC-NT-072, TC-NT-073, TC-NT-074, TC-NT-075 |
 
 ### Main Conversation Outcomes
@@ -755,6 +770,71 @@ And no question or session-ended alert appears
 | Ordinary turn completion | `operation/hooks/assistant-turn-completion-alert` |
 
 **CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-013] ordinary Codex Stop remains on the completion route`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-013] turn-complete alert copy never implies a session end or a question on any channel`, `.claude/hooks/tests/suites/desktop-argv.test.cjs::[TC-HARNESS-003][TC-NT-011][TC-NT-013] direct questions and ordinary Stop keep their existing dialogs`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-072] Codex Stop becomes a question only for a string question ending in ?`  
+**Status:** Tested
+
+#### TC-NT-014: Finished delegated work raises one turn-complete alert, not one per piece of work [P1]
+
+**Objective:** Verify the turn-complete alert waits until the main conversation has no work still in progress, and that a delegated conversation finishing its own turn never raises one.
+
+**Business Intent / Invariant Guarded:** A developer who delegates several pieces of work is told once, when the main conversation has finished the job, and is not interrupted as each piece finishes.
+
+**Proves:** AC-NT-10 / BR-NT-04
+
+**Preconditions:**
+
+- The desktop alert channel is on.
+- A main conversation is active and can delegate work or start background jobs.
+
+**Real-World Reachability:** The developer asks for a review; the assistant delegates it to three reviewers that run in the background and ends its turn to wait. Each reviewer finishes and wakes the main conversation, which folds in the result and waits again, until the last one finishes and the assistant reports the outcome.
+
+**Demo Flow:** Ask for work that the assistant hands to several background reviewers; watch the desktop while they finish one by one; observe a single alert after the final report.
+
+```gherkin
+Given the main conversation delegated three pieces of work that run in the background
+When the main conversation ends its turn to wait, and then finishes a turn each time one piece completes
+Then no turn-complete alert appears while any piece of work is still in progress
+When the main conversation finishes a turn with no work still in progress
+Then exactly one turn-complete alert appears
+And a delegated conversation finishing its own turn never produces a turn-complete alert
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                             |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| **UI**                  | One turn-complete alert, after the last piece of work is folded in.                     |
+| **System behavior**     | Turns ending with work in progress, and delegated conversations' turns, raise no alert. |
+| **Business data state** | Not applicable — no business data are created or changed.                               |
+| **Data shown on UI**    | The usual turn-complete title and message and the workspace name.                       |
+
+**Acceptance Criteria:**
+
+- ✅ Exactly one turn-complete alert once the main conversation has no work still in progress.
+- ✅ A question asked while work is in progress still raises its question alert at once.
+- ❌ One alert per finished piece of work, an alert while work is still in progress, or an alert for a delegated conversation's own turn.
+
+**Test Data:**
+
+- Three background reviewers; a one-time resumption scheduled for later; a development server left running; a recurring daily schedule.
+
+**Edge Cases:**
+
+- Only a recurring schedule, or a background command or service that may never end, remains → the turn-complete alert still appears; neither silences a finished job.
+- An assistant that reports no in-progress work at all → every main-conversation turn keeps its alert (unchanged behavior).
+- The second supported assistant's delegated conversations → they produce no alert of their own.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+**Evidence:** `[Source: rule/hooks/turn-complete-waits-for-delegated-work]`
+
+**Related Behaviors:**
+
+| Capability                  | Anchor                                            |
+| --------------------------- | ------------------------------------------------- |
+| Ordinary turn completion    | `operation/hooks/assistant-turn-completion-alert` |
+| Main conversation ownership | `rule/hooks/main-session-only`                    |
+
+**CoveredBy:** `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-014] a turn-complete alert waits until the main session has no delegated work left`, `.claude/hooks/tests/suites/notification.test.cjs::[TC-NT-014] Stop while background agents still run is skipped by the router`, `.claude/scripts/opencode/tests/sync-hooks.test.mjs::[TC-NT-014] generated bridge marks a child session going idle so only the main session's turn end alerts`, `.claude/scripts/codex/tests/migrate-claude-to-codex.test.mjs::Codex config upsert removes only the retired framework notify command and keeps a project notify`  
 **Status:** Tested
 
 ### Invariant / Property Tests

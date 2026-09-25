@@ -30,7 +30,9 @@ Tags propagated (each with its `:reminder` sibling):
          graders and loop-orchestrators included — see ALL_REVIEW_SKILLS comment)
 
 Idempotent. For each (skill, tag):
-  TOP main block -> refreshed in place if drifted, else inserted BEFORE
+  TOP main block -> refreshed in place if drifted; left out when the skill carries
+                    a guide entry for the tag (sync_blocks.has_guide_entry: the skill
+                    was converted to guide lines); else inserted BEFORE
                     sync_blocks.find_sync_region_start (co-located with reminders,
                     after the skill's main authored content).
   REMINDER       -> refreshed in place if drifted, else inserted BEFORE
@@ -51,7 +53,8 @@ import re
 import sys
 from pathlib import Path
 
-from sync_blocks import find_sync_region_start, load_wrapped_sync_block
+from line_endings import read_text, write_text
+from sync_blocks import find_sync_region_start, has_guide_entry, load_wrapped_sync_block
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
@@ -272,6 +275,8 @@ def inject_tag(text: str, tag: str) -> tuple[str, dict]:
             status["top"] = "refreshed"
         else:
             status["top"] = "present"
+    elif has_guide_entry(text, tag.removeprefix("SYNC:")):
+        status["top"] = "guided"  # carried as a guide line; its reminder is still refreshed below
     else:
         insert_at = find_sync_region_start(text)
         head = text[:insert_at].rstrip() + "\n\n"
@@ -350,7 +355,7 @@ def main() -> int:
         if path is None:
             results.append((skill, "MISSING", {}))
             continue
-        original = path.read_text(encoding="utf-8")
+        original, newline = read_text(path)
         text = original
         per_tag = {}
         for tag in skill_tags[skill]:
@@ -360,7 +365,7 @@ def main() -> int:
             results.append((skill, "NO-CHANGE", per_tag))
             continue
         if not dry_run:
-            path.write_text(text, encoding="utf-8")
+            write_text(path, text, newline)
         results.append((skill, "DRY-RUN" if dry_run else "UPDATED", per_tag))
 
     print(f"{'SKILL':<26} {'STATUS':<10} TAG -> top/bottom")

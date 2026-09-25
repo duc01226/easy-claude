@@ -392,45 +392,45 @@ For stage-only or push-only requests, report only the requested operation's obse
 >
 > **Reuse-vs-Create axis (PRIMARY lever, per layer):**
 >
-> | UI tier                                      | Cost     |
-> | -------------------------------------------- | -------- |
-> | Reuse component on existing screen           | 0.1-0.3d |
-> | Add control/column to existing screen        | 0.3-0.8d |
-> | Compose components into NEW screen           | 1-2d     |
-> | NEW screen, custom layout/states/validation  | 2-4d     |
-> | NEW shared/common component (themed, tested) | 3-6d+    |
+> | UI tier | Cost |
+> | --- | --- |
+> | Reuse component on existing screen | 0.1-0.3d |
+> | Add control/column to existing screen | 0.3-0.8d |
+> | Compose components into NEW screen | 1-2d |
+> | NEW screen, custom layout/states/validation | 2-4d |
+> | NEW shared/common component (themed, tested) | 3-6d+ |
 >
-> | Backend tier                                         | Cost      |
-> | ---------------------------------------------------- | --------- |
-> | Reuse query/handler from new place                   | 0.1-0.3d  |
-> | Small update existing handler/entity                 | 0.3-0.8d  |
-> | NEW query on existing repo/model                     | 0.5-1d    |
-> | NEW command/handler on existing aggregate (additive) | 1-2d      |
-> | NEW aggregate/entity (repo, validation, events)      | 2-4d      |
-> | NEW cross-service contract OR schema migration       | 2-4d each |
-> | Multi-aggregate invariant / heavy domain rule        | 3-5d      |
+> | Backend tier | Cost |
+> | --- | --- |
+> | Reuse query/handler from new place | 0.1-0.3d |
+> | Small update existing handler/entity | 0.3-0.8d |
+> | NEW query on existing repo/model | 0.5-1d |
+> | NEW command/handler on existing aggregate (additive) | 1-2d |
+> | NEW aggregate/entity (repo, validation, events) | 2-4d |
+> | NEW cross-service contract OR schema migration | 2-4d each |
+> | Multi-aggregate invariant / heavy domain rule | 3-5d |
 >
 > **Rule:** Sum tiers across UI+backend+tests, apply productivity factor. Reuse short-circuits tiers — call out.
 >
 > **Test-Scope drivers (compute test_count EXPLICITLY — "+tests" hand-wave is #1 failure):**
 >
-> | Driver                            | Count                                                  |
-> | --------------------------------- | ------------------------------------------------------ |
-> | Happy-path journeys               | 1 per story / AC main flow                             |
-> | State-machine transitions         | reachable transitions × allowed actors                 |
-> | Multi-entity state combos         | state(A) × state(B) — REACHABLE only, not Cartesian    |
-> | Authorization matrix              | (owner, non-owner, elevated, unauth) × each mutation   |
-> | Validation rules                  | 1 per required field / boundary / format / cross-field |
-> | UI states (per new screen/dialog) | happy, loading, empty, error, partial — present only   |
-> | Negative paths / invariants       | 1 per violatable business rule                         |
+> | Driver | Count |
+> | --- | --- |
+> | Happy-path journeys | 1 per story / AC main flow |
+> | State-machine transitions | reachable transitions × allowed actors |
+> | Multi-entity state combos | state(A) × state(B) — REACHABLE only, not Cartesian |
+> | Authorization matrix | (owner, non-owner, elevated, unauth) × each mutation |
+> | Validation rules | 1 per required field / boundary / format / cross-field |
+> | UI states (per new screen/dialog) | happy, loading, empty, error, partial — present only |
+> | Negative paths / invariants | 1 per violatable business rule |
 >
-> | Test tier (Trad, incl. setup+assert+flake) | Cost     |
-> | ------------------------------------------ | -------- |
-> | 1-5 cases, fixtures reused                 | 0.3-0.5d |
-> | 6-12 cases, 1 new fixture                  | 0.5-1d   |
-> | 13-25 cases, multi-entity setup            | 1-2d     |
-> | 26-50 cases OR new state-machine coverage  | 2-3d     |
-> | >50 cases OR full E2E journey              | 3-5d     |
+> | Test tier (Trad, incl. setup+assert+flake) | Cost |
+> | --- | --- |
+> | 1-5 cases, fixtures reused | 0.3-0.5d |
+> | 6-12 cases, 1 new fixture | 0.5-1d |
+> | 13-25 cases, multi-entity setup | 1-2d |
+> | 26-50 cases OR new state-machine coverage | 2-3d |
+> | >50 cases OR full E2E journey | 3-5d |
 >
 > **Test multipliers:** new fixture/seed harness +0.5d · cross-service/bus assertion +0.3d each · UI E2E ×1.5 · each new role +1-2 cases
 >
@@ -446,28 +446,28 @@ For stage-only or push-only requests, report only the requested operation's obse
 >
 > **Risk Margin (drives max bound):**
 >
-> | likely_days         | Base margin                     |
-> | ------------------- | ------------------------------- |
-> | <1d trivial         | +10%                            |
-> | 1-2d small additive | +20%                            |
-> | 3-4d real feature   | +35%                            |
-> | 5-7d large          | +50%                            |
-> | 8-10d very large    | +75%                            |
-> | >10d                | +100% AND **flag SHOULD SPLIT** |
+> | likely_days | Base margin |
+> | --- | --- |
+> | <1d trivial | +10% |
+> | 1-2d small additive | +20% |
+> | 3-4d real feature | +35% |
+> | 5-7d large | +50% |
+> | 8-10d very large | +75% |
+> | >10d | +100% AND **flag SHOULD SPLIT** |
 >
 > **Risk-factor add-ons (additive — enumerate in `risk_factors`):**
 >
-> | Factor                                                                | +margin |
-> | --------------------------------------------------------------------- | ------- |
-> | `touches-complex-existing-feature` (>500 LOC, multi-handler, central) | +20%    |
-> | `cross-service-contract` change                                       | +25%    |
-> | `schema-migration-on-populated-data`                                  | +25%    |
-> | `new-tech-or-unfamiliar-pattern`                                      | +30%    |
-> | `regression-fan-out` (≥3 downstream areas re-test)                    | +20%    |
-> | `performance-or-latency-critical`                                     | +20%    |
-> | `concurrency-race-event-ordering`                                     | +25%    |
-> | `shared-common-code` (multi-consumer/multi-app)                       | +25%    |
-> | `unclear-requirements-or-design`                                      | +30%    |
+> | Factor | +margin |
+> | --- | --- |
+> | `touches-complex-existing-feature` (>500 LOC, multi-handler, central) | +20% |
+> | `cross-service-contract` change | +25% |
+> | `schema-migration-on-populated-data` | +25% |
+> | `new-tech-or-unfamiliar-pattern` | +30% |
+> | `regression-fan-out` (≥3 downstream areas re-test) | +20% |
+> | `performance-or-latency-critical` | +20% |
+> | `concurrency-race-event-ordering` | +25% |
+> | `shared-common-code` (multi-consumer/multi-app) | +25% |
+> | `unclear-requirements-or-design` | +30% |
 >
 > **Collapse rule:** total margin >100% → STOP, split (padding past 2x is dishonesty). Margin <15% on `likely_days ≥5` → under-estimated, widen.
 >
@@ -622,16 +622,15 @@ For stage-only or push-only requests, report only the requested operation's obse
 > **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Re-read files after context changes.** Compaction, resume, or long-running work makes memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts; check the source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Map the docs, generated mirrors, configs, and callers a removal can stale.
+> **Trace the full impact chain after edits, and verify ALL affected outputs.** A changed definition reaches derived outputs and consumers; one green check is not all green checks.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never delivery/retry bookkeeping in shared infrastructure that any co-running process can write; such a check passes alone and flakes once anything shares that infrastructure.
 > **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->

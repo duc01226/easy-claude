@@ -1,7 +1,7 @@
 ---
 name: feature-presentation
 version: 1.0.0
-description: '[Documentation] Use when synthesizing specs, PBIs, ideas, and mockups into one standalone HTML slide deck for stakeholders.'
+description: '[Documentation] Use when a workflow step or the user asks for a stakeholder slide deck. Synthesizes specs, PBIs, ideas and mockups into one standalone HTML deck.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -20,14 +20,14 @@ description: '[Documentation] Use when synthesizing specs, PBIs, ideas, and mock
 **Summary:**
 
 - **Purpose / altitude:** a SYNTHESIS deck at a higher altitude than `pbi-mockup` — accumulates many artifacts (ideas + specs + PBIs + stories + design-specs + mockups) into ONE stakeholder presentation, not one PBI's UI preview.
-- **Main steps (read-this-if-nothing-else):** (1) resolve `activePlan` scope across created→now → (2) gap-fill: missing PBIs use `workflow-spec-to-pbi` as a SUB-AGENT, missing mockups in `idea-to-pbi` use `pbi-mockup`, `idea-to-spec` skips mockups → (3) load design context → (4) [BLOCKING] inventory UI + flows → (5) extract journeys, one todo each → (6) assemble → (7) save → (8) [BLOCKING] fidelity/demo integrity → (8b) Demo-Quality → (9) report.
+- **Main steps (read-this-if-nothing-else):** (1) resolve `activePlan` scope across created→now → (2) gap-fill: missing PBIs → ask once (`manual` tier), on a yes run `workflow-spec-to-pbi` as a SUB-AGENT, else report the gap; missing mockups in `idea-to-pbi` use `pbi-mockup`, `idea-to-spec` skips mockups → (3) load design context → (4) [BLOCKING] inventory UI + flows → (5) extract journeys, one todo each → (6) assemble → (7) save → (8) [BLOCKING] fidelity/demo integrity → (8b) Demo-Quality → (9) report.
 - **Output/demo contract:** exactly ONE self-contained HTML at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` defaults to `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) with inline CSS/JS, Google Fonts only, no CDN/reveal.js, vanilla-JS navigation, a guide slide, and one interactive demo-flow slide per main journey; reuse existing `*-mockup.html` via escaped `<iframe srcdoc>` and accept only complete PBI full flows.
 - **Branches and evidence:** evaluate shared `isLargeIdea`; true requires the complete `large_idea_decomposition` block, stable slice IDs, and Decomposition & boundaries beside the all-PBI backlog and all-PBI presentation; missing/conflicting fields block deck quality and the presentation never creates the product roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path). `idea-to-spec` uses only design-spec ASCII/tables + narrated frames; missing visuals render an empty state; use real domain data and keep prose tech-agnostic.
 
 **Workflow:**
 
 1. **Resolve scope** — anchor on `activePlan`, accumulate its full artifact set across the plan's created→now date range (every `{YYMMDD}` in range, NOT just today); custom prompt widens; standalone + no prompt → `AskUserQuestion`.
-2. **Gap-fill (smart routing — sub-agent)** — spec lacks PBIs → `workflow-spec-to-pbi` AS A SUB-AGENT; PBIs lack mockups (mockup-bearing workflow) → `pbi-mockup`. Spec-only `idea-to-spec` → SKIP mockup generation.
+2. **Gap-fill (smart routing — sub-agent)** — spec lacks PBIs → ask once (`manual` tier), on a yes `workflow-spec-to-pbi` AS A SUB-AGENT, else report the gap; PBIs lack mockups (mockup-bearing workflow) → `pbi-mockup`. Spec-only `idea-to-spec` → SKIP mockup generation.
 3. **Load project design context** — baseline + matched per-app design-system docs via `project-config.json`.
 4. **[BLOCKING] Inventory existing UI + map connected flows** — `SYNC:existing-ui-research`.
 5. **Accumulate + structure content (incl. journey extraction)** — parse each artifact into stakeholder sections; extract the main-story flows into an ordered journey list + `TaskCreate` one todo per journey; REAL domain data, never Lorem (`references/artifact-accumulation.md`).
@@ -116,7 +116,7 @@ Determine deck scope; full algorithm: `references/artifact-accumulation.md` → 
 
 Fill missing downstream artifacts; routing: `references/artifact-accumulation.md` → "Gap-Fill Routing".
 
-1. **Spec lacks PBIs:** Invoke `workflow-spec-to-pbi` **AS A SUB-AGENT** (Agent tool). Per CLAUDE.md "Workflow Step Advancement §3", multi-step workflows run as sub-agents: return a summary and write full findings to `tmp/reports/` to bound deck-build context.
+1. **Spec lacks PBIs:** `workflow-spec-to-pbi` is a `manual`-tier workflow — ask the user once whether to run it; only on a yes, invoke it **AS A SUB-AGENT** (Agent tool), briefed to run `/start-workflow workflow-spec-to-pbi` and told the user explicitly said yes — that yes is the explicit request the tier needs, since a sub-agent's own `/start-workflow` call never counts as one; otherwise report the missing PBIs and continue. Per CLAUDE.md "Workflow Step Advancement §3", multi-step workflows run as sub-agents: return a summary and write full findings to `tmp/reports/` to bound deck-build context.
 2. **PBIs lack `-mockup.html` AND workflow is mockup-bearing (`idea-to-pbi`):** Invoke `pbi-mockup` per PBI; require its Releasable Full-Flow gate to PASS before embedding.
 3. **Spec-only `idea-to-spec` context:** SKIP mockup generation — never invoke `pbi-mockup`; use design-spec visuals only (Step 6 spec-only path), preserving the no-mockup contract.
 
@@ -249,7 +249,7 @@ Component tiers: common (slide shell, nav) — domain-shared (mockup/wireframe e
 | Scenario                                       | Handling                                                                 |
 | ---------------------------------------------- | ------------------------------------------------------------------------ |
 | Scope resolves to zero artifacts               | Emit an explicit empty-state slide rather than failing (Step 6 / TC-026) |
-| Spec without PBIs (mockup-bearing workflow)    | Gap-fill via `workflow-spec-to-pbi` sub-agent (Step 2)                   |
+| Spec without PBIs (mockup-bearing workflow)    | Ask once (`manual` tier); on a yes, `workflow-spec-to-pbi` sub-agent (Step 2) |
 | Spec-only `idea-to-spec`                       | Design-spec visuals only + narrated ASCII-frame step-through; never generate mockups, never invoke `pbi-mockup` (Step 2 / Step 6) |
 | Feature with no mockup AND no design-spec      | Empty-state slide ("No mockup/design-spec available") — never blank iframe |
 | Demo iframe focused while navigating slides    | Don't hijack arrow keys while a demo iframe is focused (Step 6 / `deck-template.md` §3b) |
@@ -295,7 +295,7 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** Outside a workflow, MUST ATTENTION use `AskUserQuestion`; the user chooses the route:
 >
-> 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — includes the presentation deck as a late step.
+> 1. **Activate `workflow-idea-to-pbi` workflow** via `/start-workflow workflow-idea-to-pbi` (Recommended) — includes the presentation deck as a late step.
 > 2. **Activate `workflow-idea-to-spec` workflow** — spec-only path; deck degrades to design-spec visuals.
 > 3. **Execute `/feature-presentation` directly** — run this skill standalone on existing artifacts.
 
@@ -314,122 +314,20 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
-<!-- SYNC:existing-ui-research -->
+<!-- PROTOCOL-GUIDES:START -->
 
-> **[BLOCKING] Understand the existing UI before you design or spec a new/updated screen.** Before producing any wireframe, mockup, screen design, or UI spec:
->
-> 1. **Inventory existing related UI** — search the project for screens, pages, and components already serving this feature or its domain (consult configured design-system docs + the real component inventory).
->    Use the project's documented component tiers and base abstractions when present; otherwise record the actual component roles and owners without inventing a tier model.
-> 2. **Map connected flows** — identify every feature that links to, embeds, includes, or navigates to/from the new screen; trace its entry and exit flows so the new screen fits them.
-> 3. **Reuse before invent** — prefer composing an existing component when its contract fits; justify any new component or variant against the inventory and record the constraint that prevents reuse.
->    Avoid duplicated behavior where a suitable project abstraction exists; do not create a base, tier, selector convention, or shared component solely to match this checklist.
-> 4. **Record findings** — note the matched existing screens/components + connected flows in the artifact so downstream design faithfully matches the current UI system.
->
-> **Skip ONLY** when the feature is backend-only (no UI) — state that explicitly.
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-<!-- /SYNC:existing-ui-research -->
+- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
+- `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
+- `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
+- `existing-ui-research` — Study the existing UI before designing or specifying a screen; designing or specifying a new or updated screen → .claude/skills/shared/protocols/existing-ui-research.md
+- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
+- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
+- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:design-distinctiveness-gate -->
-
-> **[BLOCKING] Design distinctiveness gate (`DD-1`–`DD-8`) — binds on ANY task that designs, plans, mocks up, implements, or reviews a user-facing visual surface.** Deep catalog: `.claude/docs/design-knowledge.md`. Cite findings as `DD-<clause>` + `file:line`.
->
-> **Precedence (resolve in this order, never silently):** the **brief's own stated visual direction WINS outright** — including when it asks for one of the `DD-4` tells. Then the **project's design-system / SCSS / frontend-pattern docs and accepted ADRs** — a house style IS an intentional identity, and re-deciding it per feature is the incoherence this gate prevents. Then these clauses. A genuine conflict is SURFACED to the user with both sides, NEVER resolved silently.
->
-> **Relationship to `UI-1.1`–`UI-9.4`:** a different question, no overlap — the 40 clauses ask _"is this usable, accessible, consistent?"_ (a measurable floor); this gate asks _"is this THIS product's interface, or the one any generator would emit for any brief?"_. A surface can pass all 40 clauses and still be a template. BOTH bind; where they touch (type scale, colour, motion timing) the clause sets the floor and this gate picks the value.
->
-> - `DD-1` **Ground it in the subject matter.** Before designing, name the concrete subject, the audience, and the design's primary job — and CONFIRM with the user when the brief is silent. Distinctive choices come FROM the subject's industry, materials and vernacular; they are never taste applied on top. **Test: if the palette, type and layout would fit a different product unchanged, there is no identity yet.**
-> - `DD-2` **Every choice carries a WHY.** "It's common", "it's clean", "users expect it" are not reasons. A decision with no articulable reason is a default that arrived unnoticed. Defaults hide in what feels like infrastructure — typography, navigation, data display, and TOKEN NAMES. **Token-name test: someone reading only your CSS variables should be able to guess what product this is** (`--ink`/`--parchment` evoke a world; `--gray-700`/`--surface-2` evoke a template).
-> - `DD-3` **Two passes, and the review pass is mandatory.** (1a) Write a compact **design plan** — Colour (4–6 named hex values) · Type (families + roles + scale) · Layout (one-sentence prose + ASCII wireframes to compare alternatives, including alignment: left/centre/justified) · Principles (what makes THIS page unique). (1b) **BLOCKING generic test — before any code:** work through a similar prompt and see whether you arrive somewhere similar; **any part that reads like the generic default for any comparable page rather than a choice for THIS brief gets REVISED, and you state what you changed and why.** Then (2a) build the REVISED plan, (2b) critique. — why: writing a plan and going straight to code reproduces the default, because the plan came from the same patterns the code will.
-> - `DD-4` **Audit every FREE axis against the generated-design tell catalog** (`[model-knowledge]`, calibration not prohibition — each trait is legitimate for SOME brief): **T1** cream `#F4F1EA` + high-contrast serif + terracotta near `#D97757` (Anthropic's own interaction accent — on a user's brief it reads specifically as a tell) · **T2** near-black + one acid-green/vermilion accent · **T3** broadsheet hairline-rule pastiche, zero radius, dense columns · **T4** the SaaS-card kit: identical rounded cards, ONE radius regardless of hierarchy, the same `rgba(0,0,0,.1)` shadow under each, gradient washes as decoration · **T5** template chrome whatever the subject: tracked-out ALL-CAPS eyebrow above every heading, meta strings joined with middle dots (`A · B · C`), `WORD — fragment` labels with a spaced em dash, tinted near-black (`#0B0B0B`/`#111`) standing in for black, monospace for small data labels, `→` appended to link/button text. **A match is a HYPOTHESIS about a missed decision, never a defect** — promote it only by naming the axis, that the brief left it free, and what the subject suggested instead.
-> - `DD-5` **Typography carries the personality.** One family, or two CLEARLY distinct ones — you do NOT need separate display and body faces. Choose deliberately, not the default you would reach for on any project. Set a real scale with intentional weights, widths and spacing. When type is a headline it is an ACTIVE part of the design, not a neutral delivery vehicle. Measure under ~80 characters; serifs tolerate slightly longer lines and want slightly more line-height than sans at the same size. Hierarchy needs weight/tracking/opacity, not size alone. **Avoid the three commonest tells: accenting a single word in a headline (italic/bold/colour) · ALL CAPS labels · an eyebrow label that names the section the heading already names.**
-> - `DD-6` **Structure is information, not decoration.** Outlines, borders, numbering, eyebrows, dividers and labels must encode something about the content. **Before adding numbered markers (`01 / 02 / 03`), check the content really IS a sequence** — a stepped process, timeline or ranking. For every device ask: what does this tell the reader that whitespace would not? Nothing → cut it. **Hero:** open with the most characteristic thing in the subject's world, in whatever form fits (headline, image, animation, live demo, interactive moment) — big-number-plus-small-label-plus-gradient is the DEFAULT treatment, so use it only when it is genuinely best here. **Composition:** rhythm over monotone (same card size, same gap, same density everywhere is the sound of no one deciding); proportions must say something you can articulate; one dominant focal point.
-> - `DD-7` **Motion sparingly and deliberately.** Non-user-triggered motion draws attention ONLY. One orchestrated moment — a single page-load sequence or one reveal — lands better than scattered effects; **fade-and-slide-up entrances on each section and hover transitions on every card are the generic default and read as generated.** Motion that ANSWERS a person's action (opening, expanding, confirming) is welcome when it shows what changed. Honour `prefers-reduced-motion`.
-> - `DD-8` **Spend boldness once, then remove one accessory.** Let ONE element be the memorable thing and keep everything around it quiet and disciplined; cut any decoration that does not serve the brief. **Critique the BUILT page, not just the plan** — composition, craft (density is a decision, not a constant), content coherence, and CSS honesty (negative margins undoing a parent's padding, `calc()` values that exist only as workarounds, absolute positioning to escape layout flow are lies; the correct answer is always simpler than the hack). Take screenshots to review where the environment supports it — a picture is worth 1000 tokens. Then ask "if they said this lacks craft, what would they point to?" and fix that. **Build the quality floor in silently** — responsive, visible keyboard focus, reduced-motion respected, measured contrast, tokens never raw hex or magic numbers — and watch CSS selector specificity, where a type-based selector (`.section`) and an element-based one (`.cta`) most often cancel each other's padding/margin.
->
-> **Memory:** vary between briefs — light and dark, families, direction. NEVER converge on the same choice across generations (Space Grotesk, for example). Where the project already has a design system, tokens, or an `interface-system.md`, ADOPT and record it rather than re-deciding; write back any pattern used 2+ times with measurements worth remembering.
->
-> **Skip ONLY** when the change has NO user-facing visual surface (backend-only, tooling, docs) — state that reason explicitly so the skip is auditable, not an omission.
-
-<!-- /SYNC:design-distinctiveness-gate -->
-
-<!-- SYNC:design-review-checklist -->
-
-> **Front-End Design Review Checklist** — the EXECUTABLE review protocol for any artifact carrying a user-facing front-end surface. Full catalog (`A1`…`Q` plus §R, ~155 checks with failure signals and default severities; worked calibration cases in `.claude/docs/design-review-calibration.md`): **`.claude/docs/design-review-checklist.md`**. This gate carries the protocol and the triage pass; the file carries the checks.
->
-> **Applies when — and ONLY when — the change, plan, or artifact carries a user-facing front-end surface.** A back-end-only diff, a doc edit, or a config change is `N/A`: state that once and move on. NEVER run a UI review on a non-UI change to manufacture coverage. When it DOES apply, **MUST ATTENTION READ `.claude/docs/design-review-checklist.md` and work its sections** — a review that cites a check ID without opening the catalog is asserting, not checking.
->
-> **`CL-1` Context before checks (§0.1).** Establish platform · primary user & expertise · primary task · success metric · constraints · review scope · available artifacts. Fewer than four known → state the gap at the top of the report and mark affected findings **low confidence** — why: a check judged against an unknown task is a guess wearing an ID.
->
-> **`CL-2` Evidence or nothing (§0.2).** Every finding cites a specific location (screen · element · `file:line`). NEVER invent a measurement — contrast, tap-target size, and load time that cannot be measured from the given artifact are `NOT VERIFIABLE`, never a guessed number. Tag every finding `MEASURED` · `OBSERVED` · `HEURISTIC`. Status values: `PASS` · `FAIL` · `PARTIAL` · `N/A` · `NOT VERIFIABLE`.
->
-> **`CL-3` Severity, then a cap (§0.3).** `P0` blocks task completion / loses data / excludes a protected group (ship blocker) · `P1` significant friction or a legal accessibility floor (fix before release) · `P2` measurable inefficiency (next iteration) · `P3` polish (backlog) · `P4` note. Translate to other dialects (BLOCKED/WARN, Critical–Low, BLOCKING/ADVISORY) ONLY through the §0.3 severity map. Cap the report at the top 10 by severity unless a full audit was requested. A clean section reports "no issues found" — NEVER pad. Every `P0`/`P1` carries a concrete fix.
->
-> **`CL-4` Section sweep, in order — over whole SURFACES, not files (§0.5).** Map changed files to the pages/views/dialogs they render into, reconstruct each surface's composition (component tree + style origins; render when it can run, else `ENVIRONMENT-BLOCKED`), then sweep: §A core usability heuristics · §B cognitive load & surface complexity (B12–B15: surface load, progressive disclosure, one job per view, the project's complexity budget) · §C visual design & hierarchy · §D interaction and relevant product states · §E information architecture & container fit (E9–E11: dialog vs full view vs stepped flow vs side panel vs inline) · **§F web / §G mobile — conditional on platform; §H expert & data-heavy use — conditional on usage, not platform** · §I accessibility: use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, use the documented platform standard. Record the selected standard and its source; severity follows the governing release contract · §J content & UX writing · §K trust, ethics & privacy · **§L AI & agentic patterns — conditional on the product having AI features** · §M cross-cutting consistency · **§R forms & data entry — conditional on input: fill the Field Necessity Matrix first** · §N edge-case probes. Make one focused pass per applicable section and record N/A with evidence for sections the surface does not support. Cluster a defect repeated across surfaces into ONE finding; calibrate against `.claude/docs/design-review-calibration.md`.
->
-> **`CL-5` Quick Triage Pass (§P)** when a full sweep is not possible — use these prompts for applicable surfaces: (1) can a new user complete the primary task unaided · (2) is feedback timely against the project/platform expectation · (3) do relevant empty/loading/error states offer a forward path · (4) is the primary action obvious and reachable for supported inputs · (5) do contrast and focus meet the selected accessibility standard (WCAG 2.2 AA baseline for web) · (6) can users operate the surface with its supported input modes · (7) do interactive targets meet the platform's size/spacing guidance · (8) are destructive actions recoverable where appropriate · (9) does the surface work at its smallest supported size and required zoom/reflow · (10) are there deceptive or coercive patterns.
->
-> **`CL-6` Report shape (§O).** Context (+ known gaps) → Verdict (Ship / Ship with fixes / Do not ship) → What works (2–4 specific strengths, cited) → Findings grouped `P0`→`P3`, each with Location · Evidence + tag · Impact · Principle (checklist ID) · Fix → Open questions → Coverage table. Any `P0` caps the grade at Fail regardless of score; report a score only ALONGSIDE findings, never instead of them.
->
-> **Component architecture pass (§M6–§M9) when source code is in scope.** Verify the ownership model documented or demonstrated by the project, reuse/composition decisions, and whether shared behavior is duplicated without a reason. Do not require tiers, a base abstraction, or a particular test hierarchy unless the project uses one. Report applicable checklist IDs with `file:line` evidence; do not infer source architecture from a screenshot alone.
->
-> **Precedence and no-double-counting.** The project's design-system / SCSS / frontend-pattern docs and accepted ADRs OUTRANK this checklist; the brief's stated direction outranks aesthetic judgment. A deliberate, documented convention is NEVER a defect — check intent before flagging, and surface a genuine conflict to the user with both sides, NEVER resolve it silently. This checklist is the review PROCEDURE, not a third set of taste rules: `UI-1.1`–`UI-9.4` ask "does it meet the usability floor?", `DD-1`–`DD-8` ask "is this THIS product's interface?", and these checks ask "did the review actually look, with evidence, and rank it?". Where a check restates a `UI-*` or `DD-*` clause, report the defect ONCE under whichever ID the consuming skill already uses.
->
-> **For a PLAN or a PLAN REVIEW.** When the plan contains UI work, bind applicable acceptance criteria to the target platform/surface, relevant user states, and the selected accessibility standard. Each UI phase MUST name, per new or reshaped view: its primary task, its container (E9), its information priority (what is shown now / later / never here), and — for input — the inputs required at creation vs deferred (§R1–R2). A plan review treats a UI phase missing these as a finding against the checklist IDs it leaves unbound. Use WCAG 2.2 AA as the web baseline and meet any stricter applicable legal or project requirement; for other platforms, identify the documented platform standard. Identify conditional sections (§F/§G/§H, §L) that apply. Do not require every catalogued state; record the standard and its source, and keep unsupported checks N/A.
-
-<!-- /SYNC:design-review-checklist -->
-
-<!-- SYNC:project-reference-docs-guide -->
-
-> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap, immediately before target/source reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate but never prove it ran.
->
-> 1. **Scope** — identify file types, domain area, and operation.
-> 2. **Project config is OPTIONAL.** Read the configured project-config file via its loader (default `docs/project-config.json`) when it exists. Absent is a supported state, not an error: run on portable defaults, derive project facts (paths, commands, conventions, architecture, test/spec layout) from repository evidence (manifests, lockfiles, scripts, CI, layout, root instruction files), state material assumptions, never block, and at most OFFER `/project-init` or `/project-config` once. Present → minimum valid shape is a non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. A DECLARED section left malformed or incomplete is a configuration error: fail closed on it and run `/project-init` or `/project-config` before relying on it — why: silent defaults would present wrong facts as authoritative. Verify material config hints against repository evidence; generic defaults are never project facts.
-> 3. **Select docs.** Always-on: the project-init-owned `lessons.md` and docs-index inputs at their configured owner paths — read independently, never appended to `referenceDocs`. Task-specific: an explicit `referenceDocs` array is the exact selection, subsets and `[]` included; absent → the runtime capability-aware resolver (portable baseline plus configuration- or repository-evidenced capabilities; may be empty). The scan-target manifest is a registry, not a default selection. Filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Custom-doc schema, ownership, and path-safety rules: `.claude/skills/scan/references/targets.md`.
-> 4. **Route by phase.** Just in time, read the selected docs the table names for the phase you are ABOUT to enter, plus any selected custom doc whose `purpose` covers that phase. An unmatched row is `Not applicable`, never a blocker.
->
-> | About to… | Read first (when selected and present) |
-> | --- | --- |
-> | investigate, explain, plan, design, estimate | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan will touch |
-> | edit or write code | `code-review-rules.md`, plus server-side / non-UI code → `backend-patterns-reference.md`; UI → `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` |
-> | write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `seed-test-data-reference.md` |
-> | author or change specs, test cases, or docs | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; `workflow-spec-test-code-cycle-reference.md` when specs, tests, and code must stay in sync |
-> | review a diff, plan, spec, or artifact | `code-review-rules.md`, plus the edit/test/spec-row docs for every file type under review |
->
-> 5. **Per-file conventions** (`contextGroups[]` in the project config) add rules for the exact file read or edited: hooks deliver them where they run; elsewhere run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` before the first edit of an unfamiliar path class.
-> 6. **Cite and repair.** State `Reference docs read: ... | Not applicable: ...` (record an explicit empty selection); still honor references the active skill or task requires. A missing/stale always-on input or selected/required doc, or a malformed declared config section → `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on it.
-> 7. **Dedup within ~200K tokens.** A doc counts as loaded only when its full content came back to THIS context from your own read, after the last compaction and within roughly the last 200K tokens, and it has not changed since — list it in `Reference docs read:` as `<doc> (loaded)` and skip the re-read. Everything else is not loaded: a hook reminder, a summary, a doc merely named in the conversation, or a read by another agent. Re-select and re-read after compaction, resume, a material context change, or ~200K tokens of growth (= the file-convention hook default). A delegated sub-agent starts empty: name the resolved doc paths in its brief.
->
-> **Ready when:** scope set · config read or its absence recorded · always-on inputs confirmed · selection applied (may be empty) · phase docs read or cited `(loaded)` · citation emitted.
-
-<!-- /SYNC:project-reference-docs-guide -->
+<!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -454,24 +352,6 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
-<!-- SYNC:parallel-subagent-dispatch -->
-
-> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
->
-> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
-> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
-> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
-> 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
-> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
-> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
->
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
->
-> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
-
-<!-- /SYNC:parallel-subagent-dispatch -->
-
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
@@ -479,17 +359,10 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
-
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
+
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:design-distinctiveness-gate:reminder -->
@@ -535,7 +408,7 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 **Domain rules this skill must not skip:**
 
 **IMPORTANT MUST ATTENTION** default scope anchors on `activePlan` and accumulates its FULL artifact set across the plan's created→now date range — NEVER just today's `{YYMMDD}` — why: a multi-day workflow authors specs on day 1 and PBIs on day 2; a single-day glob silently drops day-1 artifacts.
-**IMPORTANT MUST ATTENTION** run multi-step gap-fill workflows (`workflow-spec-to-pbi`) as SUB-AGENTS — summary returned, full findings written to `tmp/reports/` per CLAUDE.md "Workflow Step Advancement §3" — why: inline activation pollutes the deck-build context with the full workflow transcript.
+**IMPORTANT MUST ATTENTION** `workflow-spec-to-pbi` is `manual` tier — ask the user once and run it only on a yes, else report the gap; run multi-step gap-fill workflows as SUB-AGENTS — summary returned, full findings written to `tmp/reports/` per CLAUDE.md "Workflow Step Advancement §3" — why: inline activation pollutes the deck-build context with the full workflow transcript.
 **IMPORTANT MUST ATTENTION** render an explicit empty-state slide when scope resolves to zero artifacts OR a feature has no mockup AND no design-spec — never fail, never a broken/blank iframe — why: stakeholders must always get a coherent deck.
 **IMPORTANT MUST ATTENTION** [BLOCKING] inventory existing UI (Step 4) BEFORE assembling, then run the [BLOCKING] fidelity gate (Step 8, incl. demo integrity — every journey clicks through, no dead controls, narration tech-agnostic) AFTER — record `Fidelity vs existing UI: PASS|FAIL` (tokens / components / layout / flows / embeds / demos) and the final `Demo quality: PASS|FAIL` (Step 8b) — why: a generic-HTML or click-broken deck previews a system that does not exist.
 **IMPORTANT MUST ATTENTION** use REAL domain entity field names + realistic sample data — NEVER Lorem ipsum or "Item 1, Item 2"; keep prose tech-agnostic (business terms, not framework/CSS class names) — why: fake data and tech-coupled prose mislead stakeholders.
@@ -562,4 +435,4 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 **IMPORTANT MUST ATTENTION Goal:** Synthesize every in-scope session idea, Feature Spec, PBI, user story, design-spec, and mockup into ONE project-faithful standalone HTML deck with a vanilla-JS engine and interactive MVP demos for every main journey, so PO/BA/Dev/QC review the feature from one offline file before build.
 **IMPORTANT MUST ATTENTION** ONE self-contained HTML (Google Fonts only, vanilla-JS engine), one interactive demo-flow slide per main journey (embedded self-driving mockup + narration strip + "⚠ Simulated" note) + a "How to drive this demo" guide slide; spec-only → design-spec visuals + narrated ASCII frames (never invoke `pbi-mockup`), empty-state slide never blank iframe.
 **IMPORTANT MUST ATTENTION** plan journeys first (Step 5, one todo each), default scope = active-plan created→now range (not just today), gap-fill via SUB-AGENT, [BLOCKING] existing-UI inventory + fidelity gate (incl. demo integrity) + final Demo-Quality review (Step 8b), real domain data, cite `file:line` (>80% confidence) — NEVER guess.
-**IMPORTANT MUST ATTENTION Main steps/modes (in order):** (1) resolve scope (`activePlan` created→now; custom prompt widens; standalone/no prompt asks) → (2) gap-fill (`workflow-spec-to-pbi` SUB-AGENT; `idea-to-pbi` missing mocks → `pbi-mockup`; `idea-to-spec` skips) → (3) design context → (4) [BLOCKING] UI/flow inventory → (5) artifacts + journeys/todos → (6) one deck, or spec-only ASCII/empty state → (7) save → (8) [BLOCKING] fidelity + demo integrity → (8b) [BLOCKING] Demo-Quality → (9) report. NEVER skip blocking gates or journey extraction — why: forgotten branches or gates produce incomplete, ungated decks.
+**IMPORTANT MUST ATTENTION Main steps/modes (in order):** (1) resolve scope (`activePlan` created→now; custom prompt widens; standalone/no prompt asks) → (2) gap-fill (ask once, on a yes `workflow-spec-to-pbi` SUB-AGENT; `idea-to-pbi` missing mocks → `pbi-mockup`; `idea-to-spec` skips) → (3) design context → (4) [BLOCKING] UI/flow inventory → (5) artifacts + journeys/todos → (6) one deck, or spec-only ASCII/empty state → (7) save → (8) [BLOCKING] fidelity + demo integrity → (8b) [BLOCKING] Demo-Quality → (9) report. NEVER skip blocking gates or journey extraction — why: forgotten branches or gates produce incomplete, ungated decks.

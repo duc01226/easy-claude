@@ -100,7 +100,8 @@
 
 | Workflow ID                   | When to use                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------- |
-| `workflow-feature`            | Implement a well-defined feature.                                                   |
+| `workflow-feature`            | Implement a well-defined feature that no canonical spec describes yet.              |
+| `workflow-implement-spec`     | Implement behavior already written in a canonical spec or TC set.                   |
 | `workflow-bugfix`             | Investigate and fix a bug or regression.                                            |
 | `workflow-refactor`           | Restructure or improve code without changing behavior.                              |
 | `workflow-big-feature`        | Handle a large, ambiguous, or research-heavy feature.                               |

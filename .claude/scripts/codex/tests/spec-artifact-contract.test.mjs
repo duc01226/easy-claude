@@ -135,10 +135,10 @@ test("Given the post-change spec-sync workflow, When the catalog and wrapper are
   const expected = [
     "workflow-review-changes", "spec [mode=tests]", "artifact-review --type=spec-tests",
     "spec [mode=sync]", "integration-test", "integration-test-review", "integration-test-verify",
-    "test", "docs-update", "workflow-end",
+    "test", "docs-update", "workflow-end", "watzup",
   ];
 
-  assert.deepEqual(workflow.sequence, expected);
+  assert.deepEqual(workflow.sequence.map((step) => (typeof step === "string" ? step : [step.skill, step.args].filter(Boolean).join(" "))), expected);
   assert.deepEqual(steps, expected);
   assert.ok(injected.includes("A native contract may be declared by config or local references"));
   assert.ok(/strict portable defaults only when neither config nor local references declares a native artifact contract/i.test(injected));

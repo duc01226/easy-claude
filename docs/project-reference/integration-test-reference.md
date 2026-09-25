@@ -21,6 +21,7 @@
 - **MUST** assert meaningful outputs or state; a smoke-only “does not throw” check is insufficient.
 - **MUST** make every assertion-bearing case explicit `Given` → `When` → `Then` (comments or named helpers are valid), name the guarded business intent/invariant or technical contract, and assert an owned observable outcome; bare Arrange/Act/Assert is insufficient unless all three GWT phases are labeled.
 - **MUST** use unique temp directories and deterministic cleanup for mutable tests.
+- **MUST** keep every test portable: it runs green when `.claude/` is copied into any project layout on Windows, macOS and Linux — see [Portable Test Contract](#portable-test-contract).
 - **NEVER** recommend `--parallel` for suite-level concurrency while the runner still executes suites sequentially.
 
 ## Test Architecture
@@ -64,7 +65,7 @@ Canonical commands live in `docs/project-config.json:158-169` (`testing.commands
 
 The suite runner sets `CLAUDE_PROJECT_DIR` before loading suites (`.claude/hooks/tests/run-all-tests.cjs:16-24`). Child-process helpers merge per-call `env`; parent-process mutations must use `createEnvSaver`/`setupClaudeEnvFile` and restore in `finally` (`.claude/hooks/tests/lib/test-utils.cjs:141-195`).
 
-Targeted suites may require host executables: count-drift resolves `python` then Windows `py -3` (`.claude/hooks/tests/suites/count-drift.test.cjs:24-59`), and doc-sync tests probe/use Git in isolated temporary repositories (`.claude/hooks/tests/test-doc-sync-gate.cjs:65-76`). No real hardcoded test credential was verified; notification literals are synthetic enablement sentinels (`.claude/hooks/tests/suites/notification.test.cjs:145-159`).
+Targeted suites may require host executables: count-drift resolves `python` then Windows `py -3` (`.claude/hooks/tests/suites/count-drift.test.cjs:38-59`), and doc-sync tests probe/use Git in isolated temporary repositories (`.claude/hooks/tests/test-doc-sync-gate.cjs:65-76`). No real hardcoded test credential was verified; notification literals are synthetic enablement sentinels (`.claude/hooks/tests/suites/notification.test.cjs:145-159`).
 
 ## Service-Specific Setup
 
@@ -83,6 +84,15 @@ Use payload builders for valid lifecycle inputs and assert the observable contra
 3. Name tests with a behavioral bracket prefix such as `[concurrent]`; include the governing `TC-*` ID when a canonical spec supplies one (`.claude/hooks/tests/suites/integration.test.cjs:43`, `.claude/hooks/tests/suites/workflow.test.cjs:197-198`).
 4. Label explicit Given/When/Then phases (comments or named helpers are valid), name the guarded business intent/invariant or technical contract, arrange isolated input, act through the real process boundary, assert the owned output/state, and clean up in `finally`.
 5. Run a matching suite filter, then the full repeatability gate.
+
+## Portable Test Contract
+
+Every suite under `.claude/` ships with the bundle: it must pass in an adopter project of any layout, on any developer machine, on Windows, macOS and Linux. A test leaning on its authoring repo or workstation passes here and fails — or reaches real endpoints — only at the consumer.
+
+- **Own fixture project:** build config, docs and layout in a temp dir (`makeHookTreeProject`, `.claude/hooks/tests/lib/hook-runner.cjs:359`); never read this repo's `docs/`, specs, config or git state outside a guarded self-check. Guard a self-check truly about the authoring repo with `isFrameworkRepo`: a CJS suite (`*.test.cjs`) uses the synchronous `.claude/hooks/tests/lib/framework-repo-guard.cjs:53`, because its `skip:` is computed while the test list is built and an async guard there reports a false pass; an ESM suite (`*.mjs`) uses `.claude/scripts/codex/tests/framework-repo.helper.mjs:97`. Keep a tripwire proving the guard resolves active here — PORT-011 for the ESM helper, and the content-presence parity tripwire (`.claude/hooks/tests/suites/content-presence.test.cjs:1017`) proving the CJS guard agrees with it.
+- **Clean machine:** blank or delete every inherited feature switch and provider key (blank when an env file could refill it), and point `HOME`/`USERPROFILE` plus `TMPDIR`/`TEMP`/`TMP` at the temp dir — Node reads `TEMP` first on Windows and `TMPDIR` first on POSIX (`isolatedRouterEnv`, `.claude/hooks/tests/suites/notification.test.cjs:219-231`; `childEnv`, `.claude/hooks/tests/lib/hook-runner.cjs:340`).
+- **Explicit OS behavior:** state Windows vs POSIX expectations for separators, case, symlink/junction (`EPERM` → logged skip only where the OS forbids it), executable lookup (`py -3` vs `python3`) and line endings; read `CLAUDE.md` → "Cross-platform execution is a required contract" when a behavior differs by OS.
+- **Gate before commit:** `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only` (residue stage, root-literal via `TC-DOCROOT-038`, `PORT-*` suite) AND `node .claude/hooks/tests/run-all-tests.cjs` on a machine that has those switches set, proving the scrub — verify-only skips hook-behaviour suites (`.claude/skills/sync-codex/scripts/run-codex-sync.mjs:175-179`), so it cannot prove machine isolation.
 
 ## Running Tests
 
@@ -122,3 +132,4 @@ rg -n 'TC-[A-Z0-9-]+-[0-9]+' .claude/hooks/tests -g '*.cjs' -g '*.js'
 - **MUST** run the complete integration command twice consecutively without reset.
 - **MUST** verify example paths, declarations, and filters against current source.
 - **NEVER** publish hardcoded test-file or pass totals; keep coverage queries executable.
+- **MUST** keep tests portable — own temp fixture project, scrubbed env + HOME/TMPDIR/TEMP/TMP, explicit Windows/macOS/Linux behavior; pass `run-codex-sync.mjs --verify-only` plus the hooks suite (on a machine with those switches set) before commit.

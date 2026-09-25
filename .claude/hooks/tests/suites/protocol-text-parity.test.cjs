@@ -91,23 +91,36 @@ const canonAimpFull = extractSyncBody(canonical, 'ai-mistake-prevention:full');
 const canonCritCondensed = extractSyncBody(canonical, 'critical-thinking-mindset');
 const canonAimpCondensed = extractSyncBody(canonical, 'ai-mistake-prevention');
 
-// Sweep all skills for a condensed embed, returning matched/drifted partition vs canonical.
-function sweepSkillEmbeds(tag, canonCondensedNorm) {
+// Guide carriers (P48): a converted skill carries a protocol as one guide line (shared P25
+// recognizer — never a copied line format) instead of the embed; its full text lives in
+// `shared/protocols/<tag>.md`, which the projection build keeps equal to canonical.
+const guideCarrier = require(path.join(REPO, '.claude', 'scripts', 'lib', 'protocol-guide-carrier.cjs'));
+
+// Sweep all skills for a condensed embed, returning matched/drifted partition vs canonical, plus the
+// skills that carry the tag as a guide entry backed by an existing projection file. Drift detection
+// applies to every embed still present; a guide counts only toward the fail-closed carrier count.
+function sweepSkillEmbeds(tag, canonCondensedNorm, skillsDir = SKILLS_DIR) {
     const matched = [];
     const drifted = [];
+    const guided = [];
+    const projectionExists = fs.existsSync(path.join(skillsDir, 'shared', 'protocols', `${tag}.md`));
     const skillDirs = fs
-        .readdirSync(SKILLS_DIR, { withFileTypes: true })
+        .readdirSync(skillsDir, { withFileTypes: true })
         .filter((d) => d.isDirectory())
         .map((d) => d.name);
     for (const dir of skillDirs) {
-        const p = path.join(SKILLS_DIR, dir, 'SKILL.md');
+        const p = path.join(skillsDir, dir, 'SKILL.md');
         if (!fs.existsSync(p)) continue;
-        const body = extractHtmlSyncBody(fs.readFileSync(p, 'utf8'), tag);
-        if (body == null) continue; // skill doesn't embed this tag
+        const text = fs.readFileSync(p, 'utf8');
+        const body = extractHtmlSyncBody(text, tag);
+        if (body == null) {
+            if (projectionExists && guideCarrier.hasGuideEntry(text, tag)) guided.push(dir);
+            continue; // skill doesn't embed this tag
+        }
         if (norm(body) === canonCondensedNorm) matched.push(dir);
         else drifted.push(dir);
     }
-    return { matched, drifted, embedCount: matched.length + drifted.length };
+    return { matched, drifted, guided, embedCount: matched.length + drifted.length, guideCount: guided.length };
 }
 
 module.exports = {
@@ -185,7 +198,7 @@ module.exports = {
             fn() {
                 assertTrue(canonCritCondensed != null, 'canonical critical-thinking-mindset (condensed) not found');
                 const r = sweepSkillEmbeds('critical-thinking-mindset', norm(canonCritCondensed));
-                assertTrue(r.embedCount > 0, 'no skill embeds of critical-thinking-mindset found — parser broken (fail-closed)');
+                assertTrue(r.embedCount + r.guideCount > 0, 'no skill embeds or guide entries of critical-thinking-mindset found — parser broken (fail-closed)');
                 assertEqual(r.drifted.length, 0, `critical-thinking-mindset embed drift in: ${r.drifted.join(', ')}`);
             },
         },
@@ -194,8 +207,48 @@ module.exports = {
             fn() {
                 assertTrue(canonAimpCondensed != null, 'canonical ai-mistake-prevention (condensed) not found');
                 const r = sweepSkillEmbeds('ai-mistake-prevention', norm(canonAimpCondensed));
-                assertTrue(r.embedCount > 0, 'no skill embeds of ai-mistake-prevention found — parser broken (fail-closed)');
+                assertTrue(r.embedCount + r.guideCount > 0, 'no skill embeds or guide entries of ai-mistake-prevention found — parser broken (fail-closed)');
                 assertEqual(r.drifted.length, 0, `ai-mistake-prevention embed drift in: ${r.drifted.join(', ')}`);
+            },
+        },
+
+        // ── TC-PDL-065 — the P5 fail-closed count accepts guide carriers but never an empty sweep.
+        {
+            name: 'TC-PDL-065 P5: a guide entry backed by a projection counts as a carrier; losing it fails closed',
+            fn() {
+                const os = require('os');
+                const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ptp-guide-'));
+                try {
+                    // Given: a fixture skills root whose only carrier holds a guide entry for the tag
+                    // (no embed) and the tag's projection file.
+                    const tag = 'critical-thinking-mindset';
+                    const skillsDir = path.join(tmp, '.claude', 'skills');
+                    fs.mkdirSync(path.join(skillsDir, 'shared', 'protocols'), { recursive: true });
+                    fs.mkdirSync(path.join(skillsDir, 'guided'), { recursive: true });
+                    const projection = path.join(skillsDir, 'shared', 'protocols', `${tag}.md`);
+                    fs.writeFileSync(projection, '> Fixture body.\n');
+                    const guideLine = guideCarrier.formatGuideLine({ tag, summary: 'Fixture', when: 'always', path: `.claude/skills/shared/protocols/${tag}.md` });
+                    const skillFile = path.join(skillsDir, 'guided', 'SKILL.md');
+                    fs.writeFileSync(skillFile, `# Guided\n\n${guideCarrier.GUIDE_BLOCK_START}\n\n${guideLine}\n\n${guideCarrier.GUIDE_BLOCK_END}\n`);
+                    const passes = (r) => r.embedCount + r.guideCount > 0;
+
+                    // When: the P5 sweep runs. Then: the guide carrier satisfies the fail-closed count.
+                    const withGuide = sweepSkillEmbeds(tag, norm('> Fixture body.'), skillsDir);
+                    assertEqual(withGuide.guideCount, 1, 'guide carrier must be counted');
+                    assertTrue(passes(withGuide), 'a guide carrier must satisfy the fail-closed count');
+                    // When: the projection file is missing. Then: the guide no longer counts.
+                    fs.rmSync(projection);
+                    assertTrue(!passes(sweepSkillEmbeds(tag, norm('> Fixture body.'), skillsDir)), 'a guide with no projection must not count');
+                    // When: the guide entry is removed too (both forms missing). Then: the count fails closed.
+                    fs.writeFileSync(projection, '> Fixture body.\n');
+                    fs.writeFileSync(skillFile, '# Guided\n\nNo carrier.\n');
+                    assertTrue(!passes(sweepSkillEmbeds(tag, norm('> Fixture body.'), skillsDir)), 'no embed and no guide must fail closed');
+                    // And: an embed still present is still drift-checked.
+                    fs.writeFileSync(skillFile, `<!-- SYNC:${tag} -->\n\n> Drifted.\n\n<!-- /SYNC:${tag} -->\n`);
+                    assertEqual(sweepSkillEmbeds(tag, norm('> Fixture body.'), skillsDir).drifted.length, 1, 'embed drift must still be detected');
+                } finally {
+                    fs.rmSync(tmp, { recursive: true, force: true });
+                }
             },
         },
 

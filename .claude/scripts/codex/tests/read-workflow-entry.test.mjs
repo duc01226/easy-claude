@@ -194,7 +194,7 @@ test("TC-DOCROOT-047 empty injectContext throws; on-disk workflows.json is never
 // is. An empty config resolves every token to its documented default, and every field OUTSIDE the
 // routed set must still come back byte-identical, which is what proves the resolver cannot reach
 // `name`, `readFiles`, `stepMeta`, `parallelGroups` or a fingerprint.
-const ROUTED_KEYS = new Set(["description", "whenToUse", "preActions", "sequence", "occurrences", "variants"]);
+const ROUTED_KEYS = new Set(["description", "whenToUse", "intent", "outcomeGates", "preActions", "sequence", "occurrences", "variants"]);
 
 test("TC-DOCROOT-049 resolution is confined to the routed fields", () => {
   for (const [id, workflow] of Object.entries(workflowsDoc.workflows)) {
@@ -222,6 +222,16 @@ test("TC-DOCROOT-049 resolution is confined to the routed fields", () => {
           `${id}: unrouted preActions.${key} must be untouched`
         );
       }
+    }
+
+    // `outcomeGates[].when` is the one routed gate field; each gate's `id` and `satisfiedBy` stay literal.
+    for (const [index, gate] of (workflow.outcomeGates ?? []).entries()) {
+      assert.equal(resolved.outcomeGates[index].id, gate.id, `${id}: unrouted outcomeGates[${index}].id must be untouched`);
+      assert.deepEqual(
+        resolved.outcomeGates[index].satisfiedBy,
+        gate.satisfiedBy,
+        `${id}: unrouted outcomeGates[${index}].satisfiedBy must be untouched`
+      );
     }
 
     for (const token of TOKEN_NAMES) {

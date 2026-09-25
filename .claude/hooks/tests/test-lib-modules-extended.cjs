@@ -657,10 +657,12 @@ logSection('describeSchema');
     // + the two nested `text`/`path` shapes) — measured 518 -> 522, then to 560 for the
     // optional `uiReview` block (measured 528 -> 543) and the per-class delivery fields
     // on contextGroups items (`reinjectAfterTokens` + `evidenceDocs`/`evidenceSkills`
-    // array shapes, measured 543 -> 550). This remains a runaway-bloat guard, not a
-    // suppression of schema output.
+    // array shapes, measured 543 -> 550), then to 590 for the adoption keys
+    // (`contextGroups[].on`, `portability.workflowActivation`, `hooks.codeGraph.enabled`,
+    // `hooks.tokenBudget`, `commit.fixOriginTrailer`, measured 552 -> 575). This remains
+    // a runaway-bloat guard, not a suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 560 lines', lineCount < 560, `${lineCount} lines`);
+    logResult('output under 590 lines', lineCount < 590, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

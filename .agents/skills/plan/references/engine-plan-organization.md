@@ -22,7 +22,7 @@ Use `Plan dir:` from `## Naming` section injected by hooks. This is the full com
 ├── phase-04-implement-ui-components.md        # UI components
 ├── phase-05-implement-authentication.md       # Auth & authorization
 ├── phase-06-implement-profile.md              # Profile page
-└── phase-07-write-tests.md                    # Tests
+└── phase-07-final-gate.md                     # ONE final gate: docs/counts, mirrors, full suite, one review fix-loop
 ```
 
 Plan directories contain canonical plan and phase files only; follow the report output rules below for disposable research, investigation, and verification output.
@@ -92,11 +92,11 @@ Brief description of what this plan accomplishes.
 | --- | -------------- | ------- | ---- | ------ | --- | ------------------------------- |
 | 1   | Setup          | Pending | PAR  | 2h     | 3   | [phase-01](./phase-01-setup.md) |
 | 2   | Implementation | Pending | SEQ  | 4h     | 5   | [phase-02](./phase-02-impl.md)  |
-| 3   | Testing        | Pending | PAR  | 2h     | 3   | [phase-03](./phase-03-test.md)  |
+| 3   | Final gate     | Pending | SEQ  | 2h     | 3   | [phase-03](./phase-03-gate.md)  |
 
 ## Execution Waves
 
-Execution waves: wave 1 = [phase-01, phase-03] · wave 2 = [] · SEQ = [phase-02 (needs phase-01's generated schema)]
+Execution waves: wave 1 = [phase-01] · SEQ = [phase-02 (needs phase-01's generated schema), phase-03 (final gate: needs every phase)] · Critical path: phase-01 → phase-02 → phase-03 = 8h
 
 ## Dependencies
 
@@ -108,6 +108,7 @@ Execution waves: wave 1 = [phase-01, phase-03] · wave 2 = [] · SEQ = [phase-02
 - Keep generic and under 80 lines
 - List each phase with status/progress
 - `Mode` column is MANDATORY — `PAR` when the phase's inputs contain no pending phase's output AND its write set is disjoint from every other `PAR` phase; otherwise `SEQ`
+- No test, review, or "close" phase per phase or per release: each implementation phase ends with its targeted check (own suites + one mutation check per new rule); the plan ends with ONE final gate phase (docs/counts, mirrors, full suite, one review fix-loop) — see `plan/SKILL.md` § Plan Parallelism Metadata
 - `## Execution Waves` is MANDATORY — it is the line `$plan-execute` reads to fan out; every `SEQ` entry names the phase + exact artifact that forces the ordering
 - Link to detailed phase files
 - Key dependencies
@@ -162,7 +163,7 @@ Mandatory block — `$plan-execute` derives its write set from here:
 - SEQ dependency: {phase + exact artifact it waits on — omit when Mode: PAR}
 ```
 
-Rules: review every phase's **Mode, Wave, write set, and SEQ dependency** as one coherent metadata contract. Two `PAR` phases MUST have disjoint write sets (overlap → merge the phases or demote the later one to `SEQ`); a `SEQ` phase without a named artifact dependency is mistagged — retag it `PAR`; approval, review, and migration phases are always `SEQ` boundaries.
+Rules: review every phase's **Mode, Wave, write set, and SEQ dependency** as one coherent metadata contract. Two `PAR` phases MUST have disjoint write sets (overlap → merge the phases or demote the later one to `SEQ`); a `SEQ` phase without a named artifact dependency is mistagged — retag it `PAR`; phases sharing a file form one serial chain owned by one executor; approval, migration, and the single final gate phase are `SEQ` boundaries.
 
 ###### Implementation Steps
 

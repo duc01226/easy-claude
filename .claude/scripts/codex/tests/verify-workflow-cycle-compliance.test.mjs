@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
+import { createRequire } from "node:module";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -32,7 +33,12 @@ const {
   checkStartWorkflowPreActionPolicy,
   checkWorkflowInjectContextCoverage,
   resolveWorkflowManifestsForVerification,
+  resolveCompatibilityWorkflowManifest,
+  checkWorkflowWrapperStepContract,
   checkResolvedParallelGroupsStructure,
+  checkParallelGroupsMirrorParity,
+  runtimeCatalogForm,
+  RUNTIME_CATALOG_FORMS,
 } = await import(pathToFileURL(verifyScript).href);
 
 const workflowIds = [
@@ -1213,5 +1219,267 @@ test("verify-workflow-cycle-compliance fails when a workflow surface lacks Goal 
     );
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+// ── W5 runtime-payload forms (barrier-mark parity only in the marked forms) ────────────────────
+// Business rule: the compact catalog and the index with parallel-phase marks must show every
+// grouped workflow's `[a ∥ b]` token, so a dropped mark fails; the tiers-only index and the
+// pointer-only form omit marks by design (the hook falls back to them only to fit the output cap),
+// so they must not fail parity. The advancement clause is required in every form. The fixture root
+// carries a stub route hook whose payload each case writes, built with the real catalog builder.
+const catalogLib = createRequire(import.meta.url)(
+  path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs")
+);
+const W5_GROUP_TOKEN = "[review-a ∥ review-b]";
+const W5_WORKFLOWS = {
+  "workflow-grouped": {
+    name: "Grouped",
+    activation: "confirm",
+    whenToUse: "review a change with parallel reviewers",
+    preActions: { injectContext: "Use the selected workflow context." },
+    sequence: ["investigate", "review-a", "review-b", "finish"],
+    parallelGroups: [{ id: "reviews", members: ["review-a", "review-b"], barrier: true }],
+  },
+  "workflow-plain": {
+    name: "Plain",
+    whenToUse: "do one plain thing",
+    preActions: { injectContext: "Use the selected workflow context." },
+    sequence: ["investigate", "finish"],
+  },
+};
+const W5_STUB_HOOK = [
+  "'use strict';",
+  "const fs = require('fs');",
+  "const path = require('path');",
+  "module.exports = { buildInjection: () => fs.readFileSync(path.join(__dirname, 'payload.txt'), 'utf8') };",
+  "",
+].join("\n");
+
+/** Wrap a catalog body the way the route hook assembles its payload (gate marker + pointer). */
+function w5Payload(catalog) {
+  return [
+    "<!-- CK:RUNTIME-WORKFLOW-ROUTE -->",
+    "<!-- CK:WORKFLOW-GATE -->",
+    "The routing gate is in the root instruction file.",
+    "",
+    catalog,
+    "<!-- /CK:RUNTIME-WORKFLOW-ROUTE -->",
+  ].join("\n");
+}
+
+/**
+ * Given a temp root with the fixture registry and a stub route hook, write the payload `build`
+ * returns, then run the W5 runtime check against it. HOME and temp dirs point at the fixture.
+ */
+async function runW5(build) {
+  const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), "cycle-w5-form-"));
+  const keys = ["HOME", "USERPROFILE", "TMPDIR", "TEMP", "TMP"];
+  const saved = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  try {
+    for (const key of keys) process.env[key] = rootDir;
+    await fs.mkdir(path.join(rootDir, ".claude", "hooks"), { recursive: true });
+    await fs.writeFile(
+      path.join(rootDir, ".claude", "workflows.json"),
+      JSON.stringify({ version: "1.0.0", workflows: W5_WORKFLOWS }),
+      "utf8"
+    );
+    const payload = build(rootDir);
+    await fs.writeFile(path.join(rootDir, ".claude", "hooks", "payload.txt"), payload, "utf8");
+    await fs.writeFile(path.join(rootDir, ".claude", "hooks", "workflow-route-inject.cjs"), W5_STUB_HOOK, "utf8");
+    const failures = [];
+    await checkParallelGroupsMirrorParity(W5_WORKFLOWS, rootDir, failures);
+    return { payload, failures, form: runtimeCatalogForm(payload, rootDir) };
+  } finally {
+    for (const key of keys) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+    await fs.rm(rootDir, { recursive: true, force: true });
+  }
+}
+
+const compactCatalog = (rootDir) =>
+  catalogLib.buildWorkflowSkillsCatalog({ rootDir, sections: ["workflows", "skills"], compact: true, config: {} });
+const pointerCatalog = (rows) => (rootDir) => catalogLib.buildWorkflowPointerCatalog({ rootDir, rows });
+/** Remove the grouped workflow's barrier token from its row, asserting it was there first. */
+const dropMark = (build) => (rootDir) => {
+  const catalog = build(rootDir);
+  assert.ok(catalog.includes(W5_GROUP_TOKEN), `precondition: the marked form renders ${W5_GROUP_TOKEN}`);
+  return w5Payload(catalog.replace(W5_GROUP_TOKEN, ""));
+};
+const parityFailures = (failures) =>
+  failures.filter((failure) => failure.startsWith("parallelGroups runtime parity (workflow-grouped)"));
+
+test("W5 runtime parity passes intact marked forms and fails each one that drops a barrier mark", async () => {
+  // Given the compact catalog and the index with parallel-phase marks, each rendered intact
+  for (const [label, build, form] of [
+    ["compact catalog", compactCatalog, RUNTIME_CATALOG_FORMS.CATALOG],
+    ["index with marks", pointerCatalog("groups"), RUNTIME_CATALOG_FORMS.INDEX_MARKED],
+  ]) {
+    // When W5 checks the intact payload
+    const intact = await runW5((rootDir) => w5Payload(build(rootDir)));
+    // Then the form is recognised and nothing fails
+    assert.equal(intact.form, form, `${label}: form`);
+    assert.deepEqual(intact.failures, [], `${label}: intact payload must pass`);
+    // When the grouped row loses its mark
+    const dropped = await runW5(dropMark(build));
+    // Then parity fails for that workflow
+    assert.equal(
+      parityFailures(dropped.failures).length,
+      1,
+      `${label}: a dropped mark must fail: ${JSON.stringify(dropped.failures)}`
+    );
+  }
+});
+
+test("W5 runtime parity skips the tiers-only index and the pointer-only form but still requires the advancement clause", async () => {
+  // Given the tiers-only index: a row per workflow with no marks
+  const tiers = await runW5((rootDir) => w5Payload(pointerCatalog("tiers")(rootDir)));
+  assert.equal(tiers.form, RUNTIME_CATALOG_FORMS.INDEX_TIERS);
+  assert.ok(tiers.payload.includes("| `workflow-grouped` | confirm |"), "precondition: the tiers row is rendered");
+  assert.ok(!tiers.payload.includes("∥ review"), "precondition: the tiers-only index carries no marks");
+  // Then W5 does not fail it on marks
+  assert.deepEqual(tiers.failures, []);
+
+  // Given the pointer-only form: no workflow rows
+  const pointer = await runW5((rootDir) => w5Payload(pointerCatalog("none")(rootDir)));
+  assert.equal(pointer.form, RUNTIME_CATALOG_FORMS.POINTER_ONLY);
+  assert.ok(!pointer.payload.includes("| `workflow-grouped` |"), "precondition: no workflow rows");
+  // Then W5 does not fail it on marks
+  assert.deepEqual(pointer.failures, []);
+
+  // Given a tiers-only index whose barrier legend lost the advancement clause
+  const clauseless = await runW5((rootDir) =>
+    w5Payload(pointerCatalog("tiers")(rootDir).replace(/advance only after ALL return/, "advance later"))
+  );
+  // Then the advancement-clause check still fails it
+  assert.ok(
+    clauseless.failures.some((failure) => failure.startsWith("parallelGroups runtime check: advancement clause")),
+    JSON.stringify(clauseless.failures)
+  );
+});
+
+// ── Compatibility preview hardening (outcome gates + reported, not thrown, failures) ──────────
+const COMPAT_SKILLS = ["inspect", "review", "workflow-end"];
+
+async function makeCompatFixtureRoot(prefix, workflows) {
+  const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+  for (const skill of COMPAT_SKILLS) {
+    await fs.mkdir(path.join(rootDir, ".claude", "skills", skill), { recursive: true });
+    await fs.writeFile(path.join(rootDir, ".claude", "skills", skill, "SKILL.md"), `---\nname: ${skill}\ndescription: fixture\n---\n`, "utf8");
+  }
+  await fs.mkdir(path.join(rootDir, ".agents", "skills"), { recursive: true });
+  await fs.writeFile(path.join(rootDir, ".claude", "workflows.json"), `${JSON.stringify({ workflows }, null, 2)}\n`, "utf8");
+  return rootDir;
+}
+
+/** A variant workflow whose legacy `sequence` preview predates a variant-only review gate step. */
+function variantWorkflowWithVariantOnlyGate(legacySequence = ["inspect", "workflow-end"]) {
+  return {
+    preActions: { injectContext: "Canonical fixture context." },
+    intent: "Prove the fixture outcome.",
+    outcomeGates: [{ id: "review-converged", satisfiedBy: ["review"] }],
+    sequence: legacySequence,
+    defaultMode: "update",
+    variants: {
+      update: {
+        sequence: [
+          { id: "inspect", skill: "inspect" },
+          { id: "review", skill: "review", role: "gate" },
+          { id: "finish", skill: "workflow-end", role: "gate" },
+        ],
+      },
+    },
+  };
+}
+
+test("compatibility preview ignores outcome gates that only a variant step satisfies", async () => {
+  // Business Intent / Invariant Guarded: outcome gates are proven against every real mode; the legacy
+  // preview only feeds wrapper-parity checks, so a variant-only gate step must not break it.
+  // Given a variant workflow whose review gate step exists only in its variant
+  const doc = { workflows: { "workflow-variant": variantWorkflowWithVariantOnlyGate() } };
+  const rootDir = await makeCompatFixtureRoot("cycle-compat-gates-", doc.workflows);
+  try {
+    // When the real modes and the legacy preview are resolved
+    const [mode] = resolveWorkflowManifestsForVerification(doc, "workflow-variant", { rootDir });
+    const preview = resolveCompatibilityWorkflowManifest(doc, "workflow-variant", rootDir);
+    // Then the real mode still carries and satisfies the gate, and the preview resolves its legacy steps
+    assert.deepEqual(mode.outcomeGates.map((gate) => gate.id), ["review-converged"]);
+    assert.deepEqual(preview.sequence, ["inspect", "workflow-end"]);
+    assert.ok(doc.workflows["workflow-variant"].outcomeGates, "the projection must not mutate the source entry");
+
+    // Given a verifier mutant whose projection keeps outcomeGates
+    const source = await fs.readFile(verifyScript, "utf8");
+    const anchor = "  delete legacyEntry.outcomeGates;\n";
+    assert.equal(source.split(anchor).length, 2, "mutation anchor must be unique");
+    const mutated = source.replace(anchor, "")
+      .replaceAll("import.meta.url", JSON.stringify(pathToFileURL(verifyScript).href));
+    const verifier = await import(`data:text/javascript;base64,${Buffer.from(mutated).toString("base64")}`);
+    // Then the mutant fails the preview on the variant-only gate step
+    assert.throws(
+      () => verifier.resolveCompatibilityWorkflowManifest(doc, "workflow-variant", rootDir),
+      /Outcome gate review-converged names a skill not in the sequence/
+    );
+  } finally {
+    await fs.rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance reports a broken compatibility preview as a failure instead of crashing", async () => {
+  // Business Intent / Invariant Guarded: every workflow defect reaches the FAIL report, so one bad
+  // legacy preview never hides the remaining findings behind an uncaught exception.
+  // Given a variant workflow whose legacy preview names a skill that does not exist
+  const workflows = { "workflow-variant": variantWorkflowWithVariantOnlyGate(["inspect", "ghost-step", "workflow-end"]) };
+  const rootDir = await makeCompatFixtureRoot("cycle-compat-report-", workflows);
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: rootDir, HOME: rootDir, USERPROFILE: rootDir, TMPDIR: rootDir, TEMP: rootDir, TMP: rootDir };
+  try {
+    // When the verifier runs over the fixture project
+    const error = await execFileAsync(process.execPath, [verifyScript], { cwd: rootDir, env }).then(
+      () => assert.fail("the verifier must fail on the broken preview"),
+      (failure) => failure
+    );
+    // Then it exits 1 through its FAIL report, naming the workflow and the missing skill
+    assert.equal(error.code, 1);
+    assert.match(error.stderr, /\[codex-verify-workflow-cycle\] FAIL/);
+    assert.match(error.stderr, /Workflow compatibility-sequence violation \(workflow-variant\): .*ghost-step/);
+    assert.doesNotMatch(error.stderr, /^\s+at /m, "no uncaught stack trace");
+  } finally {
+    await fs.rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test("workflow wrappers point to the guided step contract instead of a blanket no-deviation banner", async () => {
+  // Business Intent / Invariant Guarded: start-workflow is the single owner of the step contract
+  // (gates fixed, other steps flex with a logged reason); a wrapper banner forbidding every skip,
+  // reorder or merge contradicts it. Mirrors derive from the source wrapper, so only `.claude` is checked.
+  const BANNER = "> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.";
+  const ANCHOR = "> **[BLOCKING]** Workflow steps follow the guided contract in `/start-workflow` → Step Execution Protocol: `gate` steps are fixed; other steps may flex with a logged reason.";
+  // Given the guided anchor, Then the check passes; Given the blanket banner, Then it fails once
+  assert.deepEqual(checkWorkflowWrapperStepContract("w.md", `${ANCHOR}\n`), []);
+  assert.equal(checkWorkflowWrapperStepContract("w.md", `${BANNER}\n`).length, 1);
+
+  // Given a fixture project whose source and mirror wrappers both carry the banner
+  const workflows = { "workflow-variant": variantWorkflowWithVariantOnlyGate() };
+  const rootDir = await makeCompatFixtureRoot("cycle-wrapper-banner-", workflows);
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: rootDir, HOME: rootDir, USERPROFILE: rootDir, TMPDIR: rootDir, TEMP: rootDir, TMP: rootDir };
+  const wrapper = (sigil) => ["---", "name: workflow-variant", "description: fixture", "---", "", BANNER, "",
+    `**IMPORTANT MANDATORY Steps:** ${sigil}inspect -> ${sigil}workflow-end`, ""].join("\n");
+  try {
+    for (const [root, sigil] of [[".claude", "/"], [".agents", "$"]]) {
+      await fs.mkdir(path.join(rootDir, root, "skills", "workflow-variant"), { recursive: true });
+      await fs.writeFile(path.join(rootDir, root, "skills", "workflow-variant", "SKILL.md"), wrapper(sigil), "utf8");
+    }
+    // When the verifier runs over the fixture project
+    const error = await execFileAsync(process.execPath, [verifyScript], { cwd: rootDir, env }).then(
+      () => assert.fail("the verifier must fail on the banner"),
+      (failure) => failure
+    );
+    // Then exactly the source wrapper is reported
+    const hits = error.stderr.split(/\r?\n/).filter((line) => line.includes("Workflow wrapper step-contract violation"));
+    assert.equal(hits.length, 1, error.stderr);
+    assert.match(hits[0], /\.claude\/skills\/workflow-variant\/SKILL\.md/);
+  } finally {
+    await fs.rm(rootDir, { recursive: true, force: true });
   }
 });

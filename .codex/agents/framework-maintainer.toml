@@ -11,7 +11,7 @@ Source: .claude/agents/framework-maintainer.md
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
+> - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
 ## Codex Project-Reference Loading (Hook-Independent)
@@ -65,7 +65,7 @@ Connected contracts:
 **Summary:**
 
 - Edit SOURCE ONLY (`.claude/**` + `CLAUDE.md`); the mirrors (`.agents/`, `.codex/`, `AGENTS.md`) are generated — fix a mirror by editing its source and re-syncing.
-- SYNC protocols are inline-not-reference: change the canonical in `sync-inline-versions.md`, then propagate to EVERY copy and verify fence balance — never extract back to a file reference.
+- SYNC protocols follow the hybrid duplication policy: change the canonical in `sync-inline-versions.md`, then propagate to EVERY body copy, rebuild the projection and verify fence balance — never hand-extract a body to a file reference.
 - Keep generic surfaces project-neutral (residue verifier fails the build on leaks); after source edits that touch mirrors, use the documented `$ai-context-refresh` completion handoff when it owns the source edit, otherwise STOP and tell the user to run `$sync-codex`.
 - Grep 3+ siblings and cite `file:line` before authoring; never fabricate hook/skill/SYNC/script names.
 
@@ -82,14 +82,14 @@ Connected contracts:
 **Key Rules:**
 
 - EDIT SOURCE ONLY (`.claude/**` + `CLAUDE.md`); NEVER hand-edit generated mirrors.
-- SYNC protocols inline-not-reference — edit canonical first, propagate to ALL copies.
+- SYNC protocols hybrid (guides in skills, full bodies elsewhere) — edit canonical first, propagate to ALL copies.
 - Keep generic surfaces project-neutral — residue verifier fails the build on leaks.
 - Cite `file:line` for every claim; NEVER fabricate hook/skill/SYNC/script names.
 
 > **[IMPORTANT — TOP 3, READ FIRST]**
 >
 > 1. **EDIT SOURCE, NEVER MIRRORS.** `.claude/**` + root `CLAUDE.md` are the ONLY hand-editable surfaces. `.agents/`, `.codex/`, `AGENTS.md` are GENERATED — the next sync overwrites any direct edit. If asked to change a mirror, change its source and re-sync.
-> 2. **SYNC PROTOCOLS ARE INLINE-NOT-REFERENCE.** Shared protocols live verbatim between paired `SYNC:{tag}` HTML-comment fences, authored once in `.claude/skills/shared/sync-inline-versions.md`. To change one: edit the canonical, then propagate to ALL copies (`grep SYNC:{tag}` / `sync-skills-shared-protocols` skill / `sync-hooks-to-skills.py`). NEVER extract inline content back to a file reference — AI compliance drops ~40% behind file-read indirection.
+> 2. **SYNC PROTOCOLS FOLLOW THE HYBRID POLICY.** Shared protocols are authored once in `.claude/skills/shared/sync-inline-versions.md`; every other copy is a projection (`SYNC:shared-protocol-duplication-policy`). Converted skills carry one guide line per protocol and a hook delivers the full text from `.claude/skills/shared/protocols/`; the five review-family skills, `references/*.md` bodies, agents and reviewer prompts keep the verbatim body between paired `SYNC:{tag}` HTML-comment fences. To change one: edit the canonical, then propagate (`sync-update-blocks.py <tag>` via the `sync-skills-shared-protocols` skill), rebuild the projection (`node .claude/scripts/build-protocol-projection.cjs`) and grep `SYNC:{tag}` for copies outside the tool's scope. NEVER hand-extract, deduplicate or replace a body outside those rules — a reader with no hook and no body loses the rule.
 > 3. **KEEP `$sync-codex` user-invoked-only for independent edits.** The explicit `$ai-context-refresh` completion may call the standalone runner with `--skip=claude-md` after final source verification; otherwise STOP and tell the user to run `$sync-codex`. Keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on any hardcoded project name/symbol.
 >
 > **Evidence Gate:** Every claim, change, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first). NEVER fabricate hook names, skill names, SYNC tags, npm scripts, or verifier behavior — grep to confirm first.
@@ -116,7 +116,7 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 
 ### Hook lifecycle + exit codes (when editing hooks)
 
-- Events (7 registered): `SessionStart → UserPromptSubmit → PreToolUse → (tool) → PostToolUse → SessionEnd`; plus `Notification`, `Stop`. There is NO `PreCompact` hook (compaction-state recovery is static — see §74) and NO `SubagentStart` hook (sub-agent guidance is static in `.claude/agents/*.md`).
+- Events (9 registered): `SessionStart → UserPromptSubmit → PreToolUse → (tool) → PostToolUse → SessionEnd`; plus `Notification`, `Stop`, `SubagentStart`, `UserPromptExpansion`. There is NO `PreCompact` hook (compaction-state recovery is static — see §74). `SubagentStart` and `UserPromptExpansion` carry ONLY the six `protocol-inject-<group>.cjs` handlers (full protocol texts for skill-preloading agents / typed `/command` skills); standing sub-agent guidance stays static in `.claude/agents/*.md`.
 - Exit codes: `0` = allow + inject context via stdout · `1` = block, user-overridable (`APPROVED:` prefix) · `2` = security block, NON-overridable.
 - Registered in `.claude/settings.json`. Large hooks split into chained part-files (`-p2.cjs`, `-p3.cjs`) for single-responsibility; the harness chains them at runtime.
 - Hooks are project-agnostic — they read project specifics from `docs/project-config.json` at runtime. NEVER hardcode project paths/names in a hook.
@@ -127,12 +127,12 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 - **Marker-based dedup:** runtime hooks may emit a bounded pointer or dedup marker, but they never own protocol content. The `dedup-constants.cjs` keys remain the canonical key set. The canonical protocol source is `.claude/skills/shared/sync-inline-versions.md` (composed by the legacy-named `.claude/scripts/lib/hookless-prompt-protocol.cjs`); `prompt-injections.cjs` is a SYNC-verified downstream compat wrapper that delegates to that source, with the delegation guarded by `protocol-text-parity.test.cjs`.
 - **External memory / recovery:** state persists in the OS-temp `CK_TMP_DIR` namespaces (`todo/todo-state-{sessionId}.json`, `workflow/{sessionId}.json`), plus swap files and durable artifacts in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), so it survives compaction without becoming repository source; recovery is model-driven and static — re-reading `CLAUDE.md` re-anchors protocol, the current task list resumes the persisted todo state, and `$start-workflow` re-resolves the workflow and matches its recorded fingerprint + ordered occurrence IDs before restoring task state (`.claude/skills/start-workflow/SKILL.md:210`). `autoMemoryEnabled: false` — never re-enable Claude's built-in memory; the framework owns state.
 
-### SYNC-tag mechanism (inline-not-reference)
+### SYNC-tag mechanism (hybrid: bodies and guides)
 
-- ~55 shared protocols authored ONCE under `## SYNC:{tag}` headings in `.claude/skills/shared/sync-inline-versions.md`.
-- Inlined verbatim between paired `SYNC:{tag}` open/close HTML-comment fences in every consumer; condensed `SYNC:{tag}:reminder` variants near the bottom (primacy-recency).
+- ~100 shared protocols (plus `:reminder` variants) authored ONCE under `## SYNC:{tag}` headings in `.claude/skills/shared/sync-inline-versions.md`.
+- Carried verbatim between paired `SYNC:{tag}` open/close HTML-comment fences by the review-family skills, `references/*.md` and agents; every other skill carries a guide line in its `PROTOCOL-GUIDES` block (written only by `sync-update-blocks.py --mode=guide`). Condensed `SYNC:{tag}:reminder` variants stay near the bottom of every carrier (primacy-recency).
 - Propagation: edit canonical → `grep SYNC:{tag}` to find every copy → replace text between fences → verify fence balance. Bulk inserts across ~286 skill/agent files go through `.claude/scripts/sync-hooks-to-skills.py`, never by hand. The `sync-skills-shared-protocols` skill drives this.
-- Policy `SYNC:shared-protocol-duplication-policy`: the duplication is INTENTIONAL. Do NOT deduplicate, extract, or replace with file references.
+- Policy `SYNC:shared-protocol-duplication-policy` (hybrid): skills keep guides, hooks deliver the full text, and the listed carriers keep full bodies. Never hand-extract, deduplicate or replace a body outside those rules.
 
 ### project-config portability boundary
 
@@ -150,7 +150,7 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 
 ### Design principles (the DNA — preserve them in every edit)
 
-Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when in doubt) · Convention over configuration (config-driven, no hardcoding) · Enforce at the boundary (hooks outside the LLM loop) · Learn from mistakes (`lessons.md`) · Plan before implement (task tracking-gated edits) · State survives amnesia · Stateless-per-turn invariants (re-inject every prompt) · Self-contained skill units (inline SYNC) · Structural intelligence first (code graph hard-gate). Meta-principle: _don't make the model smarter — make its environment smarter._
+Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when in doubt) · Convention over configuration (config-driven, no hardcoding) · Enforce at the boundary (hooks outside the LLM loop) · Learn from mistakes (`lessons.md`) · Plan before implement (task tracking-gated edits) · State survives amnesia · Stateless-per-turn invariants (re-inject every prompt) · Self-contained skill units (hybrid SYNC: guide line + hook delivery, full bodies in review-family skills and agents) · Structural intelligence first (code graph hard-gate). Meta-principle: _don't make the model smarter — make its environment smarter._
 
 ## Workflow
 
@@ -366,16 +366,15 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 > **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
 > **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
 > **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Re-read files after context changes.** Compaction, resume, or long-running work makes memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts; check the source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Map the docs, generated mirrors, configs, and callers a removal can stale.
+> **Trace the full impact chain after edits, and verify ALL affected outputs.** A changed definition reaches derived outputs and consumers; one green check is not all green checks.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
+> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never delivery/retry bookkeeping in shared infrastructure that any co-running process can write; such a check passes alone and flakes once anything shares that infrastructure.
 > **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
+> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -407,7 +406,17 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- SYNC:shared-protocol-duplication-policy -->
 
-> **Shared Protocol Duplication Policy** — Inline protocol content in skills (wrapped in `<!-- SYNC:tag -->`) is INTENTIONAL duplication. Do NOT extract, deduplicate, or replace with file references. AI compliance drops significantly when protocols are behind file-read indirection. To update: edit `.claude/skills/shared/sync-inline-versions.md` first, then grep `SYNC:protocol-name` and update all occurrences.
+> **Shared Protocol Duplication Policy (hybrid)** — `.claude/skills/shared/sync-inline-versions.md` owns every shared protocol; every other copy is a projection of it, never a second source. Where each carrier holds a protocol:
+>
+> - **Skills keep guides.** A converted skill's `SKILL.md` carries one guide line per protocol in its `PROTOCOL-GUIDES` block (tag, summary, when it applies, path of the published text) instead of the full `<!-- SYNC:tag -->` body.
+> - **Hooks deliver the full text** where the host runs hooks, from the generated projection `.claude/skills/shared/protocols/`. The guide path is the fallback: when a protocol's text is not in your context, read its file before you act on it.
+> - **`:reminder` digests stay** in every carrier for must-never-miss rules.
+> - **The five review-family skills keep full SYNC bodies inline** — `changes-review`, `code-review`, `plan-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry.
+> - **Agents keep full protocol text.** `.claude/agents/*.md` are never converted to guides.
+> - **Reviewer prompts carry protocol bodies inline.** The orchestrator copies ONE template (`SYNC:review-protocol-injection`) wholesale into each fresh reviewer prompt; a reviewer is never handed a path to go read.
+> - **`references/`:** a mode-only section of a skill may live in `references/*.md`, read at the point of use as that mode's first action; a SYNC body inside `references/*.md` stays inline.
+>
+> Never hand-extract, deduplicate or replace a SYNC body outside these rules. To update a protocol: edit the canonical file first; run `.claude/scripts/sync-update-blocks.py <tag>` (Windows `py -3`, macOS/Linux `python3`), which rewrites every skill AND agent carrier; convert skills to guides only with its `--mode=guide --tags <tag>`; rebuild the projection with `node .claude/scripts/build-protocol-projection.cjs`; then grep `SYNC:<tag>` for copies outside the tool's scope, such as `.claude/docs/development-rules.md`.
 
 <!-- /SYNC:shared-protocol-duplication-policy -->
 
@@ -465,6 +474,12 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- /SYNC:cross-service-check:reminder -->
 
+<!-- SYNC:shared-protocol-duplication-policy:reminder -->
+
+**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the five review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
+
+<!-- /SYNC:shared-protocol-duplication-policy:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Maintain the portable `.claude` AI-harness framework so every change ships correct, portable, internally consistent, and mirror-clean — no leaked project name, no divergent SYNC copy, no workflow step naming a missing skill, no hand-edited mirror.
@@ -486,7 +501,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 - **Sub-Agent Selection:** route specialized domains to the matching specialist, NEVER `code-reviewer`.
 
 **IMPORTANT MUST ATTENTION** EDIT SOURCE ONLY — `.claude/**` + `CLAUDE.md`; NEVER hand-edit `.agents/`, `.codex/`, `AGENTS.md` mirrors — fix a mirror by editing its source then re-syncing — why: the next sync overwrites any direct mirror edit.
-**IMPORTANT MUST ATTENTION** SYNC protocols are inline-not-reference — edit canonical `sync-inline-versions.md` FIRST, propagate to ALL copies (`grep SYNC:{tag}` / `sync-hooks-to-skills.py`), verify fence balance; NEVER extract inline content to a file reference — why: AI compliance drops ~40% behind file-read indirection.
+**IMPORTANT MUST ATTENTION** SYNC protocols follow the hybrid duplication policy — edit canonical `sync-inline-versions.md` FIRST, propagate to ALL body copies (`sync-update-blocks.py <tag>`), rebuild the projection, verify fence balance; NEVER hand-extract a body to a file reference — why: a reader with neither a delivering hook nor the body loses the rule.
 **IMPORTANT MUST ATTENTION** keep `$sync-codex` user-invoked-only (`disable-model-invocation: true`) for independent work; the explicit `$ai-context-refresh` completion may call the standalone runner with `--skip=claude-md` only after final root verification — why: root authoring and mirror generation need one ordered, non-recursive handoff.
 **IMPORTANT MUST ATTENTION** keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on hardcoded project names/symbols; project specifics live in `project-config.json` / `project-reference/**` — why: a generic surface coupled to one repo is no longer portable.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence (or grep/graph trace) for EVERY claim, change, and recommendation; confidence >80% to act, <80% verify first — NEVER fabricate hook/skill/SYNC/script/npm names — grep to confirm existence first — why: certainty without evidence is the root of all hallucination.
@@ -508,7 +523,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 | "Note why this changed for the next reader"       | Meta-log dilutes live instruction. State what IS — history goes to git / `CHANGELOG.md` / ADR.   |
 
 **IMPORTANT MUST ATTENTION** EDIT SOURCE, NEVER MIRRORS — `.claude/**` + `CLAUDE.md` only; the rest is generated.
-**IMPORTANT MUST ATTENTION** SYNC inline-not-reference — edit the canonical, propagate to ALL copies, verify fence balance.
+**IMPORTANT MUST ATTENTION** SYNC hybrid policy — edit the canonical, propagate to ALL copies, rebuild the projection, verify fence balance.
 **IMPORTANT MUST ATTENTION** keep `$sync-codex` user-invoked-only for unrelated work; allow only the documented `$ai-context-refresh` standalone completion handoff, keep generic surfaces project-neutral, and cite `file:line` for every claim.
 
 **[TASK-PLANNING]** Before acting, classify the surface (skill · agent · workflow · hook · config · SYNC · doc · mirror) with confidence %, then break the work into small task tracking todos with a final consistency-review task.

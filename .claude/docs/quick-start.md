@@ -30,9 +30,9 @@ git --version
 ```
 .claude/
 |-- settings.json     # Main configuration (hooks, features)
-|-- skills/           # 124 skills (invoked via / prefix, activated by context)
+|-- skills/           # 125 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 16 top-level hook files + 44 lib modules
+|-- hooks/            # 23 top-level hook files + 46 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts
@@ -108,17 +108,19 @@ Searches codebase for relevant files and explains functionality.
 
 ## Step 5: Understanding Hook Events (Optional)
 
-Claude Code intercepts these event types (there is no `SubagentStart` hook — agent context is static in the agent `.md` files; `PreCompact` has no live hook — recovery is static re-anchoring from `CLAUDE.md` / `SKILL.md`):
+Claude Code intercepts these event types (`SubagentStart` and `UserPromptExpansion` carry only the protocol-delivery handlers — standing agent context is static in the agent `.md` files; `PreCompact` has no live hook — recovery is static re-anchoring from `CLAUDE.md` / `SKILL.md`):
 
-| Event              | When It Fires            | Example Hook               |
-| ------------------ | ------------------------ | -------------------------- |
-| `SessionStart`     | Claude Code starts       | `session-init.cjs`         |
-| `SessionEnd`       | Claude Code exits        | `session-end.cjs`          |
-| `UserPromptSubmit` | Before each user message | `init-prompt-gate.cjs`     |
-| `PostToolUse`      | After tool execution     | `post-edit-prettier.cjs`   |
-| `PreToolUse`       | Before tool execution    | `review-commit-gate.cjs`   |
-| `Stop`             | Response complete        | `notifications/notify.cjs` |
-| `Notification`     | Idle/waiting events      | `notifications/notify.cjs` |
+| Event                 | When It Fires            | Example Hook                   |
+| --------------------- | ------------------------ | ------------------------------ |
+| `SessionStart`        | Claude Code starts       | `session-init.cjs`             |
+| `SessionEnd`          | Claude Code exits        | `session-end.cjs`              |
+| `UserPromptSubmit`    | Before each user message | `init-prompt-gate.cjs`         |
+| `PostToolUse`         | After tool execution     | `post-edit-prettier.cjs`       |
+| `PreToolUse`          | Before tool execution    | `review-commit-gate.cjs`       |
+| `SubagentStart`       | Sub-agent starts         | `protocol-inject-universal.cjs` |
+| `UserPromptExpansion` | Typed `/command` expands | `protocol-inject-review.cjs`   |
+| `Stop`                | Response complete        | `notifications/notify.cjs`     |
+| `Notification`        | Idle/waiting events      | `notifications/notify.cjs`     |
 
 See [hooks/README.md](./hooks/README.md) for detailed explanations.
 

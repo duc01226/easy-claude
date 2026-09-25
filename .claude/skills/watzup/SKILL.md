@@ -1,7 +1,7 @@
 ---
 name: watzup
-version: 1.2.0
-description: '[Utilities] Use when reviewing recent changes and wrapping up the work.'
+version: 1.3.0
+description: '[Utilities] Use when a workflow step or the user asks for a session wrap-up. Summarizes what was done, key changes, why and how in an HTML report, then flags stale docs and lessons.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -15,46 +15,69 @@ description: '[Utilities] Use when reviewing recent changes and wrapping up the 
 
 ## Quick Summary
 
-**Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` review guide (diagrams, user stories, a review path, and how to test/demo it), WITHOUT mutating any file, so they decide the next step from full context.
+**Goal:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags, root-cause lessons and, for a large code change, a `/understand` review guide — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
 
 **Summary:**
 
-- **READ-ONLY contract** — review/summarize current-branch commits and FLAG findings only; NEVER edit, fix, implement, or update the docs or specs you flag — why: watzup is a handoff, not an edit pass.
-- **Main steps in order:** (1) **Review** recent commits — what changed/added/removed; (2) **Summarize** impact + quality; (3) **Doc-staleness gate** — path→doc mapping table; (4) **Spec-driven health check** — feature-spec root → spec staleness → feature-docs freshness (ONLY when business code changed); (5) **Root-cause lesson extraction** — surface mistakes → name failure mode (not symptom) → universal rule → ask user; (6) **`/understand` handoff** — the full review guide, mandatory final; (7) **`AskUserQuestion` Next Steps**.
-- **Cost, declared:** the `/understand` handoff produces a **fuller artifact than it used to** — it now derives diagrams, resolves real test-case IDs, and builds an ordered review route, so it reads more of the repo and writes a longer report. That is the deliberate price of a wrap-up that ends with a route into the work rather than a recap of it; it is stated here so it is chosen, not discovered.
-- **Three required gates** after the change summary: doc-staleness check, spec-driven health check (business-code-only), root-cause lesson extraction — NEVER skip a gate because the change "looks small".
+- **READ-ONLY contract** — review, summarize and FLAG only; NEVER edit, fix, implement, or update the docs or specs you flag. The only write is the git-ignored session report — why: watzup is a handoff, not an edit pass.
+- **Scope is the session**, not only recent commits: uncommitted working-tree changes plus the commits made in this session, bounded by the session's task list, plan and prompt ledger when present — why: most session work is still uncommitted at wrap-up.
+- **Main steps in order:** (1) **Scope** the session's work; (2) **Session summary** — Done, Key changes, Why, How it works, then the detail; (3) **Doc-staleness gate**; (4) **Spec-driven health check** (business code only); (5) **Root-cause lesson extraction**; (6) **`/understand` handoff** (large code change or on request, otherwise the summary alone); (7) **HTML session report**, auto-opened; (8) **`AskUserQuestion` Next Steps**.
+- **HTML report:** the four parts plus Flags and Next steps go into `tmp/reports/watzup-{YYMMDD}-{HHmm}-{slug}.html`, built from `references/session-report-template.html` and opened with `node .claude/scripts/open-report.cjs <path>`; chat gets a short summary plus the path — why: the reader should come away understanding what was done, why and how it works, not skimming a chat scroll.
+- **Proportion rule:** the session summary and the lesson gate always run. When no code changed (research, diagram or docs-only runs), the doc-staleness and spec-health gates record `skipped — no code changed` with the evidence. The `/understand` handoff is optional: it runs for a **large code change** (defined under [Session Summary](#session-summary-always-runs)) or when the user asks, and otherwise scales down to the session summary — why: a review route needs enough code to route through, and the four-part summary already explains a small change.
+- **Cost, declared:** for a large code change (or on request), the `/understand` handoff derives diagrams, resolves real test-case IDs and builds an ordered review route, so it reads more of the repo and writes a longer report — the deliberate price of ending with a route into the work rather than a recap of it. A smaller change does not pay it: the session summary completes the wrap-up.
 - Lessons go to `/learn` ONLY after user confirmation; surface-level "always check file X" notes are noise, not lessons.
-- `/understand` is the mandatory final handoff and MUST run BEFORE the `AskUserQuestion` Next Steps prompt — if unavailable, STOP and report the blocker, NEVER skip — why: the developer's exit context is the explanation, not the raw diff.
 
 **Workflow:**
 
-1. **Review** — Analyze recent commits: what was modified, added, removed
-2. **Summarize** — Provide detailed change summary with quality assessment
-3. **Doc Check** — Cross-reference changed files against docs/ for staleness
-4. **Lesson Learned** — Analyze AI mistakes/issues during the task and capture lessons
-5. **Understand Handoff** — Invoke `/understand` as the final mandatory task so the developer gets the full review guide on the completed work, high level first then detail, in four parts: **Orient → Route → Depth → Prove & Push Back**. **The section contract lives in `understand/SKILL.md` Step 4 and is never re-listed here** — a copy of it in this file would go stale silently the next time it changes. Written to `tmp/reports/understand-*.md` — or delivered in full in chat when no git-ignored directory is available for it — and summarized in chat
+1. **Scope** — Collect the session's work: `git status` and `git diff` / `git diff --staged` for uncommitted changes, plus commits made in this session (`git log` from the session's base commit, taken from the task list, plan or ledger when present). Read the task list, plan and prompt ledger (`tmp/prompt-ledger/<session>/ledger.md`) when present. State the boundary used and whether any code changed.
+2. **Session summary** — Write the four labelled parts first (see [Session Summary](#session-summary-always-runs)), then the detail: what was modified, added or removed, and the impact and quality of the change.
+3. **Doc Check** — Cross-reference changed paths against docs for staleness, or record `skipped — no code changed` with evidence.
+4. **Spec Health** — Run when business code changed; otherwise record `skipped — no code changed` (or `no business code changed`) with evidence.
+5. **Lesson Learned** — Analyze AI mistakes/issues during the session and capture lessons.
+6. **Understand Handoff** — For a **large code change** (see [Session Summary](#session-summary-always-runs)) or when the user asks for the review guide, invoke `/understand` so the developer gets the full review guide on the session's work, high level first then detail, in four parts: **Orient → Route → Depth → Prove & Push Back**. The section contract lives in `understand/SKILL.md` Step 4 and is never re-listed here — a copy would go stale silently. Written to `tmp/reports/understand-*.md` — or delivered in full in chat when no git-ignored directory is available — and summarized in chat. For a large code change, ask `/understand` for HTML output so its full review route opens beside the session report, or instead of it when the user wants one report. Otherwise the handoff scales down to the session summary: record `Understand handoff: scaled down to the session summary — no code changed` (or `— below the large-change threshold`, with the changed-code count). If `/understand` is unavailable, record `Understand handoff: /understand unavailable — session summary only` in the report's Flags and continue; it never blocks the wrap-up.
+7. **Session Report** — Write the HTML report and open it (see [Session Report (HTML)](#session-report-html)); post a short chat summary plus the report path.
+8. **Next Steps** — `AskUserQuestion` (see [Next Steps](#next-steps)).
 
 **Key Rules:**
 
-- READ-ONLY: only flag findings, never implement or fix anything
-- Doc staleness check is REQUIRED (see mapping table below)
-- Lesson-learned analysis is REQUIRED (see section below)
-- Final review task MUST ATTENTION include doc-staleness check, lesson-learned analysis, AND the final `/understand` handoff
-- MUST ATTENTION call `/understand` after the watzup summary/doc/mistake analysis and before the final Next Steps prompt
+- READ-ONLY: only flag findings, never implement or fix anything.
+- Scope covers the whole session: uncommitted changes plus this session's commits.
+- The Session summary always runs and comes first, with all four parts: Done, Key changes, Why, How it works.
+- Doc-staleness and spec-health gates are REQUIRED when code changed; with no code changed each records `skipped — no code changed` with evidence.
+- Lesson-learned analysis is REQUIRED on every run.
+- Call `/understand` after the summary, gates and lesson analysis and before Next Steps only for a large code change or when the user asks; otherwise the handoff scales down to the session summary. An unavailable `/understand` is noted, never a blocker.
+- Write the HTML session report on every run, open it with `open-report.cjs`, and post a short chat summary plus its path.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-Review my current branch and the most recent commits.
-Provide a detailed summary of all changes, including what was modified, added, or removed.
+Review this session's work: the uncommitted working-tree changes plus the commits made in this session.
+Write the Session summary first, then the detail of every change: what was modified, added, or removed.
 Analyze the overall impact and quality of the changes.
 
 **IMPORTANT**: Review and summarize only, never start implementing.
 
 ---
 
+## Session Summary (ALWAYS runs)
+
+Runs on every invocation, code or no code. Output it before any gate, as four labelled parts in this order:
+
+- **Done:** high-level overview of what the session accomplished, mapped to each user request or the session goal (from the prompt ledger when present; otherwise the task list or plan). Name any request left unfinished.
+- **Key changes:** grouped by area (e.g. hooks, skills, docs, tests), each with a `file:line` anchor from the diff or the session's commits.
+- **Why:** the decision and rationale behind each key change, including trade-offs accepted and alternatives rejected.
+- **How it works:** the resulting behaviour or flow after the change, explained briefly.
+
+Then the detail: per-file changes, impact and quality assessment. For a research, diagram or docs-only session, **Key changes** lists the artifacts produced and **How it works** explains the finding or the flow they describe.
+
+**No code changed** means the session's changed paths (working tree plus session commits) are empty or contain only docs, diagrams, reports and other non-executable artifacts — no source, script, test, hook, skill or config file. Cite the path list (or a clean `git status`) as the evidence.
+
+**Large code change** — the trigger for the full `/understand` handoff — means any one of: more than 10 changed code files (the same path list, minus docs, diagrams and reports); a new module, service, skill, hook or script; or a changed public contract (an API, CLI, config schema, hook input/output or exported interface). Cite the count or the path that met the rule. A smaller code change ends with the session summary unless the user asks for the review guide.
+
+---
+
 ## Doc Staleness Check (REQUIRED)
 
-After change summary, run `git diff --name-only` (against base branch or recent commits), cross-reference changed files against relevant docs:
+After the session summary, list the session's changed paths (`git status --porcelain` for uncommitted changes plus `git diff --name-only <session-base>..HEAD` for this session's commits) and cross-reference them against relevant docs:
 
 | Changed file pattern    | Docs to check for staleness                                                                   |
 | ----------------------- | --------------------------------------------------------------------------------------------- |
@@ -69,6 +92,7 @@ After change summary, run `git diff --name-only` (against base branch or recent 
 
 - A bulleted list of docs that may need updating, with a brief note on what is likely stale (e.g., "hook count changed from 31 to 32").
 - `No doc updates needed` — if no changed file pattern maps to a doc.
+- `Doc staleness: skipped — no code changed` — plus the evidence (the changed-path list, or a clean `git status`), when no code changed.
 
 **Do not edit docs during watzup.** Only flag. The user decides whether to fix.
 
@@ -118,7 +142,7 @@ git log --since="30 days ago" --name-only -- "$SPEC_ROOT"/ | head -10
 | No commits in last 30 days AND business code changed | ⚠️ Flag: `"Business feature docs may be stale. Consider running /docs-update to sync."` |
 | Recent commits found                                 | ✅ Feature docs are being maintained                                                    |
 
-**Output only flags that apply. Skip this section entirely if no business code changed.**
+**Output only flags that apply.** When no code changed, record `Spec health: skipped — no code changed` with the evidence; when code changed but none of it is business code, record `Spec health: skipped — no business code changed` with the changed-path list.
 
 ---
 
@@ -181,11 +205,22 @@ Wait for user confirmation before invoking `/learn`.
 
 ---
 
+## Session Report (HTML)
+
+Runs on every invocation, after the lesson analysis and the `/understand` handoff. It is the detailed, readable form of the session summary.
+
+1. **Resolve the directory** the way `understand/SKILL.md` Step 3 does: the reports directory `docs/project-config.json` names, if it names one, then `tmp/reports/`; take the first that `git check-ignore` confirms is ignored, creating it if absent. If none is ignored, write no file: deliver the report content in chat and name the directory to ignore.
+2. **Write** `watzup-{YYMMDD}-{HHmm}-{slug}.html` from `references/session-report-template.html`: fill every placeholder, keep its inline CSS, structure and `Content-Security-Policy` meta, and add no script or external asset. **Encode every value:** HTML-escape each placeholder value — `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;` — including text inside `<code>` and `<title>`, because session text routinely carries markup and comment markers that would otherwise hide or rewrite the rest of the report. Every `href` value (e.g. `{{START_FILE_LINK}}`) is a relative path or a `file:` / `vscode:` link — never `javascript:`, `data:` or any other scheme. Order: Start here, Done, Key changes, Why, How it works, Flags (doc staleness, spec health, risks, lessons — a skipped gate with its evidence), Next steps. Every claim carries its `file:line`. When `/understand` also wrote HTML, link it from Next steps.
+3. **Open** it: `node .claude/scripts/open-report.cjs <path>`. The helper opens nothing in CI, with `CK_NO_AUTO_OPEN=1`, or on a Linux session without a display, and always exits 0, so a failed open never blocks the wrap-up. It opens only a report inside the project's `tmp/` or `temp/` directory; a report written to a configured reports directory elsewhere is not opened — the helper prints its path, and the chat summary gives that path to the user.
+4. **Post in chat** a short summary — Done in two or three lines, the start-here file, the flag count — plus `Session report → <path>`.
+
+---
+
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** before presenting these options, invoke `/understand` as the final mandatory todo task using the watzup summary and current change set as scope. If `/understand` is unavailable, stop and report that blocker instead of silently skipping the handoff.
+**MANDATORY** before presenting these options, complete the handoff step (Workflow step 6) — a full `/understand` run scoped to the session's change set for a large code change or on request, otherwise the session summary alone — then write and open the session report ([Session Report (HTML)](#session-report-html)). If `/understand` is unavailable, note it in the report's Flags and continue; it is never a blocker. If no code changed, the handoff scales down to the session summary (Workflow step 6) and these options follow.
 
-After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
+After the report is written, MUST ATTENTION use `AskUserQuestion` to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
 
 - **"/workflow-end (Recommended)"** — Complete and close the active workflow
 - **"/commit"** — Commit changes if not using workflow
@@ -197,103 +232,19 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
-<!-- SYNC:nested-task-creation -->
+<!-- PROTOCOL-GUIDES:START -->
 
-> **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
->
-> 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
-> 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
-> 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
-> 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
-> 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
->
-> **Blocked until:** `TaskList` done, child phases created, parent linked when nested, first child marked `in_progress`.
+> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-<!-- /SYNC:nested-task-creation -->
+- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
+- `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
+- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
+- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
+- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
+- `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
 
-<!-- SYNC:project-reference-docs-guide -->
-
-> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap, immediately before target/source reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate but never prove it ran.
->
-> 1. **Scope** — identify file types, domain area, and operation.
-> 2. **Project config is OPTIONAL.** Read the configured project-config file via its loader (default `docs/project-config.json`) when it exists. Absent is a supported state, not an error: run on portable defaults, derive project facts (paths, commands, conventions, architecture, test/spec layout) from repository evidence (manifests, lockfiles, scripts, CI, layout, root instruction files), state material assumptions, never block, and at most OFFER `/project-init` or `/project-config` once. Present → minimum valid shape is a non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. A DECLARED section left malformed or incomplete is a configuration error: fail closed on it and run `/project-init` or `/project-config` before relying on it — why: silent defaults would present wrong facts as authoritative. Verify material config hints against repository evidence; generic defaults are never project facts.
-> 3. **Select docs.** Always-on: the project-init-owned `lessons.md` and docs-index inputs at their configured owner paths — read independently, never appended to `referenceDocs`. Task-specific: an explicit `referenceDocs` array is the exact selection, subsets and `[]` included; absent → the runtime capability-aware resolver (portable baseline plus configuration- or repository-evidenced capabilities; may be empty). The scan-target manifest is a registry, not a default selection. Filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Custom-doc schema, ownership, and path-safety rules: `.claude/skills/scan/references/targets.md`.
-> 4. **Route by phase.** Just in time, read the selected docs the table names for the phase you are ABOUT to enter, plus any selected custom doc whose `purpose` covers that phase. An unmatched row is `Not applicable`, never a blocker.
->
-> | About to… | Read first (when selected and present) |
-> | --- | --- |
-> | investigate, explain, plan, design, estimate | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan will touch |
-> | edit or write code | `code-review-rules.md`, plus server-side / non-UI code → `backend-patterns-reference.md`; UI → `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` |
-> | write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `seed-test-data-reference.md` |
-> | author or change specs, test cases, or docs | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; `workflow-spec-test-code-cycle-reference.md` when specs, tests, and code must stay in sync |
-> | review a diff, plan, spec, or artifact | `code-review-rules.md`, plus the edit/test/spec-row docs for every file type under review |
->
-> 5. **Per-file conventions** (`contextGroups[]` in the project config) add rules for the exact file read or edited: hooks deliver them where they run; elsewhere run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` before the first edit of an unfamiliar path class.
-> 6. **Cite and repair.** State `Reference docs read: ... | Not applicable: ...` (record an explicit empty selection); still honor references the active skill or task requires. A missing/stale always-on input or selected/required doc, or a malformed declared config section → `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on it.
-> 7. **Dedup within ~200K tokens.** A doc counts as loaded only when its full content came back to THIS context from your own read, after the last compaction and within roughly the last 200K tokens, and it has not changed since — list it in `Reference docs read:` as `<doc> (loaded)` and skip the re-read. Everything else is not loaded: a hook reminder, a summary, a doc merely named in the conversation, or a read by another agent. Re-select and re-read after compaction, resume, a material context change, or ~200K tokens of growth (= the file-convention hook default). A delegated sub-agent starts empty: name the resolved doc paths in its brief.
->
-> **Ready when:** scope set · config read or its absence recorded · always-on inputs confirmed · selection applied (may be empty) · phase docs read or cited `(loaded)` · citation emitted.
-
-<!-- /SYNC:project-reference-docs-guide -->
-
-<!-- SYNC:task-tracking-external-report -->
-
-> **Task Tracking & External Report Persistence** — Bootstrap this before execution; then run project-reference doc prefetch before target/source work.
->
-> 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
-> 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
-> 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: tmp/reports/{filename}`.
->
-> **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
-
-<!-- /SYNC:task-tracking-external-report -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:evidence-based-reasoning -->
-
-> **Evidence-Based Reasoning** — Do not present inference as fact; ground material claims in evidence appropriate to the task.
->
-> 1. Cite `file:line` for repository claims, configuration or reference paths for project rules, and URLs or artifact locations for external or observed claims.
-> 2. State confidence when a conclusion is uncertain; verify material assumptions before acting and withhold recommendations when evidence is insufficient.
-> 3. Trace the consumers, boundaries, or dependencies that exist in the affected path; do not assume services, modules, or architectural styles that the project does not use.
-> 4. "I don't have enough evidence" is valid and expected output.
->
-> **BLOCKED until:** material claims have traceable evidence, relevant searches are complete, and uncertainties are stated. Search comparable patterns when the task has existing implementations; record when none are available.
->
-> **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
-> **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
-
-<!-- /SYNC:evidence-based-reasoning -->
-
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Before and during adjudication, weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->
+<!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
@@ -347,22 +298,15 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
-
 <!-- SYNC:project-protocol-overlay:reminder -->
 
 **MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
+
 <!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` review guide (diagrams, user stories, a review path, and how to test/demo it), WITHOUT mutating any file, so they decide the next step from full context.
+**IMPORTANT MUST ATTENTION Goal:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags, root-cause lessons and, for a large code change, a `/understand` review guide — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -374,8 +318,9 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **IMPORTANT MUST ATTENTION** stay READ-ONLY — only FLAG findings; NEVER edit, fix, implement, or update the docs or specs you flag — why: watzup is a review/handoff, not an edit pass; flagging-then-fixing silently breaks the read-only contract.
-**IMPORTANT MUST ATTENTION** run ALL three required gates after the change summary — doc-staleness (path→doc table), spec-driven health check (only when business code changed), root-cause lesson extraction — NEVER skip a gate because the change "looks small" — why: stale docs and missed lessons compound silently across sessions.
-**IMPORTANT MUST ATTENTION** invoke `/understand` as the FINAL mandatory handoff BEFORE the `AskUserQuestion` Next Steps prompt; if `/understand` is unavailable, STOP and report the blocker — NEVER silently skip the handoff — why: the developer's exit context is the explanation, not the raw diff.
+**IMPORTANT MUST ATTENTION** scope the whole session (uncommitted changes plus this session's commits) and write the Session summary first — Done, Key changes, Why, How it works — then run the gates: doc-staleness, spec health (business code only), lesson extraction. Never skip a gate because the change "looks small"; with no code changed, doc-staleness and spec health record `skipped — no code changed` with evidence — why: stale docs and missed lessons compound silently, while a code gate on a no-code session is noise.
+**IMPORTANT MUST ATTENTION** complete the handoff step — `/understand` for a large code change or on request, otherwise the session summary alone — then write and open the HTML session report, BEFORE the `AskUserQuestion` Next Steps prompt; an unavailable `/understand` is noted in Flags, never a blocker — why: the developer's exit context is the explanation, not the raw diff, and the four-part summary already explains a small change.
+**IMPORTANT MUST ATTENTION** HTML-escape every placeholder value in the report and keep every `href` a relative, `file:` or `vscode:` link — why: the report is auto-opened in a browser, and unescaped session text can hide report content or run as markup.
 
 **IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases; surface-level "always check file X" notes are noise — why: only root-cause prevention compounds across sessions.
 **IMPORTANT MUST ATTENTION** send lessons to `/learn` ONLY after explicit user confirmation — NEVER auto-persist or self-edit instruction files — why: lesson capture is a durable instruction change the user must own.
@@ -393,6 +338,8 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 | "No real mistakes this session, skip lessons"    | Still run the gate — output `No AI mistakes identified` only after honest self-review.         |
 | "It's obvious next they want a commit, just do it" | NEVER auto-decide — present the `AskUserQuestion` options; the user owns the route.           |
 | "I can just fix this stale doc while I'm here"    | READ-ONLY — flag only. Fixing here breaks the contract; the user decides.                      |
-| "Small change, skip `/understand`"               | `/understand` is the mandatory handoff — run it or report the blocker; never skip.             |
+| "Big change, but skip `/understand` to save time" | A large code change (Session Summary definition) runs `/understand`; only a smaller or no-code change scales down to the summary, with the count or path list as evidence. |
+| "Nothing was coded, skip the summary"            | The Session summary always runs — research and docs sessions still have Done, Why and How.     |
+| "Only recent commits matter"                     | Scope is the session: uncommitted working-tree changes plus this session's commits.            |
 
-**IMPORTANT MUST ATTENTION Goal echo:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` review guide (diagrams, user stories, a review path, and how to test/demo it), WITHOUT mutating any file, so they decide the next step from full context.
+**IMPORTANT MUST ATTENTION Goal echo:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags, root-cause lessons and, for a large code change, a `/understand` review guide — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.

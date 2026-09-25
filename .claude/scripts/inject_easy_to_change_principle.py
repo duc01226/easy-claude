@@ -4,6 +4,8 @@ Inserts the canonical principle block into a fixed list of SKILL.md files
 (weaving it as a new H2 section IMMEDIATELY BEFORE the file's existing
 principles/mindset/rules anchor heading) and appends the closing reminder at
 end-of-file. Idempotent: skips files that already contain the marker.
+The principle is a prose section, not a SYNC protocol tag, so no guide entry can
+carry it and no guide check applies. Files keep their own line-ending style.
 
 Usage:
     python .claude/scripts/inject_easy_to_change_principle.py [--dry-run]
@@ -17,6 +19,8 @@ import argparse
 import re
 import sys
 from pathlib import Path
+
+from line_endings import read_text, write_text
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -141,7 +145,7 @@ def main() -> int:
             errors.append(f"missing: {path}")
             continue
 
-        original = path.read_text(encoding="utf-8")
+        original, newline = read_text(path)
         new_text, strategy = insert_block(original, anchors)
         new_text, closing_added = append_closing(new_text)
 
@@ -156,7 +160,7 @@ def main() -> int:
         print(f"{relpath:60s}  {strategy:35s}  closing={closing_added}")
 
         if not args.dry_run and new_text != original:
-            path.write_text(new_text, encoding="utf-8", newline="\n")
+            write_text(path, new_text, newline)
 
     print()
     print(f"Total files     : {len(TARGETS)}")

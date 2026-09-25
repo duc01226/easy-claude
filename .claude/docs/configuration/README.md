@@ -153,6 +153,8 @@ The `codeReview` section records which project-specific review-rule doc the revi
 | `onRead`                    | `true`    | boolean       | Reads trigger reminders too                                                                                     |
 | `compactionMarkers`         | `[]`      | regex strings | Extra transcript condensation marks                                                                             |
 
+Each group may also set `on` — which file operation delivers it: `read`, `edit`, or `both` (default `both`, so an omitted `on` keeps delivery on reads and edits). `edit` keeps a group's read-first docs and skill pointers off plain reads; `conventionInjection.onRead: false` still turns read delivery off for every group. Any other value is a validation error naming the group and `read|edit|both`.
+
 Class fields deciding membership (`pathRegexes`, `pathGlobs`, `fileNameRegexes`, `excludePathRegexes`, `excludePathGlobs`, `fileExtensions`) are part of the class's content version, so editing one re-delivers the class and changes its `[[convention:name@hash8]]` tag — regenerate CLAUDE.md/AGENTS.md afterwards. `guideDoc`/`patternsDoc` are the only fields used for documentation-impact routing (`.claude/scripts/doc-impact-map.cjs`); the delivery matchers are not.
 
 Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json`. Typical errors: `contextGroups[1] ("general-code"): needs at least one include matcher (pathRegexes, pathGlobs or fileNameRegexes)`, a duplicate or blank `name`, a malformed regex (the error names the class), or an out-of-range `conventionInjection.<field>`. Unknown group fields and a non-whole `priority` are warnings. Check what a file receives: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`. Details: [../hooks/README.md § Per-File Convention Injection](../hooks/README.md#per-file-convention-injection).
@@ -200,7 +202,34 @@ One developer can override that preference in `.claude/.ck.local.json`, which is
 
 The local boolean wins over the team boolean for runtime prompt refreshes. Missing files, malformed JSON, and non-boolean values express no preference; when neither layer supplies a valid boolean, the effective value is `true`.
 
-When the tracked value is enabled, generated `CLAUDE.md`, `AGENTS.md`, and `.codex/CODEX_CONTEXT.md` carry the canonical route gate. When the effective runtime value is enabled, `workflow-route-inject.cjs` refreshes that gate with the current workflow/skill catalog at `UserPromptSubmit`. It emits advisory plaintext, never blocks a prompt, suppresses duplicate delivery within a session, and re-arms after content changes, compaction, or about 4.5 MB of transcript growth (the framework proxy for roughly 200K tokens). Explicit skill or workflow invocation remains available while automatic routing is off.
+When the tracked value is enabled, generated `CLAUDE.md`, `AGENTS.md`, and `.codex/CODEX_CONTEXT.md` carry the canonical route gate. When the effective runtime value is enabled, `workflow-route-inject.cjs` refreshes that gate with the current workflow/skill catalog at `UserPromptSubmit`. It emits advisory plaintext, never blocks a prompt, suppresses duplicate delivery within a session, and re-arms after content changes, compaction, or about 4.5 MB of transcript growth (the framework proxy for roughly 200K tokens). When the effective value is disabled, the same hook delivers a short routing-OFF notice instead: it supersedes the tracked gate's auto-select (which a local override cannot remove), tells the model to skip skill steps that recommend switching to a workflow, and keeps every quality gate. Explicit skill or workflow invocation remains available while automatic routing is off.
+
+To run a session with the whole framework off — hooks, project instructions and skills — without editing `.claude/`, start `claude --settings .claude/config/vanilla-settings.json --disable-slash-commands` (details and trade-offs: `.claude/config/README.md`).
+
+### Workflow activation tiers
+
+Each `.claude/workflows.json` entry may declare `activation` (default `auto`):
+
+| Tier | The model may | Enforced by |
+| --- | --- | --- |
+| `auto` | Select and start it on the first task of a session | Route gate |
+| `confirm` | Select it, but ask the user once (its step count vs. the lean custom-simple route) before starting it | Route gate, `start-workflow` |
+| `manual` | Never select or start it; it names the workflow in its route declaration and runs it only on an explicit user request | Route gate, `start-workflow`, the wrapper skill's `disable-model-invocation: true` (Claude) and the generated `agents/openai.yaml` `policy.allow_implicit_invocation: false` (Codex) |
+
+Framework defaults: `workflow-feature` is `confirm`; `workflow-big-feature`, `workflow-greenfield-init`, `workflow-idea-to-pbi` and `workflow-spec-to-pbi` are `manual`. An explicit request (`/workflow-<id>`, `/start-workflow <id>`, or asking in words) runs any tier. Changing a workflow to or from `manual` also means changing its wrapper skill's `disable-model-invocation` — a test fails when the two disagree.
+
+A project can tighten these tiers without forking `workflows.json` through `portability.workflowActivation` in `docs/project-config.json`:
+
+```json
+{ "portability": { "workflowActivation": { "default": "confirm", "overrides": { "workflow-bugfix": "auto" } } } }
+```
+
+| `portability.workflowActivation` field | Default | Allowed | Meaning |
+| --- | --- | --- | --- |
+| `default` | none (framework tiers) | `auto`, `confirm`, `manual` | Floor applied to every workflow: the effective tier is the stricter of this and the framework tier, so it only tightens |
+| `overrides` | none | map of workflow id → `auto`, `confirm`, `manual` | Pins one workflow's tier; wins over `default` and the framework tier, so it may loosen |
+
+Tier order is `auto` < `confirm` < `manual`. Omitting the object keeps every framework tier. An unknown tier in either field is a validation error naming the key and `auto|confirm|manual`. A developer may override it in the git-ignored `.claude/.ck.local.json` (same nesting): each setting in `.claude/.ck.local.json` wins over the team value; overrides merge per workflow id, so a local `overrides`-only object keeps the team `default`.
 
 ### Custom workflow-route protocol
 
@@ -211,6 +240,16 @@ The same hook can carry project-supplied additional route rules via `portability
 ```
 
 `workflow-route-inject.cjs` appends the resolved text in its own marker block (`<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->`), advisory only and never blocking. A `path` naming a privacy-sensitive file (`.env`, credentials, secrets, `*.pem`/`*.key`) is refused — the validator rejects it and the runtime treats it as no opinion — and a file over 20,000 bytes is truncated with a visible marker. It is runtime-only and is never stamped into tracked `CLAUDE.md`/`AGENTS.md`/Codex context.
+
+### Just-in-time path rules
+
+When inlined `contextGroups[].rules` push the generated root context past its byte budget, the team can opt out of inlining them in `docs/project-config.json`:
+
+```json
+{ "portability": { "inlinePathRules": false } }
+```
+
+`SECTION:golden-rules` then names each rule-bearing group and points to the file-conventions hook and its `--lookup` CLI instead of repeating the rule text. It is honored only when `conventionInjection.enabled` is `true`, the conventions lib is available, every rule-bearing group is named, unique and ranked within `conventionInjection.maxClassesPerEdit`, and a worst-case digest fits `conventionInjection.maxChars` (raise it, up to 10000, when the warning names the size budget); otherwise the rules stay inline and `generate-claude-md.cjs` prints `[WARN] INLINE_PATH_RULES` naming the missing precondition. Read `.claude/skills/ai-context-refresh/SKILL.md` (Just-in-time path rules) when enabling it.
 
 ### Startup dependency installation
 
@@ -312,11 +351,50 @@ Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/
 (`--describe` prints the authoritative field list). Hook-side details:
 [../hooks/README.md](../hooks/README.md).
 
+### Code graph switch
+
+`docs/project-config.json` `hooks.codeGraph.enabled` decides whether the code-graph hooks and CLI run:
+
+| Value | Meaning |
+| --- | --- |
+| `"auto"` (default) | Active only when `.code-graph/graph.db` exists |
+| `"on"` | Always active |
+| `"off"` | Graph hooks stay silent and the graph CLI refuses to run |
+
+Omitting the key or the `codeGraph` object means `"auto"`. Any other value is a validation error naming `auto|on|off`.
+
+### Token checkpoint
+
+> **Read by `token-budget-checkpoint.cjs`.** The checkpoint hook (PostToolUse on `TodoWrite|TaskCreate|TaskUpdate|update_plan`, main conversation only) reads `hooks.tokenBudget` on every task/plan step and counts the session's main and sub-agent Claude transcripts. On a host whose transcript it cannot read, it stays silent. A malformed section keeps the checkpoint off until the config is fixed. Claude users can also check spend with `/context`.
+
+`docs/project-config.json` `hooks.tokenBudget` tunes an advisory checkpoint at task/plan step boundaries: each time the session's non-cached tokens (input + cache creation + output; cache reads never count) cross the next multiple of `checkpointTokens`, the model gets one note suggesting a progress report and asking whether to continue. It never blocks.
+
+```json
+{ "hooks": { "tokenBudget": { "enabled": true, "checkpointTokens": 500000 } } }
+```
+
+| `hooks.tokenBudget` field | Type    | Default  | Allowed             | Meaning                              |
+| ------------------------- | ------- | -------- | ------------------- | ------------------------------------ |
+| `enabled`                 | boolean | `true`   | boolean             | `false` turns the note off           |
+| `checkpointTokens`        | integer | `500000` | 50000–20000000      | Non-cached tokens between two notes  |
+
+A `checkpointTokens` value outside the range, or not a whole number, is a validation error naming the key and the range.
+
+### Commit `Fix-Origin` trailer
+
+`docs/project-config.json` `commit.fixOriginTrailer` (boolean, default `false`) opts a project into the author-declared `Fix-Origin: <feedback|regression|not-applicable>` trailer. When `true`, the `commit` skill writes it on new commits only; existing commits are never reworded to add it. When omitted or `false`, commit messages carry no `Fix-Origin` trailer.
+
+### Skill profile
+
+`docs/project-config.json` `skillProfile` sets, for the whole team, which skills the model sees. `preset` picks a base from `.claude/config/skill-profiles.json`: `full` (no overrides), `standard` (skills other skills or hooks start leave the model's list but stay callable by name), or `minimal` (only the entry skills stay listed). The lists `nameOnly`, `commandOnly` (only a user's `/name` starts it) and `off` (skill folder names; one list per skill) apply on top of the preset.
+
+Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-only). The guard refuses, and writes nothing, when `commandOnly` or `off` would hide a called skill — one a workflow step or an agent `skills:` entry starts, or one on the curated `calledByOthers` or `entrySkills` list (the workflow runner and the setup skills that gates and hooks start) — unless `allowHidingCalledSkills: true`. `nameOnly` is allowed for any skill. Read `.claude/config/README.md#skill-profile` when you need the per-host effect (Claude `skillOverrides`, Codex, OpenCode), the ownership ledger, or the fail-closed inputs.
+
 ---
 
 ### workflows.json
 
-**Purpose:** Canonical workflow definitions and execution metadata. Use `portability.workflowAutoDetect` above to opt out of automatic routing.
+**Purpose:** Canonical workflow definitions and execution metadata. Use `portability.workflowAutoDetect` above to opt out of automatic routing, and a workflow's `activation` tier ([Workflow activation tiers](#workflow-activation-tiers)) to keep it from being started automatically.
 
 ```json
 {
@@ -330,13 +408,14 @@ Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/
 }
 ```
 
-**Schema:** Each workflow entry supports `description`, `name`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `whenToUse`. There are NO `priority` or `triggers` properties. When runtime routing is enabled, the model semantically matches the prompt against `whenToUse`; otherwise the catalog remains available only through explicitly invoked workflow skills.
+**Schema:** Each workflow entry supports `activation`, `defaultMode`, `description`, `intent`, `name`, `outcomeGates`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `variants`, `whenToUse` (`WorkflowEntry` in `.claude/workflows.schema.json`). There are NO `priority` or `triggers` properties. When runtime routing is enabled, the model semantically matches the prompt against `whenToUse`; otherwise the catalog remains available only through explicitly invoked workflow skills.
 
-**Live catalog (19 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-architecture-audit`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`, `workflow-integration-test-green`.
+**Live catalog (20 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-implement-spec`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-architecture-audit`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`, `workflow-integration-test-green`.
 
 | Workflow                  | Sequence (abridged, from `workflows.json`)                                                                                                                                          | whenToUse (abridged)                              |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `workflow-feature`        | investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                                                   | Well-defined feature implementation               |
+| `workflow-feature`        | investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                                                   | Well-defined feature; no canonical spec has the behavior yet |
+| `workflow-implement-spec` | investigate → spec-clarify → plan → plan-execute → spec [mode=sync] (when behavior differs) → integration-test → integration-test-verify → workflow-review-changes → test → workflow-end → watzup | Behavior already written in a canonical spec or TC set |
 | `workflow-bugfix`         | investigate → debug-investigate → … → fix → … → workflow-end                                                                                                                        | Bug, error, crash, regression; end-to-start trace |
 | `workflow-refactor`       | investigate → plan → … → plan-execute → … → workflow-end                                                                                                                            | Restructure code without behavior change          |
 | `workflow-review-changes` | [parallel: changes-review + whole-target why-review] → parallel specialists → code-simplifier → … → final whole-target why-review (conditional on fix-cycle changes) → workflow-end | Review uncommitted changes before committing      |
@@ -385,21 +464,23 @@ Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/
 
 **To update a default recommended opencode setting:** edit `.opencode/opencode.recommended.json` and run `$sync-opencode` (or `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs`). The `config` stage deep-merges the recommended defaults into the project-root `opencode.json` — recommended keys win at every leaf, project-only keys survive untouched, and a project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
 
-**Adopting the framework in a new project:** copy the whole `.opencode/` folder (including `opencode.recommended.json`) plus `.claude/`, then run `$sync-opencode` to generate/update the project's root `opencode.json`, the hooks bridge, and the `.opencode/agent/*.md` sub-agent mirror.
+**Adopting the framework in a new project:** copy the `.opencode/` folder (including `opencode.recommended.json`) plus `.claude/`, then run `$sync-opencode` to generate/update the project's root `opencode.json`, the hooks bridge, the `.opencode/agent/*.md` sub-agent mirror, the `permission.skill` entries and the `.opencode/commands/<name>.md` files. Do NOT copy `.opencode/skill-permissions.generated.json` (the skill-permission ownership ledger) or `.opencode/commands/`: both are generated per project. The ledger records its project's name (`project.name` from the project config, default `docs/project-config.json`), so a ledger copied from another project is ignored and treated as empty.
 
-**Compaction budget (all three surfaces = 500K tokens):**
+**No compaction pin (all three surfaces):**
 
-This is a DEFAULT OF THE PORTABLE BUNDLE, not a setting of this repository: copy `.claude/` (plus `.codex/` and `.opencode/`) into any project and that project compacts at 500K too. Each surface delivers it differently:
+The portable bundle sets no auto-compaction budget on any host, so each host compacts at its own default and each person picks their own value. Keep a personal budget in personal or local config, never in a file the bundle ships to the whole team.
 
-| Surface     | Key                                                                                  | How an adopting project receives it                                                                                                                                              |
-| ----------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude Code | `env.CLAUDE_CODE_AUTO_COMPACT_WINDOW = "500000"` in `.claude/settings.json`          | The file is copied verbatim with the bundle — nothing generates or rewrites it                                                                                                   |
-| Codex       | `model_auto_compact_token_limit = 500000` in `.codex/config.toml`                    | Upserted by `.claude/scripts/codex/migrate-claude-to-codex.mjs` on every `$sync-codex`, alongside `notify` and the `[tui]` keys; an existing project config keeps its other keys |
-| opencode    | the pinned model's `limit.context = 500000` in `.opencode/opencode.recommended.json` | Deep-merged into the project-root `opencode.json` by `$sync-opencode`; a project with no root config receives it verbatim                                                        |
+| Surface     | Host default (no pin)                                                                                          | Set your own                                                                                                                                                                                                                                                                                              |
+| ----------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code | Compacts near the model's context limit: about 967K on a 1M-window model; 200K models are unchanged              | `/autocompact 500k` (saved as `autoCompactWindow` in your user settings) · `claude --autocompact 500k` (one launch) · `env.CLAUDE_CODE_AUTO_COMPACT_WINDOW` in `~/.claude/settings.json` (all projects) or `.claude/settings.local.json` (this project only). Never put it in `.claude/settings.json`: that shared scope outranks user settings, and the env var overrides `/autocompact` |
+| Codex       | Codex's own default                                                                                            | `model_auto_compact_token_limit` in `~/.codex/config.toml`, or top-level in the project `.codex/config.toml`                                                                                                                                                                                              |
+| opencode    | The model's registry window; the bundled model declares a 1M `context` and 384K `output`, so it compacts at 968,000 | `provider.<id>.models.<model>.limit` in the project-root `opencode.json` or your global opencode config                                                                                                                                                                                                    |
+
+**Retiring the old pin.** Earlier bundles pinned 500K on every host. `$sync-codex` removes a top-level `model_auto_compact_token_limit` from `.codex/config.toml` only when its value is exactly `500000`, along with the bundled comment block above it when that block is unchanged. `$sync-opencode` removes the pinned model's `limit` from the root `opencode.json` only when it is exactly `{ "context": 500000, "output": 384000 }`. Any other value belongs to the user: the sync keeps it and prints one `kept user-set …` line. A personal 500K budget should therefore live in user-level config (`~/.codex/config.toml`, the global opencode config), where no sync looks.
 
 **Codex `AGENTS.md` read budget:** the same upsert raises top-level `project_doc_max_bytes` to 98304 in `.codex/config.toml` (a larger project value is kept). Codex silently stops reading `AGENTS.md` at 32 KiB by default, and the generated root is larger; the projection orders Doc Lookup and Git discipline first so they survive the default window if the host ignores the project key (set it in `~/.codex/config.toml` then). The budget is shared by every `AGENTS.md` Codex concatenates from the project root down to the working directory, so nested `AGENTS.md` files eat into the root's share.
 
-opencode has no absolute compaction threshold — it compacts relative to the model's declared window, so `limit.context` is the knob (it actually compacts at `limit.context - min(limit.output, 32000)` = 468,000). `compaction.reserved` is inert for this model: opencode reads it only for models that declare `limit.input`. See the `sync-opencode` skill ("Compaction budget") for the exact formula before changing any of these.
+opencode has no absolute compaction threshold — it compacts relative to the model's declared window, so a `limit.context` you set is the knob (it compacts at `limit.context - min(limit.output, 32000)`). `compaction.reserved` is inert for this model: opencode reads it only for models that declare `limit.input`. Read the `sync-opencode` skill ("Compaction: host default") for the exact formula before setting your own `limit`.
 
 > `.opencode/opencode.recommended.json` MUST NOT be renamed to `.opencode/opencode.json`: opencode auto-loads that path as project config, so it would stop being a template.
 
@@ -534,9 +615,10 @@ Configuration is loaded in order with later files overriding earlier:
 | `PreCompact`       | Before context compaction |
 | `SessionEnd`       | Session ends              |
 | `SubagentStart`    | Subagent spawning         |
+| `UserPromptExpansion` | Typed `/command` expands |
 | `Notification`     | Idle/waiting events       |
 
-> These are the Claude Code events available for hooks. This framework registers no `SubagentStart` hook (sub-agent context is static in `agents/*.md`).
+> These are the Claude Code events available for hooks. This framework registers no `PreCompact` hook. `SubagentStart` and `UserPromptExpansion` carry only the six `protocol-inject-<group>.cjs` protocol-delivery handlers (full protocol texts for skill-preloading agents and typed `/command` skills); standing sub-agent context stays static in `agents/*.md`. Read `../hooks/README.md` when you need the per-event registration counts.
 
 ### Hook Structure
 
