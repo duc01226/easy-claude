@@ -450,7 +450,7 @@ Keeps the right conventions in the model's attention at the moment it reads or c
 }
 ```
 
-- **Membership:** `fileExtensions` filter (if any) AND any include (`pathRegexes` on `/`-prefixed repo-relative path, `pathGlobs`, `fileNameRegexes` on the base name) AND no exclude. Case-insensitive; files outside the project, folders, removals and host-reported failures are ignored.
+- **Membership:** `fileExtensions` filter (if any) AND any include (`pathRegexes` on `/`-prefixed repo-relative path, `pathGlobs`, `fileNameRegexes` on the base name) AND no exclude. Case-insensitive; files outside the project, folders, removals and host-reported failures are ignored. Containment is by filesystem identity: a path inside the project as spelled stays in-project, a differently-spelled path (symlink, macOS `/var` → `/private/var`) that resolves into the project counts as in-project, and a path whose identity cannot be established (broken or looping symlink) is outside.
 - **Deliverable:** a class with `rules`, `skills`, `referenceDocs`, `guideDoc` or `patternsDoc`. Styling/design-only classes are never delivered.
 - **Per-class trigger (`on`):** `read`, `edit` or `both`; omitted or unrecognized = `both`, and config validation names an invalid value. A `Read` delivers only `read|both` classes, in conditional wording (`If you will edit this file, read first: …`, or `… follow the conventions below` when no doc is listed); a create/change/move delivers only `edit|both` classes in the mandatory wording. The filter runs before the `maxClassesPerEdit` cap. `lookup`/`--lookup` list what a change would deliver. `on` enters the content version only when it is not `both`, so existing classes keep their version. Setup detection (`convention-merge`) writes `on: edit` on a new detected class that carries reference docs or skills and never changes a maintainer's value; the `ui-ux-gate` class declares `both`, so a Read still puts the gate in context before the first edit.
 - **Precedence:** `priority` ascending (100 specific · 500 default · 900 general), ties by declaration order, capped at `maxClassesPerEdit` before presence; the reminder says "earlier section wins on conflict". A rule shared by several classes is shown once.
@@ -654,12 +654,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner passes with 133 tests. The full aggregate runner `run-all-tests.cjs` discovers 999 tests across 63 suites, including the process-boundary Bash contract and code-graph storage portability suites; the total changes when suites or tests are added or removed.
+The primary runner passes with 135 tests. The full aggregate runner `run-all-tests.cjs` discovers 1000 tests across 63 suites, including the process-boundary Bash contract and code-graph storage portability suites; the total changes when suites or tests are added or removed.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
-| Primary hook runner   | 133   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 999   | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Primary hook runner   | 135   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
+| Aggregate runner      | 1000  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

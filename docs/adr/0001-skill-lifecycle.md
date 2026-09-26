@@ -205,7 +205,7 @@ phrase "quality-gate row", regex literals inside test assertions, a historical
 release note describing what shipped at the time, and the `sequential-thinking`
 instructions — which are deliberate, because that capability was **embedded into
 the agent definitions rather than deleted outright** (see
-`.claude/docs/claude-ai-agent-framework-guide.md:3338-3340`).
+`.claude/docs/claude-ai-agent-framework-guide.md` §18 Principles).
 
 Two limits on that result, both deliberate. Ordinary-English names (`ask`,
 `research`, `plan`, `pr`, `lint`, `context`, and the rest of the 22 ambiguous

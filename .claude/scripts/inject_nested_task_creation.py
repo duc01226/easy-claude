@@ -67,6 +67,7 @@ SKILL_NAMES = [
     "workflow-review-changes",
     "workflow-architecture-audit",
     "workflow-seed-test-data", "workflow-code-to-spec", "workflow-spec-to-pbi",
+    "workflow-spec-to-mockup",
     "workflow-spec-sync",
     "workflow-visualize",
     "workflow-write-integration-test",

@@ -389,6 +389,10 @@ AGENT_QUALITY_BLOCKS = {
         # design plan + generic test (DD-3) and the interface voice.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
         "review-principle-awareness",
+        # Journey-first order (twin: design / design-spec / pbi-mockup / ui-review): this agent
+        # is where a brief turns into a surface, so it must report the main user journeys and
+        # read the project's design authority BEFORE it generates anything.
+        "ux-journey-gate",
     ],
     "code-simplifier": [
         "complexity-prevention", "design-patterns-quality", "severity-rubric",

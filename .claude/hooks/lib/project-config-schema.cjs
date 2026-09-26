@@ -959,6 +959,19 @@ const SCHEMA = {
             }
         }
     },
+    // Optional pull-request-skill policy. Every property is optional; omitted keeps the default.
+    pullRequest: {
+        type: 'object',
+        required: false,
+        describe: 'Optional pull-request-skill policy. Omitted properties keep the defaults.',
+        properties: {
+            targetBranch: {
+                type: 'string',
+                required: false,
+                describe: 'Default "main". The base branch the pull-request skill branches from and opens PRs into. A base branch named in the request, or the base of an already-open PR for the current branch, takes precedence.'
+            }
+        }
+    },
     // Optional team skill profile. `node .claude/scripts/sync-skill-profile.cjs` resolves it and
     // writes only the keys it owns into `.claude/settings.json` `skillOverrides`; a developer's own
     // choices stay in git-ignored `.claude/settings.local.json`. Omitted = no overrides.
@@ -1706,6 +1719,11 @@ function validateConfig(config) {
 
     if (config.project && typeof config.project.name === 'string' && config.project.name.trim() === '') {
         errors.push('project.name: expected a non-empty project identity');
+    }
+
+    // An empty base branch would reach `git fetch origin ""`; omitting the key keeps the "main" default.
+    if (config.pullRequest && typeof config.pullRequest.targetBranch === 'string' && config.pullRequest.targetBranch.trim() === '') {
+        errors.push('pullRequest.targetBranch: expected a non-empty branch name; omit the key to use the default "main"');
     }
 
     validateExperienceVerificationSemantics(config, errors, warnings);

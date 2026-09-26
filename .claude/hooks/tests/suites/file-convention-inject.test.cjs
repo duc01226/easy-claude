@@ -1556,7 +1556,8 @@ const tests = [
             // Boundary: exactly seven days old is kept; just over is removed
             make('edge/main/a.json');
             own('edge');
-            const now = Date.now();
+            // Whole seconds: a fractional stamp can round below the cutoff when stored as nanoseconds.
+            const now = Math.floor(Date.now() / 1000) * 1000;
             const stamp = (now - ledger.PRUNE_AGE_MS) / 1000;
             for (const target of [path.join(hygiene, 'edge', 'main', 'a.json'), path.join(hygiene, 'edge', 'main'), path.join(hygiene, 'edge', '_owner.json'), path.join(hygiene, 'edge')]) fs.utimesSync(target, stamp, stamp);
             assert.equal(ledger.pruneStale(hygiene, now), 0);

@@ -26,7 +26,7 @@ const DEFAULT_SECTIONS = ["routing", "workflows", "skills"];
 // strictness order; owned by the tier resolver.
 const ACTIVATION_TIERS = routingConfig.ACTIVATION_TIERS;
 const ACTIVATION_LEGEND =
-  "**Activation:** `auto` = the route gate may select and start it; `confirm` = on your own selection, ask the user once (its step count vs. the lean route you would take) before starting it; `manual` = never select or start it yourself — name it in your route declaration and run it only when the user asks. An explicit request runs every tier. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
+  "**Activation:** `auto` = the route gate may select and start it; `confirm` = on your own selection, ask the user once (its step count vs. the lean route you would take) before starting it, only when that lean route would also satisfy the request; `manual` = never select or start it yourself — name it in your route declaration and run it only when the user asks. An explicit request runs every tier. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
 // The barrier legend carries the advancement rule (wf-cycle W5 reads it); every form renders it.
 const BARRIER_LEGEND =
   "`[a ∥ b]` = one parallel phase (all-return barrier): start every member together and advance only after ALL return; `*` marks a conditional member.";
@@ -39,7 +39,7 @@ const POINTER_ROWS = Object.freeze(["groups", "tiers", "none"]);
 const POINTER_NOTE =
   "Index only — the full catalog exceeds the hook output cap. Read `.claude/workflows.json` for when-to-use and steps; `start-workflow <id>` resolves a workflow's full sequence before creating tasks. A workflow's `activation` tier there may be tightened or overridden by `portability.workflowActivation` in the project config; `start-workflow` resolves the effective tier.";
 const ACTIVATION_RULE =
-  "**Activation tiers** (`activation` in `.claude/workflows.json`) bind the first-task auto-selection above: `auto` workflows follow it unchanged; for a `confirm` workflow, ask ONCE with its step count and your lean custom-simple alternative, then follow the answer without re-asking; a `manual` workflow is never selected or started by you — take the best non-manual route and name the manual workflow in the route declaration so the user can run it. An explicit user request runs every tier directly.";
+  "**Activation tiers** (`activation` in `.claude/workflows.json`) bind the first-task auto-selection above: `auto` workflows follow it unchanged; for a `confirm` workflow, ask ONCE with its step count and your lean custom-simple alternative, then follow the answer without re-asking — ask only when that lean alternative would also satisfy the request, otherwise start it; a `manual` workflow is never selected or started by you — take the best non-manual route and name the manual workflow in the route declaration so the user can run it. An explicit user request runs every tier directly.";
 
 // R8 LOCKSTEP. The loader (.claude/hooks/lib/project-config-loader.cjs) owns the portability token
 // table; this module only runs its own resolution when that require FAILS (a stripped portable tree
@@ -283,7 +283,7 @@ function renderRoutingSection() {
     "| Question, lookup, or trivial low-risk edit; one skill covers it | **direct execution** (plain answer or that one skill) |",
     "| Focused change: one module/policy, clear intent, no public-contract change | **custom simple workflow** — sequence only the needed canonical steps |",
     "| Non-trivial bug / regression / wrong output, cause unknown or wide reach | **`workflow-bugfix`** |",
-    "| Non-trivial feature or enhancement changing behavior or a contract across modules | **`workflow-feature`** (confirm tier; when large/ambiguous/research-heavy, also name the manual `workflow-big-feature`) |",
+    "| Non-trivial feature or enhancement changing behavior or a contract across modules | **`workflow-feature`** (when large/ambiguous/research-heavy, select `workflow-big-feature` instead — confirm tier) |",
     "| Matches a skill's or workflow's \"Use\" clause | that skill / workflow |",
     "",
     "The table route is the default. Keep a catalog workflow only when >80% of its unconditional steps would do real work for the request; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take, except the one question a `confirm`-tier workflow requires.",

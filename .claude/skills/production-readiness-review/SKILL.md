@@ -19,10 +19,11 @@ description: '[Code Quality] Use when a workflow step or the user asks for a pro
 
 **Summary:**
 
-- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions (/24). (3) **Extended SRE Readiness gate** — 8 pass/fail deploy-time + operate-time items; any failed or unresolved binary gate blocks PASS regardless of score or owner risk acceptance. Gating, NOT scored — does not change the /24 math. (4) **Map score + gate → verdict**. (5) **Structural Impact Analysis** — graph gate (blast-radius, `tests_for`, downstream trace) when `graph.db` exists. (6) **Validated Fix + Full Re-Review** loop only while current-round blocking findings remain: Round 1 = all validated severities; Round 2 = CRITICAL/HIGH/MEDIUM; LOW-only is deferred; failed binary gates always block. (7) **Emit the SRE Review Results report** — `file:line` evidence per score and per gate item. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
+- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions (/24). (3) **Extended SRE Readiness gate** — 8 pass/fail deploy-time + operate-time items; any failed or unresolved binary gate blocks PASS regardless of score or owner risk acceptance. Gating, NOT scored — does not change the /24 math. (4) **Map score + gate → verdict**. (5) **Structural Impact Analysis** — graph gate (blast-radius, `tests_for`, downstream trace) when `graph.db` exists. (6) **Validated Fix + Full Re-Review** loop only while current-round blocking findings remain: Round 1 = all validated severities; Round 2 = CRITICAL/HIGH/MEDIUM; LOW-only is deferred; failed binary gates always block; not run under `--report-only`. (7) **Emit the SRE Review Results report** — `file:line` evidence per score and per gate item. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
 - Score 12 criteria 0-2 across four dimensions (Observability/8, Reliability/8, Data Integrity/4, DB Performance/4) for an advisory /24 readiness rating (strong 19-24 / needs work 13-18 / low 0-12), separate from overall PASS/FAIL — every score needs `file:line` evidence or it is 0.
 - The DB Performance Protocol is MANDATORY and non-advisory: ALL list queries must paginate (no unbounded GetAll/ToList) and ALL filter fields, foreign keys, and sort columns must have matching indexes.
 - The /24 rating is advisory only; overall PASS/FAIL follows the canonical round predicate and binary gates; the graph gate, validated-fix full re-review, and DB Performance Protocol are NEVER skippable regardless of change size — and when batched (≥10 files), re-score all 12 criteria holistically from combined cross-batch evidence, never by averaging per-batch scores.
+- **`--report-only`:** read-only leaf mode for a caller that owns every fix and re-review — main steps 1–5 and 7 plus the Why-Review Findings Validation Gate, no fix, no restart, no nested sub-agents, no user prompt, no writer beyond the report; returns the `/24` score, gate verdict, and severity-grouped findings; see [Report-Only Mode](#report-only-mode---report-only).
 - After applying any fix, validate findings first, then rerun the FULL review (fresh sub-agent with zero prior-round memory); a pass clearing the current round's exit bar ENDS the loop (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). Do not start another round for LOW-only findings; failed binary gates remain blocking.
 
 **Workflow:**
@@ -30,13 +31,13 @@ description: '[Code Quality] Use when a workflow step or the user asks for a pro
 1. Resolve scope from arguments or uncommitted changes; review only backend service/API files.
 2. Score all 12 criteria across the four dimensions, then run the 8-item Extended SRE Readiness gate.
 3. Map score plus gate to a verdict; run Structural Impact Analysis when `graph.db` exists.
-4. Validate every finding, fix only validated findings that block the current round, and restart a full fresh review after fixes until the exit bar is clear; Round 2 LOW-only findings are deferred without another cycle.
+4. Validate every finding, fix only validated findings that block the current round, and restart a full fresh review after fixes until the exit bar is clear; Round 2 LOW-only findings are deferred without another cycle. Under `--report-only`, validate only — the caller owns fixes and re-review.
 5. Emit the SRE Review Results report with `file:line` evidence for every score and gate item.
 
 **Key Rules:**
 
 - **MUST ATTENTION** give every score and gate item `file:line` evidence; an unprovable score is `0`.
-- **NEVER** skip the DB Performance Protocol, graph gate, validated-finding gate, or full re-review.
+- **NEVER** skip the DB Performance Protocol, graph gate, validated-finding gate, or full re-review. Under `--report-only` the full re-review belongs to the caller that applies the fixes; the other three still run here.
 - **MUST ATTENTION** re-score all 12 criteria holistically when batching; never average per-batch scores.
 - **NEVER** let advisory technique or scenario matrices change the `/24` score, gate result, or verdict.
 
@@ -55,6 +56,19 @@ description: '[Code Quality] Use when a workflow step or the user asks for a pro
 <task>
 $ARGUMENTS
 </task>
+
+## Report-Only Mode (`--report-only`)
+
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope; without it every step below applies unchanged.
+>
+> 1. **Run main steps 1–5 and 7 plus the Why-Review Findings Validation Gate.** Scope, the 12-criterion score, the Extended SRE Readiness gate, verdict mapping, the DB Performance Protocol, and the Structural Impact Analysis graph gate all run; `/why-review --validate-findings` still validates every finding. **Step 6 does not run:** no fix, no restart, no fresh re-review sub-agent. Return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
+> 2. **Resolve scope from the caller's brief — never ask.** Apply Scope Resolution to the brief's files or diff. No backend service/API file in scope → return `N/A — no service/API files in scope` with the file list as evidence. — why: a leaf cannot reach the user, so an asking branch would stall the barrier.
+> 3. **No nested fan-out.** Skip `SYNC:systematic-review-batching`; score the whole scope serially in this context (the holistic-scoring fallback above). — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
+> 4. **Map every gap to a severity by consequence** (`SYNC:severity-rubric`): a criterion scored `0` → CRITICAL or HIGH, `1` → MEDIUM, LOW only for a polish-only gap with evidence of no material impact; emit score, consequence, and tier together. A `fail` gate item is a failed binary gate carried as a CRITICAL blocker with its named consequence; a `partial` item is an open evidence blocker, never LOW.
+> 5. **Write only the report** under `tmp/reports/`. A missing or stale project-reference doc is recorded in the report as a `NOT VERIFIABLE` assumption and returned — never a trigger to run `/scan`, `/project-init`, or any other writer. — why: a leaf that regenerates shared docs races its barrier siblings.
+> 6. **Return** the report path; the advisory `/24` score; the `{n}/8` gate result and verdict (PASS only when no failed or unresolved binary gate and no finding blocking the current round remains); validated findings grouped Critical / High / Medium / Low; and every unconfirmed material trade-off in the summary (the `SYNC:trade-off-interrogation-gate` non-asking handoff). The Workflow Recommendation and Next Steps prompts do not run.
+>
+> For this mode the declared step order ends at step 7 without step 6; stopping there is the mode's contract, not a skipped step.
 
 ## Review Mindset (NON-NEGOTIABLE)
 
@@ -192,6 +206,8 @@ Invoke `SYNC:scale-technique-gate`: derive the system's scale tier from evidence
 
 ## Validated Fix + Full Re-Review (MANDATORY when fixes are applied)
 
+> Not run under `--report-only` — the validated report is returned to the caller, which owns fixes and any re-review.
+
 When a review pass finds issues, validate findings before any fix. Do NOT spawn a fresh sub-agent only to re-review the same finding set before validation/fix. After validated SRE fixes applied, rerun the full SRE review. If that restarted review uses a sub-agent, spawn it with ZERO prior-round memory. A clean review pass ENDS the review once the persisted `minRounds` is met.
 
 **When a fresh sub-agent is part of the restarted review, spawn via canonical template in `SYNC:review-protocol-injection`:**
@@ -290,16 +306,16 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use `AskUserQuestion` to ask user:
+> **MANDATORY:** If NOT already in a workflow, NOT invoked by a parent skill or as a sub-agent, and NOT under `--report-only`, use `AskUserQuestion` to ask user:
 >
-> 1. **Activate `workflow-feature` workflow** (Recommended) — investigate → plan → feature-implement → review → production-readiness-review → test → docs
+> 1. **Activate `workflow-feature` workflow** (Recommended) — investigation, planning, and implementation, then the review steps that include this skill; its canonical sequence lives in `.claude/workflows.json`
 > 2. **Execute `/production-readiness-review` directly** — run standalone
 
 ---
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** — after completing, use `AskUserQuestion`:
+**MANDATORY** after a standalone run, use `AskUserQuestion`. Skip it when a parent workflow or skill invoked this review, when it runs as a sub-agent, or under `--report-only` — return the report path, score, gate verdict, and findings to the caller instead:
 
 - **"/watzup (Recommended)"** — wrap up + check doc staleness
 - **"/test"** — run tests before wrapping up
@@ -497,7 +513,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready across observability, reliability, data integrity, and database performance: score each dimension with evidence and expose operational gaps.
 
-**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions (/24) → (3) Extended SRE Readiness gate — 8 pass/fail deploy/operate items; any failed or unresolved binary gate blocks PASS regardless of owner risk acceptance (gating, not scored, does not change /24) → (4) Map score + gate → verdict → (5) Structural Impact Analysis graph gate when `graph.db` exists → (6) Validated Fix + Full Re-Review only for current-round blocking findings (Round 1: all; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block) → (7) Emit the SRE Review Results report with `file:line` evidence per score and per gate item — why: AI repeatedly forgets the graph gate and the re-review loop and stops at scoring.
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions (/24) → (3) Extended SRE Readiness gate — 8 pass/fail deploy/operate items; any failed or unresolved binary gate blocks PASS regardless of owner risk acceptance (gating, not scored, does not change /24) → (4) Map score + gate → verdict → (5) Structural Impact Analysis graph gate when `graph.db` exists → (6) Validated Fix + Full Re-Review only for current-round blocking findings (Round 1: all; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block; not run under `--report-only`) → (7) Emit the SRE Review Results report with `file:line` evidence per score and per gate item — why: AI repeatedly forgets the graph gate and the re-review loop and stops at scoring.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost — the canonical body above governs, NEVER skip one):**
 
@@ -532,7 +548,7 @@ The following are all MANDATORY:
 - **MANDATORY** run at least ONE graph command on key files before concluding when `.code-graph/graph.db` exists (blast-radius, `tests_for`, downstream trace) — why: the HARD-GATE catches cross-service consumers grep alone misses.
 - **MANDATORY** when batched (≥10 files), RE-SCORE all 12 criteria holistically from combined cross-batch evidence — NEVER average per-batch scores — why: a cross-file criterion (query in one batch, migration in another) false-flags `0` per-batch.
 - **MANDATORY** changed core logic clears the MUTATION-SCORE gate, not a coverage %; every behavior-changing finding feeds BOTH the spec (name the contract/invariant in §8) AND a guarding test — a code-only fix is INCOMPLETE.
-- **MANDATORY** validate decisions with the user via `AskUserQuestion` for workflow/next-step routing — never auto-decide.
+- **MANDATORY** in a standalone run, validate decisions with the user via `AskUserQuestion` for workflow/next-step routing — never auto-decide; a parent-invoked, sub-agent, or `--report-only` run returns them to the caller instead.
 
 **Anti-Rationalization:**
 
@@ -548,5 +564,6 @@ The following are all MANDATORY:
 | "Tests pass, mutation gate is covered"        | Green coverage over un-asserted behavior fails the gate; a surviving mutant is a blocker     |
 
 **IMPORTANT MUST ATTENTION** every score needs `file:line` evidence or it is `0`; assume worst without proof.
+**IMPORTANT MUST ATTENTION** `--report-only` runs steps 1–5 and 7 plus findings validation — no fix, no restart, no batching fan-out, no user question, no writer beyond the report; return the `/24` score, gate verdict, and findings grouped by severity — why: a read-only leaf that fixes, fans out, or asks races or stalls its barrier siblings.
 **IMPORTANT MUST ATTENTION** DB Performance Protocol + graph gate + validated-fix full re-review are NEVER skippable regardless of change size.
 **IMPORTANT MUST ATTENTION** validate findings before fixing, then rerun the FULL review before PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).

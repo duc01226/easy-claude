@@ -360,7 +360,10 @@ const hookTests = [
                     const out = [];
                     out.push(['absent', u.isDepsUnavailableCached(60000)]);
                     u.markDepsUnavailable();
-                    out.push(['under-root', u.getDepsUnavailablePath().startsWith(process.cwd())]);
+                    // Identity, not spelling: the root keeps the lexical CLAUDE_PROJECT_DIR spelling, which may
+                    // differ from process.cwd() by a symlink or junction, so compare both sides canonically.
+                    const real = require('fs').realpathSync;
+                    out.push(['under-root', real(u.getDepsUnavailablePath()).startsWith(real(process.cwd()) + require('path').sep)]);
                     out.push(['fresh', u.isDepsUnavailableCached(60000)]);
                     out.push(['expired', u.isDepsUnavailableCached(0)]);
                     // A marker whose mtime sits slightly ahead of the clock is the

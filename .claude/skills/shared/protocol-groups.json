@@ -118,7 +118,8 @@
         "ui-system-context": { "summary": "Resolve the project's UI conventions before a UI change", "when": "changing a user-interface surface" },
         "ui-ux-design-principles": { "summary": "Forty usability and accessibility clauses, UI-1.1 to UI-9.4", "when": "designing, building or reviewing a user-facing interface" },
         "ui-wireframe": { "summary": "Wireframe from the design inputs using the project's component owners", "when": "sketching a user interface" },
-        "ui-wireframe-protocol": { "summary": "Wireframe protocol: inputs, representation and component inventory", "when": "writing the wireframe of a design spec" }
+        "ui-wireframe-protocol": { "summary": "Wireframe protocol: inputs, representation and component inventory", "when": "writing the wireframe of a design spec" },
+        "ux-journey-gate": { "summary": "Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate", "when": "generating, specifying, planning, mocking up or reviewing a user-facing surface" }
       }
     },
     "universal": {

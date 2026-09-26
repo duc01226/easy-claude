@@ -82,6 +82,7 @@ EXEMPT_WORKFLOW_STEPS = {
     "business-evaluation": "business viability report; no project target files",
     "strategy-builder": "marketing strategy report; no project target files",
     "course-builder": "course material from research; no project target files",
+    "html-export": "renders a given HTML file to PNG, PDF or video; reads no project reference context",
 }
 
 TAG = "SYNC:project-reference-docs-guide"

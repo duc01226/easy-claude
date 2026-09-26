@@ -18,7 +18,7 @@
 **Workflow:**
 
 1. **Detect input type** — screenshot/image reference provided vs building from scratch
-2. **Establish the brief** — subject, audience, primary job (`DD-1`); for screenshots, extract design guidelines FIRST
+2. **Establish the brief** — subject, audience, primary job (`DD-1`) and the visitor journey (`UX-1`) that orders the page's sections; for screenshots, extract design guidelines FIRST
 3. **Pass 1a — design plan** — the 4-part token system (`DD-3`, below)
 4. **Pass 1b — review the plan against the brief** — the BLOCKING generic test (`DD-3`); revise and say what changed
 5. **Pass 2a — build** — production-grade code following the REVISED plan
@@ -55,7 +55,7 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 
 ### When the user provides a screenshot / image / design reference
 
-**MANDATORY workflow for screenshot/image/design inputs.** Here the reference IS the brief's stated direction, so it outranks everything in `DD-4` — replicate it faithfully rather than "improving" it toward distinctiveness.
+**MANDATORY workflow for screenshot/image/design inputs.** Here the reference IS the brief's stated direction, so it outranks everything in `DD-4` — replicate it faithfully rather than "improving" it toward distinctiveness. Faithful replication still starts from the Journey Report (`UX-1`): infer and report the visitor journey the reference serves, and record — never silently copy — any step the walk (`UX-8`) shows it fails; confirm a correction that changes the visual match with the user.
 
 1. **Extract design guidelines** using `design-extraction-overview.md`:
     - Analyze the screenshot/image with visual analysis tooling
@@ -86,6 +86,18 @@ Continue to Step 2. The two-pass process below is the whole of the lane.
 ## Step 2 — Establish the brief (`DD-1`)
 
 **If the brief does not identify what the product or subject matter is, identify it yourself and CONFIRM with the client.** Propose one concrete subject, the design's audience, and its primary job. If anything in memory records the client's preferences or what they are building, use it as a hint.
+
+**Map the visitor journey (`UX-1`) before any plan.** A marketing page has actors and a job too — the visitor's. From the Journey Report, write the visitor's path as an ordered list:
+
+| Stage | What to record |
+| --- | --- |
+| Arrival | Context and source — ad, search, referral, email, direct — and what the visitor already believes or expects on landing |
+| Questions, in order | The questions the visitor needs answered before they will act ("what is it?", "is it for me?", "does it work?", "what does it cost?", "what's the risk?"), ranked in the order they ask them |
+| Proof | The evidence that answers the doubting questions — demo, numbers, testimonials, logos, guarantees — tied to the question it settles |
+| Action | The ONE primary action the page exists for, and where the visitor is ready to take it |
+| After-action | What happens next — confirmation, onboarding, email — so the promise the page makes is the one the next step keeps |
+
+**The page's section order follows the visitor's question order** (`UX-3`/`UX-4`): each section answers the next question, the primary action appears where the visitor is ready for it, and content that answers no visitor question goes. Read the project's design authority (`UX-2`) before choosing a direction.
 
 The subject's **industry, subject matter, materials, and vernacular are where distinctive visual choices come from** — a design for a toy for girls aged 8–11 will be aesthetically nothing like a dashboard for financial analysts. **Build with the brief's real content and subject matter throughout**; placeholder lorem and invented filler break the illusion faster than any visual flaw (see Writing, below).
 

@@ -200,6 +200,7 @@ const EXPECTED_WORKFLOW_IDS = [
     'workflow-architecture-audit',
     'workflow-code-to-spec',
     'workflow-spec-to-pbi',
+    'workflow-spec-to-mockup',
     'workflow-spec-sync',
     'workflow-visualize',
     'workflow-seed-test-data',
@@ -804,7 +805,7 @@ const annotatedRegistryTests = [
             const mutated = cloneConfig(config);
             const optional = mutated.workflows['workflow-feature'].sequence.find(step => step.role === 'optional' && step.skill === 'demo-guide');
             delete optional.applicability.skipReason;
-            mutated.workflows['workflow-refactor'].sequence.find(step => step.skill === 'test').applicability = { when: 'Sometimes', skipReason: 'Never' };
+            mutated.workflows['workflow-refactor'].sequence.find(step => step.id === 'refactor-test').applicability = { when: 'Sometimes', skipReason: 'Never' };
             assertDeepEqual(findRoleApplicabilityGaps(mutated), [
                 'workflow-feature: optional feature-demo-guide lacks when/skipReason',
                 'workflow-refactor: gate refactor-test carries applicability'

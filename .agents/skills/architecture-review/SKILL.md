@@ -62,7 +62,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 **Summary:**
 
 - **Purpose:** validate a changeset against architecture rules the project records in its OWN reference docs; classify every finding PASS/WARN/BLOCKED with `file:line` proof; self-validate before handoff — one reviewer in the `workflow-review-changes` pipeline.
-- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (13 categories) → Phase 4 finalize compliance report → Phase 5 `$why-review` self-validation gate → Next Steps ask the user directly.
+- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (13 categories) → Phase 4 finalize compliance report → Phase 5 `$why-review` self-validation gate → Next Steps ask the user directly (standalone only — under `--report-only`, a parent skill/workflow, or a sub-agent, next steps return in the summary).
 - **The 13 Phase-3 categories — review EVERY applicable one, serially:** 0 quality-tooling baseline · 1 architecture boundaries and layers · 2 messaging and delivery · 3 application conventions such as CQRS, validation, and mapping · 4 data access · 5 service-pattern era · 6 side effects and events · 7 service/module boundaries · 8 frontend architecture (frontend files only) · 9 ADR conformance · 10 spec-loop discipline · 11 scalability and coupling regression · **12 data, consistency, and tenancy boundaries**. Use the Phase-3 evidence gate for all pattern-specific checks, plus Categories 9–12's stated triggers. Per applicable check: `Think:` derivation → project evidence → `file:line` proof + relevant counterexamples → verdict. NEVER scan categories in parallel; codebase convention wins over a suspected violation. — why: skipping an applicable category loses a violation class, while treating examples as mandates creates false findings.
 - **Workload-first scalability gate:** before judging a scale technique, prove read/write ratio · sustained/peak load · query shapes · data growth · burst/hot-key skew · geography · latency/consistency budgets; then check the reversible ladder (measure/tune → vertical and/or stateless horizontal from headroom + availability → read/write tactics → partition/shard LAST). Missing evidence means INFO/route, never a scale violation. — why: architecture review must catch regressions without penalizing a lean system for scale it does not have.
 - **Optional AI-agent-as-user advice:** when the reviewed change or an accepted future contract exposes machine interaction, apply `SYNC:ai-agent-as-user-access` to inspect agent identity, authority, capability contracts, safety, and observable outcomes; classify only evidence-backed gaps and record adaptation, deferral, N/A, or blockers — no agent finding is invented when the surface is not applicable.
@@ -70,6 +70,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **Universal reasoning comes from `.claude/docs/architecture-knowledge.md`** (coupling taxonomy + four coupling dimensions, distributed-monolith signature, module-design principles §4, isolation levels + coordination primitives §8-§9, ~100-entry anti-pattern catalog, symptom→root-cause triage, judgment checklists §20) — use it to RECOGNIZE a defect class, then prove it with `file:line`. **The project's own reference docs and accepted ADRs OUTRANK that catalog on every conflict — NEVER flag a deviation from the catalog as a project violation.** An anti-pattern match is a HYPOTHESIS until evidence plus the damaged quality attribute are both named. — why: pattern-shape matching without project grounding is exactly the guess-as-fact failure this skill exists to prevent.
 - Stay in lane: deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/test findings instead of expanding them. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
 - Read-only until validated: **self-audit every draft finding against the 11 thinking red flags (`architecture-knowledge.md` §20.3) FIRST** — a finding whose sacrifice/trade-off you cannot name, or that rests on "best practice", is demoted or deleted, never reworded — then run the Phase 5 `$why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. That loop fixes only findings that block the current round: Round 1 = every validated severity; Round 2 = CRITICAL/HIGH/MEDIUM; LOW-only is recorded as deferred and ends the loop, while failed binary gates always block. Write findings to `tmp/reports/arch-review-{date}-{slug}.md`.
+- **`--report-only`:** read-only leaf mode for a caller that owns every fix — Phases 0–5 only, no nested sub-agents, no ask the user directly, no writer beyond the report; return validated findings grouped Critical/High/Medium/Low via the explicit BLOCKED/WARN mapping; see [Report-Only Mode](#report-only-mode---report-only).
 
 **Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
 
@@ -91,7 +92,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 4. **Phase 3: Architecture Review** — Classify applicability for each file, then review all applicable checks serially across the 13 categories (0 tooling → 12 data, consistency & tenancy)
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
 6. **Phase 5: Why-Review Self-Validation Gate** — Adversarially validate own findings via `$why-review` before handoff (MANDATORY when any finding exists)
-7. **Next Steps** — ask the user directly: `$code-simplifier` / `$code-review` / skip
+7. **Next Steps** — ask the user directly: `$code-simplifier` / `$code-review` / skip (standalone only — see the [Next Steps](#next-steps) exemption)
 
 **Key Rules (top 3 critical first):**
 
@@ -101,13 +102,36 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - MUST ATTENTION when an agent-facing surface or accepted future contract is in scope, apply `SYNC:ai-agent-as-user-access`; inspect the existing setup and classify only evidenced identity, authorization, capability, safety, contract, audit, or observability gaps as PASS/WARN/BLOCKED. If not applicable, record evidence-backed N/A or no finding; never prescribe every machine surface.
 - Write findings to `tmp/reports/arch-review-{date}-{slug}.md`.
 - BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant.
-- Review is read-only until `$why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown. Apply the round severity bar: Round 1 clears only at zero findings; Round 2 clears at zero CRITICAL/HIGH/MEDIUM, with LOW findings deferred. Failed binary gates remain blocking.
+- Review is read-only until `$why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop — the caller's fix step when a parent skill/workflow invoked this review, `$fix --target=review` when standalone — and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown. Apply the round severity bar: Round 1 clears only at zero findings; Round 2 clears at zero CRITICAL/HIGH/MEDIUM, with LOW findings deferred. Failed binary gates remain blocking.
 
 ## Your Mission
 
 <task>
 $ARGUMENTS
 </task>
+
+## Report-Only Mode (`--report-only`)
+
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow specialist parallel batch, a delegated review lane, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope override; without it every phase below applies unchanged.
+>
+> 1. **Run Phases 0–5 only.** Phase 3 still reviews every applicable category serially; Phase 5 `$why-review --validate-findings` still validates every finding. No fix, no full-review restart, no fresh-context re-review round, and no Next Steps ask the user directly: return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
+> 2. **Resolve scope from the caller's brief — never ask.** Use the files, diff, or target the brief names (else the default uncommitted-changes scope) and record it in the report. — why: a leaf cannot reach the user, so an "ask" branch would stall the caller's barrier.
+> 3. **No nested fan-out.** Skip the Systematic Review Protocol's parallel `architect` sub-agents and size-capped batching; review sequentially in this context. — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
+> 4. **Write only the report** under `tmp/reports/`. A missing or stale project-reference doc is recorded in the report as a `NOT VERIFIABLE` assumption and returned — never a trigger to run `$scan`, `$project-init`, or any other writer. — why: a leaf that regenerates shared docs races its barrier siblings.
+> 5. **Return** the report path, the local verdict (PASS/WARN/BLOCKED/N/A), validated findings grouped Critical/High/Medium/Low per the mapping below, every unconfirmed material trade-off (the `SYNC:trade-off-interrogation-gate` non-asking handoff), and the next-step recommendations the Next Steps prompt would have offered.
+>
+> **Severity mapping (local verdict → caller tier, per `SYNC:severity-rubric` domain-vocabulary normalization).** Classify each finding by consequence; the local label sets the starting tier, and the report records both (`BLOCKED→High`):
+>
+> | Local finding | Caller tier |
+> | --- | --- |
+> | `BLOCKED` with immediate material risk — data loss/corruption, cross-tenant exposure, authority/safety bypass, critical-path silent failure — or a failed binary gate | **Critical** |
+> | `BLOCKED`, any other must-fix-before-merge violation (broken boundary/contract/invariant, accepted-ADR contradiction, removed quality gate) | **High** (Medium only when evidence shows a bounded consequence; the local BLOCKED still holds) |
+> | `WARN` with a consequential impact (credible defect, coupling/resilience/testability drift, unrecorded one-way door) | **Medium** (High when the consequence warrants) |
+> | `WARN` where evidence shows no credible present material impact | **Low** |
+> | `PASS`, `N/A`, or an advisory INFO block (technique applicability, scenario stress) | not a finding |
+> | Evidence missing to choose a tier | `NOT VERIFIABLE` — stays open, never Low |
+>
+> For this mode the declared step order ends at Phase 5; stopping there is the mode's contract, not a skipped step.
 
 ## First Principle — Easy to Change
 
@@ -667,6 +691,8 @@ Per changed file:
 
 ## Systematic Review Protocol (10+ changed files)
 
+Not run under `--report-only` — that mode reviews sequentially in this context.
+
 1. **Categorize** — Group files by service/layer/concern.
 2. **Parallel Sub-Agents** — Launch one `architect` sub-agent per category with architecture-specific checklist.
 3. **Synchronize** — Collect findings, cross-reference service boundaries.
@@ -701,11 +727,13 @@ Per changed file:
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS:** After completing, use ask the user directly to present:
+**MANDATORY when standalone:** After completing, use ask the user directly to present:
 
 - **"$code-simplifier" (Recommended)** — Simplify and refine code
 - **"$code-review"** — Deep code quality review
 - **"Skip, continue manually"** — user decides
+
+**Exempt** under `--report-only`, when a parent skill or workflow invoked this review, or when running as a sub-agent: do NOT ask — return these next-step recommendations in the returned summary and let the caller decide. — why: ask the user directly cannot reach the user from a sub-agent, and a leaf that waits on a prompt stalls its parent's all-return barrier.
 
 > **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `$architecture-review-full` (or `$start-workflow workflow-architecture-audit`) — it fans out this skill, `architecture-scalability-review`, and `production-readiness-review` as parallel sub-agents and synthesizes one consolidated report.
 
@@ -1149,7 +1177,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** self-audit your OWN draft findings against the 11 thinking red flags (`.claude/docs/architecture-knowledge.md` §20.3) BEFORE Phase 5 — a finding whose SACRIFICE you cannot name, one resting on "best practice", one asserting a scale problem with no evidence, or one treating a two-way door as irreversible is DEMOTED or DELETED, never reworded — why: a finding that survives on authoritative tone alone consumes the team's fix budget and teaches them to ignore the report.
 **IMPORTANT MUST ATTENTION** when the project uses modules or port/adapter boundaries, judge a module by functionality hidden ÷ interface surface and check whether a port is declared where the project dependency rule requires it; otherwise assess actual cohesion and coupling without requiring a port pattern — why: interface count alone does not prove useful modularity.
 **IMPORTANT MUST ATTENTION** universal architecture knowledge (`.claude/docs/architecture-knowledge.md`) is a RECOGNITION aid, never authority — project reference docs and accepted ADRs OUTRANK it, an anti-pattern match is a HYPOTHESIS until `file:line`/config/topology evidence AND the damaged quality attribute are both named, and a grepped codebase convention beats any catalog entry — why: catalog-shaped false positives are confident, plausible, and the most expensive output this skill can produce.
-**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-review` / skip by asking the user directly — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
+**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-review` / skip by asking the user directly when standalone (under `--report-only`, a parent skill/workflow, or a sub-agent, return them in the summary instead) — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
+**IMPORTANT MUST ATTENTION** `--report-only` declares Phases 0–5 only — scope from the caller's brief, no fix, no restart, no nested sub-agent fan-out, no ask the user directly, no writer beyond the report; return the report path plus validated findings grouped Critical/High/Medium/Low via the BLOCKED/WARN mapping — why: a read-only leaf that fixes, fans out, asks, or regenerates docs stalls or races its barrier siblings.
 **IMPORTANT MUST ATTENTION** break work into small tasks using task tracking BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call the current task list first — why: resume existing tasks, never duplicate after compaction.
 **IMPORTANT MUST ATTENTION** stay in lane — deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/integration-test findings instead of expanding them — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
 **IMPORTANT MUST ATTENTION** each framework, base-class, directory, transport, storage, test, and file-layout check anywhere in this skill needs its own applicability evidence from config, project references, accepted ADRs, or established code; record unsupported or explicitly N/A patterns as N/A and NEVER flag their absence.
@@ -1158,7 +1187,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when `.code-graph/graph.db` exists (grep → `trace --direction both` → verify) — why: trace reveals cross-service blast radius grep alone cannot.
 **IMPORTANT MUST ATTENTION** evaluate pattern fit before flagging — copying-nearby ≠ matching preconditions; verify the same scope, lifetime, project contract, constraints, and established exceptions before calling a deviation a violation.
 **IMPORTANT MUST ATTENTION** review is read-only until validated — NEVER fix code in this skill; after ANY finding run the Phase 5 `$why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
-**IMPORTANT MUST ATTENTION** write findings to `tmp/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use ask the user directly to present next steps (`$code-simplifier` / `$code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
+**IMPORTANT MUST ATTENTION** write findings to `tmp/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use ask the user directly to present next steps (`$code-simplifier` / `$code-review` / skip) after completing a standalone review — why: long reviews exhaust context before a final batch write, losing findings.
 
 **Anti-Rationalization:**
 

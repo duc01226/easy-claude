@@ -10,7 +10,9 @@ const { spawnSync } = require('node:child_process');
 const sourceHooks = path.resolve(__dirname, '../../hooks');
 
 function fixture(run) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-install-bootstrap-'));
+  // Canonical fixture root: hooks resolve the project root through process.cwd()/__dirname, which
+  // are symlink-resolved (macOS /var -> /private/var), so a lexical temp spelling cannot match.
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ck-install-bootstrap-')));
   const hooks = path.join(root, '.claude', 'hooks');
   fs.mkdirSync(hooks, { recursive: true });
   fs.copyFileSync(path.join(sourceHooks, 'verify-install.cjs'), path.join(hooks, 'verify-install.cjs'));

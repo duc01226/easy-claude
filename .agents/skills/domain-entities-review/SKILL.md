@@ -64,8 +64,9 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **Phase 0 (gate):** discover the project's real entity/VO base classes, validation API, domain exception type, failure-signalling convention, concurrency mechanism + blast radius FIRST, then **0.4 detect the modelling paradigm** (OO-mutable / type-driven-immutable / event-sourced) per aggregate — discovered conventions override every generic DDD rule. — why: wrong base classes = wrong checklist, and setter rules applied to an immutable or event-sourced model manufacture false findings.
 - **Phase 1:** create the report, run the mandatory high-signal grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, write every grep result immediately, categorize files (root/entity/VO/unknown).
 - **Phase 2:** per-file checklist **A–P** — A–L (entity-vs-VO classification, base-class compliance, VO immutability/structural equality, anemic-model detection, domain invariants, invariant→property-TC Dual-Feedback, aggregate-by-ID, navigation serialization safety, domain events, query expressions, ubiquitous language, OOP) plus **M** invariant-vs-validation ownership + failure signalling, **N** construction-vs-reconstitution, **O** event dispatch timing/outbox/domain-vs-integration contract, **P** aggregate concurrency + transaction boundary — append findings per file, NEVER batch.
-- **Phase 3 → 4:** holistic cross-entity synthesis in the current pass, including **3.1 model-level dimensions** (bounded-context sharing; subdomain fit — judge whether a rich model is warranted BEFORE reporting anemia), then final report with health score (`100 − (CRIT×25 + HIGH×10 + MED×3 + LOW×1)`); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically.
-- **Phase 5 (validation-first loop):** validate via `$why-review` gate before any fix, fix only validated findings that block the current round, then restart the FULL review; Round 1 requires zero findings, while Round 2 requires zero CRITICAL/HIGH/MEDIUM and records LOW-only findings as deferred without another cycle. Every finding needs `file:line` at confidence >80%. Close with ask the user directly next-steps.
+- **Phase 3 → 4:** holistic cross-entity synthesis in the current pass, including **3.1 model-level dimensions** (bounded-context sharing; subdomain fit — judge whether a rich model is warranted BEFORE reporting anemia), then final report with health score (`100 − (CRIT×25 + HIGH×10 + MED×3 + LOW×1)`); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically (never under `--report-only`).
+- **Phase 5 (validation-first loop):** validate via `$why-review` gate before any fix, fix only validated findings that block the current round (the caller's fix step when a parent skill/workflow invoked this review, `$fix --target=review` when standalone), then restart the FULL review; Round 1 requires zero findings, while Round 2 requires zero CRITICAL/HIGH/MEDIUM and records LOW-only findings as deferred without another cycle. Every finding needs `file:line` at confidence >80%. Close with ask the user directly next-steps when standalone (under `--report-only`, a parent skill/workflow, or a sub-agent, return them in the summary).
+- **`--report-only`:** read-only leaf mode for a caller that owns every fix — Phases 0–4 plus the Phase 5 validation gate only, no fix loop, no nested sub-agents, no ask the user directly, no writer beyond the report; return validated findings grouped Critical/High/Medium/Low; see [Report-Only Mode](#report-only-mode---report-only).
 
 **Workflow:**
 
@@ -74,8 +75,8 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 3. **Phase 2** — Entity-by-entity DDD review (per-file checklist **A–P** + project-specific rules); append per file, never batch
 4. **Phase 3** — Holistic cross-entity synthesis in the current pass, incl. **3.1 model-level dimensions** (bounded-context sharing, subdomain fit); fresh-context sub-agent only after validated fixes or explicit high-risk trigger
 5. **Phase 4** — Final report: critical issues, health score, refactoring priority, recommendations
-6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix current-round blocking findings → restart full review until the severity bar is clear (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → ask the user directly next-steps
-7. **Scale rule** — 10+ entity files → parallel `code-reviewer` sub-agents, then consolidate
+6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix current-round blocking findings → restart full review until the severity bar is clear (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → ask the user directly next-steps (standalone only — see the [Next Steps](#next-steps) exemption)
+7. **Scale rule** — 10+ entity files → parallel `code-reviewer` sub-agents, then consolidate (sequential under `--report-only`)
 
 **Key Rules:**
 
@@ -95,6 +96,20 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 | HIGH     | Must fix    | Incorrect behavior, invariant gap, architectural violation |
 | MEDIUM   | Should fix  | Design debt, maintainability, likely future bug            |
 | LOW      | Nice to fix | Convention, documentation, minor clarity                   |
+
+## Report-Only Mode (`--report-only`)
+
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow specialist parallel batch, a delegated domain-entity gate, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a mode (`changes`/`scan` still resolve per [Mode Detection](#mode-detection)); without it every phase below applies unchanged.
+>
+> 1. **Run Phases 0–4, then the Phase 5 Why-Review Self-Validation Gate only.** Phase 5 `$why-review --validate-findings` still validates every finding. The Phase 5 fix and full-review restart, the Phase 3 fresh-context `code-reviewer` spawn, and the Next Steps ask the user directly do not run: return the validated report; the caller owns fixes and any re-review. Contradictory Phase 2 evidence that would have triggered a fresh read is recorded under `Unresolved Questions` as `NOT VERIFIABLE`. — why: two writers of one artifact inside a barrier race each other.
+> 2. **Resolve scope from the caller's brief — never ask.** Use the entity files, diff, or module the brief names (else the default `changes` scope) and record the mode and file set in the report. — why: a leaf cannot reach the user, so an "ask" branch would stall the caller's barrier.
+> 3. **No nested fan-out.** Skip the Systematic Review Protocol (10+ entity files) and size-capped batching; review files sequentially in this context, still appending findings per file. — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
+> 4. **Write only the report** under `tmp/reports/`. A missing or stale project-reference doc (including the domain-entities reference) is recorded in the report as a `NOT VERIFIABLE` assumption and returned — never a trigger to run `$scan`, `$project-init`, or any other writer. — why: a leaf that regenerates shared docs races its barrier siblings.
+> 5. **Return** the report path, the health score, validated findings grouped Critical/High/Medium/Low per the mapping below, every unconfirmed material trade-off (the `SYNC:trade-off-interrogation-gate` non-asking handoff), and the next-step recommendations the Next Steps prompt would have offered.
+>
+> **Severity mapping.** This skill's native tiers are the shared `SYNC:severity-rubric` tiers, so they map 1:1: CRITICAL→Critical · HIGH→High · MEDIUM→Medium · LOW→Low, each still classified by consequence. The health score is an evidence input, never a tier; `Positive Observations`, informational notes, and `Unresolved Questions` are not findings; a finding without the evidence to choose a tier is `NOT VERIFIABLE` — it stays open, never Low.
+>
+> For this mode the declared step order ends at the Phase 5 validation gate; stopping there is the mode's contract, not a skipped step.
 
 ---
 
@@ -479,7 +494,7 @@ Two concerns are invisible file-by-file and only appear when the model is viewed
 - flag generic subdomains modelled in-house (auth, billing, email, scheduling) → MEDIUM: buy or adopt, do not model.
 - MUST ATTENTION state the subdomain judgment and its evidence in the report — an anemic-model finding without it is unproven — why: "anemic" and "appropriately simple" look identical in a diff.
 
-Spawn a fresh `code-reviewer` sub-agent only when one of these conditions is true:
+Spawn a fresh `code-reviewer` sub-agent only when one of these conditions is true (never under `--report-only` — see [Report-Only Mode](#report-only-mode---report-only)):
 
 - A validated-finding fix cycle has already changed the entity review target and this is the full re-review restart.
 - The user/workflow explicitly requests an independent high-risk synthesis pass for broad entity-model changes.
@@ -712,7 +727,7 @@ Anemic Model:  entity has 0 domain methods + all logic in handlers → move logi
 
 ## Systematic Review Protocol (10+ Entity Files)
 
-> **NON-NEGOTIABLE:** 10+ entity files in scope → switch to parallel sub-agents automatically.
+> **NON-NEGOTIABLE:** 10+ entity files in scope → switch to parallel sub-agents automatically. Not run under `--report-only` — that mode reviews sequentially in this context.
 
 1. announce: `"Detected {N} entity files. Switching to parallel DDD review protocol."`
 2. Group by module/aggregate/type
@@ -769,13 +784,15 @@ Report: tmp/reports/domain-entities-review-{date}-{slug}.md
 
 ## Next Steps
 
-MUST ATTENTION use ask the user directly after completing to present:
+MUST ATTENTION when standalone, use ask the user directly after completing to present:
 
 - **`$fix` (Recommended if FAIL)** — Fix validated findings that block the current round (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only is deferred)
 - **`$scan --target=domain-entities`** — Update domain-entities-reference.md (scan mode)
 - **`$integration-test`** — Add integration tests for newly-enforced invariants
 - **`$docs-update`** — Update feature docs if entity contracts changed
 - **"Skip, continue manually"** — user decides
+
+**Exempt** under `--report-only`, when a parent skill or workflow invoked this review, or when running as a sub-agent: do NOT ask — return these next-step recommendations in the returned summary and let the caller decide; the caller's fix step owns any fix. — why: ask the user directly cannot reach the user from a sub-agent, and a leaf that waits on a prompt stalls its parent's all-return barrier.
 
 ---
 
@@ -978,7 +995,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 **IMPORTANT MUST ATTENTION Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack — adapting to project-specific patterns via config/reference docs discovery — so domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
 
-**IMPORTANT MUST ATTENTION** follow the declared path: Phase 0 discover conventions, paradigm, and blast radius → Phase 1 create the report, run mandatory greps, and categorize files → Phase 2 review each entity/VO with checklist A–P and append findings → Phase 3 synthesize holistic model concerns and subdomain fit → Phase 4 produce the final report and health score → Phase 5 validate findings, fix only current-round blocking findings, and restart the full review until the severity bar is clear (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → ask next steps; scale 10+ entity files through parallel batches and consolidation.
+**IMPORTANT MUST ATTENTION** follow the declared path: Phase 0 discover conventions, paradigm, and blast radius → Phase 1 create the report, run mandatory greps, and categorize files → Phase 2 review each entity/VO with checklist A–P and append findings → Phase 3 synthesize holistic model concerns and subdomain fit → Phase 4 produce the final report and health score → Phase 5 validate findings, fix only current-round blocking findings, and restart the full review until the severity bar is clear (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → ask next steps when standalone; scale 10+ entity files through parallel batches and consolidation. Under `--report-only` the path ends at the Phase 5 validation gate with no fix, fan-out, or question.
 
 **Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -1011,6 +1028,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 - **MANDATORY MUST ATTENTION** evaluate pattern FIT before copying a nearby entity pattern — verify the new context shares the same base class, scope, and lifetime — why: closest example ≠ matching preconditions.
 - **MANDATORY MUST ATTENTION** run a graph trace on key entity files when `.code-graph/graph.db` exists, and inspect entity callers/usages before classifying anemic model or misplaced invariant — why: code existing ≠ code executing; the bug owner is the layer the data flows through.
 - **MANDATORY MUST ATTENTION** append findings per file — NEVER batch; persist to `tmp/reports/` incrementally and synthesize from disk — why: long sub-agents hit budget before a final batched write and lose everything.
+- **MANDATORY MUST ATTENTION** `--report-only` declares Phases 0–4 plus the Phase 5 validation gate only — scope from the caller's brief, no fix, no restart, no nested sub-agent fan-out, no ask the user directly/Next Steps prompt, no writer beyond the report; return the report path plus validated findings grouped Critical/High/Medium/Low (native tiers map 1:1) — why: a read-only leaf that fixes, fans out, asks, or regenerates docs stalls or races its barrier siblings.
 
 **Domain rules (this skill's invariants):**
 

@@ -1,6 +1,6 @@
 ---
 name: fix
-description: '[Implementation] Use when a workflow step or the user asks for an issue to be analyzed and fixed. Flag: --target={ci|issue|logs|test|types|ui} scopes the fix.'
+description: '[Implementation] Use when a workflow step or the user asks for an issue to be analyzed and fixed. Flag: --target={ci|issue|logs|review|test|types|ui} scopes the fix; review fixes validated review findings.'
 disable-model-invocation: false
 ---
 
@@ -64,7 +64,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 - **Purpose:** Diagnose end-to-start, fix the lowest invariant-owning layer, update regression coverage and spec/tests; NEVER patch symptoms.
 - **No-flag spine:** Root-Cause Prerequisite Gate → researcher investigation → `debug-investigate` trace (`file:line`, hypothesis matrix, forward proof) → Confidence & Evidence → impact plan → 🛑 Validate-Before-Fix → owning-layer implementation → standalone test update (`$integration-test`, or justified `$test` fallback) → conditional `$spec` check → `$changes-review` for production code → `$why-review`; ALWAYS follow this order.
-- **Routing:** `--target={ci|issue|logs|test|types|ui}` selects a self-contained inline branch with its own diagnosis; no flag runs the spine. Branches skip standalone §1/§2 duplication, but every direct call passes the Root-Cause Prerequisite Gate.
+- **Routing:** `--target={ci|issue|logs|review|test|types|ui}` selects a self-contained inline branch with its own diagnosis; no flag runs the spine. Branches skip standalone §1/§2 duplication, but every direct call passes the Root-Cause Prerequisite Gate.
 - **Modes/gates:** HARD is default; fast mode requires ALL 5 trivial-bug conditions. Root-cause proof, `Confidence: X%` (`<60%` STOP), and Validate-Before-Fix are hard gates; approval may skip only inside a workflow, while standalone calls own test/spec/review phases; NEVER bypass a gate.
 
 **Workflow:**
@@ -81,7 +81,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - Debug Mindset: every claim needs `file:line` evidence
 - Use subagents for parallel investigation of multiple hypotheses
 - Always create a plan before implementing complex fixes
-- **Target flag** (see [Target Routing](#target-routing---target)): `--target={ci|issue|logs|test|types|ui}` selects a self-contained inline branch that scopes the fix to that domain. No flag = full diagnose→fix spine below.
+- **Target flag** (see [Target Routing](#target-routing---target)): `--target={ci|issue|logs|review|test|types|ui}` selects a self-contained inline branch that scopes the fix to that domain. No flag = full diagnose→fix spine below.
 
 ## Default Mode Policy
 
@@ -103,7 +103,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 > **[BLOCKING]** Direct `$fix` MUST NOT edit code until `$debug-investigate` produces THIS problem's root cause in THIS session. The gate runs before the Standalone Mode Minimum Contract, any `--target=` branch, and 🛑 Validate-Before-Fix. — why: an untraced first edit patches the symptom site and ships the disease.
 >
-> **1. Trigger — ALL direct invocations.** User-typed command or model-selected skill; every `--target={ci|issue|logs|test|types|ui}` branch and no-flag spine. Branches skip contract §1/§2 duplication but pass this gate. — why: a branch `debugger`/`tester` step is not an end-to-start trace.
+> **1. Trigger — ALL direct invocations.** User-typed command or model-selected skill; every `--target={ci|issue|logs|review|test|types|ui}` branch and no-flag spine. Branches skip contract §1/§2 duplication but pass this gate. — why: a branch `debugger`/`tester` step is not an end-to-start trace.
 >
 > **2. Check — evidence, never memory.** Before the first code edit, accept only same-session, same-problem `$debug-investigate` evidence:
 >
@@ -123,6 +123,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 > | Same-problem evidence per §2 exists → cite the `file:line` / task-row proof and proceed                                     | YES   |
 > | Fast-mode-trivial bug (**ALL 5** `Default Mode Policy` opt-out conditions hold) → MAY inline the end-to-start trace instead of spawning the skill; the trace itself is still REQUIRED | PARTIAL |
 > | Active parent workflow row whose sequence **already executed** `debug-investigate` for this problem → cite the completed step | YES   |
+> | `--target=review` over VALIDATED review findings, each carrying `file:line` evidence and a named owning layer (validated by `$why-review --validate-findings` or by its reviewer's own validation step) → cite the report | YES   |
 > | Active parent workflow row **alone**, with no completed `debug-investigate` step for this problem                            | **NO** |
 >
 > **The last row is the hole this gate closes.** A parent workflow row may exist while its `debug-investigate` step never ran, covered another symptom, or was skipped. This gate adds completed same-problem proof; it never relaxes the contract. — why: a container task is not evidence that its work happened.
@@ -133,9 +134,9 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 > **Workflow context:** `$fix` normally runs inside `workflow-bugfix`, whose sequence (`investigate → debug-investigate → spec [mode=amend] → plan → … → fix → … → spec [mode=sync] → workflow-review-changes`) supplies diagnosis, spec sync, and review. Standalone `$fix` diagnoses and patches but does not guarantee root-cause ownership, alignment with the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides), or review; without this contract it risks symptom-patching + spec drift.
 >
-> **Scope:** applies with no parent workflow. No-flag runs the full diagnose→fix path; `--target={ci|issue|logs|test|types|ui}` branches remain self-contained for diagnosis, skip §1/§2 duplication, and inherit mandatory §3 test-update, §4 spec-correctness, the production-code `$changes-review` gate, and §5 `$why-review` gates. A branch's own `tester` / `code-reviewer` sub-agent step does not replace `$changes-review`.
+> **Scope:** applies with no parent workflow. No-flag runs the full diagnose→fix path; `--target={ci|issue|logs|review|test|types|ui}` branches remain self-contained for diagnosis, skip §1/§2 duplication, and inherit mandatory §3 test-update, §4 spec-correctness, the production-code `$changes-review` gate, and §5 `$why-review` gates. A branch's own `tester` / `code-reviewer` sub-agent step does not replace `$changes-review`.
 >
-> **Detect mode:** call the current task list first (per Nested Task Expansion). An active parent workflow row skips this section because the workflow owns these steps, but the Root-Cause Prerequisite Gate still requires a completed, same-problem `debug-investigate`; presence alone is insufficient. No parent row → standalone: before the first code edit, MUST ATTENTION create this ordered minimum spine as task tracking todos:
+> **Detect mode:** call the current task list first (per Nested Task Expansion). An active parent workflow row — or a `--target=review` call from a reviewer's fix phase (`$changes-review` Phase 7) — skips this section because the caller owns these steps, but the Root-Cause Prerequisite Gate still requires a completed, same-problem `debug-investigate` (or, for `--target=review`, its validated-review-finding skip row); presence alone is insufficient. No parent row → standalone: before the first code edit, MUST ATTENTION create this ordered minimum spine as task tracking todos:
 >
 > 1. **`$debug-investigate`** — root cause FIRST; §2 evidence decides whether it already ran. Trace symptom end-to-start to the invariant-owning layer with `file:line`, hypothesis matrix, and forward proof. This is standalone diagnosis and subsumes the spine's step-1 `debugger`; resume at planning with its report. Fast-mode-trivial bugs may inline the trace, but the trace remains required.
 > 2. **Fix spine** — this skill's `plan → 🛑 approve → implement` body below; Validate-Before-Fix remains unchanged.
@@ -177,10 +178,11 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 | `logs`     | **Inline branch (below)** — log / stack-trace-driven debugging.           |
 | `test`     | **Inline branch (below)** — failing-test repair.                          |
 | `ui`       | **Inline branch (below)** — UI / visual-defect fixes.                     |
+| `review`   | **Inline branch (below)** — fix VALIDATED review findings from review report(s). |
 
 No `--target` (or an unrecognized value) → run the full Workflow spine below; infer the right specialization from `<issues>`.
 
-> **Target routing:** `--target=ci|issue|logs|test|ui` are inline `$fix` branches; invoke them through `$fix --target=...`, not separate skill names.
+> **Target routing:** `--target=ci|issue|logs|review|test|ui` are inline `$fix` branches; invoke them through `$fix --target=...`, not separate skill names.
 
 ### `--target=types` — TypeScript / type-error branch
 
@@ -237,11 +239,28 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 3. **🛑 Present root cause + proposed fix → ask the user directly → wait for approval before implementing.**
 4. Implement the approved fix.
 
-> **Standalone Review Gate (non-workflow only):** any standalone production-code fix — the no-flag spine (Standalone Mode Minimum Contract above) **or** any `--target={ci|issue|logs|test|types|ui}` branch — adds a `$changes-review` task tracking todo as the **final changes-review gate**, placed immediately before the contract's §5 `$why-review` terminal sign-off (test-update → spec-check → changes-review → why-review). A fix touching no production code (test-only, docs-only) skips it with that reason recorded. Inside a workflow, skip — the sequence handles `$changes-review`.
+> **Standalone Review Gate (non-workflow only):** any standalone production-code fix — the no-flag spine (Standalone Mode Minimum Contract above) **or** any `--target={ci|issue|logs|review|test|types|ui}` branch — adds a `$changes-review` task tracking todo as the **final changes-review gate**, placed immediately before the contract's §5 `$why-review` terminal sign-off (test-update → spec-check → changes-review → why-review). A fix touching no production code (test-only, docs-only) skips it with that reason recorded. Inside a workflow, skip — the sequence handles `$changes-review`.
 
 > **Review-loop severity floor (when `$fix` is the fix half of a review loop):** use the canonical `.claude/scripts/lib/review-policy.cjs` predicate and fix only validated findings that block the current round. Classify by consequence: **CRITICAL** = immediate material security/safety/authority/data-loss risk or a failed binary gate; **HIGH** = material supported-path correctness, contract, privacy, authority, compatibility, or likely-harm risk; **MEDIUM** = bounded but consequential edge/resilience/observability/testability/maintainability risk; **LOW** = evidenced non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact. Round 1 is strict (CRITICAL/HIGH/MEDIUM/LOW); from round 2 onward only CRITICAL/HIGH/MEDIUM reopen a fix or re-review round, while LOW-only findings are recorded as deferred and do **not** reopen the loop. `NOT VERIFIABLE` is unresolved evidence, not LOW, and failed binary gates always block. Never re-tier a finding to reach a pass. This bounds loop work only; a standalone user request to fix a LOW-severity issue remains valid and is not refused.
 
 The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+
+### `--target=review` — validated review-findings branch
+
+**Goal:** Close the validated blocking findings of one or more review reports (e.g. `$changes-review`, the specialist reviewers run with `--report-only`, `$why-review`) directly — the review report IS the diagnosis, so no plan ceremony is needed for local fixes.
+
+**Input:** the report path(s) in `$ARGUMENTS` (or the consolidated review report of the active workflow). Only findings marked validated are in scope; an unvalidated finding goes back to `$why-review --validate-findings` first.
+
+**Workflow:**
+
+1. **Load and track** — re-read every input report; create one task per validated blocking finding (current round bar per the review-loop severity floor above). Record `FIXING` in the report next to each.
+2. **Re-confirm before editing** — the cited `file:line` evidence still holds on the current tree; a finding that is a *bug with an unknown cause* (the report names a symptom, not the owning cause) goes to `$debug-investigate` first — the Root-Cause Prerequisite Gate still binds that case.
+3. **Fix at the owning layer** — one authoritative correction per violated invariant; group findings that share an owner. For a large or cross-module fix set, `$plan` (+ `$plan-review`) is RECOMMENDED, not required.
+4. **Tests** — a behavior-changing fix gets a regression/preservation test for the intended behavior; run the affected tests and record exact results. Failed tests follow the project's test-failure adjudication before any source or test edit.
+5. **Write back** — append to the SAME report a `## Fix Log` row per finding: `FIXED` (files changed, test evidence) · `REJECTED` (new evidence that the finding is wrong — never final on the fixer's word: the caller re-validates it via `$why-review --validate-findings` or asks the user) · `DEFERRED` (round-2+ LOW only). The report stays the single living record the re-review reads.
+6. **Hand back** — when a reviewer's fix phase or a workflow fix step called this branch (`$changes-review` Phase 7, `$workflow-review-changes`), the caller owns re-review, spec and docs: the Standalone Mode Minimum Contract does not apply, skip the approval prompt, and never re-invoke `$changes-review`. Only a user-typed `$fix --target=review` is standalone: it presents the fix set once and ends with `$changes-review` over the fixed diff.
+
+Inside a workflow or a reviewer's fix phase, skip approval prompts; user-typed standalone, present the fix set once by asking the user directly before editing. The Debug Mindset, Confidence & Evidence Gate, the review-loop severity floor above, and all SYNC gates apply to this branch unchanged.
 
 ### `--target=logs` — log / stack-trace branch
 

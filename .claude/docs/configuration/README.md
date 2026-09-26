@@ -216,7 +216,7 @@ Each `.claude/workflows.json` entry may declare `activation` (default `auto`):
 | `confirm` | Select it, but ask the user once (its step count vs. the lean custom-simple route) before starting it | Route gate, `start-workflow` |
 | `manual` | Never select or start it; it names the workflow in its route declaration and runs it only on an explicit user request | Route gate, `start-workflow`, the wrapper skill's `disable-model-invocation: true` (Claude) and the generated `agents/openai.yaml` `policy.allow_implicit_invocation: false` (Codex) |
 
-Framework defaults: `workflow-feature` is `confirm`; `workflow-big-feature`, `workflow-greenfield-init`, `workflow-idea-to-pbi` and `workflow-spec-to-pbi` are `manual`. An explicit request (`/workflow-<id>`, `/start-workflow <id>`, or asking in words) runs any tier. Changing a workflow to or from `manual` also means changing its wrapper skill's `disable-model-invocation` — a test fails when the two disagree.
+Framework defaults: every workflow is `auto` — the AI selects it when the request fits — except the two heaviest, `workflow-big-feature` and `workflow-greenfield-init`, which are `confirm`: when the AI picks one of them on its own while a leaner route would also satisfy the request, it asks once (step count vs. the lean route) before starting. No framework workflow ships `manual`; a project that wants one opts in with `portability.workflowActivation`. An explicit request (`/workflow-<id>`, `/start-workflow <id>`, or asking in words) runs any tier. Changing a workflow to or from `manual` also means changing its wrapper skill's `disable-model-invocation` — a test fails when the two disagree.
 
 A project can tighten these tiers without forking `workflows.json` through `portability.workflowActivation` in `docs/project-config.json`:
 
@@ -384,6 +384,10 @@ A `checkpointTokens` value outside the range, or not a whole number, is a valida
 
 `docs/project-config.json` `commit.fixOriginTrailer` (boolean, default `false`) opts a project into the author-declared `Fix-Origin: <feedback|regression|not-applicable>` trailer. When `true`, the `commit` skill writes it on new commits only; existing commits are never reworded to add it. When omitted or `false`, commit messages carry no `Fix-Origin` trailer.
 
+### Pull-request target branch
+
+`docs/project-config.json` `pullRequest.targetBranch` (string, default `main`) is the base branch the `pull-request` skill branches from and opens PRs into. Two things take precedence over it: a base branch named in the request, and the base of a PR already open for the current branch. When omitted, the skill uses `main`.
+
 ### Skill profile
 
 `docs/project-config.json` `skillProfile` sets, for the whole team, which skills the model sees. `preset` picks a base from `.claude/config/skill-profiles.json`: `full` (no overrides), `standard` (skills other skills or hooks start leave the model's list but stay callable by name), or `minimal` (only the entry skills stay listed). The lists `nameOnly`, `commandOnly` (only a user's `/name` starts it) and `off` (skill folder names; one list per skill) apply on top of the preset.
@@ -410,7 +414,7 @@ Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-o
 
 **Schema:** Each workflow entry supports `activation`, `defaultMode`, `description`, `intent`, `name`, `outcomeGates`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `variants`, `whenToUse` (`WorkflowEntry` in `.claude/workflows.schema.json`). There are NO `priority` or `triggers` properties. When runtime routing is enabled, the model semantically matches the prompt against `whenToUse`; otherwise the catalog remains available only through explicitly invoked workflow skills.
 
-**Live catalog (20 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-implement-spec`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-architecture-audit`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`, `workflow-integration-test-green`.
+**Live catalog (21 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-implement-spec`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-architecture-audit`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-to-mockup`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`, `workflow-integration-test-green`.
 
 | Workflow                  | Sequence (abridged, from `workflows.json`)                                                                                                                                          | whenToUse (abridged)                              |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
@@ -418,7 +422,7 @@ Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-o
 | `workflow-implement-spec` | investigate → spec-clarify → plan → plan-execute → spec [mode=sync] (when behavior differs) → integration-test → integration-test-verify → workflow-review-changes → test → workflow-end → watzup | Behavior already written in a canonical spec or TC set |
 | `workflow-bugfix`         | investigate → debug-investigate → … → fix → … → workflow-end                                                                                                                        | Bug, error, crash, regression; end-to-start trace |
 | `workflow-refactor`       | investigate → plan → … → plan-execute → … → workflow-end                                                                                                                            | Restructure code without behavior change          |
-| `workflow-review-changes` | [parallel: changes-review + whole-target why-review] → parallel specialists → code-simplifier → … → final whole-target why-review (conditional on fix-cycle changes) → workflow-end | Review uncommitted changes before committing      |
+| `workflow-review-changes` | triage → [parallel: changes-review + whole-target why-review] → triage-selected `--report-only` specialists (`integration-test-review --prove-tests` always runs) → validate findings → `fix --target=review` → code-simplifier → post-fix whole-target why-review (conditional on fixes) → docs-update → workflow-end | Review uncommitted changes before committing      |
 
 ---
 

@@ -49,60 +49,98 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 ## Quick Summary
 
-**Goal:** Run the Code Refactoring workflow to restructure existing code without changing behavior, with evidence-backed planning, validation, spec/test/docs synchronization, and a clean final review.
+**Goal:** Restructure existing code without changing its observable behavior, proven by the same test scope green before and after the change plus a converged change review — cheap on a small local cleanup, thorough on a wide or risky restructure.
 
-**Summary:** Investigate → plan/review/validate → execute the behavior-preserving refactor → update specs/tests → review and verify integration → review changes → test → entity scan → sync docs and close with evidence.
+**Use this** to restructure, reorganize, rename, extract, simplify or pay down technical debt while behavior stays fixed. A change the user wants to behave differently is a feature (`workflow-feature`) or a bugfix (`workflow-bugfix`); a single trivial rename in one file fits a direct edit plus test and review.
 
-**Workflow:**
+**Key rules:**
 
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
+- **MUST** triage size, kind and risk FIRST — the triage picks which recommended skills run and how deep.
+- **MUST** prove behavior preservation: the affected test scope is green BEFORE any change (baseline gate) and green AFTER it (final gate); cover untested touched behavior with characterization tests first.
+- **MUST** search 3+ local examples of the target pattern before planning and follow the project's architecture, code hierarchy and naming from `docs/project-config.json` → `workflowPatterns`.
+- **NEVER** change an assertion or expected value to make a refactor pass — that is a behavior change and needs the user's approval.
 
-**Ordered route:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$plan-execute` → specs/tests → integration verification → `$workflow-review-changes` (owns `$integration-test-review` and the conditional entity scan → `$docs-update` refresh) → `$test` → `$workflow-end` → `$watzup`.
+## Size & Kind Triage (first action)
 
-**Key Rules:**
+Classify the refactor before choosing steps and record the result in the workflow report:
 
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- MUST ATTENTION apply shared SDD Artifact Contract from `shared/sdd-artifact-contract.md`; use project config/reference docs only for local conventions.
-- NEVER skip mandatory workflow or skill gates.
+- **Size** (guidance, not a law): **XS** 1–3 files / ≤100 changed lines · **S** ≤15 files · **M** ≤60 · **L** ≤300 · **XL** >300 (mechanical renames can reach thousands).
+- **Kind** (all that apply): local cleanup · extract/move/rename · cross-module restructure · public contract/API surface · data/schema/persistence · security-sensitive · performance-driven · dead-code removal · test-only · tooling/config.
+- **Risk:** irreversible, data, security, cross-module. Escalate depth on risk and ambiguity, not on file count alone.
+
+| Triage result | Typical route through the recommended skills |
+| --- | --- |
+| XS/S, one module, no contract/data surface | investigate → baseline test → short plan → execute → review → test → close |
+| M, or cross-module | add `$plan-review`; add characterization tests where the baseline shows a coverage gap |
+| L/XL, public contract/data/security, or ambiguous target structure | add `$plan-validate`; execute in bounded batches per module with one report per batch, baseline and final test per batch plus a full-scope final run |
+
+## Required Quality Gates
+
+Non-negotiable — `$workflow-end` checks each against its evidence before the run closes:
+
+1. **Baseline green** (`$test`, gate, before any change) — the test command, scope and pass summary for the code the refactor touches. A red baseline stops the refactor: report it, or route the failure to `workflow-bugfix`; never refactor on a red base.
+2. **Touched behavior is guarded** — every behavior the refactor touches has a test that would fail if it changed; otherwise characterization tests are written first and proven green on the unrefactored code. For lifecycle/state logic, tests assert persisted transitions and invalid-transition rejection.
+3. **Behavior preserved** (`$test`, gate, after the change and after review fixes) — the baseline scope plus any characterization tests run green in THIS run; test code changed only mechanically (imports, renamed symbols, moved paths).
+4. **Review converged** (`$workflow-review-changes`, gate, INLINE in the main session) — validated blocking findings fixed and the fixed state re-reviewed.
+5. **Run closed** — `$workflow-end` (top-level only).
+
+Specs normally do not change in a refactor; the spec steps below run only when canonical specs or TCs point at code or tests the refactor moved, or a preserved invariant lacks a TC. Any observable behavior, public contract or docs/spec boundary change means the work is no longer a pure refactor — stop and confirm with the user, then run the spec/test/docs sync that change requires.
 
 ## Gates and Optional Steps
 
-**Step contract:** `$start-workflow` owns how gate, core and optional steps run; this table summarizes this workflow's `intent`, `outcomeGates` and step roles from `.claude/workflows.json`.
+**Step contract:** `$start-workflow` owns how gate, core and optional steps run; this table summarizes this workflow's `intent`, `outcomeGates` and step roles from `.claude/workflows.json`, in its recommended default order.
 
-| Step                       | Role | Runs when |
-| -------------------------- | ---- | --------- |
-| `$workflow-review-changes` | gate | always    |
-| `$test`                    | gate | always    |
-| `$workflow-end`            | gate | always    |
+| Step | Role | Runs when / earns its cost | Proves |
+| --- | --- | --- | --- |
+| `$investigate` | core | always in practice — scope, callers, 3+ local pattern examples | scope and target pattern |
+| `$test` | gate | always — BEFORE any change, on the affected scope | baseline green |
+| `$plan` | core | always in practice; XS/S keeps it to files, steps, rollback | refactor plan |
+| `$plan-review` | optional | size M+, cross-module, contract/data/security, or a design choice | plan quality |
+| `$plan-validate` | optional | size L+, or an ambiguous target structure or scope | plan confirmed |
+| `$integration-test` | optional | touched behavior has no test that would fail if it changed | characterization tests |
+| `$plan-execute` | core | always in practice — small verifiable increments | the change |
+| `$spec [mode=tests]` | optional | TCs reference moved code/tests, or an invariant lacks a TC | TCs match |
+| `$artifact-review --type=spec-tests` | optional | TC content changed beyond evidence paths | TC quality |
+| `$spec [mode=sync]` | optional | specs/TCs reference moved or renamed code/test paths | specs match |
+| `$integration-test-verify` | optional | integration tests written or changed in this run | integration tests green |
+| `$workflow-review-changes` | gate | always — INLINE in the main session | review converged |
+| `$test` | gate | always — after the change and review fixes, baseline scope | behavior preserved |
+| `$workflow-end` | gate | always | run closed |
+| `$watzup` | core | wrap-up summary | handoff |
 
-No step is optional. Outcome gates: tests pass · review converged · run closed.
+Outcome gates: tests pass · review converged · run closed.
 
----
+A recommended step the triage shows would do no real work is not run; record it through the Step Execution Protocol with its evidence.
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-verify -> $workflow-review-changes -> $test -> $workflow-end -> $watzup
+**Ad hoc skills (not registry steps):** `$investigate` again before removing "unused" code — grep evidence, confidence ≥80%, cross-module/service check · `$performance-review` for a performance-driven refactor (below) · `$code-simplifier` for a clean-up pass, only before the review and final test so they cover its result.
 
-> **[EXPERIENCE ACCEPTANCE HANDOFF]** `$workflow-review-changes` carries the conditional `$experience-review` gate after refactor review convergence. Behavior-preservation evidence is exercised and inspected for affected observable surfaces; unchanged surfaces retain their accepted protection.
+> **[PERFORMANCE-SDD ROUTE]** A performance-driven refactor (query optimization, caching, fewer allocations, throughput) runs `$performance-review` for benchmark evidence — SLA, baseline, measurement command — while preserving observable behavior and functional no-regression checks. A pure behavior-preserving optimization adds no new TCs when the invariant-preservation evidence and the final `$test` gate cover it; a changed SLA, performance constraint, state timing boundary, public contract or docs/spec boundary still requires spec, test and docs sync.
 
-> **[BLOCKING]** Each step that runs MUST ATTENTION invoke its skill invocation; every other deviation follows the step contract above. NEVER batch-complete validation gates.
+## Orchestration Freedom
 
-Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refactor` with the user's prompt as context.
+You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. Fixed constraints (data dependencies):
 
-**Steps:** $investigate → $plan → $plan-review → $plan-validate → $plan-execute → $spec [mode=tests] → $artifact-review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-verify → $workflow-review-changes → $test → $workflow-end → $watzup
+- The baseline and any characterization tests run green on the unrefactored code before `$plan-execute` changes it.
+- A change exists before it is reviewed or tested; a spec sync runs before the review that checks it; review fixes are re-verified by the final `$test` gate; `$workflow-end` runs last.
+- `$workflow-review-changes` runs INLINE in the main session — never as a sub-agent — and owns the test-quality review and the docs/domain-entity reference refresh; do not repeat them here.
+- Gates awaiting user approval (plan validation, a behavior-change decision) are never parallelized.
 
-> **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH — DELEGATED]** The terminal `scan --target=domain-entities` → `docs-update` refresh is owned by the nested `$workflow-review-changes` occurrence: it runs the scan when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `domain-entities-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`), otherwise completes it with a cited skip reason. Do not repeat the scan in this workflow's tail.
+Recommended: XS/S work inline without sub-agents; L/XL mechanical changes applied per module batch with a bounded report each, then one full-scope final test.
 
-> **[PERFORMANCE-SDD ROUTE]** If this refactor is performance-driven (query optimization, caching, reducing allocations, improving throughput), run `$performance-review` for benchmark evidence while preserving observable behavior. Do not use performance/refactor scope to bypass spec, test, or docs sync when behavior, public contract, SLA, performance constraint, state timing boundary, or docs/spec boundary changes. Pure behavior-preserving optimization may skip new TC/integration-test generation only with explicit skip reason and invariant-preservation evidence. `$test` remains mandatory.
+## Memory, Reporting and Fix Path
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+- **Tasks:** one task per selected step or batch so nothing is lost after compaction; child skills expand their phases under the parent row.
+- **Report first:** create `tmp/reports/workflow-refactor-{YYMMDD}-{HHmm}-{slug}.md` before the first finding; append triage, baseline evidence, pattern examples, batch results and deviations per step; re-read it and the current task list after compaction. Sub-agent briefs make report-writing their first deliverable.
+- **Fix path:** validate a finding (evidence-backed, reproducible) before fixing it; fix at the owning layer; re-run the reviewer or test that raised it, plus a holistic pass when fixes were non-trivial. A failing test after the change means the refactor changed behavior until proven otherwise — adjudicate it before editing either side.
+- **Loop bounds:** round 1 fixes every validated finding; from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); failing tests are uncapped; no progress → escalate by asking the user directly.
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+## Activation
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $plan -> $plan-review -> $plan-validate -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-verify -> $workflow-review-changes -> $test -> $workflow-end -> $watzup
+Activate the `workflow-refactor` workflow: run `$start-workflow workflow-refactor` with the user's prompt as context. Apply the shared SDD Artifact Contract from `shared/sdd-artifact-contract.md` in the active skills root; project conventions come from `docs/project-config.json` and the docs index.
+
+Recommended default order (roles in the table above):
+
+**IMPORTANT MANDATORY Steps:** $investigate -> $test -> $plan -> $plan-review -> $plan-validate -> $integration-test -> $plan-execute -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test-verify -> $workflow-review-changes -> $test -> $workflow-end -> $watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -141,22 +179,12 @@ Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refacto
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Run the Code Refactoring workflow to restructure existing code without changing behavior, with evidence-backed planning, validation, spec/test/docs synchronization, and a clean final review.
+**IMPORTANT MUST ATTENTION Goal:** restructure existing code without changing its observable behavior, proven by the same test scope green before and after plus a converged change review.
 
-**IMPORTANT MUST ATTENTION Main steps:** `$investigate` → `$plan` → `$plan-review` → `$plan-validate` → `$plan-execute` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → `$spec [mode=sync]` → `$integration-test` → `$integration-test-verify` → `$workflow-review-changes` (owns `$integration-test-review` and the conditional `$scan --target=domain-entities` → `$docs-update` refresh) → `$test` → `$workflow-end` → `$watzup`. **NEVER** skip behavior-preservation evidence, required gates, or conditional skip reasons.
-
-**IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **Nested Task Creation:** Expand child phases; link parent when nested.
-- **Critical Thinking:** Traced proof per claim; confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Incremental Persistence:** Append findings to report file per section.
-- **Subagent Return Contract:** Sub-agents return summary only, not transcript.
-
-**IMPORTANT MUST ATTENTION** apply Phase 1 compression before structural enhancement; preserve semantic meaning.
-**IMPORTANT MUST ATTENTION** NEVER alter YAML frontmatter, code blocks, tables, or SYNC-tag bodies during optimization.
-**IMPORTANT MUST ATTENTION** keep evidence gates and mandatory workflow/skill steps explicit and enforceable.
-**IMPORTANT MUST ATTENTION** add a final review task to verify output quality and unresolved risks.
+- **MUST ATTENTION** triage size, kind and risk FIRST; run only the recommended skills the triage shows do real work, and log every deviation with evidence.
+- **MUST ATTENTION** baseline `$test` (gate) green BEFORE any change; characterization tests first for any touched behavior no test guards; the final `$test` (gate) green on the same scope AFTER the change.
+- **MUST ATTENTION** search 3+ local examples and follow the project's `workflowPatterns`; removing "unused" code needs `$investigate` evidence.
+- **NEVER** edit an assertion or expected value to make the refactor pass; a behavior change needs the user's approval and the spec/test/docs sync it implies. `$workflow-review-changes` runs INLINE in the main session; close with `$workflow-end`.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

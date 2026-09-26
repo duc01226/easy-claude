@@ -1,63 +1,77 @@
 ---
 name: workflow-seed-test-data
-version: 1.0.0
+version: 1.1.0
 description: '[Workflow] Use when seeding test data or implementing idempotent QC happy-path seeders.'
 disable-model-invocation: false
 ---
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Seed Test Data workflow — investigate existing seeder patterns, implement idempotent QC happy-path seeders via application commands, review compliance, simplify.
+**Goal:** Add or extend idempotent, command-based seeders that create realistic QC happy-path data for a feature area — environment-gated, count-configurable, restart-safe — proven by tests that ran green in this run, a converged review and, when the data is observable, an inspection of the seeded state itself.
 
-**Summary:** Run `/investigate` → `/seed-test-data` → conditional `/experience-review` → `/code-simplifier` → `/test` → `/changes-review` → `/docs-update` → `/workflow-end` → `/watzup`; before writing, read the Data Seeders project-config group and seed reference, then enforce environment-first gating, configured counts, application-command-only writes, `existing_count`→`target_count` idempotency, and scoped DI per iteration.
-
-**Workflow:**
-
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
-
-**Key Rules:**
-
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- NEVER skip mandatory workflow or skill gates.
+**Use this** for seeders, dev/QC dummy data and realistic first-init data. Use `/seed-test-data --mode=review` alone for a read-only seeder audit, and `workflow-write-integration-test` / `workflow-e2e` when the deliverable is a test rather than seeded data.
 
 **IMPORTANT MANDATORY Steps:** /investigate -> /seed-test-data -> /experience-review -> /code-simplifier -> /test -> /changes-review -> /docs-update -> /workflow-end -> /watzup
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
 
-> **[CRITICAL] Read Project Config Gate:** The `/seed-test-data` step MUST read `docs/project-config.json` → 'Data Seeders' context group and `docs/project-reference/seed-test-data-reference.md` BEFORE writing any seeder code. Seeder written without reading the project base class and DI scope pattern is guaranteed to be wrong.
+> **[CRITICAL] Read Project Config Gate:** before writing any seeder code, read the seeder context group in `docs/project-config.json` (for example `Data Seeders`) and `seed-test-data-reference.md` in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` overrides). A seeder written without the project's base class, env-gate key, count key and DI scope pattern is wrong by construction.
 
-Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-seed-test-data` with the user's prompt as context.
+## Size & Kind Triage (FIRST action)
 
-**Steps:** /investigate → /seed-test-data → /experience-review → /code-simplifier → /test → /changes-review → /docs-update → /workflow-end → /watzup
+Classify before choosing steps and record the result in the run report:
 
-> **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
->
-> **`/investigate`** — Find feature area command files; locate existing seeders in the same service for pattern matching. Output: target seeder file path (or "none — create new") + existing seeder examples.
-> **`/investigate`** — Read the commands the seeder will call. Map: required inputs, validation rules, side effects, cross-service dependencies. Output: command signature list + dependency chain (what data must pre-exist).
-> **`/seed-test-data`** — Implement or enhance the seeder. Environment gate FIRST → read count from config → idempotency check → loop from existing to target → dispatch application commands with realistic, diverse inputs.
-> **`/experience-review`** (CONDITIONAL) — Exercise the seeder against its configured entry point and INSPECT the data a QC/operator actually observes (running app screen, API response, CLI transcript, or generated artifact) against the scenario's intended purpose. A seeder that exits 0 has not been verified; the seeded state must be observed. Classify `OBSERVED`/`JUDGED`/`HUMAN-ACCEPTED`/`UNVERIFIED`/`ENVIRONMENT-BLOCKED`/`NOT-APPLICABLE` and never promote a new expected baseline without an explicit acceptance record.
-> **`/code-simplifier`** — DRY and simplify the seeder without changing behavior. Merge duplication, extract reusable builders, remove unnecessary scaffolding.
-> **`/test`** — Run the project's tests against the final seeder code, after simplification, so the tests-pass gate proves the code that ships.
-> **`/changes-review`** — Full compliance review: environment gate present, count read from config key, idempotency correct (loop from `existing` not from `0`), no direct DB writes for domain entities, project's scoped DI mechanism used per iteration.
-> **`/docs-update`** — Triage doc impact from changed seeder files. Update feature docs if dev-data coverage changed materially.
-> **`/workflow-end`** + **`/watzup`** — Close workflow state, then summarize; `/watzup` hands off to `/understand` only for a large code change or on request.
+- **Size** — XS: enhance one existing seeder (count, one scenario; 1–3 files) · S: new seeder for one feature area · M: several feature areas or seeders · L/XL: seeding across modules/services with a dependency chain of pre-existing data.
+- **Kind** — new / enhance / fix seeder · observable data (a QC/operator sees it through an app, API, CLI or artifact) · cross-module or cross-service commands · seeder that encodes a domain rule (a required precondition, status or relationship).
+- **Risk** — escalate on anything that could run outside development, shared or persistent environments, cross-service data ownership, or ambiguous target counts.
 
-> **[STEP CONDITIONS]** The bare list above is the canonical order; only one step is conditional:
->
-> - **`/experience-review`** — run when the seeded data reaches a configured `experienceVerification` surface whose `reviewOn` trigger intersects the change, OR when the seeder creates/changes data a QC/operator observes through a running application, API, CLI, or generated artifact. Skip ONLY with an evidence-backed `NOT-APPLICABLE` reason citing the inspected `docs/project-config.json` and seeder diff — never a generic "not a UI change". A relevant surface that cannot be run or inspected (no dev environment, no seeded database, no client) is `ENVIRONMENT-BLOCKED`, never PASS and never `NOT-APPLICABLE`. When the surface is likely but `experienceVerification` is unconfigured, run the skill and record `ENVIRONMENT-BLOCKED` — do not invent a runner.
-> - **All other steps** — always run.
->
-> **Why the gate sits here, before `/changes-review`:** a seeder's deliverable is observed data, not code. `/changes-review` proves the seeder obeys the environment/idempotency/command rules; only `/experience-review` proves the scenarios it produced are the ones QC needs. The step runs its own bounded remediation loop (`--rounds=N`, default 3): a BLOCKING defect in the seeded data is adjudicated, fixed at the owning layer, code-reviewed, and re-proved by re-seeding and re-observing from scratch. It never rewrites an expectation, fixture, or acceptance criterion to close the gap, and it converges to `AGENT-RECOMMENDED-ACCEPT`/`ACCEPTANCE-PENDING` — never to a signed acceptance. Unresolved defects at the cap are reported `NOT-CONVERGED` and routed back to `/seed-test-data`.
+The triage selects which recommended skills run and how deep; it never removes a gate.
 
----
+## Required Quality Gates (non-negotiable)
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /seed-test-data -> /experience-review -> /code-simplifier -> /test -> /changes-review -> /docs-update -> /workflow-end -> /watzup
+| Gate                                                                                           | Evidence that proves it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Seeder invariants                                                                              | `file:line` proof for each: (1) environment gate is the FIRST check — development or config-enabled only, never production; (2) count read from the configured key, never hardcoded (small default; zero → no-op); (3) idempotent — count existing BEFORE seeding and loop from `existing_count` to `target_count`, never from `0` (restart-safe); (4) domain entities written only through application-layer commands, never direct repository/DB writes, never duplicated command logic; (5) the project's scoped DI mechanism per iteration, never one scope across iterations |
+| `tests-pass`                                                                                   | `/test` ran green in THIS run against the final (post-simplification) seeder code                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `review-converged`                                                                             | `/changes-review` over the final diff: validated blocking findings fixed and the fixed state re-reviewed                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Seeded data observed (when observable)                                                         | `/experience-review` record over the seeded state: `OBSERVED` / `JUDGED` / `HUMAN-ACCEPTED` / `UNVERIFIED` / `ENVIRONMENT-BLOCKED` / `NOT-APPLICABLE`; a seeder exit code is not evidence                                                                                                                                                                                                                                                                                                                                                                                         |
+| Spec/docs synced (when a seeder encodes a domain rule or changes documented dev-data coverage) | The rule lands in the spec (and in tests where testable), never as a seeder-only fix; `/docs-update` triage result                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `run-closed`                                                                                   | `/workflow-end` (top-level only) verifies every gate above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
+## Recommended Skills
+
+| Skill                              | Earns its cost when                                                                                             | Proves / feeds                                                                                                                                          |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/investigate`                     | Always useful; XS enhancement of a seeder already traced this session may fold into `/seed-test-data` discovery | Target seeder path (or "none — create new"), 3+ sibling seeders, command signatures, required inputs, validation, side effects, pre-existing data chain |
+| `/seed-test-data`                  | Always — it makes the change                                                                                    | Seeder invariants                                                                                                                                       |
+| `/experience-review` (conditional) | The seeded data reaches a configured or likely observable surface                                               | Seeded data observed                                                                                                                                    |
+| `/code-simplifier`                 | The seeder diff has duplication or scaffolding worth removing; XS single-scenario edits may do no real work     | Behavior-preserving cleanup before the checks that prove it                                                                                             |
+| `/test` (gate)                     | Always                                                                                                          | `tests-pass`                                                                                                                                            |
+| `/changes-review` (gate)           | Always                                                                                                          | `review-converged`, seeder-invariant compliance                                                                                                         |
+| `/docs-update`                     | A seeder adds config keys, changes dev-data coverage materially, or encodes a domain rule                       | Spec/docs synced                                                                                                                                        |
+| `/workflow-end` + `/watzup`        | Always (top-level run)                                                                                          | `run-closed`, handoff summary                                                                                                                           |
+
+Skipping a recommended skill is fine when triage shows it does no real work; log it as a deviation (`intent-skip` / `when-false`) with evidence.
+
+**Conditional step note — `/experience-review`** runs when: the seeded data reaches a configured `experienceVerification` surface whose `reviewOn` trigger intersects the change, or the seeder creates or changes data a QC/operator actually observes through a running application, API, CLI, or generated artifact; when the latter holds without usable configuration, run the skill and record `ENVIRONMENT-BLOCKED` — never invent a runner. A relevant surface that cannot be run or inspected is `ENVIRONMENT-BLOCKED`, never PASS. Skip reason (registry, verbatim): After inspecting docs/project-config.json and the seeder diff, no configured or likely observable surface consumes the seeded data; record NOT-APPLICABLE with evidence citing the inspected paths.
+
+It sits before `/changes-review` because a seeder's deliverable is observed data: the review proves the seeder obeys the rules, the inspection proves the scenarios are the ones QC needs. It runs its own bounded remediation loop (`--rounds=N`, default 3), never rewrites an expectation or acceptance criterion to close a gap, and reports unresolved defects at the cap as `NOT-CONVERGED`, routed back to `/seed-test-data`.
+
+## Orchestration Freedom
+
+You choose inline vs sub-agent, batching and ordering, optimizing wall-clock and token cost at equal quality. Fixed constraints only: the seeder exists before it is observed, tested or reviewed; `/code-simplifier` runs before the `/test` and `/changes-review` that prove the final code; fixes are re-verified after they land; `/workflow-end` runs last; gates awaiting user approval never run in parallel. Recommended: XS/S inline; M+ one seeder or feature area per batch with one report per batch, ordered by the data dependency chain (prerequisite data first).
+
+## Memory & Reporting
+
+- One task per selected step (and per seeder batch for M+) so nothing is lost after compaction.
+- Write the run report under `tmp/reports/` FIRST and append per step and batch; re-read it and `TaskList` after compaction.
+- Sub-agent briefs carry the resolved config/reference paths, make report writing their first deliverable, and return only the summary envelope.
+
+## Fix Path & Loop Bounds
+
+Validate each finding (evidence-backed, reproducible) before fixing. A failing test follows the test-investigation protocol before either side changes. Fix at the owning layer: a seeder that violates an invariant is fixed in the seeder; a command that rejects valid inputs or breaks a domain rule is a product defect — trace its root cause and route it, never work around it in the seeder. Re-run the test or reviewer that raised the finding, plus a holistic pass when fixes were non-trivial. Plan ceremony (`/plan` → `/plan-review`) only when the fix set is large, cross-module or ambiguous.
+
+Review loop: round 1 zero findings converges; round 2 converges on zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH is open); failing tests are uncapped; no progress → escalate via `AskUserQuestion`.
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
@@ -107,27 +121,10 @@ Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-s
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger Seed Test Data workflow — investigate existing seeder patterns, implement idempotent QC happy-path seeders via application commands, review compliance, simplify.
-**IMPORTANT MUST ATTENTION Workflow:** Read the Data Seeders project-config group and `seed-test-data-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) → `/investigate` patterns/commands → `/seed-test-data` with environment/count/idempotency/scoped-DI gates → conditional `/experience-review` → `/code-simplifier` → `/test` → `/changes-review` → `/docs-update` → `/workflow-end` → `/watzup`; use application commands for domain entities, preserve evidence, and never batch or skip mandatory steps.
+**IMPORTANT MUST ATTENTION Goal:** idempotent, command-based QC happy-path seeders for a feature area, proven by green tests, a converged review and — when observable — an inspection of the seeded data.
 
-**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; NEVER skip one):**
-
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Nested Task Creation:** expand child phases and link the parent when nested; one `in_progress`.
-- **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act.
-- **Incremental Persistence:** append findings to `tmp/reports/` per file, never hold in memory.
-- **Sub-Agent Return Contract:** sub-agents return summary-only with `Full report:` pointer.
-
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-**IMPORTANT MUST ATTENTION** read `docs/project-config.json` → 'Data Seeders' AND `docs/project-reference/seed-test-data-reference.md` BEFORE writing any seeder code
-**IMPORTANT MUST ATTENTION** NEVER call repository/DB directly for domain entities — use application-layer commands only
-**IMPORTANT MUST ATTENTION** ALWAYS gate by environment FIRST; ALWAYS check count before seeding
-**IMPORTANT MUST ATTENTION** loop from `existing_count` to `target_count` — NEVER from `0` (restart-safety)
-**IMPORTANT MUST ATTENTION** use project's scoped DI mechanism per iteration — never share a DI scope across loop iterations
-**IMPORTANT MUST ATTENTION** run conditional `/experience-review` after `/seed-test-data` whenever the seeded data reaches a configured or likely observable surface — a seeder exit code is NOT evidence that the seeded scenarios are correct; skip only with an evidence-backed `NOT-APPLICABLE`, and record `ENVIRONMENT-BLOCKED` (never PASS) when a relevant surface cannot be run or inspected
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **MUST ATTENTION** read the project-config seeder context group and `seed-test-data-reference.md` BEFORE writing any seeder code; match the project's existing seeder convention exactly.
+- **MUST ATTENTION** environment gate FIRST; count from config; loop from `existing_count` to `target_count`, never from `0`; scoped DI per iteration.
+- **MUST ATTENTION** NEVER write domain entities through a repository/DB directly — application-layer commands only; a domain rule a seeder encodes belongs in the spec.
+- **MUST ATTENTION** a seeder exit code is not evidence — run `/experience-review` when the data is observable, record `ENVIRONMENT-BLOCKED` (never PASS) when it cannot be inspected, and skip only with an evidence-backed `NOT-APPLICABLE`.
+- **MUST ATTENTION** triage first, write the report under `tmp/reports/` first, keep one task per selected step; `/test` and `/changes-review` always run on the final code and `/workflow-end` runs last.

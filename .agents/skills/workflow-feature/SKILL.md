@@ -47,132 +47,123 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Never read all docs blindly: route from `docs-index-reference.md` and open only what the task needs.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
-## Quick Summary
+## Purpose
 
-**Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review. This workflow is spec-driven with tests by default: test specs (`$spec [mode=tests]`) are written and reviewed BEFORE implementation (`$plan-execute`), covering former TDD/test-first use cases.
-
-**Summary:**
-
-- Apply the shared `isLargeIdea` rule before the first mutating `$spec`; when true, carry the five-field `large_idea_decomposition` block through the owning spec/PBI and downstream presentation/mock-up artifacts. Do not create a roadmap artifact by default.
-- For a genuinely isolated brownfield change, carry the shared contract's EXEMPT reason/owner and retain spec, scenario, test, review, and human-confirmation gates.
-- Follow the investigation → spec → scenario → plan → review → implementation → verification sequence; never let implementation outrun product readiness.
-
- - **Main steps:** investigate → spec/clarify → scenario → plan/review/validate → pre-implementation test specs → implement → integration/spec sync → review → optional near-end `workflow-e2e` on explicit request → security/test/docs/demo handoff.
-
-**Workflow:**
-
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
-
-**Key Rules:**
-
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION require test specs/tests to name `Business Intent / Invariant Guarded` and fail if that intent breaks.
-- MUST ATTENTION apply the shared SDD Artifact Contract from `shared/sdd-artifact-contract.md` in the active skills root; use `docs/project-config.json` and `docs/project-reference/docs-index-reference.md` for project-specific conventions.
-- MUST ATTENTION preserve expected, unchanged, and no-regression behavior in the plan and review evidence when behavior can change.
-- MUST ATTENTION treat code-extracted specs and TCs as reference-only until canonical review accepts them.
-- MUST ATTENTION apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before the first mutating `$spec`. A true signal requires `outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`; all-false work omits them. Run `$scenario` after spec clarification only when slice risks require it. An explicitly supplied roadmap is read-only context; the standalone writer is explicit-only.
-- MUST ATTENTION allow any supported AI tool to implement or review when the shared contract, synced context, and local docs are available.
-- NEVER skip mandatory workflow or skill gates.
-
-## Repeated Steps Disambiguation (CRITICAL for task creation)
-
-This workflow has steps that appear multiple times. When creating tasks, use these descriptions to distinguish them:
-
-| Step                                 | Occurrence   | Task Description                                 |
-| ------------------------------------ | ------------ | ------------------------------------------------ |
-| `$plan`                              | 1st (pos 8) | PLAN₁: Feature Spec-backed implementation plan   |
-| `$plan`                              | 2nd (pos 13) | PLAN₂: Sprint-ready plan incorporating TDD specs |
-| `$plan-review`                       | 1st (pos 9) | Review PLAN₁                                     |
-| `$plan-review`                       | 2nd (pos 14) | Review PLAN₂                                     |
-| `$spec [mode=tests]`                 | 1st (pos 11) | TDD-SPEC₁: Pre-implementation test specs         |
-| `$spec [mode=tests]`                 | 2nd (pos 18) | TDD-SPEC₂: Post-implementation test spec update  |
-| `$artifact-review --type=spec-tests` | 1st (pos 12) | Review TDD-SPEC₁                                 |
-| `$artifact-review --type=spec-tests` | 2nd (pos 19) | Review TDD-SPEC₂                                 |
-
-**NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
-
----
-
-## Gates and Optional Steps
-
-**Step contract:** `$start-workflow` owns how gate, core and optional steps run; this table summarizes this workflow's `intent`, `outcomeGates` and step roles from `.claude/workflows.json`.
-
-| Step                             | Role     | Runs when                                                       |
-| -------------------------------- | -------- | --------------------------------------------------------------- |
-| `$spec-discovery`                | optional | specs or related code already exist for the affected area       |
-| `$domain-analysis`               | optional | the feature creates or changes domain entities                  |
-| `$why-review`                    | optional | the investigation or spec draft holds a real design choice      |
-| `$spec-clarify`                  | optional | the authored spec leaves open or non-obvious decisions          |
-| `$scenario`                      | optional | replay, state, ownership or recovery risks need analysis        |
-| `$seed-test-data`                | optional | new entities or flows need development data                     |
-| `$workflow-review-changes`       | gate     | always                                                          |
-| `$workflow-e2e --source=context` | optional | the user explicitly asks for E2E work                           |
-| `$test`                          | gate     | always                                                          |
-| `$demo-guide`                    | optional | the change has user-facing behavior                             |
-| `$workflow-end`                  | gate     | always                                                          |
-
-Outcome gates: tests pass · review converged · spec synced (when behavior or a public contract changed) · run closed.
-
----
-
-## Conditional UI Planning
-
-When a feature involves UI changes (detected during `$investigate`):
-
-- If an image or wireframe is provided → route to `$design-spec --mode=wireframe` before `$plan`; if only a design link (e.g. a Figma URL) is provided, ask the user to export the frames as images first
-- If `$plan` detects frontend phases → ensure `ui-wireframe-protocol.md` sections are included in plan phases
-- This is advisory — NOT a mandatory workflow step change. The existing workflow sequence remains unchanged.
-
-## Closing Rule
-
-Every step that runs = `TaskUpdate in_progress` → skill invocation → complete skill → `TaskUpdate completed`. A step that does not run follows the step contract above.
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
-
-> **Existing-behavior trace gate:** If the feature modifies an existing final output, persisted state, API response, projection, or user-visible workflow, include an end-to-start trace of the existing path (final reader -> storage/projection -> writer -> producer/origin), feeder paths, invariants to preserve, and forward proof for the intended new behavior before implementation.
-
-> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the feature request). Before `$plan-execute`, verify the plan's feature success criteria map to the saved criteria. Pass the same goal file reference to every child step — child skills read the SAME saved goal, never a re-derived one from chat memory. Before `$workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
-
-> **Large-Idea preflight:** Before the first mutating `$spec` for a new, broad, ambiguous, release-scoped, or multi-capability outcome, evaluate the shared four-operand rule and require the complete embedded decomposition block in the owning artifacts. After spec clarification and before `$plan`, run `$scenario` conditionally for replay/state/ownership/recovery risks. A `BLOCKED` Plan Gate stops `$plan-execute`; no default roadmap file is created.
-
-**IMPORTANT MANDATORY Steps:** $investigate -> $spec-discovery -> $domain-analysis -> $why-review -> $spec -> $spec-clarify -> $scenario -> $plan -> $plan-review -> $plan-validate -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $plan -> $plan-review -> $plan-execute -> $seed-test-data -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-verify -> $workflow-review-changes -> $workflow-e2e --source=context -> $test -> $demo-guide -> $workflow-end -> $watzup
-
-> **[EXPERIENCE ACCEPTANCE HANDOFF]** `$workflow-review-changes` carries the conditional `$experience-review` gate after code/rationale convergence. It exercises and inspects configured or likely observable surfaces, records `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` honestly, and never promotes a new expectation without explicit acceptance.
-
-> **[OPTIONAL E2E HANDOFF]** The sequence includes `$workflow-e2e --source=context` immediately after `$workflow-review-changes`. Run this occurrence only when the user explicitly requests E2E work, including wording such as “include E2E,” “write E2E,” “call E2E,” “run E2E,” or “do end-to-end verification.” Otherwise skip it with the manifest applicability reason; the step is disabled by default. When run, its nested workflow uses the default-on screenshot review and records evidence-backed `N/A` or `ENVIRONMENT-BLOCKED` when the repository lacks the applicable capability.
-
----
-
-**IMPORTANT MANDATORY Steps:** $investigate -> $spec-discovery -> $domain-analysis -> $why-review -> $spec -> $spec-clarify -> $scenario -> $plan -> $plan-review -> $plan-validate -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $plan -> $plan-review -> $plan-execute -> $seed-test-data -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-verify -> $workflow-review-changes -> $workflow-e2e --source=context -> $test -> $demo-guide -> $workflow-end -> $watzup
-
-> **Single-pass steps are self-loop-backed (convergence lives in the skill, not the sequence):** both `$artifact-review --type=spec-tests` occurrences appear once each in the flat sequence with no repeat wired — intentionally. (`$domain-entities-review` is not a parent step here; it runs inside the nested `$workflow-review-changes` occurrence.) Each carries the full `SYNC:double-round-trip-review` self-loop (review → validate findings → fix validated findings → full re-review until the current exit bar is clear; round-2 LOW-only findings are deferred), so a single sequence occurrence still converges without spinning on polish. The workflow relies on that per-skill loop; it does NOT re-list the step to force convergence. (Contrast the seven specialists in `$workflow-review-changes` steps 3–9, whose scoped-re-run note lives in that skill.)
-
-> **Severity-floor clarification:** the shared loop fixes only findings that block the current round. Round 1 fixes all validated findings; from round 2 onward, CRITICAL/HIGH/MEDIUM findings remain blocking, while LOW-only findings are recorded as deferred and never open another fix/re-review round.
-
-> **[BLOCKING]** Each step that runs MUST ATTENTION invoke its skill invocation; every other deviation follows the step contract above. NEVER batch-complete validation gates.
+Deliver a well-defined feature spec-first and test-first: the canonical Feature Spec states the intended behavior, test specs are written and reviewed before implementation, and the run ends with green tests, a converged change review and a spec re-verified against what was actually built. Use it when no canonical spec holds the requested behavior yet — this workflow updates the spec first. Spec-complete work goes to `workflow-implement-spec`; large, ambiguous or research-heavy work belongs in `workflow-big-feature`; a focused one-module change with no contract change is usually a custom-simple route, not this workflow.
 
 Activate the `workflow-feature` workflow. Run `$start-workflow workflow-feature` with the user's prompt as context.
 
-> **Spec check (before investigation):** If the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: list that resolved root to discover available app buckets or flat system folders; then probe its `{app-bucket}/` or `{system-name}/` subdirectory to find the specific service spec.
+## Size & Kind Triage (first action)
 
-**Steps:** $investigate → $spec-discovery → $domain-analysis → $why-review → $spec → $spec-clarify → $scenario → $plan → $plan-review → $plan-validate → $spec [mode=tests] → $artifact-review --type=spec-tests → $plan → $plan-review → $plan-execute → $seed-test-data → $spec [mode=tests] → $artifact-review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-verify → $workflow-review-changes → $workflow-e2e --source=context → $test → $demo-guide → $workflow-end → $watzup
+Classify the target before choosing steps and record the result in the run report:
 
-> **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH — DELEGATED]** The terminal `scan --target=domain-entities` → `docs-update` refresh is owned by the nested `$workflow-review-changes` occurrence: it runs the scan when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `domain-entities-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`), otherwise completes it with a cited skip reason. Do not repeat the scan in this workflow's tail.
->
-> **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), run `$performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `$plan-execute` even on the performance route — never skip it. If behavior can change, run `$test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
+| Axis                       | Values                                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Size (guidance, not a law) | **XS** 1–3 files / ≤100 changed lines · **S** ≤15 files · **M** ≤60 · **L** ≤300 · **XL** >300                                                                                                               |
+| Kind (one or more)         | docs-only · tooling/config · test-only · behavior change · public contract/API · data/schema/migration · security-sensitive (auth, secrets, money, PII) · UI surface · infra/CI · cross-module/cross-service |
+| Risk                       | irreversible · data · security · cross-module                                                                                                                                                                |
+| Large idea                 | `isLargeIdea = multipleIndependentOutcomes \|\| ambiguousOrResearchHeavy \|\| releaseScopeDecomposition \|\| oversizedPbiThatMustSplit` (`shared/product-roadmap-contract.md`)                               |
 
-> **[AI-SDD CLOSURE]** Before `$workflow-end`, confirm changed behavior, unchanged behavior, TCs/tests, docs and specs, and generated mirror sync are either completed or explicitly skipped with evidence.
->
-> **[AI-SDD CLOSURE — POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY)]** The `$spec` authored at step 6 (before `$plan`) captured _intended_ behavior. After `$plan-execute`, re-verify Feature Spec **§1-7** (not only §8 TCs) against what was _actually built_ and adjudicate every divergence per `shared/sdd-artifact-contract.md` → Drift Gates (`SYNC:spec-drift-adjudication`): **CODE-WRONG** → fix code/test against the spec; **SPEC-STALE** → run `$spec [update]` to record the new intended behavior, then `$spec [mode=tests] [update]` + `$spec [mode=sync]`; **AMBIGUOUS** → escalate to the spec owner. A feature that shipped behavior the spec does not describe leaves the spec stale and is NOT closure-ready. This re-verify is not optional cleanup — it is the "after implement, verify and create/update specs again" half of the SDD cycle.
+Escalate depth on risk and ambiguity, not file count alone:
 
-> **UI-intent maintenance (conditional)** — runs alongside the `$spec [mode=sync]` step, **only when the change carries user-facing behavior** (else state the skip reason — backend-only change, no §6 change). When user-facing behavior is present, run `$spec` (ui-intent intent) to refresh the affected Feature Spec **§6** interaction surface — View Inventory, Key UI States, and the per-story (`US-`/`OP-`/`BR-`) click-path the feature touched — and link the governing `$design-spec`/mockup in the spec frontmatter so §6 and the design artifact stay coupled to what was actually built. The rules live in the shared block below (`SYNC:ui-intent-layer`) — follow it; do not restate it here.
+- **XS/S, one module, clear intent** — light investigation; update only the affected spec sections; one plan with one lean plan review; no re-plan. Test specs and their review still precede the build. Work inline — sub-agents rarely pay off.
+- **M, or any public-contract, data/schema, security or cross-module kind** — every core step at full depth plus each optional step whose condition holds (`$scenario`, `$domain-analysis`, `$plan-validate`, ...).
+- **L/XL, or `isLargeIdea` true** — everything M runs, plus the embedded decomposition, the re-plan after test specs, and bounded batches per module or slice for the build, the test specs and the review (one report per batch). A research-heavy scope that cannot be cut into slices → recommend `workflow-big-feature` to the user.
+
+## Required Quality Gates
+
+The run is not done until each applicable gate holds with its evidence:
+
+| Gate                                                                                                                                    | Evidence that proves it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tests pass** (`tests-pass`)                                                                                                           | `$test` ran green in THIS run, with `$integration-test-verify` for the integration suite; every changed behavior maps to a §8 TC that names its `Business Intent / Invariant Guarded` and would fail if that intent broke; lifecycle behavior asserts persisted state transitions and invalid-transition rejection                                                                                                                                                                                                                                                                                |
+| **Review converged** (`review-converged`)                                                                                               | nested `$workflow-review-changes` ran inline in the main session and converged — validated blocking findings fixed and the fixed state re-reviewed                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Spec synced** (`spec-synced`, when behavior or a public contract changed)                                                             | Feature Spec §1-7 re-verified against the built behavior (the post-implementation re-verify is part of the gate, not optional cleanup); every divergence adjudicated per `SYNC:spec-drift-adjudication` in `shared/sdd-artifact-contract.md` → Drift Gates: CODE-WRONG → fix code/tests, SPEC-STALE → `$spec` update then the test-spec update and `$spec [mode=sync]`, AMBIGUOUS → escalate to the spec owner; §8 TCs ↔ test code synced                                                                                                                                                         |
+| **Run closed** (`run-closed`)                                                                                                           | `$workflow-end` checked every gate and emitted the Goal Satisfaction matrix                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Spec-first, test-first**                                                                                                              | the canonical Feature Spec was authored or updated before the first `$plan`; test specs were written and reviewed before `$plan-execute`                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Goal Contract**                                                                                                                       | the active Goal Contract is resolved at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the request); the plan's success criteria map to it before `$plan-execute`; every child step reads that same goal file; closure needs every criterion PASS, or BLOCKED with a user-facing escalation                                                                                                               |
+| **Plan Gate**                                                                                                                           | `$plan-execute` never starts while the plan's `## Plan Gate` is `BLOCKED` or lacks human approval                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Large idea** (when `isLargeIdea` is true)                                                                                             | the complete five-field `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) sits in the owning spec/PBI before the first mutating `$spec` and carries its slice IDs through downstream presentation/mock-up artifacts; all-false work omits it; a genuinely isolated brownfield change records `EXEMPT` with reason and accepting owner and keeps the spec, scenario, test, review and human-confirmation gates. This workflow never creates a roadmap artifact — an explicitly supplied roadmap is read-only context |
+| **Existing behavior preserved** (when an existing final output, persisted state, API response, projection or user-visible flow changes) | before the build: an end-to-start trace of the existing path (final reader → storage/projection → writer → producer/origin), its feeder paths, the invariants to keep, and forward proof for the new behavior; the plan and review evidence state expected, unchanged and no-regression behavior                                                                                                                                                                                                                                                                                                  |
+| **Performance route** (when the feature is a performance enhancement)                                                                   | `$performance-review` with SLA/benchmark evidence — target metric, baseline, measurement command, regression budget; `$plan-execute` still runs; functional no-regression checks run whenever behavior can change; spec/docs updated for a changed SLA, performance constraint or behavior boundary                                                                                                                                                                                                                                                                                               |
+| **UI intent** (when user-facing behavior changed)                                                                                       | alongside `$spec [mode=sync]`, the Feature Spec §6 interaction surface (View Inventory, Key UI States, per-story click-path) is refreshed per `SYNC:ui-intent-layer` and linked to the governing `$design-spec`; a backend-only change states its skip reason                                                                                                                                                                                                                                                                                                                                     |
+
+## Gates and Optional Steps
+
+**Step contract:** `$start-workflow` → Step Execution Protocol owns how gate, core and optional steps run and how every deviation is logged; this table is the registry's recommended order (`.claude/workflows.json` → `workflow-feature`) with this workflow's triage guidance. An optional step that does not run records its registry `skipReason` verbatim.
+
+| Step                                 | Role     | Earns its cost when                                                                                                                                              | Proves / feeds                            |
+| ------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `$investigate`                       | core     | always; read the affected area's spec under the business spec root first (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) and find 3+ local examples | plan evidence                             |
+| `$spec-discovery`                    | optional | specs or related code already exist for the affected area                                                                                                        | overlaps and missing TCs before authoring |
+| `$domain-analysis`                   | optional | the feature creates or changes domain entities                                                                                                                   | entity model, ownership                   |
+| `$why-review`                        | optional | the investigation or spec draft holds a real design choice                                                                                                       | design rationale                          |
+| `$spec`                              | core     | always — Feature Spec §1-7 before planning                                                                                                                       | spec-first gate                           |
+| `$spec-clarify`                      | optional | the authored spec leaves open or non-obvious decisions                                                                                                           | user-confirmed decisions                  |
+| `$scenario`                          | optional | replay, state, ownership or recovery risks need analysis                                                                                                         | plan risk coverage                        |
+| `$pbi-mockup --explore`              | optional | the requirement or spec adds completely NEW UI — a new page/view, component or dialog — see New-UI Explore Mockup below | selected mockup before planning           |
+| `$plan`                              | core     | always; XS/S keeps it short                                                                                                                                      | the plan, Plan Gate                       |
+| `$plan-review`                       | core     | always; XS/S runs one lean round                                                                                                                                 | plan quality                              |
+| `$plan-validate`                     | optional | the plan has decisions to confirm or lacks Plan Gate approval                                                                                                    | human plan approval                       |
+| `$spec [mode=tests]`                 | core     | always — every invariant mapped to TC IDs in §8                                                                                                                  | test-first gate                           |
+| `$artifact-review --type=spec-tests` | core     | always                                                                                                                                                           | test-spec quality                         |
+| `$plan`                              | optional | the reviewed test specs change the plan                                                                                                                          | re-plan                                   |
+| `$plan-review`                       | optional | the re-plan ran                                                                                                                                                  | re-plan quality                           |
+| `$plan-execute`                      | core     | always, the performance route included                                                                                                                           | the change                                |
+| `$seed-test-data`                    | optional | new entities or flows need development data                                                                                                                      | QC data                                   |
+| `$spec [mode=tests]`                 | optional | the build surfaced TC gaps or spec drift                                                                                                                         | TC completeness                           |
+| `$artifact-review --type=spec-tests` | optional | the post-build test-spec update ran                                                                                                                              | test-spec quality                         |
+| `$spec [mode=sync]`                  | core     | always — spec re-verify, §8 ↔ test code, §6 when user-facing                                                                                                     | spec-synced                               |
+| `$integration-test`                  | core     | always — tests from the TCs                                                                                                                                      | tests-pass                                |
+| `$integration-test-verify`           | core     | always                                                                                                                                                           | tests-pass                                |
+| `$workflow-review-changes`           | gate     | always                                                                                                                                                           | review-converged                          |
+| `$workflow-e2e --source=context`     | optional | the user explicitly asks for E2E work                                                                                                                            | E2E evidence                              |
+| `$test`                              | gate     | always                                                                                                                                                           | tests-pass                                |
+| `$demo-guide`                        | optional | the change has user-facing behavior                                                                                                                              | demo path                                 |
+| `$workflow-end`                      | gate     | always                                                                                                                                                           | run-closed                                |
+| `$watzup`                            | core     | always                                                                                                                                                           | handoff summary                           |
+
+**New-UI Explore Mockup (conditional, BEFORE `$plan`).** When the requirement or spec adds completely new user-facing UI — a new page/view, component or dialog — run the explore mockups (`$pbi-mockup --explore`). **Mockup scope gate first — BEFORE any analysis or drafting, so a skip saves tokens and time** (`pbi-mockup` Step 0): with ask the user directly available, ALWAYS ask 3 / 2 / 1 options or skip mockups (recommended option by scope; skip → record `Mockup: SKIPPED by user` and continue); without it, generate ONLY ONE mockup in the recommended direction, auto-select it and record `Selection: AUTO-SELECTED — no question tool (1 draft)` in the plan or run report. Then Journey Report (`UX-1`) + design-authority read (`UX-2`) → the chosen 1–3 direction drafts rendered with html-export → each opened in the default browser (`node .claude/scripts/open-report.cjs <draft>`) → with 2–3 drafts, ask the user directly with one option per draft, your evidence-backed recommendation first labelled `(Recommended)` → the user's pick (or the `Selection:` line) is recorded in `direction-approved.md` and the plan's UI Layout builds on the selected mockup. Never pick for the user while they can be asked; drafts cannot be shown or the question tool errors after drafting → AUTO-SELECT the recommended draft (best journey fit + design-system fit) and record `Selection: AUTO-SELECTED — <reason>` in `direction-approved.md` and the plan. Pass the spec (or the investigation report when no spec covers the UI yet) as `--source`. Changes inside existing views skip it with the registry `skipReason`.
+
+The registry's default order, parsed by the workflow verifier — keep it equal to `workflows.json`; the roles above decide what may flex:
+
+**IMPORTANT MANDATORY Steps:** $investigate -> $spec-discovery -> $domain-analysis -> $why-review -> $spec -> $spec-clarify -> $scenario -> $pbi-mockup --explore -> $plan -> $plan-review -> $plan-validate -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $plan -> $plan-review -> $plan-execute -> $seed-test-data -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-verify -> $workflow-review-changes -> $workflow-e2e --source=context -> $test -> $demo-guide -> $workflow-end -> $watzup
+
+**On-demand skills (not registry steps):**
+
+- `$design-spec --mode=wireframe` — UI work arrives with an image or wireframe: run it before `$plan`; a design link alone (e.g. a Figma URL) → ask the user to export the frames as images. When `$plan` finds frontend phases, include the `ui-wireframe-protocol.md` sections in them.
+- `$performance-review` — the performance route above.
+- `$debug-investigate` — a test fails and its cause is unknown; establish the root cause before editing either side.
+
+`$workflow-e2e --source=context` runs only on an explicit E2E request ("include E2E", "write E2E", "run E2E", "do end-to-end verification"); otherwise it records its registry skip reason. When it runs, its nested workflow keeps default-on screenshot review and records evidence-backed `N/A` or `ENVIRONMENT-BLOCKED` when the repository lacks the capability.
+
+## Orchestration Freedom
+
+You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate (pbi-mockup Step 0) and the post-generation pick run in the session that can ask the user — never inside a delegated sub-agent; only the direction-draft builders may be sub-agents. A sub-agent would silently fall back to one auto-selected draft even though the user could have been asked. Only these data dependencies are fixed:
+
+- a change exists before it is reviewed or tested; fixes are re-verified after they land;
+- the Feature Spec precedes the first `$plan`, and test specs are reviewed before `$plan-execute`;
+- `$spec [mode=sync]` runs before the review that checks it;
+- the nested `$workflow-review-changes` runs inline in the main session — it owns the session's review→fix→re-review loop, and its own reviewers run as sub-agents;
+- gates awaiting user approval (`$spec-clarify`, `$plan-validate`, Plan Gate approval) are never parallelized;
+- `$workflow-end` runs last, then `$watzup`.
+
+Recommended: independent read-only work (for example `$spec-discovery` beside a code investigation) in one parallel wave; L/XL partitioned into bounded batches per module or slice with one report per batch; XS/S done inline. The nested review owns `$integration-test-review`, `$security-review`, `$domain-entities-review`, `$experience-review` and the conditional domain-entity reference refresh (`$scan --target=domain-entities` → `$docs-update`, run when the final diff changes an entity, data contract or schema represented in `domain-entities-reference.md`); this workflow's tail does not repeat them. `$experience-review` records `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` honestly and never promotes a new expectation without explicit acceptance.
+
+## Memory & Reporting
+
+- One task per selected step (and per batch for L/XL) so nothing is lost after compaction; a step that does not run keeps its task, closed with its logged deviation.
+- Write the run report FIRST under `tmp/reports/` — triage result, gate evidence, deviations — and append per step or batch; re-read it and the current task list after compaction.
+- Sub-agent briefs carry the goal file path and the resolved reference-doc paths, and make report-writing their first deliverable.
+- Project conventions come from `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`; apply the shared SDD Artifact Contract (`shared/sdd-artifact-contract.md` in the active skills root). Any supported AI tool may implement or review once that contract, synced context and local docs are available. Code-extracted specs and TCs stay reference-only until canonical review accepts them.
+
+## Fix Path & Loop Bounds
+
+- Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
+- A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green.
+- Plan ceremony (`$plan` → `$plan-review`) for a fix set only when it is large, cross-module or ambiguous; a handful of validated local fixes are fixed directly.
+- Review loops (each `$artifact-review` occurrence, the nested review): round 1 fixes every validated finding; round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 2 rounds, +1 when a CRITICAL/HIGH stays open; failing tests are uncapped; escalate with ask the user directly on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
+- Spec-loop discipline: §8 derives invariant/property TCs for every hard rule and invariant, not only example scenarios; every behavior-changing finding updates BOTH the spec and the tests, never code alone.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -241,23 +232,11 @@ Activate the `workflow-feature` workflow. Run `$start-workflow workflow-feature`
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review. This workflow is spec-driven with tests by default: test specs (`$spec [mode=tests]`) are written and reviewed BEFORE implementation (`$plan-execute`), covering former TDD/test-first use cases.
-**IMPORTANT MUST ATTENTION Main steps:** investigate → spec/clarify → scenario → plan/review/validate → pre-implementation test specs → implement → integration/spec sync → review → optional near-end `workflow-e2e` on explicit request → security/test/docs/demo handoff; large ideas carry embedded decomposition and ordinary runs never create a roadmap file.
-**IMPORTANT MUST ATTENTION Workflow:** Execute `$investigate` → `$spec-discovery` → `$domain-analysis` → `$why-review` → `$spec` → `$spec-clarify` → `$scenario` → `$plan` → `$plan-review` → `$plan-validate` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → `$plan` → `$plan-review` → `$plan-execute` → `$seed-test-data` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → `$spec [mode=sync]` → `$integration-test` → `$integration-test-verify` → `$workflow-review-changes` (which owns `$domain-entities-review`, `$integration-test-review`, `$security-review`, the conditional `$scan --target=domain-entities` → `$docs-update` refresh, and `$experience-review`) → optional `$workflow-e2e --source=context` → `$test` → `$demo-guide` → `$workflow-end` → `$watzup`; preserve large-idea decomposition, Goal Contract, spec-drift, UI-intent, performance, and explicit conditional-skip gates.
-
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **End To Start Debugger Trace:** trace observed output backward; matrix hypotheses before fixing.
-- **Nested Task Creation:** expand child phases; link parent when nested.
-- **Critical Thinking:** trace every claim; confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Incremental Persistence:** append findings to report file; never hold in memory.
-- **Subagent Return Contract:** sub-agents return summary only; NEVER inline full output; report on disk.
-
-**IMPORTANT MUST ATTENTION** apply Phase 1 compression before structural enhancement; preserve semantic meaning.
-**IMPORTANT MUST ATTENTION** NEVER alter YAML frontmatter, code blocks, tables, or SYNC-tag bodies during optimization.
-**IMPORTANT MUST ATTENTION** keep evidence gates and mandatory workflow/skill steps explicit and enforceable.
-**IMPORTANT MUST ATTENTION** add a final review task to verify output quality and unresolved risks.
+**IMPORTANT MUST ATTENTION** triage size, kind and risk FIRST — depth follows risk and ambiguity, not file count; record the triage and every deviation.
+**IMPORTANT MUST ATTENTION** gates never flex: tests green in THIS run · nested `$workflow-review-changes` converged inline · Feature Spec re-verified and synced when behavior changed · Goal Satisfaction matrix at `$workflow-end`.
+**IMPORTANT MUST ATTENTION** spec before the first `$plan`, test specs reviewed before `$plan-execute`; a `BLOCKED` Plan Gate stops the build.
+**IMPORTANT MUST ATTENTION** large ideas embed the five-field `large_idea_decomposition`; this workflow never creates a roadmap artifact.
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence with confidence >80% to act; tests name the invariant they guard and fail when it breaks.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

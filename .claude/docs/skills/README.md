@@ -1,6 +1,6 @@
 # Skills Reference
 
-> <!-- COUNT:skills -->126<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->128<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->126<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->128<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -31,7 +31,7 @@ Skills Activated: fix, investigate
 | [Architecture](#architecture)                     | 2      | Architecture, performance, security            |
 | [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                    |
 | [Documentation](#documentation)                   | 3      | Docs, feature docs, release notes              |
-| [Git/Workflow](#gitworkflow)                      | 4      | Commits, branches, code review, quality gates  |
+| [Git/Workflow](#gitworkflow)                      | 5      | Commits, pull requests, code review, gates     |
 | [Code Quality](#code-quality)                     | 10     | Graph-based code analysis, blast radius, sync  |
 | [Planning/Research](#planningresearch)            | 5      | Plans, research, implementation, investigation |
 | [Context/Memory](#contextmemory)                  | 2      | Code cleanup, learning                         |
@@ -98,6 +98,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill                         | Triggers                                                | Description                                          |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | `commit`                      | commit, stage, save changes                             | Git commits; adds a `Fix-Origin:` trailer only when `commit.fixOriginTrailer` is `true` in `docs/project-config.json` (new commits only) |
+| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch from `pullRequest.targetBranch` (default `main`), `/workflow-review-changes --fix-loop` over the whole branch, commit, push, create or ready the PR, loop CI to green — in the main session, without asking |
 | `code-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
@@ -246,7 +247,7 @@ Set `disable-model-invocation: true` on a skill the model must never start on it
 
 - **Command-only utilities** — `ck-help`, `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-notes`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
 - **Mirror syncs** — `sync-codex`, `sync-opencode`: they rewrite generated folders, so only the user starts them.
-- **Other** — `product-roadmap`, and the `manual`-tier workflow wrappers `workflow-big-feature`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-spec-to-pbi`.
+- **Other** — `product-roadmap`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
 
 `commit` and `learn` stay model-callable by decision. `content-presence.test.cjs` (TC-ADS-008) fails when a command-only utility loses the flag or `commit`/`learn` gains it, and `migrate-claude-to-codex.test.mjs` (TC-ADS-009) checks the Codex policy file for each utility.
 
@@ -297,4 +298,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->126<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->128<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_

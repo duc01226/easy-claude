@@ -137,6 +137,7 @@ const ROUTE_MENTIONERS_NOT_SCANNED = new Set([
     'workflow-idea-to-pbi',    // workflow orchestrator: references the route in a gate step
     'plan-review',             // reviews plans with a parallel full-mode why-review sub-agent + the validate route on merged findings (not an SC grader)
     'spec-clarify',            // clarification gate: references the route, not a findings grader
+    'fix',                     // its --target=review branch CONSUMES findings already validated by the route; it fixes, it does not grade
     'integration-test-verify' // its optional --fix-loop mode is a convergence-loop orchestrator: runs the default verify pass + /integration-test-review report-only + /changes-review + /why-review --validate-findings + /fix; delegates finding-production to those reviewers, not itself an SC grader
 ]);
 

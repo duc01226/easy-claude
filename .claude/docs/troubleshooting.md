@@ -60,7 +60,7 @@ Do not copy project-owned context from one project into another. Regenerate it w
 
 2. Ask `/ck-help` for the current command and skill catalog.
 
-3. If the catalog is stale, regenerate it from the project root:
+3. If the catalog is stale, regenerate it from the project root. The catalog scripts need PyYAML, which is declared in `.claude/scripts/requirements.txt`. If PyYAML is missing, the script stops and prints the install command for the interpreter that ran it, for example `python3 -m pip install -r .claude/scripts/requirements.txt`. On Windows it prints the command for PowerShell. If that interpreter is externally managed (PEP 668: uv, Homebrew and recent Debian or Ubuntu Pythons), pip refuses to install into it, so the script instead prints how to create the framework's shared virtual environment at `tmp/claude-temp/.venv`, install into it, and put it first on `PATH`. The hook tests look up `python` (then `py -3`) on `PATH`, so they need that environment first on `PATH` too.
 
     ```bash
     # Windows

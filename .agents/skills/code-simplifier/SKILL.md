@@ -65,6 +65,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **Main steps, run in order:** (1) **Phase 0 Detect** target + scope from project config/source; (2) **Identify Targets** — recent git changes or named files, HARD-SKIP generated/migration/vendor; (3) **Analyze** via the 5 Simplification Dimensions, marking inapplicable ones N/A with a reason; (4) **Apply** one refactoring type at a time (KISS/DRY/YAGNI, behavior-preserving); (5) **Verify** related tests after EACH change; (6) **Self-Recursive Loop** (analyze→simplify→verify) until the current round's exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) or a no-progress/unsafe/owner-decision stop hits — do NOT spawn a fresh-context reviewer for your own findings; (7) **Self-Review Gate**.
 - **The 5 Simplification Dimensions (step 3):** readability · DRY/abstraction (compare real repetition; apply YAGNI) · responsibility based on the project's documented architecture and evidenced ownership · complexity reduction · persistence/query bounds on applicable changed paths only (otherwise N/A) — every technique answers ONE test: does this make the next change cheaper?
 - **Self-Review Gate (step 7) — this skill owns review of its own output:** when it changed any file, self-invoke `$code-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `$changes-review`); skip + log the reason when nothing changed. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
+- **`--report-only`:** read-only mode for a caller that owns every fix (e.g. a review skill's simplification dimension or a workflow review barrier) — steps 1–3 only, each finding with `file:line` + proposed change + behavior-preservation note, no edit of any file, no nested sub-agent, no user question, only the report written; see [Report-Only Mode](#report-only-mode---report-only).
 - **Read FIRST:** `code-review-rules.md` (anti-patterns/checklists) then `project-structure-reference.md`, both under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — before any modification.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan task to READ:
@@ -91,6 +92,19 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - Easy to Change is the primary simplification goal for source files; DRY, SOLID, abstraction, and patterns are valid only when they lower future edit sites or cognitive load
 - Tests pass after every change
 - Apply simplification only when certain it preserves behavior — NEVER apply when unsure
+
+## Report-Only Mode (`--report-only`)
+
+> **Use when** a caller needs simplification opportunities as findings without edits — e.g. a review skill running its simplification dimension, a workflow parallel review barrier, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every step applies unchanged.
+>
+> 1. **Run steps 1–3 only** (Phase 0 Detect → Identify Targets → Analyze). Apply, Verify, the Self-Recursive loop, and the Self-Review Gate do not run: edit NO file — source, test, config, or doc. The caller runs its own findings-validation gate and owns every fix and re-review. — why: a simplifier that edits inside a review barrier races the diff every sibling reviewer is reading.
+> 2. **Every finding carries:** `file:line` · the simplification dimension · the proposed change (concrete before → after, or the exact edit described) · a behavior-preservation note (the usages and consumers traced — grep and graph evidence — and why observable behavior stays unchanged) · severity per `SYNC:severity-rubric` · confidence. A proposal whose behavior preservation cannot be proven is reported as `behavior-change risk`, never as a safe simplification. — why: the fixer applies it later without this skill's trace, so the evidence must travel with the finding.
+> 3. **No nested fan-out.** Skip the `spawn_agent(agent_type="code-simplifier", ...)` execution path; analyze sequentially in this context. — why: this skill is already a leaf of the caller's fan-out.
+> 4. **No user questions.** Skip the Workflow Recommendation and Next Steps questions; an owner decision or material trade-off goes UNANSWERED into the returned summary for the caller to ask.
+> 5. **Write only the report** to `tmp/reports/code-simplifier-{date}-{slug}.md`, appended per file. A missing or stale project-reference doc is recorded as a `NOT VERIFIABLE` assumption — never a trigger to run a writer.
+> 6. **Return** the report path, findings grouped by severity, and every unconfirmed owner decision or material trade-off.
+>
+> For this mode the declared step order ends at step 3; stopping there is the mode's contract, not a skipped step.
 
 ## Phase 0: Artifact Detection
 
@@ -282,14 +296,16 @@ Used standalone (outside a review workflow), this self-review gate is sufficient
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use ask the user directly to ask user. Do NOT decide this is "simple enough to skip" — the user decides:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use ask the user directly to ask user. Do NOT decide this is "simple enough to skip" — the user decides. **EXEMPT** when invoked by a parent skill or workflow step, when running as a sub-agent, or under `--report-only` — the caller owns routing; ask nothing.
 >
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full changes-review restart gate → validated fix cycle (plan → plan-review → feature-implement) → re-review → docs
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full changes-review restart gate → validated fix cycle (findings validation → `$fix --target=review` → simplify → post-fix re-review) → docs
 > 2. **Execute `$code-simplifier` directly** — run standalone (this skill self-reviews its own changes via the Self-Review Gate)
 
 ---
 
 ## Next Steps
+
+> **EXEMPT** when invoked by a parent skill or workflow step, when running as a sub-agent, or under `--report-only`: return the result to the caller; skip ask the user directly.
 
 **MANDATORY — NO EXCEPTIONS** after completing, use ask the user directly:
 
@@ -463,7 +479,8 @@ Rules:
 - **MANDATORY IMPORTANT MUST ATTENTION** preserve ALL invariants — NEVER weaken, delete, or trivialize a property/mutation test guarding a `[HARD]` §4 rule or §5 invariant; a behavior change is a Dual-Feedback finding (feed spec AND tests, re-review) — report and stop, never ship silently. — why: green tests on a weakened bar are not a pass.
 - **MANDATORY IMPORTANT MUST ATTENTION** verify ALL affected outputs and tests pass after EACH change (apply one refactoring type at a time) — one build green ≠ all green. — why: multi-stack changes regress the stack you didn't check.
 - **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `$code-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `$changes-review` — it recurses into `$code-simplifier`); skip + log the reason when nothing changed. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
-- **MANDATORY** validate route decisions with the user by asking the user directly when outside a workflow — never auto-decide "simple enough to skip".
+- **MANDATORY** validate route decisions with the user by asking the user directly when outside a workflow — never auto-decide "simple enough to skip". EXEMPT when invoked by a parent skill, as a sub-agent, or under `--report-only` — the caller owns routing.
+- **MANDATORY IMPORTANT MUST ATTENTION** `--report-only` runs steps 1–3 only — edit NO file, no nested sub-agent, no user question; every finding carries `file:line` + proposed change + behavior-preservation note; write only the report and return it. — why: a mutator inside a read-only review barrier races the diff its siblings are reading.
 
 **Anti-Rationalization:**
 

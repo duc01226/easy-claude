@@ -53,6 +53,7 @@ const helpers = requireQuiet('../hooks/lib/session-init-helpers.cjs');
 const referenceRegistry = requireQuiet('../hooks/lib/project-reference-registry.cjs');
 const loader = requireQuiet('../hooks/lib/project-config-loader.cjs');
 const pathUtils = requireQuiet('../hooks/lib/ck-path-utils.cjs');
+const fileConventions = requireQuiet('../hooks/lib/file-conventions.cjs');
 
 /**
  * Segment-boundary root match. Shared normalizer when available; the inline fallback
@@ -124,6 +125,12 @@ function toRepoRel(p) {
     let s = String(p).replace(/\\/g, '/').trim();
     const root = PROJECT_DIR.replace(/\\/g, '/').replace(/\/+$/, '');
     if (root && s.toLowerCase().startsWith(root.toLowerCase() + '/')) s = s.slice(root.length + 1);
+    else if (path.isAbsolute(s) && fileConventions) {
+        // A differently-spelled absolute path (symlink, macOS /var -> /private/var) is in-project
+        // when its filesystem identity is; containment is owned by file-conventions.
+        const physical = fileConventions.toRepoRelative(s, PROJECT_DIR);
+        if (physical) return physical;
+    }
     return s.replace(/^\.\//, '').replace(/^\/+/, '');
 }
 

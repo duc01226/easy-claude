@@ -7,11 +7,11 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->126<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->128<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files deep-dive                                                           |
-| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->20<!-- /COUNT --> workflows                                             |
+| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->21<!-- /COUNT --> workflows                                             |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
 | **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
@@ -26,7 +26,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   126 skills across 15+ domains
+|-- skills/                   128 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
@@ -60,7 +60,8 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | -------------------------- | ------------------------------------ | ----------------------------- |
 | Implement a feature        | `/feature-implement`                 | `feature-implement`           |
 | Fix a bug                  | `/fix`                               | `debug-investigate`           |
-| Create a PR                | `/commit --push`                     | `commit`                      |
+| Create a PR, ready to merge | `/pull-request`                     | `pull-request`                |
+| Commit and push            | `/commit --push`                     | `commit`                      |
 | Understand code            | `/investigate`                       | `investigate`                 |
 | Plan implementation        | `/plan`                              | `plan`                        |
 | Run tests                  | `/test`                              | `test`                        |
@@ -123,6 +124,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | `domain-entities-reference.md`                               | Domain entity catalog, relationships, cross-service sync    |
 | [skill-naming-conventions.md](./skill-naming-conventions.md) | Skill naming rules and prefix guide                         |
 | [configuration/README.md](./configuration/README.md)         | Settings schema, permissions, hooks config                  |
+| [ux-journey-process.md](./ux-journey-process.md)             | Read FIRST when generating, planning or reviewing any user-facing surface — journey-first `UX-1`–`UX-11` (Journey Report, design-authority read), before [design-knowledge.md](./design-knowledge.md) (`DD-*`) and [design-review-checklist.md](./design-review-checklist.md) (`CL-*`) |
 
 ## Complete Guides (Large Reference Docs)
 
@@ -151,13 +153,13 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 126   |
+| Skills                 | 128   |
 | Hook files (top-level) | 23    |
 | Lib Modules            | <!-- COUNT:lib-modules -->46<!-- /COUNT --> |
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->23<!-- /COUNT --> |
-| Workflows              | 20    |
-| Hook Tests             | 133   |
+| Workflows              | 21    |
+| Hook Tests             | 135   |
 | Documentation Files    | 28    |
 
 ---

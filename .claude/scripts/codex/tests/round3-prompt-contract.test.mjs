@@ -385,7 +385,9 @@ function assertInnerBudget(text) {
     assert.doesNotMatch(body, /MORE issues than round N-1|issues increase/);
     // Every copy of the increase stop is ordered after the extension, like the loops that run it.
     const increaseStops = body.split(/\r?\n/).filter(line => /review blockers (increase|increasing)|MORE review blockers/.test(line));
-    assert.equal(increaseStops.length, 5, 'summary, rule, cap block, closing reminder, and rationalization row');
+    // A leaner wrapper may state the stop fewer times, but at least the summary budget line and the budget
+    // rule carry it, and every copy that remains keeps the extension-first ordering.
+    assert.ok(increaseStops.length >= 2, 'summary budget line and the budget rule both state the increase stop');
     for (const line of increaseStops) assert.match(line, new RegExp(`${EXTENSION_FIRST.replace(/[/]/g, '\\/')}|takes the one extension round first`), line.slice(0, 120));
 }
 

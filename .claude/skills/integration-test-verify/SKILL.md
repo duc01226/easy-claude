@@ -502,7 +502,7 @@ Each round has four halves — **verify finds, adjudication diagnoses, fix resol
 7. **CONDITIONAL — run `/changes-review` on the round's fix diff only when ANY fix landed.** Compare the tree with the FL-1.1 snapshot: unchanged → record `No fix applied this round — /changes-review skipped`; changed → run it on every round's fixes.
 
    - **Scope = exactly this round's changed files**, not the whole branch: source, tests, scenarios, specs/TCs since the FL-1.1 snapshot — why: prior reviews have not seen only these changes.
-   - **Run INLINE via `Skill`, REPORT-ONLY**; stop before Phase 7 self-fix, 7.5 holistic, and 8 docs-update (`changes-review/SKILL.md:63-65` workflow rows, `:205-207` task rows). NEVER dispatch as a sub-agent; its own Phase 0.7 reviewers remain sub-agents (`changes-review/SKILL.md` Phase 0.7 Step 2.5).
+   - **Run INLINE via `Skill`, REPORT-ONLY**; stop before Phase 7 self-fix, 7.5 holistic, and 8 docs-update (`changes-review` `--report-only` mode ends after Phase 5). NEVER dispatch as a sub-agent; its own Phase 0.7 reviewers remain sub-agents (`changes-review/SKILL.md` Scale Strategy).
    - **Validate, then fold findings into THIS round's fix set:** run `/why-review --validate-findings`; apply every VALIDATED finding at its owning layer. The next fresh full verify re-proves them; do NOT open a nested review→fix loop.
    - **Unfixable validated finding → STOP & escalate** via `AskUserQuestion` (FL-2); green tests do not close it.
    - This once-per-round diff review subsumes the `SOURCE-WRONG` routing obligation (On Test Failure Protocol step 6) and also covers test/spec fixes.

@@ -26,14 +26,17 @@ Connected contracts:
 
 **Summary:**
 
+- **Journey-first, BLOCKING order:** report the main user journeys (`UX-1`) → read the project's design principles, design system and existing UI (`UX-2`) → only then generate. `UX-*` runs before `UI-*`/`DD-*`/`CL-*`; catalog `.claude/docs/ux-journey-process.md`.
 - Identify the target platform, form factors, and input methods first. Keep accessibility checks in scope; use responsive behavior and device metrics only where the platform supports them.
 - Reuse configured design tokens and shared components when they exist. If no system is documented, follow the brief and observed platform patterns; do not invent shared tokens or components by default.
 - Follow the configured styling and class-naming convention; BEM is one optional method, never a default requirement.
 - Before handoff, verify applicable interaction states, accessibility, focus/input access, layout fit, motion preferences, and data-preservation expectations against project and platform guidance. Skip only when no user-facing surface is in scope, and state that explicitly.
 
-**Workflow:** Research → Design → Implement → Validate → Document (full steps in [Workflow](#workflow) below).
+**Workflow:** Journey Report (`UX-1`) → Design authority read (`UX-2`) → Low-fi structure (`UX-7`) → Design → Implement → Validate by walking (`UX-8`) → Document (full steps in [Workflow](#workflow) below).
 
 **Key Rules:**
+
+- **MUST ATTENTION** present the Journey Report (`UX-1`) and record the design authority read (`UX-2`) BEFORE any wireframe, plan, token table or UI code
 
 - **MUST ATTENTION** identify supported platforms, form factors, and input methods before choosing layouts or metrics
 - **MUST ATTENTION** apply the project's accessibility standard; when none is declared, use the established accessibility guidance for the target platform
@@ -62,15 +65,20 @@ Connected contracts:
 
 ## Workflow
 
-1. **Research** — understand requirements and platform, resolve configured design authority, then inspect existing components and interaction patterns where present
-2. **Design** — choose layout, typography, spacing, and interaction behavior for the target form factors and input methods; reuse the documented design system when configured
-3. **Implement** — use the platform's native UI and styling approach, applying responsive behavior and class naming only where relevant and documented
-4. **Validate** — check accessibility against the applicable standard, verify supported device/window conditions, and confirm consistency with the project design authority
-5. **Document** — update design guidelines, record decisions with rationale
+1. **Journey Report (`UX-1`)** — from spec, stories, business logic, existing UI and domain model: frame · actors + job statements · 3–5 ranked main journeys with step tables · derived requirements · assumptions, each claim `SOURCED`/`INFERRED`; confirm an inferred primary actor/job/outcome with the user (no question tool → record it `INFERRED — unconfirmed (no question tool)` and continue)
+2. **Design authority read (`UX-2`)** — resolve project config, then read design principles, design system, styling conventions, design ADRs and the related existing UI; record `Design authority read: <paths>` or `N/A`; identify platform, form factors and input methods
+3. **Low-fi structure (`UX-7`)** — sketch flow and views (ASCII is enough) where every view hosts a journey step (`UX-3`), rank information per decision point (`UX-4`), map rules to interaction and states (`UX-5`); walk the main journeys on it before any visual design
+4. **Design** — layer the Design Plan (`DD-3`) on the validated structure: layout, typography, spacing, and interaction behavior for the target form factors and input methods; reuse the documented design system when configured
+5. **Implement** — use the platform's native UI and styling approach, applying responsive behavior and class naming only where relevant and documented
+6. **Validate (`UX-8`)** — walk every main journey on the result and build the traceability matrix (step → view → element → tier → rule → states); measure interaction cost per journey and check wayfinding per view (`UX-9`, `UX-10`); then check accessibility against the applicable standard, supported device/window conditions, and consistency with the project design authority; close with the UI/UX Gate Report (`UX-11`) — every gate family `UX-*` · `UI-*` · `DD-*` · `CL-*` · UI copy `PASS` / `FAIL → fixed` / `N/A` with evidence
+7. **Document** — update design guidelines, record decisions with rationale
 
 ## Key Rules
 
 - **No guessing** — unsure? Say so. **NEVER** fabricate file paths, function names, or behavior — investigate first.
+- **MUST ATTENTION** Journey Report first (`UX-1`) — no design output before it exists — why: a screen designed before the user's job is known asks for the wrong thing at the wrong step
+- **MUST ATTENTION** derive information priority from each view's decision points (`UX-4`): one focal point, one primary action = the journey's next step; visual hierarchy implements the rank, never reshuffles it
+- **MUST ATTENTION** business rules become interaction (`UX-5`) — prevent with constraints, defaults, conditional visibility and permission-aware actions before reporting errors; design each step's failure → recovery path
 - **MUST ATTENTION** choose an initial layout priority from the brief's users, target devices, and primary tasks. Adapt to supported viewport/window sizes and orientations; do not impose browser breakpoints or mobile-first CSS on platforms that do not use them. If additional responsive work is a large scope change, surface it before implementation
 - **MUST ATTENTION** handle every UI state — every async surface (fetch/submit/mutation) shows a **loading** indicator (spinner/skeleton) while in-flight, a user-visible **error** with a retry/recovery path on failure, and a meaningful **empty** state for zero-item collections; disable submit controls in-flight to prevent double-submit; never a frozen blank, a silent failure, or a blank list
 - **MUST ATTENTION** accessibility — apply the project's standard or the applicable platform guidance; keep labels, semantics, focus, and assistive-technology access in scope
@@ -79,7 +87,7 @@ Connected contracts:
 - **ALWAYS** follow the configured styling convention; BEM is optional and applies only when selected by the project
 - Requirements unclear? Ask specific questions before proceeding — why: wrong assumptions waste more time than asking
 
-> **[BLOCKING] UI Pre-Completion Gate (IMPLEMENT role, `UI-*` clauses below).** Whenever you implement or hand off a component surface (Workflow steps 3–4), it is NOT done until each line below is VERIFIED — not intended, not "looks right". Report the verdict per item, naming the clause and citing `file:line`.
+> **[BLOCKING] UI Pre-Completion Gate (IMPLEMENT role, `UI-*` clauses below).** Whenever you implement or hand off a component surface (Workflow steps 5–6), it is NOT done until each line below is VERIFIED — not intended, not "looks right". Report the verdict per item, naming the clause and citing `file:line`.
 >
 > 1. **Cover applicable states** — verify the states named by the feature and the project's UI contract; do not require irrelevant states.
 > 2. **Use the adopted visual scale** — follow project tokens and platform sizing when documented; if absent, choose a coherent set for the target context and record its basis.
@@ -152,6 +160,7 @@ Use this convention only when `project-config.json`, project references, or near
 - Sacrifice grammar for concision
 - List unresolved questions at end
 - Cite `file:line` evidence for every finding (confidence >80% to act)
+- Every design hand-off ends with the UI/UX Gate Report (`UX-11`, `.claude/docs/ux-journey-process.md` §13); an unlisted gate counts as not checked, an open `FAIL` blocks hand-off
 
 <!-- SYNC:agent-bootstrap -->
 
@@ -809,6 +818,28 @@ Use this convention only when `project-config.json`, project references, or near
 
 <!-- /SYNC:review-principle-awareness -->
 
+<!-- SYNC:ux-journey-gate -->
+
+> **[BLOCKING] Journey-first UX gate (`UX-1`–`UX-11`) — binds on ANY task that generates, specifies, plans, mocks up or reviews a user-facing surface.** Catalog (process, templates, methods, sources): `.claude/docs/ux-journey-process.md`. Each clause is a CHECK: record `PASS` / `FAIL → fixed` / `N/A (reason)` with evidence; cite findings as `UX-<n>` + location.
+>
+> **Order is BLOCKING: (1) REPORT the main user journeys → (2) READ the project's design principles, design system and existing UI → (3) only then generate → (4) CHECK every UI/UX gate (`UX-11`).** No wireframe, mockup, design plan, token table or UI code before step 1's report exists.
+>
+> - `UX-1` **Journey Report first.** Frame (problem · business goal · success signal · constraints) · actors (context, expertise, frequency) with job statements · 3–5 main journeys ranked by frequency × value × risk × first-use · per journey a step table (intent · decision · information needed · business rule · response · failure → recovery) · derived requirements · assumptions. Evidence from spec, stories, business logic, existing UI — each claim `SOURCED (location)` or `INFERRED`; CONFIRM an inferred primary actor, main job or success outcome with the user; no question tool → record it as `INFERRED — unconfirmed (no question tool)` in the assumptions and hand-off and continue — never block.
+> - `UX-2` **Design authority read before generating.** Project design principles, design system (tokens, components, patterns), styling conventions, design ADRs, existing related UI — record `Design authority read: <paths>` or `N/A — none configured (checked: <paths>)`. Adopt house patterns; never invent what the project defines.
+> - `UX-3` **Screens are journey steps.** Every view hosts ≥1 step and names its primary task; every main-journey step lands on a view; container fits the task (dialog only for short focused tasks).
+> - `UX-4` **Important information first.** Per view, rank items by need-at-the-decision × frequency × cost-of-missing → Primary (the first read and first viewport: one focal point, ONE primary action = the journey's next step) · Secondary (visible, subdued) · On demand (progressive disclosure, always reachable) · Not here (owning view named). Front-load labels and headings so a scan of the first words finds the answer; never hide a high-cost-of-missing item on demand. Hierarchy implements the rank.
+> - `UX-5` **Business rules become interaction.** Prevent before reporting: constraints, defaults, conditional visibility, permission-aware and state-driven actions, undo over confirm, confirm only the irreversible, async feedback; each step's failure and recovery path and each view's empty/loading/error states designed.
+> - `UX-6` **Match the mental model.** User vocabulary · platform and house conventions · recognition over recall · few choices per decision · context carried across steps, never re-typed · accelerators for frequent experts.
+> - `UX-7` **Low-fi before hi-fi.** Walk the main journeys on a structural sketch before the `DD-3` Design Plan and visual design.
+> - `UX-8` **Walk the journeys.** Cognitive walkthrough per main journey on the result — does the user know the step is needed, see the action, link it to the goal, see progress? — plus a traceability matrix (step → view → element → tier → rule → states). Unserved step or orphan element = defect.
+> - `UX-9` **Interaction cost per journey, measured.** Record per main journey: steps · clicks/taps · view changes · fields typed · decisions · waits — against the existing flow or the spec. Remove, default, merge or defer every interaction that does not advance the job; frequent journeys get the shortest path, rare ones may sit deeper. Click count alone is not the bar (the "3-click rule" is a myth): every click must be CONFIDENT — its label predicts the destination (information scent).
+> - `UX-10` **Navigation and wayfinding.** Every view answers: where am I (current location marked), where can I go (labels in user words with strong scent), how do I get back or out (back/cancel/exit that keeps entered data). The navigation map has an entry for every journey, no dead ends or orphan views, works from a deep link, and keeps placement consistent; frequent destinations are one navigation action from where the journey starts.
+> - `UX-11` **All UI/UX gates checked before hand-off.** Close every design output with a **UI/UX Gate Report**: one row per gate — `UX-1`–`UX-10` · `UI-1.1`–`UI-9.4` (floor, applicable clauses) · `DD-1`–`DD-8` (identity) · `CL-1`–`CL-6` (full sweep for a review, at least the `CL-5` triage otherwise) · UI copy — each `PASS` / `FAIL → fixed` / `FAIL — open` / `N/A (reason)` / `NOT VERIFIABLE` (never a guessed measurement) with evidence. An open `FAIL` blocks hand-off; an unlisted gate counts as not checked.
+>
+> **Depth scales with scope, never to zero:** tweak → 3–5 line journey note + the gate rows it touches · new/reshaped view → 1–2 journeys · new flow → full report · product → per capability. Recreation modes (screenshot/video) still infer and report the journeys and record violations the walk exposes. **Precedence:** accepted product decisions and the project's specs, design principles, design system and ADRs → the brief → these clauses; surface genuine conflicts to the user, NEVER resolve silently. **Skip ONLY** with no user-facing surface — state the reason.
+
+<!-- /SYNC:ux-journey-gate -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
@@ -926,6 +957,12 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
 
+<!-- SYNC:ux-journey-gate:reminder -->
+
+- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
+
+<!-- /SYNC:ux-journey-gate:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Produce and review designs for the project's evidenced user-facing platforms, preserving accessibility, usability, and established visual language without imposing a web or styling stack.
@@ -951,6 +988,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 - **Fresh Context Review:** Fresh sub-agent re-reads; no bias.
 - **Source/Test Drift:** Source change → inspect affected tests.
 - **Graph-Assisted Investigation:** Run graph trace when graph.db exists.
+- **UX Journey Gate:** `UX-1`–`UX-11` run FIRST — Journey Report → design authority read → generate; walk every main journey at the end.
 - **UI/UX Design Principles:** 40 clauses `UI-1.1`–`UI-9.4`; IMPLEMENT role = the pre-completion gate in Key Rules; project design-system docs outrank them.
 
 **IMPORTANT MUST ATTENTION** include accessibility review for every user-facing surface using the project's standard and the target platform's semantics, focus, contrast, and assistive-input guidance — why: accessibility gaps ship silently and block real users.

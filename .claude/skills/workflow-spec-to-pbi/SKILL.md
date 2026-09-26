@@ -1,219 +1,105 @@
 ---
 name: workflow-spec-to-pbi
-version: 2.0.0
-description: '[Workflow] Use when converting canonical feature/spec artifacts in the project configured format into complete, prioritized, dependency-aware PBIs and stories.'
-disable-model-invocation: true
+version: 3.0.0
+description: "[Workflow] Use when converting canonical feature/spec artifacts in the project configured format into complete, prioritized, dependency-aware PBIs and stories."
+disable-model-invocation: false
 ---
 
 ## Quick Summary
 
-**Goal:** Convert canonical specs in the project's active artifact contract into a complete, prioritized, dependency-aware, sprint-ready PBI/story backlog with actor-facing outcomes, full UI flows, and evidence-backed review/sync gates.
+**Goal:** Convert existing canonical specs into a complete, dependency-ordered, prioritized, Definition-of-Ready PBI/story backlog — no implementation — with depth proportional to the spec's size and risk.
 
-**Summary:**
+**Purpose:** For PO/BA teams that already have canonical specs (one capability or a whole bucket) and need sprint-ready PBIs, including splitting a very large spec and identifying enabling work. Use `workflow-idea-to-spec` when no spec exists yet, `workflow-idea-to-pbi` for one informal idea, `workflow-code-to-spec` to create/update specs from code, `workflow-feature` / `workflow-big-feature` to build ready PBIs.
 
-- **Main steps:** investigate/index → applicability/domain/rationale → clarify/scenario → plan/review/validate → refine → PBI/story/challenge/DoR → mock-up/design-spec → prioritize → docs/presentation/handoff.
+- **Triage first** (capability count · kinds · freshness risk · `isLargeIdea`); it selects which recommended skills run. A 1–3 capability spec with no domain change skips the plan cycle, scenario and domain analysis.
+- **Gates never flex:** coverage, spec clarity, releasable outcome, artifact review, independent challenge, DoR, UI full-flow evidence, priority propagation, docs sync, close.
+- **[BLOCKING] Tech-agnostic output:** PBI / backlog / report prose follows `spec-principles.md` §3 in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — implementation names appear only in evidence fields, frontmatter and Mermaid.
+- Apply `.claude/skills/shared/sdd-artifact-contract.md` (AI-SDD Mandates M1-M7), `.claude/skills/shared/releasable-pbi-contract.md` and `.claude/skills/shared/product-roadmap-contract.md`.
 
-- Load and audit the canonical specs under the active artifact contract, then evaluate the shared `isLargeIdea` rule and apply its profile/local-reference-declared decomposition owner or the explicit isolated-change branch before decomposition.
-- Map native requirement, contract, test-evidence, domain-impact, and dependency intent to tech-agnostic PBIs and vertically sliced stories without minting replacement spec IDs.
-- Review, challenge, validate readiness, prioritize across PBIs, synchronize docs, and produce the backlog plus stakeholder evidence.
-- Every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/migration/setup work is attached enabling work, never a standalone PBI.
-- For UI PBIs, the mockup MUST be a navigable mock app containing every required page/view, navigation edge, common/domain/page component, applicable state, and full-flow demo; one isolated screen is a blocking failure.
+## Canonical Input Profile
 
-**Workflow:** Load/index → freshness audit → coverage/decomposition/domain gates → plan/review/validate → refine/review stories and PBIs → DoR + UI artifacts → prioritize → docs-update → presentation → close.
+Before loading or mapping a spec, read `docs/project-config.json` (`specRoots.business.path`, `workflowPatterns.featureDocTemplate`, `docsRoots.projectReference.path`, `specArtifacts` when declared), the configured template and the local `spec-system-reference.md` / `spec-principles.md`. Use the native paths, section roles, identifier formats, ownership model and evidence/test carriers they declare; code stays the technical source of truth and the canonical spec the requirements source — never create a second engineering-spec plane.
 
-**Key Rules:**
+- The portable `{Bucket}/README.{Feature}.md` tech-free 8-section spec (§3 US/AC, §4 BR, §5 ERD, §6 flows, §7 permissions, §8 `TC-` cases) is the fallback ONLY when neither a native profile nor a local artifact contract applies.
+- Carry native requirement, acceptance, rule and scenario IDs as the PRIMARY citation spine and declared evidence carriers as secondary traceability; never translate them into `FR-`/`BR-`, mint new IDs, synthesize a missing section or duplicate a case registry.
+- A missing/ambiguous spec path or owner → ask for the exact configured path. An unknown role, owner or test-evidence mapping is `UNKNOWN` and blocks that mapping — never treat it as absent or green.
 
-- **MUST ATTENTION** keep every PBI independently releasable and actor-facing; attach technical enabling work to a releasable outcome.
-- **MUST ATTENTION** preserve logical-ID citations, source evidence, full UI flows, priority propagation, and the final docs/presentation gates.
-- **NEVER** invent product scope, emit standalone technical PBIs, or skip freshness, review, validation, priority, or synchronization gates.
+## Triage — FIRST Action
 
-**Canonical input:** one project-owned canonical spec per capability under the configured business root. Resolve its native path and structure from `docs/project-config.json`, the configured template, and local spec references. The portable `{Bucket}/README.{Feature}.md`, tech-free 8-section Feature Spec is the fallback only when neither a native profile nor local artifact contract applies. Where implementation exists, code remains the technical source of truth; the canonical spec remains the requirements/behavior source. Do not create a second engineering-spec plane.
+Classify before choosing steps; write the result as the first section of the run report.
 
-**Primary outputs:**
+1. **Scale** — **1–3 capabilities**: inline, one task per capability and feature group · **4–10**: split by capability, then feature/operation group · **10+**: capability-group batches with coverage-matrix checkpoints. Any PBI over 8 story points splits (SPIDR) until ≤ 8.
+2. **Kinds** — new/changed entities, lifecycle or state transitions, cross-service ownership, data migration or seed needs (domain) · user-facing UI surface · implementation already exists (freshness risk) · security/PII/money.
+3. **Large spec** — evaluate `isLargeIdea`. True → read the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) from the role the native profile or local reference declares for slice plans and carry its stable slice IDs through every PBI, story, mockup and the all-PBI deck; if no role permits slice plans, mark the owner `UNKNOWN` and stop decomposition until resolved. All-false → omit the block and roadmap fields. Never create the product-roadmap artifact (default `docs/product-roadmap.md`; `docsRoots.productRoadmap.path` in `docs/project-config.json` overrides); a supplied roadmap is read-only context.
+4. **Risk & ambiguity** escalate depth (plan cycle, scenario), not spec length.
 
-Artifact paths below are relative to the team-artifacts root — default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.
+## Required Quality Gates (non-negotiable)
 
-- `pbis/{date}-pbi-{slug}.md` for each generated PBI — each carries its rank/priority in frontmatter (written back by `/prioritize`).
-- `backlog/spec-to-pbi-{date}-backlog.md` with priority order and dependency graph.
-- `pbis/{slug}-mockup.html` for each UI PBI (header surfaces the PBI priority/rank).
-- `design-specs/{date}-designspec-{slug}.md` for each UI PBI.
-- One standalone HTML stakeholder deck from `/feature-presentation` whose Scope & backlog slide surfaces each PBI's priority/rank.
-- `tmp/reports/spec-to-pbi-{date}-{bucket}.md` with coverage matrix and unresolved questions.
+| Gate                      | Evidence                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Triage recorded           | scale, kinds, freshness risk, `isLargeIdea` verdict in the run report                                                                                                                                                                                                                                                                                                            |
+| Source freshness known    | `/spec-index` audit result, or the cited reason no implementation exists to drift from; stale critical domain/contract/business-rule sections stop PBI generation until the user decides whether to update specs first                                                                                                                                                           |
+| Coverage                  | coverage matrix (`Spec Source · Capability · Feature/Operation · Domain Impact · Shared Dependency · PBI Type · Status`) maps every source feature/operation to exactly one of: generated releasable PBI · enabling task attached to a releasable PBI · existing PBI reference · out-of-scope with reason                                                                        |
+| Spec clarity              | `/spec-clarify` (gate) confirms every non-obvious, conflicting or high-impact decomposition decision with the user before any PBI is built; confirmed material changes route through `/spec [mode=update]` — it never re-authors the spec                                                                                                                                        |
+| Releasable outcome        | every PBI is one independently releasable actor-facing outcome with a complete entry-to-result journey; enabling/foundation/migration/setup work is attached and ordered before what it enables, never a standalone PBI                                                                                                                                                          |
+| M1-M5, M7                 | acceptance criteria are tech-agnostic, observable, single-interpretation GIVEN/WHEN/THEN; M7 demo test on each criterion's BODY — `Given` a state a user can arrange, `When` an action a user can take, `Then` an outcome a user can see; an invocation `When` or a schema/type/call-count `Then` fails as TECHNICAL-ONLY; AC count never derives from an architecture inventory |
+| Rationale reviewed        | `/why-review` on the domain/decomposition rationale is PASS, or WARN with user acknowledgment                                                                                                                                                                                                                                                                                    |
+| Artifact review converged | `/artifact-review --type=pbi` (gate) and the story review: validated blocking findings fixed and re-reviewed                                                                                                                                                                                                                                                                     |
+| Independent challenge     | `/pbi-challenge` run by a reviewer other than the drafter                                                                                                                                                                                                                                                                                                                        |
+| Definition of Ready       | `/dor-gate` PASS or WARN for every PBI                                                                                                                                                                                                                                                                                                                                           |
+| UI evidence               | UI PBIs: navigable mock app covering every required page/view, navigation edge, component, state, story and the full flow, plus `/design-spec`; one isolated screen fails. Backend-only: stated skip reason                                                                                                                                                                      |
+| Priority propagation      | `/prioritize` ranks all generated PBIs once and writes `priority:` + numeric rank into EACH PBI's frontmatter; mockup header and deck show the final value                                                                                                                                                                                                                       |
+| Docs synced               | `/docs-update` confirms canonical specs, their test/evidence carriers and project-declared derived indexes are updated or explicitly unchanged                                                                                                                                                                                                                                   |
+| Run closed                | `/workflow-end`, then `/watzup` handoff                                                                                                                                                                                                                                                                                                                                          |
 
-**Universal Rules:**
+No code changes here: the test-green gate does not apply.
 
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- **[BLOCKING] Tech-agnostic output:** PBI / backlog / report prose stays tech-agnostic per `spec-principles.md` §3, in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) — no framework/product/language/design-pattern names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
-- **[BLOCKING] Inherit M1-M5/M7 + source-ID carry:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. Every generated PBI MUST satisfy M1-M5 and M7. **M7 — business-visibility:** a PBI is a business-tree artifact, so apply the demo test to each acceptance criterion's BODY — *"what would a stakeholder SEE change?"*; no answer → FAIL as TECHNICAL-ONLY. Every `Given` = a state a user could arrange; every `When` = an action a user could take; every `Then` = an outcome a user could see. FAIL a `When` that is an invocation (a handler runs, a consumer receives, a job fires, data syncs) or a `Then` asserting schema/type/nullability/call-count, and NEVER derive a PBI's AC count from an architecture inventory. Judge the BODY, never the title or ID. **M1 governs vocabulary; M7 governs subject matter — a technical AC in impeccably tech-free prose satisfies M1 while violating M7**, and that gap is the most common way business specs rot. Carry the source profile's requirement, acceptance, rule, and scenario IDs as the PRIMARY citation spine, keeping its declared evidence carriers as secondary traceability. Do not translate native IDs into `FR-`/`BR-` or invent IDs. Generated acceptance criteria stay tech-agnostic and observable — one valid interpretation, named failure modes, no implementation details.
-- **[BLOCKING] Decomposition scope chain:** read `.claude/skills/shared/product-roadmap-contract.md`. For a large spec, carry the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`) through every generated PBI, story, mock-up, and the all-PBI presentation. For an isolated spec, omit the block and roadmap fields. An explicitly supplied roadmap is read-only context; only an explicit roadmap-deliverable request invokes the standalone writer.
-- **[BLOCKING] Releasable PBI contract:** read `.claude/skills/shared/releasable-pbi-contract.md`. Every generated PBI must name an actor-facing outcome, complete the entry-to-result journey, and carry evidence. UI PBIs must carry the complete page/view, navigation, component, state, and mock-app flow surface. A blocked gate cannot advance by assumption.
+## Recommended Skills
 
-## When to Use
+Skipping a step whose applicability is false, or that triage shows does no real work, is expected — log it (`when-false` / `intent-skip`) with evidence.
 
-- User wants to create all PBIs from an existing Feature Spec (or a bucket of them).
-- User wants to split a very large Feature Spec into small sprint-ready PBIs.
-- User wants a dependency-aware and priority-ranked backlog from the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides).
-- User wants shared/foundation tasks identified before feature PBIs.
+| Skill                                                                                                              | Earns its cost when                                                                                                                                           | Feeds                   |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `/investigate`                                                                                                     | always — locate canonical specs, catalog/index, related code                                                                                                  | input profile, coverage |
+| `/spec-index` (audit)                                                                                              | implementation exists or the spec was not synced against code this session                                                                                    | freshness               |
+| `/domain-analysis`                                                                                                 | a spec item implies new/changed entities, lifecycle, ownership boundaries or data migration; findings go under each affected PBI's `## Domain Impact`         | domain impact           |
+| `/why-review`                                                                                                      | always — challenge the domain/decomposition rationale before clarification                                                                                    | rationale gate          |
+| `/spec-clarify`                                                                                                    | always (gate)                                                                                                                                                 | spec clarity            |
+| `/scenario`                                                                                                        | slice risks need adversarial replay, state, ownership, recovery or evidence analysis; map proof to a PBI and native test-evidence ID or `deferred_work_owner` | risk coverage           |
+| `/plan` → `/plan-review` → `/plan-validate`                                                                        | large spec, 4+ capabilities or cross-capability dependencies                                                                                                  | slicing and order       |
+| `/refine`, `/artifact-review --type=pbi`, `/story`, `/artifact-review --type=story`, `/pbi-challenge`, `/dor-gate` | always, per coverage-matrix row that needs a new PBI                                                                                                          | review, challenge, DoR  |
+| `/pbi-mockup` → `/design-spec`                                                                                     | the PBI has a user-facing UI surface; both gated by `SYNC:existing-ui-research`                                                                               | UI evidence             |
+| `/prioritize`                                                                                                      | whenever PBIs were generated                                                                                                                                  | priority                |
+| `/docs-update`                                                                                                     | always, after prioritize                                                                                                                                      | docs synced             |
+| `/feature-presentation`                                                                                            | several PBIs, large spec, or stakeholders asked for a deck — then the Scope & backlog slide shows each PBI's rank                                             | stakeholder handoff     |
 
-## When Not to Use
+**Spec-hub coupling (UI PBIs):** the mockup and design-spec are companions of the interaction-intent owner the native profile or local contract declares; link them where the contract has a carrier (fallback: §6 surface and `design_spec:` / `mockup:` frontmatter). If the native spec has no interaction section or link carrier, keep the separate design spec and flag the missing relationship — never invent a numbered section.
 
-- Raw product vision without any Feature Spec -> use `/workflow-idea-to-spec` (then chain back here for the backlog).
-- One informal idea -> use `/workflow-idea-to-pbi`.
-- Spec creation/update only -> use `/workflow-code-to-spec` (from code) or `/workflow-idea-to-spec` (from an idea).
-- Implementation after PBIs are ready -> use `/workflow-feature` or `/workflow-big-feature`.
+**The PBI half matches `workflow-idea-to-pbi`:** PBI review → stories → challenge → DoR → mockup → design-spec → prioritize → docs-update → deck.
 
-## Protocol
+## Outputs
 
-### Canonical Input Profile
+Paths are relative to the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides).
 
-Before loading or mapping a spec, read `docs/project-config.json` fields `specRoots.business.path`, `workflowPatterns.featureDocTemplate`, `docsRoots.projectReference.path`, and `specArtifacts` when declared, plus its configured template and local `spec-system-reference.md` / `spec-principles.md`. Use the declared native paths, section roles, identifier formats, ownership model, and evidence/test carriers. The README, eight-section, `TC-`, and numbered-section examples below describe only the framework fallback when no native profile or local contract exists. Default TC cases retain Business Intent / Invariant Guarded, user-visible GIVEN/WHEN/THEN, Evidence, CoveredBy, and status. Never synthesize a missing section or duplicate a case registry. Map intent, contracts, acceptance, test evidence, dependencies, and applicable UI intent from native roles. If a required owner/role or test-evidence mapping is unknown, stop that mapping as UNKNOWN and clarify; do not treat it as absent or green.
+- `pbis/{date}-pbi-{slug}.md` per PBI — native ID citations, `file:section` evidence, GIVEN/WHEN/THEN AC, story points and complexity, dependencies (`must-before` / `can-parallel` / `blocked-by` / `independent`), priority input, test/evidence needs mapped to the declared carrier, domain impact, enabling-task references, Releasable Outcome Gate evidence (actor, outcome, journey, visible/persisted truth, access/failure/recovery, non-goals), UI inventory or no-UI reason, and `priority` frontmatter.
+- `pbis/{slug}-mockup.html` and `design-specs/{date}-designspec-{slug}.md` per UI PBI.
+- `backlog/spec-to-pbi-{date}-backlog.md` — rank and recommended order, dependency graph, first-do/blocked/defer groups, enabling work ordered with the PBIs it enables, RICE or MoSCoW rationale, DoR status per PBI, open questions.
+- The `/feature-presentation` deck when it runs, and `tmp/reports/spec-to-pbi-{date}-{bucket}.md` with the coverage matrix and unresolved questions.
 
-### 1. Activate
+## Orchestration, Memory & Fix Path
 
-Run `/start-workflow workflow-spec-to-pbi` with the user's prompt as context.
+- **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality; 1–3 capabilities run inline; 10+ capabilities run in bounded capability-group batches, one report section per batch. Fixed dependencies: freshness and clarification precede decomposition; a PBI exists before it is reviewed; `/prioritize` runs once after every PBI loop finishes; `/docs-update` follows it; gates awaiting user answers are never parallelized; `/workflow-end` runs last. When `/prioritize` changes a rank after a mockup was built, refresh the mockup's priority badge.
+- **Memory:** one task per selected step (per capability group when batched). Create `tmp/reports/spec-to-pbi-{date}-{bucket}.md` first, append after each capability/feature, and re-read it plus `TaskList` after compaction; never hold all PBIs in memory. Sub-agent briefs make report writing their first deliverable.
+- **Fix path:** findings are validated before fixing; fix in the owning artifact (`/refine` for the PBI, `/story` for stories, `/spec [mode=update]` for confirmed spec changes) and re-run the reviewer that raised it.
+- **Loop bounds:** round 1 zero findings, or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); on no progress escalate via `AskUserQuestion`.
 
-### 2. Load Spec Context
-
-Locate and read, per target capability:
-
-Resolve the business spec root and canonical artifact path from project configuration and local artifact references; use the framework config loader's fallback only when neither declares a canonical root.
-
-- The project-declared catalog/index when one exists — capability ownership and completeness.
-- The canonical project spec — map its native-contract-defined roles: intent and acceptance to PBI scope/outcomes; contracts and lifecycle/permission/data rules to PBI constraints/domain impact; source identifiers and test/evidence carriers to traceable PBI test needs. Use the §1–§8 / `US-`/`BR-`/`TC-` mapping below only for the no-native-contract default.
-
-- `large_idea_decomposition` from the source spec's profile/local-reference-declared slice-planning role and supporting evidence when the spec is large. If neither the native profile nor local artifact reference identifies a role that permits slice plans, mark the owner UNKNOWN and stop decomposition until the mapping is resolved; do not invent a section or move the block. If an explicit roadmap path is supplied, read it as context and verify its approval; do not create or update one. Run `/scenario` conditionally when slice risks require it.
-
-If the canonical spec path or owner is missing or ambiguous, ask for its exact configured path before generating PBIs.
-
-### 3. Freshness Gate
-
-Run `/spec-index` in audit mode before PBI generation.
-
-- If stale behavior is found, run/update the impacted spec sections before generating PBIs.
-- If only structural/doc formatting is stale, record the risk and continue.
-- If critical domain/API/business-rule sections are stale, stop and ask whether to update specs first.
-
-### 4. Coverage Matrix
-
-Create a matrix with one row per independently deliverable item:
-
-| Spec Source      | Capability     | Feature/Operation | Domain Impact             | Shared Dependency | PBI Type                                      | Status  |
-| ---------------- | -------------- | ----------------- | ------------------------- | ----------------- | --------------------------------------------- | ------- |
-| `{Feature §sec}` | `{capability}` | `{feature}`       | entity/state/event/API/UI | yes/no            | releasable feature / enabling task / existing reference / out-of-scope | planned |
-
-Every source feature/operation must map to exactly one of:
-
-- Generated releasable PBI
-- Enabling task attached to a releasable PBI (not a standalone PBI)
-- Existing releasable PBI reference
-- Explicit out-of-scope decision with reason
-
-### 5. Large Spec Decomposition
-
-Apply these scale rules before creating PBIs:
-
-| Scope                      | Required Breakdown                                                    |
-| -------------------------- | --------------------------------------------------------------------- |
-| 1-3 capabilities           | Process inline with one task per capability and feature group         |
-| 4-10 capabilities          | Split by capability, then feature/operation group                     |
-| 10+ capabilities           | Incremental capability-group batches with coverage matrix checkpoints |
-| Any PBI > 8 story points   | Split with SPIDR until each PBI is <= 8 story points                  |
-| Cross-cutting prerequisite | Attach enabling work to the dependent releasable PBI, or define a separate actor-facing releasable outcome; never emit a technical-only PBI |
-
-### 6. Domain Analysis Gate
-
-Run `/domain-analysis` when any spec item includes:
-
-- New or changed entities, aggregates, value objects, or ownership boundaries
-- State machines or lifecycle transitions
-- Cross-service event ownership or synchronization
-- Data migration or seed/test-data needs
-
-Record domain findings in each affected PBI under `## Domain Impact`.
-
-### 7. PBI Generation Loop
-
-For each matrix row that needs a new PBI:
-
-1. Run `/refine` to create the PBI artifact and pass its Releasable Outcome Gate.
-2. Run `/artifact-review --type=pbi` and fail any technical-only, incomplete-journey, or missing UI-surface PBI.
-3. Run `/story` to create vertical-slice stories.
-4. Run `/artifact-review --type=story`.
-5. Run `/pbi-challenge`.
-6. Run `/dor-gate`.
-7. Run `/pbi-mockup` only when UI is involved. The generated mockup MUST be a navigable multi-view mock app covering the full outcome flow, required components/states, and all stories; it MUST also surface the PBI's priority/rank (header badge) so the prototype carries the same priority info as the backlog.
-8. Run `/design-spec` only when UI is involved (after `/pbi-mockup`) — mirrors `workflow-idea-to-pbi` so the spec→pbi half is step-for-step IDENTICAL.
-
-> **Spec-hub coupling (native interaction intent ↔ UI artifacts):** for UI PBIs, `/pbi-mockup` and `/design-spec` are companions to the interaction-intent owner declared by the native profile or local artifact contract and must stay linked where the project contract supports that carrier. Use §6's View Inventory / Navigation Map / Key UI States / per-story click-path and `design_spec:` / `mockup:` frontmatter only with the fallback profile. If the native spec has no interaction section or link carrier, preserve the separate UI design spec and flag the missing relationship; do not invent a numbered section. Keep deep visual fidelity in the mockup/`design-spec`. See the `SYNC:ui-intent-layer` block below for the common quality gate. Backend-only PBIs → skip `/pbi-mockup` + `/design-spec` and state that reason.
-
-Each PBI MUST include:
-
-- Native requirement, acceptance, rule, and scenario IDs carried from the source spec as the primary citation spine; do not translate or mint replacement IDs.
-- Source spec references with `file:section` evidence (secondary, re-anchorable carrier — KEEP).
-- GIVEN/WHEN/THEN acceptance criteria — tech-agnostic and observable (M1/M4).
-- Story points and complexity.
-- Dependencies table with `must-before`, `can-parallel`, `blocked-by`, or `independent`.
-- Priority input data for `/prioritize`.
-- Test specification needs, including categories mapped to the source's declared test/evidence carrier.
-- Domain impact and enabling-task/dependency references; shared/foundation work is never emitted as a standalone technical-only PBI.
-- Releasable Outcome Gate evidence: actor, observable outcome, entry-to-result journey, visible/persisted truth, applicable access/failure/recovery behavior, and explicit non-goals.
-- For UI: page/view inventory, navigation map, common/domain/page component inventory, applicable states, and full-flow mock-app evidence; backend-only: explicit no-UI reason.
-
-### 8. Cross-PBI Prioritization
-
-After all PBI loops finish, run `/prioritize` once across the full generated set. `/prioritize` is NON-OPTIONAL whenever PBIs were generated — a backlog without priority is incomplete.
-
-The backlog artifact MUST include:
-
-- Rank and recommended implementation order.
-- Dependency graph and first-do/blocked/defer groups.
-- Required enabling work is attached to and ordered with the releasable PBIs it enables; never emit a standalone technical/foundation/setup/migration PBI.
-- RICE or MoSCoW rationale.
-- DoR status per PBI.
-- Remaining open questions.
-
-**PRIORITY PROPAGATION (MANDATORY):** `/prioritize` MUST write the resulting rank/priority back into EACH PBI's frontmatter (`priority:` + numeric rank), not only into the standalone backlog file. Every generated PBI carries its own priority so downstream consumers (`/pbi-mockup`, `/feature-presentation`) can surface it without re-deriving the ranking.
-
-### 8.5 Near-Final Documentation Synchronization
-
-Run `/docs-update` after `/prioritize` and before `/workflow-end`.
-
-Purpose:
-
-- Sync generated PBIs/stories/backlog outputs back into the canonical specs where applicable.
-- Sync the canonical spec's configured test/evidence carriers with the generated PBI test needs.
-- Verify canonical specs, configured test/evidence carriers, project-declared derived indexes/catalogs, and TDD/test docs do not drift after PBI generation.
-- Record skipped sub-phases explicitly when no impacted docs exist.
-
-### 8.6 Stakeholder Presentation
-
-Run `/feature-presentation` after `/docs-update` and before `/workflow-end` — mirrors `workflow-idea-to-pbi` so the spec→pbi half is step-for-step IDENTICAL.
-
-The standalone HTML deck MUST:
-
-- Synthesize the generated PBIs, stories, mockups, and design-specs into one stakeholder presentation.
-- Surface each PBI's **priority/rank** in the Scope & backlog slide (ranked order + priority label per PBI card), reusing the priority written back into PBI frontmatter by `/prioritize` and the ranked backlog artifact.
-
-### 9. Completion Criteria
-
-Workflow can close only when:
-
-- Every spec source item is represented in the coverage matrix.
-- Every generated PBI has dependency and priority fields.
-- `/prioritize` has run and written rank/priority back into EACH PBI's frontmatter (priority propagation), not just the standalone backlog.
-- Every generated PBI passes the Releasable Outcome Gate; enabling/foundation work is attached to a releasable outcome and ordered before the behavior it enables, never emitted as a technical-only PBI.
-- Domain-analysis findings are attached where domain changes are implied.
-- The final backlog artifact ranks all PBIs and explains what to do first.
-- `/docs-update` has run as the near-final sync gate, with native spec/test-evidence carriers and project-declared derived indexes either updated or explicitly marked unchanged.
-- The generated PBIs carry the complete decomposition block and stable slice/dependency IDs when the spec is large; scenario proof is mapped to the appropriate PBI and native test-evidence ID or recorded in `deferred_work_owner`. No separate roadmap artifact is required.
-- `/feature-presentation` has run, producing one standalone HTML deck whose Scope & backlog slide surfaces each PBI's priority/rank.
+---
 
 **IMPORTANT MANDATORY Steps:** /investigate -> /spec-index -> /domain-analysis -> /why-review -> /spec-clarify -> /scenario -> /plan -> /plan-review -> /plan-validate -> /refine -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /prioritize -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
 
-> **Conditional step:** `/scenario` runs only when the selected decomposition/slice risks need adversarial replay, state, ownership, recovery, or evidence analysis.
+**Step contract:** the list above is the recommended default order from `.claude/workflows.json`; steps follow `/start-workflow` → Step Execution Protocol — `gate` steps (`spec-clarify`, `artifact-review --type=pbi`, `dor-gate`, `workflow-end`) always run, `optional` steps run when their `applicability.when` holds, and every skip, merge, simplification or reorder is logged with evidence. NEVER batch-complete validation gates.
 
-**Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
+Activate with `/start-workflow workflow-spec-to-pbi` and the user's prompt as context.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -259,25 +145,10 @@ Workflow can close only when:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Convert canonical project specs under their configured artifact contract into a complete, prioritized, dependency-aware, sprint-ready PBI/story backlog with actor-facing outcomes, full UI flows, and evidence-backed review/sync gates. The portable 8-section/README/TC contract applies only when neither a native profile nor local artifact contract exists.
-**IMPORTANT MUST ATTENTION Main steps:** `/investigate` → `/spec-index` (audit freshness) → `/domain-analysis` → `/why-review` → `/spec-clarify` → conditional `/scenario` → `/plan` → `/plan-review` → `/plan-validate` → `/refine` → `/artifact-review --type=pbi` → `/story` → `/artifact-review --type=story` → `/pbi-challenge` → `/dor-gate` → conditional `/pbi-mockup` → conditional `/design-spec` → `/prioritize` → `/docs-update` → `/feature-presentation` → `/workflow-end` → `/watzup`. **NEVER** skip coverage, releasable-outcome, priority-propagation, or synchronization gates.
+**IMPORTANT MUST ATTENTION Goal:** a complete, dependency-ordered, prioritized, DoR-ready PBI/story backlog from canonical specs — depth proportional to the spec, gates never skipped.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **Nested Task Creation:** Expand child phases under workflow rows; link parent when nested.
-- **Critical Thinking:** Apply critical/sequential thinking; trace every claim, confidence >80%.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Incremental Persistence:** Append findings to report file per file; never hold in memory.
-- **Subagent Return Contract:** Sub-agents return summary plus report path only, no transcripts.
-
-- **MUST** use the project's canonical specs under their active artifact contract as input; do not invent unrelated opportunities.
-- **MUST** decompose large canonical specs into small PBIs before story generation.
-- **MUST** include dependency, priority, domain impact, and shared-task details.
-- **MUST** apply `.claude/skills/shared/releasable-pbi-contract.md`: no standalone technical/foundation/migration/setup PBI; enabling work belongs under a releasable outcome.
-- **MUST**, for UI PBIs, carry the complete page/view inventory, navigation map, common/domain/page components, applicable states, and a navigable full-flow mock-app outcome; one isolated screen is a FAIL.
-- **MUST** write artifacts incrementally after each capability/feature.
-- **MUST** run `/prioritize` once at the end across all generated PBIs, and write the resulting rank/priority back into EACH PBI's frontmatter (priority propagation) — not only the standalone backlog.
-- **MUST**, for UI PBIs, run `/pbi-mockup` then `/design-spec` (both UI-conditional) — mirrors `workflow-idea-to-pbi` so the spec→pbi half is step-for-step IDENTICAL.
-- **MUST** surface each PBI's priority/rank in the `/pbi-mockup` generated files (header badge) and in the `/feature-presentation` deck (Scope & backlog slide).
-- **MUST** run `/docs-update` after `/prioritize` and before `/workflow-end` to keep specs, feature docs, and TDD/spec docs synchronized.
-- **MUST** run `/feature-presentation` after `/docs-update` and before `/workflow-end` to synthesize a single standalone stakeholder deck.
+- **MUST ATTENTION** triage first (scale · kinds · freshness · `isLargeIdea`) and record it; skip domain analysis, scenario and the plan cycle only with logged evidence.
+- **MUST ATTENTION** keep every gate: coverage matrix, `spec-clarify`, releasable outcome + M7, `artifact-review --type=pbi`, independent `pbi-challenge`, `dor-gate`, UI full-flow mock app + design-spec, priority written into every PBI's frontmatter, `docs-update`, `workflow-end`.
+- **MUST ATTENTION** carry native IDs as the citation spine; never mint IDs, invent sections or emit a standalone technical PBI.
+- **MUST ATTENTION** large specs carry the complete `large_idea_decomposition` block (`outcome_slices` … `deferred_work_owner`); never create a roadmap artifact by default.
+- **MUST ATTENTION** one task per selected step, report file first and appended per capability; tech-agnostic prose.

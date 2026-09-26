@@ -376,14 +376,12 @@
   },
   "includeCoAuthoredBy": false,
   "permissions": {
-    "allow": ["Edit(.claude/**)", "Bash(tmp/**)", "Edit(tmp/**)", "Read(tmp/**)", "Bash(git push:*)"],
-    "ask": [
-      "Bash(npm publish:*)",
-      "Bash(docker push:*)",
-      "Bash(git push --force:*)",
-      "Bash(*git push --force*)",
-      "Bash(git push -f:*)",
-      "Bash(*git push -f*)",
+    "allow": [
+      "Edit(.claude/**)",
+      "Bash(tmp/**)",
+      "Edit(tmp/**)",
+      "Read(tmp/**)",
+      "Bash(git push:*)",
       "Bash(git reset:*)",
       "Bash(*git reset*)",
       "Bash(git clean -fd:*)",
@@ -401,7 +399,15 @@
       "Bash(git restore .)",
       "Bash(*git restore .)",
       "Bash(git restore --staged:*)",
-      "Bash(*git restore --staged*)",
+      "Bash(*git restore --staged*)"
+    ],
+    "ask": [
+      "Bash(npm publish:*)",
+      "Bash(docker push:*)",
+      "Bash(git push --force:*)",
+      "Bash(*git push --force*)",
+      "Bash(git push -f:*)",
+      "Bash(*git push -f*)",
       "Edit(**/.git/**)",
       "Edit(.git/**)",
       "Edit(**/.env!(.example))",

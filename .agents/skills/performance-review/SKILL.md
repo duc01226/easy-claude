@@ -580,7 +580,7 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 **Protocol:**
 
 1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
-2. Fix only findings that survived `$why-review --validate-findings`; if this skill is running inside a workflow, route implementation through the parent `$plan` + `$feature-implement` flow.
+2. Fix only findings that survived `$why-review --validate-findings`; if this skill is running inside a workflow, route implementation through the caller's fix step; standalone, apply it with `$fix --target=review`.
 3. Re-measure or run the verification command named in the finding.
 4. Restart the full `$performance-review` review from Phase 0 over the complete current target, not only the fixed files.
 5. The restarted pass MUST create brand-new review tasks, re-detect scope, rediscover local context, rerun baseline/graph/profiler checks where applicable, and analyze all dimensions again from the beginning.

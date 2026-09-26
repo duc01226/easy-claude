@@ -10,11 +10,12 @@ Render-side reference for `pbi-mockup`. Governs the **scripted clickable prototy
 
 ## §1. Flow-Spec Schema
 
-The planning step (`SKILL.md` Step 2b) fills ONE flow-spec per main user story — the MVP happy path. The flow-spec is the single source the engine renders; regenerate the prototype from it whenever the PBI's design/flow changes (cheap to re-author, avoids drift).
+The planning step (`SKILL.md` Step 2c) fills ONE flow-spec per main journey of the Step 2a Journey Report (`UX-1`) — the MVP happy path of each main user story. The flow-spec is the single source the engine renders; regenerate the prototype from it whenever the PBI's design/flow changes (cheap to re-author, avoids drift).
 
 | Field      | Meaning                                                                                          |
 | ---------- | ------------------------------------------------------------------------------------------------ |
 | `id`       | Stable flow id (`flow-create-goal`) — also the `data-flow` attribute on the rendered screens.    |
+| `journey`  | The Journey Report journey this flow demonstrates (`J1`) — every main journey has ≥1 flow-spec.  |
 | `title`    | Business-language journey name ("Create a goal") — tech-agnostic prose (M1/M2).                   |
 | `persona`  | Who drives it ("Team member tracking objectives").                                               |
 | `trigger`  | The entry condition / where the journey starts ("Opens the Goals list").                         |
@@ -33,6 +34,7 @@ Each `steps[]` item:
 
 ```yaml
 id: flow-create-goal
+journey: J1
 title: Create a goal
 persona: Team member tracking objectives
 trigger: Opens the Goals list (empty or populated)
@@ -265,6 +267,7 @@ The prototype is an **illusion of behavior**, not behavior — it conveys "how i
 The checklist `SKILL.md` Step 8 (Demo-Quality Review Gate) enforces. Record `Demo quality: PASS | FAIL`.
 
 - [ ] **Every main-story flow clicks end-to-end** — each flow-spec's `steps[]` reach the `endState` via real hotspots; no path dead-ends.
+- [ ] **Journey walkthrough + traceability (`UX-8`)** — every Journey Report main journey walked on the prototype (knows the step is needed · sees the action · links it to the goal · sees progress); traceability matrix has no unserved step and no orphan element.
 - [ ] **No dead controls** — every button/hotspot advances the demo or is visibly disabled-with-tooltip.
 - [ ] **Narration present + tech-agnostic** — every step shows its `explain`; copy is business-language (M1/M2), not class names.
 - [ ] **"⚠ Simulated" banner present** — illustrative-data scope guard visible on every flow.

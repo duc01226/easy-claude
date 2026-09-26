@@ -52,6 +52,8 @@ Do not begin checks until these are known or explicitly marked `UNKNOWN`:
 
 If fewer than four of these are known, state the gap at the top of the report and mark affected findings as **low confidence**.
 
+**Journey Report first.** When a Journey Report (`UX-1`, `.claude/docs/ux-journey-process.md`) exists for the surface, take the primary user, expertise, primary task and success metric from its actors, job statements and ranked main journeys instead of re-deriving them. The journey check itself is `UX-8` — walk every main journey on the surface and trace step → view → element → tier → rule → states; report an unserved step or orphan element once, under the ID the consuming skill already uses.
+
 ### 0.2 Agent conduct rules
 
 1. **Evidence or nothing.** Every finding cites a specific location (screen name, element, file, line, coordinates). No finding may be inferred from a screen you did not see.

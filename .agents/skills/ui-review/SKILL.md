@@ -82,29 +82,49 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 **Workflow:**
 
-1. **Phase 0: Load UI Rules** — Resolve applicable project UI references and accepted ADRs; record N/A where a styling or design-system category does not apply
+1. **Phase 0: Load UI Rules** — Resolve applicable project UI references and accepted ADRs; record N/A where a styling or design-system category does not apply; load the journey-first gate (`UX-*`) and record the journey source (spec / design-spec / PBI, or none)
 2. **Phase 1: Determine Scope** — Changed UI files (default) or user-specified scope, then expand to affected SURFACES (pages / views / dialogs that render them)
 3. **Phase 2: Blast Radius** — Run graph trace if graph.db exists; its upstream edges feed the surface map
 4. **Phase 2B: Surface Composition** — Per surface: component tree, style-origin map (own · ancestor layout & stacking context · global/theme/reset · scoping mode), render + computed values + automated a11y scan when runnable, else `ENVIRONMENT-BLOCKED`
-5. **Phase 2C: Surface UX Pass** — Per surface: task effort trace, Field Necessity Matrix, container fit, complexity budget (checklist B12–B15, E9–E11, §R, K10)
+5. **Phase 2C: Surface UX Pass** — Per surface: task effort trace, Field Necessity Matrix, container fit, complexity budget (checklist B12–B15, E9–E11, §R, K10), then the journey walkthrough + traceability check (`UX-8`)
 6. **Phase 3: UI Category Review** — Check each file IN ITS SURFACE CONTEXT against all 6 applicable categories
 7. **Phase 4: Finalize** — Generate the index report plus one report per surface / per shared component with findings, PASS/BLOCKED/WARN verdicts
-8. **Fix Loop: Validate → Fix → Full UI Re-Review** — validate findings first; fix only findings that block the current round, then rerun the full UI review using the local sub-agent selection guide only when that protocol calls for agents. Round 1 blocks on every validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW-only is recorded as deferred, and binary accessibility/security gates always block.
+8. **Fix Loop: Validate → Fix → Full UI Re-Review** — validate findings first; fix only findings that block the current round, then rerun the full UI review using the local sub-agent selection guide only when that protocol calls for agents. Round 1 blocks on every validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW-only is recorded as deferred, and binary accessibility/security gates always block. Not run under `--report-only`.
 
 **Key Rules:**
 
+- **`--report-only`:** read-only leaf mode for a caller that owns every fix — Phases 0–5 only, no fix of any size, no nested sub-agents, no user question, no writer beyond the report; returns validated findings grouped Critical/High/Medium/Low; see [Report-Only Mode](#report-only-mode---report-only).
 - Write the index to `tmp/reports/ui-review-{date}-{slug}.md`; per-surface and per-component analysis to `tmp/reports/ui-review-{date}-{slug}/surfaces/{surface}.md` and `.../components/{component}.md`, appended as each is finished
 - Judge what RENDERS: a finding about layout, overflow, stacking, spacing or contrast cites the composed result (ancestor and global styles included), never one file in isolation
 - A defect repeated across surfaces is ONE systemic finding naming every location or the shared owner
 - BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant
 - Every violation needs `file:line` proof + grep 3+ counterexamples before flagging
-- Review is read-only until `$why-review --validate-findings` confirms findings; fixes may happen only in the validated fix loop or downstream plan/feature-implement, and every fix that blocks the current round restarts a full UI review from Phase 0 with brand-new tasks. From Round 2 onward, LOW-only findings end the loop and are recorded as deferred.
+- Review is read-only until `$why-review --validate-findings` confirms findings; fixes may happen only in the validated fix loop (never under `--report-only`) or the caller's fix step, and every fix that blocks the current round restarts a full UI review from Phase 0 with brand-new tasks. From Round 2 onward, LOW-only findings end the loop and are recorded as deferred.
 
 ## Your Mission
 
 <task>
 $ARGUMENTS
 </task>
+
+## Report-Only Mode (`--report-only`)
+
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier, a review dimension of another review skill, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every phase below applies unchanged.
+>
+> 1. **Run Phases 0–5 only.** Phase 5 `$why-review --validate-findings` still validates every finding. **Phase 6 does not run** — no fix of any size, including a narrow self-fix inside a workflow: return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
+> 2. **No nested fan-out.** Skip the Systematic Review Protocol's parallel sub-agents and any fresh-context reviewer spawn; review every surface sequentially in this context. — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
+> 3. **No user questions.** Skip the Workflow Recommendation and Next Steps questions. An owner decision or material trade-off goes UNANSWERED into the returned summary for the caller to ask (the `SYNC:trade-off-interrogation-gate` non-asking handoff). — why: a leaf cannot reach the user, so a question would stall the barrier.
+> 4. **Write only the report** — the index and per-surface/per-component files under `tmp/reports/`. Gather Phase 2B render evidence only when it writes nothing outside `tmp/`; otherwise record `ENVIRONMENT-BLOCKED`. A missing or stale project-reference doc is recorded as a `NOT VERIFIABLE` assumption — never a trigger to run `$scan`, `$project-init`, or any other writer. — why: a leaf that regenerates shared docs or build output races its barrier siblings.
+> 5. **Return** the index report path, the round verdict (PASS/FAIL per Phase 4), and the validated findings grouped Critical / High / Medium / Low, mapped from the category labels by the Phase 4 severity vocabulary:
+>
+> | Category label | Returned group |
+> | -------------- | -------------- |
+> | BLOCKED | **Critical** for a `P0` finding, **High** for a `P1` finding — the single map in `.claude/docs/design-review-checklist.md` (never an ad-hoc translation) |
+> | WARN | **Medium** for `P2`, **Low** for `P3` (same map) |
+> | A code/category finding with no P-level | classify by the `SYNC:severity-rubric` consequence tree (the checklist map covers P-levelled findings only) |
+> | PASS | Not a finding — list the compliant or N/A categories separately |
+>
+> A failed binary gate or `NOT VERIFIABLE` evidence is listed with its group and flagged blocking, whatever the round. For this mode the declared step order ends at Phase 5; stopping there is the mode's contract, not a skipped step.
 
 ## First Principle — Easy to Change
 
@@ -146,6 +166,7 @@ Skeptical. Every claim needs traced proof, confidence >80%.
 - read the configured design-system/token doc when present — extract the declared visual tokens and stacking/layer rules that apply to this surface
 - read the frontend architecture/patterns doc when it records project conventions — use base components, state, request, and lifecycle abstractions only when they are present and relevant
 - read the project code-review rules doc — extract frontend anti-patterns and review rules directly
+- load the journey-first gate (`SYNC:ux-journey-gate`, `UX-1`–`UX-11`; read `.claude/skills/shared/protocols/ux-journey-gate.md` when its text is not in context, catalog `.claude/docs/ux-journey-process.md` §9) and locate the journey source for Phase 2C: the governing Feature Spec's per-story flows, the design-spec's §0a User Journeys, or the PBI's stories/acceptance criteria — record which, or `none — journeys will be inferred`
 
 > **CROSS-SYSTEM WARNING (carry through every category):** Do NOT mix token systems with incompatible root-size, namespace, or layer assumptions in one file. When flagging a fix, recommend whichever token system the file already imports/uses; never introduce another system unless the project docs explicitly require migration.
 
@@ -206,7 +227,7 @@ For each surface:
 
 > **Why first:** Categories 1–6 are code mechanics; a surface can pass all of them and still be unusable because it asks for too much, in the wrong container, at the wrong moment. Judge the surface's job before its CSS. Work from `.claude/docs/design-review-checklist.md` §B12–B15, §E9–E11, §R, §K10 and calibrate against `.claude/docs/design-review-calibration.md` (case C1 is the canonical overloaded-dialog example).
 
-**Think:** What is the ONE task this surface exists for? What is the least a user must see and enter to finish it? What is here that the task does not need NOW?
+**Think:** What is the ONE task this surface exists for? What is the least a user must see and enter to finish it? What is here that the task does not need NOW? Which journey steps does this surface host, and can a user actually finish them here?
 
 For each surface, append to its surface report:
 
@@ -216,10 +237,15 @@ For each surface, append to its surface report:
 4. **Complexity budget** — count inputs per step, sections per view, and equal-weight actions per view. Compare with `uiReview.complexityBudget` in the project config when declared (§B15). When no budget is declared, do not invent a threshold: judge the counts against the task trace and the primary user's expertise (§B12, §H3) and tag the finding `HEURISTIC`.
 5. **Entry modes and honesty** — alternate entry modes competing in one view (§B14); visible controls that do not work or development-status copy (§K10).
 6. **Governing intent** — when a Feature Spec or design-spec records the view's information priority (`now / later / not here`) and container role (`SYNC:ui-intent-layer`), the surface is judged against it; a surface showing `later`/`not here` items by default is a finding, and a missing priority record for a new or reshaped view is recorded as a gap.
+7. **Journey walkthrough (`UX-8`)** — take the main journeys from the Phase 0 journey source. For each main journey this surface hosts, step through it on the rendered (or reconstructed) surface as the named actor and answer, per step: (1) will the user know this step is needed? (2) will they notice the correct action is available? (3) will they link that action to their goal — label, icon and placement in their vocabulary? (4) after acting, will they see progress — feedback, state change, obvious next step? Record each "no" with the step, surface, element (`file:line`) and fix. Check that the ONE primary action matches the journey's next step (`UX-4`).
+8. **Traceability check (`UX-8`)** — one row per hosted journey step: `step → element(s) serving it → information tier → rule enforced → states covered → walkthrough result`. An **unserved step** (a hosted step no element serves) or an **orphan element** (traces to no step, information need or rule) is a finding; a surface hosting no journey step at all is a `UX-3` finding.
+   - **No journey source?** Infer the primary journey from the surface itself (its entry point, primary action and outcome), write it as a short step table tagged `INFERRED`, and tag every walkthrough/traceability finding `HEURISTIC` with low confidence (`CL-1`/`CL-2`); such a finding ranks no higher than P2 unless the failure is OBSERVED on the render.
+9. **Interaction cost and wayfinding (`UX-9`, `UX-10`)** — per hosted main journey count steps · clicks/taps · view changes · fields · decisions on the surface and compare with the governing flow or the previous version; flag an interaction that does not advance the job, and a click whose label does not predict its destination (weak information scent — the "3-click rule" is not the bar). Per view check where-am-I (current location marked), where-can-I-go (labels in user words), back/exit that keeps entered data, dead-end or orphan views, and that the primary tier sits in the first viewport (`.claude/docs/ux-journey-process.md` §12).
+10. **All-gates check (`UX-11`)** — the final report carries the UI/UX Gate Report rows (see UI Health Summary): a gate family that is not reported counts as not checked.
 
-**Severity:** use the checklist defaults (B12, E9, R1, R2, K10 → P1) translated through the checklist §0.3 severity map (P0/P1 → BLOCKED, P2/P3 → WARN). An expert, data-heavy surface whose density is justified by its users (§H3) is NOT an overload finding — state that reasoning.
+**Severity:** use the checklist defaults (B12, E9, R1, R2, K10 → P1) translated through the checklist §0.3 severity map (P0/P1 → BLOCKED, P2/P3 → WARN). Journey findings: a main-journey step that cannot be completed (unserved step, or a walkthrough "no" on question 2 or 3 that strands the user) → P0/P1 → BLOCKED; a missing progress signal (question 4), a wrong or competing primary action, or an orphan element that adds surface load → P2 → WARN; a purely cosmetic orphan → P3 → WARN. Cite `UX-<clause>` alongside any checklist ID and report the defect ONCE. An expert, data-heavy surface whose density is justified by its users (§H3) is NOT an overload finding — state that reasoning.
 
-**Blocked until:** every surface with input has a Field Necessity Matrix, and every surface has a task trace and a container verdict.
+**Blocked until:** every surface with input has a Field Necessity Matrix, every surface has a task trace and a container verdict, and every surface has a journey walkthrough plus traceability rows (journeys sourced, or inferred and tagged `HEURISTIC`).
 
 ## Phase 3: UI Category Review
 
@@ -526,15 +552,25 @@ Update report with final sections:
 - Surface load & forms (B12–B15, §R): {PASS/WARN/BLOCKED/N/A}
 - Container fit (E9–E11): {PASS/WARN/BLOCKED/N/A}
 - Composition fidelity (tree + style origins + render): {COMPLETE / PARTIAL — ENVIRONMENT-BLOCKED reason}
+
+### UI/UX Gate Report (`UX-11`)
+
+| Gate | Result | Evidence |
+| ---- | ------ | -------- |
+| UX-1–UX-10 journeys, priority, interaction cost, wayfinding | PASS / FAIL / N/A | {journey source, walkthrough, counts} |
+| UI-1.1–UI-9.4 floor (applicable) | … | {measured values} |
+| DD-1–DD-8 identity | … | … |
+| CL-1–CL-6 checklist | … | {sections swept} |
+| UI copy | … | … |
 ```
 
-**Per-surface report shape** (`surfaces/{surface}.md`, appended as each surface completes): Context (task, users, container) → Composition (Phase 2B tree, style-origin map, render evidence) → Surface load (Phase 2C trace, Field Necessity Matrix, container verdict, budget) → Findings for this surface (same fields as above) → Coverage. A per-component file (`components/{component}.md`) is written only for a shared component carrying a finding: contract, consumers, style origins, findings.
+**Per-surface report shape** (`surfaces/{surface}.md`, appended as each surface completes): Context (task, users, container) → Composition (Phase 2B tree, style-origin map, render evidence) → Surface load (Phase 2C trace, Field Necessity Matrix, container verdict, budget) → Journeys (source or `INFERRED`, walkthrough log, traceability rows) → Findings for this surface (same fields as above) → Coverage. A per-component file (`components/{component}.md`) is written only for a shared component carrying a finding: contract, consumers, style origins, findings.
 
 **Severity translation:** checklist `P0`–`P4` ↔ BLOCKED/WARN ↔ Critical–Low via the single map in `.claude/docs/design-review-checklist.md` §0.3 — never translate ad hoc.
 
 ---
 
-## Systematic Review Protocol (10+ changed UI files)
+## Systematic Review Protocol (10+ changed UI files; never under `--report-only`)
 
 1. **Categorize** — Group files by SURFACE first (the Phase 1 surface map), then by shared-library / component concern; one sub-agent owns a surface end to end (composition, UX pass, categories) so no surface is split across agents
 2. **Parallel Sub-Agents** — Launch one UI/UX-specialized sub-agent per group with the UI-category checklist
@@ -569,12 +605,12 @@ Update report with final sections:
 
 ## Phase 6: Validated Fix + Full UI Re-Review Loop (MANDATORY when validated findings remain)
 
-**Trigger:** Phase 5 returns CLEAN/validated and the UI review report still has one or more findings that must be fixed.
+**Trigger:** Phase 5 returns CLEAN/validated and the UI review report still has one or more findings that must be fixed. Under `--report-only` this phase never runs — the validated report is returned to the caller.
 
 **Protocol:**
 
 1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
-2. Fix only findings that survived `$why-review --validate-findings`; route broader or cross-cutting fixes through the parent `$plan` + `$feature-implement` flow when this skill is running inside a workflow.
+2. Fix only findings that survived `$why-review --validate-findings`; when this skill is running inside a workflow, route broader or cross-cutting fixes through the caller's fix step.
 3. Run targeted verification for the fixed UI files and any affected consumers.
 4. Re-invoke `$ui-review` from Phase 0 over the full current UI scope, not only the fixed files.
 5. The re-run MUST create brand-new review tasks, reload the UI docs, determine scope again, rerun blast radius where applicable, and review every changed UI file from the start.
@@ -592,16 +628,16 @@ Update report with final sections:
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use ask the user directly to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, NOT invoked by a parent skill or as a sub-agent, and NOT under `--report-only`, MUST use ask the user directly to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it runs UI review in TWO places by design (keep both) — internally as `$changes-review`'s UI dimension AND as a dedicated conditional parallel-batch reviewer (step 9) — alongside the other parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it runs UI review in TWO places by design (keep both) — internally as `$changes-review`'s UI dimension AND as a dedicated conditional `--report-only` specialist — alongside the other triage-selected reviewers, findings validation, `$fix --target=review`, `code-simplifier`, the post-fix re-review, docs, and handoff.
 > 2. **Execute `$ui-review` directly** — run this skill standalone
 
 ---
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS:** After completing, use ask the user directly to present:
+**MANDATORY — NO EXCEPTIONS:** After completing, use ask the user directly to present (skip under `--report-only`, when invoked by a parent skill, or as a sub-agent — return the report and next-step recommendations instead):
 
 - **"$code-simplifier" (Recommended)** — Simplify and refine the styling/component code
 - **"$web-design-guidelines"** — Generic accessibility / UX checklist for a11y depth
@@ -878,6 +914,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-ux-design-principles` — Forty usability and accessibility clauses, UI-1.1 to UI-9.4; designing, building or reviewing a user-facing interface → .claude/skills/shared/protocols/ui-ux-design-principles.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
+- `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -1061,11 +1098,17 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
+<!-- SYNC:ux-journey-gate:reminder -->
+
+- **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
+
+<!-- /SYNC:ux-journey-gate:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Validate in-scope user interfaces for content fit, supported-size behavior, platform-appropriate layout/layering and styling, accessibility, and async feedback; use the project's own UI patterns and skip absent surfaces.
 
-**IMPORTANT MUST ATTENTION Workflow:** Phase 0 load project UI rules → Phase 1 determine and filter scope (skip with evidence when no frontend files), then expand files → affected surfaces → Phase 2 graph blast radius → Phase 2B reconstruct each surface's composition (component tree, style origins incl. ancestor/stacking/global layers, render or `ENVIRONMENT-BLOCKED`) → Phase 2C surface UX pass (task trace, Field Necessity Matrix, container fit, complexity budget) → Phase 3 review Categories 1–6 in surface context → Phase 3B run all nine UI/UX design-principles passes → Phase 4 write the compliance verdict → Phase 5 validate findings with `$why-review` → Phase 6 fix only validated findings that block the current round and restart the full UI review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block); batch large scopes and use the UI/UX specialist only as the protocol requires.
+**IMPORTANT MUST ATTENTION Workflow:** Phase 0 load project UI rules → Phase 1 determine and filter scope (skip with evidence when no frontend files), then expand files → affected surfaces → Phase 2 graph blast radius → Phase 2B reconstruct each surface's composition (component tree, style origins incl. ancestor/stacking/global layers, render or `ENVIRONMENT-BLOCKED`) → Phase 2C surface UX pass (task trace, Field Necessity Matrix, container fit, complexity budget, `UX-8` journey walkthrough + traceability) → Phase 3 review Categories 1–6 in surface context → Phase 3B run all nine UI/UX design-principles passes → Phase 4 write the compliance verdict → Phase 5 validate findings with `$why-review` → Phase 6 fix only validated findings that block the current round and restart the full UI review (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block); batch large scopes and use the UI/UX specialist only as the protocol requires.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION honor each canonical body above):**
 
@@ -1096,12 +1139,13 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 **MUST ATTENTION** NEVER mix incompatible project token systems in one file — recommend whichever system the file already imports/uses
 **MUST ATTENTION** after validated UI fixes, rerun the full UI review; when that protocol uses a fresh reviewer, use the UI/UX-specialized sub-agent from the local sub-agent selection guide
 **MUST ATTENTION** run at least ONE graph command on key files when graph.db exists
-**MUST ATTENTION** review SURFACES, not files: expand changed files to the views that render them, reconstruct composition (tree + style origins + render or `ENVIRONMENT-BLOCKED`), and run the Phase 2C surface UX pass (task trace, Field Necessity Matrix, container fit, budget) BEFORE the code categories — why: an overloaded or ancestor-broken surface passes every file-level check
+**MUST ATTENTION** review SURFACES, not files: expand changed files to the views that render them, reconstruct composition (tree + style origins + render or `ENVIRONMENT-BLOCKED`), and run the Phase 2C surface UX pass (task trace, Field Necessity Matrix, container fit, budget, and the `UX-8` walkthrough of every main journey with a traceability check — no unserved step, no orphan element; inferred journeys tag findings `HEURISTIC`) BEFORE the code categories — why: an overloaded or ancestor-broken surface passes every file-level check
 **MUST ATTENTION** write the index to `tmp/reports/ui-review-{date}-{slug}.md` and one file per surface (and per shared component with findings) under `tmp/reports/ui-review-{date}-{slug}/`, appended as each completes; cluster repeated defects into one systemic finding
 **MUST ATTENTION** NEVER fix code — review and report only
 **MUST ATTENTION** apply `Think:` reasoning prompt before checking each category — derive violations, don't recite checklists
 **MUST ATTENTION** run the Phase 3B UI/UX Design Principles pass for in-scope user interfaces — review the nine principle groups and apply clauses supported by the target platform, project conventions, and interaction modes; record inapplicable clauses with evidence. Findings cite `UI-<clause>` + `file:line` + BLOCKED/WARN severity, and project design-system docs remain authoritative when present (surface genuine conflicts; NEVER resolve them silently).
-**MUST ATTENTION** use ask the user directly to present next steps after completing review
+**MUST ATTENTION** use ask the user directly to present next steps after completing review — except under `--report-only`, when invoked by a parent skill, or as a sub-agent, which ask nothing and return next steps in the summary
+**MUST ATTENTION** `--report-only` runs Phases 0–5 only — no fix of any size, no nested fan-out, no user question, no writer beyond the report; return validated findings grouped Critical/High/Medium/Low (BLOCKED → Critical/High, WARN → Medium/Low, PASS → not a finding) — why: a read-only leaf that fixes, fans out, or asks races or stalls its barrier siblings.
 
 **Anti-Rationalization:**
 

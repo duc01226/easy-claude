@@ -1,52 +1,67 @@
 ---
 name: workflow-feature-spec
-version: 1.0.0
+version: 2.0.0
 description: '[Workflow] Use when creating or updating the configured canonical feature/spec artifact, applying its native paths, sections, identifiers, and test-evidence carriers; use the portable 8-section/README/TC form only when neither a native profile nor local artifact contract applies.'
 disable-model-invocation: false
 ---
 
 ## Quick Summary
 
-**Goal:** Produce or update one canonical feature/spec artifact under the project's configured format, with validated planning, intent and test-evidence coverage, and synchronized docs/change evidence.
+**Goal:** create or update ONE canonical feature/spec artifact for one capability at its configured path — scoped by evidence, planned to the depth the change needs, reconciled with its test/evidence cases, reviewed, and docs-synced. **MUST ATTENTION** resolve the configured artifact profile before writing anything.
 
-**Summary:** Detect scope, investigate, plan/review/validate, author the configured canonical artifact and its native test-evidence representation, challenge docs/code alignment, sync docs, and close with evidence.
-
-**Workflow:**
-
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
-
-**Ordered route:** `/investigate` → `/plan` → `/plan-review` → `/plan-validate` → `/docs-update` → `/workflow-review-changes` → `/workflow-end` → `/watzup`.
-
-**Key Rules:**
-
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- NEVER skip mandatory workflow or skill gates.
+**Use it when** the user asks to write or revise the business spec for a capability. **Use a sibling instead when:** only a raw idea exists → `workflow-idea-to-spec`; the spec must be derived from or re-synced with existing code across capabilities → `workflow-code-to-spec`; code changes are the goal → `workflow-feature` / `workflow-implement-spec`.
 
 **IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
 
-**Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
+**Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged to the run's deviation log. The list above is the recommended default order; the triage below decides which recommendations earn their cost.
 
-> **[BLOCKING]** Before starting, read `docs/project-config.json`, the configured feature/spec template, and the local `spec-system-reference.md` and `spec-principles.md`. Apply section-role prose and test-evidence rules from the native profile or local artifact contract; the portable tech-free 8-section and `TC-` rules apply only when no native profile or local artifact contract exists.
+## 1. Triage (FIRST action)
 
-Activate the `workflow-feature-spec` workflow. Run `/start-workflow workflow-feature-spec` with the user's prompt as context.
+Classify the change from the request plus the investigate evidence, and record it in the run report:
 
-**Steps:** /investigate → /plan → /plan-review → /plan-validate → /docs-update → /workflow-review-changes → /workflow-end → /watzup _(this workflow is differentiated by its injectContext domain: the configured canonical artifact and its section, identifier, evidence, and test-carrier rules — see `workflows.json` `workflow-feature-spec.injectContext`)._
+| Band     | Signal                                                  | Default depth                                                                      |
+| -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **XS**   | one rule, one case, or wording in an existing spec      | short plan inside the task list; plan-validate confirms the one decision           |
+| **S**    | a few sections/cases of one existing spec, clear intent | written plan; plan-validate confirms the non-obvious decisions                     |
+| **M**    | new spec, restructure, UI intent, or many rules/states  | full plan + `/plan-review` + `/artifact-review` on the result                      |
+| **L/XL** | several capabilities or buckets                         | split: one spec per capability; route whole-bucket work to `workflow-code-to-spec` |
 
-### Canonical Artifact Profile
+**Kinds:** behavior change (cases/evidence must be reconciled) · public contract · UI surface (interaction-intent role) · parent/child features (cross-references) · docs-only wording. Escalate depth on ambiguity and risk, not length.
 
-Before authoring or synchronizing, resolve `specRoots.business.path`, `workflowPatterns.featureDocTemplate`, `docsRoots.projectReference.path`, and `specArtifacts` when declared in `docs/project-config.json`; read the configured template and local spec-system reference. The configured business root and feature template determine the canonical path; `specArtifacts` and the local artifact contract define section roles, identifiers, ownership, and evidence/test carriers. Preserve those exactly and do not create a README, section, or test-ID registry the native artifact contract does not define. The framework's README/8-section/`TC-` format is the fallback only when neither configuration nor local references define a native contract. Default `TC-{FEATURE}-{NNN}` cases carry user-visible GIVEN/WHEN/THEN, Business Intent / Invariant Guarded, Evidence: [Source: namespace/service/id], CoveredBy, and applicable status. A malformed or conflicting declared contract is BLOCKED; never silently fall back.
+## 2. Required Quality Gates (non-negotiable)
 
-Keep the business-intent, contract, evidence, test-review, docs-sync, and change-review obligations. Map each to the configured roles and carriers; apply tech-agnostic prose rules only where the profile assigns them. Missing or unmapped coverage is UNKNOWN/BLOCKED, not PASS or NOT-APPLICABLE.
+| Gate                                      | Evidence that proves it                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Artifact profile resolved**             | Read `docs/project-config.json` (`specRoots.business.path`, `workflowPatterns.featureDocTemplate`, `docsRoots.projectReference.path`, `specArtifacts`), the configured template, local `spec-system-reference.md` and `spec-principles.md`; the report names the canonical path, section roles and carriers. A malformed or conflicting contract is BLOCKED — never a silent fallback. |
+| **Decisions confirmed**                   | `/plan-validate` confirmed scope and every non-obvious decision with the user.                                                                                                                                                                                                                                                                                                         |
+| **Spec synced** (`spec-synced`)           | `/docs-update` routed the spec chain — `/spec` → `/spec [mode=tests]` → test-spec review → `/spec [mode=sync]` — and the artifact satisfies the applicable **M1-M7** mandates (tech-agnostic intent prose, business-visible cases). Every case names its **Business Intent / Invariant Guarded** and would fail if that intent broke.                                                  |
+| **Review converged** (`review-converged`) | `/workflow-review-changes` converged, run INLINE in the main session.                                                                                                                                                                                                                                                                                                                  |
+| **Run closed** (`run-closed`)             | `/workflow-end` checked every outcome gate (top-level runs only).                                                                                                                                                                                                                                                                                                                      |
 
----
+**Profile rules.** The native profile or local artifact contract owns paths, section roles, identifiers, ownership and test/evidence carriers; generate only project-declared derived outputs. Keep intent roles tech-agnostic; put permitted technical detail only in declared contract/evidence roles. The portable form — `{SPEC_ROOT}/{Bucket}/README.{Feature}.md`, tech-free Sections 1–7 with the inline §5 Mermaid ERD and §6.2–§6.5 interaction intent for UI features, Section 8 `TC-{FEATURE}-{NNN}` cases with user-visible GIVEN/WHEN/THEN, Business Intent / Invariant Guarded, `Evidence: [Source: namespace/service/id]`, `CoveredBy` and status — applies only when neither exists. Cross-reference parent/child artifacts as the contract defines them (portable form: each sub-feature references its parent). Unknown mapping or missing required coverage is BLOCKED/UNKNOWN, never PASS or NOT-APPLICABLE; never create a README, section or ID registry the native contract does not define.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
+## 3. Recommended Skills
 
+| Skill                                    | Earns its cost when                                                                                                            | Proves / feeds                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| `/investigate`                           | always — existing spec, related code and test evidence for the capability                                                      | scope + evidence for the plan |
+| `/plan`                                  | always; a few task lines for XS, a written plan for S+                                                                         | section/case change list      |
+| `/plan-review`                           | M+ bands, restructuring, several capabilities, or an ambiguous plan                                                            | plan quality before authoring |
+| `/plan-validate`                         | always — the user confirms scope and non-obvious decisions                                                                     | decisions-confirmed gate      |
+| `/docs-update`                           | always — it routes the spec chain that writes the artifact                                                                     | spec-synced gate              |
+| `/artifact-review` (on the changed spec) | M+ bands, new or restructured specs, or any doubt about M1-M7 — run after the docs-update spec chain, before the change review; not a registry step, so create its own task when the triage selects it | independent M1-M7 verdict     |
+| `/workflow-review-changes`               | always, inline in the main session                                                                                             | review-converged gate         |
+| `/workflow-end` → `/watzup`              | always, last                                                                                                                   | run-closed gate + handoff     |
+
+## 4. Orchestration Freedom
+
+You choose inline vs sub-agent, batching and ordering — optimize wall-clock and token cost at equal quality. Fixed data dependencies only: the spec change exists before it is reviewed; the spec chain runs before the review that checks it; fixes are re-verified after they land; `/workflow-review-changes` runs inline in the main session; `/workflow-end` runs last; user-approval gates are never parallelized. XS/S work runs inline without sub-agents.
+
+## 5. Memory, Reporting and Fix Path
+
+- One task per selected step; write the run report under `tmp/reports/` FIRST and append per step; re-read it and `TaskList` after compaction.
+- Findings are validated before fixing; fix in the owning spec role; re-run the review that raised them. Review loop: round 1 exits on zero findings; round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 when a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
+- Define success criteria before the first edit (the sections, cases and decisions that must exist) and loop until each is observably true.
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
@@ -96,23 +111,10 @@ Keep the business-intent, contract, evidence, test-review, docs-sync, and change
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce one canonical feature/spec artifact in the configured native format, with validated planning, mandatory intent and test-evidence coverage, and synchronized docs/change evidence. Resolve the profile before applying the portable 8-section/README/TC fallback.
+**IMPORTANT MUST ATTENTION Goal:** one canonical feature/spec artifact in the configured native format — planned to the depth the triage needs, cases reconciled, reviewed and docs-synced.
 
-**IMPORTANT MUST ATTENTION Main steps:** `/investigate` → `/plan` → `/plan-review` → `/plan-validate` → `/docs-update` → `/workflow-review-changes` → `/workflow-end` → `/watzup`. **NEVER** skip the spec-principles gate, invoke each Skill step, or batch-complete validation. **MUST ATTENTION** resolve native artifact roles before using the strict portable fallback; unknown mappings stay blocked.
-
-**IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Nested Task Creation:** expand child phases, link parent when nested, one `in_progress`.
-- **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act.
-- **Incremental Persistence:** append findings to `tmp/reports/` per file, never hold in memory.
-- **Sub-Agent Return Contract:** return summary only (≤10 bullets) with `Full report:` path.
-
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **MUST ATTENTION** triage FIRST; it sets plan depth and whether `/plan-review` and `/artifact-review` earn their cost.
+- **MUST ATTENTION** resolve the artifact profile before writing; the portable eight-section/`TC-{FEATURE}-{NNN}` form applies only when no native profile or local contract exists; unknown mappings stay BLOCKED.
+- **MUST ATTENTION** the gates always hold: user-confirmed decisions, spec chain synced with applicable M1-M7, `/workflow-review-changes` converged inline in the main session, `/workflow-end` closed.
+- **MUST ATTENTION** every case names the business intent or invariant it guards and would fail if that intent broke.
+- **MUST ATTENTION** one task per selected step; the report in `tmp/reports/` is written first and re-read after compaction.

@@ -369,6 +369,7 @@ ORCHESTRATOR_SKILLS = {
     "spec-clarify", "spec-discovery", "spec-index", "start-workflow",
     "tech-spec", "test", "ui-review", "understand", "why-review",
     "workflow-code-to-spec", "workflow-idea-to-pbi", "workflow-idea-to-spec",
+    "workflow-spec-to-mockup",
     "workflow-review-changes",
 }
 

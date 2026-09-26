@@ -16,115 +16,84 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Drive the configured relevant integration-test scope to a truthful green result, adjudicate each failure before editing, fix at the component that owns the violated contract, verify under the project's repeat policy, and sync the configured case/reference docs.
+**Goal:** Drive the resolved integration-test scope to a truthful, repeatable green — every failure adjudicated before any edit, fixed at the component that owns the violated contract, and re-verified under the configured repeat policy — then sync the case owner and the docs the fixes made stale.
 
-**Summary:** Set the Goal Contract and explicit configured scope (whole relevant system by default), then run `/investigate` → `/integration-test-verify --fix-loop` → conditional `/debug-investigate`/`/fix` → configured case-owner sync → configured reference scan when needed → `/docs-update` → `/workflow-end` → `/watzup`. Each failing round requires a written Fault Verdict, a fix at the owner selected by architecture/source evidence, inline `/changes-review`, a Round Integrity Check, and fresh full verification under `integrationTestVerify.guidance` (default: two no-reset green runs for persistent/shared-state suites) or bounded escalation.
-- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
-
-**When to use:** "make all integration tests pass", "fix the failing integration tests", "the suite is red after my change", "loop until all integration tests are green", "diagnose this flaky integration test". For AUTHORING new tests from specs use `/workflow-write-integration-test`; this workflow is for driving an EXISTING suite to green.
-
-**Workflow:**
-
-1. **Detect** — resolve the verification scope: the WHOLE system by default, or the target named in the prompt.
-2. **Converge** — loop verify → adjudicate → fix → review the fix → re-verify until the configured repeat policy passes, bounded by a round cap and a Round Integrity Check.
-3. **Sync** — reconcile the configured case/spec owner, refresh the integration-test reference only when its content changed, and update impacted feature docs.
-
-**Key Rules:**
-
-- MUST ATTENTION default the verification scope to the **WHOLE SYSTEM** — every integration-test project via `testProjectPattern` > `testProjects` — and pass it EXPLICITLY to `/integration-test-verify`; never fall through to its change-scoped git auto-detect default.
-- MUST ATTENTION adjudicate EVERY failure with `/debug-investigate` + `/integration-test-review` (report-only) into ONE written Fault Verdict — `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `SOURCE-WRONG` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS` — with `file:line` evidence, BEFORE any edit.
-- MUST ATTENTION fix at the invariant-owning component identified from project architecture and source evidence, never the crash site; a `SOURCE-WRONG` fix KEEPS or STRENGTHENS the test that caught it.
-- MUST ATTENTION run `/changes-review` (INLINE, report-only) on the fix diff of EVERY loop round that landed a fix, folding its validated findings back into that same round — no fix reaches the next round un-code-reviewed.
-- MUST ATTENTION back every pass/fail claim with actual test-runner output (Passed/Failed/Skipped counts + failing names) — "all passed" without output is theater.
-- MUST ATTENTION treat a shrinking executed-test count, a growing skipped count, or a narrowed scope as a REGRESSION → STOP and escalate; a suite that got greener by losing tests did not converge.
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION define success criteria before execution (the Goal Contract is set FIRST) and loop until observable verification passes.
-- MUST ATTENTION require integration tests to protect a named business rule/invariant and fail if that intent breaks.
-- MUST ATTENTION use the production entry path when it is part of the behavior under test; use valid project fixtures/factories for other preconditions without bypassing the tested contract.
-- MUST ATTENTION follow `integrationTestVerify.guidance`; when absent, require two fresh green runs for suites with persistent/shared state, preserving the configured isolation and reset policy.
-- NEVER force green by weakening or removing assertions, adding skip annotations, widening assertion timeouts, wrapping a retry around a failing assertion, or narrowing the scope.
-- NEVER skip mandatory workflow or skill gates.
+**Use when:** a suite or a named test is red, flaky, or must be proven repeatably green. To author new tests from specs, use `/workflow-write-integration-test`; to reconcile specs and tests after a code change, use `/workflow-spec-sync`.
 
 **IMPORTANT MANDATORY Steps:** /investigate -> /integration-test-verify --fix-loop -> /debug-investigate [on-failure] -> /fix [on-failure] -> /spec [mode=sync] -> /scan --target=integration-tests -> /docs-update -> /workflow-end -> /watzup
 
-> **[BLOCKING] Step 0 — CREATE THE FULL TASK LIST BEFORE ANY VERIFICATION WORK.** Call `TaskList` first (resume, never duplicate), then `TaskCreate` EVERY task below in one pass — before `/investigate`, before the first test run. A workflow that starts verifying with an empty task list has already lost the ability to show where it is, and an interrupted run cannot be resumed. — why: this loop can span many rounds and a context compaction mid-round; the task list is the only state that survives it.
->
-> **Fixed tasks — created 1:1 from the canonical `sequence` in `.claude/workflows.json`, in order:**
->
-> 1. `[1] investigate — resolve verification scope to a concrete project/suite list`
-> 2. `[2] integration-test-verify --fix-loop — drive the suite to green (parent of the per-round tasks)`
-> 3. `[3] debug-investigate [on-failure] — traced root cause behind every Fault Verdict` *(CONDITIONAL)*
-> 4. `[4] fix [on-failure] — resolve every verdict at the owning layer` *(CONDITIONAL)*
-> 5. `[5] spec [mode=sync] — reconcile §8 TCs with the executing tests`
-> 6. `[6] scan --target=integration-tests — regenerate the integration-test reference doc`
-> 7. `[7] docs-update — update every other impacted doc`
-> 8. `[8] workflow-end — close workflow state`
-> 9. `[9] watzup — summarize the convergence trail`
-> 10. `[10] final review — verify work quality + extract lessons` *(not a sequence step — the standing close-out task)*
->
-> **`[3]` and `[4]` are ROLL-UPS, not separate invocations.** They appear in the canonical sequence so the conditional fix half is visible in the task list from the start, but `/integration-test-verify --fix-loop` is their single executing owner: each firing happens INSIDE a round as `[2.N.2]` / `[2.N.5]` below. Complete `[3]`/`[4]` once the loop converges, summarizing which rounds fired them — or, if no round ever failed, complete them with the reason recorded (`no failure in any round`). NEVER run them a second time at workflow level after the loop returns — that would be a parallel fix loop the Inline Execution Gate forbids.
->
-> **Per-round tasks (created when EACH round opens — round N is not planned until round N-1 reported):**
->
-> - `[2.N.1] verify — full run over {scope}, capture real counts` *(always)*
-> - `[2.N.2] debug-investigate — trace root cause of each failure` *(CONDITIONAL: only if round N reported failures — the round-N instance of `[3]`)*
-> - `[2.N.3] integration-test-review — report-only fault gates` *(CONDITIONAL: same trigger)*
-> - `[2.N.4] fault verdict — one written verdict per failure` *(CONDITIONAL: same trigger)*
-> - `[2.N.5] fix — resolve at the owning layer` *(CONDITIONAL: same trigger — the round-N instance of `[4]`)*
-> - `[2.N.6] changes-review — review this round's fix diff` *(CONDITIONAL: only if a fix landed)*
-> - `[2.N.7] round integrity check — counts not shrunk, scope not narrowed` *(always)*
->
-> A conditional task whose trigger never fires is marked **completed with the reason recorded** (`no failures this round`), NEVER silently dropped — why: a skipped-and-unrecorded gate is indistinguishable from a forgotten one when someone audits the run later.
+The chain above is the recommended default order. Which steps are gates and when each optional step runs is declared in the registry entry and restated in [Recommended Skills](#recommended-skills).
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
 
-> **[CRITICAL] Adjudicate-Before-Fix Gate:** inside `/integration-test-verify --fix-loop`, no edit may land before that failure has a written Fault Verdict backed by `/debug-investigate`'s traced root cause AND `/integration-test-review`'s gate findings. An unadjudicated failure gets "fixed" by whatever is nearest — which is almost always the assertion, and a weakened assertion protects nothing.
-
-> **[CRITICAL] Per-Round Review Gate:** the loop's only convergence signal is "the tests went green" — and a green test cannot see a fix made at the wrong layer, an invariant broken elsewhere, dead code, a leaked domain concept, or a security/performance regression. So EVERY round that lands a fix must run `/changes-review` (INLINE, report-only) over that round's fix diff, validate its findings, and resolve them in the SAME round. A round that leaves a validated review finding open has not finished, even if its tests are green. This subsumes the `SOURCE-WRONG` verdict's own changes-review obligation — once per round over the whole fix diff, never twice, and never as a nested review→fix loop.
-
-> **[CRITICAL] Inline Execution Gate:** `/integration-test-verify --fix-loop` and the skills it drives (its default `/integration-test-verify` pass WITHOUT the flag, `/debug-investigate`, `/integration-test-review`, `/changes-review`) run **INLINE via the `Skill` tool — NEVER as sub-agents**. `/debug-investigate` requires its `/why-review` gate in the SAME session/main agent, and `/integration-test-review` self-binds its own fix + re-review obligations; a sub-agent cannot own either or carry it back to the loop. Their OWN internal fan-outs (verify's per-project `integration-tester` agents, review's phase agents) remain sub-agents by their own design, so context stays bounded.
-
-> **[CRITICAL] Documentation Sync Is Part Of Done:** the loop deliberately defers ALL doc work while it churns, so steps 3–5 are not an optional tail. `/spec [mode=sync]` reconciles §8 TCs ↔ the executing test code, `/scan --target=integration-tests` regenerates the integration-test reference doc from the suite as it now stands, and `/docs-update` catches every other impacted doc. A converged-but-undocumented suite leaves the next agent reading a reference doc describing tests that no longer exist.
-
-> **Goal Contract propagation (workflow-owned):** At workflow start — BEFORE round 1 — resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the request). Its single required Success Criterion: _a fresh full `/integration-test-verify` over the resolved scope satisfies `integrationTestVerify.guidance`; absent guidance defaults to two zero-failure fresh runs without destructive shared-state reset when the scope persists or shares state, with no test deleted, skipped, or weakened._ Record the scope string, repeat policy, round cap (default 3), and baseline executed/skipped counts in **Constraints**. After every round, append the per-project counts, Fault Verdicts, and fixes to the Iteration Log; emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before `/workflow-end`.
-
 Activate the `workflow-integration-test-green` workflow. Run `/start-workflow workflow-integration-test-green` with the user's prompt as context.
+
+## Triage — FIRST Action
+
+Classify before choosing depth and record the result in the report. Escalate depth on risk and ambiguity, not on test count alone.
+
+| Axis                                      | Read from                                                                                                 | What it selects                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scope**                                 | the prompt + `docs/project-config.json` → `integrationTestVerify` (`testProjectPattern` > `testProjects`) | No target → the WHOLE system. A named suite, module, feature, test or diff narrows it — state how it maps to test projects. The resolved list stays fixed for every round and is passed explicitly; never the git-changed subset.                                                                                                                                                                                                                                                                                                       |
+| **Failure load** (after the first verify) | runner output                                                                                             | **0** → proof-only run: complete the repeat-policy runs, then every conditional step closes as `when-false`. **XS** (1–3 failures sharing one cause) → inline, one diagnosis for the cause, no sub-agents. **S/M** (up to ~20) → cluster failures by error signature and module; one `/debug-investigate` per cluster that traces every member failure to the shared cause, one Fault Verdict per failure. **L/XL** (more, or many modules) → sweep the environment first (a shared cause is likely), then adjudicate cluster by cluster in bounded batches, appending each batch to the report before the next. |
+| **Verdict kinds**                         | Fault Verdicts                                                                                            | Only `ENVIRONMENT-BLOCKED`/`AMBIGUOUS` → no edit; escalate. `TEST-*` only → case sync limited to the touched tests. Any `SOURCE-WRONG` → behavior changed: the final proof also covers every suite that exercises the changed source (widen the scope and log why), then spec and docs sync.                                                                                                                                                                                                                                            |
+| **Risk**                                  | the fix diff                                                                                              | A fix touching security, data integrity, a public contract or several modules → deeper `/changes-review` over that round's diff; everything else → a focused review of the small diff.                                                                                                                                                                                                                                                                                                                                                  |
+
+## Required Quality Gates
+
+Each gate names the evidence `/workflow-end` checks. None of them flexes.
+
+1. **Tests green, repeatably** (`tests-pass`, gate `/integration-test-verify --fix-loop`) — a fresh full verify over the fixed scope satisfies `integrationTestVerify.guidance`; absent guidance, two zero-failure fresh runs without a destructive shared-state reset for persistent or shared-state suites. Evidence: command, Passed/Failed/Skipped counts, failing names and exit status for each run.
+2. **Every failure adjudicated before any edit** (`root-cause-traced`, when a verify run reported a failing test) — ONE written Fault Verdict per failure (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`) backed by `/debug-investigate`'s traced root cause and report-only `/integration-test-review` findings, with `file:line` evidence and confidence. `AMBIGUOUS` → ask the user; `ENVIRONMENT-BLOCKED` → stop mutating source and tests, name the remedy, escalate.
+3. **Fix at the owner** — the fix lands on the component that owns the violated contract, never the crash site; a `SOURCE-WRONG` fix keeps or strengthens the test that caught it.
+4. **No fake green** (Round Integrity Check) — executed count never shrinks, skipped count never grows, scope never narrows; no assertion weakened or removed, skip added, assertion timeout widened, retry wrapped around an assertion, or unrelated persistent data mutated. Evidence: per-round counts.
+5. **Every fix reviewed** — each round that landed a fix runs inline, report-only `/changes-review` over that round's fix diff; validated findings are fixed in the same round. Evidence: review report path, or the recorded "no fix this round".
+6. **Spec and docs synced** (`spec-synced`, when a fix changed tested behavior or a test case) — the configured case owner and coverage carrier match the final tests; the integration-test reference and other docs are refreshed where the fixes made them stale.
+7. **Goal Contract satisfied** — set before round 1 (scope, repeat policy, round cap, baseline executed/skipped counts); one Iteration Log entry per round; Goal Satisfaction matrix before `/workflow-end`.
+8. **Run closed** (`run-closed`, gate `/workflow-end`).
+
+## Recommended Skills
+
+| Step                                  | Role     | Runs when (optional steps: registry `when` / `skipReason`)                                                                                                                                                                                                                                                              | Proves / feeds                                                                      |
+| ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `/investigate`                        | core     | Always. For a named single test it reduces to mapping the target to its test project and command.                                                                                                                                                                                                                       | The fixed scope and the Test Architecture Contract record.                          |
+| `/integration-test-verify --fix-loop` | gate     | Always.                                                                                                                                                                                                                                                                                                                 | `tests-pass`; owns the round loop, the Goal Contract and the Round Integrity Check. |
+| `/debug-investigate [on-failure]`     | optional | When: A verify run reported a failing test. · Skip reason: Every verify run was green, so there is no failure to trace.                                                                                                                                                                                                 | `root-cause-traced`                                                                 |
+| `/fix [on-failure]`                   | optional | When: A verify run reported a failing test whose Fault Verdict is SOURCE-WRONG, TEST-WRONG or TEST-NOT-OPTIMAL. · Skip reason: No verify run reported a fixable failure: every run was green, or every failure was ENVIRONMENT-BLOCKED or AMBIGUOUS and was escalated without an edit.                                  | The owning-layer fix.                                                               |
+| `/spec [mode=sync]`                   | optional | When: A fix changed tested behavior, a test case, or the name or location of a traced test. · Skip reason: No fix changed tested behavior, a test case, or the name or location of a traced test, so the case owner and its coverage links are unchanged.                                                               | `spec-synced`                                                                       |
+| `/scan --target=integration-tests`    | optional | When: A fix changed what the integration-test reference documents: fixtures, helpers, base classes, wait or data conventions, or the suite and project inventory. · Skip reason: No fix changed the fixtures, helpers, conventions or suite inventory the integration-test reference documents, so it is still current. | A current integration-test reference for the next agent.                            |
+| `/docs-update`                        | optional | When: A fix landed in this run, or a doc outside the spec and the integration-test reference records test counts, coverage or evidence this run changed. · Skip reason: No fix landed and no doc records a test count, coverage claim or evidence this run changed.                                                     | Feature-doc evidence, version history, embedded counts.                             |
+| `/workflow-end`                       | gate     | Always, last.                                                                                                                                                                                                                                                                                                           | `run-closed` + Goal Satisfaction check.                                             |
+| `/watzup`                             | core     | Always.                                                                                                                                                                                                                                                                                                                 | The convergence recap.                                                              |
+
+Inside each round the loop also drives report-only `/integration-test-review` (test-side fault gates) and report-only `/changes-review` (fix-diff review); they are not separate sequence steps.
+
+**`/debug-investigate` and `/fix` are roll-ups of the loop.** Their single executing owner is `/integration-test-verify --fix-loop`, which fires them inside each failing round. Complete the two workflow-level tasks from the loop's trail (which rounds fired them) once the loop returns — never start a second fix loop at workflow level, which would double-fix one failure or leave each owner assuming the other acted.
+
+## Orchestration Freedom
+
+You choose inline vs sub-agent, batching, clustering and ordering to minimise wall-clock and token cost at equal quality. The fixed constraints are data dependencies and in-session gates:
+
+- **Inline, never a sub-agent:** the fix-loop and the skills it drives — the default verify pass, `/debug-investigate`, `/integration-test-review`, `/changes-review`. `/debug-investigate` needs its `/why-review` gate in the same session and `/integration-test-review` self-binds its fix and re-review obligations; a sub-agent cannot carry either back. Their own internal fan-outs (per-project verify agents, review phases) stay sub-agents, so context stays bounded.
+- A fix lands only after its Fault Verdict; a fixed state is re-verified by a fresh full run over the same scope.
+- Sync steps run after convergence, so they sync the final tests rather than intermediate ones. `/workflow-end` runs last. Gates awaiting user approval never run in parallel.
+- Recommended: after convergence `/spec [mode=sync]` and `/scan --target=integration-tests` write disjoint files and may run as one wave, with `/docs-update` after both.
+
+## Memory & Reporting
+
+- One task per selected sequence step plus a final review task. When a round opens, create its child tasks (verify · adjudicate · fix · fix-diff review · integrity check) under the fix-loop task; a child whose trigger never fires completes with its recorded reason.
+- Write `tmp/reports/workflow-integration-test-green-{YYMMDD}-{HHmm}-{slug}.md` FIRST (triage, scope, commands), then append per round: counts, Fault Verdicts, fixes, review verdict, integrity result.
+- After compaction or resume, re-read the report, the Goal Contract and `TaskList` before continuing; the round in progress is the first one without an integrity result.
+
+## Loop Bounds
+
+The loop is bounded by `/integration-test-verify --fix-loop`: round cap 3 by default; STOP and escalate via `AskUserQuestion` when the failing count does not shrink across 2 rounds, failures increase, coverage is lost, a validated review finding stays open, the cap is hit with failures open, or a failure is `ENVIRONMENT-BLOCKED` or `AMBIGUOUS`. The cap triggers escalation, never acceptance of a red test. The per-round fix-diff review follows the framework round bar: round 1 clears every validated finding; round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW.
 
 ## Test Architecture Contract Handoff
 
-Before round 1, `/investigate` locks one evidence-backed contract record that `/integration-test-verify --fix-loop` reuses on every round:
-
-- `applicability`: mark the integration/system tier `APPLICABLE` only with verified runner/configuration evidence; record other tiers as `N/A — <evidence>` unless their configured owner is explicitly in scope.
-- `owner`: keep `/integration-test-verify --fix-loop` as convergence owner and name the existing conditional owners for diagnosis, review, fixing, and fix review.
-- `fullCommand` and `focusedCommand`: bind the full command to the resolved whole-system scope and the focused command to an explicitly named target; both must be configured, copy-ready, fail invalid or zero-match selections, and expose a simple Windows/macOS/Linux entry point when required.
-- `runIdentity` and `dataStrategy`: use a unique non-sensitive run identity, valid public-use-case setup, explicit target/additive seed mode, and isolated mutable data for parallel workers.
-- `repeatProof` and `result`: retain exact per-round counts, failing names, exit status, scope, and repeat/concurrency evidence required by `integrationTestVerify.guidance`; absent guidance defaults to two fresh no-reset full runs for persistent/shared-state scopes.
-
-The loop owns this handoff and the Round Integrity Check: `/integration-test-verify` receives the fixed scope and commands, while `/debug-investigate`, `/integration-test-review`, `/fix`, and `/changes-review` retain their existing conditional ownership and gates. The existing delegated order remains the only route; no fallback runner, narrowed scope, or destructive reset may replace missing evidence.
-
-**Steps:** /investigate → /integration-test-verify --fix-loop → /debug-investigate [on-failure] → /fix [on-failure] → /spec [mode=sync] → /scan --target=integration-tests → /docs-update → /workflow-end → /watzup
-
-> **[CRITICAL] Bounded convergence — the loop is the workflow, not a step inside it.** Step 2 repeats: run the configured full scope → adjudicate and fix every evidenced failure → run that same scope freshly → repeat. Finish only after a fresh full run satisfies `integrationTestVerify.guidance` (default: two zero-failure no-reset runs for persistent/shared-state suites), with no test deleted, skipped, weakened, or de-scoped. Otherwise bounded-escalate via `AskUserQuestion` (round cap 3 · failures not shrinking across 2 rounds · failures increasing · coverage lost · an open validated review finding · `ENVIRONMENT-BLOCKED`). A failing report is evidence for the next action, not a claim of completion.
->
-> **`/debug-investigate` and `/fix` are CONDITIONAL steps of the loop, executed INSIDE `/integration-test-verify --fix-loop`.** They fire on every round that reports a failure and are skipped (with a recorded reason) on a round that is already green. They are tracked as their own tasks per round (Step 0) so they are visible in the task list, but `/integration-test-verify --fix-loop` remains their single executing owner — NEVER invoke them as a second, parallel fix loop at workflow level. — why: the fix half was previously triple-owned across three skills, which let two loops double-fix one failure or each assume the other owned it; one owner with visible sub-tasks keeps both the accountability and the visibility.
->
-> **Step 2 RECURSES:** default `/integration-test-verify` pass (WITHOUT `--fix-loop`) → *(on failure)* `/debug-investigate` → `/integration-test-review` → Fault Verdict → `/fix` → `/changes-review` → fresh full re-verify — repeating until the configured repeat policy passes. Steps 3 and 4 of the sequence are the workflow-level roll-ups of that conditional half; `/integration-test-verify --fix-loop` executes them inside each round, never again after it returns.
-
-> **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
->
-> **`/investigate`** — Resolve the verification scope to a concrete test-project list. No target in the prompt → the WHOLE system (every project via `testProjectPattern` > `testProjects` from `docs/project-config.json` → `integrationTestVerify`). A named suite/module/feature/diff narrows it — state how the target maps to projects. Output: the fixed scope string the loop will reuse every round.
-> **`/integration-test-verify --fix-loop`** — The convergence engine, and the only step that changes code. Sets the Goal Contract first, then loops: the default `/integration-test-verify` pass (WITHOUT the flag) INLINE over the fixed scope under `integrationTestVerify.guidance` → on ANY failure run `/debug-investigate` + `/integration-test-review` (report-only) → ONE Fault Verdict per failure → `/fix` at the invariant-owning component → **conditional `/changes-review`** (INLINE, report-only, over the round's fix diff — runs in EVERY round that landed a fix; validated findings fold back into that same round's fix set) → **Round Integrity Check** (executed count must not shrink, skipped count must not grow, scope must not narrow) → fresh full re-verify. Round cap 3; not shrinking across 2 rounds, increasing failures, cap hit with failures open, lost coverage, an open validated review finding, or `ENVIRONMENT-BLOCKED` → STOP and escalate via `AskUserQuestion`. Output: zero-failure runner evidence required by the policy + the per-round verdict/fix/review trail.
-> **`/debug-investigate`** *(CONDITIONAL — only on a round with failures)* — Trace each failure end-to-start to its root cause BEFORE any edit; produces the traced cause that the Fault Verdict rests on. Skipped on a green round, with the skip recorded.
-> **`/fix`** *(CONDITIONAL — only on a round with an adjudicated failure)* — Resolve the verdict at the invariant-owning component identified from project architecture and source evidence, never the crash site. A `SOURCE-WRONG` fix KEEPS or STRENGTHENS the test that caught it. NEVER runs before a written Fault Verdict exists for that failure.
-> **`/spec [mode=sync]`** — Reconcile the selected canonical case owner and configured coverage carrier with executing tests. The strict default syncs Section 8 `TC-{FEATURE}-{NNN}` cases and their `CoveredBy` links; a native profile preserves its declared identities, fields, and cardinality. Run AFTER convergence so it syncs final tests, not intermediate ones.
-> **`/scan --target=integration-tests`** — Regenerate the integration-test project-reference doc from the suite as it now stands: patterns, base fixtures, async-wait and unique-data helper conventions, suite/project inventory, and lessons. This is the doc every future agent reads before touching a test — a loop that changed test structure without regenerating it leaves the next agent following stale conventions.
-> **`/docs-update`** — Update every OTHER impacted doc: feature-doc evidence fields, version history, and any doc embedding test counts or coverage claims the loop changed. Covers what `/spec [mode=sync]` (spec TCs) and `/scan --target=integration-tests` (the reference doc) do not.
-> **`/workflow-end`** + **`/watzup`** — Close workflow state, then summarize the convergence trail and run the final handoff.
+Before round 1, `/investigate` locks one evidence-backed record that every round reuses: tier applicability (integration/system `APPLICABLE` only with verified runner/config evidence; other tiers `N/A — <evidence>` unless explicitly in scope); owners (the fix-loop owns convergence; diagnosis, review, fixing and fix review keep their conditional owners); copy-ready full and focused commands that fail on invalid or zero-match selections, with a simple Windows/macOS/Linux entry point where required; a unique non-sensitive run identity, valid public-use-case setup and isolated mutable data for parallel workers; and the per-round counts, failing names, exit status and repeat evidence `integrationTestVerify.guidance` requires. No fallback runner, narrowed scope or destructive reset may stand in for missing evidence.
 
 ---
-
-**IMPORTANT MANDATORY Steps:** /investigate -> /integration-test-verify --fix-loop -> /debug-investigate [on-failure] -> /fix [on-failure] -> /spec [mode=sync] -> /scan --target=integration-tests -> /docs-update -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -219,37 +188,12 @@ The loop owns this handoff and the Round Integrity Check: `/integration-test-ver
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** Drive the configured relevant integration-test scope to a truthful green result, adjudicate each failure before editing, fix at the component that owns the violated contract, verify under the configured repeat policy, and sync the selected canonical case/reference docs.
+**IMPORTANT MUST ATTENTION Goal:** drive the resolved scope to a truthful, repeatable green — adjudicate, fix at the owner, review each fix, re-verify, then sync what the fixes made stale.
 
-**IMPORTANT MUST ATTENTION Workflow:** Set the Goal Contract and explicit configured scope → `/investigate` → `/integration-test-verify --fix-loop` → on failure `/debug-investigate` + `/integration-test-review` → written Fault Verdict → fix at the evidenced owner → inline `/changes-review` → Round Integrity Check → fresh full re-verify under the configured repeat policy → sync the selected case owner → refresh changed references → `/docs-update` → `/workflow-end` → `/watzup`; NEVER weaken tests, narrow scope, lose coverage, or skip evidence, and bounded-escalate on the round cap or blocked environment.
+- **MUST ATTENTION** triage FIRST: scope (WHOLE system by default, fixed and passed explicitly every round) and failure load (0 · XS · S/M · L/XL) decide depth — one failing test does not get the whole-suite ceremony, but it still gets a Fault Verdict and the repeat-policy proof.
+- **MUST ATTENTION** every failure gets ONE written five-way Fault Verdict (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`) BEFORE any edit — why: an unadjudicated failure gets "fixed" at the assertion, and a weakened assertion protects nothing.
+- **MUST ATTENTION** NEVER force green — no weakened or removed assertions, skips, widened assertion timeouts, retried assertions, or narrowed scope; the Round Integrity Check blocks a suite that got greener by losing tests.
+- **MUST ATTENTION** run the fix-loop and the skills it drives INLINE; every round that lands a fix runs report-only `/changes-review` on that diff; back every pass/fail claim with runner output.
+- **MUST ATTENTION** bootstrap one task per selected step plus a final review task, write the report FIRST, and end with the lessons-learned check.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every protocol below — each is a signpost to its canonical body above.
-
-- **Integration Test Execution Discipline:** verify the WHOLE system, drive state through real use cases, `/debug-investigate` before any fix, 60s runtime cap, loop until the whole suite is green.
-- **Test-Failure Fault Adjudication:** decide WHO is at fault (source vs test) against the governing spec before touching either side; never weaken an assertion or change source to satisfy a broken test.
-- **Real-World Fidelity:** a scenario production could never reach proves nothing green and blames the product red; settle barriers belong in ARRANGE, never a widened assertion timeout.
-- **AI Mistakes:** holistic-first debug, fix at responsible layer, surgical diff, verify all outputs.
-- **Nested Tasks:** expand child phases, link parent workflow row when nested.
-- **Project Reference Docs:** read required docs first, cite, `lessons.md` always.
-- **Task Tracking:** bootstrap tasks; persist plan/review findings to disk incrementally.
-- **Critical Thinking:** traced `file:line` proof, confidence >80%, never guess.
-- **Incremental Persistence:** append findings per file to report; never hold in memory.
-- **Sub-Agent Return Contract:** sub-agents return summary-only with `Full report:` pointer.
-
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-**IMPORTANT MUST ATTENTION** set the Goal Contract FIRST — before round 1 — with the zero-failures / 2-consecutive-green / no-test-lost success criterion
-**IMPORTANT MUST ATTENTION** the verification scope defaults to the WHOLE SYSTEM and is passed to `/integration-test-verify` EXPLICITLY every round — never let it fall through to change-scoped git auto-detect
-**IMPORTANT MUST ATTENTION** adjudicate EVERY failure into ONE written Fault Verdict BEFORE any edit — `/debug-investigate` for the traced root cause, `/integration-test-review` (report-only) for the test-side gates
-**IMPORTANT MUST ATTENTION** every loop round that lands a fix runs `/changes-review` (INLINE, report-only) on that round's fix diff — validated findings fold into the same round; an open validated finding blocks the round even when the tests are green
-**IMPORTANT MUST ATTENTION** run `/integration-test-verify --fix-loop` and the skills it drives INLINE via the `Skill` tool — NEVER as sub-agents
-**IMPORTANT MUST ATTENTION** NEVER force green — no weakened assertions, no skips, no widened timeouts, no retries around a failing assertion, no repository-hacked data, no narrowed scope
-**IMPORTANT MUST ATTENTION** the Round Integrity Check is BLOCKING — a shrinking executed-test count, a growing skipped count, or a narrowed scope is a REGRESSION, not convergence
-**IMPORTANT MUST ATTENTION** show actual runner output for every pass/fail claim (Passed/Failed/Skipped counts + failing names)
-**IMPORTANT MUST ATTENTION** documentation sync is part of DONE — `/spec [mode=sync]` + `/scan --target=integration-tests` + `/docs-update` all run after convergence
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**[TASK-PLANNING]** Before acting, run the triage, then break the selected steps into small tasks with `TaskCreate`.

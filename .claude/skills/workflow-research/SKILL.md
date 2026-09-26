@@ -1,48 +1,32 @@
 ---
 name: workflow-research
 version: 1.0.0
-description: '[Workflow] Use when researching a topic from web sources then synthesizing. Flag: --output={synthesis|business-eval|marketing|course}.'
+description: "[Workflow] Use when researching a topic from web sources then synthesizing. Flag: --output={synthesis|business-eval|marketing|course}."
 disable-model-invocation: false
 ---
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Research & Synthesis workflow — resolve the target artifact selected by `--output` to a complete canonical manifest variant, gather web sources, then synthesize the requested knowledge report, business evaluation, marketing strategy, or course material.
+**Goal:** Research a topic from web sources and deliver ONE cited, reviewed artifact in the form `--output` selects: a knowledge report (`synthesis`, default), a business/market viability evaluation (`business-eval`), a marketing strategy (`marketing`), or course material (`course`). The workflow produces research artifacts only, never code.
 
-**Workflow:**
+**Use it when** the answer must come from external sources and end in a durable, cited deliverable. **Use a sibling instead** for a quick lookup with no artifact (plain `/web-research`), for questions about this codebase (`/investigate`), or for a diagram of researched knowledge (`workflow-visualize --mode=knowledge`).
 
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
-
-**Key Rules:**
-
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- NEVER skip mandatory workflow or skill gates.
-
-**IMPORTANT MANDATORY Steps:** resolve the `workflow-research` manifest variant for `--output` first, then invoke its exact ordered steps (default: /web-research -> /deep-research -> /knowledge-synthesis -> /knowledge-review -> /workflow-end -> /watzup).
-
-> These steps are the default `--output=synthesis` sequence (identical to the catalog `workflow-research` workflow sequence). For `--output={business-eval|marketing|course}` the terminal synthesis skill(s) swap per the **Output Dispatch** table below — the research scaffold and `/knowledge-review -> /workflow-end -> /watzup` closure are invariant.
-
----
-
-## Output Dispatch (--output)
-
-All modes share the research scaffold `/web-research → /deep-research → … → /knowledge-review → /workflow-end → /watzup`; only the terminal synthesis skill(s) swap per `--output`:
-
-| `--output`              | Terminal synthesis skill(s)                 | Full sequence                                                                                                            |
-| ----------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **synthesis** (default) | `/knowledge-synthesis`                      | `/web-research → /deep-research → /knowledge-synthesis → /knowledge-review → /workflow-end → /watzup`                    |
-| **business-eval**       | `/market-analysis` + `/business-evaluation` | `/web-research → /deep-research → /market-analysis → /business-evaluation → /knowledge-review → /workflow-end → /watzup` |
-| **marketing**           | `/market-analysis` + `/strategy-builder`    | `/web-research → /deep-research → /market-analysis → /strategy-builder → /knowledge-review → /workflow-end → /watzup`    |
-| **course**              | `/course-builder`                           | `/web-research → /deep-research → /course-builder → /knowledge-review → /workflow-end → /watzup`                         |
+**IMPORTANT MANDATORY Steps:** resolve the `workflow-research` manifest variant for `--output` first, then create one task per returned occurrence (default: /web-research -> /deep-research -> /knowledge-synthesis -> /knowledge-review -> /workflow-end -> /watzup).
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
 
-This skill IS the canonical Research & Synthesis entry point — invoke it directly with `--output=<mode>` (default `synthesis`), resolve the matching complete variant through `.claude/scripts/lib/workflow-manifest.cjs`, and execute every returned occurrence in order via the `Skill` tool. The workflow catalog exposes the same four variants for auto-routing and `/start-workflow workflow-research`; never execute a prose-swapped sequence that differs from the resolved manifest.
+This skill is the canonical Research & Synthesis entry point. Invoke it with `--output=<mode>` (default `synthesis`); `/start-workflow workflow-research` resolves the same variants through `.claude/scripts/lib/workflow-manifest.cjs`. Each variant is a complete sequence, so execute the resolved manifest and never a hand-swapped list.
+
+## Output Modes (--output)
+
+Pick the mode from the prompt BEFORE creating tasks. When the prompt is ambiguous, use `synthesis` and state the assumption. Every mode shares the research scaffold (`/web-research → /deep-research`) and the `/knowledge-review → /workflow-end → /watzup` close; only the terminal synthesis skill(s) differ.
+
+| `--output`              | Deliverable                          | Terminal synthesis skill(s)                 |
+| ----------------------- | ------------------------------------ | ------------------------------------------- |
+| **synthesis** (default) | Cited knowledge report               | `/knowledge-synthesis`                      |
+| **business-eval**       | Business/market viability evaluation | `/market-analysis` → `/business-evaluation` |
+| **marketing**           | Marketing strategy                   | `/market-analysis` → `/strategy-builder`    |
+| **course**              | Structured course material           | `/course-builder`                           |
 
 **[BLOCKING] Evidence-artifact identity for `business-eval` and `marketing`:** before invoking the
 first research child, derive one stable `ARTIFACT_SLUG` from the user's topic and record the exact
@@ -55,9 +39,55 @@ identity. This token is not needed for `synthesis` or `course` variants. — why
 without a shared artifact key still allows a producer/consumer miss that degrades the final evidence
 without failing the workflow.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+## Question-Scope Triage (first action)
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+Classify the question and record it in the workflow report. Scope sets research DEPTH inside each skill's caps (`/web-research` ≤10 searches, `/deep-research` ≤8 fetches); it never lowers the evidence bar.
+
+| Scope                          | Signals                                                                           | Depth                                                                                                                                                                                                                  |
+| ------------------------------ | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Narrow**                     | One fact, definition, or comparison of 2–3 named options                          | 3–5 angle-varied queries; fetch the 2–4 strongest Tier 1–2 sources; a short artifact that still carries every template section the review enforces.                                                                    |
+| **Standard**                   | One topic with several angles                                                     | Skill defaults: 5–10 queries, 5–8 fetches.                                                                                                                                                                             |
+| **Broad or decision-critical** | Multi-part topic, contested evidence, or a business/strategy decision rides on it | Split into sub-topics, one bounded research pass per sub-topic (each under the caps), then merge the source maps and evidence bases before synthesis. Run the adversarial checks of `/knowledge-review` at full depth. |
+
+## Required Quality Gates
+
+| Gate                                             | Evidence that proves it                                                                                                                                                                 |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Review converged (`review-converged`)            | `/knowledge-review` verdict APPROVED on the final artifact, after validated REVISE/BLOCKED findings were fixed and re-reviewed.                                                         |
+| Citation bar                                     | Every factual claim, number, table row and inference ends with an inline `[N]` citation mapped to a Sources row (Title, URL, Author/Publisher, Date, Tier).                             |
+| Cross-validated and calibrated | Factual claims rest on 2+ independent sources; a single-source claim is marked unverified and held below 60%; confidence above 80% needs contradicting evidence addressed; Tier 4 is never cited as fact; findings below 60% and open gaps are flagged. |
+| Artifact identity (`business-eval`, `marketing`) | One `MARKET_ANALYSIS_PATH`, written by `market-analysis` and read by its consumer.                                                                                                      |
+| Variant closure                                  | The workflow report records the selected mode, resolver fingerprint and ordered occurrence IDs.                                                                                         |
+| Run closed (`run-closed`)                        | `/workflow-end` ran last.                                                                                                                                                               |
+
+## Recommended Skills
+
+| Skill                       | Role | When it earns its cost                                                       | Proves / feeds                                                                           |
+| --------------------------- | ---- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `/web-research`             | core | Always; depth per triage.                                                    | Tiered source map with gaps (`.claude/tmp/_sources-{slug}.md`).                          |
+| `/deep-research`            | core | Always; fetch count per triage. The synthesis skills read its evidence base. | Cross-validated evidence base (`.claude/tmp/_evidence-{slug}.md`).                       |
+| Terminal synthesis skill(s) | core | Per the Output Modes table.                                                  | The deliverable.                                                                         |
+| `/knowledge-review`         | gate | Always.                                                                      | `review-converged`: template, citation, confidence, source-quality and anti-bias checks. |
+| `/workflow-end`             | gate | Always, last.                                                                | `run-closed`.                                                                            |
+| `/watzup`                   | core | Always.                                                                      | Handoff summary with the artifact path.                                                  |
+
+## Orchestration
+
+You choose inline vs sub-agent, batching and ordering to minimize wall-clock and tokens at equal quality. Narrow questions run inline. For broad questions, independent sub-topic research passes can run as one parallel wave, because each writes only its own source and evidence files. Merge them before synthesis.
+
+Fixed data dependencies: the source map exists before `/deep-research`; the evidence base exists before synthesis; `market-analysis` writes `MARKET_ANALYSIS_PATH` before its consumer reads it; `/knowledge-review` checks the final artifact; `/workflow-end` runs last.
+
+## Memory & Reporting
+
+- Create one task per resolved occurrence. Child skills expand their own phases under the parent row.
+- Create the workflow report FIRST at `tmp/reports/workflow-research-{YYMMDD}-{HHmm}-{slug}.md`: mode, triage, resolver fingerprint, per-step evidence and deviations, and the paths of the source map, evidence base and final artifact. Append after each step.
+- Sub-agent briefs carry the topic, the slug, the exact paths and the evidence bar, and make report writing the first deliverable.
+- After compaction, re-read `TaskList` and the workflow report before continuing.
+
+## Findings & Fix Path
+
+- `/knowledge-review` is read-only. Validate each REVISE/BLOCKED finding against the evidence, then fix it at its owner. An evidence gap takes a targeted `/deep-research` pass on that gap. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill. Then re-run `/knowledge-review` on the fixed artifact.
+- Loop bounds: round 1 exits on zero findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 2 rounds (+1 when a validated CRITICAL/HIGH is still open); escalate via `AskUserQuestion` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -96,17 +126,11 @@ without failing the workflow.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Variant closure:** record the selected `--output` mode, resolver fingerprint, ordered occurrence IDs, each invoked skill's evidence, and any conditional skip before `/workflow-end`; a variant mismatch is a workflow failure.
+**IMPORTANT MUST ATTENTION Goal:** one cited, reviewed artifact in the selected `--output` form, with `/knowledge-review` converged and every factual claim traceable to a Sources row.
 
-**IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — NEVER treat a digest line as the full rule; it signposts the canonical SYNC body above:**
+- **MUST ATTENTION** select the `--output` mode and triage the question scope FIRST. Scope sets research depth inside the skill caps; it never lowers the citation or cross-validation bar.
+- **MUST ATTENTION** for `business-eval` and `marketing`, derive one `ARTIFACT_SLUG` and `MARKET_ANALYSIS_PATH` before the first research step and pass the exact values to every child.
+- **MUST ATTENTION** fix validated review findings at their owner (evidence gap → targeted `/deep-research`, synthesis defect → the artifact), then re-run `/knowledge-review`.
+- **MUST ATTENTION Variant closure:** record the selected `--output` mode, resolver fingerprint, ordered occurrence IDs, each invoked skill's evidence, and every deviation before `/workflow-end`; a variant mismatch is a workflow failure.
 
-- **Nested Task Creation:** Expand child phases under the parent workflow row; link when nested.
-- **Critical Thinking:** Apply critical + sequential thinking; cite proof, confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Incremental Persistence:** Persist findings to `tmp/reports/` per file; survive context cutoff.
-- **Subagent Return Contract:** Sub-agents return summary plus report pointer only, never inline transcript.
-
-**IMPORTANT MUST ATTENTION** apply Phase 1 compression before structural enhancement; preserve semantic meaning.
-**IMPORTANT MUST ATTENTION** NEVER alter YAML frontmatter, code blocks, tables, or SYNC-tag bodies during optimization.
-**IMPORTANT MUST ATTENTION** keep evidence gates and mandatory workflow/skill steps explicit and enforceable.
-**IMPORTANT MUST ATTENTION** add a final review task to verify output quality and unresolved risks.
+**Protocols in force (digest; the guide entries above point to the full text):** Nested Task Creation · Critical Thinking · AI Mistake Prevention · Incremental Persistence · Sub-Agent Return Contract · Session Goal Ledger · Workflow Registry Binding.

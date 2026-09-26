@@ -207,20 +207,22 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     assert.match(skillText, /Initial Parallel Phase \(Steps 1[–-]2\)/);
     assert.match(skillText, /fresh `code-reviewer` sub-agent[^\n]*FULL mode/);
     assert.match(skillText, /Advance only after BOTH return/);
-    assert.match(skillText, /step 14[^\n]*settled[^\n]*whole target/i);
+    assert.match(skillText, /post-fix[^\n]*settled[^\n]*whole target/i);
     assert.doesNotMatch(codexContextText, /plan-execute -> why-review -> experience-review/,
         'tracked Codex context must not carry the runtime workflow catalog');
-    assert.match(loopSkillText, /full 19-step sequence/);
-    assert.doesNotMatch(loopSkillText, /full (?:20|21)-step sequence/);
-    assert.match(loopSkillText, /fix cycle, steps 11[–-]14/);
-    assert.doesNotMatch(loopSkillText, /fix cycle, steps 12[–-]15/);
+    // The loop reference names the inner run and its fix cycle by purpose — a hard-coded step count or
+    // step range drifts every time the triage-driven sequence changes.
+    assert.match(loopSkillText, /full default sequence/);
+    assert.doesNotMatch(loopSkillText, /full \d+-step sequence/);
+    assert.match(loopSkillText, /fix cycle — validate → fix → simplify → post-fix re-review/);
+    assert.doesNotMatch(loopSkillText, /fix cycle, steps \d/);
     assert.doesNotMatch(
         loopSkillText,
         /workflow-review-changes\/SKILL\.md:\d/,
         'loop protocol must use stable named-section references instead of shifted line coordinates'
     );
-    assert.match(workflowVerifierText, /step-14 re-review is inline by design/);
-    assert.doesNotMatch(workflowVerifierText, /step-15 re-review is inline by design/);
+    assert.match(workflowVerifierText, /post-fix re-review is inline by design/);
+    assert.doesNotMatch(workflowVerifierText, /step-\d+ re-review is inline by design/);
 });
 
 // Given the outer zero-fix convergence loop is an OPTIONAL `--fix-loop` mode of workflow-review-changes

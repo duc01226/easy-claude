@@ -49,102 +49,113 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Bug Fix workflow — systematic debugging with root cause investigation, fix, and verification.
+**Goal:** Fix a reported defect at the root cause its end-to-start trace proves, guarded by a regression test that fails before the fix and passes after it — cheap on a small local bug, thorough on a wide or risky one.
 
-**Summary:** Execute the complete bug-fix sequence `$debug-investigate` → `$spec [mode=amend]` → `$plan` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → RED `$integration-test` → `$fix` → GREEN `$integration-test` → `$integration-test-verify` → `$spec [mode=sync]` → `$workflow-review-changes` (which owns `$integration-test-review`, the conditional `$scan --target=domain-entities` → `$docs-update` refresh, and `$experience-review`) → optional `$workflow-e2e --source=context` → `$demo-guide` → `$workflow-end` → `$watzup`, with spec-drift adjudication, end-to-start tracing, Goal Contract evidence, and explicit conditional skip reasons; E2E runs only on an explicit user request.
+**Use this** for a bug, error, crash, regression or stale/incorrect output whose cause is unknown or whose reach is wide. A known one-line cause in one module fits a custom-simple route (investigate → fix → test → review). A request that changes intended behavior is a feature (`workflow-feature`); a behavior-preserving restructure is `workflow-refactor`.
 
-**Workflow:**
+**Key rules:**
 
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
+- **MUST** triage size, kind and risk FIRST — the triage picks which recommended skills run and how deep.
+- **MUST** trace the root cause end-to-start before any fix, classify Code Bug vs Spec Bug before any regression test, and prove the regression test RED before the fix and GREEN after.
+- **MUST** fix at the layer that owns the violated invariant; converge the change review; sync the spec when a canonical spec or specified behavior changed.
+- **NEVER** encode the buggy behavior into a spec or test, and NEVER weaken a test to turn it green.
 
-**Key Rules:**
+## Size & Kind Triage (first action)
 
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION require regression tests to name `Business Intent / Invariant Guarded` and fail if that intent breaks.
-- MUST ATTENTION apply the shared SDD Artifact Contract from `shared/sdd-artifact-contract.md` in the active skills root; use `docs/project-config.json` and `docs/project-reference/docs-index-reference.md` for project-specific conventions.
-- MUST ATTENTION record current behavior, expected behavior, and unchanged behavior that must be preserved before fixing.
-- MUST ATTENTION treat code-extracted specs and TCs as reference-only until canonical review accepts them.
-- MUST ATTENTION allow any supported AI tool to implement or review when the shared contract, synced context, and local docs are available.
-- NEVER skip mandatory workflow or skill gates.
+Classify the defect before choosing steps and record the result in the workflow report:
 
-## Repeated Steps Disambiguation (CRITICAL for task creation)
+- **Size** (guidance, not a law): **XS** 1–3 files / ≤100 changed lines · **S** ≤15 files · **M** ≤60 · **L** ≤300 · **XL** >300.
+- **Kind** (all that apply): behavior bug · public contract/API · data/schema/migration · security-sensitive (auth, secrets, money, PII) · performance · UI surface · test-only · tooling/config · cross-module/cross-service.
+- **Risk:** irreversible, data, security, cross-module. Escalate depth on risk and ambiguity, not on file count alone.
 
-| Step                | Occurrence | Task Description                                          |
-| ------------------- | ---------- | --------------------------------------------------------- |
-| `$integration-test` | 1st        | INT-TEST₁ — RED phase: write regression test, expect FAIL |
-| `$integration-test` | 2nd        | INT-TEST₂ — GREEN phase: re-run after fix, expect PASS    |
+| Triage result | Typical route through the recommended skills |
+| --- | --- |
+| XS/S, one owning layer, Code Bug, no contract/data/security | investigate → RED test → fix → verify → review → close; `$fix` plans inline; spec steps only when a canonical spec covers the area |
+| M, or a Spec Bug, or several TCs | add `$plan`; add the spec-tests review when the TC change is more than one regression case |
+| L/XL, cross-module, contract/data/security, or ambiguous cause | full sequence; add an ad hoc `$plan-review` when the fix set is large or ambiguous; partition verification and review per module |
+
+## Required Quality Gates
+
+Non-negotiable — `$workflow-end` checks each against its evidence before the run closes:
+
+1. **Root cause traced** (`$debug-investigate`, gate) — end-to-start trace from the observed final state through reader → storage/projection → writer → consumer/job → producer, every feeder path, a hypothesis matrix with the environment weighed as a competing cause, the owning fix layer and a forward convergence proof, all with `file:line`.
+2. **Code Bug vs Spec Bug classified** before any regression TC or test (gate below), with a preservation note: `current behavior → expected behavior → unchanged behavior to preserve → regression evidence`.
+3. **Regression guard RED → GREEN** — the first `$integration-test` (gate) reproduces the bug and FAILS; after `$fix` it PASSES. A test that passes before the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
+4. **Tests pass** (`$integration-test-verify`, gate) — every behavior the fix changed is covered by tests that ran green in THIS run.
+5. **Spec synced** — when a canonical spec or test-case artifact governs the affected area and behavior or a public contract changed, or that spec lacked the case the bug exposed. No canonical spec governs the area → the gate is N/A: record that fact with the searched paths and offer `$spec` as a follow-up.
+6. **Review converged** (`$workflow-review-changes`, gate, INLINE in the main session) — validated blocking findings fixed and the fixed state re-reviewed over the whole package (spec + tests + fix).
+7. **Goal satisfied and run closed** — the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) maps root cause and RED/GREEN evidence to the saved success criteria; `$workflow-end` closes the run (top-level only).
+
+> **[BLOCKING] Code Bug vs Spec Bug Gate** (the bugfix instance of `SYNC:spec-drift-adjudication` in `shared/sdd-artifact-contract.md`):
+>
+> - **Code Bug** (= CODE-WRONG) — the canonical spec describes intended behavior and the code diverged → regression TCs for the intended behavior, then fix the code.
+> - **Spec Bug** (= SPEC-STALE) — the spec documents the wrong behavior and the code implements it faithfully → correct the canonical spec first via `$spec [mode=amend]`, then TCs for the corrected behavior.
+> - **Ambiguous** — ask the user or product owner which behavior is intended before writing TCs.
+>
+> Reconcile to canonical intent; never normalize the divergence to whichever side currently passes.
 
 ## Gates and Optional Steps
 
-**Step contract:** `$start-workflow` owns how gate, core and optional steps run; this table summarizes this workflow's `intent`, `outcomeGates` and step roles from `.claude/workflows.json`.
+**Step contract:** `$start-workflow` owns how gate, core and optional steps run; this table summarizes this workflow's `intent`, `outcomeGates` and step roles from `.claude/workflows.json`, in its recommended default order.
 
-| Step                             | Role     | Runs when                                  |
-| -------------------------------- | -------- | ------------------------------------------ |
-| `$debug-investigate`             | gate     | always                                     |
-| `$integration-test-verify`       | gate     | always                                     |
-| `$workflow-review-changes`       | gate     | always                                     |
-| `$workflow-e2e --source=context` | optional | the user explicitly asks for E2E work      |
-| `$demo-guide`                    | optional | the fix changes user-facing behavior       |
-| `$workflow-end`                  | gate     | always                                     |
+| Step | Role | Runs when / earns its cost | Proves |
+| --- | --- | --- | --- |
+| `$debug-investigate` | gate | always — owns discovery and root cause | root cause traced |
+| `$spec [mode=amend]` | optional | Spec Bug, or a resolved Ambiguous case | spec states intent |
+| `$pbi-mockup --explore` | optional | the fix is size M+ AND creates new UI like a feature (a new page/view, component or dialog) — see below | selected mockup before planning |
+| `$plan` | optional | size M+, Spec Bug, several TCs, cross-module, contract/data/security, several fix layers | fix plan |
+| `$spec [mode=tests]` | optional | a canonical spec/TC registry covers the area | regression TC |
+| `$artifact-review --type=spec-tests` | optional | TC change beyond one regression case, or M+ / risk | TC quality |
+| `$integration-test` | gate | always — RED: reproduce the bug, expect FAIL | guard catches the bug |
+| `$fix` | core | always in practice — at the owning layer | the change |
+| `$integration-test` | core | GREEN after the fix; may fold into the verify gate | guard passes |
+| `$integration-test-verify` | gate | always | tests pass |
+| `$spec [mode=sync]` | optional | a canonical spec/TC changed, or specified behavior/contract changed | spec synced |
+| `$workflow-review-changes` | gate | always — INLINE in the main session | review converged |
+| `$workflow-e2e --source=context` | optional | the user explicitly asks for E2E work | E2E evidence |
+| `$demo-guide` | optional | the fix changes user-facing behavior | demo path |
+| `$workflow-end` | gate | always | run closed |
+| `$watzup` | core | wrap-up summary | handoff |
 
-Outcome gates: root cause traced · tests pass · spec synced (when behavior or a public contract changed, or the spec lacked the case the bug exposed) · review converged · run closed.
+**New-UI Explore Mockup (conditional, BEFORE `$plan`).** Only when the fix is large (size M+) and creates new user-facing UI like a feature — a new page/view, component or dialog — run the explore mockups (`$pbi-mockup --explore`). **Mockup scope gate first — BEFORE any analysis or drafting, so a skip saves tokens and time** (`pbi-mockup` Step 0): with ask the user directly available, ALWAYS ask 3 / 2 / 1 options or skip mockups (recommended option by scope; skip → record `Mockup: SKIPPED by user` and continue); without it, generate ONLY ONE mockup in the recommended direction, auto-select it and record `Selection: AUTO-SELECTED — no question tool (1 draft)` in the plan or run report. Then Journey Report (`UX-1`) + design-authority read (`UX-2`) → the chosen 1–3 direction drafts rendered with html-export → each opened in the default browser (`node .claude/scripts/open-report.cjs <draft>`) → with 2–3 drafts, ask the user directly with one option per draft, your evidence-backed recommendation first labelled `(Recommended)` → the user's pick (or the `Selection:` line) is recorded in `direction-approved.md` and the plan's UI Layout builds on the selected mockup. Never pick for the user while they can be asked; drafts cannot be shown or the question tool errors after drafting → AUTO-SELECT the recommended draft (best journey fit + design-system fit) and record `Selection: AUTO-SELECTED — <reason>` in `direction-approved.md` and the plan. Pass the investigation report (or the amended spec) as `--source`. A fix inside existing UI skips it with the registry `skipReason`.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+Without `$plan`, `$fix` plans inline and the investigation report records the fix layer, blast radius and rollback.
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+Outcome gates: root cause traced · tests pass · spec synced (when a canonical spec governs the area and behavior or a public contract changed, or that spec lacked the case the bug exposed) · review converged · run closed.
 
-**IMPORTANT MANDATORY Steps:** $debug-investigate -> $spec [mode=amend] -> $plan -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $integration-test -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $workflow-e2e --source=context -> $demo-guide -> $workflow-end -> $watzup
+A recommended step the triage shows would do no real work is not run; record it through the Step Execution Protocol with its evidence.
 
-> **[EXPERIENCE ACCEPTANCE HANDOFF]** `$workflow-review-changes` carries the conditional `$experience-review` gate after the fix and final rationale review. A changed observable result is exercised and inspected before expectation changes; a missing capability is `ENVIRONMENT-BLOCKED`, not a green regression result.
+**Ad hoc skills (not registry steps):** `$performance-review` for a performance bug (below) · `$investigate` for an "unused code" removal decision (grep evidence, confidence ≥80%, cross-module check) · `$plan-review` for a large or ambiguous fix set · `$spec` (ui-intent) beside the spec sync when user-facing behavior changed — refresh the Feature Spec §6 interaction surface (View Inventory, Key UI States, the click-path the bug touched) and link the governing design spec; state the skip reason for a backend-only fix.
 
-> **[OPTIONAL E2E HANDOFF]** The sequence includes `$workflow-e2e --source=context` immediately after `$workflow-review-changes`. Run this occurrence only when the user explicitly requests E2E work, including wording such as “include E2E,” “write E2E,” “call E2E,” “run E2E,” or “do end-to-end verification.” Otherwise skip it with the manifest applicability reason; the step is disabled by default. When run, its nested workflow uses the default-on screenshot review and records evidence-backed `N/A` or `ENVIRONMENT-BLOCKED` when the repository lacks the applicable capability.
+> **[PERFORMANCE-SDD ROUTE]** A performance bug (latency, throughput, memory, query speed, load behavior) runs `$performance-review` with SLA/benchmark evidence: target metric, baseline, measurement command and acceptable regression budget. Performance scope never bypasses functional no-regression checks — run them when behavior can change — and a changed SLA, performance constraint or behavior boundary updates specs and docs.
 
----
+## Orchestration Freedom
 
-**IMPORTANT MANDATORY Steps:** $debug-investigate -> $spec [mode=amend] -> $plan -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $integration-test -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $workflow-e2e --source=context -> $demo-guide -> $workflow-end -> $watzup
+You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate (pbi-mockup Step 0) and the post-generation pick run in the session that can ask the user — never inside a delegated sub-agent; only the direction-draft builders may be sub-agents. A sub-agent would silently fall back to one auto-selected draft even though the user could have been asked. Fixed constraints (data dependencies):
 
-> **Single-pass steps are self-loop-backed (convergence lives in the skill, not the sequence):** the `$artifact-review --type=spec-tests` step appears once in the flat sequence with no repeat wired — intentionally. It carries the full `SYNC:double-round-trip-review` self-loop (review → validate findings → fix validated findings → full re-review until the current exit bar is clear; round-2 LOW-only findings are deferred), so a single occurrence still converges without spinning on polish; the workflow relies on that per-skill loop rather than re-listing the step. Code-change convergence is delegated to `$workflow-review-changes` (whose specialist scoped-re-run note lives in that skill).
+- The root-cause trace exists before any fix plan, regression TC or fix; the RED run happens before `$fix` lands.
+- A change exists before it is reviewed or tested; the spec sync runs before the review that checks it; fixes are re-verified after they land; `$workflow-end` runs last.
+- `$workflow-review-changes` runs INLINE in the main session — never as a sub-agent — and owns the test-quality review, the docs/domain-entity reference refresh and experience acceptance; do not repeat them here.
+- Gates awaiting user approval (Ambiguous classification, plan approval) are never parallelized.
 
-> **Severity-floor clarification:** the shared loop fixes only findings that block the current round. Round 1 fixes all validated findings; from round 2 onward, CRITICAL/HIGH/MEDIUM findings remain blocking, while LOW-only findings are recorded as deferred and never open another fix/re-review round.
+Recommended: XS/S work inline without sub-agents; independent read-only investigations (feeder paths, hypotheses) as one parallel wave; L/XL verification and review partitioned into bounded batches per module with one report per batch.
 
-> **[BLOCKING]** Each step that runs MUST ATTENTION invoke its skill invocation; every other deviation follows the step contract above. NEVER batch-complete validation gates.
+## Memory, Reporting and Fix Path
 
-> **[CRITICAL] Plan Before Fix Gate:** The `$plan` step is MANDATORY before `$fix`. You MUST ATTENTION create a todo task for it AND complete it before proceeding to fix. Never skip planning — fixes without a plan lead to incomplete root cause analysis and regressions. This workflow runs NO `$plan-review` and NO `$plan-validate`, so `$plan` itself carries the whole planning evidence bar: root-cause trace from `$debug-investigate`, owning fix layer, blast radius, and rollback. Invoke `$plan-review` or `$plan-validate` ad hoc only on an explicit user request; they are not workflow steps.
+- **Tasks:** one task per selected step or aspect so nothing is lost after compaction; child skills expand their phases under the parent row.
+- **Report first:** create `tmp/reports/workflow-bugfix-{YYMMDD}-{HHmm}-{slug}.md` before the first finding; append triage, trace, RED/GREEN evidence and deviations per step; re-read it and the current task list after compaction. Sub-agent briefs make report-writing their first deliverable.
+- **Goal Contract:** resolve the active goal at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the bug report); pass the same goal file to every child step; emit the Goal Satisfaction matrix before `$workflow-end`.
+- **Spec context:** when the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) holds a spec for the affected module, read its rules and contracts before investigating.
+- **Fix path:** validate a finding (evidence-backed, reproducible) before fixing it; fix at the owning layer; re-run the reviewer or test that raised it, plus a holistic pass when fixes were non-trivial. When the bug touches a `[HARD]` rule or invariant, regression TCs add invariant/property cases whose bar is a killed mutant, not line coverage, and each behavior-changing finding updates BOTH spec and tests.
+- **Loop bounds:** round 1 fixes every validated finding; from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); failing tests are uncapped; no progress → escalate by asking the user directly. Single-occurrence review steps converge inside their own skill loop.
 
-Activate the `workflow-bugfix` workflow. Run `$start-workflow workflow-bugfix` with the user's prompt as context.
+## Activation
 
-> **Spec check (before investigation):** If the business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: list that resolved root to discover available app buckets or flat system folders; then probe its `{app-bucket}/` or `{system-name}/` subdirectory to find the specific service spec.
+Activate the `workflow-bugfix` workflow: run `$start-workflow workflow-bugfix` with the user's prompt as context. Apply the shared SDD Artifact Contract from `shared/sdd-artifact-contract.md` in the active skills root; project conventions come from `docs/project-config.json` and the docs index. Code-extracted specs and TCs stay reference-only until canonical review accepts them.
 
-> **[BLOCKING] Code Bug vs Spec Bug Gate** (the bugfix-specialized instance of `SYNC:spec-drift-adjudication` / `shared/sdd-artifact-contract.md` → Drift Gates — same model, bugfix vocabulary): Before writing regression TCs, classify the issue:
->
-> - **Code Bug** (= CODE-WRONG) — the canonical spec describes intended behavior, but code diverged. Write regression TCs for the intended behavior before fixing code.
-> - **Spec Bug** (= SPEC-STALE) — the spec documents wrong behavior and code faithfully implements it. Update canonical spec/docs first via `$spec [mode=amend]`, then write TCs for the corrected behavior.
-> - **Ambiguous** — ask the user or product owner which behavior is intended before writing TCs.
->
-> Include a behavior preservation note: `current behavior -> expected behavior -> unchanged behavior to preserve -> regression TC/test evidence`. Never normalize the divergence to whichever side currently passes — reconcile to canonical intent.
+Recommended default order (roles in the table above):
 
-> **[BLOCKING] End-to-start trace before fix plan:** Before `$plan`, `$spec [mode=tests]`, or `$fix`, the investigation must include observed final state, final reader/query/renderer/assertion, backward hops through storage/projection/writer/consumer/producer, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. Missing trace evidence blocks the fix path.
-
-> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the bug report). Map root cause and regression-test evidence (RED fail + GREEN pass) to the saved success criteria — each criterion gets `file:line`/command/report evidence in the Iteration Log. Pass the same goal file reference to every child step. Before `$workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
-
-**Steps:** $debug-investigate → $spec [mode=amend] → $plan → $spec [mode=tests] → $artifact-review --type=spec-tests → $integration-test → $fix → $integration-test → $integration-test-verify → $spec [mode=sync] → $workflow-review-changes → $workflow-e2e --source=context → $demo-guide → $workflow-end → $watzup
-
-> **[CONDITIONAL TERMINAL DOMAIN-ENTITY REFERENCE REFRESH — DELEGATED]** The terminal `scan --target=domain-entities` → `docs-update` refresh is owned by the nested `$workflow-review-changes` occurrence: it runs the scan when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence represented in `domain-entities-reference.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`), otherwise completes it with a cited skip reason. Do not repeat the scan in this workflow's tail.
->
-> **[PERFORMANCE-SDD ROUTE]** If this bug fix is performance-related (latency, throughput, memory, query speed, load behavior), run `$performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Do not use performance scope to bypass functional no-regression checks: run the relevant functional checks when behavior can change. Update docs and specs for changed SLA, performance constraints, or behavior boundaries.
-
-> **[TDD-FIRST BUG FIX]** The two `$integration-test` occurrences are intentional and serve distinct purposes:
->
-> **First `$integration-test` (RED phase):** Write a regression test that REPRODUCES the bug. Run it — it MUST FAIL. If it passes, the test does not catch the bug. Proceed to fix only after the test fails — never start the fix while the test still passes.
-> **Second `$integration-test` (GREEN phase):** Re-run integration tests after the fix — expect all to PASS. Confirms the fix works AND the regression guard is in place.
-> **`$integration-test-review`:** Verify tests have real assertion value (not smoke/existence-only checks).
-
-> **UI-intent maintenance (conditional)** — runs alongside the `$spec [mode=sync]` step, **only when the change carries user-facing behavior** (else state the skip reason — backend-only change, no §6 change). When the fix changes user-facing behavior, run `$spec` (ui-intent intent) to refresh the affected Feature Spec **§6** interaction surface — View Inventory, Key UI States, and the per-story (`US-`/`OP-`/`BR-`) click-path the bug touched — and link the governing `$design-spec`/mockup in the spec frontmatter so §6 and the design artifact stay coupled to what was actually fixed. The rules live in the shared block below (`SYNC:ui-intent-layer`) — follow it; do not restate it here.
+**IMPORTANT MANDATORY Steps:** $debug-investigate -> $spec [mode=amend] -> $pbi-mockup --explore -> $plan -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $integration-test -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $workflow-e2e --source=context -> $demo-guide -> $workflow-end -> $watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -221,23 +232,12 @@ Activate the `workflow-bugfix` workflow. Run `$start-workflow workflow-bugfix` w
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger Bug Fix workflow — systematic debugging with root cause investigation, fix, and verification.
+**IMPORTANT MUST ATTENTION Goal:** fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that fails before the fix and passes after it.
 
-**IMPORTANT MUST ATTENTION Workflow:** Execute `$debug-investigate` → `$spec [mode=amend]` → `$plan` → `$spec [mode=tests]` → `$artifact-review --type=spec-tests` → RED `$integration-test` → `$fix` → GREEN `$integration-test` → `$integration-test-verify` → `$spec [mode=sync]` → `$workflow-review-changes` (which owns `$integration-test-review`, the conditional `$scan --target=domain-entities` → `$docs-update` refresh, and `$experience-review`) → optional `$workflow-e2e --source=context` → `$demo-guide` → `$workflow-end` → `$watzup`; preserve the spec-drift gate, end-to-start trace, Goal Contract matrix, conditional performance/UI/domain-entity gates, and evidence-backed task transitions.
-
-**IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — NEVER skip a listed protocol; ALWAYS honor each canonical body:**
-
-- **End-To-Start Debugger Trace:** Trace observed end state backward; matrix + fix layer before fixing.
-- **Nested Task Creation:** Expand child phases; link parent; one task in_progress.
-- **Critical Thinking:** Traced proof per claim; confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Incremental Persistence:** Append findings to report file; never hold in memory.
-- **Subagent Return Contract:** Return summary only; full detail to disk report.
-
-**IMPORTANT MUST ATTENTION** apply Phase 1 compression before structural enhancement; preserve semantic meaning.
-**IMPORTANT MUST ATTENTION** NEVER alter YAML frontmatter, code blocks, tables, or SYNC-tag bodies during optimization.
-**IMPORTANT MUST ATTENTION** keep evidence gates and mandatory workflow/skill steps explicit and enforceable.
-**IMPORTANT MUST ATTENTION** add a final review task to verify output quality and unresolved risks.
+- **MUST ATTENTION** triage size, kind and risk FIRST; run only the recommended skills the triage shows do real work, and log every deviation with evidence.
+- **MUST ATTENTION** root cause before fix: `$debug-investigate` (gate) produces the trace, feeder paths, hypothesis matrix, owning fix layer and forward convergence proof; classify Code Bug vs Spec Bug before any regression test.
+- **MUST ATTENTION** regression guard: the RED `$integration-test` (gate) FAILS before `$fix` and the tests PASS after it in this run (`$integration-test-verify`, gate); NEVER encode buggy behavior or weaken a test to go green.
+- **MUST ATTENTION** `$workflow-review-changes` runs INLINE in the main session and converges the whole package; sync the spec when a canonical spec or specified behavior changed; emit the Goal Satisfaction matrix and close with `$workflow-end`.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

@@ -18,7 +18,7 @@ const expectedSequence = [
   "spec-discovery", "domain-analysis", "why-review", "tech-stack-research", "architecture-design",
   "architecture-scalability-review", "why-review", "scenario", "plan", "plan-review",
   "refine", "artifact-review --type=pbi", "story", "artifact-review --type=story", "pbi-challenge",
-  "dor-gate", "pbi-mockup", "spec", "spec [mode=tests]", "artifact-review --type=spec-tests",
+  "dor-gate", "pbi-mockup --explore", "spec", "spec [mode=tests]", "artifact-review --type=spec-tests",
   "spec-clarify", "plan", "plan-review", "scaffold", "architecture-review-full",
   "scan --target=ui-system", "scan --target=backend-patterns", "scan --target=integration-tests",
   "scan --target=project-structure", "plan-validate", "plan-execute", "seed-test-data",

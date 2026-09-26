@@ -12,7 +12,6 @@ import json
 import os
 import re
 import sys
-import yaml
 from pathlib import Path
 from datetime import datetime
 
@@ -65,6 +64,67 @@ except ImportError:
 else:
     ensure_utf8_stdout()
     ensure_utf8_stderr()
+
+# After the stream setup: on Windows the install hint must print a non-ASCII path verbatim.
+try:
+    import yaml
+except ModuleNotFoundError as error:
+    # PyYAML is declared in requirements.txt beside this script; stop with the install command
+    # instead of a traceback. Any other missing module is a different fault and re-raises.
+    if error.name != 'yaml':
+        raise
+    _requirements = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'requirements.txt')
+    # Quoted for the shell it names, so the hint still pastes when a path holds a space or a
+    # metacharacter such as '&'. On Windows that is PowerShell: list2cmdline renders C-runtime
+    # arguments and leaves '&' bare for the shell. A PowerShell single-quoted string is literal
+    # except for its quote characters, which are doubled. U+2018-U+201B are quote characters too
+    # (language spec 2.3.5.2, single-quote-character): left bare, one would end the literal.
+    if os.name == 'nt':
+        import re
+        def _quote(part):
+            if re.fullmatch(r'[A-Za-z0-9._-]+', part):
+                return part
+            return "'" + re.sub("(['\u2018\u2019\u201a\u201b])", r'\1\1', part) + "'"
+        def _command(argv):
+            return '& ' + ' '.join(_quote(part) for part in argv)
+        _shell = 'from PowerShell '
+    else:
+        import shlex
+        def _command(argv):
+            # shlex.join is 3.8+; the installers advertise Python 3.7+, so quote by hand.
+            return ' '.join(shlex.quote(part) for part in argv)
+        _shell = ''
+    _install = ['-m', 'pip', 'install', '-r', _requirements]
+    # pip refuses to install into an interpreter marked EXTERNALLY-MANAGED (PEP 668) unless it
+    # runs inside a virtual environment, so that host gets a venv recipe instead. Same rule as pip.
+    # The probe is advisory: if sysconfig cannot answer, fall back to the plain pip hint rather
+    # than replace the message this block exists to print with a traceback.
+    try:
+        import sysconfig
+        _managed = sys.prefix == getattr(sys, 'base_prefix', sys.prefix) and os.path.isfile(
+            os.path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED'))
+    except Exception:
+        _managed = False
+    if _managed:
+        # The framework's shared venv; hooks/lib/graph-utils.cjs creates the same one.
+        _project = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        _venv = os.path.join(_project, 'tmp', 'claude-temp', '.venv')
+        _bin = os.path.join(_venv, 'Scripts' if os.name == 'nt' else 'bin')
+        _venv_python = os.path.join(_bin, 'python.exe' if os.name == 'nt' else 'python')
+        if os.name == 'nt':
+            _path = f"$env:Path = {_quote(_bin + ';')} + $env:Path"
+        else:
+            _path = f'export PATH={shlex.quote(_bin)}:"$PATH"'
+        _hint = (
+            "This Python is externally managed (PEP 668), so pip will not install into it.\n"
+            f"Create a virtual environment {_shell}with: {_command([sys.executable, '-m', 'venv', _venv])}\n"
+            f"Install it {_shell}with: {_command([_venv_python] + _install)}\n"
+            f"Then put the environment first on PATH: {_path}\n"
+        )
+    else:
+        _hint = f"Install it {_shell}with: {_command([sys.executable] + _install)}\n"
+    sys.stderr.write(f"{os.path.basename(__file__)} requires PyYAML, declared in {_requirements}.\n" + _hint)
+    sys.exit(3)
 
 try:
     from scan_skills import scan_skills

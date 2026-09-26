@@ -6,7 +6,7 @@
 >
 > **Drift-guard:** this file is AUTHORITATIVE for the tell catalog, the design-plan contract, and the distinctiveness laws. The **40 usability clauses `UI-1.1`–`UI-9.4` stay single-sourced** in `SYNC:ui-ux-design-principles` (`.claude/skills/shared/sync-inline-versions.md`); the **tech-agnostic spec layer** in `SYNC:ui-intent-layer`; **project token/component inventory** in `design-system/` under the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. On any change here, grep `design-knowledge.md` and `SYNC:design-distinctiveness-gate` and update every consuming carrier.
 >
-> **Relationship to `UI-1.1`–`UI-9.4` — two different questions, no overlap.** The 40 clauses ask **"is this usable, accessible, and consistent?"** — a floor with measurable pass/fail (contrast ratios, hit targets, focus rings, the five states). This catalog asks **"is this _this product's_ interface, or is it the interface any generator would emit for any brief?"** — a question of identity, and its failure mode is not a broken screen but a forgettable one. A design can pass all 40 clauses and still be a template. **Both bind. Neither substitutes for the other**, and where they touch (type scale, color, motion timing) the clause sets the floor and this catalog picks the value.
+> **Relationship to `UI-1.1`–`UI-9.4` — two different questions, no overlap.** The 40 clauses ask **"is this usable, accessible, and consistent?"** — a floor with measurable pass/fail (contrast ratios, hit targets, focus rings, the five states). This catalog asks **"is this _this product's_ interface, or is it the interface any generator would emit for any brief?"** — a question of identity, and its failure mode is not a broken screen but a forgettable one. A design can pass all 40 clauses and still be a template. **Both bind. Neither substitutes for the other**, and where they touch (type scale, color, motion timing) the clause sets the floor and this catalog picks the value. **Both run AFTER the journey-first gate `UX-1`–`UX-11`** (`SYNC:ux-journey-gate`; catalog `.claude/docs/ux-journey-process.md`): the Journey Report and the design-authority read come first, and this catalog styles a structure whose purpose they already define.
 >
 > **MUST ATTENTION** every entry here is a CONDITIONAL judgment, never a rule. A trait in the tell catalog is legitimate for _some_ briefs — it is listed because it is a **default rather than a choice**, and it appears regardless of subject. NEVER report "uses a warm cream background" as a defect; report "spent a free axis on a default" and name the axis the brief left free.
 >
@@ -25,6 +25,7 @@
 **Summary:**
 
 - **Two rule sets bind, and they ask different questions.** `UI-1.1`–`UI-9.4` (single-sourced in `SYNC:ui-ux-design-principles`) ask _"is this usable?"_; this catalog asks _"is this THIS product's interface?"_ A surface can pass all 40 clauses and still be a template.
+- **Journey-first gate runs BEFORE both.** `UX-1`–`UX-11` (`SYNC:ux-journey-gate`; read `.claude/docs/ux-journey-process.md` when generating or reviewing any user-facing surface): report the main user journeys, read the project's design authority, only then apply this catalog.
 - **Precedence, in order:** the brief's stated visual direction WINS OUTRIGHT → the project's design-system / SCSS / frontend-pattern docs + accepted ADRs → this catalog. Surface genuine conflicts to the user; NEVER resolve silently.
 - **Every §4 tell is a CONDITIONAL judgment, never a defect.** Report "spent a free axis on a default" and name the axis — NEVER "uses a warm cream background".
 - **The sections, in order:** §1 design laws → §2 ground it in the subject → §3 where defaults hide → §4 the tell catalog (T1–T5 clusters, typographic tells, structural/motion tells) → §5 typography → §6 color / structure / hero / composition → §7 motion → §8 words as design content → §9 the two-pass process (plan → **BLOCKING generic test** → build → critique) → §10 the design-plan contract → §11 critique → §12 implementation hygiene → §13 the 13-item judgment checklist → §14 single-sourcing map.
@@ -53,7 +54,7 @@ Approach every brief as the design lead at a studio known for giving each client
 
 ## 2. Ground the Design in Its Subject Matter
 
-**Before designing, know what this actually is.** If the brief does not identify the product or subject matter, identify it yourself and **confirm with the user** — propose one concrete subject, the audience, and the design's primary job. Use anything in memory about the client's preferences or context as a hint.
+**Before designing, know what this actually is.** When a Journey Report (`UX-1`) exists, take the audience and primary job from its actors, job statements and ranked main journeys — do not re-derive them here; this section adds the subject's world and feel. If the brief does not identify the product or subject matter, identify it yourself and **confirm with the user** — propose one concrete subject, the audience, and the design's primary job. Use anything in memory about the client's preferences or context as a hint.
 
 Answer these out loud — to yourself or the user — not in your head:
 
@@ -290,6 +291,7 @@ Run before presenting any design, mockup, or implemented UI surface.
 
 | Concern                                                   | Single source                                                                              | NEVER duplicate into                                         |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Journey-first UX gate `UX-1`–`UX-11` (runs first)           | `SYNC:ux-journey-gate` + `.claude/docs/ux-journey-process.md`                              | this file (referenced only)                                  |
 | Distinctiveness laws, tell catalog, design plan, critique | **this file** + `SYNC:design-distinctiveness-gate`                                         | any skill body (carry the SYNC block instead)                |
 | Words-as-design-content                                   | §8 + `SYNC:ui-copywriting`                                                                 | —                                                            |
 | 40 usability clauses `UI-1.1`–`UI-9.4`                    | `SYNC:ui-ux-design-principles`                                                             | this file (referenced only)                                  |

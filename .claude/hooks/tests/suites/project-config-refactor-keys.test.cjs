@@ -1,7 +1,7 @@
 /**
  * project-config refactor keys — schema contract for the optional project switches
  * `contextGroups[].on`, `portability.workflowActivation`, `hooks.codeGraph`,
- * `hooks.tokenBudget` and `commit.fixOriginTrailer`.
+ * `hooks.tokenBudget`, `commit.fixOriginTrailer` and `pullRequest.targetBranch`.
  *
  * Guarded business rules:
  * - Every new switch is OPTIONAL: a config that omits them all validates exactly as before,
@@ -214,6 +214,22 @@ module.exports = {
             }
         },
         {
+            name: '[project-config-refactor-keys] pullRequest.targetBranch is an optional string section',
+            fn: () => {
+                assertEqual(errorsFor(base({ pullRequest: { targetBranch: 'develop' } })).length, 0);
+                assertEqual(errorsFor(base({ pullRequest: {} })).length, 0);
+                assertContains(onlyErrorFor(base({ pullRequest: { targetBranch: 42 } }), 'pullRequest.targetBranch'), 'expected string');
+                // An empty or whitespace-only base branch is rejected instead of reaching the skill as a branch name
+                for (const blank of ['', '   ']) {
+                    assertContains(onlyErrorFor(base({ pullRequest: { targetBranch: blank } }), 'pullRequest.targetBranch'), 'non-empty branch name');
+                }
+                // `pullRequest` must not be a known-but-unlisted top-level key, and must never become required
+                const result = schema.validateConfig(base({ pullRequest: {} }));
+                assertFalse(result.warnings.some(w => w.startsWith('pullRequest:')), 'pullRequest is a schema section');
+                assertFalse(schema.getRequiredSections().includes('pullRequest'), 'pullRequest stays optional');
+            }
+        },
+        {
             name: '[project-config-refactor-keys] schema regression: a config omitting every new key validates with no errors',
             fn: () => {
                 // Given a representative config that declares the neighbouring sections but none of the new keys
@@ -227,7 +243,7 @@ module.exports = {
                 const result = schema.validateConfig(config);
                 // Then it is valid with no warning about any new key
                 assertEqual(result.errors.length, 0, JSON.stringify(result.errors));
-                assertFalse(result.warnings.some(w => /workflowActivation|codeGraph|tokenBudget|fixOriginTrailer|commit|\.on\b/.test(w)), JSON.stringify(result.warnings));
+                assertFalse(result.warnings.some(w => /workflowActivation|codeGraph|tokenBudget|fixOriginTrailer|commit|pullRequest|\.on\b/.test(w)), JSON.stringify(result.warnings));
                 // And the minimum document stays valid
                 assertTrue(schema.validateConfig(base({})).valid, 'minimum config');
             }
@@ -252,6 +268,7 @@ module.exports = {
                     ['codeGraph', ['hooks.codeGraph', 'hooks.codeGraph.enabled']],
                     ['tokenBudget', ['hooks.tokenBudget', 'hooks.tokenBudget.enabled', 'hooks.tokenBudget.checkpointTokens']],
                     ['fixOriginTrailer', ['commit.fixOriginTrailer']],
+                    ['targetBranch', ['pullRequest.targetBranch']],
                     ['read | edit | both', ['contextGroups']]
                 ];
                 const env = isolatedEnv(dir);

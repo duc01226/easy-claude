@@ -659,10 +659,12 @@ logSection('describeSchema');
     // on contextGroups items (`reinjectAfterTokens` + `evidenceDocs`/`evidenceSkills`
     // array shapes, measured 543 -> 550), then to 590 for the adoption keys
     // (`contextGroups[].on`, `portability.workflowActivation`, `hooks.codeGraph.enabled`,
-    // `hooks.tokenBudget`, `commit.fixOriginTrailer`, measured 552 -> 575). This remains
-    // a runaway-bloat guard, not a suppression of schema output.
+    // `hooks.tokenBudget`, `commit.fixOriginTrailer`, measured 552 -> 575), then to 620
+    // for the optional `pullRequest.targetBranch` section (section + field, each with its
+    // one-line note, measured 589 -> 593). This remains a runaway-bloat guard, not a
+    // suppression of schema output.
     const lineCount = output.split('\n').length;
-    logResult('output under 590 lines', lineCount < 590, `${lineCount} lines`);
+    logResult('output under 620 lines', lineCount < 620, `${lineCount} lines`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

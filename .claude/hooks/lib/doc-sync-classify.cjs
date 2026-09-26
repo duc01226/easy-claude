@@ -83,6 +83,16 @@ function toRepoRel(p) {
   const root = PROJECT_DIR.replace(/\\/g, '/').replace(/\/+$/, '');
   if (s.toLowerCase().startsWith(root.toLowerCase() + '/')) {
     s = s.slice(root.length + 1);
+  } else if (path.isAbsolute(String(p))) {
+    // A differently-spelled absolute path (symlink, macOS /var -> /private/var) is in-project
+    // when its filesystem identity is; containment is owned by file-conventions (lazy: this
+    // module loads on every doc-sync-gate call, the fallback only runs on a lexical miss).
+    try {
+      const physical = require('./file-conventions.cjs').toRepoRelative(String(p), PROJECT_DIR);
+      if (physical) return physical;
+    } catch (error) {
+      reportHookInternalError('doc-sync-classify', 'identity containment', error);
+    }
   }
   // Drive-absolute but outside project (rare) — keep as-is minus drive noise.
   return s.replace(/^\.\//, '').replace(/^\/+/, '');

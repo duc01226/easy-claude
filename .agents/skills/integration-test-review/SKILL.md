@@ -88,17 +88,18 @@ Keep every profile's semantic and authority gates: mutation-killing assertions, 
 - **The phase pipeline (run ALL, task tracking each):** P0 Scope-detect → P1 Collect (split prod vs test files) → P2 Gate Review (Gates 1-6 + 8 per file, Gate 7 across set) → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix validated findings that block the current round + WRITE missing tests → P6 Validated-fix + full fresh re-review until the current severity bar is clear → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
 - **Read the canonical owner and relevant production source BEFORE judging any assertion.** FAIL smoke-only, existence-only (not-null), dead (always-true), or copy-paste assertions when they do not prove the claimed contract. A dependency-container resolution test is valid only when wiring itself is the selected contract — why: assertion quality is unknowable without intended behavior and its owner.
 - **Don't just report gaps — fix them.** Gate 6: NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict (escalate by asking the user directly). Phase 5 WRITES a missing test and uses the canonical owner's declared authoring procedure for a validated SPEC-GAP; the strict default uses `$spec [mode=tests]`. A full fresh re-review runs after every validated fix cycle until the current round's bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+- **`--report-only`:** read-only leaf mode for a caller that owns every fix and test write — P0–P4 + P9 only; the read-only test run is optional, and REQUIRED with `--prove-tests` (the caller's test-green prover); Gate 7 still maps coverage and returns GAP/SPEC-GAP as findings; no test authoring, no fix, no re-review restart, no nested sub-agents, no user prompt, no writer beyond the report; see [Report-Only Mode](#report-only-mode---report-only).
 - **MANDATORY full affected-owner case audit (Phase 1 task + Phase 3 addendum):** Gate 7 alone is diff-scoped — it can miss an existing canonical case/variant that lost coverage outside the diff. Every review enumerates the full case set in the implicated owner scope, not only diff-touched cases, into the same Coverage Mapping Table; zero `GAP` or `UNKNOWN` rows are required before PASS. The strict default enumerates Section 8 TCs.
 
 **Scope:** The FULL change set — changed production code AND changed test files — from uncommitted changes (default), user-specified files, or a user-specified diff (branch/PR). The review target is never "just the test files".
 
-**Workflow:** Phase 0 Detect → Collect → Coverage Map (Gate 7) → 8-Gate Review → Spec Cross-Check → Report → validate findings → fix only validated findings that block the current round (including writing missing tests) → full re-review after fixes → Build & verify → If fail: investigate + fix plan. Round 1 blocks on every validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW-only is deferred, and failed binary gates always block.
+**Workflow:** Phase 0 Detect → Collect → Coverage Map (Gate 7) → 8-Gate Review → Spec Cross-Check → Report → validate findings → fix only validated findings that block the current round (including writing missing tests) → full re-review after fixes → Build & verify (under `--report-only`: a read-only run, REQUIRED with `--prove-tests`) → If fail: investigate + fix plan. Round 1 blocks on every validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW-only is deferred, and failed binary gates always block. Under `--report-only` the workflow stops after validating findings and returns them; the fix, re-review, and build/verify steps belong to the caller.
 
 **Key Rules (non-negotiable):**
 
 - MUST collect BOTH changed production code AND changed test files — coverage of the change is part of the review, not an optional extra
 - MUST verify every behavior-changing production change maps to a test at the appropriate boundary — use integration coverage for cross-component behavior and unit/component coverage for isolated logic; justify a missing or unsuitable tier from project architecture (Gate 7)
-- MUST treat an uncovered changed behavior as a HIGH finding minimum — fix by writing the missing test in Phase 5, not just reporting
+- MUST treat an uncovered changed behavior as a HIGH finding minimum — fix by writing the missing test in Phase 5, not just reporting (under `--report-only`, return it as a finding for the caller's test step to write)
 - MUST verify canonical owner↔test↔code alignment for changed code, not only existing tests — a changed behavior with no applicable case in the selected contract is a spec-gap finding
 - MUST trace the relevant entry point, contract owner, and source behavior BEFORE judging test assertions; read handler/service code when those are the project's actual boundary
 - MUST flag smoke-only tests (no-exception-only checks) as FAIL
@@ -132,6 +133,21 @@ When evaluating code, refactor, test, or abstraction, ask:
 
 Apply this lens **before** invoking any specific rule, pattern, or checklist
 below — if downstream rule would raise change cost, this principle wins.
+
+---
+
+## Report-Only Mode (`--report-only`)
+
+> **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier, a review batch, or a fix loop that owns adjudication — and another step owns every fix and test write (and the green-run proof, unless `--prove-tests` makes this run that proof). `--report-only` in the invocation arguments selects it; without the flag every phase below applies unchanged.
+>
+> 1. **Run P0–P4, then P9 only.** The Case Contract Profile Gate, the Test Architecture Contract Preflight, Gates 1–8, the Phase 3 cross-check, and the Phase 3 addendum all run. Gate 7 still builds the full Coverage Mapping Table; each `GAP`, `SPEC-GAP`, and `UNKNOWN` row becomes a finding for the caller — never a test or owner edit here. P9 `$why-review --validate-findings` still validates every finding. **Phases 5, 6, and 8 do not run:** no test authoring, no assertion or scenario repair, no canonical-owner update, no re-review restart. — why: two writers of one artifact inside a barrier race each other, and the caller's own fix and test steps own those writes.
+> 2. **Tests may run; they are never written.** P7 is optional here — **except with `--prove-tests`, which a caller passes when it cites this skill as its test-green prover** (e.g. the `tests-pass` outcome gate of `$workflow-review-changes`): then the read-only P7 run of the relevant existing tests is REQUIRED, and a red, partial or not-run result leaves the caller's gate open. Otherwise you MAY build and run the existing relevant tests with the project's configured commands and record the exact command, counts, and failing test identities under `## Test Execution Results`. Running a test is not a write; editing a test, fixture, seeder, config, or shared data is. A failure gets a provisional five-way verdict (SOURCE-WRONG / TEST-WRONG / TEST-NOT-OPTIMAL / ENVIRONMENT-BLOCKED / AMBIGUOUS) recorded as a finding — no fix, no rerun loop. A run that would need a data reset, service start, or environment change the caller did not provide is `ENVIRONMENT-BLOCKED`, not a pass. State in the return whether the run is the caller's green-run evidence (prover mode) or advisory; a report-only review never claims the change is test-verified beyond the exact run it recorded. — why: an observed run adds evidence without racing sibling writers, while green-run convergence needs fix authority this mode lacks.
+> 3. **No nested fan-out.** Ignore the P0 `10+ test files` row and the 10+ files module split; review sequentially in this context. — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
+> 4. **Never ask the user.** An empty target is returned as `BLOCKED — no scope in brief`; a Gate 6 `ESCALATE` conflict, an ambiguous owner, and any GAP that only a user waiver could close are returned as findings that name each source's claim with `file:line`, so the caller escalates. The Workflow Recommendation and Next Steps prompts do not run. — why: a leaf cannot reach the user, so an asking branch would stall the barrier.
+> 5. **Write only the report** under `tmp/reports/`. A missing or stale project-reference doc is recorded in the report as a `NOT VERIFIABLE` assumption and returned — never a trigger to run `$scan`, `$project-init`, `$spec`, `$integration-test`, or any other writer. — why: a leaf that regenerates shared docs or tests races its barrier siblings.
+> 6. **Return** the report path; validated findings grouped Critical / High / Medium / Low; the Coverage Mapping Table's `GAP` / `SPEC-GAP` / `UNKNOWN` rows; the test-run result or `not run`; and every unconfirmed material trade-off in the summary (the `SYNC:trade-off-interrogation-gate` non-asking handoff).
+>
+> For this mode the declared step order is P0–P4 → read-only P7 run (optional; REQUIRED with `--prove-tests`) → P9; stopping there is the mode's contract, not a skipped step.
 
 ---
 
@@ -428,7 +444,7 @@ For each behavior-changing production file in the review target (reverse directi
 
 **Phase 4 — Initial Report:** Write to `tmp/reports/integration-test-review-{date}-{slug}.md`
 
-**Phase 5 — Fix validated findings that block the current round (MANDATORY — fix ONLY findings already validated per the embedded `double-round-trip-review` validate-before-fix contract):** Round 1 fixes every validated finding, including LOW. From round 2 onward, fix validated CRITICAL/HIGH/MEDIUM findings; a LOW-only result is recorded under `## Deferred LOW Findings (severity floor, round ≥2)` and does not start another fix/review cycle. MEDIUM cannot be silently converted to tech debt to clear the bar: if it cannot be fixed in scope, escalate with the residual-risk and owner decision explicitly recorded. Failed binary gates remain blocking at every round.
+**Phase 5 — Fix validated findings that block the current round (MANDATORY — fix ONLY findings already validated per the embedded `double-round-trip-review` validate-before-fix contract):** Round 1 fixes every validated finding, including LOW. From round 2 onward, fix validated CRITICAL/HIGH/MEDIUM findings; a LOW-only result is recorded under `## Deferred LOW Findings (severity floor, round ≥2)` and does not start another fix/review cycle. MEDIUM cannot be silently converted to tech debt to clear the bar: if it cannot be fixed in scope, escalate with the residual-risk and owner decision explicitly recorded. Failed binary gates remain blocking at every round. Not run under `--report-only` — return the validated findings instead.
 
 1. Prioritize: CRITICAL → HIGH → MEDIUM → LOW (LOW is actionable in round 1; record/defer it from round 2 onward)
 2. Per fix: read handler source, understand domain logic, write/fix assertion
@@ -438,7 +454,7 @@ For each behavior-changing production file in the review target (reverse directi
 6. Re-read changed files to verify fix correctness
 7. Record each fix with `file:line` under `## Fixes Applied`
 
-**Phase 6 — Validated Fix + Full Re-Review (MANDATORY when fixes are applied):**
+**Phase 6 — Validated Fix + Full Re-Review (MANDATORY when fixes are applied; not run under `--report-only`):**
 
 Do not spawn a fresh reviewer to re-review the same findings before validation/fix. After Phase 5 applies validated fixes, run a full fresh review over the current test scope. When that review uses sub-agents, spawn fresh `integration-tester` sub-agents (parallel by module for 10+ files; single agent otherwise) using canonical Agent template from `SYNC:review-protocol-injection`. Each sub-agent re-reads ALL target test files from scratch with ZERO memory of Phase 2/5. When constructing Agent call prompt:
 
@@ -458,14 +474,14 @@ After sub-agents return:
 4. **Repeat only after another fix cycle:** restart the full review again after validated fixes are applied; if the same blocker repeats across 2 full invocations with no progress, escalate by asking the user directly
 5. **Exit criteria:** Apply `blocking_findings(round, findings)` from `SYNC:double-round-trip-review`: round 1 requires zero validated findings at any severity; round 2 requires zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings listed as deferred. Failed binary gates remain blocking regardless of round.
 
-**Phase 7 — Build & Run Tests (MANDATORY):** Build and run ALL changed/reviewed test files.
+**Phase 7 — Build & Run Tests (MANDATORY):** Build and run ALL changed/reviewed test files. Under `--report-only` this phase is read-only, and optional unless `--prove-tests` is passed — see [Report-Only Mode](#report-only-mode---report-only).
 
 1. Build test project
 2. Run changed tests (filter by reviewed test classes)
 3. NEVER mark review complete until all tests pass — unverified reviews have zero value
 4. Record results under `## Test Execution Results`
 
-**Phase 8 — Failure Investigation (if Phase 7 fails):** Investigate systematically (classify → root-cause → fix plan), never just retry.
+**Phase 8 — Failure Investigation (if Phase 7 fails):** Investigate systematically (classify → root-cause → fix plan), never just retry. Not run under `--report-only` — record the provisional verdict as a finding.
 
 1. **Classify failure:** Test bug (assertion/setup wrong) vs Service bug (handler broken) vs Environment (service not running, DB timeout)
 2. **Root cause:** Read failing output, trace handler source, identify exact mismatch
@@ -513,7 +529,7 @@ After sub-agents return:
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use ask the user directly to ask user:
+> **MANDATORY:** If NOT already in a workflow, NOT invoked by a parent skill or as a sub-agent, and NOT under `--report-only`, MUST use ask the user directly to ask user:
 >
 > 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — investigate → spec [mode=tests] → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup
 > 2. **Execute `$integration-test-review` directly** — run standalone
@@ -545,7 +561,7 @@ After sub-agents return:
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** after completing, MUST use ask the user directly:
+**MANDATORY** after a standalone run, MUST use ask the user directly. Skip it when a parent workflow or skill invoked this review, when it runs as a sub-agent, or under `--report-only` — return the report path and findings to the caller instead:
 
 - **"$integration-test-verify (Recommended)"** — Run integration tests to verify all pass
 - **"$workflow-review-changes"** — Review all changes before committing
@@ -1033,9 +1049,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** Gate 3 also enforces parallel-safe isolation — FAIL any test hanging assertions off a shared mutable entity another test can change, or off a parent a bulk cross-cutting consumer (re-sync/recompute/rebuild/cascade) can wipe even without this test mutating it; require fresh per-test data and prove isolation by grepping other tests on that shared data AND every consumer over it; on a contradiction between a provably-innocent path and wrong state, suspect contamination FIRST — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
 **IMPORTANT MUST ATTENTION** Gate 8 — an unrealistic setup is a REVIEW FINDING, not a tolerable quirk: flag actor actions chained with no settle barrier where production separates them by seconds/minutes/hours, a fixed sleep standing in for a real observable, an assertion timeout widened instead of an ARRANGE barrier added, a retry wrapped around a failing assertion, and a setup state with no explanation of how production reaches it — fix the SCENARIO, NEVER the assertion — why: a scenario production can never meet proves nothing when green and blames the product when red
 **IMPORTANT MUST ATTENTION** Gate 6 — read ALL three sources before classifying (never two); NEVER fix a test to match broken code (report the code bug instead); NEVER self-resolve a three-way conflict (escalate by asking the user directly); "stale docs" requires BOTH impl code AND test to agree — why: a winner picked without evidence hides bugs
-**IMPORTANT MUST ATTENTION** fix ALL blocking issues (Phase 5 NOT optional); validate findings via `$why-review` before fixing; after validated fixes rerun a full fresh review until the current round's bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict
+**IMPORTANT MUST ATTENTION** fix ALL blocking issues (Phase 5 NOT optional outside `--report-only`); validate findings via `$why-review` before fixing; after validated fixes rerun a full fresh review until the current round's bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict
 **IMPORTANT MUST ATTENTION** integration-test reviews ALWAYS spawn the `integration-tester` sub-agent, NEVER `code-reviewer`, with all protocol bodies embedded VERBATIM — why: `code-reviewer` lacks case-contract traceability and async-polling assertion depth, and file-path indirection drops compliance ~40%
-**IMPORTANT MUST ATTENTION** build and run ALL changed/reviewed tests after fixes (Phase 7 NOT optional) — unverified reviews have zero value; if tests fail, classify (test bug vs service bug vs environment) and root-cause in Phase 8, NEVER retry blindly
+**IMPORTANT MUST ATTENTION** build and run ALL changed/reviewed tests after fixes (Phase 7 NOT optional outside `--report-only`) — unverified reviews have zero value; if tests fail, classify (test bug vs service bug vs environment) and root-cause in Phase 8, NEVER retry blindly
+**IMPORTANT MUST ATTENTION** `--report-only` runs P0–P4 → read-only test run (REQUIRED with `--prove-tests`) → P9 only — Gate 7 GAP/SPEC-GAP returned as findings, no test authoring, no fix, no restart, no nested fan-out, no user question, no writer beyond the report; without `--prove-tests` the caller's test step owns the green-run evidence — why: a read-only leaf that writes tests, fixes, or asks races or stalls its barrier siblings
 **IMPORTANT MUST ATTENTION** write findings to `tmp/reports/integration-test-review-{date}-{slug}.md` incrementally — never just return text — why: long sub-agents hit cutoffs before a final batch write and lose findings
 **IMPORTANT MUST ATTENTION** every finding requires `file:line` proof with confidence >80%; scope = the CHANGE SET, never just tests; read the relevant production path BEFORE judging assertions
 **IMPORTANT MUST ATTENTION** preserve the complete change-set scope, evidence-backed Gate 1–8 review, and two-round validation bar before reporting PASS.

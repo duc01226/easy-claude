@@ -90,10 +90,12 @@ Written at step 10 of `references/explore/workflow.md`, or at step 1 when explor
 | Layout | <ADOPTED | FREE> | <…> |
 
 ## Pick (fill when drafts were shown)
-- Drafts shown: direction-a.html, direction-b.html, direction-c.html
+- Drafts shown: <N (Step 0 count): direction-a.html[, direction-b.html[, direction-c.html]]>
 - Canvas: <deliverable and --viewport value from run-notes.md>
 - Rendered (per draft): <PNG paths under renders/direction-x/ | NOT VERIFIABLE — html-export exit <3 | 1 | 2 | other code, e.g. 130 after an interrupt>: <stderr line or setup pointer> | stale — predates the DD-8 edit>
-- User's reply (verbatim): "<exact words>"
+- Selection: <USER | USER — 1 option | AUTO-SELECTED — <reason: no question tool (1 draft) | browser unavailable and no PNG shown | question tool errored>>
+- User's reply (verbatim): "<exact words>" (USER — 1 option or AUTO-SELECTED: N/A)
+- Recommendation + evidence: <draft · UX-4/UX-9/UX-10 and design-system-fit reasons · trade-offs of the other drafts (N/A for 1 draft)>
 - Chosen: <a | b | c | mix>  ("none fit" is recorded here, then explore repeats from new seeds)
 - Mix detail: <which parts come from which draft | N/A>
 - Seed of the chosen draft: <style row · reference URL · persona traits>

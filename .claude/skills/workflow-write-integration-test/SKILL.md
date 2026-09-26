@@ -16,72 +16,80 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Write or update integration tests from the project's canonical behavior/test-case owner, review them through seven quality gates, and verify them under the project's configured repeat policy.
+**Goal:** Write or update integration tests traced to the project's canonical case owner, prove each one asserts the intent it protects, review them to convergence, and verify them green under the project's configured repeat policy.
 
-**Summary:** Resolve the configured case profile → investigate the affected behavior → update its canonical case owner when needed → create tests through project-supported integration seams → review seven gates → verify the configured relevant suites under their repeat policy → sync docs and close. The framework's strict default uses Feature Spec Section 8 TCs; a declared native profile uses its own owner and carrier.
-- **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full + focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, unique run/data identity, and repeat proof; unresolved applicable fields block handoff, while non-applicable tiers require evidence-backed `N/A`.
-
-**Absorbed use cases:** converting existing TC specs into integration test code (former test-to-integration — specs already exist, so `/spec [mode=tests]` runs in UPDATE/verify mode instead of authoring from scratch) and stability verification of existing suites (former test-verify — the `/integration-test-verify` step's 2-consecutive-run gate). For spec-only authoring with no test code, use the `/spec [mode=tests]` skill directly.
-
-**Workflow:**
-
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
-
-**Ordered route:** `/investigate` → `/spec [mode=tests]` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`.
-
-**Key Rules:**
-
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION require integration tests to protect a named business rule/invariant and fail if that intent breaks.
-- MUST ATTENTION use the production entry path when it is part of the behavior under test; use project fixtures/factories or another valid setup path for unrelated preconditions without bypassing the tested contract.
-- MUST ATTENTION follow `integrationTestVerify.guidance`; when absent, require two fresh green runs for suites with persistent/shared state and preserve their data-isolation policy.
-- NEVER skip mandatory workflow or skill gates.
+**Use when:** covering untested or changed behavior with integration tests, converting existing cases into test code, or auditing and stabilising an existing suite. To drive an already-red suite to green, use `/workflow-integration-test-green`; to reconcile specs and tests after a code change, use `/workflow-spec-sync`; for case authoring with no test code, run `/spec [mode=tests]` directly.
 
 **IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
+
+The chain above is the recommended default order. Which steps are gates and when each optional step runs is declared in the registry entry and restated in [Recommended Skills](#recommended-skills).
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
 
-> **[CRITICAL] Understand the affected behavior first:** `/investigate` is MANDATORY before changing the canonical test-case owner or writing integration tests. Trace the project's real entry point, invariant/data owner, observable outcome, and any downstream effects that exist. Read handler/entity/event code when the architecture uses those concepts; do not assume those layers exist.
-
-> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the test request). Each generated test maps to a saved goal invariant/criterion — a test protecting NO saved invariant needs a recorded justification. After `/integration-test-verify`, append the verification evidence (pass/fail counts, runner command, report path) to the goal file's Iteration Log and emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before `/workflow-end`.
-
 Activate the `workflow-write-integration-test` workflow. Run `/start-workflow workflow-write-integration-test` with the user's prompt as context.
 
-**Steps:** /investigate → /spec [mode=tests] → /artifact-review --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /docs-update → /workflow-end → /watzup
+## Triage — FIRST Action
+
+Classify the target before choosing depth and record the result in the report. Escalate depth on risk and ambiguity, not on test count alone.
+
+| Axis           | Values                                                                                                                                      | What it selects                                                                                                                                                                                                                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Size**       | **XS** 1–3 cases in one existing suite · **S** ≤15 files, one module · **M** several modules · **L/XL** a feature area or whole-suite audit | XS → inline end to end, investigation reduced to the entry path, the invariant owner and one comparable test. S → inline, one report. M+ → partition per module or feature; one report section per partition; test-writing sub-agents only for partitions with disjoint test files and isolated data.                                                                   |
+| **Kind**       | new coverage · converting existing cases · auditing or stabilising a suite · persistent/shared state · UI-driven · security-sensitive       | Existing current cases → case authoring and case review close as `when-false`; the spec sync still reconciles links. Persistent/shared state → the repeat policy and unique data identity matter most. Security-sensitive → include rejection and authorization cases. An audit that turns up many failures → hand the red suite to `/workflow-integration-test-green`. |
+| **Case state** | missing · stale · current                                                                                                                   | Missing or stale → author or update them first (spec-first); current → map them to tests.                                                                                                                                                                                                                                                                               |
+
+## Required Quality Gates
+
+Each gate names the evidence `/workflow-end` checks. None of them flexes.
+
+1. **Behavior understood before any assertion** — `/investigate` traces the real entry point, the invariant or data owner, the observable outcome and any downstream effects the architecture actually has; production and test source are read before the first assertion is written. Evidence: `file:line` trace in the report.
+2. **Tests verify intent** — every test names the business rule, invariant or technical contract it protects, asserts an outcome the system owns, and would fail if that intent broke; no smoke-only tests. It exercises the production entry path when that path is the behavior under test and uses valid project fixtures for unrelated preconditions; it waits only on a real observable signal. Evidence: the case-to-test map with the guarded intent per test.
+3. **Review converged** (`review-converged`, gate `/integration-test-review`) — its seven gates (assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage — every behavior-changing production file in the change set maps to a covering test, integration-first with a justified unit fallback, and to a case). Evidence: final review report.
+4. **Tests green** (`tests-pass`, gate `/integration-test-verify`) — the configured relevant suites run under `integrationTestVerify.guidance`; absent guidance, two fresh green runs without a destructive reset for persistent or shared-state suites. Evidence: command, exact counts, exit status per run — never a claim without runner output.
+5. **Cases synced** (`spec-synced`, gate `/spec [mode=sync]`) — the configured case owner and coverage carrier match the executing tests. Strict default: Feature Spec Section 8 `TC-{FEATURE}-{NNN}` cases and `CoveredBy` links; a native profile keeps its declared identities, fields and cardinality and never gets a Section 8 shadow.
+6. **Every failure adjudicated before an edit** — a five-way Fault Verdict (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`) from `/debug-investigate`; never force green by deleting or skipping tests, weakening assertions, widening assertion timeouts, retrying assertions or narrowing scope.
+7. **Goal Contract satisfied** — resolve the active Goal Contract at workflow start (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the request). Each generated test maps to a saved invariant or criterion, or records why not. After `/integration-test-verify`, append its evidence (counts, command, report path) to the Iteration Log and emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before `/workflow-end`.
+8. **Run closed** (`run-closed`, gate `/workflow-end`).
+
+## Recommended Skills
+
+| Step                                 | Role     | Runs when (optional steps: registry `when` / `skipReason`)                                                                                                                                                                                                                               | Proves / feeds                                                  |
+| ------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `/investigate`                       | core     | Always; depth follows the size band.                                                                                                                                                                                                                                                     | The behavior trace and the Test Architecture Contract record.   |
+| `/spec [mode=tests]`                 | optional | When: A target behavior has no current case in the configured case owner (new or changed behavior, or a missing or stale case). · Skip reason: Every target behavior already has a current case in the configured case owner; the spec sync gate still reconciles case-to-test links.    | Canonical cases for the tests to implement.                     |
+| `/artifact-review --type=spec-tests` | optional | When: The spec [mode=tests] step added or changed at least one case in this run. · Skip reason: No case was added or changed in this run, so there is no case to review.                                                                                                                 | Clear setup/action/outcome, boundaries, no identity collision.  |
+| `/integration-test`                  | core     | Usually.                                                                                                                                                                                                                                                                                 | Test code through the project's supported integration boundary. |
+| `/integration-test-review`           | gate     | Always.                                                                                                                                                                                                                                                                                  | `review-converged`                                              |
+| `/integration-test-verify`           | gate     | Always.                                                                                                                                                                                                                                                                                  | `tests-pass`                                                    |
+| `/spec [mode=sync]`                  | gate     | Always.                                                                                                                                                                                                                                                                                  | `spec-synced`                                                   |
+| `/docs-update`                       | optional | When: Test coverage changed materially, or a doc records evidence, coverage or test counts this run changed. · Skip reason: Coverage did not change materially and no doc records evidence, coverage or test counts this run changed; the spec sync gate already updated the case links. | Feature-doc evidence and version history.                       |
+| `/workflow-end`                      | gate     | Always, last.                                                                                                                                                                                                                                                                            | `run-closed`                                                    |
+| `/watzup`                            | core     | Always; hands off to `/understand` only for a large change or on request.                                                                                                                                                                                                                | Recap.                                                          |
+
+## Orchestration Freedom
+
+You choose inline vs sub-agent, batching and ordering to minimise wall-clock and token cost at equal quality. Fixed constraints only:
+
+- Cases exist before the tests that implement them; test code exists before it is reviewed; review fixes are re-reviewed; `/integration-test-verify` runs on the reviewed code; `/spec [mode=sync]` sees the final tests; `/workflow-end` runs last; gates awaiting user approval never run in parallel.
+- Parallel test writers only with disjoint write sets and isolated test data; XS/S work stays inline.
 
 ## Test Architecture Contract Handoff
 
-Before `/integration-test`, `/investigate` must emit one evidence-backed contract record for the test scope and pass it unchanged through the existing delegated order:
+Before `/integration-test`, `/investigate` emits one evidence-backed record and passes it unchanged down the route: tier applicability (Unit/Integration/System/E2E `APPLICABLE` only with runner or configuration evidence, otherwise `N/A — <evidence>`); the setup, writer, reviewer, verifier and documentation owner per applicable tier; copy-ready full and focused commands with their zero-match and invalid-selection non-zero behavior, CI gate and a simple Windows/macOS/Linux entry point where required; the run identity and data strategy (distinct identity on a shared store, real entry path for the tested behavior, valid fixtures for unrelated preconditions, isolated mutable data for supported concurrency); and the repeat proof `integrationTestVerify.guidance` requires. `/integration-test` consumes the setup and command fields, `/integration-test-review` checks command validity, data identity and isolation, and `/integration-test-verify` returns the exact evidence for the sync and docs steps. The record adds data to the route; it never duplicates or weakens a review or verification gate.
 
-- `applicability`: record Unit/Integration/System/E2E as `APPLICABLE` only with runner/configuration evidence; otherwise record `N/A — <evidence>`.
-- `owner`: identify the delegated setup, writer, reviewer, verifier, and documentation owner for each applicable tier; do not duplicate their gates in the wrapper.
-- `fullCommand` and `focusedCommand`: copy-ready configured commands, their zero-match/invalid-selection non-zero behavior, CI gate, and simple Windows/macOS/Linux entry point when required.
-- `runIdentity` and `dataStrategy`: use distinct identity when the configured store is shared; set up the tested behavior through its real entry path and unrelated preconditions through valid project fixtures/builders; isolate mutable data for supported concurrency.
-- `repeatProof`: exact counts and exit status for the focused run, repeat/concurrency evidence, and the full-run evidence required by `integrationTestVerify.guidance` (default: two fresh no-reset runs for persistent/shared-state suites).
+## Memory & Reporting
 
-`/integration-test` consumes the setup and command fields; `/integration-test-review` verifies command validity, data identity/accumulation, and isolation alongside its existing quality gates; `/integration-test-verify` executes the configured scopes and returns the exact evidence for `/spec [mode=sync]` and `/docs-update`. This handoff adds data to the route and does not duplicate, reverse, or weaken any existing review, approval, or verification gate.
+- One task per selected step plus a final review task; a step that closes as `when-false` completes with its recorded skip reason.
+- Write `tmp/reports/workflow-write-integration-test-{YYMMDD}-{HHmm}-{slug}.md` FIRST (triage, contract record, case-to-test map), then append per step or partition.
+- After compaction or resume, re-read the report, the Goal Contract and `TaskList` before continuing.
 
-> **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
->
-> **`/investigate`** — Find the target behavior and same-area test examples using the project's module/test layout. Output: affected files, comparable tests, and the configured case owner/profile.
-> **`/investigate`** — Trace the production entry path, invariant owner, and observable outcome; inspect handlers, entities, events, messages, and persistence only where the project architecture has them.
-> **`/spec [mode=tests]`** — Update the selected canonical case owner. Under the strict default, write/update `TC-{FEATURE}-{NNN}` cases in Feature Spec Section 8; under a native profile, use its declared identities and carrier and do not create a Section 8 shadow. Output the configured case-to-test mapping.
-> **`/artifact-review --type=spec-tests`** — Validate each selected case against its declared format and behavior contract: clear setup/action/outcome, relevant error/access boundaries, and no identity collision. Apply GIVEN/WHEN/THEN only when the selected carrier uses it.
-> **`/integration-test`** — Generate tests through the project's supported integration boundary. Exercise the production entry path when it is under test; use valid project fixtures for other preconditions. Poll asynchronous outcomes only when the contract is eventually consistent; use generated identifiers when test data shares a namespace; attach the project's declared traceability carrier when one exists.
-> **`/integration-test-review`** — 7-gate quality check (assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage). Gate 7: every behavior-changing production file in the change set maps to a covering test (integration-first; unit fallback needs justification) AND a spec TC. Validate findings, fix only validated findings that block the current round, then restart the full integration-test review after fixes. Round 1 blocks on every validated severity; from round 2 onward CRITICAL/HIGH/MEDIUM remain blocking and LOW-only findings are recorded/deferred without another fix/review round. NEVER proceed with a blocking finding or failed binary gate outstanding; never relabel a material finding LOW to exit.
-> **`/integration-test-verify`** — Run the configured applicable suites using their configured commands and repeat policy. Report exact scope, result, exit status, and required repeat evidence; never mark complete without real output.
-> **`/spec [mode=sync]`** — Sync the selected case owner and its declared coverage carrier with executing tests. Under the strict default, reconcile Section 8 TCs and `CoveredBy` links; under a native profile, preserve its identities, fields, and cardinality without inventing TC annotations.
-> **`/docs-update`** — Update feature doc evidence fields and version history if test coverage changed materially.
-> **`/workflow-end`** + **`/watzup`** — Close workflow state, then summarize; `/watzup` hands off to `/understand` only for a large code change or on request.
+## Fix Path & Loop Bounds
+
+- Validate a review finding (evidence-backed, reproducible) before fixing it; fix at the component that owns the violated contract, then restart the full integration-test review. A red test is adjudicated first (gate 6) and fixed on the side the verdict names.
+- Round 1 blocks on every validated severity; from round 2 onward CRITICAL/HIGH/MEDIUM remain blocking and LOW-only findings are recorded/deferred without another fix/review round. Cap 2 rounds, +1 when a CRITICAL/HIGH stays open; never relabel a material finding LOW to exit.
+- Failing tests are not capped by rounds — they loop until green; escalate via `AskUserQuestion` on no progress or an `ENVIRONMENT-BLOCKED`/`AMBIGUOUS` verdict.
 
 ---
-
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -176,28 +184,12 @@ Before `/integration-test`, `/investigate` must emit one evidence-backed contrac
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
-**IMPORTANT MUST ATTENTION Goal:** Write or update spec-first integration tests from canonical TCs, review them through seven quality gates, and prove the relevant suite passes twice consecutively without DB reset.
+**IMPORTANT MUST ATTENTION Goal:** write or update integration tests traced to canonical cases, review them to convergence, and prove them green under the configured repeat policy.
 
-**IMPORTANT MUST ATTENTION Main steps:** `/investigate` (read domain source first) → `/spec [mode=tests]` → `/artifact-review --type=spec-tests` → `/integration-test` → `/integration-test-review` → `/integration-test-verify` (whole relevant suite, two runs, no DB reset) → `/spec [mode=sync]` → `/docs-update` → `/workflow-end` → `/watzup`. **NEVER** write smoke-only tests, bypass real-use-case setup, or declare verification without runner output.
+- **MUST ATTENTION** triage FIRST (size, kind, case state): XS work stays inline and current cases are mapped, not re-authored — but review, verify and sync always run.
+- **MUST ATTENTION** read the production and test source BEFORE writing any assertion; every test names the invariant it protects and asserts an outcome the system owns — NEVER smoke-only.
+- **MUST ATTENTION** follow the project's configured test conventions (runner, fixtures, waits, annotations); wait on a real observable signal, never a blanket helper or a blind sleep.
+- **MUST ATTENTION** a failing test gets a five-way Fault Verdict before any edit; NEVER force green, and never claim verification without runner output.
+- **MUST ATTENTION** bootstrap one task per selected step plus a final review task, write the report FIRST, cite `file:line` evidence, and end with the lessons-learned check.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every protocol below — each is a signpost to its canonical body above.
-
-- **AI Mistakes:** holistic-first debug, fix at responsible layer, surgical diff, verify all outputs.
-- **Nested Tasks:** expand child phases, link parent workflow row when nested.
-- **Project Reference Docs:** read required docs first, cite, `lessons.md` always.
-- **Task Tracking:** bootstrap tasks; persist plan/review findings to disk incrementally.
-- **Critical Thinking:** traced `file:line` proof, confidence >80%, never guess.
-- **Incremental Persistence:** append findings per file to report; never hold in memory.
-- **Sub-Agent Return Contract:** sub-agents return summary-only with `Full report:` pointer.
-
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-**IMPORTANT MUST ATTENTION** read handler source BEFORE writing ANY assertion — domain logic first, test code second
-**IMPORTANT MUST ATTENTION** NEVER write smoke-only tests — every test MUST assert specific field values in the database
-**IMPORTANT MUST ATTENTION** ALWAYS wrap DB assertions in the project's async polling helper — no exceptions
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**[TASK-PLANNING]** Before acting, run the triage, then break the selected steps into small tasks with `TaskCreate`.

@@ -1,6 +1,6 @@
 ---
 name: html-export
-description: '[Document Processing] Use when an HTML page, deck, mockup or animation needs exporting or a render check: PNG screenshots with a page-error and blank-capture check, a vector PDF, or an MP4/GIF recording. Flag: --to={png|pdf|mp4|gif}.'
+description: '[Document Processing] Use when a workflow step or the user asks for an HTML page, deck, mockup or animation export or render check: PNG screenshots with a page-error and blank-capture check, a vector PDF, or MP4/GIF. Flag: --to={png|pdf|mp4|gif}.'
 disable-model-invocation: false
 ---
 

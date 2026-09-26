@@ -510,7 +510,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 **Protocol:**
 
 1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
-2. Fix only findings that survived `$why-review --validate-findings`; if this skill is running inside a workflow, route implementation through the parent `$plan` + `$feature-implement` flow.
+2. Fix only findings that survived `$why-review --validate-findings`; if this skill is running inside a workflow, hand the validated report to the caller's fix step (standalone: `$fix --target=review`).
 3. Run targeted verification for the changed security-sensitive paths.
 4. Restart the full `$security-review` from Scope over the complete current target, not only the fixed files.
 5. The restarted pass MUST create brand-new review tasks, reload local security context, rerun graph/caller traces where applicable, and analyze the full target from the beginning.

@@ -15,7 +15,7 @@
 
 **Workflow:**
 
-1. **Intent** — Identify who, what task, what feeling (ask user if unclear)
+1. **Intent** — Identify who, what task, what feeling from the Journey Report (`UX-1`), after the design-authority read (`UX-2`); ask user if unclear
 2. **Domain Exploration** — Produce 4 required outputs: domain concepts, color world, signature element, named defaults
 3. **Propose Direction** — Present exploration + direction, get user buy-in
 4. **Build** — Apply craft foundations (layering, tokens, typography, spacing)
@@ -73,6 +73,8 @@ The trap is thinking some decisions are creative and others are structural. no s
 
 Before touching code, answer these. Not in your head — out loud, to yourself or the user.
 
+**Intent comes FROM the Journey Report (`UX-1`), never from the brief's layout words.** Answer the three questions below from its actors (context, expertise, frequency), job statements, main journeys and decision points — the step tables say what the person decides, what they need to know to decide it, and which rule constrains it. A question the report cannot answer is an open question for the user, not a guess.
+
 **Who is this human?**
 Not "users." The actual person. Where are they when they open this? What's on their mind? What did they do 5 minutes ago, what will they do 5 minutes after? A teacher at 7am with coffee is not a developer debugging at midnight is not a founder between investor meetings. Their world shapes the interface.
 
@@ -124,6 +126,8 @@ Generic output: Task type → Visual template → Theme
 Crafted output: Task type → Product domain → Signature → Structure + Expression
 
 The difference: time in the product's world before any visual or structural thinking.
+
+**Starts only after `UX-1` and `UX-2`.** Explore the domain once the Journey Report exists and the design authority (principles, design system, existing UI) has been read and recorded — the journeys supply the vocabulary and the decision points, and the design authority fixes the axes already decided, so exploration spends effort only on the free ones. The view structure comes from the journey steps (`UX-3`) and per-decision-point priority (`UX-4`), not from the signature.
 
 ## Required Outputs
 
@@ -351,6 +355,16 @@ Dark interfaces have different needs. Shadows are less visible on dark backgroun
 
 # Workflow
 
+## Order (BLOCKING)
+
+1. **Journey Report (`UX-1`)** — actors, job statements, 3–5 main journeys with decision points; confirm an inferred primary actor/job/outcome (no question tool → record it `INFERRED — unconfirmed (no question tool)` and continue).
+2. **Design authority read (`UX-2`)** — project design principles, design system / `interface-system.md`, existing UI; record the paths or `N/A`.
+3. **Intent** — answered from the Journey Report.
+4. **Domain exploration** — all four required outputs.
+5. **Low-fi structure (`UX-7`)** — views from journey steps, priority per decision point; walk the main journeys on it.
+6. **Propose → build → mandate checks** — as below.
+7. **Walk the main journeys (`UX-8`)** on the built design with the traceability matrix before showing the user.
+
 ## Communication
 
 Be invisible. Don't announce modes or narrate process.
@@ -358,6 +372,8 @@ Be invisible. Don't announce modes or narrate process.
 **Never say:** "I'm in ESTABLISH MODE", "Let me check system.md..."
 
 **Instead:** Jump into work. State suggestions with reasoning.
+
+The Journey Report (`UX-1`) and the `Design authority read:` record (`UX-2`) are deliverables, not narration — ALWAYS present them.
 
 ## Suggest + Ask
 
@@ -429,7 +445,7 @@ For more detail on specific topics:
 
 **IMPORTANT MUST ATTENTION Goal:** a product interface that emerges from ITS domain — not the dashboard any generator emits for any product.
 
-**IMPORTANT MUST ATTENTION** run all five steps in order: 1 intent → 2 domain exploration (all 4 outputs: domain concepts, color world, signature element, named defaults) → 3 propose direction and get buy-in → 4 build on the craft foundations → 5 the 5 mandate checks (swap, squint, signature, token, **tell audit**) — why: the exploration outputs and the mandate checks are the only things standing between this lane and the default dashboard.
+**IMPORTANT MUST ATTENTION** present the Journey Report (`UX-1`) and read the design authority (`UX-2`) FIRST — intent is answered from the journeys; then run all five steps in order: 1 intent → 2 domain exploration (all 4 outputs: domain concepts, color world, signature element, named defaults) → 3 propose direction and get buy-in → 4 build on the craft foundations → 5 the 5 mandate checks (swap, squint, signature, token, **tell audit**) — why: the exploration outputs and the mandate checks are the only things standing between this lane and the default dashboard.
 
 **IMPORTANT MUST ATTENTION** the proposal IS the design plan (`DD-3`) — colour, type, layout, principles, each with a WHY. Run the generic test on it BEFORE building and state what you changed.
 

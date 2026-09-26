@@ -1345,6 +1345,20 @@
       ]
     },
     {
+      "tag": "ux-journey-gate",
+      "group": "design",
+      "summary": "Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate",
+      "when": "generating, specifying, planning, mocking up or reviewing a user-facing surface",
+      "chars": 5386,
+      "file": ".claude/skills/shared/protocols/ux-journey-gate.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/ux-journey-gate.md",
+          "chars": 5386
+        }
+      ]
+    },
+    {
       "tag": "web-research",
       "group": "evidence-trace",
       "summary": "Structured web search for evidence gathering",

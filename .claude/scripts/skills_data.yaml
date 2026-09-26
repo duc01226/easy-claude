@@ -393,8 +393,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Implementation] Use when a workflow step or the user asks for an
-    issue to be analyzed and fixed. Flag: --target={ci|issue|logs|test|types|ui} scopes
-    the fix.'
+    issue to be analyzed and fixed. Flag: --target={ci|issue|logs|review|test|types|ui}
+    scopes the fix; review fixes validated review findings.'
   has_references: false
   has_scripts: false
   name: fix
@@ -503,9 +503,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Document Processing] Use when an HTML page, deck, mockup or animation
-    needs exporting or a render check: PNG screenshots with a page-error and blank-capture
-    check, a vector PDF, or an MP4/GIF recording. Flag: --to={png|pdf|mp4|gif}.'
+  description: '[Document Processing] Use when a workflow step or the user asks for
+    an HTML page, deck, mockup or animation export or render check: PNG screenshots
+    with a page-error and blank-capture check, a vector PDF, or MP4/GIF. Flag: --to={png|pdf|mp4|gif}.'
   has_references: true
   has_scripts: true
   name: html-export
@@ -665,7 +665,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Project Management] Use when a workflow step or the user asks for
-    a PBI mockup. Generates an HTML mockup report from PBI and story artifacts.'
+    an interactive HTML mockup from PBI/story or spec artifacts. Flags: --explore asks
+    for 1-3 design directions (or skip) and lets the user pick, --source=<path>.'
   has_references: true
   has_scripts: false
   name: pbi-mockup
@@ -858,6 +859,18 @@
   has_scripts: false
   name: prompt-enhance
   path: prompt-enhance/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Git] Use when asked to create, open, finish, update or mark ready
+    a pull request. Runs in the main session without asking: branch, commit, /workflow-review-changes
+    --fix-loop over the whole branch, open the PR, drive CI to green.'
+  has_references: false
+  has_scripts: false
+  name: pull-request
+  path: pull-request/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1389,8 +1402,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged changes
-    before committing — review, fix, and re-review until the severity bar clears.
-    Flag: --fix-loop re-runs the whole workflow until a round applies zero fixes.'
+    before committing — triage-selected reviewers, validated fixes, and re-review
+    until the severity bar clears. Flag: --fix-loop re-runs the whole workflow until
+    a round applies zero fixes.'
   has_references: true
   has_scripts: false
   name: workflow-review-changes
@@ -1417,6 +1431,18 @@
   has_scripts: false
   name: workflow-spec-sync
   path: workflow-spec-sync/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Workflow] Use when turning canonical specs into a reviewed interactive
+    HTML mock-up: journey report and design authority first, one to three design directions
+    (the user chooses how many, or skips) to pick from, then the full multi-view mock app.'
+  has_references: false
+  has_scripts: false
+  name: workflow-spec-to-mockup
+  path: workflow-spec-to-mockup/SKILL.md
   removal_after: null
   status: active
 - category: other

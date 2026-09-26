@@ -115,6 +115,7 @@
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `workflow-idea-to-pbi`  | Turn an idea or product opportunity into a grooming-ready backlog.                                                |
 | `workflow-idea-to-spec` | Turn an idea into one provisional feature specification.                                                          |
+| `workflow-spec-to-mockup` | Turn canonical specs into a reviewed, journey-first interactive mockup (the user chooses 3 / 2 / 1 directions or skips). |
 | `workflow-code-to-spec` | Create or update capability documentation from existing code.                                                     |
 | `workflow-spec-to-pbi`  | Build a dependency-aware backlog from existing feature specifications.                                            |
 | `workflow-feature-spec` | Create or maintain business feature documentation.                                                                |

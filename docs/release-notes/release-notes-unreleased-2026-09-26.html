@@ -1,0 +1,1547 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="color-scheme" content="light dark" />
+        <title>Orient One Framework Update</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Ubuntu+Mono&display=swap" />
+        <style>
+            /* Tokens: the project's report house style, as used by the previous release page
+   (docs/release-notes/release-notes-d0e5d0cc.html) and the watzup session report.
+   No application design system is configured for this project. */
+            :root {
+                --ink: #1c2230;
+                --ink-soft: #4a5263;
+                --paper: #f6f7f4;
+                --surface: #ffffff;
+                --accent: #1f6f5c;
+                --accent-soft: #e3f0ec;
+                --flag: #9a5b00;
+                --flag-soft: #fbf0df;
+                --before: #5f6776;
+                --before-soft: #eceef1;
+                --term-bg: #10151c;
+                --term-ink: #d8dee8;
+                --term-dim: #8b95a5;
+                --term-hi: #7fd1b5;
+                --term-warn: #f0b25a;
+                --term-q: #9cc3ff;
+                --rule: rgba(28, 34, 48, 0.14);
+                --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+                --radius: 10px;
+                --measure: 1080px;
+                color-scheme: light;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root:not([data-theme='light']) {
+                    --ink: #e4e7ec;
+                    --ink-soft: #aab2bf;
+                    --paper: #12161d;
+                    --surface: #1a1f28;
+                    --accent: #6cc3a8;
+                    --accent-soft: #17322b;
+                    --flag: #e0a54a;
+                    --flag-soft: #33260f;
+                    --before: #9aa3b2;
+                    --before-soft: #232935;
+                    --term-bg: #0b0f14;
+                    --rule: rgba(228, 231, 236, 0.14);
+                    color-scheme: dark;
+                }
+            }
+            :root[data-theme='dark'] {
+                --ink: #e4e7ec;
+                --ink-soft: #aab2bf;
+                --paper: #12161d;
+                --surface: #1a1f28;
+                --accent: #6cc3a8;
+                --accent-soft: #17322b;
+                --flag: #e0a54a;
+                --flag-soft: #33260f;
+                --before: #9aa3b2;
+                --before-soft: #232935;
+                --term-bg: #0b0f14;
+                --rule: rgba(228, 231, 236, 0.14);
+                color-scheme: dark;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            html {
+                background: var(--paper);
+                color: var(--ink);
+            }
+            body {
+                margin: 0;
+                background: var(--paper);
+                color: var(--ink);
+                font: 16px/1.6 var(--font-body);
+            }
+            .page {
+                max-width: var(--measure);
+                margin: 0 auto;
+                padding-inline: 16px;
+                padding-block: 48px 72px;
+            }
+            .page > *,
+            .grid > *,
+            .pair > *,
+            .board-row > *,
+            .feature > *,
+            .bars > * {
+                min-width: 0;
+            }
+            h1,
+            h2,
+            h3,
+            h4 {
+                line-height: 1.2;
+                text-wrap: balance;
+                margin: 0;
+            }
+            p {
+                margin: 0;
+                max-width: 72ch;
+            }
+            a {
+                color: var(--accent);
+                text-underline-offset: 2px;
+            }
+            a:focus-visible,
+            summary:focus-visible {
+                outline: 3px solid var(--accent);
+                outline-offset: 2px;
+                border-radius: 4px;
+            }
+            code {
+                font-family: var(--font-mono);
+                font-size: 0.9em;
+                background: rgba(127, 127, 127, 0.14);
+                padding: 1px 5px;
+                border-radius: 4px;
+                overflow-wrap: anywhere;
+            }
+            .skip {
+                position: absolute;
+                left: 16px;
+                top: -100px;
+                background: var(--surface);
+                padding: 8px 16px;
+                z-index: 10;
+            }
+            .skip:focus {
+                top: 16px;
+            }
+            .stack {
+                display: grid;
+                gap: 16px;
+            }
+
+            /* Hero */
+            .hero {
+                display: grid;
+                gap: 20px;
+                padding-bottom: 32px;
+                border-bottom: 1px solid var(--rule);
+            }
+            .meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px 16px;
+                align-items: center;
+                color: var(--ink-soft);
+                font-size: 14px;
+            }
+            .badge {
+                display: inline-block;
+                font-size: 12.5px;
+                font-weight: 600;
+                letter-spacing: 0.04em;
+                padding: 2px 10px;
+                border-radius: 999px;
+                background: var(--flag-soft);
+                color: var(--flag);
+                border: 1px solid currentColor;
+            }
+            .hero h1 {
+                font-size: clamp(30px, 5vw, 44px);
+                letter-spacing: -0.01em;
+            }
+            .lede {
+                font-size: 19px;
+                color: var(--ink-soft);
+                max-width: 64ch;
+            }
+            .counts {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            .count {
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+                padding: 10px 16px;
+                display: grid;
+                min-width: 120px;
+            }
+            .count b {
+                font-size: 26px;
+                font-variant-numeric: tabular-nums;
+                line-height: 1.1;
+            }
+            .count span {
+                font-size: 13.5px;
+                color: var(--ink-soft);
+            }
+            .count.warn b {
+                color: var(--flag);
+            }
+            .jump {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px 18px;
+                font-size: 14.5px;
+            }
+            .jump a {
+                padding: 10px 0;
+                display: inline-block;
+            }
+
+            section {
+                padding-top: 44px;
+                display: grid;
+                gap: 20px;
+            }
+            section > h2 {
+                font-size: 26px;
+            }
+            .section-intro {
+                color: var(--ink-soft);
+            }
+
+            /* Action board */
+            .board {
+                background: var(--flag-soft);
+                border: 1px solid var(--flag);
+                border-radius: var(--radius);
+                padding: 20px;
+                display: grid;
+                gap: 4px;
+            }
+            .board h2 {
+                font-size: 22px;
+                color: var(--ink);
+            }
+            .board > p {
+                color: var(--ink-soft);
+                margin-bottom: 8px;
+            }
+            .board-row {
+                display: grid;
+                grid-template-columns: 1.1fr 1.3fr 1.6fr;
+                gap: 16px;
+                padding: 14px 0;
+                border-top: 1px solid var(--rule);
+            }
+            .board-row.head {
+                font-size: 12.5px;
+                letter-spacing: 0.06em;
+                color: var(--ink-soft);
+                padding: 4px 0;
+                border-top: 0;
+            }
+            .board-row h3 {
+                font-size: 16px;
+            }
+            .was,
+            .now {
+                display: block;
+            }
+            .was {
+                color: var(--before);
+            }
+            .now {
+                font-weight: 600;
+                margin-top: 4px;
+            }
+            .was::before,
+            .now::before {
+                display: inline-block;
+                font-size: 12px;
+                font-weight: 700;
+                border-radius: 4px;
+                padding: 0 6px;
+                margin-right: 6px;
+            }
+            .was::before {
+                content: 'Was';
+                color: var(--before);
+                border: 1px solid var(--before);
+            }
+            .now::before {
+                content: 'Now';
+                color: var(--surface);
+                background: var(--flag);
+                border: 1px solid var(--flag);
+            }
+            @media (max-width: 760px) {
+                .board-row {
+                    grid-template-columns: 1fr;
+                    gap: 6px;
+                }
+                .board-row.head {
+                    display: none;
+                }
+            }
+
+            /* At a glance */
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                gap: 14px;
+            }
+            .glance-card {
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+                padding: 16px 18px;
+                display: grid;
+                gap: 6px;
+                align-content: start;
+            }
+            .glance-card h3 {
+                font-size: 17px;
+            }
+            .glance-card p {
+                color: var(--ink-soft);
+                font-size: 15px;
+            }
+            .glance-card a {
+                font-size: 14px;
+            }
+
+            /* Theme + feature cards */
+            .theme {
+                border-top: 1px solid var(--rule);
+            }
+            .theme > h2 {
+                font-size: 28px;
+            }
+            .feature {
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+                padding: 24px;
+                display: grid;
+                gap: 16px;
+            }
+            .feature > h3 {
+                font-size: 22px;
+            }
+            .tags {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .tag {
+                font-size: 12px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+
+                padding: 2px 8px;
+                border-radius: 4px;
+                background: var(--accent-soft);
+                color: var(--accent);
+            }
+            .tag.changed {
+                background: var(--before-soft);
+                color: var(--ink);
+            }
+            .tag.default {
+                background: var(--flag-soft);
+                color: var(--flag);
+            }
+            .prose {
+                display: grid;
+                gap: 10px;
+            }
+            .howto {
+                border-left: 3px solid var(--accent);
+                background: var(--accent-soft);
+                padding: 12px 16px;
+                border-radius: 0 8px 8px 0;
+                display: grid;
+                gap: 4px;
+                font-size: 15px;
+            }
+            .howto b {
+                font-size: 13px;
+                letter-spacing: 0.05em;
+
+                color: var(--accent);
+            }
+            .chips {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .chip {
+                font-family: var(--font-mono);
+                font-size: 11.5px;
+                color: var(--ink-soft);
+                border: 1px solid var(--rule);
+                border-radius: 999px;
+                padding: 1px 8px;
+                overflow-wrap: anywhere;
+            }
+
+            /* Before / after story */
+            .pair {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px;
+            }
+            @media (max-width: 760px) {
+                .pair {
+                    grid-template-columns: 1fr;
+                }
+            }
+            .side {
+                border-radius: var(--radius);
+                padding: 16px 18px;
+                display: grid;
+                gap: 8px;
+                align-content: start;
+            }
+            .side.before {
+                background: var(--before-soft);
+                border: 1px dashed var(--before);
+            }
+            .side.after {
+                background: var(--accent-soft);
+                border: 1px solid var(--accent);
+            }
+            .side h4 {
+                font-size: 13px;
+                letter-spacing: 0.06em;
+            }
+            .side.before h4 {
+                color: var(--before);
+            }
+            .side.after h4 {
+                color: var(--accent);
+            }
+            .side ol,
+            .side ul {
+                margin: 0;
+                padding-left: 20px;
+                display: grid;
+                gap: 4px;
+                font-size: 15px;
+            }
+            .feel {
+                font-style: italic;
+                color: var(--ink-soft);
+                font-size: 15px;
+            }
+
+            /* Terminal / chat frame */
+            .term {
+                background: var(--term-bg);
+                color: var(--term-ink);
+                border-radius: var(--radius);
+                overflow: hidden;
+            }
+            .term-bar {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                flex-wrap: wrap;
+                padding: 8px 14px;
+                font-size: 12px;
+                color: var(--term-dim);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                font-family: var(--font-body);
+            }
+            .term pre {
+                margin: 0;
+                padding: 14px 16px;
+                overflow-x: auto;
+                font: 13.5px/1.6 var(--font-mono);
+                white-space: pre;
+            }
+            .t-dim {
+                color: var(--term-dim);
+            }
+            .t-hi {
+                color: var(--term-hi);
+            }
+            .t-warn {
+                color: var(--term-warn);
+            }
+            .t-q {
+                color: var(--term-q);
+            }
+            .t-b {
+                font-weight: 700;
+                color: #fff;
+            }
+
+            /* Flow diagram */
+            .flow {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                align-items: center;
+                counter-reset: step;
+            }
+            .flow li {
+                counter-increment: step;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+            }
+            .flow li .node {
+                border: 1px solid var(--rule);
+                background: var(--surface);
+                border-radius: 8px;
+                padding: 6px 10px;
+                display: grid;
+            }
+            .flow li .node small {
+                color: var(--ink-soft);
+                font-size: 12px;
+            }
+            .flow li .node.gate {
+                border-color: var(--accent);
+                box-shadow: inset 3px 0 0 var(--accent);
+            }
+            .flow li .node.opt {
+                border-style: dashed;
+                color: var(--ink-soft);
+            }
+            .flow li:not(:last-child)::after {
+                content: '\2192';
+                color: var(--ink-soft);
+            }
+            .legend {
+                font-size: 13px;
+                color: var(--ink-soft);
+            }
+
+            /* Bars */
+            .bars {
+                display: grid;
+                gap: 12px;
+            }
+            .bar-row {
+                display: grid;
+                grid-template-columns: minmax(120px, 190px) 1fr;
+                gap: 6px 14px;
+                align-items: center;
+            }
+            .bar-row > span {
+                font-size: 14px;
+            }
+            .bar-pair {
+                display: grid;
+                grid-template-columns: 1fr 9.5em;
+                gap: 4px 10px;
+                align-items: center;
+            }
+            .bar {
+                height: 14px;
+                border-radius: 3px;
+                display: flex;
+                align-items: center;
+                min-width: 2px;
+            }
+            .bar.b {
+                background: var(--before-soft);
+                border: 1px solid var(--before);
+            }
+            .bar.a {
+                background: var(--accent);
+            }
+            .bar-label {
+                font-size: 12.5px;
+                color: var(--ink-soft);
+                font-variant-numeric: tabular-nums;
+            }
+            @media (max-width: 560px) {
+                .bar-row {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* Fixes */
+            .fix-list {
+                display: grid;
+                gap: 14px;
+            }
+
+            /* Collapsed technical view */
+            details.tech {
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+            }
+            details.tech > summary {
+                cursor: pointer;
+                padding: 14px 18px;
+                font-weight: 600;
+                min-height: 44px;
+            }
+            details.tech > .tech-body {
+                padding: 0 18px 18px;
+                display: grid;
+                gap: 12px;
+                font-size: 15px;
+            }
+            .scroll {
+                overflow-x: auto;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                font-size: 14px;
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 8px 10px;
+                border-bottom: 1px solid var(--rule);
+                vertical-align: top;
+            }
+            th {
+                font-size: 12.5px;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                color: var(--ink-soft);
+            }
+            td.num {
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            ul.plain {
+                margin: 0;
+                padding-left: 20px;
+                display: grid;
+                gap: 6px;
+            }
+
+            .release-check {
+                border: 1px solid var(--flag);
+                border-radius: var(--radius);
+                padding: 20px;
+                display: grid;
+                gap: 10px;
+                background: var(--surface);
+            }
+            .release-check h2 {
+                font-size: 22px;
+            }
+
+            footer {
+                margin-top: 56px;
+                padding-top: 20px;
+                border-top: 1px solid var(--rule);
+                font-size: 13.5px;
+                color: var(--ink-soft);
+                display: grid;
+                gap: 4px;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                * {
+                    scroll-behavior: auto !important;
+                    transition: none !important;
+                    animation: none !important;
+                }
+            }
+            @media print {
+                details.tech {
+                    break-inside: avoid;
+                }
+                details.tech > .tech-body {
+                    display: grid;
+                }
+                .jump,
+                .skip {
+                    display: none;
+                }
+                .term {
+                    break-inside: avoid;
+                }
+            }
+
+            /* Orient One explore drafts: values from Orient One's design tokens (apps/web/app/globals.css),
+               steel family hue for the /my-team route. Light only, as Orient One ships no dark theme. */
+            .drafts { display: grid; gap: 14px; }
+            .drafts-head { display: grid; gap: 6px; }
+            .drafts-head h4 { font-size: 17px; }
+            .drafts-head p { color: var(--ink-soft); font-size: 15px; }
+            .drafts-note { font-size: 13.5px !important; color: var(--flag) !important; font-weight: 600; }
+            .oo-toggle { position: absolute; opacity: 0; width: 1px; height: 1px; }
+            .oo-toggle-l { justify-self: start; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 10px 16px; min-height: 44px; }
+            .oo-toggle:focus-visible + .oo-toggle-l { outline: 3px solid var(--accent); outline-offset: 2px; }
+            .oo-toggle:checked + .oo-toggle-l { background: var(--accent); color: var(--surface); }
+            .oo-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+            .oo-fig { margin: 0; display: grid; gap: 10px; }
+            .oo-frame { overflow: hidden; border: 1px solid var(--rule); border-radius: 10px; background: #F6F6F7; }
+            .oo-fig.rec .oo-frame { border: 2px solid var(--accent); }
+            .oo-fig figcaption { display: grid; gap: 4px; font-size: 14px; }
+            .oo-fig-t { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 15px; }
+            .oo-cost { color: var(--ink-soft); font-size: 13.5px; }
+            .oo-why { font-size: 13.5px; color: var(--accent); }
+            .oo { zoom: 0.4; width: 800px; height: 520px; display: flex; overflow: hidden; background: #F6F6F7; color: #0d0d0d;
+                  font: 400 13px/1.55 'Ubuntu', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; text-align: left; }
+            @media (max-width: 1119px) { .oo-gallery { grid-template-columns: minmax(0, 1fr); } .oo { zoom: 0.75; } }
+            @media (max-width: 759px) { .oo { zoom: 0.36; } }
+            .oo-toggle:checked ~ .oo-gallery { grid-template-columns: minmax(0, 1fr); }
+            .oo-toggle:checked ~ .oo-gallery .oo-frame { overflow-x: auto; }
+            .oo-toggle:checked ~ .oo-gallery .oo { zoom: 1; }
+            .oo b { font-weight: 500; }
+            .oo small { display: block; font-size: 12px; color: rgba(13, 13, 13, 0.6); }
+            .oo em { font-style: normal; }
+            .oo-ic { flex: none; }
+            .oo-eye { font: 400 10.5px 'Ubuntu Mono', ui-monospace, monospace; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(13, 13, 13, 0.72); display: block; }
+            .oo-side { width: 236px; flex: none; background: #FBFBFA; border-right: 1px solid #E7E7E4; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; color: #12130F; }
+            .oo-brand { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; }
+            .oo-brand-ic { margin-left: auto; color: rgba(13, 13, 13, 0.6); }
+            .oo-switch { display: flex; gap: 10px; align-items: center; padding: 4px 2px 12px; border-bottom: 1px solid rgba(13, 13, 13, 0.08); }
+            .oo-switch b { font-size: 14px; }
+            .oo-tile { width: 34px; height: 34px; border-radius: 10px; background: #E8E9EB; color: #44474A; display: grid; place-items: center; }
+            .oo-nav { display: grid; gap: 2px; }
+            .oo-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 8px; font-size: 13px; }
+            .oo-item.on { background: #E8E9EB; color: #44474A; font-weight: 500; box-shadow: inset 3px 0 0 #44474A; }
+            .oo-foot { margin-top: auto; display: flex; gap: 10px; align-items: center; font-size: 13px; }
+            .oo-av { border-radius: 999px; background: #E8E9EB; color: #44474A; font-weight: 500; display: inline-grid; place-items: center; flex: none; }
+            .oo-main { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; }
+            .oo-tr { position: absolute; top: 12px; right: 16px; display: flex; gap: 6px; align-items: center; z-index: 1; }
+            .oo-glass { width: 30px; height: 30px; border-radius: 999px; background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(13, 13, 13, 0.08); display: inline-grid; place-items: center; color: #0d0d0d; }
+            .oo-glass.sm { width: 28px; height: 28px; background: #fff; border-color: rgba(13, 13, 13, 0.14); }
+            .oo-ask { background: #0d0d0d; color: #fff; border-radius: 999px; padding: 6px 12px; font-weight: 500; font-size: 12.5px; }
+            .oo-band { background: linear-gradient(180deg, #BBBEC3 0%, #D2D4D7 34%, #E8E9EB 64%, transparent); padding: 0 24px 16px; }
+            .oo-crumb { height: 44px; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: rgba(13, 13, 13, 0.6); }
+            .oo-crumb i { font-style: normal; color: rgba(13, 13, 13, 0.58); }
+            .oo-hero { display: flex; gap: 16px; align-items: center; }
+            .oo-hero-tile { width: 72px; height: 72px; border-radius: 19px; background: linear-gradient(135deg, #fff, #D2D4D7); display: grid; place-items: center; color: #44474A; flex: none; }
+            .oo-hero h5 { font: 300 42px/1 'Ubuntu', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.013em; margin: 0 0 6px; }
+            .oo-hero p { margin: 0; color: rgba(13, 13, 13, 0.6); font-size: 13px; }
+            .oo-tabs { display: flex; gap: 22px; margin: 0 24px; border-bottom: 1px solid rgba(13, 13, 13, 0.08); font-size: 13.5px; }
+            .oo-tabs span { padding: 9px 2px 11px; color: rgba(13, 13, 13, 0.6); }
+            .oo-tabs span.on { color: #0d0d0d; font-weight: 500; box-shadow: inset 0 -2px 0 #44474A; }
+            .oo-body { padding: 14px 24px; display: grid; gap: 10px; align-content: start; min-height: 0; }
+            .oo-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-weight: 500; font-size: 11.5px; line-height: 1.5; }
+            .oo-badge.w { background: #FFF5EB; color: #B45309; }
+            .oo-badge.s { background: #D9F4E4; color: #00692A; }
+            .oo-badge.n { background: #f6f6f5; color: rgba(13, 13, 13, 0.6); }
+            .oo-btn { display: inline-block; border-radius: 999px; padding: 7px 14px; font-weight: 500; font-size: 13px; background: #fff; border: 1px solid rgba(13, 13, 13, 0.14); white-space: nowrap; }
+            .oo-btn.p { background: #0d0d0d; color: #fff; border-color: #0d0d0d; }
+            .oo-btn.sm { padding: 4px 12px; }
+            .oo-card { background: #fff; border: 1px solid rgba(13, 13, 13, 0.08); border-radius: 12px; }
+            .oo-filters { display: flex; gap: 8px; align-items: center; }
+            .oo-searchpill, .oo-chip { height: 30px; border-radius: 999px; border: 1px solid rgba(13, 13, 13, 0.14); background: #fff; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 12.5px; color: rgba(13, 13, 13, 0.6); }
+            .oo-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+            .oo-who b { font-size: 13px; white-space: nowrap; }
+            .oo-who.big b { font-size: 15px; }
+            /* A */
+            .oo-reg { margin-right: 234px; overflow: hidden; }
+            .oo-reg-h, .oo-reg-r { display: grid; grid-template-columns: 1.45fr 1fr 0.95fr; gap: 12px; align-items: center; padding: 10px 14px; }
+            .oo-reg-h { font: 500 10.5px 'Ubuntu Mono', ui-monospace, monospace; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(13, 13, 13, 0.55); border-bottom: 1px solid rgba(13, 13, 13, 0.08); }
+            .oo-reg-r { border-bottom: 1px solid rgba(13, 13, 13, 0.08); }
+            .oo-reg-r:last-child { border-bottom: 0; }
+            .oo-reg-r.sel { box-shadow: inset 0 0 0 1.5px #0d0d0d; border-radius: 4px; }
+            .oo-panel { position: absolute; top: 0; right: 0; bottom: 0; width: 226px; background: #fff; border-left: 1px solid rgba(13, 13, 13, 0.08); box-shadow: -12px 0 32px rgba(0, 0, 0, 0.08); padding: 16px 18px; display: flex; flex-direction: column; gap: 9px; z-index: 2; }
+            .oo-panel-h { display: flex; justify-content: space-between; align-items: center; }
+            .oo-x { color: rgba(13, 13, 13, 0.6); font-size: 12px; }
+            .oo-kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 12.5px; }
+            .oo-kv dt { color: rgba(13, 13, 13, 0.6); }
+            .oo-kv dd { margin: 0; }
+            .oo-sub { font-weight: 500; font-size: 13px; margin-top: 2px; }
+            .oo-meter { height: 6px; border-radius: 999px; background: rgba(13, 13, 13, 0.08); overflow: hidden; }
+            .oo-meter span { display: block; height: 100%; background: #0d0d0d; }
+            .oo-meta { font-size: 11px; color: rgba(13, 13, 13, 0.58); }
+            .oo-panel .oo-who .oo-badge { margin-left: auto; }
+            .oo-panel-f { margin-top: auto; display: flex; justify-content: flex-end; gap: 8px; padding-top: 10px; border-top: 1px solid rgba(13, 13, 13, 0.08); }
+            /* B */
+            .oo-count { margin-bottom: -2px; }
+            .oo-q { display: flex; gap: 14px; align-items: flex-start; padding: 13px 18px; }
+            .oo-q-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+            .oo-q-main b { font-size: 14px; }
+            .oo-ctx { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+            .oo-q-act { display: flex; gap: 8px; align-self: flex-end; }
+            /* C */
+            .oo-range { font-size: 13.5px; margin-left: 6px; }
+            .oo-legend { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: 12px; color: rgba(13, 13, 13, 0.6); }
+            .oo-legend .lg { display: inline-block; width: 14px; height: 8px; border-radius: 3px; margin-left: 6px; }
+            .lg.a, .oo-bar.a { background: #E8E9EB; border: 1px solid rgba(13, 13, 13, 0.14); }
+            .lg.p, .oo-bar.p { background: #FFF5EB; border: 1px dashed #B45309; }
+            .oo-tl { padding: 6px 12px 8px; }
+            .oo-tl-h, .oo-tl-r { display: grid; grid-template-columns: 124px repeat(10, 1fr); align-items: center; position: relative; }
+            .oo-tl-h { font: 400 10.5px 'Ubuntu Mono', ui-monospace, monospace; letter-spacing: 0.06em; color: rgba(13, 13, 13, 0.55); text-transform: uppercase; height: 26px; }
+            .oo-tl-h span { text-align: center; }
+            .oo-tl-r { height: 34px; border-top: 1px solid rgba(13, 13, 13, 0.08); }
+            .oo-tl-r .oo-who b { font-size: 12.5px; white-space: nowrap; }
+            .oo-cell { height: 100%; border-left: 1px solid rgba(13, 13, 13, 0.05); }
+            .oo-cell.wk, .oo-tl-h .wk { border-left: 1px solid rgba(13, 13, 13, 0.14); }
+            .oo-bar { grid-row: 1; height: 20px; border-radius: 6px; font-size: 11px; line-height: 18px; padding: 0 6px; margin: 0 2px; white-space: nowrap; overflow: hidden; color: #0d0d0d; }
+            .oo-bar.p { color: #B45309; font-weight: 500; }
+            .oo-bar.sel { box-shadow: 0 0 0 1.5px #0d0d0d; }
+            .oo-dec { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+            .oo-dec > div { flex: 1; min-width: 0; }
+            .oo-dec b { font-size: 13px; }
+        </style>
+    </head>
+    <body>
+        <a class="skip" href="#main">Skip to content</a>
+        <div class="page">
+            <header class="hero">
+                <div class="meta">
+                    <span class="badge">Status: Draft</span>
+                    <span>For the Orient One project</span>
+                    <span>easy-claude <code>.claude</code> skills framework</span>
+                    <span>26 Sep 2026</span>
+                    <span>Uncommitted changes on top of <code>728a9cbe</code></span>
+                </div>
+                <h1>What the latest easy-claude framework update brings to Orient One</h1>
+                <p class="lede">Orient One uses the easy-claude <code>.claude</code> skills to guide Claude's development work. This update makes Claude design from the user's journey and let you pick the look, skip workflow steps that don't fit your task (and say why), and ship a reviewed pull request with one command.</p>
+                <div class="counts" aria-label="Release counts">
+                    <div class="count"><b>4</b><span>new capabilities</span></div>
+                    <div class="count"><b>4</b><span>changed behaviors</span></div>
+                    <div class="count"><b>2</b><span>problems fixed</span></div>
+                </div>
+                <nav class="jump" aria-label="Jump to section">
+                    <a href="#glance">At a glance</a>
+                    <a href="#design">Design the right screen</a> <a href="#fit">Workflows that fit</a> <a href="#ship">Ship a change</a>
+                    <a href="#fixes">Fixes</a>
+                    <a href="#before-release">Before release</a>
+                    <a href="#tech">Technical details</a>
+                </nav>
+            </header>
+
+            <main id="main">
+                                <section id="glance" aria-labelledby="glance-h">
+                    <h2 id="glance-h">At a glance</h2>
+                    <div class="grid">
+                        <article class="glance-card">
+                            <h3>Designs start from the user's journey</h3>
+                            <p>Before any UI work, Claude writes down who uses the screen and their main tasks.</p>
+                            <a href="#h-journey">See the report</a>
+                        </article>
+                        <article class="glance-card">
+                            <h3>You pick the design direction</h3>
+                            <p>Choose 3, 2 or 1 mockup options, or skip. Drafts open in your browser with a recommendation.</p>
+                            <a href="#h-pick">See the question</a>
+                        </article>
+                        <article class="glance-card">
+                            <h3>Spec to clickable mockup</h3>
+                            <p>A new workflow turns a spec into a reviewed, clickable mockup.</p>
+                            <a href="#h-spec-mockup">See the flow</a>
+                        </article>
+                        <article class="glance-card">
+                            <h3>Workflows that fit your task</h3>
+                            <p>140 steps now say when they apply (was 47). 62 always run (was 50).</p>
+                            <a href="#h-fit">See the numbers</a>
+                        </article>
+                        <article class="glance-card">
+                            <h3>Reviews sized to the change</h3>
+                            <p>Specialist reviewers join only when the change needs them. Findings are fixed directly.</p>
+                            <a href="#h-review">See before and after</a>
+                        </article>
+                        <article class="glance-card">
+                            <h3>One command to a ready pull request</h3>
+                            <p><code>/pull-request</code> reviews, tests, commits, pushes, opens the PR and fixes CI until green.</p>
+                            <a href="#h-pr">See the story</a>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- THEME 1 -->
+                
+
+                <!-- THEME 2 -->
+                
+
+                <!-- THEME 3 -->
+                
+
+                <section id="design" class="theme" aria-labelledby="design-h">
+                    <h2 id="design-h">Design the right screen</h2>
+                    <p class="section-intro">Claude now designs from people and their tasks, and you choose the look.</p>
+
+                    <article class="feature" id="h-journey" aria-labelledby="h-journey-t">
+                        <div class="tags"><span class="tag">New</span></div>
+                        <h3 id="h-journey-t">Every design starts with a journey report</h3>
+                        <div class="term" role="img" aria-label="Illustrative journey report">
+                            <div class="term-bar"><span>Journey report, the first thing you see</span><span>⚠ Illustrative example</span></div>
+                            <pre><span class="t-b">## Journey Report — My Team › Approvals (Orient One HR)</span>
+Frame: a report cannot plan time off until their manager decides
+Success signal: time from request to decision
+
+<span class="t-hi">Actors &amp; jobs</span>
+  Line manager · weekly · "When a report asks for time off, I want to decide
+                 quickly with their dates, balance and who else is out,
+                 so my team stays covered and they can plan."
+
+<span class="t-hi">Main journeys (ranked by frequency × value × risk)</span>
+  J1  Decide pending leave requests from my reports    /my-team/approvals
+  J2  See who is off and plan coverage                  /my-team/leave
+  J3  Employee requests leave (feeds J1)                /me/leave
+
+<span class="t-hi">Journey J1</span>
+  Step | What I want        | What I need to decide      | If it fails → recovery
+  1    | Open Approvals     | how many are waiting       | count badge on the tab
+  2    | Read one request   | type, dates, days, note    | —
+  3    | Judge coverage     | balance, who else is off   | <span class="t-warn">not shown today → requirement</span>
+  4    | Approve or reject  | —                          | toast; retry on network error
+
+<span class="t-hi">Derived requirements</span> · <span class="t-hi">Assumptions</span> <span class="t-warn">(INFERRED, unconfirmed)</span></pre>
+                        </div>
+                        <div class="prose"><p>Before any mockup, design spec, screen review or UI code, Claude writes a short journey report: who uses the screen, their job, the main journeys ranked, and the steps of each. It reads your design system, then designs.</p><p>At the end it walks each journey through the result and checks steps, clicks and wayfinding. A small tweak gets a few lines; a new flow gets the full report.</p></div>
+                        <div class="pair">
+                            <div class="side before"><h4>Before</h4><p>You asked for a leave-approval screen. Claude went straight to layout and components.</p><p class="feel">It looked tidy, until managers had to open another page to see who else was off.</p></div>
+                            <div class="side after"><h4>After</h4><p>You first read who the manager is, their job, and the step where they check who else is off. You fix a wrong guess before any pixels exist.</p><p class="feel">You review the thinking first, so reviewing the look is quicker.</p></div>
+                        </div>
+                        <div class="howto"><b>How to use</b><span>Always on for UI work. If the main user, their job or the success outcome is only a guess, Claude asks you first. With nobody to ask, it notes the guess and continues.</span></div>
+                        
+                    </article>
+
+                    <article class="feature" id="h-pick" aria-labelledby="h-pick-t">
+                        <div class="tags"><span class="tag">New</span></div>
+                        <h3 id="h-pick-t">You choose how many design options, and which one wins</h3>
+                        <div class="term" role="img" aria-label="Illustrative mockup option questions">
+                            <div class="term-bar">
+                                <span>Question 1 comes before any work starts · question 2 after the drafts open</span><span>⚠ Illustrative example</span>
+                            </div>
+                            <pre><span class="t-q">? Generate design mockup options for My Team › Approvals?</span>
+  <span class="t-hi">●</span> 3 options <span class="t-hi">(Recommended)</span>  a full page for the manager's main journey
+  ○ 2 options
+  ○ 1 option
+  ○ Skip mockup
+
+<span class="t-dim">Colour, type, shape, page frame: ADOPTED from the Orient One design system</span>
+<span class="t-dim">Drafts differ only in layout · opened 3 drafts in your browser</span>
+
+<span class="t-q">? Which direction should the full mockup use?</span>
+  <span class="t-hi">●</span> B, decision queue <span class="t-hi">(Recommended)</span>  1 click per decision; balance and
+                                       overlap on every card
+  ○ A, register + side panel
+  ○ C, coverage timeline
+  <span class="t-dim">or type your own, e.g. "B, with C's week strip on top"</span></pre>
+                        </div>
+                        <div class="drafts" aria-labelledby="drafts-t">
+  <div class="drafts-head">
+    <h4 id="drafts-t">Example: three drafts for Orient One, My Team › Approvals</h4>
+    <p>Same screen, same journey: a manager deciding leave requests. Orient One's design system fixes colour, type and page frame, so the drafts differ only in layout.</p>
+    <p class="drafts-note">⚠ Illustrative mock-ups. People from Orient One's demo data; balances assumed.</p>
+  </div>
+  <input type="checkbox" id="oo-full" class="oo-toggle" />
+  <label for="oo-full" class="oo-toggle-l">Show drafts at full size</label>
+  <div class="oo-gallery">
+  <figure class="oo-fig" id="draft-a">
+  <div class="oo-frame" role="img" aria-label="Draft A: My Team Approvals as a table of three pending leave requests, with Tuan Pham selected and a side panel showing his dates, balance, who else is off, and Reject and Approve buttons"><div class="oo">
+  <aside class="oo-side">
+    <div class="oo-brand"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M22 8.5A9.5 9.5 0 1 0 22 21.5" fill="none" stroke="#0d0d0d" stroke-width="3.2" stroke-linecap="round"/><path d="M16 15h10m-3.5-3.5L26 15l-3.5 3.5" fill="none" stroke="#E64940" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Orient One</span><span class="oo-brand-ic"><svg class="oo-ic" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="m10 10 3.5 3.5"/></svg></span></div>
+    <div class="oo-switch"><span class="oo-tile"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5V13h-11z"/></svg></span><span><span class="oo-eye">Workspace</span><b>Home</b></span></div>
+    <nav class="oo-nav"><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5V13h-11z"/></svg><span>Home</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c.8-2.6 2.7-4 5-4s4.2 1.4 5 4"/></svg><span>Me</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="1.5"/><path d="M6 5V3.5h4V5"/></svg><span>My Work</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9.5 4 3.5h8l1.5 6V13h-11z"/><path d="M2.5 9.5H6l.8 1.5h2.4l.8-1.5h3.5"/></svg><span>My requests</span></div><div class="oo-item on"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.2"/><circle cx="11" cy="6.5" r="1.8"/><path d="M2 13c.6-2.2 2.1-3.3 4-3.3s3.4 1.1 4 3.3M10.5 9.8c1.6.1 2.8 1.1 3.3 3"/></svg><span>My Team</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="m5.5 8 1.8 1.8L10.8 6"/></svg><span>Approvals</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/></svg><span>My Leave</span></div></nav>
+    <div class="oo-foot"><span class="oo-av" style="width:28px;height:28px;font-size:11px">LD</span><span><b>Linh Dang</b><small>Engineering Manager</small></span></div>
+  </aside>
+  <div class="oo-main">
+    <div class="oo-tr"><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="m10 10 3.5 3.5"/></svg></span><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="m5.5 8 1.8 1.8L10.8 6"/></svg></span><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7.5a4 4 0 0 1 8 0V11l1 1.5H3z"/><path d="M6.8 14h2.4"/></svg></span><span class="oo-ask">Ask AI</span></div>
+    <header class="oo-band">
+      <div class="oo-crumb">Home <i>›</i> My Team</div>
+      <div class="oo-hero"><span class="oo-hero-tile"><svg class="oo-ic" width="34" height="34" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.2"/><circle cx="11" cy="6.5" r="1.8"/><path d="M2 13c.6-2.2 2.1-3.3 4-3.3s3.4 1.1 4 3.3M10.5 9.8c1.6.1 2.8 1.1 3.3 3"/></svg></span><div><h5>My Team</h5><p>Leave requests from your team awaiting a decision.</p></div></div>
+    </header>
+    <div class="oo-tabs"><span>Team</span><span class="on">Approvals <em class="oo-badge w">3</em></span><span>Leave</span><span>Learning</span></div>
+    <div class="oo-body">
+  <div class="oo-filters"><span class="oo-searchpill"><svg class="oo-ic" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="m10 10 3.5 3.5"/></svg> Search people</span><span class="oo-chip">All types ▾</span><span class="oo-chip">This month ▾</span></div>
+  <div class="oo-card oo-reg">
+    <div class="oo-reg-h"><span>Employee</span><span>Dates</span><span>Status</span></div>
+    <div class="oo-reg-r sel"><span class="oo-who"><span class="oo-av" style="width:24px;height:24px;font-size:10px">TP</span><span><b>Tuan Pham</b><small>Annual Leave</small></span></span><span>28–30 Sep<small>3 days</small></span><span><em class="oo-badge w">Pending</em></span></div>
+    <div class="oo-reg-r"><span class="oo-who"><span class="oo-av" style="width:24px;height:24px;font-size:10px">ML</span><span><b>Minh Le</b><small>Sick Leave</small></span></span><span>29 Sep<small>half day</small></span><span><em class="oo-badge w">Pending</em></span></div>
+    <div class="oo-reg-r"><span class="oo-who"><span class="oo-av" style="width:24px;height:24px;font-size:10px">LT</span><span><b>Lan Tran</b><small>Annual Leave</small></span></span><span>5–9 Oct<small>5 days</small></span><span><em class="oo-badge w">Pending</em></span></div>
+  </div></div>
+    <aside class="oo-panel">
+    <div class="oo-panel-h"><span class="oo-eye">Leave request</span><span class="oo-x">✕</span></div>
+    <div class="oo-who big"><span class="oo-av" style="width:40px;height:40px;font-size:16px">TP</span><span><b>Tuan Pham</b><small>Annual Leave</small></span></div>
+    <dl class="oo-kv"><dt>Dates</dt><dd>28–30 Sep 2026</dd><dt>Days</dt><dd>3</dd><dt>Submitted</dt><dd>23 Sep</dd><dt>Note</dt><dd>Family trip</dd></dl>
+    <div class="oo-sub">Balance</div>
+    <div class="oo-meter"><span style="width:60%"></span></div><div class="oo-meta">12 of 20 days left</div>
+    <div class="oo-sub">Also off</div>
+    <div class="oo-who"><span class="oo-av" style="width:24px;height:24px;font-size:10px">KN</span><span><b>Khanh Nguyen</b><small>29–30 Sep</small></span><em class="oo-badge s">Approved</em></div>
+    <div class="oo-panel-f"><span class="oo-btn">Reject</span><span class="oo-btn p">Approve</span></div>
+  </aside>
+  </div>
+</div></div>
+  <figcaption>
+    <span class="oo-fig-t"><b>A. Register and side panel</b></span>
+    <span>A table of every request; the selected row opens a panel with balance and who else is off.</span><span class="oo-cost">2 clicks per decision · best for scanning many requests · context hidden until a row is opened</span>
+  </figcaption>
+</figure>
+  <figure class="oo-fig rec" id="draft-b">
+  <div class="oo-frame" role="img" aria-label="Draft B: My Team Approvals as a queue of three cards, each showing the person, leave type, dates, balance and overlap, with Reject and Approve buttons"><div class="oo">
+  <aside class="oo-side">
+    <div class="oo-brand"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M22 8.5A9.5 9.5 0 1 0 22 21.5" fill="none" stroke="#0d0d0d" stroke-width="3.2" stroke-linecap="round"/><path d="M16 15h10m-3.5-3.5L26 15l-3.5 3.5" fill="none" stroke="#E64940" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Orient One</span><span class="oo-brand-ic"><svg class="oo-ic" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="m10 10 3.5 3.5"/></svg></span></div>
+    <div class="oo-switch"><span class="oo-tile"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5V13h-11z"/></svg></span><span><span class="oo-eye">Workspace</span><b>Home</b></span></div>
+    <nav class="oo-nav"><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5V13h-11z"/></svg><span>Home</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c.8-2.6 2.7-4 5-4s4.2 1.4 5 4"/></svg><span>Me</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="1.5"/><path d="M6 5V3.5h4V5"/></svg><span>My Work</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9.5 4 3.5h8l1.5 6V13h-11z"/><path d="M2.5 9.5H6l.8 1.5h2.4l.8-1.5h3.5"/></svg><span>My requests</span></div><div class="oo-item on"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.2"/><circle cx="11" cy="6.5" r="1.8"/><path d="M2 13c.6-2.2 2.1-3.3 4-3.3s3.4 1.1 4 3.3M10.5 9.8c1.6.1 2.8 1.1 3.3 3"/></svg><span>My Team</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="m5.5 8 1.8 1.8L10.8 6"/></svg><span>Approvals</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/></svg><span>My Leave</span></div></nav>
+    <div class="oo-foot"><span class="oo-av" style="width:28px;height:28px;font-size:11px">LD</span><span><b>Linh Dang</b><small>Engineering Manager</small></span></div>
+  </aside>
+  <div class="oo-main">
+    <div class="oo-tr"><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="m10 10 3.5 3.5"/></svg></span><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="m5.5 8 1.8 1.8L10.8 6"/></svg></span><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7.5a4 4 0 0 1 8 0V11l1 1.5H3z"/><path d="M6.8 14h2.4"/></svg></span><span class="oo-ask">Ask AI</span></div>
+    <header class="oo-band">
+      <div class="oo-crumb">Home <i>›</i> My Team</div>
+      <div class="oo-hero"><span class="oo-hero-tile"><svg class="oo-ic" width="34" height="34" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.2"/><circle cx="11" cy="6.5" r="1.8"/><path d="M2 13c.6-2.2 2.1-3.3 4-3.3s3.4 1.1 4 3.3M10.5 9.8c1.6.1 2.8 1.1 3.3 3"/></svg></span><div><h5>My Team</h5><p>Leave requests from your team awaiting a decision.</p></div></div>
+    </header>
+    <div class="oo-tabs"><span>Team</span><span class="on">Approvals <em class="oo-badge w">3</em></span><span>Leave</span><span>Learning</span></div>
+    <div class="oo-body">
+  <div class="oo-eye oo-count">3 awaiting decision · oldest first</div>
+  <div class="oo-card oo-q"><span class="oo-av" style="width:32px;height:32px;font-size:13px">TP</span><div class="oo-q-main"><b>Tuan Pham</b><span>Annual Leave · 28–30 Sep · 3 days</span><small>Family trip · submitted 23 Sep</small><div class="oo-ctx"><em class="oo-badge n">12 of 20 days left</em><em class="oo-badge w">Also off: Khanh Nguyen 29–30 Sep</em></div></div><div class="oo-q-act"><span class="oo-btn">Reject</span><span class="oo-btn p">Approve</span></div></div>
+  <div class="oo-card oo-q"><span class="oo-av" style="width:32px;height:32px;font-size:13px">ML</span><div class="oo-q-main"><b>Minh Le</b><span>Sick Leave · 29 Sep · half day (am)</span><small>Personal appointment · submitted 24 Sep</small><div class="oo-ctx"><em class="oo-badge w">Also off: Khanh Nguyen, Tuan Pham</em></div></div><div class="oo-q-act"><span class="oo-btn">Reject</span><span class="oo-btn p">Approve</span></div></div>
+  <div class="oo-card oo-q"><span class="oo-av" style="width:32px;height:32px;font-size:13px">LT</span><div class="oo-q-main"><b>Lan Tran</b><span>Annual Leave · 5–9 Oct · 5 days</span><small>Annual break · submitted 25 Sep</small><div class="oo-ctx"><em class="oo-badge n">15 of 20 days left</em><em class="oo-badge s">No one else off</em></div></div><div class="oo-q-act"><span class="oo-btn">Reject</span><span class="oo-btn p">Approve</span></div></div></div>
+    
+  </div>
+</div></div>
+  <figcaption>
+    <span class="oo-fig-t"><b>B. Decision queue</b><span class="tag">Recommended</span></span>
+    <span>One card per request, oldest first, with balance and overlap on every card.</span><span class="oo-cost">1 click per decision · reuses the approvals card Orient One already ships · weaker for comparing many requests</span><span class="oo-why">Why recommended: a manager only sees direct reports, so the queue stays short and each item is one yes-or-no decision.</span>
+  </figcaption>
+</figure>
+  <figure class="oo-fig" id="draft-c">
+  <div class="oo-frame" role="img" aria-label="Draft C: My Team Approvals as a two-week team timeline with approved and pending leave bars, Tuan Pham's pending bar selected and a decision card below"><div class="oo">
+  <aside class="oo-side">
+    <div class="oo-brand"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M22 8.5A9.5 9.5 0 1 0 22 21.5" fill="none" stroke="#0d0d0d" stroke-width="3.2" stroke-linecap="round"/><path d="M16 15h10m-3.5-3.5L26 15l-3.5 3.5" fill="none" stroke="#E64940" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Orient One</span><span class="oo-brand-ic"><svg class="oo-ic" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="m10 10 3.5 3.5"/></svg></span></div>
+    <div class="oo-switch"><span class="oo-tile"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5V13h-11z"/></svg></span><span><span class="oo-eye">Workspace</span><b>Home</b></span></div>
+    <nav class="oo-nav"><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5V13h-11z"/></svg><span>Home</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.5c.8-2.6 2.7-4 5-4s4.2 1.4 5 4"/></svg><span>Me</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="11" height="8" rx="1.5"/><path d="M6 5V3.5h4V5"/></svg><span>My Work</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9.5 4 3.5h8l1.5 6V13h-11z"/><path d="M2.5 9.5H6l.8 1.5h2.4l.8-1.5h3.5"/></svg><span>My requests</span></div><div class="oo-item on"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.2"/><circle cx="11" cy="6.5" r="1.8"/><path d="M2 13c.6-2.2 2.1-3.3 4-3.3s3.4 1.1 4 3.3M10.5 9.8c1.6.1 2.8 1.1 3.3 3"/></svg><span>My Team</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="m5.5 8 1.8 1.8L10.8 6"/></svg><span>Approvals</span></div><div class="oo-item"><svg class="oo-ic" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 6.5h11M5.5 2v3M10.5 2v3"/></svg><span>My Leave</span></div></nav>
+    <div class="oo-foot"><span class="oo-av" style="width:28px;height:28px;font-size:11px">LD</span><span><b>Linh Dang</b><small>Engineering Manager</small></span></div>
+  </aside>
+  <div class="oo-main">
+    <div class="oo-tr"><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="m10 10 3.5 3.5"/></svg></span><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="m5.5 8 1.8 1.8L10.8 6"/></svg></span><span class="oo-glass"><svg class="oo-ic" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11V7.5a4 4 0 0 1 8 0V11l1 1.5H3z"/><path d="M6.8 14h2.4"/></svg></span><span class="oo-ask">Ask AI</span></div>
+    <header class="oo-band">
+      <div class="oo-crumb">Home <i>›</i> My Team</div>
+      <div class="oo-hero"><span class="oo-hero-tile"><svg class="oo-ic" width="34" height="34" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.2"/><circle cx="11" cy="6.5" r="1.8"/><path d="M2 13c.6-2.2 2.1-3.3 4-3.3s3.4 1.1 4 3.3M10.5 9.8c1.6.1 2.8 1.1 3.3 3"/></svg></span><div><h5>My Team</h5><p>Leave requests from your team awaiting a decision.</p></div></div>
+    </header>
+    <div class="oo-tabs"><span>Team</span><span class="on">Approvals <em class="oo-badge w">3</em></span><span>Leave</span><span>Learning</span></div>
+    <div class="oo-body">
+  <div class="oo-filters"><span class="oo-btn sm">Today</span><span class="oo-glass sm">‹</span><span class="oo-glass sm">›</span><b class="oo-range">28 Sep – 9 Oct 2026</b><span class="oo-legend"><i class="lg a"></i>Approved <i class="lg p"></i>Pending</span></div>
+  <div class="oo-card oo-tl">
+    <div class="oo-tl-h"><span></span><span class="">M 28</span><span class="">T 29</span><span class="">W 30</span><span class="">T 1</span><span class="">F 2</span><span class="wk">M 5</span><span class="">T 6</span><span class="">W 7</span><span class="">T 8</span><span class="">F 9</span></div>
+    <div class="oo-tl-r"><span class="oo-who" style="grid-column:1;grid-row:1"><span class="oo-av" style="width:22px;height:22px;font-size:9px">KN</span><b>Khanh Nguyen</b></span><span class="oo-cell" style="grid-column:2;grid-row:1"></span><span class="oo-cell" style="grid-column:3;grid-row:1"></span><span class="oo-cell" style="grid-column:4;grid-row:1"></span><span class="oo-cell" style="grid-column:5;grid-row:1"></span><span class="oo-cell" style="grid-column:6;grid-row:1"></span><span class="oo-cell wk" style="grid-column:7;grid-row:1"></span><span class="oo-cell" style="grid-column:8;grid-row:1"></span><span class="oo-cell" style="grid-column:9;grid-row:1"></span><span class="oo-cell" style="grid-column:10;grid-row:1"></span><span class="oo-cell" style="grid-column:11;grid-row:1"></span><span class="oo-bar a" style="grid-column:3 / span 2;">Annual</span></div>
+    <div class="oo-tl-r"><span class="oo-who" style="grid-column:1;grid-row:1"><span class="oo-av" style="width:22px;height:22px;font-size:9px">TP</span><b>Tuan Pham</b></span><span class="oo-cell" style="grid-column:2;grid-row:1"></span><span class="oo-cell" style="grid-column:3;grid-row:1"></span><span class="oo-cell" style="grid-column:4;grid-row:1"></span><span class="oo-cell" style="grid-column:5;grid-row:1"></span><span class="oo-cell" style="grid-column:6;grid-row:1"></span><span class="oo-cell wk" style="grid-column:7;grid-row:1"></span><span class="oo-cell" style="grid-column:8;grid-row:1"></span><span class="oo-cell" style="grid-column:9;grid-row:1"></span><span class="oo-cell" style="grid-column:10;grid-row:1"></span><span class="oo-cell" style="grid-column:11;grid-row:1"></span><span class="oo-bar p sel" style="grid-column:2 / span 3;">Annual · 3d</span></div>
+    <div class="oo-tl-r"><span class="oo-who" style="grid-column:1;grid-row:1"><span class="oo-av" style="width:22px;height:22px;font-size:9px">ML</span><b>Minh Le</b></span><span class="oo-cell" style="grid-column:2;grid-row:1"></span><span class="oo-cell" style="grid-column:3;grid-row:1"></span><span class="oo-cell" style="grid-column:4;grid-row:1"></span><span class="oo-cell" style="grid-column:5;grid-row:1"></span><span class="oo-cell" style="grid-column:6;grid-row:1"></span><span class="oo-cell wk" style="grid-column:7;grid-row:1"></span><span class="oo-cell" style="grid-column:8;grid-row:1"></span><span class="oo-cell" style="grid-column:9;grid-row:1"></span><span class="oo-cell" style="grid-column:10;grid-row:1"></span><span class="oo-cell" style="grid-column:11;grid-row:1"></span><span class="oo-bar p" style="grid-column:3 / span 1;width:50%;">½</span></div>
+    <div class="oo-tl-r"><span class="oo-who" style="grid-column:1;grid-row:1"><span class="oo-av" style="width:22px;height:22px;font-size:9px">LT</span><b>Lan Tran</b></span><span class="oo-cell" style="grid-column:2;grid-row:1"></span><span class="oo-cell" style="grid-column:3;grid-row:1"></span><span class="oo-cell" style="grid-column:4;grid-row:1"></span><span class="oo-cell" style="grid-column:5;grid-row:1"></span><span class="oo-cell" style="grid-column:6;grid-row:1"></span><span class="oo-cell wk" style="grid-column:7;grid-row:1"></span><span class="oo-cell" style="grid-column:8;grid-row:1"></span><span class="oo-cell" style="grid-column:9;grid-row:1"></span><span class="oo-cell" style="grid-column:10;grid-row:1"></span><span class="oo-cell" style="grid-column:11;grid-row:1"></span><span class="oo-bar p" style="grid-column:7 / span 5;">Annual · 5d</span></div>
+  </div>
+  <div class="oo-card oo-dec"><span class="oo-av" style="width:28px;height:28px;font-size:11px">TP</span><div><b>Tuan Pham · Annual Leave · 28–30 Sep · 3 days</b><small>Family trip · 12 of 20 days left · overlaps Khanh Nguyen on 29–30 Sep</small></div><span class="oo-btn">Reject</span><span class="oo-btn p">Approve</span></div></div>
+    
+  </div>
+</div></div>
+  <figcaption>
+    <span class="oo-fig-t"><b>C. Coverage timeline</b></span>
+    <span>A two-week strip of the whole team; select a pending bar to decide it below.</span><span class="oo-cost">2 clicks per decision · overlaps are obvious at a glance · needs a new timeline component</span>
+  </figcaption>
+</figure>
+  </div>
+</div>
+                        <div class="prose"><p>For a new screen, Claude first asks how many options you want: 3 for a new page or flow, 1–2 for a component, or skip to save the time. Drafts open in your browser, and you pick or mix them, with Claude's recommendation and reasons first.</p><p>The full mockup is built only in your chosen direction. With nobody to ask, Claude builds one draft and records why.</p></div>
+                        <div class="pair">
+                            <div class="side before"><h4>Before</h4><p>Explore mode always made three drafts with no recommendation. Workflow mockups came in one direction only.</p></div>
+                            <div class="side after"><h4>After</h4><p>You set the effort, compare real drafts, get a reasoned recommendation, and your choice is recorded.</p></div>
+                        </div>
+                        <div class="howto"><b>How to use</b><span><code>/pbi-mockup --explore</code> or <code>/design --mode=explore</code>. Also runs in Feature, Bug Fix, Big Feature, Idea to PBI and Spec to Mockup when new UI appears.</span></div>
+                        
+                    </article>
+
+                    <article class="feature" id="h-spec-mockup" aria-labelledby="h-spec-mockup-t">
+                        <div class="tags"><span class="tag">New</span></div>
+                        <h3 id="h-spec-mockup-t">A new workflow: from written spec to clickable mockup</h3>
+                        <ol class="flow" aria-label="Spec to Interactive Mockup workflow steps">
+                            <li>
+                                <span class="node"><b>How many options?</b><small>asked first</small></span>
+                            </li>
+                            <li>
+                                <span class="node">Design spec<small>journeys first</small></span>
+                            </li>
+                            <li>
+                                <span class="node gate">Design review<small>always runs</small></span>
+                            </li>
+                            <li>
+                                <span class="node">Mockup options<small>you pick</small></span>
+                            </li>
+                            <li>
+                                <span class="node">Render<small>screenshots</small></span>
+                            </li>
+                            <li>
+                                <span class="node gate">UI review<small>walks every journey</small></span>
+                            </li>
+                            <li>
+                                <span class="node opt">Link to spec<small>only if missing</small></span>
+                            </li>
+                            <li>
+                                <span class="node gate">Close<small>always runs</small></span>
+                            </li>
+                        </ol>
+                        <p class="legend">Solid edge: always runs. Dashed: only when needed.</p>
+                        <div class="prose"><p>Ask "show me a clickable mockup of this spec". The workflow writes a journey-first design spec, gets it reviewed, and builds a full clickable mockup in the direction you pick. It stops there and points you to the next workflow: backlog or build.</p></div>
+                        <div class="howto"><b>How to use</b><span>Run <code>/workflow-spec-to-mockup</code> or ask to "mock up this spec".</span></div>
+                        
+                    </article>
+                </section>
+
+                <section id="fit" class="theme" aria-labelledby="fit-h">
+                    <h2 id="fit-h">Workflows that fit your task</h2>
+                    <p class="section-intro">Small tasks skip the paperwork. Risky ones keep every safety check.</p>
+
+<article class="feature" id="h-fit" aria-labelledby="h-fit-t">
+                        <div class="tags"><span class="tag changed">Changed</span></div>
+                        <h3 id="h-fit-t">Steps that do not apply are skipped, with the reason written down</h3>
+                        <div class="bars" role="img" aria-label="Workflow steps by kind, before and after, across all 21 workflows">
+                            <div class="bar-row">
+                                <span>Steps with a written "when" and "skip reason"</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 19.5%"></div>
+                                    <span class="bar-label">Before: 47</span>
+                                    <div class="bar a" style="width: 58.1%"></div>
+                                    <span class="bar-label">After: 140</span>
+                                </div>
+                            </div>
+                            <div class="bar-row">
+                                <span>Steps that can never be skipped</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 20.7%"></div>
+                                    <span class="bar-label">Before: 50</span>
+                                    <div class="bar a" style="width: 25.7%"></div>
+                                    <span class="bar-label">After: 62</span>
+                                </div>
+                            </div>
+                            <div class="bar-row">
+                                <span>Steps with no written rule for when they apply</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 100%"></div>
+                                    <span class="bar-label">Before: 241</span>
+                                    <div class="bar a" style="width: 61%"></div>
+                                    <span class="bar-label">After: 147</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="legend">Across all workflows (20 before, 21 after).</p>
+                        <div class="term" role="img" aria-label="Illustrative Bug Fix task list for a small local bug">
+                            <div class="term-bar">
+                                <span>Bug Fix on a small, local bug · task list</span><span>⚠ Illustrative; skip reasons shortened from the real text</span>
+                            </div>
+                            <pre><span class="t-hi">✓</span> [gate]     Find the root cause
+<span class="t-dim">–</span> [optional] Amend the spec       <span class="t-dim">skipped: the spec already describes the intended behavior</span>
+<span class="t-dim">–</span> [optional] Mockup options       <span class="t-dim">skipped: the fix creates no new UI surface</span>
+<span class="t-dim">–</span> [optional] Plan                 <span class="t-dim">skipped: small local fix, one owning layer, no contract,</span>
+                                  <span class="t-dim">data or security change</span>
+<span class="t-hi">✓</span> [gate]     Write a failing regression test
+<span class="t-hi">✓</span> [core]     Fix
+<span class="t-hi">✓</span> [core]     Make the regression test pass
+<span class="t-hi">✓</span> [gate]     Verify the tests
+<span class="t-hi">✓</span> [gate]     Review the changes
+<span class="t-hi">✓</span> [gate]     Close
+<span class="t-dim">  (other optional steps not shown)</span></pre>
+                        </div>
+                        <div class="prose"><p>Each optional step now has a plain rule for when it runs, and a skipped step shows in the task list with its reason.</p><p>Safety went up too. Bug Fix always writes a failing regression test first, Refactor always proves the tests pass first, and readiness checks are now mandatory in several planning workflows.</p></div>
+                        <div class="pair">
+                            <div class="side before"><h4>Before</h4><p>A one-line fix still walked past a plan, spec updates and a spec review, with no rule for when to skip them.</p></div>
+                            <div class="side after"><h4>After</h4><p>It runs investigate, regression test, fix, verify and review, and lists each skipped step with its reason.</p></div>
+                        </div>
+                        <div class="howto"><b>Where to look</b><span>Task titles show <code>[gate]</code>, <code>[core]</code> or <code>[optional]</code>. Skips are logged in <code>tmp/workflow-runs/&lt;runId&gt;/skips.md</code>.</span></div>
+                        
+                    </article>
+
+<article class="feature" id="h-review" aria-labelledby="h-review-t">
+                        <div class="tags"><span class="tag changed">Changed</span><span class="tag default">Default change</span></div>
+                        <h3 id="h-review-t">Reviews scale with the change, and fixes go straight to the point</h3>
+                        <div class="pair">
+                            <div class="side before"><h4>Before: every review</h4><ol><li>Five of seven specialist reviewers ran on every change.</li><li>Findings went through plan → plan review → execute.</li><li>It stopped to ask "switch workflow?" and "next steps?".</li><li>Nested reviewers could ask questions or edit files.</li></ol></div>
+                            <div class="side after"><h4>After: sized to the change</h4><ol><li>It sizes the change (XS–XL) and its risk first.</li><li>Architecture, performance, security and production-readiness reviewers join only when relevant. The test review always runs.</li><li>Each finding is checked, traced if unexplained, fixed, then re-reviewed.</li><li>Nested reviewers only report.</li></ol></div>
+                        </div>
+                        <div class="prose"><p>Small changes get a quick review; large or risky ones still get every specialist. Round limits and the clean-review-before-commit rule are unchanged.</p></div>
+                        <div class="howto"><b>How to use</b><span><code>/changes-review</code> for a quick review, <code>/workflow-review-changes</code> to review and fix. The report is now <code>tmp/reports/changes-review-*.md</code>.</span></div>
+                        
+                    </article>
+
+<article class="feature" id="h-lean" aria-labelledby="h-lean-t">
+                        <div class="tags"><span class="tag">Faster</span></div>
+                        <h3 id="h-lean-t">Starting a workflow uses 61% less of the conversation</h3>
+                        <div class="bars" role="img" aria-label="Characters of start-up instructions per workflow, before and after">
+                            <div class="bar-row">
+                                <span>Idea to PBI</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 100%"></div>
+                                    <span class="bar-label">Before: 19,069</span>
+                                    <div class="bar a" style="width: 29.3%"></div>
+                                    <span class="bar-label">After: 5,596</span>
+                                </div>
+                            </div>
+                            <div class="bar-row">
+                                <span>Greenfield Init</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 97.9%"></div>
+                                    <span class="bar-label">Before: 18,678</span>
+                                    <div class="bar a" style="width: 13.8%"></div>
+                                    <span class="bar-label">After: 2,626</span>
+                                </div>
+                            </div>
+                            <div class="bar-row">
+                                <span>Idea to Spec</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 93.3%"></div>
+                                    <span class="bar-label">Before: 17,797</span>
+                                    <div class="bar a" style="width: 12%"></div>
+                                    <span class="bar-label">After: 2,296</span>
+                                </div>
+                            </div>
+                            <div class="bar-row">
+                                <span>Big Feature</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 85.6%"></div>
+                                    <span class="bar-label">Before: 16,329</span>
+                                    <div class="bar a" style="width: 23.8%"></div>
+                                    <span class="bar-label">After: 4,529</span>
+                                </div>
+                            </div>
+                            <div class="bar-row">
+                                <span>Review Changes</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 61.4%"></div>
+                                    <span class="bar-label">Before: 11,701</span>
+                                    <div class="bar a" style="width: 22.8%"></div>
+                                    <span class="bar-label">After: 4,344</span>
+                                </div>
+                            </div>
+                            <div class="bar-row">
+                                <span>Feature</span>
+                                <div class="bar-pair">
+                                    <div class="bar b" style="width: 50.5%"></div>
+                                    <span class="bar-label">Before: 9,630</span>
+                                    <div class="bar a" style="width: 20.4%"></div>
+                                    <span class="bar-label">After: 3,895</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="legend">Characters added when a workflow starts. All workflows: 146,545 → 57,436.</p>
+                        <div class="prose"><p>The long rule block pasted at workflow start is now a short summary, and Claude reads the workflow's own guide instead. Same rules, more room for your work.</p></div>
+                        
+                        
+                    </article>
+
+<article class="feature" id="h-proof" aria-labelledby="h-proof-t">
+                        <div class="tags"><span class="tag changed">Changed</span></div>
+                        <h3 id="h-proof-t">Refactors prove nothing broke, starting from a green baseline</h3>
+                        <div class="stack">
+                            <div>
+                                <p class="legend">Before</p>
+                                <ol class="flow" aria-label="Refactor steps before">
+                                    <li><span class="node">Investigate</span></li>
+                                    <li><span class="node">Plan</span></li>
+                                    <li><span class="node">Execute</span></li>
+                                    <li><span class="node">Spec updates</span></li>
+                                    <li><span class="node">Safety-net tests</span></li>
+                                    <li><span class="node gate">Review</span></li>
+                                    <li><span class="node gate">Test</span></li>
+                                </ol>
+                            </div>
+                            <div>
+                                <p class="legend">After</p>
+                                <ol class="flow" aria-label="Refactor steps after">
+                                    <li><span class="node">Investigate</span></li>
+                                    <li>
+                                        <span class="node gate">Run tests first<small>always</small></span>
+                                    </li>
+                                    <li><span class="node">Plan</span></li>
+                                    <li>
+                                        <span class="node opt">Safety-net tests<small>if behavior is untested</small></span>
+                                    </li>
+                                    <li><span class="node">Execute</span></li>
+                                    <li>
+                                        <span class="node opt">Spec updates<small>if paths moved</small></span>
+                                    </li>
+                                    <li><span class="node gate">Review</span></li>
+                                    <li><span class="node gate">Test</span></li>
+                                </ol>
+                            </div>
+                        </div>
+                        <div class="prose"><p>Refactor now runs the tests first. If the code you'll move has no test, safety-net tests come before the change. Green before and after proves nothing broke.</p></div>
+                        <div class="howto"><b>How to use</b><span>Automatic. Bug Fix now always requires its failing regression test too.</span></div>
+                        
+                    </article>
+
+                </section>
+
+                <section id="ship" class="theme" aria-labelledby="ship-h">
+                    <h2 id="ship-h">Ship a change</h2>
+                    <p class="section-intro">A reviewed, tested, green pull request in one command.</p>
+
+                    <article class="feature" id="h-pr" aria-labelledby="h-pr-t">
+                        <div class="tags"><span class="tag">New</span></div>
+                        <h3 id="h-pr-t">/pull-request takes your work from "done coding" to "ready to merge"</h3>
+                        <div class="term" role="img" aria-label="Illustrative terminal session of the pull-request command">
+                            <div class="term-bar"><span>Claude Code</span><span>⚠ Illustrative session, not a real transcript</span></div>
+                            <pre><span class="t-b">&gt; /pull-request</span>
+<span class="t-dim">●</span> On main with uncommitted work → created branch <span class="t-hi">fix/export-retry</span>
+<span class="t-dim">●</span> Staged 7 files · left out <span class="t-warn">.env.local</span> (looks like a secret)
+<span class="t-dim">●</span> Review of the whole branch, fix loop
+    round 1: 3 findings → checked → fixed
+    round 2: no new findings
+<span class="t-dim">●</span> Tests: all passing
+<span class="t-dim">●</span> Committed through the commit skill · pushed · opened pull request (ready for review)
+<span class="t-dim">●</span> CI: lint <span class="t-hi">✓</span>   unit tests <span class="t-warn">✗</span>
+    → read the log, traced the cause, fixed, re-reviewed, pushed
+    unit tests <span class="t-hi">✓</span>
+<span class="t-hi">✓ Ready to merge.</span> You review and merge.
+<span class="t-dim">  Report: tmp/reports/pull-request-&lt;date&gt;-fix-export-retry.md</span></pre>
+                        </div>
+                        <div class="prose"><p>On your main branch, Claude creates a feature branch. It stages everything except secret-looking files, reviews and fixes the whole branch, runs tests, commits, pushes and opens a ready-for-review PR.</p><p>It then fixes failing CI checks until they are green and stops at "ready to merge". Typing the command is your go-ahead; it never merges, force-pushes or pushes to main.</p></div>
+                        <div class="pair">
+                            <div class="side before"><h4>Before</h4><ol><li>Create a branch.</li><li>Review, then <code>/commit</code>.</li><li>Ask for a push and a PR.</li><li>Watch CI.</li><li>On failure: paste the log, fix, review, commit, push again.</li></ol><p class="feel">You were the glue between five tools.</p></div>
+                            <div class="side after"><h4>After</h4><ol><li>Type <code>/pull-request</code>.</li><li>Come back to a reviewed PR with green checks.</li><li>Merge.</li></ol><p class="feel">Like handing the change to a careful colleague.</p></div>
+                        </div>
+                        <div class="howto"><b>How to use</b><span>Type <code>/pull-request</code> or ask to "open a PR". It asks nothing and stops only on a real blocker, such as a failure it can't fix after three tries or no GitHub sign-in. It targets <code>main</code>, Orient One's default branch.</span></div>
+                        
+                    </article>
+                </section>
+
+                <section id="fixes" class="theme" aria-labelledby="fixes-h">
+                    <h2 id="fixes-h">Fixes</h2>
+                    <div class="fix-list">
+                        <article class="feature" aria-labelledby="fix-yaml-t">
+                            <div class="tags"><span class="tag">Fixed</span></div>
+                            <h3 id="fix-yaml-t">A missing Python package now tells you how to install it, instead of crashing</h3>
+                            <div class="pair">
+                                <div class="term" role="img" aria-label="Before: Python traceback">
+                                    <div class="term-bar"><span>Before</span><span>⚠ Illustrative</span></div>
+                                    <pre>Traceback (most recent call last):
+  File ".claude/scripts/generate_catalogs.py", line 15
+    import yaml
+<span class="t-warn">ModuleNotFoundError: No module named 'yaml'</span></pre>
+                                </div>
+                                <div class="term" role="img" aria-label="After: clear install instruction">
+                                    <div class="term-bar"><span>After</span><span>⚠ Illustrative</span></div>
+                                    <pre>generate_catalogs.py requires PyYAML, declared in
+  .claude/scripts/requirements.txt.
+<span class="t-hi">Install it with:</span>
+  python -m pip install -r .claude/scripts/requirements.txt</pre>
+                                </div>
+                            </div>
+                            <p>Catalog regeneration, which Codex sync also runs, needs PyYAML. A missing package now gives the exact install command, with a PowerShell form and a private-environment recipe for systems that block global installs.</p>
+                            
+                        </article>
+
+                        <article class="feature" aria-labelledby="fix-link-t">
+                            <div class="tags"><span class="tag">Fixed</span></div>
+                            <h3 id="fix-link-t">Project rules now apply on macOS and in symlinked folders</h3>
+                            <p>On macOS and in symlinked folders, some project files were treated as outside the project and missed their coding conventions and doc checks. Claude now checks the real location on disk.</p>
+                            
+                        </article>
+                    </div>
+                </section>
+
+                <section id="before-release" aria-labelledby="before-release-h">
+                    <div class="release-check">
+                        <h2 id="before-release-h">Before this ships</h2>
+                        <ul class="plain">
+                            <li>No automated tests yet for <code>/pull-request</code>, report-only reviewers or the mockup options question.</li>
+                            <li>Align the design-rule order: <code>CLAUDE.md</code> puts the brief first, while the journey rules put the design system first.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section id="tech" aria-labelledby="tech-h">
+                    <h2 id="tech-h">Technical details</h2>
+
+                    <details class="tech">
+                        <summary>Under the hood: internal changes</summary>
+                        <div class="tech-body">
+                            <ul class="plain"><li>Git confirmation prompts removed for <code>git branch -D</code>, <code>git checkout --</code> and <code>git restore</code>, for more agent autonomy. <code>CLAUDE.md</code> still tells the agent to confirm before discarding uncommitted work.</li><li>All 21 workflow guides share one template (20 rewritten, 1 new). The existing guides shrank from 4,939 to 3,844 lines (−22%), and <code>/changes-review</code> from 2,397 to 1,317 lines.</li><li>New modes: <code>--report-only</code> on six reviewers, <code>--prove-tests</code> on the integration-test reviewer, and <code>/fix --target=review</code>.</li><li>The new journey-gate protocol is carried by the design, planning, mockup and review skills and the UI/UX designer agent.</li><li>New config key <code>pullRequest.targetBranch</code> (default <code>main</code>).</li><li>Tests: 2 new suites. Two limits loosened: <code>round3-prompt-contract.test.mjs:390</code> (exactly 5 → at least 2 copies) and a schema-output cap (590 → 620 lines).</li><li>Also: the fix loop counts <code>/fix</code> and <code>/code-simplifier</code> edits, <code>doc-impact-map.cjs</code> got the symlink fix, the docs were updated, and 61 generated copies were regenerated.</li></ul>
+                        </div>
+                    </details>
+
+                    <details class="tech">
+                        <summary>Spec and test coverage</summary>
+                        <div class="tech-body">
+                            <p>The framework's own specs did not change; items are documented from code and skill text.</p>
+                            <div class="scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Highlight</th>
+                                            <th>Tests that cover it</th>
+                                            <th>Result</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>/pull-request</td>
+                                            <td>
+                                                Config key only: <code>project-config-refactor-keys</code> "pullRequest.targetBranch is an optional string
+                                                section"
+                                            </td>
+                                            <td>Pass. Skill behavior: no test.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Journey-first design gate</td>
+                                            <td>Protocol projection <code>build-protocol-projection.test.cjs</code></td>
+                                            <td>Pass. Gate content: no behavior test.</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Mockup option question</td>
+                                            <td>None found</td>
+                                            <td>Gap</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Spec to Mockup workflow</td>
+                                            <td><code>workflow.test.cjs</code> TC-RENAMEFIX-030, TC-RENAMEFIX-032</td>
+                                            <td>Pass (75/75 workflow suites)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Step roles and skip reasons</td>
+                                            <td><code>workflow.test.cjs</code> TC-GWF-001, 002, 005, 013, 014, 062, 068</td>
+                                            <td>Pass</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Review Changes fix cycle</td>
+                                            <td>
+                                                <code>review-workflow-tooling-regressions.test.mjs</code> TC-WFADV-022,
+                                                <code>verify-review-validate-coverage.test.mjs</code>
+                                            </td>
+                                            <td>Pass (16/16)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Workflow order in generated copies</td>
+                                            <td><code>review-mode-sections</code> TC-PDL-046 (runs the workflow-cycle verifier)</td>
+                                            <td>Pass (generated copies regenerated)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>PyYAML message</td>
+                                            <td><code>python-yaml-preflight.test.mjs</code> TC-PYDEP-001…009</td>
+                                            <td>Pass (9/9)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Symlinked paths</td>
+                                            <td><code>symlinked-tmpdir-contract.test.mjs</code> TC-SYMTMP-004, 007, 009, 010, 011</td>
+                                            <td>Pass (5/5)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p>Full hook suite on Windows 11, re-run after the latest edits: 996 passed, 0 failed, 4 skipped (1,000 total).</p>
+                        </div>
+                    </details>
+
+                    <details class="tech">
+                        <summary>Technical appendix: statistics and files</summary>
+                        <div class="tech-body">
+                            <div class="scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Measure</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Files changed</td>
+                                            <td class="num">167 (61 generated mirrors), including 11 new untracked files</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Lines</td>
+                                            <td class="num">+8,886 / −8,563</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Commits</td>
+                                            <td class="num">0 (uncommitted, on top of 728a9cbe)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Skills / workflows</td>
+                                            <td class="num">126 → 128 / 20 → 21</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Workflow steps (all workflows)</td>
+                                            <td class="num">338 → 349</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Start-up text (all workflows)</td>
+                                            <td class="num">146,545 → 57,436 characters</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p>
+                                <b>New files:</b> <code>.claude/skills/pull-request/SKILL.md</code>,
+                                <code>.claude/skills/workflow-spec-to-mockup/SKILL.md</code>, <code>.claude/docs/ux-journey-process.md</code>,
+                                <code>.claude/skills/shared/protocols/ux-journey-gate.md</code>,
+                                <code>.claude/skills/pbi-mockup/references/explore-directions.md</code>, and two tests.
+                            </p>
+                            <div class="scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Area</th>
+                                            <th>Main files</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Workflow engine</td>
+                                            <td>
+                                                <code>.claude/workflows.json</code>, 21 × <code>workflow-*/SKILL.md</code>, <code>start-workflow/SKILL.md</code>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Design and UX</td>
+                                            <td>
+                                                <code>design</code>, <code>design-spec</code>, <code>pbi-mockup</code>, <code>ui-review</code>,
+                                                <code>ui-ux-designer</code> agent, design docs
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Review, commit, pull request</td>
+                                            <td>
+                                                <code>changes-review</code>, <code>workflow-review-changes</code>, <code>commit</code>, <code>fix</code>, eight
+                                                reviewer skills
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Hooks and scripts</td>
+                                            <td>
+                                                <code>file-conventions.cjs</code>, <code>doc-sync-classify.cjs</code>, <code>project-config-schema.cjs</code>,
+                                                <code>generate_catalogs.py</code>, <code>scan_skills.py</code>, injectors
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Settings</td>
+                                            <td><code>.claude/settings.json</code> (permission prompts)</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Docs and root context</td>
+                                            <td>
+                                                <code>README.md</code>, <code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.claude/docs/*</code>,
+                                                <code>docs/project-reference/*</code>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </details>
+                </section>
+            </main>
+
+            <footer>
+            <span>Generated 26 Sep 2026 · range <code>728a9cbe..working tree</code> · Status: Draft</span>
+            <span>Evidence: <code>tmp/release-notes/worktree-2026-09-26/release-analysis.md</code> and <code>tmp/release-notes/verify/claims-*.md</code></span>
+        </footer>
+        </div>
+    </body>
+</html>

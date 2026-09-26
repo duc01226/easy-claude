@@ -49,39 +49,62 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Visual Diagram workflow — resolve `--mode=codebase|knowledge` to a complete canonical variant, then create and verify a visual Excalidraw diagram from codebase evidence or web research.
+**Goal:** Produce an Excalidraw diagram that accurately depicts its subject: this codebase (`--mode=codebase`, default) or an external topic researched on the web (`--mode=knowledge`). Every drawn element traces to evidence, and the rendered image passes the render-view-fix loop.
 
-**Summary:** Resolve `--mode=codebase|knowledge` through the `workflow-visualize` manifest before creating tasks, then invoke the exact selected list; preserve evidence-backed claims, task transitions, source fidelity, and final visual-output verification.
+**Use it when** someone asks to visualize, diagram or draw a flow, architecture, concept or research finding and wants a durable `.excalidraw` file. **Use a sibling instead** for a written explanation with no diagram (`$investigate`), or for a cited written report (`workflow-research`).
 
-**Workflow:**
-
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
-
-**Key Rules:**
-
-- MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
-- MUST ATTENTION keep task tracking updated as each step starts/completes.
-- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
-- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- NEVER skip mandatory workflow or skill gates.
-
----
-
-**IMPORTANT MANDATORY Steps:** resolve the `workflow-visualize` manifest variant first, then invoke its exact ordered steps (default: $investigate -> $excalidraw-diagram -> $workflow-end -> $watzup).
+**IMPORTANT MANDATORY Steps:** resolve the `workflow-visualize` manifest variant first, then create one task per returned occurrence (default: $investigate -> $excalidraw-diagram -> $workflow-end -> $watzup).
 
 **Step contract:** steps follow `$start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its skill invocation, and every other deviation is logged. NEVER batch-complete validation gates.
 
-Activate the `workflow-visualize` workflow. Run `$start-workflow workflow-visualize` with the user's prompt as context.
+Activate with `$start-workflow workflow-visualize`, passing the user's prompt as context.
 
-**Steps:** resolver (`--mode=codebase|knowledge`) → the exact returned occurrence list → `$workflow-end` → `$watzup`.
+## Mode & Size Triage (first action)
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+Record the result in the workflow report.
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+| Axis | Values                                                                                                                                                 | Effect                                                                                                                                                                                                                                                                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mode | **codebase**: the subject lives in this project · **knowledge**: an external subject                                                                   | `codebase` runs `$investigate → $excalidraw-diagram`. `knowledge` runs `$web-research → $deep-research (optional) → $excalidraw-diagram`. Ask only when the subject is genuinely ambiguous.                                                                                                               |
+| Size | **Small**: one flow, one component, or a few named files · **Medium**: one module or feature slice · **Large**: a multi-module system or a broad topic | Small: a focused investigation inline, one diagram. Medium: a traced investigation (graph trace when `.code-graph/graph.db` exists), one comprehensive diagram built section by section. Large: agree on the cut first (overview plus drill-downs), then one diagram per cut, each with its own evidence. |
+| Risk | The diagram will guide design decisions or onboarding                                                                                                  | Trace every relationship end to end and state uncertainty on the canvas instead of drawing a guess.                                                                                                                                                                                                       |
 
-**IMPORTANT MANDATORY Steps:** resolver-selected `$investigate` or `$web-research` → optional `$deep-research` → `$excalidraw-diagram` → `$workflow-end` → `$watzup`.
+## Required Quality Gates
+
+| Gate                      | Evidence that proves it                                                                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fidelity                  | Every labeled element and relationship maps to evidence recorded in the workflow report: `file:line` in codebase mode, a cited source in knowledge mode. Nothing is drawn from assumption; unverified parts are marked as such. |
+| Rendered and validated    | `$excalidraw-diagram` render-view-fix loop passed: PNG rendered, read, audited against the design, and fixed until the vision and defect checks pass.                                                                           |
+| Conventions               | Palette and element templates from the `excalidraw-diagram` references; output path per that skill (or the path the user named).                                                                                                |
+| Run closed (`run-closed`) | `$workflow-end` ran last.                                                                                                                                                                                                       |
+
+## Recommended Skills
+
+| Skill                 | Role                 | When it earns its cost                                                                                                                                                                                                                                                                                                | Proves / feeds                                       |
+| --------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `$investigate`        | core (codebase)      | Always in codebase mode; depth per size.                                                                                                                                                                                                                                                                              | Traced structure and flow with `file:line` evidence. |
+| `$web-research`       | core (knowledge)     | Always in knowledge mode.                                                                                                                                                                                                                                                                                             | Tiered source map.                                   |
+| `$deep-research`      | optional (knowledge) | The diagram must depict mechanisms, data or relationships that the web-research source map does not already establish from Tier 1-2 sources. Skip reason: The web-research source map already establishes every element and relationship the diagram depicts from Tier 1-2 sources, so no source deep-dive is needed. | Source-level evidence for the depicted detail.       |
+| `$excalidraw-diagram` | core                 | Always.                                                                                                                                                                                                                                                                                                               | The diagram and its render-view-fix record.          |
+| `$workflow-end`       | gate                 | Always, last.                                                                                                                                                                                                                                                                                                         | `run-closed`.                                        |
+| `$watzup`             | core                 | Always.                                                                                                                                                                                                                                                                                                               | Handoff with the diagram path and its evidence map.  |
+
+## Orchestration
+
+You choose inline vs sub-agent and batching to minimize wall-clock and tokens at equal quality. Small subjects run inline. For large subjects, independent drill-down investigations can run as one parallel wave of read-only sub-agents, then feed the diagram step.
+
+Fixed data dependencies: evidence is gathered before the diagram depicts it; the render-view-fix loop runs on the final JSON; `$workflow-end` runs last.
+
+## Memory & Reporting
+
+- Create one task per resolved occurrence. `$excalidraw-diagram` expands its own phases under the parent row.
+- Create the workflow report FIRST at `tmp/reports/workflow-visualize-{YYMMDD}-{HHmm}-{slug}.md`: mode, triage, resolver fingerprint, the evidence map (element → `file:line` or source), render iterations, and deviations. Append after each step.
+- After compaction, re-read the current task list and the workflow report before continuing.
+
+## Fix Path
+
+- A fidelity defect found at any point (an element with no evidence, a relationship the trace contradicts) is fixed at its source: re-trace or re-research the gap, then correct the diagram JSON and re-render.
+- The render-view-fix loop is owned by `$excalidraw-diagram` (usually 2–4 iterations). When it stops converging, report the remaining defects and escalate by asking the user directly instead of shipping a broken render.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -120,21 +143,14 @@ Activate the `workflow-visualize` workflow. Run `$start-workflow workflow-visual
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** [Workflow] Trigger Visual Diagram workflow — resolve the source mode, create the diagram from evidence, and verify output quality.
-**IMPORTANT MUST ATTENTION Workflow:** resolve and record the canonical `codebase` or `knowledge` occurrence list → invoke every returned step through its skill invocation → record source evidence, resolver fingerprint, render/validation results, and any conditional skip → `$workflow-end` → `$watzup`.
+**IMPORTANT MUST ATTENTION Goal:** an `.excalidraw` diagram whose every element traces to evidence and whose rendered image passed the render-view-fix loop.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+- **MUST ATTENTION** resolve the mode and triage the subject size FIRST; the size sets investigation depth and whether the output splits into several diagrams.
+- **MUST ATTENTION** record an evidence map (element → `file:line` or cited source). NEVER draw a relationship from assumption; mark what is unverified.
+- **MUST ATTENTION** finish only after `$excalidraw-diagram`'s render-view-fix loop passes on the final JSON.
+- **MUST ATTENTION Variant closure:** record the resolved mode, resolver fingerprint, ordered occurrence IDs, render/validation results and every deviation before `$workflow-end`.
 
-- **Nested Task Creation:** expand child phases and link parent when nested.
-- **Critical Thinking:** trace every claim, confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Incremental Persistence:** append findings to report file per section.
-- **Sub-Agent Return Contract:** return summary only, full report on disk.
-
-**IMPORTANT MUST ATTENTION** apply Phase 1 compression before structural enhancement; preserve semantic meaning.
-**IMPORTANT MUST ATTENTION** NEVER alter YAML frontmatter, code blocks, tables, or SYNC-tag bodies during optimization.
-**IMPORTANT MUST ATTENTION** keep evidence gates and mandatory workflow/skill steps explicit and enforceable.
-**IMPORTANT MUST ATTENTION** add a final review task to verify output quality and unresolved risks.
+**Protocols in force (digest; the guide entries above point to the full text):** Nested Task Creation · Critical Thinking · AI Mistake Prevention · Incremental Persistence · Sub-Agent Return Contract · Session Goal Ledger · Workflow Registry Binding.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

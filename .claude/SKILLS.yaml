@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-25'
-  total_skills: 126
+  last_updated: '2026-09-26'
+  total_skills: 128
   total_by_status:
-    active: 126
+    active: 128
     deprecated: 0
     experimental: 0
 categories:
@@ -365,8 +365,8 @@ skills:
     - name: fix
       path: fix/SKILL.md
       description: '[Implementation] Use when a workflow step or the user asks for
-        an issue to be analyzed and fixed. Flag: --target={ci|issue|logs|test|types|ui}
-        scopes the fix.'
+        an issue to be analyzed and fixed. Flag: --target={ci|issue|logs|review|test|types|ui}
+        scopes the fix; review fixes validated review findings.'
       category: other
       has_scripts: false
       has_references: false
@@ -475,9 +475,10 @@ skills:
       removal_after: null
     - name: html-export
       path: html-export/SKILL.md
-      description: '[Document Processing] Use when an HTML page, deck, mockup or animation
-        needs exporting or a render check: PNG screenshots with a page-error and blank-capture
-        check, a vector PDF, or an MP4/GIF recording. Flag: --to={png|pdf|mp4|gif}.'
+      description: '[Document Processing] Use when a workflow step or the user asks
+        for an HTML page, deck, mockup or animation export or render check: PNG screenshots
+        with a page-error and blank-capture check, a vector PDF, or MP4/GIF. Flag:
+        --to={png|pdf|mp4|gif}.'
       category: other
       has_scripts: true
       has_references: true
@@ -627,7 +628,8 @@ skills:
     - name: pbi-mockup
       path: pbi-mockup/SKILL.md
       description: '[Project Management] Use when a workflow step or the user asks
-        for a PBI mockup. Generates an HTML mockup report from PBI and story artifacts.'
+        for an interactive HTML mockup from PBI/story or spec artifacts. Flags: --explore
+        asks for 1-3 design directions (or skip) and lets the user pick, --source=<path>.'
       category: other
       has_scripts: false
       has_references: true
@@ -770,6 +772,18 @@ skills:
       path: prompt-enhance/SKILL.md
       description: '[Skill Management] Use when enhancing, compressing, or expanding
         prompts, docs, or skills. Flag: --op={compress|expand|enhance} (default enhance).'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: pull-request
+      path: pull-request/SKILL.md
+      description: '[Git] Use when asked to create, open, finish, update or mark ready
+        a pull request. Runs in the main session without asking: branch, commit, /workflow-review-changes
+        --fix-loop over the whole branch, open the PR, drive CI to green.'
       category: other
       has_scripts: false
       has_references: false
@@ -1252,9 +1266,9 @@ skills:
     - name: workflow-review-changes
       path: workflow-review-changes/SKILL.md
       description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged
-        changes before committing — review, fix, and re-review until the severity
-        bar clears. Flag: --fix-loop re-runs the whole workflow until a round applies
-        zero fixes.'
+        changes before committing — triage-selected reviewers, validated fixes, and
+        re-review until the severity bar clears. Flag: --fix-loop re-runs the whole
+        workflow until a round applies zero fixes.'
       category: other
       has_scripts: false
       has_references: true
@@ -1277,6 +1291,19 @@ skills:
       path: workflow-spec-sync/SKILL.md
       description: '[Workflow] Use when updating test specs and feature docs after
         code changes, bug fixes, or PR reviews.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-spec-to-mockup
+      path: workflow-spec-to-mockup/SKILL.md
+      description: '[Workflow] Use when turning canonical specs into a reviewed interactive
+        HTML mock-up: journey report and design authority first, one to three design
+        directions (the user chooses how many, or skips) to pick from, then the full
+        multi-view mock app.'
       category: other
       has_scripts: false
       has_references: false

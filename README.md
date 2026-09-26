@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->126<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->20<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->23<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->128<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->21<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->23<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -163,7 +163,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 (and the `AGENTS.md` mirror). Re-reading these static files restores rules and lessons after
 compaction. This stateless-per-turn design prevents context drift over long sessions.
 
-### Skills (126 definitions)
+### Skills (128 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -180,9 +180,9 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs the project-reference gate reads |
 | **Documents**      | `/pdf-convert`, `/docx-convert`                                                                            | Document format conversion (both directions via `--to`)  |
 
-### Workflows (<!-- COUNT:workflows -->20<!-- /COUNT --> definitions)
+### Workflows (<!-- COUNT:workflows -->21<!-- /COUNT --> definitions)
 
-End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all <!-- COUNT:workflows -->20<!-- /COUNT --> (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-seed-test-data`, and `workflow-visualize`).
+End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all <!-- COUNT:workflows -->21<!-- /COUNT --> (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-seed-test-data`, and `workflow-visualize`).
 
 **Pick a workflow by use case:**
 
@@ -195,6 +195,7 @@ End-to-end process orchestration with step enforcement. The table below shows th
 | Start a brand-new project from scratch          | `workflow-greenfield-init`        |
 | Turn a raw idea into a Feature Spec             | `workflow-idea-to-spec`           |
 | Take one idea to a groomed PBI                  | `workflow-idea-to-pbi`            |
+| Turn a spec into a clickable mockup (1–3 designs) | `workflow-spec-to-mockup`         |
 | Author/maintain Feature Specs from code         | `workflow-code-to-spec`           |
 | Add or update integration tests                 | `workflow-write-integration-test` |
 | Write, update, verify, and fix E2E (Playwright) | `workflow-e2e`                    |
@@ -250,7 +251,7 @@ easy-claude/
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 126 skill definitions
+│   ├── skills/               # 128 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -282,7 +283,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 23 Hook Files + 126 Skills + 20 Flows │
+│ 23 Hook Files + 128 Skills + 21 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

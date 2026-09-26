@@ -335,6 +335,7 @@ docs/project-config.json
 ├── portability — { requireUniversalGuides, workflowAutoDetect, inlinePathRules, workflowRouteProtocol, workflowActivation{ default, overrides{} }, toolingPackageName }  (optional; routing + portability switches)
 ├── hooks — { startupInstall{ enabled, packageManager, allowLifecycleScripts }, windowsGit{ enabled, autoRepair }, codeGraph{ enabled }, tokenBudget{ enabled, checkpointTokens } }  (optional; hook behavior — omitted properties keep portable defaults)
 ├── commit — { fixOriginTrailer }  (optional; commit-skill policy — default false, no Fix-Origin trailer)
+├── pullRequest — { targetBranch }  (optional; pull-request-skill policy — default "main")
 ├── skillProfile — { preset (full|standard|minimal), nameOnly[], commandOnly[], off[], allowHidingCalledSkills }  (optional; team skill visibility, applied by `node .claude/scripts/sync-skill-profile.cjs` — see `.claude/config/README.md` → Skill profile)
 └── DEPRECATED: backendServices, frontendApps, scss, componentFinder, sharedNamespace
 ```

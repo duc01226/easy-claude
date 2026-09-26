@@ -35,11 +35,8 @@
       "sync-codex": "deny",
       "sync-opencode": "deny",
       "sync-skills-shared-protocols": "deny",
-      "workflow-big-feature": "deny",
-      "workflow-feature": "ask",
-      "workflow-greenfield-init": "deny",
-      "workflow-idea-to-pbi": "deny",
-      "workflow-spec-to-pbi": "deny"
+      "workflow-big-feature": "ask",
+      "workflow-greenfield-init": "ask"
     }
   }
 }

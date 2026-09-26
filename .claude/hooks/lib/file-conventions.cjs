@@ -225,18 +225,37 @@ function globToRegExp(glob) {
     return compiled;
 }
 
+function insideRelative(root, absolute) {
+    const relative = path.relative(root, absolute);
+    if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return null;
+    return relative.split(path.sep).join('/');
+}
+
 /**
  * Repo-relative forward-slash path, or null when blank, over the length cap,
  * or outside the project root (segment-aware: a sibling folder sharing the
  * root's name prefix is outside).
+ *
+ * Containment is decided by identity, not spelling: the root may arrive lexical
+ * (CLAUDE_PROJECT_DIR) while cwd is symlink-resolved (macOS /var -> /private/var).
+ * The lexical answer wins whenever it is in-project, so an in-project symlink keeps
+ * its classification; only a lexically-outside target is re-checked through the
+ * physical projection of both operands. An unresolvable projection stays outside.
  */
 function toRepoRelative(filePath, projectDir, cwd) {
     if (!nonBlankString(filePath) || filePath.length > PATH_CAP || !nonBlankString(projectDir)) return null;
     const base = nonBlankString(cwd) ? cwd : projectDir;
     const absolute = path.resolve(base, filePath);
-    const relative = path.relative(path.resolve(projectDir), absolute);
-    if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return null;
-    return relative.split(path.sep).join('/');
+    const lexical = insideRelative(path.resolve(projectDir), absolute);
+    if (lexical) return lexical;
+    try {
+        // Lazy: this module is copied standalone into consumer projects (section-builders mirror),
+        // so a load-time sibling require would make the whole lib unloadable there.
+        const { resolvePhysicalProjection } = require('./project-reference-registry.cjs');
+        return insideRelative(resolvePhysicalProjection(projectDir), resolvePhysicalProjection(absolute));
+    } catch {
+        return null;
+    }
 }
 
 function defaultIsDirectory(absolutePath) {

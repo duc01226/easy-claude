@@ -15,6 +15,8 @@ Tags propagated (each with its `:reminder` sibling):
         (review / design-author / plan / build). Superset of the ui-ux-design-principles
         population -- see the DESIGN_DISTINCTIVENESS comment for why plan, scaffold and
         the build spine carry it while they do not carry the 40 UI-* clauses.
+  - SYNC:ux-journey-gate                -> 6 skills that generate, plan or review a surface
+        against its user journeys (see the UX_JOURNEY comment for the exclusions)
   - SYNC:ui-copywriting                 -> 9 skills that author or review interface STRINGS
         (strict subset of the above; see the UI_COPYWRITING comment for the exclusions)
   - SYNC:design-review-checklist        -> 17 skills that review, author, plan or build a
@@ -132,6 +134,24 @@ GOAL_CONTRACT = list(ALL_REVIEW_SKILLS)
 # verify-review-validate-coverage.mjs).
 TRADE_OFF = list(ALL_REVIEW_SKILLS)
 
+# The UX-1..UX-11 journey-first gate (catalog: .claude/docs/ux-journey-process.md). It fixes the
+# ORDER every design output follows -- report the main user journeys, read the project's design
+# authority, only then generate -- so it binds the skills that GENERATE or COMMIT a user-facing
+# surface (design, design-spec, pbi-mockup, plan) and the two that REVIEW such an artifact against
+# its journeys (ui-review walks the journeys on the built surface; artifact-review --type=design
+# checks the spec carries the Journey Report). Deliberately NARROWER than DESIGN_DISTINCTIVENESS:
+# the build spine (plan-execute, feature-implement, fix) implements a design already derived from
+# journeys upstream, and web-design-guidelines / scaffold / presentation skills do not derive a
+# product surface from user journeys. Every body is self-gating on "has a user-facing surface".
+UX_JOURNEY = [
+    # design/author role — the Journey Report is the first deliverable
+    "design", "design-spec", "pbi-mockup",
+    # plan role — UI phases derive views and priority from the journeys
+    "plan",
+    # review role — walkthrough + traceability against the journeys
+    "ui-review", "artifact-review",
+]
+
 # The 40-clause UI/UX Design Principles. NOT an ALL_REVIEW_SKILLS tag — its carriers are the
 # UI-surface skills across THREE roles (review · design/plan · build), which is a different
 # population from "every review skill": most review skills never touch a user-facing surface,
@@ -233,6 +253,7 @@ MATRIX = [
     ("SYNC:double-round-trip-review", DOUBLE_ROUND_TRIP),
     ("SYNC:goal-contract-satisfaction-loop", GOAL_CONTRACT),
     ("SYNC:trade-off-interrogation-gate", TRADE_OFF),
+    ("SYNC:ux-journey-gate", UX_JOURNEY),
     ("SYNC:ui-ux-design-principles", UI_DESIGN_PRINCIPLES),
     ("SYNC:design-distinctiveness-gate", DESIGN_DISTINCTIVENESS),
     ("SYNC:ui-copywriting", UI_COPYWRITING),

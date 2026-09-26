@@ -43,7 +43,7 @@ Sample colours only from verified files (SVG fill values, or pixel sampling on r
 
 ## Step 6 — Write `brand-spec.md`
 
-Fill the `brand-spec.md` template: scope, sources, verified assets, colours, type, and every gap stated plainly. All three drafts receive this file's path; its colours and marks bind every draft, and drafts diverge only on what the brand leaves free. Drafts place the real asset files — they never redraw a logo — and only as `<img src="brand/<file>">`: an SVG loaded as an image runs no script and loads nothing else, while inline SVG markup, `<object>`, `<iframe>` and `<embed>` would run whatever the file carries when the draft is rendered. A mark that is missing shows as a labelled placeholder ("Logo: not yet supplied"), never a guessed drawing.
+Fill the `brand-spec.md` template: scope, sources, verified assets, colours, type, and every gap stated plainly. Every draft receives this file's path; its colours and marks bind every draft, and drafts diverge only on what the brand leaves free. Drafts place the real asset files — they never redraw a logo — and only as `<img src="brand/<file>">`: an SVG loaded as an image runs no script and loads nothing else, while inline SVG markup, `<object>`, `<iframe>` and `<embed>` would run whatever the file carries when the draft is rendered. A mark that is missing shows as a labelled placeholder ("Logo: not yet supplied"), never a guessed drawing.
 
 ## Closing Reminders
 
