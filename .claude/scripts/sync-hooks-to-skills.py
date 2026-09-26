@@ -360,7 +360,7 @@ ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatc
 ORCHESTRATOR_SKILLS = {
     "architecture-design", "architecture-review", "architecture-review-full", "artifact-review",
     "changes-review", "code-review", "code-simplifier", "commit",
-    "db-migrate", "debug-investigate", "docs-update",
+    "db-migrate", "debug-investigate", "design", "docs-update",
     "demo-guide", "domain-entities-review", "e2e-test", "feature-presentation", "integration-test",
     "integration-test-review", "investigate", "knowledge-review",
     "performance-review", "plan", "plan-execute", "plan-review",

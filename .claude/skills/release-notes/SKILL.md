@@ -32,7 +32,7 @@ triggers:
 3. **Analyze Key Diffs** — read the most significant changes per category via `git show` / `git diff`
 4. **Render** — `render-template.cjs --version vX.Y.Z` generates markdown with Summary, What's New, Improvements, Bug Fixes, Breaking Changes, Technical Details
 5. **Validate** — `validate-notes.cjs` scores against quality rules (100 points)
-6. **[BLOCKING] HTML Presentation (R1–R9, default-on)** — run the canonical procedure in `references/html-release-report.md`: comprehend the whole change set → investigate each highlight end-to-end → correlate spec changes → inventory the real existing UI → **write the temp analysis report** → assemble ONE standalone HTML doc **written for real users**, with real-UI mock-ups → save → accuracy + fidelity + audience gates → **auto-open**
+6. **[BLOCKING] HTML Presentation (R1–R9, default-on)** — run the canonical procedure in `references/html-release-report.md`: comprehend the whole change set → investigate each highlight end-to-end → correlate spec changes → inventory the real existing UI → **write the temp analysis report** → assemble ONE standalone HTML doc **written for real users**, with real-UI mock-ups and one explanatory visual per highlight, **beautiful and easy to read** → save → accuracy + fidelity + audience + visual-clarity gates → **auto-open**
 
 **Key Rules:**
 
@@ -47,6 +47,7 @@ triggers:
 - **Breadth before depth** — map the WHOLE change set before opening any single feature (R1); diving into the first interesting commit under-reports the rest
 - **[BLOCKING] Temp report before HTML** — the HTML is assembled FROM the temp analysis report, never straight from a diff or from memory (R5)
 - **[BLOCKING] The HTML is written for REAL USERS, not engineers (R6.0)** — its reader USES the product and never reads its code. Only `USER-VISIBLE` outcomes go in At a glance / What's New / What Changed / Fixes; refactors, tests, CI, tooling, dependency bumps, type/lint and doc-only changes are `INTERNAL` and live one line each in the collapsed "Under the Hood". Prose carries no class, component, file, endpoint, or framework names and no commit subjects — evidence chips carry traceability, sentences carry meaning. The engineering view is not lost: it is the markdown notes plus the collapsed §7–§9.
+- **[BLOCKING] Quality goal: the HTML is beautiful, easy to read and easy to understand (R6.5)** — the first screen shows user-facing counts and, when anything requires action, an "Action required" defaults board (was → now → how to keep the old behaviour); each user-visible What's New / What Changed highlight is carried by one explanatory visual (mock-up, before → after pair, flow diagram, comparison bars of measured numbers, option matrix, or a terminal/chat frame of real text) plus 2–4 plain sentences and a "How to use / turn off" line; highlights are grouped by the reader's goal; the page is verified from wide and narrow rendered screenshots, not from the source — with no renderer, a source-only check recorded as such (R8.4)
 - **Never manufacture user value** — an internal change reworded to sound user-facing is a fabrication (R8.1). An honest "no user-facing changes this release" page beats a padded one.
 - **UI-bearing highlights lead with their mock-up** — the picture first, the prose explaining it second (R6.2 §4/§5)
 - **Mock-ups follow the `pbi-mockup` protocol, not a second invented one (R6.3)** — `pbi-mockup` Steps 3 (design system), 3b (inventory the real existing UI), 3c (real domain entities) and 7 (fidelity gate) govern HOW a screen is reproduced; this skill governs WHAT gets rendered. Real design tokens, real component structure and class names, real route and page shell, real domain field names; never Lorem ipsum, never a generic card layout. Borrow the fidelity contract, not the clickable-prototype machinery.
@@ -261,9 +262,9 @@ The markdown from Steps 3–5 is a categorized change summary **for the team**. 
 | **R3** | Correlate spec changes — verdict `ALIGNED` / `SPEC-AHEAD` / `CODE-AHEAD` / `CONFLICT` per highlight                   |
 | **R4** | Detect the UI surface and **[BLOCKING] inventory the real existing UI** — design tokens, real components, real routes, real entity fields |
 | **R5** | **[BLOCKING] Write the temp analysis report** — the HTML is assembled FROM it, never from a diff or from memory        |
-| **R6** | Assemble ONE standalone HTML file — **[BLOCKING] R6.0 audience rule: user-facing narrative only**, 10 required sections, evidence chips, real-UI mock-ups (per the `pbi-mockup` contract) with before→after pairs |
+| **R6** | Assemble ONE standalone HTML file — **[BLOCKING] R6.0 audience rule: user-facing narrative only**, 10 required sections, evidence chips, real-UI mock-ups (per the `pbi-mockup` contract) with before→after pairs · **[BLOCKING] R6.5 visual clarity: beautiful, easy to read, one explanatory visual per highlight** |
 | **R7** | Save beside the markdown notes, same stem with `.html`                                                                |
-| **R8** | **[BLOCKING] Accuracy + fidelity + audience gates** — record `Release accuracy: PASS\|FAIL`, `Release fidelity: PASS\|FAIL`, `Release audience: PASS\|FAIL` |
+| **R8** | **[BLOCKING] Accuracy + fidelity + audience + visual-clarity gates** — record `Release accuracy: PASS\|FAIL`, `Release fidelity: PASS\|FAIL`, `Release audience: PASS\|FAIL`, `Release visual: PASS\|PASS (source-only)\|FAIL` |
 | **R9** | **Auto-open** in the default browser (best-effort; `--no-open` opts out), then report the path                        |
 
 **R0 is already satisfied** — Step 0b dumped the git artifacts and Steps 2–3b categorized the changes. Optionally add the structured commit JSON as extra R1 input:
@@ -583,6 +584,10 @@ R1.4 was skipped: `categorize-commits.cjs` buckets were used verbatim as highlig
 
 R1.4b and R6.0 were skipped. Symptoms: refactors, test/CI/tooling work or dependency bumps sitting in "What's New"; class, component or file names inside sentences; fixes described by their cause instead of the symptom the user hit. Re-run R1.4b to give every highlight a `USER-VISIBLE` / `INTERNAL` verdict, move every `INTERNAL` one into the collapsed "Under the Hood", rewrite §2–§6 per R6.0, then re-run the R8.3 audience gate.
 
+### The HTML is accurate but hard to read
+
+R6.5 was skipped. Symptoms: long paragraphs with no visual per highlight; "Action required" below the features; highlights ordered by commit type; charts that decorate rather than explain; a layout checked only in the source. Rebuild per R6.5 — defaults board on the first screen, one explanatory visual per user-visible highlight, the R6.5.3 card anatomy, themes by reader goal — then view wide and verified-narrow screenshots and re-run the R8.4 visual gate.
+
 ### The release "has no UI", so the HTML has no screens
 
 Usually a mis-verdict. R4.1 classifies a backend change whose effect shows on an existing screen as `BEHIND-UI` — it gets a mock-up of that existing screen with the new field, status, or validation visible. `NO-UI` is only for work with no observable surface at all. Re-classify, then run R4.3–R4.4 and R6.3 for the highlights that flipped.
@@ -638,7 +643,8 @@ Auto-open is best-effort by design (R9). A sandbox, headless runner, hook refusa
 **IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: the HTML is written FOR REAL USERS (R6.0) — only user-visible features, enhancements and fixes in At a glance / What's New / What Changed / Fixes; refactors, tests, CI, tooling, deps and doc-only changes are `INTERNAL` and collapse into "Under the Hood"; no class/component/file/endpoint names or commit subjects in prose; NEVER reword internal work into invented user value
 **IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: mock-ups follow the `/pbi-mockup` protocol (its Steps 3/3b/3c/7) and reproduce the project's REAL UI (real tokens, real components and class names, real route and page shell, real domain fields) and carry the `⚠ Illustrative mock-up` label — never Lorem ipsum, never a generic layout, never a second self-invented rendering procedure
 **IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: a backend change whose effect shows on an existing screen is `BEHIND-UI`, not `NO-UI` — it gets a mock-up of that screen; UI-bearing highlights lead with the mock-up, prose second
-**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: record `Release accuracy: PASS|FAIL` + `Release fidelity: PASS|FAIL` + `Release audience: PASS|FAIL` (R8) and auto-open best-effort (R9) before reporting done
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: the HTML is BEAUTIFUL, EASY TO READ and EASY TO UNDERSTAND (R6.5) — "Action required" defaults board on the first screen when anything requires action, one explanatory visual per user-visible What's New / What Changed highlight built from measured or real text only, one repeated card anatomy, grouped by reader goal, verified from wide and verified-narrow screenshots
+**IMPORTANT MUST ATTENTION** Step 6 (HTML presentation) is DEFAULT-ON: record `Release accuracy: PASS|FAIL` + `Release fidelity: PASS|FAIL` + `Release audience: PASS|FAIL` + `Release visual: PASS|PASS (source-only)|FAIL` (R8) and auto-open best-effort (R9) before reporting done
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

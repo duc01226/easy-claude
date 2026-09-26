@@ -11,6 +11,13 @@
   - Summary first, then detail. Every claim links to a file:line anchor.
   - An empty part says so in one line and why (e.g. "No flags — no code changed"); never leave a placeholder.
   - START HERE is the only emphasised element. No hero, stat cards or gradients.
+  - Readable at a glance: the one-line outcome under the title says what the session achieved; every
+    Done row carries a text status (Done / Partial / Not done), never colour alone; table cells hold one
+    idea in one or two plain sentences; Key changes are grouped under area rows, one <tbody> per area. On a narrow screen the
+    tables stack into labelled rows, so keep each td's data-label.
+  - Show behaviour, not only describe it: when the session changed behaviour, fill the before → after pair
+    in How it works; when the flow has three or more steps, keep the ordered list (or an inline SVG
+    with the list as its text alternative). Delete an optional block you do not fill — never leave it empty.
 -->
 <html lang="en">
 <head>
@@ -26,6 +33,7 @@
     --surface: #ffffff;
     --accent: #1f6f5c;
     --flag: #9a5b00;
+    --muted: #5b6474;
     --rule: color-mix(in srgb, var(--ink) 16%, transparent);
     --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
@@ -47,6 +55,7 @@
       --surface: #1a1f28;
       --accent: #6cc3a8;
       --flag: #e0a54a;
+      --muted: #a3acb9;
     }
   }
   * { box-sizing: border-box; }
@@ -113,6 +122,32 @@
   .flags { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
   .flags li { padding: var(--space-2) var(--space-3); background: var(--surface); border-left: 4px solid var(--flag); }
   .flags .kind { color: var(--flag); font-weight: 600; }
+  .lede { margin: var(--space-2) 0 0; line-height: 1.5; max-width: 60ch; }
+  td { line-height: 1.5; }
+  td p { margin: 0; max-width: 68ch; }
+  .st { display: inline-block; white-space: nowrap; font-size: var(--size-sm); font-weight: 600; }
+  .st-done { color: var(--accent); }
+  .st-partial { color: var(--flag); }
+  .st-open { color: var(--muted); }
+  tr.group th {
+    padding-top: var(--space-3);
+    font-size: var(--size-sm);
+    color: var(--muted);
+    border-top: 0;
+  }
+  .compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .compare > div { min-width: 0; padding: var(--space-3); background: var(--surface); border-top: 3px solid var(--rule); }
+  .compare > div:last-child { border-top-color: var(--accent); }
+  .compare h3 { font-size: var(--size-sm); margin-bottom: var(--space-1); }
+  .compare p { margin: 0; }
+  @media (max-width: 640px) {
+    .compare { grid-template-columns: 1fr; }
+    .stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .stack tr { display: block; padding: var(--space-2) var(--space-3); border-top: 1px solid var(--rule); }
+    .stack tr.group { padding-bottom: 0; }
+    .stack td, .stack tr.group th { display: block; border: 0; padding: var(--space-1) 0; }
+    .stack td[data-label]::before { content: attr(data-label); display: block; font-size: var(--size-sm); font-weight: 600; color: var(--muted); }
+  }
   footer { margin-top: var(--space-5); font-size: var(--size-sm); }
   @media (min-width: 1100px) {
     .page { max-width: calc(200px + var(--measure) + var(--space-5)); }
@@ -134,6 +169,7 @@
 <div class="page">
   <header>
     <h1>{{SESSION_GOAL}}</h1>
+    <p class="lede">{{ONE_LINE_OUTCOME}}</p>
     <dl class="meta">
       <div><dt>Date</dt> <dd>{{DATE}}</dd></div>
       <div><dt>Repo</dt> <dd>{{REPO}}</dd></div>
@@ -164,11 +200,12 @@
         <h2 id="done-h">Done</h2>
         <p>{{DONE_OVERVIEW}}</p>
         <div class="table-wrap" role="region" aria-label="Requests and outcomes" tabindex="0">
-          <table>
-            <thead><tr><th scope="col">Request</th><th scope="col">Outcome</th></tr></thead>
+          <table class="stack">
+            <thead><tr><th scope="col">Request</th><th scope="col">Status</th><th scope="col">Outcome</th></tr></thead>
             <tbody>
-              <!-- repeat per user request (prompt ledger P1..Pn) or goal -->
-              <tr><td>{{REQUEST}}</td><td>{{OUTCOME}}</td></tr>
+              <!-- repeat per user request (prompt ledger P1..Pn) or goal. Both status placeholders are plain text:
+                   STATUS_KIND is done | partial | open; STATUS is the matching label ✓ Done | ◐ Partial | ✗ Not done. -->
+              <tr><td data-label="Request">{{REQUEST}}</td><td data-label="Status"><span class="st st-{{STATUS_KIND}}">{{STATUS}}</span></td><td data-label="Outcome"><p>{{OUTCOME}}</p></td></tr>
             </tbody>
           </table>
         </div>
@@ -177,11 +214,12 @@
       <section id="key-changes" aria-labelledby="key-changes-h">
         <h2 id="key-changes-h">Key changes</h2>
         <div class="table-wrap" role="region" aria-label="Key changes by area" tabindex="0">
-          <table>
-            <thead><tr><th scope="col">Area</th><th scope="col">Change</th><th scope="col">file:line</th></tr></thead>
+          <table class="stack">
+            <thead><tr><th scope="col">Change</th><th scope="col">file:line</th></tr></thead>
+            <!-- repeat this <tbody> per area: its group row first, then that area's changes -->
             <tbody>
-              <!-- repeat per change, grouped by area -->
-              <tr><td>{{AREA}}</td><td>{{CHANGE}}</td><td><code>{{FILE_LINE}}</code></td></tr>
+              <tr class="group"><th scope="rowgroup" colspan="2">{{AREA}}</th></tr>
+              <tr><td data-label="Change"><p>{{CHANGE}}</p></td><td data-label="file:line"><code>{{FILE_LINE}}</code></td></tr>
             </tbody>
           </table>
         </div>
@@ -190,11 +228,11 @@
       <section id="why" aria-labelledby="why-h">
         <h2 id="why-h">Why</h2>
         <div class="table-wrap" role="region" aria-label="Decisions" tabindex="0">
-          <table>
+          <table class="stack">
             <thead><tr><th scope="col">Decision</th><th scope="col">Why</th><th scope="col">Trade-off accepted</th></tr></thead>
             <tbody>
               <!-- repeat per key change -->
-              <tr><td>{{DECISION}}</td><td>{{RATIONALE}}</td><td>{{TRADE_OFF}}</td></tr>
+              <tr><td data-label="Decision">{{DECISION}}</td><td data-label="Why"><p>{{RATIONALE}}</p></td><td data-label="Trade-off accepted"><p>{{TRADE_OFF}}</p></td></tr>
             </tbody>
           </table>
         </div>
@@ -203,6 +241,11 @@
       <section id="how-it-works" aria-labelledby="how-h">
         <h2 id="how-h">How it works</h2>
         <p>{{HOW_OVERVIEW}}</p>
+        <!-- Optional: when the session changed behaviour, show it as a before → after pair; delete this block otherwise. -->
+        <div class="compare">
+          <div><h3>Before</h3><p>{{BEHAVIOUR_BEFORE}}</p></div>
+          <div><h3>After</h3><p>{{BEHAVIOUR_AFTER}}</p></div>
+        </div>
         <!-- An inline SVG may replace this list: give it role="img" and a <title>, and keep the list as its text alternative. -->
         <ol class="flow">
           <!-- repeat per step of the resulting behaviour or flow -->

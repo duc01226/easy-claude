@@ -43,6 +43,8 @@ disable-model-invocation: true
 | "what docs exist / which doc do I read for X" | `node .claude/skills/project-help/scripts/project-overview.cjs --docs` |
 | "tell me everything" / no clear target | `node .claude/skills/project-help/scripts/project-overview.cjs --all` |
 | "what can I configure / who reads option X" | `node .claude/skills/project-config/scripts/project-config-help.cjs --overview` — then delegate to `/project-config --help` |
+| "every project-config option" / "what is inside option X, including nested and array-item fields" | `node .claude/skills/project-config/scripts/project-config-help.cjs --sections`, then `--section=<name>` (or `--search=<term>`) |
+| "what can I set in `.ck.json` / `.ck.local.json`", "which environment variables", "how do I turn X off" | `node .claude/scripts/ck-config-help.cjs` — then delegate to `/ck-help config` |
 | "which skills consume which option" | `node .claude/skills/project-config/scripts/project-config-help.cjs --consumers` |
 | "where do specs, plans, and ADRs live" (roots and tokens) | `node .claude/skills/project-config/scripts/project-config-help.cjs --roots` |
 | "what does init decide" | `/project-init --help` |

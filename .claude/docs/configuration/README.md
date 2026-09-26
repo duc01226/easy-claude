@@ -556,11 +556,26 @@ Configuration is loaded in order with later files overriding earlier:
 
 ## Environment Variables
 
-| Variable                       | Purpose                                        |
-| ------------------------------ | ---------------------------------------------- |
-| `CLAUDE_PROJECT_DIR`           | Project root directory (used in hook commands) |
-| `CK_DEBUG`                     | Enable hook debug logging                      |
-| `GITHUB_PERSONAL_ACCESS_TOKEN` | GitHub MCP server auth                         |
+Set a personal switch as an `env` entry in the git-ignored `.claude/settings.local.json`, or in your shell.
+
+| Variable                                | Purpose                                                                                                                              |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLAUDE_PROJECT_DIR`                    | Project root directory, set by the host and used in hook commands                                                                    |
+| `CK_DEBUG`                              | `1` or `true`: framework hooks print diagnostics to stderr (`.claude/hooks/lib/debug-log.cjs`)                                       |
+| `CLAUDE_HOOK_DEBUG`                     | `1` or `true`: hooks append a lifecycle trace (no transcript text) to a log file, rotated at 1 MB, keeping one backup                                     |
+| `CLAUDE_HOOK_DEBUG_LOG`                 | Path of that trace file; default `<os temp>/ck/debug/bash-hooks.log`                                                                 |
+| `CK_NO_AUTO_OPEN`                       | `1`: HTML reports (`watzup`, `understand`) print their path instead of opening; nothing opens under `CI` or headless Linux either    |
+| `CK_STARTUP_INSTALL_TRUST`              | `1`: host grant that lets `hooks.startupInstall.allowLifecycleScripts: true` take effect (see [Startup dependency installation](#startup-dependency-installation)) |
+| `CK_PROMPT_LEDGER`                      | `0` / `false` / `off` / `no`: turns the session prompt ledger off, like `promptLedger.enabled: false` in `.ck.json`                  |
+| `CK_PROMPT_LEDGER_DIR`                  | Directory for prompt-ledger records instead of `<project>/tmp/prompt-ledger`                                                         |
+| `CK_COMMIT_SKILL_ROUTE`                 | `0`: stops the reminder to commit through the `commit` skill, like `commitSkillRoute.enabled: false`                                 |
+| `CK_JUDGEMENT_INTEGRITY_ROUTE`          | `0`: stops the judgement-integrity reminder, like `judgementIntegrityRoute.enabled: false`                                           |
+| `DOC_SYNC_OVERRIDE`                     | `1`: silences the doc-sync commit warning (the gate only warns, never blocks); each use is appended to the gate's audit log            |
+| `ENABLE_DESKTOP_NOTIFICATIONS`          | `false`: turns off desktop turn-complete alerts (on by default)                                                                     |
+| `DISCORD_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` / `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | Setting one turns on turn-complete alerts in that chat channel; setup: `.claude/hooks/notifications/docs/` |
+| `PYTHON_PATH`                           | Python executable tried first when session start detects the Python version                                                          |
+| `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS`   | `1` when starting OpenCode: it stops loading `.claude/skills` for that session                                                       |
+| `GITHUB_PERSONAL_ACCESS_TOKEN`          | GitHub MCP server auth                                                                                                               |
 
 ---
 

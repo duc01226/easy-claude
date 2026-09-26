@@ -172,6 +172,8 @@ Build the single self-contained HTML from `references/deck-template.md`:
 
 The gate also covers **demo integrity** — every journey slide clicks end-to-end in its iframe, reaches its end state via real hotspots, has no dead controls, names the current step + plain-language explanation in tech-agnostic narration (M1/M2), shows "⚠ Simulated", and advances spec-only ASCII frames.
 
+**Optional render evidence (when html-export is installed):** `node .claude/skills/html-export/scripts/export.cjs --to=png <deck.html> --slides=section.deck__slide` captures every slide. Exit 0 is evidence ONLY for first-load and per-slide render, zero page errors, and no blank captures; demo click-through and the other gate items stay `NOT VERIFIABLE` unless exercised another way. **html-export exit rule:** exit 0 → evidence as scoped; exit 4 → fix the page and re-run; exit 3 → `NOT VERIFIABLE` plus a one-line pointer to `/html-export` setup, never run install commands; exit 1/2 → tool failure: quote stderr, mark `NOT VERIFIABLE`, never count it as a design defect or a pass; any other code (such as 130 after an interrupt) → handle it like 1/2; evidence is only the files this run's manifest names (`report.json` `files[]` for png, `output` for pdf, `frames.json` `output` for video), since a reused `--out` keeps older files. The HTML stays canonical; never restructure it for an exporter.
+
 Record the outcome in the Step 9 report:
 
 ```
@@ -201,6 +203,8 @@ Deck generated: {artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html
 
 Open in browser to preview. Click highlighted hotspots or press ▶ Play to walk a journey; use ←/→ or nav dots to move between slides; theme toggle for light/dark.
 ```
+
+When html-export is installed, offer a PDF copy: `node .claude/skills/html-export/scripts/export.cjs --to=pdf <deck.html> --slides=section.deck__slide` (apply the Step 8 exit rule).
 
 ---
 

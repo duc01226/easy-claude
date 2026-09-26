@@ -115,6 +115,8 @@ Keep CSS tokens named for the subject, inline CSS/JS, and all required assets pa
 
 For repeatable generation, pass a JSON spec to `scripts/create-presentation.cjs`. The root must provide a stable `id`; each slide must provide a stable `id`, `title`, `purpose`, `principle`, one of `body`, `bodyHtml`, or typed `blocks`, and a `notes` object containing `say`, `why`, `evidence`, `transition`, `timing`, and `question`. A deck may contain one slide; zero slides are rejected. Typed blocks cover common text, list, quote, metric, image, and code needs; trusted author HTML remains available for subject-specific diagrams and visuals. The generator rejects missing structure or notes and emits the full runtime contract. Use `--example` to create a starter spec-shaped deck, then replace its content with sourced material.
 
+**Showcase before batch (decks of ≥5 slides):** build two representative slides first, render them (`node .claude/skills/html-export/scripts/export.cjs --to=png <deck.html> --slides` when html-export is installed; apply the Step 7 exit rule), self-critique them against the Step 4 design plan, fix, then generate the rest. This is an agent self-critique — no user stop.
+
 ### 6. Implement the presenter runtime contract
 
 The complete contract is in `references/web-runtime-contract.md`. At minimum:
@@ -141,6 +143,8 @@ node .claude/skills/presentation-builder/tests/validate-presentation.test.cjs
 ```
 
 Static validation is a gate, not a substitute for using the deck. When a browser is available, verify: first load; every navigation route; Home/End and Space; notes open/close/Escape; edit mode on/off; editing a slide and its notes; save status after reload; reset confirmation; export opens cleanly; fullscreen success/failure; overview jump; print; narrow viewport; focus order; screen-reader names; reduced motion; missing/slow asset behavior; and console errors. Test the actual audience path, not only isolated buttons.
+
+**Render check (when html-export is installed):** run `node .claude/skills/html-export/scripts/export.cjs --to=png <deck.html> --slides` (default slide selector). Exit 0 is evidence ONLY for first-load and per-slide render, zero page errors, and no blank captures; every other runtime check above stays `NOT VERIFIABLE` unless exercised another way. **html-export exit rule:** exit 0 → evidence as scoped; exit 4 → fix the page and re-run; exit 3 → `NOT VERIFIABLE` plus a one-line pointer to `/html-export` setup, never run install commands; exit 1/2 → tool failure: quote stderr, mark `NOT VERIFIABLE`, never count it as a design defect or a pass; any other code (such as 130 after an interrupt) → handle it like 1/2; evidence is only the files this run's manifest names (`report.json` `files[]` for png, `output` for pdf, `frames.json` `output` for video), since a reused `--out` keeps older files. The HTML stays canonical; never restructure it for an exporter.
 
 Write a short report under `tmp/reports/` with the output path, source ledger status, slide-map summary, validator result, manual/browser result or `NOT VERIFIABLE`, unresolved risks, and any assumptions. Never hide an unverified interaction behind a PASS.
 
@@ -169,6 +173,7 @@ Treat each item as a release gate. Record evidence or `N/A` with a reason; do no
 - `scripts/validate-presentation.cjs` — dependency-free static validator with JSON output.
 - `tests/create-presentation.test.cjs` — generator contract and rejection-path tests.
 - `tests/validate-presentation.test.cjs` — regression tests for the validator’s hard requirements.
+- `node .claude/skills/html-export/scripts/export.cjs --to=pdf <deck.html> --page=1920x1080` — optional PDF copy when html-export is installed (the print CSS sets no page size); apply the Step 7 exit rule.
 
 <!-- PROTOCOL-GUIDES:START -->
 

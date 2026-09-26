@@ -30,7 +30,7 @@ git --version
 ```
 .claude/
 |-- settings.json     # Main configuration (hooks, features)
-|-- skills/           # 125 skills (invoked via / prefix, activated by context)
+|-- skills/           # 126 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
 |-- hooks/            # 23 top-level hook files + 46 lib modules
 |   +-- lib/          # Shared hook libraries

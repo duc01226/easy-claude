@@ -1,7 +1,7 @@
 ---
 name: design
-version: 1.0.0
-description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|describe|screenshot|video} (default fast), --lane={product|marketing} (default product).'
+version: 1.1.0
+description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|explore|describe|screenshot|video} (default fast), --lane={product|marketing} (default product).'
 disable-model-invocation: false
 ---
 
@@ -11,16 +11,16 @@ disable-model-invocation: false
 
 **Summary:**
 
-- **Route:** parse `--mode={fast|good|describe|screenshot|video}` and `--lane={product|marketing}`; default to `fast` × `product`.
+- **Route:** parse `--mode={fast|good|explore|describe|screenshot|video}` and `--lane={product|marketing}`; default to `fast` × `product`.
 - **Spine:** resolve project authority and existing UI → query local design intelligence → ingest visual evidence when applicable → design with `ui-ux-designer` → implement unless `describe` → report and seek approval.
 - **Quality floor:** apply project tokens/components plus `UI-*`/`DD-*`/`CL-*`; design states, interaction feedback, declared scales, measured contrast, touch targets, responsive reflow, and subject-grounded copy before the happy path.
 - **Ownership:** `/design` authors the visual direction and implementation contract; `/ui-review` owns source findings and review evidence; the local index supplies candidates only.
 
-> **Renamed:** folds the former `/design-fast`, `/design-good`, `/design-describe`, `/design-screenshot`, `/design-video` skills into `--mode={fast|good|describe|screenshot|video}` — those names no longer resolve as slash commands; use `/design --mode=…`.
+> **Renamed:** folds the former `/design-fast`, `/design-good`, `/design-describe`, `/design-screenshot`, `/design-video` skills into the same-named value of `--mode={fast|good|explore|describe|screenshot|video}` — those names no longer resolve as slash commands; use `/design --mode=…`.
 >
 > **Absorbed lanes:** the former `frontend-design` (marketing/creative) and `interface-design` (product-UI) skills now fold into `--lane={marketing|product}` — those names no longer resolve as slash commands; use `/design --lane=…`. Each lane's full body lives under `references/lane-{marketing,product}/lane-guide.md`.
 
-**Mode dispatch:** `--mode={fast|good|describe|screenshot|video}` — default `fast` when omitted.
+**Mode dispatch:** `--mode={fast|good|explore|describe|screenshot|video}` — default `fast` when omitted.
 **Lane dispatch:** `--lane={product|marketing}` — default `product` when omitted. Lane (the design tradition) is orthogonal to mode (the input carrier); any mode combines with any lane.
 
 | Lane                  | Use for                                                                 | Full body |
@@ -32,6 +32,7 @@ disable-model-invocation: false
 | --------------------- | --------------------------- | ----------------------------------------------------------- |
 | `fast` (default)      | text brief                  | quick prototype implementation                              |
 | `good`                | text brief                  | immersive, researched, higher-quality implementation        |
+| `explore`             | text brief                  | three divergent drafts → user picks one → continues as `good` |
 | `describe`            | screenshot / video          | super-detailed written description + implementation plan (NO code) |
 | `screenshot`          | screenshot                  | design recreated from the image as functional code          |
 | `video`               | video                       | design + interactions recreated from the video as functional code |
@@ -55,12 +56,12 @@ disable-model-invocation: false
 
 ## Arguments & Mode Dispatch
 
-`/design --mode={fast|good|describe|screenshot|video} --lane={product|marketing} <brief | screenshot | video>`
+`/design --mode={fast|good|explore|describe|screenshot|video} --lane={product|marketing} <brief | screenshot | video>`
 
 - When `--mode` is omitted, default to `--mode=fast`.
 - When `--lane` is omitted, default to `--lane=product` (the dominant PBI/app use). Pick `marketing` for landing pages, campaigns, and distinctive creative pieces.
 - `--mode` (input carrier) and `--lane` (design tradition) are orthogonal — e.g. `--mode=screenshot --lane=product` recreates a dashboard screenshot in the product-UI craft tradition.
-- `$ARGUMENTS` carries the full input after the command. Interpret it per mode: `fast`/`good` → a text design brief; `describe`/`screenshot` → a screenshot reference (path/URL/attachment); `video` → a video reference.
+- `$ARGUMENTS` carries the full input after the command. Interpret it per mode: `fast`/`good`/`explore` → a text design brief; `describe`/`screenshot` → a screenshot reference (path/URL/attachment); `video` → a video reference.
 
 ### Lane selection (apply the chosen lane's craft body at stages 3-4)
 
@@ -73,6 +74,7 @@ Do NOT inline the lane bodies here — read the matching `lane-guide.md` when th
 
 1. **In-skill design-intelligence search/data** — Query `scripts/search.py` after project authority and existing-UI research; results are candidate input, not project authority.
 2. **In-skill lane references** — `references/lane-{product|marketing}/lane-guide.md` (+ their reference files) own implementation, screenshot/video analysis, and design replication for the selected lane.
+3. **In-skill explore references** — `references/explore/workflow.md` (+ `gate-files.md`, `brand-asset-protocol.md`) own the `--mode=explore` flow; read them only when that mode is selected.
 
 **Ensure token efficiency while maintaining high quality.**
 
@@ -107,7 +109,7 @@ The local index is a research aid owned by this skill. It supplies structured ca
 
 The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) carried as the `SYNC:ui-ux-design-principles` block below bind EVERY mode of this skill. Project design-system docs OUTRANK them — surface a genuine conflict to the user with both sides, NEVER resolve it silently.
 
-**Generative modes (`fast`, `good`) — APPLY the clauses as an output contract on the design you produce:**
+**Generative modes (`fast`, `good`, `explore`) — APPLY the clauses as an output contract on the design you produce:**
 
 1. **States first.** Design and build the empty, loading and error state BEFORE the populated state (`UI-1.5`), and reserve space for anything that loads so nothing shifts in (`UI-9.3`).
 2. **All 5 interaction states per interactive element** — default, hover, focus, active, disabled — plus loading where it applies (`UI-5.2`); keep a visible focus ring, restyled if it clashes but NEVER removed (`UI-5.5`).
@@ -140,6 +142,18 @@ Same spine as `fast`, raised to a higher quality bar (iterate on details):
 
 - **ALWAYS REMEMBER you have the skills of a top-tier UI/UX Designer who won many awards on Dribbble, Behance, Awwwards, Mobbin, TheFWA.**
 - Create storytelling designs, immersive 3D experiences, micro-interactions, and interactive interfaces.
+
+### `--mode=explore` — three drafts, user picks, then `good`
+
+Opt-in. Use when the visual direction is genuinely open and the user wants to choose it by looking. **Read `references/explore/workflow.md` first and follow its ten steps, one task each.**
+
+1. **Authority per axis** (colour · type · layout). A direction stated in the brief, or a project design system pinning all three axes → record it as `ADOPTED`, log the exemption, and run `--mode=good` instead. Partial pins → the drafts share the pinned axes and diverge only on the free ones.
+2. **Ground before diverging** — fact-check named products/specs, ask once for reference designs the user likes or dislikes, run `references/explore/brand-asset-protocol.md` when a real brand is named, gather ONE shared content-imagery set (licensed, sources recorded) or labelled placeholders, answer the five form questions, fix the deliverable type and pixel canvas, write the `DD-3` Design Plan skeleton.
+3. **Three seeds** — a random style row from `node .claude/skills/design/scripts/pick-style.cjs` (after changing the picker, run its tests: `node .claude/skills/design/tests/pick-style.test.cjs`), the user's liked reference or a web-verified real-world reference, a studio persona described by traits only. Seeds are divergence seeds, never taste: each draft translates its seed into THIS subject (`DD-1`) and passes the `DD-3` generic test, or it is revised.
+4. **Fan out** — three `ui-ux-designer` sub-agents in ONE message → `tmp/design/<run>/direction-{a,b,c}.html`; layout FREE → structurally different layout skeletons, layout ADOPTED → the pinned layout is shared and drafts diverge on the free axes only. No sub-agents → build serially; each later draft names what it avoided from the earlier ones.
+5. **Render after all return** — per draft, `node .claude/skills/html-export/scripts/export.cjs --to=png --viewport=<canvas> --out=tmp/design/<run>/renders/<draft>/ <file>`; handle exits 0/4/3/1-2 per workflow step 8, re-render after the `DD-8` edit. NEVER run install commands.
+6. **Present side by side and STOP the turn.** Never pick for the user; never offer a text-only style choice; "continue" is not a pick.
+7. **Record** the user's verbatim choice in `tmp/design/<run>/direction-approved.md` (template: `references/explore/gate-files.md`) → continue as `--mode=good` from the chosen draft.
 
 ### `--mode=describe` — describe only (NO implementation)
 
@@ -208,6 +222,7 @@ Think hard to plan & start working on these tasks follow the Orchestration Proto
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `existing-ui-research` — Study the existing UI before designing or specifying a screen; designing or specifying a new or updated screen → .claude/skills/shared/protocols/existing-ui-research.md
+- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
@@ -266,11 +281,18 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
+<!-- SYNC:parallel-subagent-dispatch:reminder -->
+
+- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
+- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+
+<!-- /SYNC:parallel-subagent-dispatch:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane).
 
-**IMPORTANT MUST ATTENTION** route `--mode={fast|good|describe|screenshot|video}` × `--lane={product|marketing}` → resolve project authority/existing UI → query local design intelligence → ingest visual evidence when applicable → design → implement unless `describe` → report and seek approval; project authority outranks candidates, `/ui-review` owns source review evidence.
+**IMPORTANT MUST ATTENTION** route `--mode={fast|good|explore|describe|screenshot|video}` × `--lane={product|marketing}` → resolve project authority/existing UI → query local design intelligence → ingest visual evidence when applicable → design → implement unless `describe` → report and seek approval; project authority outranks candidates, `/ui-review` owns source review evidence.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -281,6 +303,6 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to every design: empty/loading/error states designed FIRST (`UI-1.5`), all 5 interaction states per interactive element (`UI-5.2`), type scale (6 named steps, `UI-2.5`) and spacing unit (4/8px base, `UI-4.1`) DECLARED not improvised, contrast measured and stated (4.5:1 text / 3:1 edges, `UI-3.1`), ≥44×44pt touch targets + bottom-third primaries on mobile surfaces (`UI-8.1`, `UI-8.2`); `fast`/`good` APPLY them, `describe`/`screenshot`/`video` also REPORT by clause ID which the observed design satisfies or violates — project design-system docs outrank the clauses, conflicts go to the user
+- **MANDATORY IMPORTANT MUST ATTENTION** apply the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) to every design: empty/loading/error states designed FIRST (`UI-1.5`), all 5 interaction states per interactive element (`UI-5.2`), type scale (6 named steps, `UI-2.5`) and spacing unit (4/8px base, `UI-4.1`) DECLARED not improvised, contrast measured and stated (4.5:1 text / 3:1 edges, `UI-3.1`), ≥44×44pt touch targets + bottom-third primaries on mobile surfaces (`UI-8.1`, `UI-8.2`); `fast`/`good`/`explore` APPLY them, `describe`/`screenshot`/`video` also REPORT by clause ID which the observed design satisfies or violates — project design-system docs outrank the clauses, conflicts go to the user
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

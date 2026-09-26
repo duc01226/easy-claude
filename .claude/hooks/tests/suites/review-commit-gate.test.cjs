@@ -485,6 +485,40 @@ const tests = [
         })
     },
     {
+        name: 'TC-FIT-011 host-injected content-neutral GIT_CONFIG pairs are accepted; any other injected key fails closed',
+        skip: !GIT,
+        fn: async () => fixture(fx => {
+            makeRepo(fx.repoA);
+            const api = receipt();
+            fs.writeFileSync(path.join(fx.repoA, 'file.txt'), 'changed\n');
+            const withEnv = (vars, fn) => {
+                const prev = {};
+                for (const k of Object.keys(vars)) { prev[k] = process.env[k]; process.env[k] = vars[k]; }
+                try { return fn(); } finally {
+                    for (const k of Object.keys(vars)) { if (prev[k] === undefined) delete process.env[k]; else process.env[k] = prev[k]; }
+                }
+            };
+            const container = {
+                GIT_CONFIG_COUNT: '3',
+                GIT_CONFIG_KEY_0: 'credential.interactive', GIT_CONFIG_VALUE_0: 'false',
+                GIT_CONFIG_KEY_1: 'url.https://github.com/.insteadOf', GIT_CONFIG_VALUE_1: 'git@github.com:',
+                GIT_CONFIG_KEY_2: 'url.https://github.com/.insteadOf', GIT_CONFIG_VALUE_2: 'ssh://git@github.com/'
+            };
+            assert.equal(withEnv(container, () => snapshot(api, fx.repoA)).status, 'CHANGED',
+                'the cloud container proxy config must not block candidate capture');
+            for (const [label, bad] of [
+                ['core.worktree key', { ...container, GIT_CONFIG_KEY_1: 'core.worktree' }],
+                ['count/pair mismatch', { ...container, GIT_CONFIG_COUNT: '2' }],
+                ['core.hooksPath only', { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'core.hooksPath', GIT_CONFIG_VALUE_0: '/tmp/x' }],
+                ['GIT_CONFIG_PARAMETERS alongside', { ...container, GIT_CONFIG_PARAMETERS: "'core.worktree=/x'" }]
+            ]) {
+                const s = withEnv(bad, () => snapshot(api, fx.repoA));
+                assert.equal(s.status, 'ERROR', `${label} must fail closed`);
+                assert.equal(s.errorCode, 'UNSUPPORTED_GIT_ENVIRONMENT', `${label} error code`);
+            }
+        })
+    },
+    {
         name: 'TC-FIT-011 isolated source mutants are killed for candidate loss, ERROR collapse and descriptor deduplication',
         skip: !GIT,
         fn: async () => fixture(fx => {

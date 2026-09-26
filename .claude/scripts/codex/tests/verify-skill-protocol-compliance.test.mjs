@@ -149,6 +149,71 @@ test('TC-CTXP-035j: the verifier CLI reports a manual-only mirror without its Co
     }
 });
 
+// A skill may keep opt-in npm dependencies in its own folder (installed from inside it: `cd .claude/skills/<name> && npm install`).
+// Packages there can ship their own SKILL.md and other .md files; the mirror generator never copies node_modules, so
+// the verifier must not treat those files as source skills or guide carriers either, or the documented setup breaks
+// the gate. Builds a skeletal source + mirror tree plus `extraFiles`, runs the verifier, returns its combined output.
+function runVerifierWithSkillLocalPackage(extraFiles) {
+    const temp = fsSync.mkdtempSync(path.join(os.tmpdir(), 'ck-node-modules-'));
+    try {
+        const write = (rel, text) => {
+            const target = path.join(temp, rel);
+            fsSync.mkdirSync(path.dirname(target), { recursive: true });
+            fsSync.writeFileSync(target, text);
+        };
+        const copy = rel => write(rel, fsSync.readFileSync(path.resolve(thisDir, '..', '..', '..', '..', rel), 'utf8'));
+        copy('.claude/scripts/codex/verify-skill-protocol-compliance.mjs');
+        copy('.claude/scripts/lib/project-root.cjs');
+        copy('.claude/scripts/lib/protocol-guide-carrier.cjs');
+        write('docs/project-config.json', JSON.stringify({ project: { name: 'fixture' } }));
+        const skill = '---\nname: dep-sample\ndescription: Fixture skill.\n---\n\nBody.\n';
+        write('.claude/skills/dep-sample/SKILL.md', skill);
+        write('.agents/skills/dep-sample/SKILL.md', skill);
+        for (const [rel, text] of Object.entries(extraFiles)) write(rel, text);
+
+        const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+        Object.assign(env, { CLAUDE_PROJECT_DIR: temp, HOME: temp, USERPROFILE: temp, TMPDIR: temp, TEMP: temp, TMP: temp });
+        const result = spawnSync(process.execPath, [path.join(temp, '.claude/scripts/codex/verify-skill-protocol-compliance.mjs')],
+            { cwd: temp, env, encoding: 'utf8', timeout: 60000 });
+        assert.equal(result.error, undefined);
+        return `${result.stdout}${result.stderr}`;
+    } finally {
+        fsSync.rmSync(temp, { recursive: true, force: true });
+    }
+}
+
+test('TC-CTXP-035k: SKILL.md files inside a skill-local node_modules are not scanned as skills', () => {
+    // Given a dependency package, installed only on the source side, that ships a SKILL.md with an orphan heading
+    // When the verifier runs
+    const output = runVerifierWithSkillLocalPackage({
+        '.claude/skills/dep-sample/node_modules/some-dep/skills/bundled/SKILL.md':
+            '---\nname: bundled\ndescription: Package-owned.\n---\n\n## Empty\n## Stacked\n',
+    });
+    // Then no failure names the package's files (the skeletal fixture may fail for other reasons,
+    // and the generic remediation text mentions node_modules, so the oracle is the package path)
+    assert.doesNotMatch(output, /some-dep|bundled/);
+});
+
+// The guide-carrier scan walks every .md under the skills root with a walker of its own, so the skip must
+// hold there too. TC-CTXP-035k cannot see that walker: a package SKILL.md without a guide block trips no guide rule.
+test('TC-CTXP-035l: .md guide carriers inside a skill-local node_modules are not checked for guide rules', () => {
+    const guideCarrier = tag => [
+        '# Notes', '', '<!-- PROTOCOL-GUIDES:START -->',
+        `- \`${tag}\` — Fixture protocol; always → .claude/skills/shared/protocols/${tag}.md`,
+        '<!-- PROTOCOL-GUIDES:END -->', '',
+    ].join('\n');
+    // Given two guide carriers that name protocols with no projection file: one skill-owned, one package-owned
+    // When the verifier runs
+    const output = runVerifierWithSkillLocalPackage({
+        '.claude/skills/dep-sample/references/own-notes.md': guideCarrier('missing-own-protocol'),
+        '.claude/skills/dep-sample/node_modules/some-dep/docs/dep-notes.md': guideCarrier('missing-dep-protocol'),
+    });
+    // Then the skill-owned carrier is reported, proving the guide scan ran in this fixture ...
+    assert.match(output, /own-notes\.md: guide entry names protocol "missing-own-protocol"/);
+    // ... and nothing under node_modules is
+    assert.doesNotMatch(output, /missing-dep-protocol|some-dep|dep-notes/);
+});
+
 // The bounded root's occurrence contract is CONDITIONAL, unlike `.codex/CODEX_CONTEXT.md`'s
 // unconditional exactly-once. That asymmetry is the whole point: the context file's copy is baked
 // from the canonical shared source and is project-independent, while AGENTS.md's is CLAUDE.md-

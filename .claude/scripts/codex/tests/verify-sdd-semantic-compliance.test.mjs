@@ -1392,6 +1392,22 @@ test("TC-FIT-SEM-005: SDD007 follows a configured engineering profile instead of
   });
 });
 
+test("TC-FIT-SEM-005b: the shipped spec skill satisfies SDD007 under BOTH the strict default and a configured profile", async () => {
+  // One spec/SKILL.md serves every adopter, but this repository has no specArtifacts profile, so
+  // its own sync only ever runs the strict-default branch. Evaluate the real file under both
+  // branches here, or a profile-only regression ships and first fails in an adopting project.
+  const skillText = await fs.readFile(path.join(repoRoot, sdd007Check().file), "utf8");
+  await withTempRoot("codex-verify-sdd-sdd007-real-default-", async (tempRoot) => {
+    const [strict] = await resolveChecks(tempRoot, [sdd007Check()]);
+    assert.deepEqual(evaluateCheck(strict, skillText), []);
+  });
+  await withTempRoot("codex-verify-sdd-sdd007-real-profile-", async (tempRoot) => {
+    await writeProjectConfig(tempRoot, engineeringProjectConfig());
+    const [profiled] = await resolveChecks(tempRoot, [sdd007Check()]);
+    assert.deepEqual(evaluateCheck(profiled, skillText), []);
+  });
+});
+
 test("TC-FIT-SEM-006: strict verifier config acquisition distinguishes absence from invalid or unreadable config", async () => {
   await withTempRoot("codex-verify-sdd-config-missing-", async (tempRoot) => {
     const result = await runChecks(tempRoot, []);

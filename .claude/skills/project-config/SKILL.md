@@ -66,6 +66,9 @@ node .claude/skills/project-config/scripts/project-config-help.cjs --search=<ter
 | "where do specs / plans / ADRs / templates live" | `--roots` |
 | "what is configured for this project" | `--current` |
 | anything by keyword | `--search=<term>` |
+| settings outside the project config: `.ck.json` / `.ck.local.json`, environment variables, "turn X off" switches | `node .claude/scripts/ck-config-help.cjs` (the same output `/ck-help config` shows) |
+
+`--sections` lists every top-level option on one line. `--section=<name>` lists every field under it at any depth — nested properties as `a.b`, array-item fields as `a[].b` (for example `contextGroups[].on`), map values as `a{}`, and the fields of each `oneOf` form — and `--search=<term>` finds any field by name or help text. Every field shows its help text. That text is the field's schema `describe`, or its entry in `.claude/scripts/lib/config-option-describes.cjs`; `config-help-coverage.test.cjs` fails when a new field has neither, so a new option always appears here.
 
 **Presentation rules:**
 

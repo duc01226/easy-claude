@@ -1,0 +1,2229 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'"
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light dark" />
+        <title>Lean Guided Workflows — Release d0e5d0cc</title>
+        <style>
+            /* Tokens: the project's own report house style (.claude/skills/watzup/references/session-report-template.html:24-52),
+     extended with a terminal surface and a before/after pair. No application design system is configured
+     (docs/project-config.json:338-341). */
+            :root {
+                --ink: #1c2230;
+                --ink-soft: #4a5263;
+                --paper: #f6f7f4;
+                --surface: #ffffff;
+                --accent: #1f6f5c;
+                --accent-soft: #e3f0ec;
+                --flag: #9a5b00;
+                --flag-soft: #fbf0df;
+                --before: #646c7b;
+                --term-bg: #10151c;
+                --term-ink: #d8dee8;
+                --term-dim: #8b95a5;
+                --term-hi: #7fd1b5;
+                --term-warn: #f0b25a;
+                --rule: color-mix(in srgb, var(--ink) 14%, transparent);
+                --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+                --size-xs: 12.5px;
+                --size-sm: 14px;
+                --size-md: 16px;
+                --size-lg: 20px;
+                --size-xl: 28px;
+                --size-xxl: 40px;
+                --space-1: 4px;
+                --space-2: 8px;
+                --space-3: 16px;
+                --space-4: 24px;
+                --space-5: 40px;
+                --space-6: 64px;
+                --radius: 10px;
+                --measure: 1080px;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --ink: #e4e7ec;
+                    --ink-soft: #aab2bf;
+                    --paper: #12161d;
+                    --surface: #1a1f28;
+                    --accent: #6cc3a8;
+                    --accent-soft: #17322b;
+                    --flag: #e0a54a;
+                    --flag-soft: #33260f;
+                    --before: #9aa3b2;
+                    --term-bg: #0b0f14;
+                }
+            }
+            * {
+                box-sizing: border-box;
+            }
+            .feature > *, .pair > *, .board-row > *, .glance > *, .fixes > *, .tiers > *, .presets > *, .flow > *, .bars, .bar-group, .tech-body, main, .page { min-width: 0; }
+            .mock, .scroll, table { max-width: 100%; }
+            html {
+                background: var(--paper);
+                color: var(--ink);
+            }
+            body {
+                margin: 0;
+                font: var(--size-md)/1.6 var(--font-body);
+                background: var(--paper);
+            }
+            code,
+            kbd,
+            .mono {
+                font-family: var(--font-mono);
+                font-size: 0.92em;
+                overflow-wrap: anywhere;
+            }
+            code {
+                background: color-mix(in srgb, var(--ink) 7%, transparent);
+                padding: 1px 5px;
+                border-radius: 4px;
+            }
+            a {
+                color: var(--accent);
+                text-underline-offset: 2px;
+            }
+            a:focus-visible,
+            summary:focus-visible,
+            [tabindex]:focus-visible {
+                outline: 3px solid var(--accent);
+                outline-offset: 2px;
+                border-radius: 4px;
+            }
+            .skip {
+                position: absolute;
+                left: var(--space-3);
+                top: -100px;
+                background: var(--surface);
+                padding: var(--space-2) var(--space-3);
+                z-index: 10;
+            }
+            .skip:focus {
+                top: var(--space-3);
+            }
+            .page {
+                max-width: var(--measure);
+                margin: 0 auto;
+                padding: var(--space-5) var(--space-3) var(--space-6);
+            }
+            h1,
+            h2,
+            h3,
+            h4 {
+                line-height: 1.2;
+                margin: 0;
+            }
+            h2 {
+                font-size: var(--size-xl);
+                letter-spacing: -0.01em;
+            }
+            h3 {
+                font-size: var(--size-lg);
+            }
+            h4 {
+                font-size: var(--size-md);
+            }
+            p {
+                margin: 0 0 var(--space-3);
+            }
+            section {
+                margin-top: var(--space-6);
+            }
+            .eyebrow {
+                font: 600 var(--size-xs)/1.4 var(--font-mono);
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--accent);
+                margin-bottom: var(--space-2);
+            }
+            .lede {
+                font-size: var(--size-lg);
+                color: var(--ink-soft);
+                max-width: 68ch;
+            }
+            .section-head {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                gap: var(--space-2) var(--space-3);
+                margin-bottom: var(--space-4);
+                padding-bottom: var(--space-3);
+                border-bottom: 1px solid var(--rule);
+            }
+            .section-head p {
+                margin: 0;
+                color: var(--ink-soft);
+                flex-basis: 100%;
+            }
+
+            /* ---------- Header ---------- */
+            .masthead {
+                display: grid;
+                gap: var(--space-4);
+                padding-bottom: var(--space-5);
+                border-bottom: 2px solid var(--ink);
+            }
+            .masthead-top {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-2);
+                align-items: center;
+                font: var(--size-sm)/1.4 var(--font-mono);
+                color: var(--ink-soft);
+            }
+            .badge {
+                display: inline-block;
+                font: 600 var(--size-xs)/1 var(--font-mono);
+                padding: 5px 9px;
+                border-radius: 999px;
+                border: 1px solid currentColor;
+            }
+            .badge-draft {
+                color: var(--flag);
+            }
+            .masthead h1 {
+                font-size: clamp(32px, 6vw, var(--size-xxl));
+                letter-spacing: -0.02em;
+                max-width: 20ch;
+            }
+            .masthead h1 span {
+                color: var(--accent);
+            }
+            .tally {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 1px;
+                background: var(--rule);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+                overflow: hidden;
+            }
+            .tally div {
+                background: var(--surface);
+                padding: var(--space-3);
+            }
+            .tally b {
+                display: block;
+                font-size: var(--size-xl);
+                line-height: 1.1;
+                font-variant-numeric: tabular-nums;
+            }
+            .tally span {
+                font-size: var(--size-sm);
+                color: var(--ink-soft);
+            }
+            .tally .t-flag b {
+                color: var(--flag);
+            }
+            .hosts {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-2);
+            }
+            .host {
+                font: 600 var(--size-xs)/1 var(--font-mono);
+                padding: 6px 10px;
+                border-radius: 6px;
+                background: var(--surface);
+                border: 1px solid var(--rule);
+            }
+
+            /* ---------- TOC ---------- */
+            .toc {
+                margin-top: var(--space-4);
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-2);
+            }
+            .toc a {
+                display: inline-flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 0 14px;
+                border-radius: 999px;
+                border: 1px solid var(--rule);
+                background: var(--surface);
+                color: var(--ink);
+                text-decoration: none;
+                font-size: var(--size-sm);
+            }
+            .toc a:hover {
+                border-color: var(--accent);
+            }
+            .toc a.toc-flag {
+                border-color: var(--flag);
+                color: var(--flag);
+                font-weight: 600;
+            }
+
+            /* ---------- At a glance ---------- */
+            .glance {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+                gap: var(--space-3);
+            }
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+                padding: var(--space-4);
+            }
+            .glance .card {
+                display: flex;
+                flex-direction: column;
+                gap: var(--space-2);
+            }
+            .glance .big {
+                font: 700 36px/1 var(--font-body);
+                color: var(--accent);
+                font-variant-numeric: tabular-nums;
+                letter-spacing: -0.02em;
+            }
+            .glance .big small {
+                font-size: var(--size-md);
+                font-weight: 600;
+                color: var(--ink-soft);
+            }
+            .glance h3 {
+                font-size: var(--size-md);
+            }
+            .glance p {
+                font-size: var(--size-sm);
+                color: var(--ink-soft);
+                margin: 0;
+            }
+            .glance a {
+                font-size: var(--size-sm);
+                margin-top: auto;
+            }
+
+            /* ---------- Action required: defaults board ---------- */
+            .action {
+                border: 2px solid var(--flag);
+                border-radius: var(--radius);
+                background: var(--flag-soft);
+                padding: var(--space-4);
+            }
+            .action .section-head {
+                border-color: color-mix(in srgb, var(--flag) 35%, transparent);
+            }
+            .action h2 {
+                color: var(--flag);
+            }
+            .board {
+                display: grid;
+                gap: var(--space-2);
+            }
+            .board-row {
+                display: grid;
+                grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.5fr) minmax(0, 1.3fr);
+                gap: var(--space-3);
+                align-items: start;
+                background: var(--surface);
+                border-radius: 8px;
+                padding: var(--space-3);
+                border: 1px solid var(--rule);
+            }
+            .board-head {
+                background: transparent;
+                border: 0;
+                padding: 0 var(--space-3);
+                font: 600 var(--size-xs)/1.4 var(--font-mono);
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: var(--ink-soft);
+            }
+            .board-row h3 {
+                font-size: var(--size-md);
+                margin-bottom: 4px;
+            }
+            .board-row p {
+                font-size: var(--size-sm);
+                color: var(--ink-soft);
+                margin: 0;
+            }
+            .shift {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 6px;
+                font-size: var(--size-sm);
+            }
+            .pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                font: 600 var(--size-xs)/1.2 var(--font-mono);
+                padding: 5px 9px;
+                border-radius: 6px;
+                border: 1px solid var(--rule);
+            }
+            .pill-before {
+                color: var(--before);
+                text-decoration: line-through;
+                text-decoration-thickness: 1.5px;
+            }
+            .pill-before::before {
+                content: 'was';
+                text-decoration: none;
+                display: inline-block;
+                font-weight: 400;
+                opacity: 0.9;
+            }
+            .pill-after {
+                background: var(--accent-soft);
+                color: var(--accent);
+                border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+            }
+            .pill-after::before {
+                content: 'now';
+                font-weight: 400;
+            }
+            .arrow {
+                color: var(--ink-soft);
+            }
+            .keep {
+                font-size: var(--size-sm);
+            }
+            .keep code {
+                font-size: var(--size-xs);
+            }
+            .board-label {
+                display: none;
+                font: 600 var(--size-xs)/1.4 var(--font-mono);
+                text-transform: uppercase;
+                color: var(--ink-soft);
+                margin-bottom: 4px;
+            }
+
+            /* ---------- Theme blocks ---------- */
+            .theme {
+                margin-top: var(--space-5);
+            }
+            .theme-title {
+                display: flex;
+                align-items: center;
+                gap: var(--space-3);
+                margin-bottom: var(--space-3);
+            }
+            .theme-num {
+                flex: none;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: var(--ink);
+                color: var(--paper);
+                display: grid;
+                place-items: center;
+                font: 700 var(--size-sm)/1 var(--font-mono);
+            }
+            .feature {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+                gap: var(--space-4);
+                align-items: start;
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+                padding: var(--space-4);
+                margin-top: var(--space-3);
+            }
+            .feature.solo {
+                grid-template-columns: 1fr;
+            }
+            .feature .visual {
+                order: -1;
+            }
+            .feature-body h3 {
+                margin-bottom: var(--space-2);
+            }
+            .feature-body p {
+                color: var(--ink);
+            }
+            .feature-body ul {
+                margin: 0 0 var(--space-3);
+                padding-left: 20px;
+            }
+            .feature-body li {
+                margin-bottom: 4px;
+            }
+            .tag {
+                display: inline-block;
+                font: 600 11px/1 var(--font-mono);
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                padding: 4px 7px;
+                border-radius: 4px;
+                margin-bottom: var(--space-2);
+            }
+            .tag-new {
+                background: var(--accent-soft);
+                color: var(--accent);
+            }
+            .tag-changed {
+                background: color-mix(in srgb, var(--ink) 9%, transparent);
+                color: var(--ink);
+            }
+            .tag-default {
+                background: var(--flag-soft);
+                color: var(--flag);
+            }
+            .howto {
+                font-size: var(--size-sm);
+                background: color-mix(in srgb, var(--ink) 4%, transparent);
+                border-left: 3px solid var(--accent);
+                padding: var(--space-2) var(--space-3);
+                border-radius: 0 6px 6px 0;
+                margin-bottom: var(--space-2);
+            }
+            .howto b {
+                font-weight: 600;
+            }
+            .chips {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-top: var(--space-2);
+            }
+            .chip {
+                font: var(--size-xs)/1.3 var(--font-mono);
+                color: var(--ink-soft);
+                border: 1px dashed var(--rule);
+                border-radius: 5px;
+                padding: 3px 7px;
+                overflow-wrap: anywhere;
+            }
+            .chip::before {
+                content: '⎘ ';
+            }
+
+            /* ---------- Mock-ups (terminal / chat) ---------- */
+            .mock {
+                border-radius: var(--radius);
+                overflow: hidden;
+                border: 1px solid var(--rule);
+                background: var(--term-bg);
+                color: var(--term-ink);
+            }
+            .mock-bar {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 12px;
+                background: color-mix(in srgb, var(--term-bg) 80%, #fff 6%);
+                border-bottom: 1px solid #ffffff14;
+                font: var(--size-xs)/1.3 var(--font-mono);
+                color: var(--term-dim);
+            }
+            .mock-bar i {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: #ffffff22;
+                display: inline-block;
+            }
+            .mock-bar span {
+                margin-left: 6px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .mock pre {
+                margin: 0;
+                padding: 14px 16px;
+                font: 12.5px/1.6 var(--font-mono);
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .mock .dim {
+                color: var(--term-dim);
+            }
+            .mock .hi {
+                color: var(--term-hi);
+            }
+            .mock .warn {
+                color: var(--term-warn);
+            }
+            .mock .del {
+                color: #e88a8a;
+            }
+            .mock-label {
+                font: 600 11px/1.3 var(--font-mono);
+                color: var(--term-warn);
+                padding: 7px 12px;
+                border-top: 1px solid #ffffff14;
+                background: #00000033;
+            }
+            .pair {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: var(--space-3);
+            }
+            .pair-cap {
+                font: 600 var(--size-xs)/1.3 var(--font-mono);
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                margin-bottom: 6px;
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+            .pair-cap.before {
+                color: var(--before);
+            }
+            .pair-cap.after {
+                color: var(--accent);
+            }
+            .delta {
+                outline: 2px solid var(--term-hi);
+                outline-offset: -2px;
+            }
+
+            /* ---------- Diagrams ---------- */
+            .tiers {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: var(--space-2);
+            }
+            .tier {
+                border-radius: 8px;
+                padding: var(--space-3);
+                border: 1px solid var(--rule);
+                background: var(--paper);
+            }
+            .tier h4 {
+                font-family: var(--font-mono);
+                font-size: var(--size-sm);
+                display: flex;
+                justify-content: space-between;
+                gap: 6px;
+            }
+            .tier p {
+                font-size: var(--size-xs);
+                color: var(--ink-soft);
+                margin: 4px 0 var(--space-2);
+            }
+            .tier ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                font: var(--size-xs)/1.5 var(--font-mono);
+            }
+            .tier li {
+                padding: 3px 0;
+                border-top: 1px dotted var(--rule);
+                overflow-wrap: anywhere;
+            }
+            .tier.auto {
+                border-top: 4px solid var(--accent);
+            }
+            .tier.confirm {
+                border-top: 4px solid var(--flag);
+            }
+            .tier.manual {
+                border-top: 4px solid var(--ink);
+            }
+
+            .pipe {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                align-items: center;
+            }
+            .step {
+                font: 600 var(--size-xs)/1.2 var(--font-mono);
+                padding: 7px 9px;
+                border-radius: 6px;
+                border: 1.5px solid var(--rule);
+                background: var(--paper);
+                position: relative;
+            }
+            .step.gate {
+                border-color: var(--ink);
+                background: var(--ink);
+                color: var(--paper);
+            }
+            .step.opt {
+                border-style: dashed;
+                color: var(--ink-soft);
+            }
+            .step small {
+                display: block;
+                font-weight: 400;
+                font-size: 10px;
+                opacity: 0.75;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .legend {
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--space-3);
+                font-size: var(--size-xs);
+                color: var(--ink-soft);
+                margin-top: var(--space-2);
+            }
+            .legend span {
+                display: inline-flex;
+                gap: 6px;
+                align-items: center;
+            }
+            .sw {
+                width: 14px;
+                height: 14px;
+                border-radius: 3px;
+                border: 1.5px solid var(--rule);
+                display: inline-block;
+                background: var(--paper);
+            }
+            .sw.gate {
+                background: var(--ink);
+                border-color: var(--ink);
+            }
+            .sw.opt {
+                border-style: dashed;
+            }
+            .lengths {
+                display: grid;
+                gap: 8px;
+                margin-top: var(--space-3);
+            }
+            .len {
+                display: grid;
+                grid-template-columns: 170px 1fr;
+                gap: var(--space-2);
+                align-items: center;
+                font-size: var(--size-xs);
+            }
+            .len-bar {
+                height: 22px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                padding: 0 8px;
+                font: 600 var(--size-xs)/1 var(--font-mono);
+            }
+            .len-bar.long {
+                width: 100%;
+                background: color-mix(in srgb, var(--before) 30%, transparent);
+                color: var(--ink);
+            }
+            .len-bar.short {
+                width: calc(11 / 27 * 100%);
+                min-width: 90px;
+                background: var(--accent);
+                color: var(--paper);
+            }
+
+            .bars {
+                display: grid;
+                gap: var(--space-3);
+            }
+            .bar-group .bar-title {
+                font-size: var(--size-sm);
+                font-weight: 700;
+                margin: 0 0 6px;
+                display: flex;
+                justify-content: space-between;
+                gap: var(--space-2);
+                flex-wrap: wrap;
+            }
+            .bar-group .bar-title em {
+                font-style: normal;
+                color: var(--accent);
+                font-variant-numeric: tabular-nums;
+            }
+            .bar {
+                display: grid;
+                grid-template-columns: 52px 1fr;
+                gap: 8px;
+                align-items: center;
+                font: var(--size-xs)/1 var(--font-mono);
+                margin-bottom: 4px;
+            }
+            .bar-fill {
+                height: 16px;
+                border-radius: 3px;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                padding-right: 6px;
+                font-size: 11px;
+                font-variant-numeric: tabular-nums;
+            }
+            .bar-fill.b {
+                background: color-mix(in srgb, var(--before) 45%, transparent);
+                color: var(--ink);
+            }
+            .bar-fill.a {
+                background: var(--accent);
+                color: var(--paper);
+            }
+
+            .flow {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: var(--space-2);
+                counter-reset: flow;
+            }
+            .flow div {
+                border: 1px solid var(--rule);
+                border-radius: 8px;
+                padding: var(--space-3);
+                background: var(--paper);
+                font-size: var(--size-sm);
+            }
+            .flow div::before {
+                counter-increment: flow;
+                content: counter(flow);
+                display: inline-grid;
+                place-items: center;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: var(--accent);
+                color: var(--paper);
+                font: 700 12px/1 var(--font-mono);
+                margin-bottom: 6px;
+            }
+            .flow b {
+                display: block;
+                margin-bottom: 2px;
+            }
+
+            .presets {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: var(--space-2);
+            }
+            .preset {
+                border: 1px solid var(--rule);
+                border-radius: 8px;
+                padding: var(--space-3);
+                background: var(--paper);
+            }
+            .preset .preset-name {
+                font-family: var(--font-mono);
+                font-size: var(--size-sm);
+                font-weight: 700;
+                color: var(--ink);
+                margin: 0;
+            }
+            .preset p {
+                font-size: var(--size-xs);
+                color: var(--ink-soft);
+                margin: 4px 0 8px;
+            }
+            .dots {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 3px;
+            }
+            .dots i {
+                width: 9px;
+                height: 9px;
+                border-radius: 2px;
+                background: var(--accent);
+                display: inline-block;
+            }
+            .dots i.n {
+                background: transparent;
+                border: 1.5px solid var(--accent);
+            }
+            .dots i.x {
+                background: color-mix(in srgb, var(--before) 30%, transparent);
+            }
+
+            /* ---------- Fixes ---------- */
+            .fixes {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                gap: var(--space-3);
+            }
+            .fix {
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+                padding: var(--space-4);
+            }
+            .fix .gone {
+                font: 600 var(--size-xs)/1.3 var(--font-mono);
+                color: var(--before);
+                text-decoration: line-through;
+                margin-bottom: var(--space-2);
+                display: block;
+            }
+            .fix h3 {
+                font-size: var(--size-md);
+                margin-bottom: var(--space-2);
+            }
+            .fix p {
+                font-size: var(--size-sm);
+                margin: 0;
+            }
+            .tradeoff {
+                margin-top: var(--space-4);
+                border: 1px dashed var(--flag);
+                border-radius: var(--radius);
+                padding: var(--space-4);
+                background: var(--surface);
+            }
+            .tradeoff h3 {
+                color: var(--flag);
+                font-size: var(--size-md);
+                margin-bottom: var(--space-2);
+            }
+            .tradeoff ul {
+                margin: 0;
+                padding-left: 20px;
+                font-size: var(--size-sm);
+            }
+            .tradeoff li {
+                margin-bottom: 6px;
+            }
+
+            /* ---------- Technical (collapsed) ---------- */
+            details.tech {
+                background: var(--surface);
+                border: 1px solid var(--rule);
+                border-radius: var(--radius);
+                margin-top: var(--space-3);
+            }
+            details.tech > summary {
+                cursor: pointer;
+                list-style: none;
+                padding: var(--space-3) var(--space-4);
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: var(--space-3);
+                font-weight: 600;
+            }
+            details.tech > summary::-webkit-details-marker {
+                display: none;
+            }
+            details.tech > summary::after {
+                content: '+';
+                font: 400 22px/1 var(--font-mono);
+                color: var(--ink-soft);
+            }
+            details.tech[open] > summary::after {
+                content: '−';
+            }
+            details.tech > summary small {
+                font-weight: 400;
+                color: var(--ink-soft);
+                font-size: var(--size-sm);
+            }
+            .tech-body {
+                padding: 0 var(--space-4) var(--space-4);
+            }
+            .tech-body ul {
+                padding-left: 20px;
+                margin: 0;
+            }
+            .tech-body li {
+                margin-bottom: 6px;
+                font-size: var(--size-sm);
+            }
+            .scroll {
+                overflow-x: auto;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                font-size: var(--size-sm);
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 8px 10px;
+                border-bottom: 1px solid var(--rule);
+                vertical-align: top;
+            }
+            th {
+                font: 600 var(--size-xs)/1.3 var(--font-mono);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--ink-soft);
+            }
+            td.num {
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .v {
+                font: 600 11px/1 var(--font-mono);
+                padding: 3px 6px;
+                border-radius: 4px;
+                white-space: nowrap;
+            }
+            .v-ok {
+                background: var(--accent-soft);
+                color: var(--accent);
+            }
+            .v-ahead {
+                background: var(--flag-soft);
+                color: var(--flag);
+            }
+            .mini {
+                display: inline-block;
+                height: 8px;
+                border-radius: 2px;
+                background: var(--accent);
+                vertical-align: middle;
+            }
+            .mini.del {
+                background: var(--before);
+            }
+
+            footer {
+                margin-top: var(--space-6);
+                padding-top: var(--space-4);
+                border-top: 2px solid var(--ink);
+                font-size: var(--size-sm);
+                color: var(--ink-soft);
+                display: grid;
+                gap: 6px;
+            }
+            footer code {
+                font-size: var(--size-xs);
+            }
+
+            /* ---------- Responsive ---------- */
+            @media (max-width: 860px) {
+                .feature,
+                .pair {
+                    grid-template-columns: 1fr;
+                }
+                .feature .visual {
+                    order: 0;
+                }
+                .board-head {
+                    display: none;
+                }
+                .board-row {
+                    grid-template-columns: 1fr;
+                    gap: var(--space-2);
+                }
+                .board-label {
+                    display: block;
+                }
+                .tiers,
+                .presets,
+                .flow {
+                    grid-template-columns: 1fr;
+                }
+                .len {
+                    grid-template-columns: 1fr;
+                }
+            }
+            @media (prefers-reduced-motion: no-preference) {
+                .toc a,
+                .card {
+                    transition: border-color 0.15s ease;
+                }
+            }
+            @media print {
+                :root {
+                    --paper: #fff;
+                    --surface: #fff;
+                }
+                .toc,
+                .skip {
+                    display: none;
+                }
+                details.tech {
+                    break-inside: avoid;
+                }
+                details.tech > .tech-body {
+                    display: block;
+                }
+                section,
+                .feature,
+                .fix,
+                .board-row {
+                    break-inside: avoid;
+                }
+                .mock pre {
+                    white-space: pre-wrap;
+                }
+                a {
+                    color: inherit;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <a class="skip" href="#main">Skip to content</a>
+        <div class="page">
+            <!-- §1 Header -->
+            <header class="masthead">
+                <div class="masthead-top">
+                    <span>easy-claude</span><span aria-hidden="true">·</span> <span>Release d0e5d0cc</span><span aria-hidden="true">·</span>
+                    <time datetime="2026-09-25">25 Sep 2026</time>
+                    <span class="badge badge-draft">Status: Draft</span>
+                </div>
+                <h1>Lighter, quieter, and still gated.</h1>
+                <p class="lede">
+                    Workflows now fit the size of the job. Big ones wait for you to ask. Skill files are about 40% smaller. Everything the framework used to do on
+                    its own now has a project switch. None of the quality gates were dropped.
+                </p>
+                <div class="tally" role="list" aria-label="What changed for you">
+                    <div role="listitem" class="t-flag"><b>6</b><span>defaults changed — check these</span></div>
+                    <div role="listitem"><b>11</b><span>new things you can do</span></div>
+                    <div role="listitem"><b>5</b><span>improvements you'll feel</span></div>
+                    <div role="listitem"><b>3</b><span>annoyances fixed</span></div>
+                </div>
+                <div class="hosts" aria-label="Hosts covered">
+                    <span class="host">Claude Code</span><span class="host">Codex</span><span class="host">OpenCode</span>
+                </div>
+            </header>
+
+            <nav class="toc" aria-label="Sections">
+                <a href="#action" class="toc-flag">⚠ Action required</a>
+                <a href="#glance">At a glance</a>
+                <a href="#new">What's new</a>
+                <a href="#changed">What changed</a>
+                <a href="#fixes">Fixes</a>
+                <a href="#technical">Technical detail</a>
+            </nav>
+
+            <main id="main">
+                <!-- §3 Action required (rendered first per R6.2) -->
+                <section id="action" class="action" aria-labelledby="action-h">
+                    <div class="section-head">
+                        <div class="eyebrow">Read this first</div>
+                        <h2 id="action-h">⚠ Six defaults changed</h2>
+                        <p>If your team relied on any of these, it will notice. Each change has a one-line way back.</p>
+                    </div>
+                    <div class="board">
+                        <div class="board-row board-head" aria-hidden="true"><span>What</span><span>Default</span><span>To keep the old behaviour</span></div>
+
+                        <div class="board-row">
+                            <div>
+                                <h3>Big workflows wait for you to ask</h3>
+                                <p>
+                                    Four big planning workflows (big feature, greenfield setup, idea-to-backlog, spec-to-backlog) are never started by the assistant on its own. The feature workflow is proposed, then the
+                                    assistant asks once.
+                                </p>
+                                <div class="chips"><span class="chip">d0e5d0cc • .claude/workflows.json:7,351,593,831,1622</span></div>
+                            </div>
+                            <div>
+                                <span class="board-label">Default</span>
+                                <div class="shift">
+                                    <span class="pill pill-before">auto-start</span><span class="arrow" aria-hidden="true">→</span
+                                    ><span class="pill pill-after">manual / confirm</span>
+                                </div>
+                            </div>
+                            <div class="keep">
+                                <span class="board-label">Keep old</span><code>portability.workflowActivation.overrides</code> →
+                                <code>{"workflow-feature":"auto"}</code>
+                            </div>
+                        </div>
+
+                        <div class="board-row">
+                            <div>
+                                <h3>15 utility skills run only when you type them</h3>
+                                <p>
+                                    Help, exporters, generators and maintenance skills are no longer picked by the assistant. <code>/commit</code> and
+                                    <code>/learn</code> are unchanged.
+                                </p>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/skills/ck-help/SKILL.md:5</span><span class="chip">flagged skills 3 → 22</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="board-label">Default</span>
+                                <div class="shift">
+                                    <span class="pill pill-before">assistant may pick</span><span class="arrow" aria-hidden="true">→</span
+                                    ><span class="pill pill-after">/name only</span>
+                                </div>
+                            </div>
+                            <div class="keep">
+                                <span class="board-label">Keep old</span>Type <code>/ck-help</code>, <code>/pdf-convert</code>… (<code>$name</code> on Codex).
+                                Run <code>/sync-codex</code> and <code>/sync-opencode</code>.
+                            </div>
+                        </div>
+
+                        <div class="board-row">
+                            <div>
+                                <h3>Code graph stays off unless you chose it</h3>
+                                <p>No Python install, no background process and no “graph not built” reminder unless your project already has a graph.</p>
+                                <div class="chips"><span class="chip">d0e5d0cc • .claude/hooks/lib/graph-utils.cjs:752-760</span></div>
+                            </div>
+                            <div>
+                                <span class="board-label">Default</span>
+                                <div class="shift">
+                                    <span class="pill pill-before">always installs</span><span class="arrow" aria-hidden="true">→</span
+                                    ><span class="pill pill-after">auto</span>
+                                </div>
+                            </div>
+                            <div class="keep">
+                                <span class="board-label">Keep old</span><code>hooks.codeGraph.enabled: "on"</code>, or run <code>/graph-build</code> once
+                            </div>
+                        </div>
+
+                        <div class="board-row">
+                            <div>
+                                <h3>No forced 500K compaction point</h3>
+                                <p>Each host compacts at its own default again, and a limit you set yourself is no longer overridden.</p>
+                                <div class="chips"><span class="chip">89d0aaaa • .claude/settings.json:20</span><span class="chip">TC-ADS-034..039</span></div>
+                            </div>
+                            <div>
+                                <span class="board-label">Default</span>
+                                <div class="shift">
+                                    <span class="pill pill-before">500K pinned</span><span class="arrow" aria-hidden="true">→</span
+                                    ><span class="pill pill-after">host default</span>
+                                </div>
+                            </div>
+                            <div class="keep">
+                                <span class="board-label">Keep old</span><code>/autocompact 500k</code> or <code>.claude/settings.local.json</code>
+                            </div>
+                        </div>
+
+                        <div class="board-row">
+                            <div>
+                                <h3>No more <code>Fix-Origin:</code> line in commits</h3>
+                                <p>
+                                    Commits made with <code>/commit</code> no longer carry the trailer unless your project turns it on. It applies to new
+                                    commits only.
+                                </p>
+                                <div class="chips"><span class="chip">d0e5d0cc • .claude/skills/commit/SKILL.md:409-416</span></div>
+                            </div>
+                            <div>
+                                <span class="board-label">Default</span>
+                                <div class="shift">
+                                    <span class="pill pill-before">required</span><span class="arrow" aria-hidden="true">→</span
+                                    ><span class="pill pill-after">off</span>
+                                </div>
+                            </div>
+                            <div class="keep"><span class="board-label">Keep old</span><code>"commit": {"fixOriginTrailer": true}</code></div>
+                        </div>
+
+                        <div class="board-row">
+                            <div>
+                                <h3>Codex: approve the new hooks once</h3>
+                                <p>
+                                    Codex runs new hooks only after you trust them. Until then, rules still reach the model, but it has to read them from file.
+                                </p>
+                                <div class="chips"><span class="chip">docs/adr/0004-protocol-delivery-hybrid.md:78,118</span></div>
+                            </div>
+                            <div>
+                                <span class="board-label">Default</span>
+                                <div class="shift">
+                                    <span class="pill pill-before">no such hooks</span><span class="arrow" aria-hidden="true">→</span
+                                    ><span class="pill pill-after">awaiting approval</span>
+                                </div>
+                            </div>
+                            <div class="keep">
+                                <span class="board-label">What to do</span>Open <code>/hooks</code> in Codex and approve the new hook entries (19 of them: six rule-delivery handlers on three events each, plus the token checkpoint).
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- §2 At a glance -->
+                <section id="glance" aria-labelledby="glance-h">
+                    <div class="section-head">
+                        <h2 id="glance-h">Four things you will notice</h2>
+                    </div>
+                    <div class="glance">
+                        <article class="card">
+                            <div class="big">−40<small>%</small></div>
+                            <h3>Skill files are lighter</h3>
+                            <p>Shared rules are sent once per session instead of being repeated inside every skill.</p>
+                            <a href="#c1">See the numbers</a>
+                        </article>
+                        <article class="card">
+                            <div class="big">11<small> vs 27 steps</small></div>
+                            <h3>A lean route when the spec is written</h3>
+                            <p><code>/workflow-implement-spec</code> builds what your spec already says and keeps every quality gate.</p>
+                            <a href="#n3">See the route</a>
+                        </article>
+                        <article class="card">
+                            <div class="big">20<small> workflows</small></div>
+                            <h3>Each with a goal and fixed gates</h3>
+                            <p>Steps that can never be skipped are marked. The others can flex to fit the job, and every skip is logged.</p>
+                            <a href="#n1">See a run</a>
+                        </article>
+                        <article class="card">
+                            <div class="big">500K</div>
+                            <h3>A check-in before cost runs away</h3>
+                            <p>Long sessions pause for a short progress report at each 500,000 tokens. You can change the step or turn it off.</p>
+                            <a href="#n5">See the check-in</a>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- §4 What's New -->
+                <section id="new" aria-labelledby="new-h">
+                    <div class="section-head">
+                        <h2 id="new-h">New things you can do</h2>
+                        <p>Grouped by what you are trying to get done.</p>
+                    </div>
+
+                    <div class="theme">
+                        <div class="theme-title">
+                            <h3>Workflows that fit the job</h3>
+                        </div>
+
+                        <article class="feature" id="n1">
+                            <div class="visual">
+                                <div
+                                    class="mock"
+                                    role="img"
+                                    aria-label="Task list of a bug-fix run: gate steps marked, one optional step skipped with a logged reason"
+                                >
+                                    <div class="mock-bar"><i></i><i></i><i></i><span>Task list · /workflow-bugfix</span></div>
+                                    <pre><span class="hi">✔</span> [Workflow] <span class="warn">[gate]</span> debug-investigate — trace the defect end to start
+<span class="hi">✔</span> [Workflow] [core] spec [mode=amend] — add the missing case
+<span class="hi">✔</span> [Workflow] [core] plan — fix approach
+<span class="hi">✔</span> [Workflow] [core] fix — change at the owner
+<span class="hi">✔</span> [Workflow] <span class="warn">[gate]</span> integration-test-verify — green run
+<span class="hi">✔</span> [Workflow] <span class="warn">[gate]</span> workflow-review-changes — converged
+<span class="dim">↷ [Workflow] [optional] demo-guide — Skipped — when-false</span>
+<span class="dim">  …</span>
+<span class="hi">▶</span> [Workflow] <span class="warn">[gate]</span> workflow-end — check evidence, close
+
+<span class="dim">tmp/workflow-runs/&lt;runId&gt;/skips.md</span>
+<span class="delta">bugfix-demo-guide · when-false · no user-facing flow changed</span></pre>
+                                    <div class="mock-label">⚠ Illustrative mock-up — not a live screenshot</div>
+                                </div>
+                                <div class="legend">
+                                    <span><i class="sw gate"></i>gate: always runs</span><span><i class="sw"></i>core: recommended</span
+                                    ><span><i class="sw opt"></i>optional: runs when its condition holds</span>
+                                </div>
+                            </div>
+                            <div class="feature-body">
+                                <span class="tag tag-changed">Changed</span>
+                                <h3>Every workflow states its goal and marks what cannot be skipped</h3>
+                                <p>
+                                    Each workflow now opens with a one-sentence goal and the results it must prove: tests pass, the review converged, the spec
+                                    is synced when behaviour changed, the root cause is traced for bugs, and the run closed. Steps in your task list carry a
+                                    tag.
+                                </p>
+                                <ul>
+                                    <li><b>Gate</b> steps always run.</li>
+                                    <li><b>Core</b> and <b>optional</b> steps may be skipped, merged or reordered when the goal allows it.</li>
+                                    <li>Every deviation writes one line with its reason to the run's skip log, so you can see what was cut.</li>
+                                </ul>
+                                <p>The bug-fix workflow, for example, has 4 gate steps, 9 core steps and 2 optional steps.</p>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/skills/start-workflow/SKILL.md:198,258-265</span
+                                    ><span class="chip">.claude/workflows.schema.json</span><span class="chip">TC-GWF-001..005, 068</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="feature solo" id="n2">
+                            <div class="feature-body">
+                                <span class="tag tag-changed">Changed</span>
+                                <h3>A run can't close without proof</h3>
+                                <p>
+                                    The closing step first checks evidence for every required result. If any is missing, the run stays open, and you are told
+                                    which result is missing and which step produces it. For the review, a cited review report is accepted when no receipt
+                                    exists. The close message flags a report that is out of date or not converged, and reminds you that a commit still needs the
+                                    receipt.
+                                </p>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/skills/workflow-end/SKILL.md:57</span><span class="chip">TC-GWF-007, 042</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="feature" id="n3">
+                            <div class="visual">
+                                <div class="pipe" role="list" aria-label="The eleven steps of workflow-implement-spec">
+                                    <span class="step" role="listitem">investigate</span>
+                                    <span class="step" role="listitem">spec-clarify<small>gap check</small></span>
+                                    <span class="step" role="listitem">plan</span>
+                                    <span class="step" role="listitem">plan-execute</span>
+                                    <span class="step opt" role="listitem">spec sync<small>if behaviour differs</small></span>
+                                    <span class="step" role="listitem">integration-test</span>
+                                    <span class="step gate" role="listitem">integration-test-verify<small>gate</small></span>
+                                    <span class="step gate" role="listitem">workflow-review-changes<small>gate</small></span>
+                                    <span class="step gate" role="listitem">test<small>gate</small></span>
+                                    <span class="step gate" role="listitem">workflow-end<small>gate</small></span>
+                                    <span class="step" role="listitem">watzup</span>
+                                </div>
+                                <div class="legend">
+                                    <span><i class="sw gate"></i>gate</span><span><i class="sw"></i>core</span><span><i class="sw opt"></i>optional</span>
+                                </div>
+                                <div class="lengths" aria-label="Route length comparison">
+                                    <div class="len">
+                                        <span>/workflow-feature</span>
+                                        <div class="len-bar long">27 steps</div>
+                                    </div>
+                                    <div class="len">
+                                        <span>/workflow-implement-spec</span>
+                                        <div class="len-bar short">11 steps</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feature-body">
+                                <span class="tag tag-new">New</span>
+                                <h3>Build what your spec already says: <code>/workflow-implement-spec</code></h3>
+                                <p>
+                                    When the behaviour you want is already written in a spec or test-case set, this route skips re-writing the spec and goes
+                                    straight to building it. Tests, review and close still run as gates.
+                                </p>
+                                <p>
+                                    If the gap check finds the spec vague, contradictory or missing what you asked for, it stops before planning. It then asks
+                                    you to clarify, or to switch to the full feature workflow.
+                                </p>
+                                <div class="howto">
+                                    <b>How:</b> <code>/workflow-implement-spec</code>. The assistant can also pick it when the behaviour you ask for is already
+                                    in a spec.
+                                </div>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/workflows.json:486</span
+                                    ><span class="chip">.claude/skills/workflow-implement-spec/SKILL.md</span><span class="chip">TC-GWF-017..022</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="feature solo" id="n4">
+                            <div class="feature-body">
+                                <span class="tag tag-new">New</span>
+                                <h3>Plans stay inside the spec you handed over</h3>
+                                <p>
+                                    When you give <code>/plan</code> a spec, it takes a snapshot of that spec's exact content, even if the file is not committed
+                                    yet. Every planned task must trace back to that snapshot. Anything extra lands in a
+                                    <b>“Proposed additions (need approval)”</b> list for you to decide on. Later review checks against the snapshot, not against
+                                    the spec as it was edited afterwards.
+                                </p>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/skills/plan/SKILL.md:210-218</span
+                                    ><span class="chip">.claude/skills/plan-review/SKILL.md:466-472</span><span class="chip">TC-GWF-023..027</span>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="theme">
+                        <div class="theme-title">
+                            <h3>See and control what a session costs</h3>
+                        </div>
+
+                        <article class="feature" id="n5">
+                            <div class="visual">
+                                <div class="mock" role="img" aria-label="The checkpoint note the assistant receives after passing 500,000 tokens">
+                                    <div class="mock-bar"><i></i><i></i><i></i><span>Note sent to the assistant at a task-list update</span></div>
+                                    <pre
+                                        style="white-space: pre-wrap"
+                                    ><span class="warn">Token checkpoint:</span> this session has used <span class="delta">837,205</span> non-cached
+tokens (input + cache writes + output), passing the 500,000
+checkpoint. Completed steps so far: 1. At this step boundary,
+give the user a short progress report and ask whether to
+continue, unless they already told you to keep going without
+stopping. This note is advisory and blocks nothing.</pre>
+                                    <div class="mock-label">
+                                        ⚠ Illustrative mock-up — not a live screenshot (text from the hook template; numbers from this report's own session)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feature-body">
+                                <span class="tag tag-default">New · on by default</span>
+                                <h3>A progress check-in every 500,000 tokens</h3>
+                                <p>
+                                    Each time a session's non-cached token use crosses another 500,000, the assistant stops at the next step, gives you a short
+                                    progress report and asks whether to go on. It skips the question if you already told it to keep going. Sub-agent work counts
+                                    toward the total. The check-in never blocks anything.
+                                </p>
+                                <div class="howto">
+                                    <b>Tune:</b> <code>hooks.tokenBudget.checkpointTokens</code> (50,000 – 20,000,000) · <b>Off:</b>
+                                    <code>hooks.tokenBudget.enabled: false</code>
+                                </div>
+                                <p style="font-size: var(--size-sm); color: var(--ink-soft)">It fired while this report was being made, at 837,205 tokens.</p>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/hooks/token-budget-checkpoint.cjs:98-104</span
+                                    ><span class="chip">TC-GWF-034..040</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="feature" id="n6">
+                            <div class="visual">
+                                <div class="mock" role="img" aria-label="Usage report output: totals, per-agent split and tool calls">
+                                    <div class="mock-bar">
+                                        <i></i><i></i><i></i><span>$ node .claude/scripts/session-usage-report.cjs --transcript &lt;session&gt;</span>
+                                    </div>
+                                    <pre>Session usage report
+Run
+  input           488
+  cache_creation  722863
+  output          151870
+  <span class="delta">total           875221</span>  <span class="dim">non-cached total (checkpoint metric) = input + cache_creation + output</span>
+  cache_read      27549668  <span class="dim">not in total</span>
+  Agents <span class="dim">(input / cache_creation / cache_read / output / total / skill loads)</span>
+    main      60 / 184202 / 3906538 / 33698 / 217960 / 0
+    agent-1  122 / 159650 / 6563988 / 30111 / 189883 / 0
+    agent-2  138 / 151092 / 8347879 / 35217 / 186447 / 0
+    agent-3   70 /  83206 / 2856349 / 21493 / 104769 / 0
+    agent-4   98 / 144713 / 5874914 / 31351 / 176162 / 0
+  Tool calls
+    Agent 4 · Bash 220 · Read 8 · Write 4 · …</pre>
+                                    <div class="mock-label">
+                                        ⚠ Real output from this report's own session: agent ids shortened, tool list folded onto one line
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="feature-body">
+                                <span class="tag tag-new">New</span>
+                                <h3>See where the tokens went, and compare two runs</h3>
+                                <p>
+                                    An offline command breaks a session's token use down by agent, tool and skill load. It keeps cache reads on their own line,
+                                    outside the total, and can compare two runs with differences and percentages. It shows counts only, never message or command
+                                    text.
+                                </p>
+                                <div class="howto">
+                                    <b>How:</b>
+                                    <code
+                                        >node .claude/scripts/session-usage-report.cjs --transcript &lt;path&gt; [--compare &lt;path&gt;] [--run &lt;runId&gt;]
+                                        [--json]</code
+                                    >
+                                </div>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/scripts/session-usage-report.cjs:8-10</span><span class="chip">TC-GWF-028..033</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="feature" id="n7">
+                            <div class="visual">
+                                <div class="presets" role="list" aria-label="Skill profile presets">
+                                    <div class="preset" role="listitem">
+                                        <p class="preset-name">full</p>
+                                        <p>No change. Every skill is listed.</p>
+                                        <div class="dots" aria-hidden="true">
+                                            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                                        </div>
+                                    </div>
+                                    <div class="preset" role="listitem">
+                                        <p class="preset-name">standard</p>
+                                        <p>Skills that other skills or hooks start are listed by name only.</p>
+                                        <div class="dots" aria-hidden="true">
+                                            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="n"></i><i class="n"></i
+                                            ><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i>
+                                        </div>
+                                    </div>
+                                    <div class="preset" role="listitem">
+                                        <p class="preset-name">minimal</p>
+                                        <p>Only the workflow runner, commit and setup skills stay listed.</p>
+                                        <div class="dots" aria-hidden="true">
+                                            <i></i><i></i><i></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="x"></i
+                                            ><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="n"></i><i class="x"></i
+                                            ><i class="n"></i><i class="n"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="legend">
+                                    <span><i class="sw gate" style="background: var(--accent); border-color: var(--accent)"></i>listed in full</span
+                                    ><span><i class="sw" style="border-color: var(--accent)"></i>name only</span
+                                    >
+                                </div>
+                            </div>
+                            <div class="feature-body">
+                                <span class="tag tag-new">New · opt-in</span>
+                                <h3>Choose how many skills the assistant sees</h3>
+                                <p>
+                                    A team-level skill profile trims the skill list the model reads, which saves context and cuts wrong picks. Start from a
+                                    preset, then add per-skill <code>nameOnly</code>, <code>commandOnly</code> or <code>off</code> lists. Skills that workflows,
+                                    agents or hooks depend on are protected unless you explicitly allow hiding them. The same profile applies on Claude Code,
+                                    Codex and OpenCode.
+                                </p>
+                                <div class="howto">
+                                    <b>How:</b> add <code>skillProfile</code> to <code>docs/project-config.json</code>, then run
+                                    <code>node .claude/scripts/sync-skill-profile.cjs</code> (<code>--check</code> previews without writing).
+                                </div>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/config/skill-profiles.json</span
+                                    ><span class="chip">.claude/hooks/lib/project-config-schema.cjs:965-998</span><span class="chip">TC-ADS-016..024</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="feature solo" id="n8">
+                            <div class="feature-body">
+                                <span class="tag tag-new">New</span>
+                                <h3>Run one session with the whole framework switched off</h3>
+                                <p>
+                                    You can start a plain Claude Code session, with no hooks, project instructions or skills, without touching the framework's
+                                    folder. The next normal session is back to full. A new <b>Adopter quick settings</b> table lists every lightness switch in
+                                    one place, including the per-host opt-outs for Codex and OpenCode.
+                                </p>
+                                <div class="mock" role="img" aria-label="Command to start a session without the framework">
+                                    <div class="mock-bar"><i></i><i></i><i></i><span>terminal</span></div>
+                                    <pre>$ claude --settings .claude/config/vanilla-settings.json --disable-slash-commands</pre>
+                                    <div class="mock-label">⚠ Illustrative mock-up — not a live screenshot</div>
+                                </div>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/config/vanilla-settings.json:1-9</span
+                                    ><span class="chip">.claude/config/README.md:18-48</span>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="theme">
+                        <div class="theme-title">
+                            <h3>Reports and project context</h3>
+                        </div>
+
+                        <article class="feature" id="n9">
+                            <div class="visual">
+                                <div class="flow" role="list" aria-label="What the session wrap-up now does">
+                                    <div role="listitem"><b>Covers the whole session</b>Uncommitted changes plus this session's commits.</div>
+                                    <div role="listitem"><b>Leads with a summary</b>Done · Key changes · Why · How it works.</div>
+                                    <div role="listitem"><b>Opens the report</b>A self-contained HTML page in your viewer, with the path posted in chat.</div>
+                                </div>
+                                <div class="mock" style="margin-top: var(--space-3)" role="img" aria-label="Opener messages">
+                                    <div class="mock-bar"><i></i><i></i><i></i><span>terminal</span></div>
+                                    <pre>Report: tmp/reports/watzup-260925-1432-guided-workflow.html <span class="hi">(opened)</span>
+Report: tmp/reports/watzup-260925-1432-guided-workflow.html <span class="dim">(not opened: CI is set)</span></pre>
+                                    <div class="mock-label">⚠ Illustrative mock-up — not a live screenshot (file name illustrative)</div>
+                                </div>
+                            </div>
+                            <div class="feature-body">
+                                <span class="tag tag-changed">Changed</span>
+                                <h3><code>/watzup</code> now hands you a readable report</h3>
+                                <p>
+                                    The wrap-up at the end of most workflows now writes an HTML session report and opens it. It only opens report files inside
+                                    the project's temp folder. It never opens anything in CI, when auto-open is disabled, or on a machine without a display. The
+                                    deep code walkthrough now runs only for large code changes, or when you ask for it.
+                                </p>
+                                <div class="howto"><b>Disable auto-open:</b> <code>CK_NO_AUTO_OPEN=1</code></div>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/skills/watzup/SKILL.md:25,61,208-215</span
+                                    ><span class="chip">.claude/scripts/open-report.cjs:41-43</span><span class="chip">TC-GWF-063..067</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="feature" id="n10">
+                            <div class="visual">
+                                <div class="pair">
+                                    <div>
+                                        <div class="pair-cap before">Before · on any read</div>
+                                        <div class="mock">
+                                            <pre><span class="warn">MUST</span> read first: &lt;convention docs&gt;</pre>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="pair-cap after">After · on a read</div>
+                                        <div class="mock delta">
+                                            <pre>
+If you will edit this file,
+read first: &lt;convention docs&gt;</pre
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                                <p style="font-size: var(--size-xs); color: var(--ink-soft); margin-top: 6px">
+                                    ⚠ Illustrative mock-up: wording paraphrased from the delivery rules. The first edit still delivers the mandatory form.
+                                </p>
+                            </div>
+                            <div class="feature-body">
+                                <span class="tag tag-new">New</span>
+                                <h3>Per-file rules fire on read, edit, or both</h3>
+                                <p>
+                                    Each path rule group can now say when it applies. When a reminder appears only because a file was read, it is worded as
+                                    advice. The first real edit then delivers the full mandatory version once. Existing configs behave as before.
+                                </p>
+                                <div class="howto">
+                                    <b>How:</b> <code>"on": "edit"</code> (or <code>"read"</code> / <code>"both"</code>) on a <code>contextGroups[]</code> entry
+                                </div>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/hooks/lib/file-conventions.cjs:378-389,527</span
+                                    ><span class="chip">TC-PFCI-086..089</span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="feature solo" id="n11">
+                            <div class="feature-body">
+                                <span class="tag tag-new">New · opt-in</span>
+                                <h3>A shorter project instruction file, if you want one</h3>
+                                <p>
+                                    Turn off inlining of path rules and the generated project instruction file lists only the rule-group names plus a lookup
+                                    command. The full rules still arrive when a matching file is touched. If it isn't safe to do so, the rules stay inline and
+                                    the refresh prints a warning naming the reason.
+                                </p>
+                                <div class="howto">
+                                    <b>How:</b> <code>"portability": {"inlinePathRules": false}</code>, then <code>/ai-context-refresh</code>
+                                </div>
+                                <div class="chips">
+                                    <span class="chip">d0e5d0cc • .claude/skills/ai-context-refresh/scripts/section-builders.cjs:244,301</span
+                                    ><span class="chip">TC-PFCI-083..085</span>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- §5 What Changed -->
+                <section id="changed" aria-labelledby="changed-h">
+                    <div class="section-head">
+                        <h2 id="changed-h">Things that work better now</h2>
+                    </div>
+
+                    <article class="feature" id="c1">
+                        <div class="visual">
+                            <div class="bars" aria-label="Skill file sizes before and after, in megabytes">
+                                <div class="bar-group">
+                                    <p class="bar-title">119 skills that moved to delivered rules <em>−39.6%</em></p>
+                                    <div class="bar">
+                                        <span>before</span>
+                                        <div class="bar-fill b" style="width: 87%">7.19 MB</div>
+                                    </div>
+                                    <div class="bar">
+                                        <span>after</span>
+                                        <div class="bar-fill a" style="width: 52.6%">4.34 MB</div>
+                                    </div>
+                                </div>
+                                <div class="bar-group">
+                                    <p class="bar-title">All 124 existing skills <em>−36.0%</em></p>
+                                    <div class="bar">
+                                        <span>before</span>
+                                        <div class="bar-fill b" style="width: 100%">8.25 MB</div>
+                                    </div>
+                                    <div class="bar">
+                                        <span>after</span>
+                                        <div class="bar-fill a" style="width: 64%">5.28 MB</div>
+                                    </div>
+                                </div>
+                                <div class="bar-group">
+                                    <p class="bar-title">Biggest single cuts</p>
+                                    <div class="bar">
+                                        <span>−67%</span>
+                                        <div class="bar-fill a" style="width: 67%">workflow-visualize</div>
+                                    </div>
+                                    <div class="bar">
+                                        <span>−65%</span>
+                                        <div class="bar-fill a" style="width: 65%">production-readiness-review</div>
+                                    </div>
+                                    <div class="bar">
+                                        <span>−64%</span>
+                                        <div class="bar-fill a" style="width: 64%">architecture-review-full</div>
+                                    </div>
+                                </div>
+                                <div class="bar-group">
+                                    <p class="bar-title">Codex copy of the same 124 skills <em>−30.5%</em></p>
+                                    <div class="bar">
+                                        <span>before</span>
+                                        <div class="bar-fill b" style="width: 100%">11.11 MB</div>
+                                    </div>
+                                    <div class="bar">
+                                        <span>after</span>
+                                        <div class="bar-fill a" style="width: 69.5%">7.72 MB</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="feature-body">
+                            <span class="tag tag-changed">Improved</span>
+                            <h3>Skills are about 40% smaller, and shared rules are sent once</h3>
+                            <p>
+                                Skills used to repeat every shared rule inside themselves, so loading three skills paid for the same rules three times. Now each
+                                skill carries a one-line pointer per rule. The full text arrives once per session, when the first skill that needs it loads. If
+                                that delivery is ever missed, the pointer names the file to read, so no rule goes silent.
+                            </p>
+                            <ul>
+                                <li>
+                                    The biggest saving comes on the <b>second and later</b> skill loads in a session. The first load is only about 5–14%
+                                    lighter, because the rules still arrive that time.
+                                </li>
+                                <li>
+                                    The five review skills keep every rule written inline, so reviews never depend on delivery. They still shrank 11.6%, because
+                                    mode-only sections now load on demand.
+                                </li>
+                            </ul>
+                            <div class="chips">
+                                <span class="chip">git ls-tree -l 89d0aaaa vs d0e5d0cc</span><span class="chip">docs/adr/0004-protocol-delivery-hybrid.md</span
+                                ><span class="chip">TC-PDL-009..019</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="feature" id="c2">
+                        <div class="visual">
+                            <div class="pair">
+                                <div>
+                                    <div class="pair-cap before">Before</div>
+                                    <div class="mock">
+                                        <pre>Ask the user to choose a review option
+below in order (option 1 is recommended)
+
+  1. /workflow-review-changes --fix-loop
+     <span class="warn">(Recommended)</span>
+  2. /changes-review --fix-loop
+  3. /why-review --fix-loop</pre>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="pair-cap after">After</div>
+                                    <div class="mock delta">
+                                        <pre>recommend ONE by … (size and risk;
+heavier on a tie)
+
+  1. /why-review --fix-loop
+     <span class="hi"># use when: docs/config/comments,
+     # or a small module, no behaviour change</span>
+  2. /changes-review --fix-loop
+     <span class="hi"># use when: a focused behaviour
+     # change in one module</span>
+  3. /workflow-review-changes --fix-loop
+     <span class="hi"># use when: cross-module/contract, security,
+     # data, gates, deps, UI, large diff</span></pre>
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="font-size: var(--size-xs); color: var(--ink-soft); margin-top: 6px">
+                                ⚠ Illustrative mock-up: excerpts of the real commit-block text, wrapped to fit. The highlighted panel is the new version.
+                            </p>
+                        </div>
+                        <div class="feature-body">
+                            <span class="tag tag-changed">Improved</span>
+                            <h3>A blocked commit suggests a review sized to your change</h3>
+                            <p>
+                                When a commit is blocked because nothing reviewed it, the heaviest multi-agent review is no longer the automatic choice. The
+                                three reviews are listed lightest first, each with a “use when” hint, and the assistant recommends exactly one based on the size
+                                and risk of the change. A docs-only commit no longer defaults to the full review.
+                            </p>
+                            <div class="chips">
+                                <span class="chip">89d0aaaa • .claude/hooks/review-commit-gate.cjs:272-276</span
+                                ><span class="chip">d0e5d0cc • .claude/hooks/review-commit-gate.cjs:271-277</span><span class="chip">REQ-GUARD-03</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div class="fixes" style="margin-top: var(--space-3)">
+                        <article class="fix" id="c3">
+                            <span class="tag tag-changed">Improved</span>
+                            <h3>Routing guidance is never cut off</h3>
+                            <p>
+                                The workflow reminder sent with each prompt now stays under 9,500 characters, so the host no longer truncates it. If you turned
+                                automatic routing off, the assistant now gets a clear “off” notice. Before, the reminder just stopped and older instructions
+                                still said to auto-select.
+                            </p>
+                            <div class="chips">
+                                <span class="chip">d0e5d0cc • .claude/hooks/workflow-route-inject.cjs:52</span><span class="chip">TC-WFR-001..005</span>
+                            </div>
+                        </article>
+                        <article class="fix" id="c4">
+                            <span class="tag tag-changed">Improved</span>
+                            <h3>Fewer surprise skill pickups</h3>
+                            <p>
+                                61 skills that serve as workflow steps now describe themselves as “Use when a workflow step or the user asks for …”, so a
+                                loosely related prompt is less likely to start one. Typing <code>/plan</code> or <code>/test</code> works exactly as before.
+                            </p>
+                            <div class="chips">
+                                <span class="chip">d0e5d0cc • .claude/skills/test/SKILL.md (description)</span><span class="chip">TC-ADS-032</span>
+                            </div>
+                        </article>
+                        <article class="fix" id="c5">
+                            <span class="tag tag-changed">Improved</span>
+                            <h3>Graph tooling installs once per machine</h3>
+                            <p>
+                                Projects with the same code-graph needs now share one Python environment in your user cache, so a new checkout skips the
+                                install. Two sessions starting together no longer install over each other.
+                            </p>
+                            <div class="chips">
+                                <span class="chip">d0e5d0cc • .claude/hooks/lib/graph-utils.cjs:103-195</span><span class="chip">TC-ADS-028..031</span>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- §6 Fixes -->
+                <section id="fixes" aria-labelledby="fixes-h">
+                    <div class="section-head">
+                        <h2 id="fixes-h">Annoyances that are gone</h2>
+                    </div>
+                    <div class="fixes">
+                        <article class="fix">
+                            <span class="gone">An alert every time a helper agent finished</span>
+                            <h3>One “turn complete” alert per finished job</h3>
+                            <p>
+                                Desktop and chat alerts now fire once, when the main conversation really finishes, not once per background agent. Questions to
+                                you still alert right away.
+                            </p>
+                            <div class="chips">
+                                <span class="chip">d0e5d0cc • .claude/hooks/notifications/notify.cjs:95,153-166</span><span class="chip">TC-NT-014</span>
+                            </div>
+                        </article>
+                        <article class="fix">
+                            <span class="gone">Duplicate alerts on Codex</span>
+                            <h3>Codex alerts once</h3>
+                            <p>
+                                The old extra notify command that ran after every Codex turn is removed on the next sync, but only if it is exactly what the
+                                framework wrote. A notify command you set yourself is kept.
+                            </p>
+                            <div class="chips"><span class="chip">d0e5d0cc • .claude/scripts/codex/migrate-claude-to-codex.mjs:329,357</span></div>
+                        </article>
+                        <article class="fix">
+                            <span class="gone">OpenCode prompts rejected by added context</span>
+                            <h3>OpenCode prompts go through</h3>
+                            <p>
+                                Context the framework adds to your OpenCode prompt now carries the identifiers OpenCode requires, so your prompt is no longer
+                                rejected. After a compaction, rules are sent again on the next skill load.
+                            </p>
+                            <div class="chips">
+                                <span class="chip">d0e5d0cc • .claude/scripts/opencode/templates/easy-claude-hooks.js.tmpl:79,163,332</span
+                                ><span class="chip">TC-PDL-015, 068</span>
+                            </div>
+                        </article>
+                    </div>
+
+                    <aside class="tradeoff" aria-labelledby="trade-h">
+                        <h3 id="trade-h">Known trade-offs</h3>
+                        <ul>
+                            <li>
+                                <b>Codex shell commands are a little slower.</b> Six quick-exit checks run on each shell call, about 1.5 s median on the test
+                                machine. This was measured once on Windows 11 and has not been re-measured.
+                            </li>
+                            <li>
+                                <b>The token check-in and usage report read Claude Code sessions only.</b> On Codex and OpenCode the check-in most likely stays
+                                silent.
+                            </li>
+                            <li>
+                                <b>Rule-following after the new delivery has not been scored yet.</b> Tests show the rules are delivered. The before/after
+                                compliance review is scheduled but has not run.
+                            </li>
+                            <li><b>No saving is claimed yet for the lean route.</b> Its token cost has not been measured against the full route.</li>
+                        </ul>
+                    </aside>
+                </section>
+
+                <!-- §7–§9 Technical view -->
+                <section id="technical" aria-labelledby="tech-h">
+                    <div class="section-head">
+                        <h2 id="tech-h">Technical detail</h2>
+                        <p>Collapsed by default. Nothing you need to act on lives only here.</p>
+                    </div>
+
+                    <details class="tech">
+                        <summary>Under the hood <small>9 internal changes</small></summary>
+                        <div class="tech-body">
+                            <ul>
+                                <li>
+                                    Shared protocol text has a single owner and is generated into 100 files (97 tags) by
+                                    <code>.claude/scripts/build-protocol-projection.cjs</code>; <code>--check</code> fails when stale.
+                                </li>
+                                <li>
+                                    Six grouped delivery hooks (<code>protocol-inject-*.cjs</code>) with a per-session delivery ledger that re-arms after
+                                    compaction; 9,500-char bins.
+                                </li>
+                                <li>Fix-loop modes and why-review full mode moved to on-demand reference files; semantics unchanged.</li>
+                                <li>23 agent definitions recompressed; 10 gain a graph-assisted-investigation reminder.</li>
+                                <li><code>.claude/scripts/line_endings.py</code> preserves LF/CRLF for 16 Python block injectors.</li>
+                                <li>Framework-repo test guard so self-check rows skip in adopting projects.</li>
+                                <li>Count-drift markers added to README and 6 framework docs.</li>
+                                <li>New specs: GuidedWorkflow, ProtocolDelivery, WorkflowRouting, AdoptionSwitches; ADR-0004 (hybrid protocol delivery).</li>
+                                <li>Codex and OpenCode mirrors regenerated (343 files). Commit message reports 981 tests passed, 4 skipped.</li>
+                                <li>Trade-off: step-skill listing text grew about 18% with the new descriptions.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="tech">
+                        <summary>Spec &amp; test coverage <small>per highlight</small></summary>
+                        <div class="tech-body scroll">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Highlight</th>
+                                        <th>Spec verdict</th>
+                                        <th>Governing spec / TCs</th>
+                                        <th>Tests</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Workflow activation tiers</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>WorkflowRouting BR-WFR-04..07</td>
+                                        <td>workflow-skills-catalog.test.mjs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Command-only utility skills</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>AdoptionSwitches BR-ADS-06..10</td>
+                                        <td>content-presence, migrate-claude-to-codex, sync-skills</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Code graph opt-in</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>BR-ADS-01..04, TC-ADS-001..005</td>
+                                        <td>code-graph-opt-in / cli-off / config-agreement</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Compaction pin removed</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>BR-ADS-20/21, TC-ADS-034..039</td>
+                                        <td>compaction-default, sync-config</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Fix-Origin opt-in</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>BR-ADS-05, TC-ADS-006/007</td>
+                                        <td>content-presence</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Guided workflows / evidence close</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>GuidedWorkflow BR-GWF-01..16</td>
+                                        <td>workflow.test.cjs, content-presence (wording only for close)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>/workflow-implement-spec</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>BR-GWF-04/09 · TC-GWF-021 has no test</td>
+                                        <td>workflow.test.cjs TC-GWF-017..022</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Spec scope baseline</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>BR-GWF-05</td>
+                                        <td>scope-guard.test.cjs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Token checkpoint</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>BR-GWF-06/07/17</td>
+                                        <td>token-budget-checkpoint.test.cjs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Usage report</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>BR-GWF-07/10/11</td>
+                                        <td>session-usage(-report).test.cjs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Skill profiles</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>AdoptionSwitches Part 2 (draft)</td>
+                                        <td>sync-skill-profile.test.cjs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Framework-off session</td>
+                                        <td><span class="v v-ahead">CODE-AHEAD</span></td>
+                                        <td>none</td>
+                                        <td>none found</td>
+                                    </tr>
+                                    <tr>
+                                        <td>/watzup HTML report</td>
+                                        <td><span class="v v-ok">ALIGNED</span> / <span class="v v-ahead">CODE-AHEAD</span></td>
+                                        <td>TC-GWF-063..067 (opener); summary content unspecced</td>
+                                        <td>open-report, watzup-session-summary</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Read/edit conventions · lean instruction file</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>TC-PFCI-083..093</td>
+                                        <td>file-convention-inject.test.cjs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Smaller skills (protocol delivery)</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>ProtocolDelivery BR-PDL-01..15 (draft)</td>
+                                        <td>protocol-* suites (79 pass)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Review sized to change</td>
+                                        <td><span class="v v-ahead">CODE-AHEAD</span></td>
+                                        <td>none</td>
+                                        <td>review-commit-gate.test.cjs REQ-GUARD-03</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Routing cap / off notice</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>BR-WFR-01..09</td>
+                                        <td>workflow-routing-switch.test.cjs</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Shared graph venv</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>TC-ADS-028..053</td>
+                                        <td>graph-venv.test.cjs (12/12)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>One alert per job</td>
+                                        <td><span class="v v-ok">ALIGNED</span></td>
+                                        <td>TC-NT-014</td>
+                                        <td>notification.test.cjs (77/77)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Codex notify retired · OpenCode prompt ids</td>
+                                        <td><span class="v v-ahead">CODE-AHEAD</span></td>
+                                        <td>no TC</td>
+                                        <td>migrate-claude-to-codex, sync-hooks</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p style="margin-top: var(--space-3); font-size: var(--size-sm)">
+                                <b>Open for confirmation:</b> the Adoption spec's numbering note still lists TC-ADS-016…053 as “Planned”, while Part 2 marks
+                                them Implemented. The graph-build skill still describes a project-local install. The commit message says
+                                <code>git-conflict-resolve</code> “is now model-callable”, but it already was before this commit, so it is not listed as a
+                                change.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details class="tech">
+                        <summary>Technical appendix <small>commit, file map, statistics</small></summary>
+                        <div class="tech-body">
+                            <div class="scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Hash</th>
+                                            <th>Type</th>
+                                            <th>Subject</th>
+                                            <th>Author</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="mono">d0e5d0cc</td>
+                                            <td>feat</td>
+                                            <td>framework: lean guided workflow refactor A-D</td>
+                                            <td>ORIENTSOFTWARE\duc.dangphuoc</td>
+                                            <td class="num">2026-09-25</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="scroll" style="margin-top: var(--space-4)">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Area</th>
+                                            <th>Files</th>
+                                            <th>Added</th>
+                                            <th>Removed</th>
+                                            <th aria-label="Relative size">Churn</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Generated mirrors (Codex / OpenCode)</td>
+                                            <td class="num">343</td>
+                                            <td class="num">+12,842</td>
+                                            <td class="num">−27,703</td>
+                                            <td><span class="mini" style="width: 26px"></span><span class="mini del" style="width: 55px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Skills</td>
+                                            <td class="num">141</td>
+                                            <td class="num">+4,151</td>
+                                            <td class="num">−22,480</td>
+                                            <td><span class="mini" style="width: 8px"></span><span class="mini del" style="width: 45px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Shared protocol texts</td>
+                                            <td class="num">100</td>
+                                            <td class="num">+3,265</td>
+                                            <td class="num">−0</td>
+                                            <td><span class="mini" style="width: 7px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Tests</td>
+                                            <td class="num">62</td>
+                                            <td class="num">+15,533</td>
+                                            <td class="num">−286</td>
+                                            <td><span class="mini" style="width: 31px"></span><span class="mini del" style="width: 1px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Scripts</td>
+                                            <td class="num">48</td>
+                                            <td class="num">+4,704</td>
+                                            <td class="num">−502</td>
+                                            <td><span class="mini" style="width: 9px"></span><span class="mini del" style="width: 1px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Hooks</td>
+                                            <td class="num">24</td>
+                                            <td class="num">+2,884</td>
+                                            <td class="num">−121</td>
+                                            <td><span class="mini" style="width: 6px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Agents</td>
+                                            <td class="num">23</td>
+                                            <td class="num">+962</td>
+                                            <td class="num">−997</td>
+                                            <td><span class="mini" style="width: 2px"></span><span class="mini del" style="width: 2px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Framework docs</td>
+                                            <td class="num">17</td>
+                                            <td class="num">+372</td>
+                                            <td class="num">−178</td>
+                                            <td><span class="mini" style="width: 1px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Specs</td>
+                                            <td class="num">10</td>
+                                            <td class="num">+16,051</td>
+                                            <td class="num">−72</td>
+                                            <td><span class="mini" style="width: 32px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Config / root files</td>
+                                            <td class="num">10</td>
+                                            <td class="num">+1,629</td>
+                                            <td class="num">−355</td>
+                                            <td><span class="mini" style="width: 3px"></span><span class="mini del" style="width: 1px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Other docs (ADR, reference)</td>
+                                            <td class="num">9</td>
+                                            <td class="num">+372</td>
+                                            <td class="num">−130</td>
+                                            <td><span class="mini" style="width: 1px"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><b>Total</b></td>
+                                            <td class="num"><b>787</b></td>
+                                            <td class="num"><b>+62,765</b></td>
+                                            <td class="num"><b>−52,824</b></td>
+                                            <td></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p style="margin-top: var(--space-3); font-size: var(--size-sm)">
+                                Added 314 · Modified 470 · Deleted 3 files · Workflows 19 → 20 · Skills 124 → 125 · Command-only skills 3 → 22.
+                            </p>
+                        </div>
+                    </details>
+                </section>
+            </main>
+
+            <!-- §10 Footer -->
+            <footer>
+                <div>
+                    Generated 2026-09-25 · branch <code>main</code> · range <code>89d0aaaa..d0e5d0cc</code> (commit only). The commit carries four <code>html-export</code> mirror files under <code>.agents/</code>; that skill's
+                    source was not committed, so it is not described here
+                </div>
+                <div>
+                    Analysis: <code>tmp/release-notes/d0e5d0cc-release-analysis.md</code> · per-theme evidence: <code>tmp/release-notes/sections/G1–G4.md</code>
+                </div>
+                <div>
+                    Git artifacts: <code>tmp/release-notes/git-log-d0e5d0cc.txt</code>, <code>diff-file-status-d0e5d0cc.txt</code>,
+                    <code>diff-stat-d0e5d0cc.txt</code> · Markdown notes: <code>docs/release-notes/release-notes-d0e5d0cc.md</code>
+                </div>
+            </footer>
+        </div>
+    </body>
+</html>

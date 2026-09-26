@@ -450,7 +450,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->125<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->126<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->23<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->23<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->20<!-- /COUNT -->   |
@@ -465,6 +465,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 docs/adr/  (4 files)
 docs/project-reference/  (18 files)
 docs/release/  (1 files)
+docs/release-notes/  (1 files)
 docs/specs/  (12 files)
 docs/templates/  (1 files)
 ```

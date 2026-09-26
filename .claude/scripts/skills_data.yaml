@@ -231,7 +231,7 @@
 - category: frontend
   deprecated_by: null
   deprecated_since: null
-  description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|describe|screenshot|video}
+  description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|explore|describe|screenshot|video}
     (default fast), --lane={product|marketing} (default product).'
   has_references: true
   has_scripts: true
@@ -404,8 +404,8 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Git] Use when resolving git merge, cherry-pick, or rebase conflicts
-    with backup and analysis.'
+  description: '[Git] Use when resolving git merge, cherry-pick, rebase, or stash-apply
+    conflicts (for example after a pull before commit) with backup and analysis.'
   has_references: false
   has_scripts: false
   name: git-conflict-resolve
@@ -498,6 +498,18 @@
   has_scripts: false
   name: harness-setup
   path: harness-setup/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Document Processing] Use when an HTML page, deck, mockup or animation
+    needs exporting or a render check: PNG screenshots with a page-error and blank-capture
+    check, a vector PDF, or an MP4/GIF recording. Flag: --to={png|pdf|mp4|gif}.'
+  has_references: true
+  has_scripts: true
+  name: html-export
+  path: html-export/SKILL.md
   removal_after: null
   status: active
 - category: other

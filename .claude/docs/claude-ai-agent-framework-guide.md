@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Framework inventory:** **<!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->46<!-- /COUNT --> direct hook-library modules · <!-- COUNT:skills -->125<!-- /COUNT --> skills · <!-- COUNT:workflows -->20<!-- /COUNT --> workflows · <!-- COUNT:agents -->23<!-- /COUNT --> agents**. Multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential thinking are documented here.
+> **Framework inventory:** **<!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->46<!-- /COUNT --> direct hook-library modules · <!-- COUNT:skills -->126<!-- /COUNT --> skills · <!-- COUNT:workflows -->20<!-- /COUNT --> workflows · <!-- COUNT:agents -->23<!-- /COUNT --> agents**. Multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential thinking are documented here.
 
 > **Relocatable roots — read this before any path in this guide.** Diagrams, tables, and examples below name roots by ROLE ("the plans root", "the business spec root"). Each role resolves as follows:
 >
@@ -58,7 +58,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **23 top-level hook files**, **125 skills**, **20 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **23 top-level hook files**, **126 skills**, **20 registered workflows**, and **23 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -130,7 +130,7 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 125 Skills"
+    subgraph "Intelligence Layer — 126 Skills"
         SP[Shared Protocols<br/>12 entries]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, why-review]
@@ -497,11 +497,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (<!-- COUNT:skills -->125<!-- /COUNT --> skills)
+### 5.2 Skill Categories (<!-- COUNT:skills -->126<!-- /COUNT --> skills)
 
 ```mermaid
 mindmap
-  root((125 Skills))
+  root((126 Skills))
     Quality & Verification
       code-review
       dor-gate
@@ -919,7 +919,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[23 Hook Files]
-        S[125 Skills]
+        S[126 Skills]
         W[20 Workflows]
     end
 
@@ -3479,13 +3479,13 @@ sequenceDiagram
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
 | `test-all-hooks.cjs` (primary gate)  | **133** | All hook behaviors + bridged suites + count-drift guard                                    |
-| `run-all-tests.cjs` (full aggregate) | **985** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `run-all-tests.cjs` (full aggregate) | **999** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
 > The primary suite passes with 133 tests.
-> The full aggregate discovers 985 tests; 4 of them skip on host-capability or repo-state gates.
+> The full aggregate discovers 999 tests; 4 of them skip on host-capability or repo-state gates.
 > Both counts are checked against live totals by the runners on full runs.
 
-> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 985 discovered.
+> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 999 discovered.
 
 Suites under `tests/suites/` (63): agent-files-gate, agent-universal-rules, bash-hook-contract, bugfix-regression, check-subagent-routing, ck-path-utils, code-graph-cli-off, code-graph-config-agreement, code-graph-opt-in, code-graph-storage-portability, codex-launcher, command-inspection, commit-skill-route, content-presence, count-drift, desktop-argv, doc-impact-map, doc-stamp-guard, doc-sync-gate, docroot-relocation, emit-prompt-context, failure-log-hygiene, file-convention-inject, git-operation-lease, graph-head-staleness, graph-venv, init-prompt-gate, init-reference-docs, integration, judgement-integrity-route, lifecycle, notification, plan-naming, plan-speed-contract, project-config-refactor-keys, project-protocol-drift, project-reference-gate-coverage, prompt-ledger, protocol-delivery, protocol-host-mapping, protocol-inject-hook, protocol-text-parity, python-fallback, reference-doc-freshness, review-commit-gate, review-mode-sections, runner-await-contract, scope-guard, session-usage, session-usage-report, skill-protocol-overlay, standalone-scripts, startup-install, step-skill-description, swap-engine, sync-carrier-parity, token-budget-checkpoint, ui-ux-gate-inject, watzup-session-summary, windows-git, windows-stdio-portability, workflow, workflow-routing-switch.
 
@@ -3544,7 +3544,7 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md plus an opt-in PostToolUse convention reminder                | Skills/Hooks  |
 | **Reminder rules prevent forgetting**          | Static SYNC rules plus configurable default-on route injection re-armed after compaction or long transcript growth     | Skills/Hooks  |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                                    | Config        |
-| **Prompt engineering quality**                 | <!-- COUNT:skills -->125<!-- /COUNT --> skills with YAML frontmatter + behavior protocols                                     | Skills        |
+| **Prompt engineering quality**                 | <!-- COUNT:skills -->126<!-- /COUNT --> skills with YAML frontmatter + behavior protocols                                     | Skills        |
 | **Auto-select workflow path before acting**    | The default-on prompt hook supplies the compact catalog for semantic route selection; tracked team config can opt out     | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                                | Skills        |
 | **Sequential thinking for complex problems**   | `SYNC:sequential-thinking-protocol` (full body in agents + review-family skills; guide line + hook delivery elsewhere, §5.3) + /debug-investigate skill | Skills        |
@@ -3596,7 +3596,7 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 125 skill definitions
+├── skills/ ────────────── 126 skill definitions
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 12 shared reference/protocol entries
 │   └── _templates/ ───── Skill scaffolding
@@ -3799,7 +3799,7 @@ The `tech-spec-freshness` stage runs `generate-tech-specs.mjs --check`; it compa
 
 ### 13.5 The SYNC-Tag Mechanism — One Protocol, Identical Everywhere
 
-The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across all <!-- COUNT:skills -->125<!-- /COUNT --> skills _and_ across both tools. They are kept identical by **one canonical source and generated projections** (the hybrid policy):
+The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across all <!-- COUNT:skills -->126<!-- /COUNT --> skills _and_ across both tools. They are kept identical by **one canonical source and generated projections** (the hybrid policy):
 
 1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~100 tagged protocols, plus their `:reminder` variants).
 2. Carriers hold either the **verbatim** body between `<!-- SYNC:{tag} -->` … `<!-- /SYNC:{tag} -->` fences (the five review-family skills, `references/*.md`, agents) or one guide line in a `PROTOCOL-GUIDES` block (every other skill), whose full text a hook delivers from `.claude/skills/shared/protocols/`.
@@ -3913,7 +3913,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**23 top-level hook files**, **125 skills**, **20 registered workflows**, and **23 specialized agents** working in concert to deliver:
+**23 top-level hook files**, **126 skills**, **20 registered workflows**, and **23 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3921,7 +3921,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across <!-- COUNT:skills -->125<!-- /COUNT --> skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across <!-- COUNT:skills -->126<!-- /COUNT --> skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

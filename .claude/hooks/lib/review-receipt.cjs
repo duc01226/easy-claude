@@ -156,8 +156,34 @@ function writeRecord(ctx, kind, fingerprint, record) {
 
 const FORBIDDEN_GIT_ENV = /^(?:GIT_(?:INDEX_FILE|DIR|WORK_TREE|COMMON_DIR|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|REPLACE_REF_BASE|NO_REPLACE_OBJECTS|PREFIX|CEILING_DIRECTORIES|DISCOVERY_ACROSS_FILESYSTEM|NAMESPACE|ATTR_NOSYSTEM|ATTR_SOURCE|SHALLOW_FILE|INDEX_VERSION|LITERAL_PATHSPECS|GLOB_PATHSPECS|NOGLOB_PATHSPECS|ICASE_PATHSPECS)|GIT_CONFIG(?:_|$))/i;
 
+// Command-scoped config (GIT_CONFIG_COUNT with KEY_n/VALUE_n pairs) that a host
+// injects for remote access — e.g. a cloud container's GitHub proxy — cannot
+// change what a commit contains. It is accepted only when the set is well
+// formed and EVERY key is one of these; any other key (core.worktree, filters,
+// hooksPath, ...) still fails closed, as do GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM/
+// PARAMETERS. The capture itself still runs with the pairs stripped.
+const INJECTED_GIT_CONFIG_ENV = /^GIT_CONFIG_(?:COUNT|KEY_\d+|VALUE_\d+)$/i;
+const CONTENT_NEUTRAL_CONFIG_KEY = /^(?:credential\.interactive|url\.[^\s]+\.(?:insteadof|pushinsteadof))$/i;
+
+function contentNeutralInjectedConfig(env) {
+    const count = env.GIT_CONFIG_COUNT;
+    if (typeof count !== 'string' || !/^[1-9]\d?$/.test(count)) return false;
+    const expected = new Set(['GIT_CONFIG_COUNT']);
+    for (let i = 0; i < Number(count); i++) expected.add(`GIT_CONFIG_KEY_${i}`).add(`GIT_CONFIG_VALUE_${i}`);
+    const present = Object.keys(env).filter(name => INJECTED_GIT_CONFIG_ENV.test(name));
+    if (present.length !== expected.size || present.some(name => !expected.has(name))) return false;
+    for (let i = 0; i < Number(count); i++) {
+        const key = env[`GIT_CONFIG_KEY_${i}`];
+        if (typeof key !== 'string' || !CONTENT_NEUTRAL_CONFIG_KEY.test(key)) return false;
+    }
+    return true;
+}
+
 function gitEnvironmentError(env) {
-    return Object.keys(env || {}).find(name => FORBIDDEN_GIT_ENV.test(name)) || null;
+    const vars = env || {};
+    const neutral = contentNeutralInjectedConfig(vars);
+    return Object.keys(vars).find(name => FORBIDDEN_GIT_ENV.test(name) &&
+        !(neutral && INJECTED_GIT_CONFIG_ENV.test(name))) || null;
 }
 
 function gitEnvironmentWithoutContext(env = process.env) {

@@ -10,6 +10,8 @@ The **single source of truth** for the rich, standalone HTML release presentatio
 
 > **[BLOCKING] The HTML is a USER-FACING release announcement, not an engineering report.** Its reader is the person who USES the product, not the person who built it. Full contract: **R6.0**. The engineering view is not lost — it lives in the markdown release notes (the skill's other output) and in the collapsed §7/§8/§9 of this document. — why: a release page padded with refactors and class names buries the two or three things the user actually gained.
 
+> **[BLOCKING] Quality goal: the HTML is beautiful, easy to read and easy to understand.** A reader who scrolls the first screen knows what changed for them and what, if anything, they must do; every highlight after that is understood from its picture plus a few plain sentences. Accurate content in a page that is hard to scan still fails. Full contract: **R6.5**; gate: **R8.4**. — why: nobody reads a wall of correct text, so an unreadable page ships no information.
+
 ---
 
 ## R0. Preconditions
@@ -279,6 +281,30 @@ For every `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight, render a **faithful H
 
 R6.0 sets the audience; this sets the voice. Write for a reader who did not follow the work: business/observable language in all prose ("the record list now shows delivery status"), not framework or class names. Second person and present tense — what *you can now do*, not what *was implemented*. The rendered HTML may use real class names internally — that is implementation, not prose.
 
+### R6.5 [BLOCKING] Visual clarity — beautiful, easy to read, easy to understand
+
+R6.0 decides WHAT the reader sees; this decides whether they take it in. **Goal:** a reader who scrolls the first screen can say what changed for them and what they must do, and each §4/§5 highlight after that is understood from its visual plus two to four plain sentences. Correct but hard-to-scan content fails this goal.
+
+1. **The first screen answers the reader's two questions.** Header with user-facing counts (R6.2 §1), then — immediately after the header, before §2 — §3 "Action required" as a **defaults board** (omitted when nothing requires action, per R6.2 §3): one row per change — *what* · *was → now* (both values visible, marked by text or strike-through, not colour alone) · *the one line that keeps the old behaviour or the step to take*. The reader must not open a section to learn they have work to do.
+2. **Show, then tell — one explanatory visual per `USER-VISIBLE` highlight in §4/§5**, chosen by what it explains (§6 fixes stay a grouped list named by symptom, per R6.2 §6):
+
+    | The highlight is about…                        | Visual                                                                                    |
+    | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
+    | a screen                                       | the R6.3 mock-up                                                                          |
+    | changed text, output or behaviour              | before → after pair, delta marked                                                         |
+    | a process, route or ordered steps              | flow / pipeline diagram with the real step names                                          |
+    | a quantity that moved (size, time, count)      | paired comparison bars with value labels — measured numbers from the temp report only     |
+    | a set of options, tiers or presets             | side-by-side option matrix                                                                |
+    | CLI or chat output (the product's own surface) | terminal / chat frame built from the real source text, labelled per R6.3 rule 8           |
+
+    A visual that explains nothing (decorative icon, stock illustration, chart of invented or rounded-up data) is removed, not kept for colour. A `NO-UI` highlight gets a diagram, comparison or terminal frame when one makes it faster to grasp than prose; when none does, record `no visual — prose is clearer` for it in the temp report (R5 §4) instead of adding filler.
+3. **One card anatomy, repeated (§4/§5).** Each highlight: kind tag from its R1.4 kind (new / changed / perf; a fix lives in §6; add `default change` when a default moved) → outcome title in the reader's words → visual → 2–4 sentences → a "How to use / turn off" box with the exact command or setting → evidence chips. The same order everywhere lets the reader skim by position.
+4. **Group by the reader's goal, not by commit type.** Cluster §4/§5 highlights under 2–4 themes named for what the reader is trying to get done; order themes by impact.
+5. **Readable text.** Line length ≤ ~75 characters; one idea per paragraph of two to four sentences; lists for three or more parallel items; plain words, active voice, second person; every number carries its unit and its "compared to what".
+6. **Hierarchy and restraint.** One focal point per section; generous whitespace instead of extra borders; one accent colour for "new/after", one warning colour reserved for "action required", a muted tone for "before". Apply `DD-1`–`DD-8` to the document chrome and drop the generated-page defaults from `.claude/docs/design-knowledge.md` §4 unless the subject calls for them — a redundant ALL-CAPS label above every heading, one accented word in the headline, numbered markers on items that are not a sequence, `→` appended to link text, a gradient hero.
+7. **Technical detail stays one click away.** §7–§9 collapsed; a jump-link row near the top reaches every section; nothing the reader needs to act on exists only inside a collapsed block.
+8. **Verify the rendered page, not the source.** Render it in a real browser at a wide (~1440px) and a narrow (~375px) viewport and look at the screenshots before R8. Headless browsers can enforce a minimum window width larger than 375px — confirm the actual viewport width (or render inside a fixed 375px frame) before trusting a narrow screenshot. Common narrow-width break: grid or flex children with preformatted blocks need `min-width: 0` so the block scrolls inside its own box instead of widening the page. **No renderer available** — no browser or screenshot tool can run in this session (a headless browser counts as a renderer, so CI and sub-agents with one must take the screenshots): run every R8.4 check that the source can answer, record `Release visual: PASS (source-only — screenshots unavailable: {reason})` or FAIL, and list each render check left unverified under Needs confirmation (R5 §6) and in the R10 report — never a plain PASS.
+
 ---
 
 ## R7. Save
@@ -293,7 +319,7 @@ Deriving the HTML path from the markdown stem keeps the pair together and makes 
 
 ---
 
-## R8. [BLOCKING] Gates — run ALL THREE before reporting done
+## R8. [BLOCKING] Gates — run ALL FOUR before reporting done
 
 ### R8.1 Accuracy gate
 
@@ -337,6 +363,21 @@ Read the rendered §2–§6 as someone who uses the product and has never seen t
 - [ ] An all-`INTERNAL` release says so plainly instead of padding §4 (R6.0.6)
 
 Record: `Release audience: PASS | FAIL`.
+
+### R8.4 [BLOCKING] Visual clarity gate — beautiful, easy to read, easy to understand
+
+Run against the rendered screenshots from R6.5.8 — or, only when no renderer is available, against the source under the R6.5.8 source-only record.
+
+- [ ] First screen: user-facing counts plus the "Action required" defaults board (was → now → keep-old / step) — or no board because nothing requires action
+- [ ] Every `USER-VISIBLE` §4/§5 highlight has one explanatory visual chosen per the R6.5.2 table, or (`NO-UI` only) a recorded `no visual — prose is clearer`; no decorative-only visual; every chart value comes from the temp report
+- [ ] Every §4/§5 highlight follows the R6.5.3 card anatomy, including a "How to use / turn off" line where a command or setting exists
+- [ ] §4/§5 are grouped by reader goal (R6.5.4), not by commit type
+- [ ] Text: line length ≤ ~75ch, one idea per paragraph of 2–4 sentences, numbers with unit and comparison
+- [ ] None of the R6.5.6 generated-page defaults remain without a subject reason; one accent, one warning colour, a muted "before"
+- [ ] Wide and narrow screenshots viewed; the narrow one taken at a verified ~375px viewport; no clipped text, overlap or horizontal page scroll (source-only runs list this item as unverified)
+- [ ] A reader skimming headings, visuals and "How to use" boxes alone can say what changed and what to do
+
+Record: `Release visual: PASS | PASS (source-only — {reason}) | FAIL`.
 
 **On FAIL:** fix and re-run the gate. Never hand over a FAIL, and never downgrade a check to force a pass.
 
@@ -382,6 +423,7 @@ Spec correlation: {N} aligned, {N} code-ahead, {N} spec-ahead, {N} conflict
 Release accuracy: PASS | FAIL
 Release fidelity: PASS | FAIL
 Release audience: PASS | FAIL
+Release visual: PASS | PASS (source-only — {reason}) | FAIL
 Needs confirmation: {N} items (see temp report §6)
 Auto-open: opened | skipped ({reason})
 ```
@@ -402,6 +444,10 @@ Auto-open: opened | skipped ({reason})
 | Class / component / file / endpoint names in the prose     | Fails R8.3 — the reader does not know the codebase; chips carry traceability, prose carries meaning |
 | Rewording an internal change to sound user-facing          | Fails R8.1 — manufactured value is a fabrication; honest §7 routing is the correct move   |
 | Padding "What's New" so an all-internal release looks big  | Fails R8.3 — say "no user-facing changes this release" and render §7/§9 only              |
+| A wall of correct prose with no visual per highlight       | Fails R8.4 — each user-visible highlight is understood from its visual first (R6.5.2)     |
+| "Action required" buried below the features                | Fails R8.4 — the defaults board sits on the first screen (R6.5.1)                         |
+| Decorative icons or charts of estimated numbers            | Fails R8.4 / R8.1 — a visual must explain, and every value comes from the temp report     |
+| Judging layout from the source or one wide screenshot      | Fails R8.4 — view wide and verified-narrow renders (R6.5.8)                               |
 | Calling a change `NO-UI` because the diff was backend-only | Fails R4.1 — if its effect shows on an existing screen it is `BEHIND-UI` and gets a mock-up |
 | Inventing a mock-up procedure instead of `pbi-mockup`'s    | Fails R8.2 — R6.3 binds the reproduction contract to `pbi-mockup` Steps 3/3b/3c/7          |
 | Claiming a behavior with no `file:line`                   | Fails R8.1 — every claim carries an evidence chip                                         |

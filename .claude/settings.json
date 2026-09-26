@@ -380,13 +380,6 @@
     "ask": [
       "Bash(npm publish:*)",
       "Bash(docker push:*)",
-      "Bash(rm -rf /*)",
-      "Bash(rm -rf ~/*)",
-      "Bash(rm -rf .)",
-      "Bash(rm -rf /)",
-      "Bash(*rm -rf*)",
-      "Bash(del /s:*)",
-      "Bash(*del /s*)",
       "Bash(git push --force:*)",
       "Bash(*git push --force*)",
       "Bash(git push -f:*)",

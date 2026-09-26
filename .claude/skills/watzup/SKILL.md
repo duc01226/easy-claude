@@ -47,6 +47,7 @@ description: '[Utilities] Use when a workflow step or the user asks for a sessio
 - Lesson-learned analysis is REQUIRED on every run.
 - Call `/understand` after the summary, gates and lesson analysis and before Next Steps only for a large code change or when the user asks; otherwise the handoff scales down to the session summary. An unavailable `/understand` is noted, never a blocker.
 - Write the HTML session report on every run, open it with `open-report.cjs`, and post a short chat summary plus its path.
+- The report must be beautiful, easy to read and easy to understand: one-line outcome, text status per request, changes grouped by area, before → after or flow for changed behaviour, plain short sentences — checked before it is opened.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -209,10 +210,21 @@ Wait for user confirmation before invoking `/learn`.
 
 Runs on every invocation, after the lesson analysis and the `/understand` handoff. It is the detailed, readable form of the session summary.
 
+**Quality goal — beautiful, easy to read, easy to understand.** A developer who reads the title, the one-line outcome and Start here knows what the session achieved and where to look first; each later section is understood by skimming its first column and its visual. A correct report that is hard to scan fails this goal. Within the template's restraint (Start here is the only emphasised element; no hero, stat cards or gradients):
+
+- **One-line outcome** under the title: what the session achieved, in plain words — not a list of tasks.
+- **Done:** one row per request with a text status (`✓ Done` · `◐ Partial` · `✗ Not done`, set through the plain-text `{{STATUS}}` and `{{STATUS_KIND}}` placeholders — the template owns the markup), never colour alone, and the outcome in one or two sentences.
+- **Key changes:** grouped under area rows, one change per row, the reader-facing effect first and the `file:line` beside it.
+- **Why:** the decision in a few words, the reason in one or two sentences, the trade-off named plainly.
+- **How it works:** show, not only describe — the before → after pair when behaviour changed, the ordered flow (or an inline SVG with the list as its text alternative) when three or more steps interact. Delete an optional block you did not fill.
+- **Plain writing:** short sentences, active voice, one idea per cell, every number with its unit, no unexplained jargon or internal ids.
+- **Flags:** most severe first, each naming what to do next.
+
 1. **Resolve the directory** the way `understand/SKILL.md` Step 3 does: the reports directory `docs/project-config.json` names, if it names one, then `tmp/reports/`; take the first that `git check-ignore` confirms is ignored, creating it if absent. If none is ignored, write no file: deliver the report content in chat and name the directory to ignore.
 2. **Write** `watzup-{YYMMDD}-{HHmm}-{slug}.html` from `references/session-report-template.html`: fill every placeholder, keep its inline CSS, structure and `Content-Security-Policy` meta, and add no script or external asset. **Encode every value:** HTML-escape each placeholder value — `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;` — including text inside `<code>` and `<title>`, because session text routinely carries markup and comment markers that would otherwise hide or rewrite the rest of the report. Every `href` value (e.g. `{{START_FILE_LINK}}`) is a relative path or a `file:` / `vscode:` link — never `javascript:`, `data:` or any other scheme. Order: Start here, Done, Key changes, Why, How it works, Flags (doc staleness, spec health, risks, lessons — a skipped gate with its evidence), Next steps. Every claim carries its `file:line`. When `/understand` also wrote HTML, link it from Next steps.
-3. **Open** it: `node .claude/scripts/open-report.cjs <path>`. The helper opens nothing in CI, with `CK_NO_AUTO_OPEN=1`, or on a Linux session without a display, and always exits 0, so a failed open never blocks the wrap-up. It opens only a report inside the project's `tmp/` or `temp/` directory; a report written to a configured reports directory elsewhere is not opened — the helper prints its path, and the chat summary gives that path to the user.
-4. **Post in chat** a short summary — Done in two or three lines, the start-here file, the flag count — plus `Session report → <path>`.
+3. **Check readability** before opening: re-read the filled report against the quality goal above — outcome line present, every Done row has a text status, no placeholder or empty optional block left, no cell longer than two sentences. When a browser or screenshot tool is available, look at the rendered page at a wide and a narrow width; fix any clipped text or overlap in the report file (never in the repository).
+4. **Open** it: `node .claude/scripts/open-report.cjs <path>`. The helper opens nothing in CI, with `CK_NO_AUTO_OPEN=1`, or on a Linux session without a display, and always exits 0, so a failed open never blocks the wrap-up. It opens only a report inside the project's `tmp/` or `temp/` directory; a report written to a configured reports directory elsewhere is not opened — the helper prints its path, and the chat summary gives that path to the user.
+5. **Post in chat** a short summary — Done in two or three lines, the start-here file, the flag count — plus `Session report → <path>`.
 
 ---
 
@@ -320,6 +332,7 @@ After the report is written, MUST ATTENTION use `AskUserQuestion` to present the
 **IMPORTANT MUST ATTENTION** stay READ-ONLY — only FLAG findings; NEVER edit, fix, implement, or update the docs or specs you flag — why: watzup is a review/handoff, not an edit pass; flagging-then-fixing silently breaks the read-only contract.
 **IMPORTANT MUST ATTENTION** scope the whole session (uncommitted changes plus this session's commits) and write the Session summary first — Done, Key changes, Why, How it works — then run the gates: doc-staleness, spec health (business code only), lesson extraction. Never skip a gate because the change "looks small"; with no code changed, doc-staleness and spec health record `skipped — no code changed` with evidence — why: stale docs and missed lessons compound silently, while a code gate on a no-code session is noise.
 **IMPORTANT MUST ATTENTION** complete the handoff step — `/understand` for a large code change or on request, otherwise the session summary alone — then write and open the HTML session report, BEFORE the `AskUserQuestion` Next Steps prompt; an unavailable `/understand` is noted in Flags, never a blocker — why: the developer's exit context is the explanation, not the raw diff, and the four-part summary already explains a small change.
+**IMPORTANT MUST ATTENTION** make the HTML report beautiful, easy to read and easy to understand — one-line outcome, text status per request, changes grouped by area, a before → after or flow for changed behaviour, plain short sentences, no empty optional block — and check it before opening — why: a correct report nobody can scan hands over no understanding.
 **IMPORTANT MUST ATTENTION** HTML-escape every placeholder value in the report and keep every `href` a relative, `file:` or `vscode:` link — why: the report is auto-opened in a browser, and unescaped session text can hide report content or run as markup.
 
 **IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases; surface-level "always check file X" notes are noise — why: only root-cause prevention compounds across sessions.

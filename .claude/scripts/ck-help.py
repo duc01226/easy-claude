@@ -13,6 +13,7 @@ Usage:
 
 import sys
 import re
+import subprocess
 from pathlib import Path
 from win_compat import ensure_utf8_stdout
 
@@ -215,8 +216,9 @@ def discover_skills(skills_dir: Path, prefix: str) -> dict:
     if not skills_dir.exists():
         return {"commands": commands, "categories": categories}
 
-    # Scan all SKILL.md files
-    for skill_file in skills_dir.rglob("SKILL.md"):
+    # A skill is one directory deep (same rule as scan_skills.py); a recursive walk
+    # would enter dependency folders such as node_modules, which may link back to the repo.
+    for skill_file in sorted(skills_dir.glob("*/SKILL.md")):
         skill_dir = skill_file.parent
         skill_name = skill_dir.name
 
@@ -477,6 +479,25 @@ def recommend_task(data: dict, task: str, prefix: str) -> None:
         print(f"*Tip: {guide['tip']}*")
 
 
+def print_generated_settings() -> None:
+    """Print every setting from its owning schema/doc via ck-config-help.cjs (never a transcribed list)."""
+    script = Path(__file__).resolve().parent / "ck-config-help.cjs"
+    reason = "no output"
+    try:
+        result = subprocess.run(["node", str(script)], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+        if result.returncode == 0 and result.stdout.strip():
+            print(result.stdout.rstrip())
+            return
+        if (result.stderr or "").strip():
+            reason = result.stderr.strip().splitlines()[-1]
+    except (OSError, subprocess.SubprocessError) as error:
+        reason = str(error)
+    print("## Every setting")
+    print()
+    print(f"_Generated list unavailable ({reason})._ Run: `node .claude/scripts/ck-config-help.cjs`")
+    print("Project-config options: `node .claude/skills/project-config/scripts/project-config-help.cjs --sections`")
+
+
 def show_config_guide() -> None:
     """Display comprehensive .ck.json configuration guide."""
     emit_output_type("comprehensive-docs")
@@ -520,8 +541,13 @@ def show_config_guide() -> None:
     print()
     print("---")
     print()
-    print("## Full Schema")
+    print_generated_settings()
     print()
+    print("---")
+    print()
+    print("## `plan` sub-keys")
+    print()
+    print("`plan` is free-form in the schema; these are the keys the plan tooling reads:")
     print("```json")
     print('{')
     print('  "plan": {')
@@ -539,27 +565,6 @@ def show_config_guide() -> None:
     print('      "maxQuestions": 8,      // Max questions to ask')
     print('      "focusAreas": ["assumptions", "risks", "tradeoffs", "architecture"]')
     print('    }')
-    print('  },')
-    print('  "paths": {')
-    print('    "docs": "docs",     // Documentation directory')
-    print('    "plans": "plans"    // Plans directory')
-    print('  },')
-    print('  "locale": {')
-    print('    "thinkingLanguage": null, // Language for reasoning ("en" recommended)')
-    print('    "responseLanguage": null  // Language for output ("vi", "fr", etc.)')
-    print('  },')
-    print('  "trust": {')
-    print('    "passphrase": null,   // Secret for testing context injection')
-    print('    "enabled": false      // Enable trust verification')
-    print('  },')
-    print('  "project": {')
-    print('    "type": "auto",           // "monorepo", "single-repo", "auto"')
-    print('    "packageManager": "auto", // "npm", "pnpm", "yarn", "auto"')
-    print('    "framework": "auto"       // "next", "react", "vue", "auto"')
-    print('  },')
-    print('  "assertions": [],          // Optional stack-neutral reminders; project rules belong in project docs')
-    print('  "referenceDocs": {')
-    print('    "staleDays": 60           // Warn/block when reference docs exceed this age (1-365)')
     print('  }')
     print('}')
     print("```")
@@ -636,7 +641,7 @@ def show_config_guide() -> None:
     print("- **Setup:** Python 3.10+ required; `/graph-build` installs the rest into the hooks' environment")
     print("- **Mode:** `hooks.codeGraph.enabled` in `docs/project-config.json` — `auto` (default), `on`, `off`")
     print("- **Skills:** `/graph-build`, `/graph-blast-radius`, `/graph-export`, `/graph-connect-api`, `/graph-query`")
-    print("- **Config:** `codeReview` in `.ck.json`; frontend->backend detection via `graphConnectors` in `docs/project-config.json`")
+    print("- **Config:** frontend->backend detection via `graphConnectors` in the project config (default `docs/project-config.json`)")
     print("- Docs: `.claude/docs/code-graph-mechanism.md`")
     print()
     print("---")
@@ -723,7 +728,7 @@ def main():
     input_str = " ".join(args).strip()
 
     # Special case: config documentation (not a command category)
-    if input_str.lower() in ["config", "configuration", ".ck.json", "ck.json"]:
+    if input_str.lower() in ["config", "configuration", ".ck.json", "ck.json", "settings", "options", "switches", "env", "environment", "environment variables"]:
         show_config_guide()
         return
 

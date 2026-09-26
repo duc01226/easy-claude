@@ -376,6 +376,8 @@ Validate the produced mockup against the inventoried existing UI and record an e
 3. **Layout/structure** — the screen layout matches the existing pages of the related feature (sidebar / toolbar / card-grid conventions).
 4. **Connected flows** — entry/exit navigation matches the connected feature flows mapped in Step 3b.
 
+**Optional render evidence (when html-export is installed):** `node .claude/skills/html-export/scripts/export.cjs --to=png <mockup.html> --slides='[data-state]'` at the default viewports captures EVERY screen; attach the per-screen PNGs to the fidelity verdict. Exit 0 is evidence ONLY for per-screen render, zero page errors, and no blank captures — items 1–4 still judge fidelity. **html-export exit rule:** exit 0 → evidence as scoped; exit 4 → fix the page and re-run; exit 3 → `NOT VERIFIABLE` plus a one-line pointer to `/html-export` setup, never run install commands; exit 1/2 → tool failure: quote stderr, mark `NOT VERIFIABLE`, never count it as a design defect or a pass; any other code (such as 130 after an interrupt) → handle it like 1/2; evidence is only the files this run's manifest names (`report.json` `files[]` for png, `output` for pdf, `frames.json` `output` for video), since a reused `--out` keeps older files. The HTML stays canonical; never restructure it for an exporter.
+
 Record the outcome in the Step 6 report:
 
 ```

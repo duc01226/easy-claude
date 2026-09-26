@@ -82,6 +82,17 @@ const loader = loadLib('project-config-loader.cjs');
 const registry = loadLib('project-reference-registry.cjs');
 
 const { PORTABILITY_TOKENS } = loader;
+// Field walker + help text for fields without an inline schema describe (help-only; hooks never load it).
+const DESCRIBES_LIB = path.join(ROOT, '.claude', 'scripts', 'lib', 'config-option-describes.cjs');
+function loadDescribes() {
+    try {
+        return require(DESCRIBES_LIB);
+    } catch (error) {
+        console.error(`[project-config --help] Failed to load ${path.relative(ROOT, DESCRIBES_LIB)}: ${error.message}`);
+        process.exit(2);
+    }
+}
+const { PROJECT_CONFIG_DESCRIBES, describeField, walkNestedFields } = loadDescribes();
 const { SCAN_SKILL_MAP, REFERENCE_DOC_ALIASES } = registry;
 
 // ── the configured project ──────────────────────────────────────────────────
@@ -109,35 +120,30 @@ function firstLine(text) {
     return text.split('\n').map(s => s.trim()).filter(Boolean).join(' ');
 }
 
-function childPaths(key, fieldSchema, depth, out) {
-    if (depth > 2 || !fieldSchema || typeof fieldSchema !== 'object') return;
-    const props = fieldSchema.properties;
-    if (!props) return;
-    for (const [childKey, childSchema] of Object.entries(props)) {
-        const full = `${key}.${childKey}`;
-        out.push({
-            key: full,
-            type: childSchema.type || 'any',
-            required: Boolean(childSchema.required),
-            deprecated: Boolean(childSchema.deprecated),
-            describe: firstLine(childSchema.describe)
-        });
-        childPaths(full, childSchema, depth + 1, out);
-    }
+// Every nested field at any depth, from every shape the schema validator accepts (properties,
+// array items, map values, oneOf alternatives) — the walker lives with the help text so both help
+// commands list the same fields. A field it skips is an option help can never show.
+function childPaths(key, fieldSchema) {
+    return walkNestedFields(key, fieldSchema).map(({ key: full, schema }) => ({
+        key: full,
+        type: schema.type || 'any',
+        required: Boolean(schema.required),
+        deprecated: Boolean(schema.deprecated),
+        describe: firstLine(describeField(PROJECT_CONFIG_DESCRIBES, full, schema))
+    }));
 }
 
 function buildOptions() {
     const options = [];
     for (const [key, fieldSchema] of Object.entries(SCHEMA)) {
         if (key.startsWith('_')) continue;
-        const children = [];
-        childPaths(key, fieldSchema, 1, children);
+        const children = childPaths(key, fieldSchema);
         options.push({
             key,
             type: fieldSchema.type || 'any',
             required: Boolean(fieldSchema.required),
             deprecated: Boolean(fieldSchema.deprecated),
-            describe: firstLine(fieldSchema.describe),
+            describe: firstLine(describeField(PROJECT_CONFIG_DESCRIBES, key, fieldSchema)),
             children
         });
     }
@@ -208,7 +214,8 @@ function consumerIndex() {
     const keys = [];
     for (const option of OPTIONS) {
         keys.push(option.key);
-        for (const child of option.children) keys.push(child.key);
+        // Array-item and map-value paths never appear literally in code; skip them.
+        for (const child of option.children) if (!/[[{]/.test(child.key)) keys.push(child.key);
     }
     for (const token of Object.values(PORTABILITY_TOKENS || {})) {
         if (token && token.configPath && !keys.includes(token.configPath)) keys.push(token.configPath);

@@ -85,6 +85,15 @@
  *               model-callable. Framework-repo guarded (synchronous signal + parity tripwire):
  *               it asserts this repo's own skill defaults, which an adopting project may change.
  *
+ *   TC-HTMLX-052 — the three skills that run html-export's script by path (presentation-builder,
+ *               pbi-mockup, feature-presentation) and the design motion-storyboard reference carry one
+ *               identical `**html-export exit rule:**` line whose codes (0, 4, 3, 1/2 + NOT
+ *               VERIFIABLE) are exactly the values of `EXIT` in html-export/scripts/lib/exit-codes.cjs;
+ *               the design explore workflow's `| Exit |` table routes exactly those codes with the
+ *               same actions (1 and 2 in one tool-failure row); and the script path they name exists.
+ *               The callers are prose, so no code import catches a drift. Framework-repo guarded; a
+ *               fixture row proves the table check names each kind of drift.
+ *
  *   TC-ADS-025 — emphasis diet (P32) keeps the primacy/recency anchors: in each G3-selected skill the
  *               top region (the STEP-TASK anchor block through the end of `## Quick Summary`) and the
  *               `## Closing Reminders` section keep at least their recorded emphasis-marker counts
@@ -152,6 +161,52 @@ const COMMAND_ONLY_UTILITIES = [
     'ck-help', 'project-help', 'custom-prompt',
 ];
 const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve'];
+
+// TC-HTMLX-052. Skills that run html-export's script by path and restate its exit rule in prose.
+const HTML_EXPORT_CALLERS = ['presentation-builder', 'pbi-mockup', 'feature-presentation'];
+// Skill reference files (relative to the skills root) that carry the same one-line rule.
+const HTML_EXPORT_CALLER_REFERENCES = ['design/references/lane-marketing/motion-storyboard.md'];
+// Skill reference files that restate the rule as a `| Exit | ... |` table with their own actions.
+const HTML_EXPORT_EXIT_TABLES = ['design/references/explore/workflow.md'];
+const HTML_EXPORT_EXIT_RULE = /\*\*html-export exit rule:\*\*[^\r\n]*/g;
+const HTML_EXPORT_SCRIPT = '.claude/skills/html-export/scripts/export.cjs';
+
+// TC-HTMLX-052 (table form). Returns one line per way the first `| Exit |` table in `markdown`
+// drifts from the canonical caller rule: its first column must list exactly the EXIT values, exit 1
+// and 2 share one tool-failure row, and each row keeps the action the rule gives that code.
+function htmlExportExitTableDefects(markdown, EXIT) {
+    const lines = String(markdown).replace(/\r\n?/g, '\n').split('\n');
+    const header = lines.findIndex(line => /^\|\s*Exit\s*\|/.test(line));
+    if (header === -1) return ['no `| Exit |` table'];
+    const rows = [];
+    for (let i = header + 2; i < lines.length && lines[i].startsWith('|'); i++) {
+        const cells = lines[i].split('|').slice(1, -1).map(cell => cell.trim());
+        rows.push({ codes: (cells[0].match(/\d+/g) || []).map(Number), text: cells.slice(1).join(' | ') });
+    }
+    const defects = [];
+    const byNumber = (a, b) => a - b;
+    const codes = Object.values(EXIT).sort(byNumber);
+    const listed = rows.flatMap(row => row.codes).sort(byNumber);
+    if (JSON.stringify(listed) !== JSON.stringify(codes)) {
+        defects.push(`table routes codes ${JSON.stringify(listed)}, EXIT has ${JSON.stringify(codes)}`);
+    }
+    const rowFor = code => rows.find(row => row.codes.includes(code));
+    const toolFailure = [/tool failure/i, /`NOT VERIFIABLE`/, /never count it as a design defect or a pass/i];
+    const required = [
+        [EXIT.OK, [/evidence/i]],
+        [EXIT.PAGE_ERROR, [/\bfix the\b/i, /\bre-(?:run|render)\b/i]],
+        [EXIT.DEPENDENCY, [/`NOT VERIFIABLE`/, /never run an? install/i]],
+        [EXIT.ERROR, toolFailure],
+        [EXIT.USAGE, toolFailure],
+    ];
+    for (const [code, patterns] of required) {
+        const row = rowFor(code);
+        if (!row) continue;
+        for (const pattern of patterns) if (!pattern.test(row.text)) defects.push(`exit ${code} row lacks ${pattern}`);
+    }
+    if (rowFor(EXIT.ERROR) !== rowFor(EXIT.USAGE)) defects.push(`exit ${EXIT.ERROR} and ${EXIT.USAGE} must share one tool-failure row`);
+    return defects;
+}
 
 // TC-ADS-025 (emphasis diet). The five most emphasis-dense step skills of the four annotated
 // workflows (feature, bugfix, refactor, big-feature: top five by markers per KB of own body),
@@ -1440,6 +1495,95 @@ module.exports = {
                 }
                 // Then every utility is manual-only and the callable pair is untouched
                 assertTrue(defects.length === 0, `command-only skill policy (D-2) broken:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards the by-path coupling: callers restate html-export's exit codes in prose, so a code
+            // change in EXIT or a reworded caller would otherwise mis-route a render result silently.
+            name: '[content-presence] TC-HTMLX-052 html-export callers share one exit rule that matches EXIT',
+            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own caller skills (framework-repo signal)',
+            fn: () => {
+                // Given html-export's exit-code table and the three skills that call its script by path
+                const { EXIT } = require(path.join(SKILLS_DIR, 'html-export', 'scripts', 'lib', 'exit-codes.cjs'));
+                const defects = [];
+                const rules = new Map();
+                // When each caller's exit-rule line is read (skills, then reference files)
+                const callers = [
+                    ...HTML_EXPORT_CALLERS.map(name => [name, readSkill(name)]),
+                    ...HTML_EXPORT_CALLER_REFERENCES.map(rel => [rel, readFile(path.join(SKILLS_DIR, ...rel.split('/')))]),
+                ];
+                for (const [name, body] of callers) {
+                    const found = body.match(HTML_EXPORT_EXIT_RULE) || [];
+                    if (found.length !== 1) defects.push(`${name}: expected one html-export exit rule line, found ${found.length}`);
+                    else rules.set(name, found[0].trim());
+                    if (!body.includes(`node ${HTML_EXPORT_SCRIPT} `)) defects.push(`${name}: does not run ${HTML_EXPORT_SCRIPT} by path`);
+                }
+                // And each caller that restates the rule as an exit table keeps it in step with EXIT
+                for (const rel of HTML_EXPORT_EXIT_TABLES) {
+                    const body = readFile(path.join(SKILLS_DIR, ...rel.split('/')));
+                    for (const defect of htmlExportExitTableDefects(body, EXIT)) defects.push(`${rel}: ${defect}`);
+                    if (!body.includes(`node ${HTML_EXPORT_SCRIPT} `)) defects.push(`${rel}: does not run ${HTML_EXPORT_SCRIPT} by path`);
+                }
+                // Then the line is byte-identical across callers
+                const distinct = [...new Set(rules.values())];
+                if (distinct.length > 1) {
+                    defects.push(`exit rule differs across callers:\n    ${[...rules].map(([n, r]) => `${n}: ${r}`).join('\n    ')}`);
+                }
+                // And it covers exactly the EXIT values, with each code routed to its meaning
+                const codes = Object.values(EXIT).sort((a, b) => a - b);
+                if (JSON.stringify(codes) !== JSON.stringify([0, 1, 2, 3, 4])) {
+                    defects.push(`EXIT has values ${JSON.stringify(codes)}; the caller exit rule covers only 0-4 — update the rule and this test`);
+                }
+                const expectedClauses = [
+                    `exit ${EXIT.OK} → evidence as scoped`,
+                    `exit ${EXIT.PAGE_ERROR} → fix the page and re-run`,
+                    `exit ${EXIT.DEPENDENCY} → \`NOT VERIFIABLE\``,
+                    `exit ${EXIT.ERROR}/${EXIT.USAGE} → tool failure`,
+                    'mark `NOT VERIFIABLE`',
+                ];
+                for (const rule of distinct) {
+                    for (const clause of expectedClauses) if (!rule.includes(clause)) defects.push(`exit rule lacks "${clause}"`);
+                    const mentioned = [...rule.matchAll(/\bexit (\d+(?:\/\d+)*)/g)].flatMap(m => m[1].split('/').map(Number)).sort((a, b) => a - b);
+                    if (JSON.stringify(mentioned) !== JSON.stringify(codes)) {
+                        defects.push(`exit rule names codes ${JSON.stringify(mentioned)}, EXIT has ${JSON.stringify(codes)}`);
+                    }
+                }
+                // And the script the callers name exists
+                if (!fs.existsSync(path.resolve(PROJECT_DIR, HTML_EXPORT_SCRIPT))) defects.push(`${HTML_EXPORT_SCRIPT} is missing`);
+                assertTrue(defects.length === 0, `html-export caller exit rule drifted:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Proves the table form of the guard can fail: each kind of drift a caller's exit table can
+            // make is named. Literal EXIT values and tables, so it runs in any project layout.
+            name: '[content-presence] TC-HTMLX-052 a drifted html-export exit table is named (fixture)',
+            fn: () => {
+                // Given the canonical exit codes and a table that routes each one as the caller rule does
+                const EXIT = { OK: 0, ERROR: 1, USAGE: 2, DEPENDENCY: 3, PAGE_ERROR: 4 };
+                const table = (rows) => ['Read the exit code first:', '', '| Exit | Meaning | Action |', '| --- | --- | --- |', ...rows, '', 'After.'].join('\n');
+                const good = [
+                    '| 0 | Evidence as scoped | Open the PNGs |',
+                    '| 4 | A page fault | Fix the draft, re-render |',
+                    '| 3 | A dependency is missing | Mark `NOT VERIFIABLE`. NEVER run an install command |',
+                    '| 1 or 2 | Tool failure | Quote stderr, mark `NOT VERIFIABLE`. Never count it as a design defect or a pass |',
+                ];
+                // When the intact table is checked, Then nothing is reported
+                const clean = htmlExportExitTableDefects(table(good), EXIT);
+                assertTrue(clean.length === 0, `unexpected defects: ${clean.join('; ')}`);
+                // When a row is dropped, a code is added, a clause is reworded or 1 and 2 split, Then each is named
+                const drifts = [
+                    [good.filter(row => !row.startsWith('| 3 ')), /routes codes \[0,1,2,4\]/],
+                    [[...good, '| 5 | New | Tool failure, `NOT VERIFIABLE`, never count it as a design defect or a pass |'], /routes codes \[0,1,2,3,4,5\]/],
+                    [good.map(row => row.replace('Tool failure', 'Retry later')), /exit 1 row lacks/],
+                    [good.map(row => row.replace('NEVER run an install command', 'install it')), /exit 3 row lacks/],
+                    [[...good.slice(0, 3), good[3].replace('1 or 2', '1'), good[3].replace('1 or 2', '2')], /must share one tool-failure row/],
+                ];
+                for (const [rows, expected] of drifts) {
+                    const found = htmlExportExitTableDefects(table(rows), EXIT);
+                    assertTrue(found.some(line => expected.test(line)), `expected ${expected} in: ${found.join('; ') || '(none)'}`);
+                }
+                // And a file with no exit table is named, never passed
+                assertTrue(htmlExportExitTableDefects('No table here.', EXIT).length === 1, 'a missing table must be reported');
             },
         },
         {

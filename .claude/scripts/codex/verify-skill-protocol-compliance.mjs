@@ -167,13 +167,21 @@ async function exists(targetPath) {
     }
 }
 
+// Local install and VCS directories are never framework skills, so neither the manifest walker nor the
+// guide walker scans them: a skill-local `npm install` ships packages with their own SKILL.md and .md files.
+// Keep this set a superset of MIRROR_EXCLUDED_DIRS in migrate-claude-to-codex.mjs; it is a local copy so
+// this read-only verifier never loads the mirror generator. The one extra entry, `venv`, is the
+// conventional Python virtualenv name; skipping it only makes the verifier less strict than the mirror
+// copy, never stricter.
+const SCAN_SKIPPED_DIRS = new Set(['.git', '.hg', '.svn', '.venv', 'venv', 'node_modules', '__pycache__']);
+
 async function collectFilesByName(dirPath, fileName, { caseInsensitive = false } = {}) {
     const collected = [];
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     for (const entry of entries) {
         const fullPath = path.join(dirPath, entry.name);
         if (entry.isDirectory()) {
-            collected.push(...(await collectFilesByName(fullPath, fileName, { caseInsensitive })));
+            if (!SCAN_SKIPPED_DIRS.has(entry.name)) collected.push(...(await collectFilesByName(fullPath, fileName, { caseInsensitive })));
             continue;
         }
         const namesMatch = caseInsensitive ? entry.name.toLowerCase() === fileName.toLowerCase() : entry.name === fileName;
@@ -440,8 +448,6 @@ export function checkGuideCarrierRules({ relativePath, skillName, content, inlin
     return failures;
 }
 
-const GUIDE_SCAN_SKIPPED_DIRS = new Set(['node_modules', '.venv', 'venv', '__pycache__', '.git']);
-
 async function collectMarkdownFiles(dirPath) {
     let entries;
     try {
@@ -454,7 +460,7 @@ async function collectMarkdownFiles(dirPath) {
     for (const entry of entries) {
         const fullPath = path.join(dirPath, entry.name);
         if (entry.isDirectory()) {
-            if (!GUIDE_SCAN_SKIPPED_DIRS.has(entry.name)) collected.push(...(await collectMarkdownFiles(fullPath)));
+            if (!SCAN_SKIPPED_DIRS.has(entry.name)) collected.push(...(await collectMarkdownFiles(fullPath)));
         } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
             collected.push(fullPath);
         }

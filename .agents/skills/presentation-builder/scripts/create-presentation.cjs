@@ -402,6 +402,15 @@ function renderRuntime(meta) {
         function titleOf(slide) { return slide.querySelector('h1, h2, h3')?.textContent.trim() || 'Untitled slide'; }
         function templateOf(slide) { return slide.querySelector('template.slide-notes, template.note-src'); }
 
+        // An href survives only as http(s), mailto, a fragment, a single-slash path or ./ path. A backslash or
+        // an ASCII control character (tab and newline included) is rejected first: the URL parser treats
+        // '\\' as '/' and deletes tab/newline, so '/\\evil' or '/<TAB>/evil' would resolve off-origin.
+        function isSafeHref(value) {
+          const text = String(value);
+          return !/[\\\\\\u0000-\\u001f\\u007f]/.test(text) &&
+            /^(?:https?:|mailto:|#|\\/(?!\\/)|\\.\\/)/i.test(text);
+        }
+
         function sanitizeEditableHtml(value, preserveNoteAttributes = false) {
           const template = document.createElement('template');
           template.innerHTML = String(value ?? '');
@@ -419,9 +428,8 @@ function renderRuntime(meta) {
               const isNoteMarker = preserveNoteAttributes &&
                 (name === 'data-note-row' || name === 'data-note-value') &&
                 /^[a-z-]+$/.test(attribute.value);
-              const isSafeHref = element.tagName === 'A' && name === 'href' &&
-                /^(?:https?:|mailto:|#|\/(?!\/)|\.\/)/i.test(attribute.value);
-              if (!isNoteMarker && !isSafeHref) element.removeAttribute(attribute.name);
+              const isAllowedHref = element.tagName === 'A' && name === 'href' && isSafeHref(attribute.value);
+              if (!isNoteMarker && !isAllowedHref) element.removeAttribute(attribute.name);
             });
           });
           return template.innerHTML;

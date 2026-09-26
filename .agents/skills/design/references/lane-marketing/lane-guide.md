@@ -175,6 +175,8 @@ Commit to a cohesive aesthetic. **Use CSS variables for consistency. Dominant co
 
 Prioritize CSS-only solutions for HTML; use the Motion library for React when available, or `anime.js` (`animejs.md`). One well-orchestrated page load with staggered reveals (`animation-delay`) creates more delight than scattered micro-interactions. Honour `prefers-reduced-motion`.
 
+When the deliverable is an animation or video, plan it with `motion-storyboard.md`, make it recordable per `.claude/skills/html-export/references/animation-recording.md`, and export it with the `html-export` skill (`--to=mp4|gif`) or its script by path; never run install commands — a missing dependency is `NOT VERIFIABLE` plus a setup pointer.
+
 ### Spatial composition, backgrounds & assets
 
 - **Spatial composition:** unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density — chosen, not defaulted.
@@ -262,3 +264,4 @@ Claude is capable of extraordinary creative work — don't hold back when the br
 - Canonical design knowledge: `.claude/docs/design-knowledge.md`
 - `design` local `scripts/search.py` — searchable design-intelligence index
 - `shadcn-tailwind` — component library helpers
+- `html-export` — export an HTML deliverable (`--to=png|pdf|mp4|gif`); invoke the skill or run `node .claude/skills/html-export/scripts/export.cjs` by path; never install its dependencies

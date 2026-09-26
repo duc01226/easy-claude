@@ -1,6 +1,6 @@
 # Skills Reference
 
-> <!-- COUNT:skills -->125<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->126<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->125<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->126<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -37,7 +37,7 @@ Skills Activated: fix, investigate
 | [Context/Memory](#contextmemory)                  | 2      | Code cleanup, learning                         |
 | [Team Collaboration](#team-collaboration)         | 6      | Test specs, UX design specs, backlog shaping   |
 | [Web/Frameworks](#webframeworks)                  | 2      | Package updates, markdown                      |
-| [Document Processing](#document-processing)       | 2      | PDF, DOCX, Markdown conversions                |
+| [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
 | [Utility](#utility)                               | 1      | Skill creation                                 |
 
 **Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->12<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
@@ -161,10 +161,11 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 ## Document Processing
 
-| Skill          | Triggers                                                         | Description                                 |
-| -------------- | ---------------------------------------------------------------- | ------------------------------------------- |
-| `docx-convert` | DOCX to markdown, Word conversion, markdown to DOCX, Word export | Word ⇄ Markdown via `--to {markdown\|docx}` |
-| `pdf-convert`  | PDF to markdown, PDF extraction, markdown to PDF, PDF export     | PDF ⇄ Markdown via `--to {markdown\|pdf}`   |
+| Skill          | Triggers                                                         | Description                                                |
+| -------------- | ---------------------------------------------------------------- | ---------------------------------------------------------- |
+| `docx-convert` | DOCX to markdown, Word conversion, markdown to DOCX, Word export | Word ⇄ Markdown via `--to {markdown\|docx}`                |
+| `html-export`  | HTML screenshot, render check, deck to PDF, animation to MP4/GIF | HTML → PNG/PDF/MP4/GIF via `--to {png\|pdf\|mp4\|gif}`     |
+| `pdf-convert`  | PDF to markdown, PDF extraction, markdown to PDF, PDF export     | PDF ⇄ Markdown via `--to {markdown\|pdf}`                  |
 
 ---
 
@@ -296,4 +297,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->125<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->126<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
