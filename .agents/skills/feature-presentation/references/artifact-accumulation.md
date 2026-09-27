@@ -89,14 +89,14 @@ The spec-only branch preserves the `idea-to-spec` no-mockup / no-code contract: 
 | Context        | Journey demo source                                                                                                   |
 | -------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `idea-to-pbi`  | Interactive `pbi-mockup` HTML scoped to the flow, embedded via `<iframe srcdoc>` + deck narration strip (`deck-template.md` §3b). |
-| `idea-to-spec` | **Narrated step-through of design-spec ASCII frames** — a sequence of the design-spec ASCII wireframe states advanced by Next, each with its per-step explanation. NO HTML mockup, NEVER invoke `pbi-mockup`. |
+| `idea-to-spec` | **Narrated step-through of design-spec ASCII frames** — one wireframe-demo slide per ASCII frame (ids `demo-{journey-slug}`, `demo-{journey-slug}-2`, …), advanced by Next, each with its per-step explanation (`deck-template.md` §3b "Spec-only wireframe demo"). NO HTML mockup, NEVER invoke `pbi-mockup`. |
 
 The spec-only narrated-ASCII journey honors the no-mockup / no-code contract while still giving stakeholders a sense of motion — it advances design-spec ASCII frames, it does not render or embed any HTML mockup.
 
 ### Empty-state (F3)
 
 - If scope resolves to **zero artifacts**, emit an explicit empty-state slide rather than failing.
-- If an in-scope feature has **no `-mockup.html` AND no design-spec**, render an explicit empty-state slide ("No mockup/design-spec available for {feature}") — never a broken/blank iframe.
+- If an in-scope feature has **no `-mockup.html` AND no design-spec**, render an explicit empty-state slide ("No prototype or design available for {feature}") — never a broken/blank iframe.
 
 ---
 
@@ -128,4 +128,4 @@ Extract one **journey** per main user story (MVP happy path — not every edge c
 | User story `As a / I want / So that`                               | The persona + the journey's goal/title + the business "why" for the explanation. |
 | Mock-up flow-spec (`pbi-mockup/references/interactive-demo.md` §1) | The concrete ordered `steps[]` (`action` → `result` → `explain`) + `endState` — when a `-mockup.html` exists, reuse its flow-specs verbatim so the deck demo == the per-PBI prototype. |
 
-One journey per main story. Keep journey `title`/explanation prose tech-agnostic (business/observable terms, not framework/CSS class names) per M1/M2. In spec-only `idea-to-spec` context, the journey's steps map to design-spec ASCII frames (narrated step-through), never an HTML mockup.
+One journey per main story. Keep journey `title`/explanation prose tech-agnostic (business/observable terms, not framework/CSS class names) per M1/M2. In spec-only `idea-to-spec` context, the journey's steps map to design-spec ASCII frames (narrated step-through, one slide per frame), never an HTML mockup. Artifact text and wireframes carry `<`, `>` and `&`: hand them to the render side as plain text — it escapes every inserted value (`deck-template.md` §1 "Escape every inserted value").

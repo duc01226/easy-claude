@@ -62,8 +62,8 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 **Summary:**
 
 - **Purpose / altitude:** a SYNTHESIS deck at a higher altitude than `pbi-mockup` — accumulates many artifacts (ideas + specs + PBIs + stories + design-specs + mockups) into ONE stakeholder presentation, not one PBI's UI preview.
-- **Main steps (read-this-if-nothing-else):** (1) resolve `activePlan` scope across created→now → (2) gap-fill: missing PBIs → ask once (`manual` tier), on a yes run `workflow-spec-to-pbi` as a SUB-AGENT, else report the gap; missing mockups in `idea-to-pbi` use `pbi-mockup`, `idea-to-spec` skips mockups → (3) load design context → (4) [BLOCKING] inventory UI + flows → (5) extract journeys, one todo each → (6) assemble → (7) save → (8) [BLOCKING] fidelity/demo integrity → (8b) Demo-Quality → (9) report.
-- **Output/demo contract:** exactly ONE self-contained HTML at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` defaults to `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) with inline CSS/JS, Google Fonts only, no CDN/reveal.js, vanilla-JS navigation, a guide slide, and one interactive demo-flow slide per main journey; reuse existing `*-mockup.html` via escaped `<iframe srcdoc>` and accept only complete PBI full flows.
+- **Main steps (read-this-if-nothing-else):** (1) resolve `activePlan` scope across created→now → (2) gap-fill: missing PBIs → ask once (`manual` tier), on a yes run `workflow-spec-to-pbi` as a SUB-AGENT, else report the gap; missing mockups in `idea-to-pbi` use `pbi-mockup`, `idea-to-spec` skips mockups → (3) load design context → (4) [BLOCKING] inventory UI + flows → (5) extract journeys, one todo each → (6) assemble → (7) save → (8) [BLOCKING] `review`-profile conformance check, then fidelity/demo integrity → (8b) Demo-Quality → (9) report.
+- **Output/demo contract:** exactly ONE HTML at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` defaults to `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) with inline CSS/JS, self-contained; outside assets only with the deck's declared asset policy (added automatically when an embedded prototype loads an outside asset); project or system type, no CDN/reveal.js, vanilla-JS navigation, speaker notes on every slide, a guide slide, and one interactive demo-flow slide per main journey; reuse existing `*-mockup.html` via escaped `<iframe srcdoc>` and accept only complete PBI full flows. The deck meets `presentation-builder`'s deck standard and passes its validator with `--profile=review` before it is reported ready.
 - **Branches and evidence:** evaluate shared `isLargeIdea`; true requires the complete `large_idea_decomposition` block, stable slice IDs, and Decomposition & boundaries beside the all-PBI backlog and all-PBI presentation; missing/conflicting fields block deck quality and the presentation never creates the product roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path). `idea-to-spec` uses only design-spec ASCII/tables + narrated frames; missing visuals render an empty state; use real domain data and keep prose tech-agnostic.
 
 **Workflow:**
@@ -73,15 +73,16 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 3. **Load project design context** — baseline + matched per-app design-system docs via `project-config.json`.
 4. **[BLOCKING] Inventory existing UI + map connected flows** — `SYNC:existing-ui-research`.
 5. **Accumulate + structure content (incl. journey extraction)** — parse each artifact into stakeholder sections; extract the main-story flows into an ordered journey list + task tracking one todo per journey; REAL domain data, never Lorem (`references/artifact-accumulation.md`).
-6. **Assemble ONE standalone HTML deck** — inline CSS (design tokens, BEM) + vanilla-JS engine + a "How to drive this demo" guide slide + one interactive demo-flow slide per journey (embedded mockup + narration strip) + `<iframe srcdoc>` mockup embeds; spec-only path renders ASCII/tables + narrated ASCII frames; empty-state slide when no visual exists (`references/deck-template.md`).
+6. **Assemble ONE standalone HTML deck** — inline CSS (design tokens, BEM) + vanilla-JS engine + speaker notes on every slide + a "How to use this deck" guide slide + one interactive demo-flow slide per journey (embedded mockup + narration strip) + `<iframe srcdoc>` mockup embeds, each raw mockup scanned for outside assets first; spec-only path renders ASCII/tables + narrated ASCII frames; empty-state slide when no visual exists (`references/deck-template.md`).
 7. **Save** → `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (see "Path roots").
-8. **[BLOCKING] Fidelity gate (incl. demo integrity)** — validate deck visuals + every journey clicks through vs Step 4 inventory; record `Fidelity vs existing UI: PASS|FAIL` (`references/deck-template.md`).
+8. **[BLOCKING] Conformance check, then fidelity gate (incl. demo integrity)** — `validate-presentation.cjs <deck.html> --profile=review` must exit 0 (fix and re-check until it does); then validate deck visuals + every journey clicks through vs Step 4 inventory; record `Conformance (review): PASS` and `Fidelity vs existing UI: PASS|FAIL` (`references/deck-template.md`).
 8b. **[BLOCKING] Demo-Quality review** — final stakeholder-comprehension pass; record `Demo quality: PASS|FAIL`.
-9. **Report** — path, artifact count synthesized, demo journeys, stakeholder sections, fidelity + demo-quality verdicts.
+9. **Report** — path, artifact count synthesized, demo journeys, stakeholder sections, conformance + browser-behavior + fidelity + demo-quality verdicts.
 
 **Key Rules:**
 
-- Emit exactly ONE self-contained HTML file; inline CSS/JS; no external `<script src>` / `<link rel=stylesheet>` except Google Fonts; no CDN reveal.js — vanilla-JS engine only.
+- Emit exactly ONE self-contained HTML file; inline CSS/JS; type from the project's design tokens or the system stack (a web font the picked design-explore draft loaded is kept only by packaging its font file inside the deck — otherwise the project's type token, then the closest system stack, recorded as a departure); no external `<script src>` / `<link rel=stylesheet>` / `url(https://…)` in the deck's own markup; outside assets only with the deck's declared asset policy (added automatically when an embedded prototype loads an outside asset); no CDN reveal.js — vanilla-JS engine only.
+- [BLOCKING] Never report the deck ready while `validate-presentation.cjs --profile=review` fails — fix the deck and re-check (Step 8); `presentation-builder` owns the deck standard and that validator.
 - Present every in-scope main user story as an interactive MVP demo slide (embedded interactive mockup + narration strip); plan journeys first (Step 5, one todo each), sign off with the Demo-Quality review (Step 8b).
 - Embed existing `-mockup.html` via `<iframe srcdoc>` — never regenerate a mockup that already exists; the mock-up is self-driving, the deck adds only narration.
 - Spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + narrated ASCII-frame step-through ONLY; never generate HTML mockups, never invoke `pbi-mockup`.
@@ -103,7 +104,9 @@ Synthesize session specs, PBIs, ideas, and mockups into one standalone HTML deck
 - Near the end of `workflow-idea-to-pbi` or `workflow-idea-to-spec`, to present the feature set to stakeholders.
 - Standalone, when PO/BA/Dev/QC need one offline deck synthesizing a feature's ideas, specs, PBIs, stories, and mockups.
 
-**NOT for**: one PBI UI preview (`$pbi-mockup`), Feature Spec authoring (`$spec`), or design-spec production (`$design-spec`).
+**NOT for**: one PBI UI preview (`$pbi-mockup`), Feature Spec authoring (`$spec`), or design-spec production (`$design-spec`). General-subject decks go to `$presentation-builder` (user-run) — a talk, briefing, teaching or pitch deck that does not synthesize a feature's ideas/specs/PBIs/mockups.
+
+**Deck standard:** `presentation-builder` owns the deck standard (runtime contract `presentation-builder/references/web-runtime-contract.md`) and its validator `presentation-builder/scripts/validate-presentation.cjs`. This skill's review deck conforms to that standard under the `review` profile and passes it before hand-off (Step 8). For a read-only review deck that profile makes five checks advisory — in-place editing, editing state, local draft saving, draft reset and clean export — and keeps every other check at the same level as the `presenter` profile; the Presentation Decks spec rule BR-PD-03 owns that list, mirrored in the runtime contract's §9 "Conformance profiles" and the validator — change it there first.
 
 ---
 
@@ -138,6 +141,7 @@ Both placeholders stand for the RESOLVED value everywhere they appear in this sk
 ### Related
 
 - **Input from:** `$spec`, `$refine`, `$story`, `$pbi-mockup`, `$design-spec`
+- **Deck standard + validator:** `presentation-builder` — owns the shared deck standard and `validate-presentation.cjs`; this skill passes it with `--profile=review`. General-subject decks go to `$presentation-builder` (user-run).
 - **Command:** `$feature-presentation`
 - **Detail:** `references/deck-template.md` (HTML scaffold + slide engine + iframe-srcdoc escaping + fidelity gate); `references/artifact-accumulation.md` (scope resolution + per-type parse map + gap-fill + branches)
 
@@ -165,6 +169,8 @@ Fill missing downstream artifacts; routing: `references/artifact-accumulation.md
 ### Step 3: Load Project Design Context
 
 Deck CSS uses project design tokens (same discovery as `pbi-mockup`):
+
+0. **Design-explore hand-off (when supplied):** a `$design --mode=explore` run whose deliverable was a Slide hands over `direction-approved.md` and `run-notes.md`. Read the Design Plan tokens from the `## Design Plan tokens` section of `direction-approved.md` and adopt the approved direction as the deck's look — its colours and type become the CSS variables; the steps below still fill any axis it leaves open. Read the journey fixes from the `## Journey fixes (UX-8)` section of `run-notes.md` and apply each to the slide map, recording each fix as applied or `N/A — <reason>` in the Step 9 hand-off line. A web font the picked draft loaded is kept only by packaging its font file inside the deck (an embedded font file — the deck still loads nothing from a network, Step 6); otherwise it is replaced by the project's type token, then the closest system stack, and the replacement is recorded as a departure in the Step 9 hand-off line.
 
 1. **Mandatory baseline:** Read `design-system/README.md` and `design-system/design-system-canonical.md` under the project-reference root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path).
 2. **Primary:** Read top-level `designSystem` in `docs/project-config.json` — use `designSystem.docsPath` + `designSystem.canonicalDoc`, then match the presented feature/app context against `designSystem.appMappings[]` to select the per-app doc.
@@ -194,25 +200,43 @@ Parse each in-scope artifact into stakeholder slide sections (see Slide Taxonomy
 
 Build the single self-contained HTML from `references/deck-template.md`:
 
-- Inline `<style>` — design-token CSS variables, BEM classes, light/dark themes.
-- Vanilla-JS slide engine — `←/→`/`Home`/`End`, nav dots, counter, theme toggle; no CDN reveal.js. Don't hijack arrows while a demo iframe is focused; OPTIONAL `postMessage('play')` auto-starts a journey only when supported (`references/deck-template.md` §3b).
-- **"How to drive this demo" guide slide** near the top — explain hotspots, each mock-up's ▶ Play / ⏮ ⏭ / ↺ Reset controls, and ←/→ slide navigation (`references/deck-template.md` §3b).
-- **Demo-flow slides (one per Step 5 journey):** embed flow-scoped interactive `pbi-mockup` HTML via escaped `<iframe srcdoc="…escaped…">` and overlay a text-only narration strip (current step, plain-language explanation, "⚠ Simulated"). Controls stay inside the self-driving mock-up; the deck adds no duplicate interactivity (`references/deck-template.md` §3b).
+- Inline `<style>` — design-token CSS variables, BEM classes, light/dark themes; font stack from the project's design tokens, else the system stack — never a web-font link in the deck's own markup; a web font the picked design-explore draft loaded is kept only by packaging its font file inside the deck, otherwise it is replaced by the project's type token, then the closest system stack, and recorded as a departure (Step 3 item 0, Step 9).
+- Every slide is a `<section class="slide deck__slide">` with an `<h2>` title and its own speaker notes (`references/deck-template.md` §1) — no slide ships without notes. Slide bodies never nest `<section>`: the checker ends a slide at the first `</section>`, so group content inside a slide with `<div>`.
+- Vanilla-JS slide engine from the §1 scaffold — Previous/Next buttons, arrow keys, PageUp/PageDown, Space (Shift+Space goes back), `Home`/`End`, All slides (overview), Notes, fullscreen, theme toggle, and a "Slide N of M" status; no nav dots, no CDN reveal.js. On a slide whose content overflows, the vertical keys scroll it first and change slide only at its edge; while Tab has put the focus in the notes they scroll only the notes, even at the notes' edge, and move neither the page nor the slide (runtime contract §3). Key presses inside an embedded demo stay in the demo; OPTIONAL `postMessage('play')` auto-starts a journey only when supported (`references/deck-template.md` §3b).
+- **"How to use this deck" guide slide** near the top — teach navigation (Previous/Next and the arrow, PageUp/PageDown, Space, `Home`/`End` keys), All slides (overview), Notes and Escape to close them, Tab into the notes to scroll them (there the scroll keys move only the notes; press Tab or click outside them to move the deck again), each mock-up's hotspots and ▶ Play / ⏮ ⏭ / ↺ Reset demo controls, leaving a demo (after clicking into one, click outside it, or press Tab until you leave it, to use the arrow keys for slides again), and Full screen and Dark theme (`references/deck-template.md` §3b).
+- **Outside-asset scan (before escaping each raw `-mockup.html`):** search the raw mockup, case-insensitively (flag `i`), with the regex `(?<![\w-])(?:src|poster|data)\s*=\s*["']?\s*(?:https?:)?//|(?<![\w-])srcset\s*=\s*["']?[^"'>]*//|<(?:link|image|use)\b[^>]*?(?<![\w-])(?:xlink:)?href\s*=\s*["']?\s*(?:https?:)?//|url\(\s*["']?\s*(?:https?:)?//|@import\s*["']?\s*(?:https?:)?//` — it uses look-behind, so run it as a JavaScript RegExp with the `i` flag (`new RegExp(pattern, 'i')` in node) or with `grep -Pi` / `rg --pcre2 -i`; never `grep -E` or plain `rg`, which miss every hit silently or refuse the pattern. It flags only what the mockup LOADS from a network address (protocol-relative `//` included): a `src`, `poster` or `data` (object) attribute, a network address anywhere in a `srcset`, a `<link>` (or SVG `<image>`/`<use>`) `href`, a `url(…)`, or an `@import` with or without a space. A plain link (`<a href="https://…">`), a `data-src`-style attribute and an address shown as text are not loads and are not flagged. Any hit in any mockup → add `<meta name="presentation-asset-policy" content="external-allowed">` to the deck's `<head>` and put the viewer notice "Demos load outside assets; open online to see them exactly." on the how-to slide — demos need a network to show them exactly. No hit in any mockup → no meta, no notice. Record `Outside assets: declared ({N} mockups) | none`. The deck's own markup never loads an outside asset either way.
+- **Demo-flow slides (one per Step 5 journey):** embed flow-scoped interactive `pbi-mockup` HTML via escaped `<iframe srcdoc="…escaped…">` with a text-only narration strip beside the embed (never over it) listing each step with a plain-language explanation and "⚠ Simulated". Controls stay inside the self-driving mock-up; the deck adds no duplicate interactivity (`references/deck-template.md` §3b).
 - **Mockup-bearing path (`idea-to-pbi`):** embed each existing `-mockup.html` via `<iframe srcdoc="…escaped…">`; use `&`-first, escape-once-unconditionally from `references/deck-template.md`. Never regenerate an existing mockup.
 - **Decomposition integrity:** the deck aggregates; it must not split, merge, rename, or reinterpret slice IDs. Flag conflicts to the owning PBI/spec/refine step and stop fidelity validation until resolved.
-- **Spec-only path (`idea-to-spec`):** render design-spec ASCII wireframes plus Component Inventory / States / Design-Tokens tables; advance narrated ASCII frames with Next. NO `<iframe srcdoc>` mockup, NEVER invoke `pbi-mockup`.
-- **Empty-state (F3):** when a feature has NO `-mockup.html` AND NO design-spec, render "No mockup/design-spec available for {feature}" — never a broken/blank iframe.
+- **Spec-only path (`idea-to-spec`):** render design-spec ASCII wireframes plus Component Inventory / States / Design-Tokens tables; each journey is a narrated wireframe demo with ONE SLIDE PER ASCII FRAME, so Next advances the frames — ids `demo-{journey-slug}`, `demo-{journey-slug}-2`, `demo-{journey-slug}-3`, … — each slide an escaped `<pre class="deck__wireframe">` made a named, focusable region (`tabindex="0" role="region" aria-label`) with no iframe and no empty-state line, keeping its narration and "⚠ Simulated" note (`references/deck-template.md` §3b "Spec-only wireframe demo"). NO `<iframe srcdoc>` mockup, NEVER invoke `pbi-mockup`.
+- **Escape inserted text:** every value placed into a `{…}` placeholder (element text or attribute value) and every ASCII wireframe is HTML-escaped once before insertion, `&` first, then `<` `>` `"` `'` (`references/deck-template.md` §1 "Escape every inserted value"). An unescaped `</section>` in inserted text ends the slide early for the conformance check — a deck defect to fix.
+- **Continuation slides:** a job that needs more than one slide keeps its id and numbers each continuation from 2 (`rules`, `rules-2`) so every `data-slide-id` stays unique and job-named.
+- **Empty-state (F3):** when a feature has NO `-mockup.html` AND NO design-spec, render "No prototype or design available for {feature}" — never a broken/blank iframe; drop that slide's "⚠ Simulated" note and use the no-visual notes variant (`references/deck-template.md` §3b).
 
 ### Step 7: Save
 
 - **Path:** `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` — `{artifacts-root}` defaults to `team-artifacts` and is relocated by a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` (create the `presentations/` dir under it if absent).
 - `{slug}` = the presented feature(s) or plan slug.
 
-### Step 8: [BLOCKING] Fidelity Validation — Deck Matches Existing UI
+### Step 8: [BLOCKING] Conformance Check, then Fidelity Validation — Deck Matches Existing UI
 
-> **[BLOCKING] After assembly, run `references/deck-template.md` → "[BLOCKING] Fidelity Gate" against the Step 4 UI inventory.** Do NOT report done until a result is recorded.
+> **[BLOCKING] Conformance check first — run `presentation-builder`'s validator with the `review` profile on the saved deck:**
+>
+> ```
+> node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html> --profile=review
+> ```
+>
+> Exit 0 is required. Exit 1 → fix every failed check in the deck and re-run until it exits 0. Exit 2 → a usage or read error: report it with its stderr and treat the check as not passed. **Never report the deck ready while the check fails** — a failing deck is fixed and re-checked, never handed off.
+>
+> **Checker defect:** if a failed check names something the deck visibly satisfies (for example notes reported missing on a slide that has them), treat it as a checker defect — stop the fix loop, report the check, the slide and the evidence to the user, and do not report the deck ready. First confirm no slide body nests `<section>` and no inserted text or wireframe carries an unescaped `<`, `&` or `</section>` (Step 6): the checker ends a slide at the first `</section>`, so either one is a deck defect to fix, not a checker defect.
 
-The gate also covers **demo integrity** — every journey slide clicks end-to-end in its iframe, reaches its end state via real hotspots, has no dead controls, names the current step + plain-language explanation in tech-agnostic narration (M1/M2), shows "⚠ Simulated", and advances spec-only ASCII frames.
+Alongside the check, confirm the outside-asset contract: search the deck with every `srcdoc="…"` attribute value removed using the Step 6 regex, case-insensitively, in a look-behind engine (a JavaScript RegExp with the `i` flag, `grep -Pi` or `rg --pcre2 -i`; never `grep -E` or plain `rg`) — the deck's own markup must load nothing, so it has zero hits (a plain `<a href>` link in notes or evidence is not a load and does not count); the `presentation-asset-policy` meta is present exactly when the Step 6 mockup scan found an outside asset.
+
+A static PASS is not browser proof. Record the browser behaviors — notes open/close/Escape, overview focus, keyboard navigation (including clicker keys after a button click), keyboard scroll-then-advance on an overflowing slide at 200% zoom / narrow width, notes readable by keyboard at 125–150% zoom with the deck not moving while the focus is in them, notes panel visible when opened at narrow width, text and control contrast in both themes after token substitution, print, reduced motion (no smooth scrolling, no demo auto-play), the screen-reader names of the controls and the notes panel, and the no-JavaScript fallback (every slide readable as one page, controls hidden) — each as browser-verified or `NOT VERIFIABLE`; never fold an unexercised behavior into the PASS.
+
+> **[BLOCKING] After the conformance check passes, run `references/deck-template.md` → "[BLOCKING] Fidelity Gate" against the Step 4 UI inventory.** Do NOT report done until a result is recorded.
+
+The gate also covers **demo integrity** — every journey slide clicks end-to-end in its iframe, reaches its end state via real hotspots, has no dead controls, lists each step with a plain-language explanation in tech-agnostic narration (M1/M2), shows "⚠ Simulated", and advances spec-only ASCII frames one slide per frame without an empty-state line beside the wireframe.
 
 **Optional render evidence (when html-export is installed):** `node .claude/skills/html-export/scripts/export.cjs --to=png <deck.html> --slides=section.deck__slide` captures every slide. Exit 0 is evidence ONLY for first-load and per-slide render, zero page errors, and no blank captures; demo click-through and the other gate items stay `NOT VERIFIABLE` unless exercised another way. **html-export exit rule:** exit 0 → evidence as scoped; exit 4 → fix the page and re-run; exit 3 → `NOT VERIFIABLE` plus a one-line pointer to `$html-export` setup, never run install commands; exit 1/2 → tool failure: quote stderr, mark `NOT VERIFIABLE`, never count it as a design defect or a pass; any other code (such as 130 after an interrupt) → handle it like 1/2; evidence is only the files this run's manifest names (`report.json` `files[]` for png, `output` for pdf, `frames.json` `output` for video), since a reused `--out` keeps older files. The HTML stays canonical; never restructure it for an exporter.
 
@@ -224,11 +248,13 @@ Fidelity vs existing UI: PASS | FAIL — tokens / components / layout / flows / 
 
 If **FAIL**, revise the deck to match the existing UI and re-validate before handoff.
 
+**Re-check after every fix:** any edit made for a fidelity, demo-integrity or Step 8b Demo-Quality failure changes the deck, so re-run the `--profile=review` conformance check on the saved deck before recording the verdicts again — `Conformance (review): PASS` in the Step 9 report is the result of the check on the final deck, never of an earlier version.
+
 ### Step 8b: [BLOCKING] Demo-Quality Review (final review todo)
 
 > **[BLOCKING] Final review before the report (the per-journey todos and this gate were created in Step 5).** First confirm the deck **SATISFIES the intent**: every in-scope main user story is presented as a journey (coverage — no main story missing) AND each journey faithfully conveys that story's intended behavior, not merely that slides render. Then run a stakeholder-comprehension pass: *could a PO with no prior context follow each journey end-to-end?* Confirm every demo-flow slide clicks through, narration explains each step in plain language, the "⚠ Simulated" note is present, and the spec-only path degrades to narrated ASCII frames (never an HTML mockup). Record `Demo quality: PASS | FAIL` — FAIL if any main story is unrepresented or misrepresented, regardless of polish.
 
-If **FAIL**, fix the journey slides (re-extract from the §6 journey map / re-embed the flow-scoped mockup) and re-review before handoff.
+If **FAIL**, fix the journey slides (re-extract from the §6 journey map / re-embed the flow-scoped mockup), re-run the Step 8 conformance check, and re-review before handoff.
 
 ### Step 9: Report to User
 
@@ -240,13 +266,17 @@ Deck generated: {artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html
 - Backlog priority: {ranked | not prioritized} — Scope & backlog slide shows {N} PBIs in ranked order with priority labels
 - Demo journeys: {count} ({journey titles})
 - Stakeholder sections: {title, how-to-demo, business-context, scope-backlog, behavior-rules, demo-flows, ui-mockups, qc-view, summary}
+- Conformance (review): PASS
+- Browser behaviors: {notes open/close/Escape, notes readable by keyboard at 125–150% zoom with the deck not moving while the focus is in them, overview focus, keyboard, keyboard scroll-then-advance on an overflowing slide at 200% zoom / narrow width, notes panel visible when opened at narrow width, text and control contrast in both themes after token substitution, print, reduced motion, screen-reader names of the controls, no-JavaScript fallback} — each browser-verified | NOT VERIFIABLE
+- Outside assets: declared ({N} mockups) | none
+- Design-explore hand-off: none | journey fixes: {each fix — applied | N/A — <reason>}; departures from the picked direction: none | {e.g. web font → system stack}
 - Fidelity vs existing UI: PASS | FAIL
 - Demo quality: PASS | FAIL
 
-Open in browser to preview. Click highlighted hotspots or press ▶ Play to walk a journey; use ←/→ or nav dots to move between slides; theme toggle for light/dark.
+Open in browser to preview. Click highlighted hotspots or press ▶ Play to walk a journey; use Previous/Next or the arrow keys to move between slides, All slides to jump, Notes for the talk track; theme toggle for light/dark.
 ```
 
-When html-export is installed, offer a PDF copy: `node .claude/skills/html-export/scripts/export.cjs --to=pdf <deck.html> --slides=section.deck__slide` (apply the Step 8 exit rule).
+When html-export is installed, offer a PDF copy: `node .claude/skills/html-export/scripts/export.cjs --to=pdf <deck.html> --page=1920x1080` (the deck's print styles put one slide per page); fall back to the slides route `--to=pdf <deck.html> --slides=section.deck__slide` when the print route fails (apply the Step 8 exit rule).
 
 ---
 
@@ -257,7 +287,7 @@ Every slide section must serve the four stakeholder audiences (PO/BA/Dev/QC):
 | Section                | Audience  | Content                                                                                  |
 | ---------------------- | --------- | ---------------------------------------------------------------------------------------- |
 | **Title / agenda**     | all       | Feature(s) presented, run date, scope                                                    |
-| **How to drive this demo** | all   | Early guide slide: click hotspots + each demo's own ▶ Play / ⏮ ⏭ / ↺ Reset controls (inside the mock-up); ←/→ change slides (`references/deck-template.md` §3b) |
+| **How to use this deck** | all     | Early guide slide: navigation (Previous/Next, arrow/PageUp/PageDown/Space/`Home`/`End` keys), All slides (overview), Notes and Escape, Tab into the notes to scroll them (the scroll keys then move only the notes), each demo's hotspots and own ▶ Play / ⏮ ⏭ / ↺ Reset controls (inside the mock-up), leaving a demo (click outside it, or press Tab until you leave it), Full screen and Dark theme; the outside-asset viewer notice when declared (`references/deck-template.md` §3b) |
 | **Business context**   | PO/BA     | Problem, value, idea→spec narrative, epics/features                                       |
 | **Scope & backlog**    | PO/BA/Dev | PBIs (in ranked order, each card showing its priority label + numeric rank from PBI frontmatter / backlog), user stories, acceptance criteria — priority is MANDATORY when PBIs are prioritized |
 | **Behavior & rules**   | Dev/QC    | Feature Spec §4 business rules / §5 invariants, §8 test cases                             |
@@ -274,19 +304,18 @@ The deck is itself a UI artifact. ASCII of a slide frame:
 
 ```
 ┌────────────────────────────────────────────────┐
-│ ◀  Feature Presentation — {Feature}     3 / 12  │  ← top bar: title + counter
-├────────────────────────────────────────────────┤
-│  ## Business Context                            │
+│  ## Business Context                            │  ← slide title (h2); no top bar
 │  • Problem  • Value  • Epics                     │  ← slide body (design-system tokens)
 │  ┌──────────────────────────────────────────┐   │
 │  │  <iframe srcdoc> embedded mockup / wire   │   │  ← embedded visual (or empty-state)
 │  └──────────────────────────────────────────┘   │
 ├────────────────────────────────────────────────┤
-│  ● ● ● ○ ○ ○ ○ ○ ○ ○ ○ ○        ◀ Prev  Next ▶  │  ← nav dots + buttons (vanilla JS)
+│  Slide 3 of 12: Business Context                │  ← status (live region) = the only counter
+│  Previous  Next  All slides  Notes  Full screen │  ← text-labelled controls (+ Dark theme)
 └────────────────────────────────────────────────┘
 ```
 
-Component tiers: common (slide shell, nav) — domain-shared (mockup/wireframe embed block) — page-app (per-artifact content slides). Keyboard `←/→`, `Home/End`; theme toggle (light/dark) reusing design-system tokens.
+Component tiers: common (slide shell, controls, status, notes panel, overview) — domain-shared (mockup/wireframe embed block) — page-app (per-artifact content slides). Keyboard: arrows, PageUp/PageDown, Space, `Home/End`; All slides opens an overview of every slide title; Notes opens the speaker-notes panel beside the slide; theme toggle (light/dark) reusing design-system tokens.
 
 ---
 
@@ -297,8 +326,10 @@ Component tiers: common (slide shell, nav) — domain-shared (mockup/wireframe e
 | Scope resolves to zero artifacts               | Emit an explicit empty-state slide rather than failing (Step 6 / TC-026) |
 | Spec without PBIs (mockup-bearing workflow)    | Ask once (`manual` tier); on a yes, `workflow-spec-to-pbi` sub-agent (Step 2) |
 | Spec-only `idea-to-spec`                       | Design-spec visuals only + narrated ASCII-frame step-through; never generate mockups, never invoke `pbi-mockup` (Step 2 / Step 6) |
-| Feature with no mockup AND no design-spec      | Empty-state slide ("No mockup/design-spec available") — never blank iframe |
-| Demo iframe focused while navigating slides    | Don't hijack arrow keys while a demo iframe is focused (Step 6 / `deck-template.md` §3b) |
+| Feature with no mockup AND no design-spec      | Empty-state slide ("No prototype or design available") — never blank iframe |
+| Demo iframe focused while navigating slides    | Keys inside a demo stay in the demo; click outside it, or press Tab until you leave it, to navigate — the how-to slide says so (Step 6 / `deck-template.md` §3b) |
+| Embedded mockup loads a web font or other outside asset | Declare the deck's asset policy + how-to viewer notice (Step 6 outside-asset scan); the deck's own markup still loads nothing |
+| Deck fails the `review` conformance check      | Fix the failed checks and re-run; never report the deck ready while it fails (Step 8) |
 | Workflow spans midnight (multi-day)            | Glob over plan's created→now range, not just today's `{YYMMDD}` (Step 1) |
 | Standalone invocation with no prompt/scope     | ask the user directly which specs/ideas to present (Step 1)                   |
 
@@ -308,7 +339,9 @@ Component tiers: common (slide shell, nav) — domain-shared (mockup/wireframe e
 
 | Anti-Pattern                                  | Correct Approach                                                   |
 | --------------------------------------------- | ----------------------------------------------------------------- |
-| CDN reveal.js / impress.js                    | Vanilla-JS slide engine (~60 lines), self-contained               |
+| CDN reveal.js / impress.js                    | The scaffold's vanilla-JS engine, self-contained                  |
+| Web-font link in the deck's own markup        | Project or system type; declare the asset policy only for embedded demos that load outside assets |
+| Reporting the deck ready on a failing check   | Fix, re-run `--profile=review` until exit 0, then report           |
 | Regenerating a mockup that already exists     | Embed the existing `-mockup.html` via `<iframe srcdoc>`           |
 | HTML mockups in `idea-to-spec`                | Design-spec ASCII wireframes + tables only (spec-only contract)   |
 | Link to external mockup files                 | Inline via `<iframe srcdoc>` — one standalone file                |
@@ -321,7 +354,7 @@ Component tiers: common (slide shell, nav) — domain-shared (mockup/wireframe e
 ## Alternatives Considered
 
 1. **Extend `pbi-mockup` with `--deck`** (rejected) — it serves one PBI; a synthesis deck has different inputs/audience. Separate ownership preserves single responsibility and the spec-only contract.
-2. **CDN reveal.js / impress.js** (rejected) — breaks offline/no-external-deps and adds supply-chain risk; the ~60-line vanilla-JS engine matches `pbi-mockup`'s zero-dependency posture.
+2. **CDN reveal.js / impress.js** (rejected) — breaks offline/no-external-deps and adds supply-chain risk; the scaffold's vanilla-JS engine matches `pbi-mockup`'s zero-dependency posture.
 3. **Link mockup files** (rejected) — violates the ONE-file mandate; `<iframe srcdoc>` keeps the deck portable when files move.
 4. **Chosen:** standalone skill + inline single-file deck + iframe-srcdoc embeds. Larger HTML is acceptable because text gzips and offline portability wins.
 
@@ -333,7 +366,7 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 ## Security Considerations
 
-`<iframe srcdoc>` embeds first-party generated mockup HTML only — no remote content or user-supplied script. Entity-escape `srcdoc` (`&` first, once) to prevent `</iframe>`/`<script>` breakout. The deck is offline except Google Fonts CSS; artifacts contain no secrets.
+`<iframe srcdoc>` embeds first-party generated mockup HTML only — no remote content or user-supplied script. Entity-escape `srcdoc` (`&` first, once) to prevent `</iframe>`/`<script>` breakout. Demos run unsandboxed — the demo iframe has no `sandbox` attribute — so mockups keep their own scripts and storage; a mockup runs with the deck's origin, so only first-party mockups are embedded, and the outside assets it loads follow the asset policy (Step 6). The deck is self-contained; outside assets only with the deck's declared asset policy (added automatically when an embedded prototype loads an outside asset), and its own markup outside `srcdoc` loads nothing from a network; artifacts contain no secrets.
 
 ---
 
@@ -442,8 +475,9 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** MUST ATTENTION traced proof per claim, confidence >80% to act, NEVER guess.
 
-**IMPORTANT MUST ATTENTION** emit exactly ONE self-contained HTML deck at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` = default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) — inline CSS/JS, Google Fonts only, NO CDN reveal.js, vanilla-JS slide engine — why: stakeholders open one offline file with no server, no build step.
-**IMPORTANT MUST ATTENTION** present every in-scope main user story as an interactive MVP demo slide ("click X → see Y → move to Z") — extract the journeys first (Step 5, one todo per journey), embed the self-driving interactive mockup + a deck narration strip + "⚠ Simulated" note, add a "How to drive this demo" guide slide, and sign off with the final Demo-Quality review (Step 8b) — why: a narrated journey answers "how does it work", which is what the user asked for; the deck adds only narration, never a second interactivity engine.
+**IMPORTANT MUST ATTENTION** emit exactly ONE self-contained HTML deck at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` = default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) — inline CSS/JS, self-contained; outside assets only with the deck's declared asset policy (added automatically when an embedded prototype loads an outside asset); project or system type, NO CDN reveal.js, vanilla-JS slide engine — why: stakeholders open one offline file with no server, no build step.
+**IMPORTANT MUST ATTENTION** [BLOCKING] run `node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html> --profile=review` before the fidelity gate; exit 0 required — NEVER report the deck ready while it fails; fix and re-check; record browser behaviors as browser-verified or `NOT VERIFIABLE` — why: `presentation-builder` owns the shared deck standard, and a static PASS is not browser proof.
+**IMPORTANT MUST ATTENTION** present every in-scope main user story as an interactive MVP demo slide ("click X → see Y → move to Z") — extract the journeys first (Step 5, one todo per journey), embed the self-driving interactive mockup + a deck narration strip + "⚠ Simulated" note, add a "How to use this deck" guide slide, and sign off with the final Demo-Quality review (Step 8b) — why: a narrated journey answers "how does it work", which is what the user asked for; the deck adds only narration, never a second interactivity engine.
 **IMPORTANT MUST ATTENTION** REUSE existing `-mockup.html` via `<iframe srcdoc="…escaped…">` — never regenerate a mockup that already exists; escaping rule (`&`-first, escape-once-unconditionally) lives in `references/deck-template.md` — why: re-rendering duplicates the mockup engine and risks divergence.
 **IMPORTANT MUST ATTENTION** accept a PBI mockup only when its Releasable Full-Flow gate passes: all required pages/views, navigation edges, common/domain/page components, applicable states, and the visible/persisted business result are demoable; one static/disconnected screen set is FAIL and routes back to `pbi-mockup`.
 **IMPORTANT MUST ATTENTION** spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + a narrated step-through of ASCII frames ONLY; NEVER generate HTML mockups, NEVER invoke `pbi-mockup` — why: full mockups break the spec-only no-code contract.
@@ -466,7 +500,8 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 | Evasion                                          | Rebuttal                                                                                       |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| "reveal.js is easier than a vanilla engine"      | CDN violates the self-contained contract. Vanilla-JS engine (~60 lines), Google Fonts only.   |
+| "reveal.js is easier than a vanilla engine"      | CDN violates the self-contained contract. Use the scaffold's engine; project or system type.  |
+| "The validator is advisory — the deck looks fine" | The `review` profile check is BLOCKING. Fix and re-run until exit 0; never report ready while it fails. |
 | "Regenerate the mockup, it's cleaner"            | Embed the existing `-mockup.html` via `<iframe srcdoc>`. Never duplicate the mockup engine.    |
 | "Add a quick HTML mockup to the idea-to-spec deck"| Spec-only contract — design-spec ASCII + tables + narrated ASCII frames ONLY. No mockups, no `pbi-mockup`. |
 | "A still screenshot of the mockup is enough"     | The user asked for an interactive MVP demo of each main journey — embed the self-driving mockup + a narration strip, don't flatten it to a still. |
@@ -479,9 +514,9 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 **IMPORTANT MUST ATTENTION Goal:** Synthesize every in-scope session idea, Feature Spec, PBI, user story, design-spec, and mockup into ONE project-faithful standalone HTML deck with a vanilla-JS engine and interactive MVP demos for every main journey, so PO/BA/Dev/QC review the feature from one offline file before build.
-**IMPORTANT MUST ATTENTION** ONE self-contained HTML (Google Fonts only, vanilla-JS engine), one interactive demo-flow slide per main journey (embedded self-driving mockup + narration strip + "⚠ Simulated" note) + a "How to drive this demo" guide slide; spec-only → design-spec visuals + narrated ASCII frames (never invoke `pbi-mockup`), empty-state slide never blank iframe.
+**IMPORTANT MUST ATTENTION** ONE self-contained HTML (outside assets only with the deck's declared asset policy, added automatically when an embedded prototype loads an outside asset; vanilla-JS engine; speaker notes on every slide; passes `--profile=review` before it is reported ready), one interactive demo-flow slide per main journey (embedded self-driving mockup + narration strip + "⚠ Simulated" note) + a "How to use this deck" guide slide; spec-only → design-spec visuals + narrated ASCII frames (never invoke `pbi-mockup`), empty-state slide never blank iframe.
 **IMPORTANT MUST ATTENTION** plan journeys first (Step 5, one todo each), default scope = active-plan created→now range (not just today), gap-fill via SUB-AGENT, [BLOCKING] existing-UI inventory + fidelity gate (incl. demo integrity) + final Demo-Quality review (Step 8b), real domain data, cite `file:line` (>80% confidence) — NEVER guess.
-**IMPORTANT MUST ATTENTION Main steps/modes (in order):** (1) resolve scope (`activePlan` created→now; custom prompt widens; standalone/no prompt asks) → (2) gap-fill (ask once, on a yes `workflow-spec-to-pbi` SUB-AGENT; `idea-to-pbi` missing mocks → `pbi-mockup`; `idea-to-spec` skips) → (3) design context → (4) [BLOCKING] UI/flow inventory → (5) artifacts + journeys/todos → (6) one deck, or spec-only ASCII/empty state → (7) save → (8) [BLOCKING] fidelity + demo integrity → (8b) [BLOCKING] Demo-Quality → (9) report. NEVER skip blocking gates or journey extraction — why: forgotten branches or gates produce incomplete, ungated decks.
+**IMPORTANT MUST ATTENTION Main steps/modes (in order):** (1) resolve scope (`activePlan` created→now; custom prompt widens; standalone/no prompt asks) → (2) gap-fill (ask once, on a yes `workflow-spec-to-pbi` SUB-AGENT; `idea-to-pbi` missing mocks → `pbi-mockup`; `idea-to-spec` skips) → (3) design context → (4) [BLOCKING] UI/flow inventory → (5) artifacts + journeys/todos → (6) one deck, or spec-only ASCII/empty state → (7) save → (8) [BLOCKING] `review`-profile conformance, then fidelity + demo integrity → (8b) [BLOCKING] Demo-Quality → (9) report. NEVER skip blocking gates or journey extraction — why: forgotten branches or gates produce incomplete, ungated decks.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

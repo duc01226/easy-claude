@@ -278,12 +278,12 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="scroll"><table>
         <thead><tr><th>Role</th><th>Default</th><th>Override in <code>docs/project-config.json</code></th></tr></thead>
         <tbody>
-          <tr><td>Business specs</td><td><code>docs/specs</code></td><td><code>specRoots.business.path</code></td></tr>
-          <tr><td>Project reference docs</td><td><code>docs/project-reference</code></td><td><code>docsRoots.projectReference.path</code></td></tr>
-          <tr><td>ADRs</td><td><code>docs/adr</code></td><td><code>docsRoots.adr.path</code></td></tr>
-          <tr><td>Plans</td><td><code>plans</code></td><td><code>docsRoots.plans.path</code></td></tr>
-          <tr><td>Team artifacts</td><td><code>team-artifacts</code></td><td><code>docsRoots.teamArtifacts.path</code></td></tr>
-          <tr><td>Product roadmap</td><td><code>docs/product-roadmap.md</code></td><td><code>docsRoots.productRoadmap.path</code></td></tr>
+          <tr><td>Business specs</td><td><code>docs/specs</code></td><td><code>docs/project-config.json</code> → <code>specRoots.business.path</code></td></tr>
+          <tr><td>Project reference docs</td><td><code>docs/project-reference</code></td><td><code>docs/project-config.json</code> → <code>docsRoots.projectReference.path</code></td></tr>
+          <tr><td>ADRs</td><td><code>docs/adr</code></td><td><code>docs/project-config.json</code> → <code>docsRoots.adr.path</code></td></tr>
+          <tr><td>Plans</td><td><code>plans</code></td><td><code>docs/project-config.json</code> → <code>docsRoots.plans.path</code></td></tr>
+          <tr><td>Team artifacts</td><td><code>team-artifacts</code></td><td><code>docs/project-config.json</code> → <code>docsRoots.teamArtifacts.path</code></td></tr>
+          <tr><td>Product roadmap</td><td><code>docs/product-roadmap.md</code></td><td><code>docs/project-config.json</code> → <code>docsRoots.productRoadmap.path</code></td></tr>
           <tr><td>Disposable output</td><td><code>tmp/</code></td><td>fixed, git-ignored</td></tr>
         </tbody>
       </table></div>
@@ -538,7 +538,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <thead><tr><th>Runner</th><th>Tests</th><th>Covers</th></tr></thead>
         <tbody>
           <tr><td><code>test-all-hooks.cjs</code> (primary gate)</td><td class="num"><b>135</b></td><td>Hook behaviors and the count guard</td></tr>
-          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1000</b></td><td>Primary plus every suite</td></tr>
+          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1014</b></td><td>Primary plus every suite</td></tr>
           <tr><td><code>node --test .claude/scripts/codex/tests</code></td><td class="num">—</td><td>Mirror generators and verifiers</td></tr>
           <tr><td><code>run-codex-sync.mjs --verify-only</code></td><td class="num">—</td><td>All read-only gates before a commit</td></tr>
         </tbody>

@@ -10,7 +10,7 @@
 
 ## `run-notes.md`
 
-Written at steps 3–5 of `references/explore/workflow.md`. Every draft brief carries its path.
+Written at steps 3–5 of `references/explore/workflow.md`; step 10 adds the journey fixes. Every draft brief carries its path.
 
 ```markdown
 # Run notes — <subject>
@@ -37,6 +37,12 @@ Written at steps 3–5 of `references/explore/workflow.md`. Every draft brief ca
 | Placeholder label | Real image that belongs there |
 |---|---|
 | "<label shown in the drafts>" | <description> |
+
+## Journey fixes (UX-8)
+Written at step 10 after the walkthrough of the chosen draft. The next step (`--mode=good` or the deck builder) marks each row.
+| Fix | Journey step | Applied / N/A (by the next step, with a reason for N/A) |
+|---|---|---|
+| <unserved step or orphan element, and the change that serves it> | <journey name · step #> | <applied — where | N/A — reason | pending> |
 ```
 
 ## `brand-spec.md`
@@ -74,7 +80,7 @@ Written by `references/explore/brand-asset-protocol.md` when the brief names a r
 
 ## `direction-approved.md`
 
-Written at step 10 of `references/explore/workflow.md`, or at step 1 when explore is exempted. Exactly one of the two sections below is filled.
+Written at step 10 of `references/explore/workflow.md`, or at step 1 when explore is exempted. Exactly one of `## Pick` and `## Exemption` is filled; `## Design Plan tokens` is always filled.
 
 ```markdown
 # Direction approved — <subject>
@@ -104,6 +110,20 @@ Written at step 10 of `references/explore/workflow.md`, or at step 1 when explor
 - Reason: <brief states a direction | design system pins all three axes | user opted out>
 - Evidence (verbatim quote or doc path + section): "<…>"
 
+## Design Plan tokens
+Copied at step 10 from the chosen draft's Design Plan (a mix: from the draft each part was taken from; an exemption: from the adopted direction). A deck builder reads its tokens from here.
+| Colour name | Hex | Role |
+|---|---|---|
+| <name> | #RRGGBB | <background · text · primary · accent · neutral> |
+
+| Type family | Role | Scale (sizes, weights) |
+|---|---|---|
+| <family> | <display · body · data · caption> | <e.g. 56/32/20/16 px · 700/400> |
+
+- Layout concept: <one sentence — composition, alignment, focal point, reading order>
+- Web fonts: <none — system stacks only | <family> loaded from <URL>: travels only when the deck builder packages the font file inside the deck; otherwise the deck uses the project's type token, then the closest system stack, and records the substitution as a departure>
+
 ## Next
 - Continue with `--mode=good` from: <tmp/design/<run>/direction-x.html | the adopted direction>
+- Slide deliverable instead: hand this file (with its `## Design Plan tokens`) and `run-notes.md` (with its `## Journey fixes (UX-8)`) to <`$presentation-builder` (user runs it) | `feature-presentation`>
 ```

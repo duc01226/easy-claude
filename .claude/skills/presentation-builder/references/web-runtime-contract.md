@@ -43,7 +43,7 @@ Use native buttons with stable generic markers. Each toggle must update its acce
   <h2 id="notes-title">Speaker notes</h2>
   <button data-action="close-notes" aria-label="Close speaker notes">Close</button>
   <p id="notes-status" aria-live="polite"></p>
-  <div id="notes-content"></div>
+  <div id="notes-content" role="region" aria-label="Speaker notes text" tabindex="0"></div>
 </aside>
 ```
 
@@ -52,7 +52,9 @@ The exact visual placement is flexible. The control layer must remain usable in 
 ## 3. Navigation and presentation behavior
 
 - Maintain one active slide and a bounded index; update visual progress and an `aria-live` text status such as “Slide 3 of 12: Evidence.”
-- Support Previous/Next buttons plus ArrowLeft/ArrowUp/PageUp and ArrowRight/ArrowDown/PageDown/Space. Home and End jump to the first/last slide. Prevent these shortcuts only when the user is typing in an editable control.
+- Support Previous/Next buttons plus ArrowLeft/ArrowUp/PageUp/Shift+Space and ArrowRight/ArrowDown/PageDown/Space. Home and End jump to the first/last slide. Prevent these shortcuts only when the user is typing in an editable control. Space and Enter on a focused button, link or disclosure activate it and never move the deck.
+- On a slide whose content overflows its scroll area, ArrowDown, ArrowUp, Space, Shift+Space, PageDown and PageUp first scroll that area; they change slide only when it is already at the edge in that direction. A held key (auto-repeat) stops at the slide's edge; only a fresh press there changes slide. ArrowLeft, ArrowRight, Home and End always change slide. A scroll step never skips content hidden under sticky controls, and every slide change opens the new slide at its top — except a backward move made with a scroll key at the top edge, which lands at the previous slide's end.
+- The scroll keys move the deck only while the deck has the keyboard. With focus inside the notes panel they scroll the notes and move neither the page nor the slide; keep the notes reachable by keyboard (a focusable, named notes region or scrolling the panel from its controls). While the overview is open it holds the keys: the scroll keys scroll its list, no deck key scrolls the page behind it or changes slide, and Escape closes it.
 - Provide an overview or jump menu for decks longer than six slides. It must be keyboard navigable, closeable with Escape, and return focus to its opener.
 - Do not auto-advance. Do not make touch, swipe, pointer, or a shortcut the only route; visible buttons remain available.
 - Keep the active slide addressable where practical (hash or stable internal ID), but do not make URL routing a prerequisite for local/offline operation.
@@ -104,6 +106,24 @@ The following observations generalize lessons from an existing HTML deck into re
 | Buttons, keyboard controls, progress, and fullscreen | Familiar live-delivery controls | Add live announcements, overview/jump for long decks, fullscreen rejection/state handling, and touch as an optional supplement. |
 | SVGs with `role="img"`/`aria-label` values | Label complex visuals | Require an audit for every meaningful visual plus semantic text paths and contrast. |
 | Missing overview/hash/touch/reduced-motion/robust ARIA state in some paths, with incomplete notes coverage | Clear boundaries for improvement | Treat each as a checklist item; static validator must fail missing notes and warn/fail missing runtime safeguards. |
+
+## 9. Conformance profiles
+
+A deck is checked against exactly one profile: `node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html> --profile=presenter|review`. `presenter` is the default — naming no profile gives the identical verdict — and it is the standard every `presentation-builder` deck passes. `review` is the profile `feature-presentation` passes: its feature review deck leaves editing out because its text must match the specifications it summarizes. Any other profile name is refused without a verdict.
+
+`review` demotes exactly these five checks from failure to advisory; every other check keeps the same level in both profiles — a blocking check fails in both, an advisory check stays advisory in both:
+
+| Validator check | Requirement (§5) | `presenter` | `review` |
+|---|---|---|---|
+| `edit-mode` | In-place editing control with an explicit editing implementation | FAIL | advisory |
+| `edit-state` | Editing state announced (`aria-pressed`/`aria-expanded` on the edit toggle) | FAIL | advisory |
+| `draft-persistence` | Browser-local draft saving | FAIL | advisory |
+| `reset` | Draft reset control | FAIL | advisory |
+| `export` | Clean export control | FAIL | advisory |
+| Every other blocking check (notes coverage and depth, navigation, accessibility, print, asset policy, stable IDs, `overview` for decks longer than six slides, …) | §1–§4, §6–§7 | FAIL | FAIL |
+| The advisory checks (`overview` for decks of six or fewer slides, `fullscreen-state`, `focus-style`, `touch-supplement`, `external-dependencies`) | §3, §6–§8 | advisory | advisory |
+
+The demoted set is defined by the governing spec rule (BR-PD-03 of the Presentation Decks spec) and mirrored in this table and in the validator's `REVIEW_OPTIONAL`; change it in that rule first, then here and in the validator together — never with a local validator edit.
 
 ## References
 

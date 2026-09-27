@@ -467,7 +467,7 @@ docs/adr/  (4 files)
 docs/project-reference/  (18 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (12 files)
+docs/specs/  (14 files)
 docs/templates/  (1 files)
 ```
 

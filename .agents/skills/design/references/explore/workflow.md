@@ -1,6 +1,6 @@
 # Explore Mode Workflow
 
-> **Purpose:** `$design --mode=explore` turns one text brief into N divergent drafts (N = the Step 0 count: 1, 2 or 3; different on every FREE axis), opens them and asks the user to pick one by looking at the drafts (or records the auto-selection when the user cannot be asked), records that choice, and then continues as `--mode=good` from the chosen draft.
+> **Purpose:** `$design --mode=explore` turns one text brief into N divergent drafts (N = the Step 0 count: 1, 2 or 3; different on every FREE axis), opens them and asks the user to pick one by looking at the drafts (or records the auto-selection when the user cannot be asked), records that choice, and then continues as `--mode=good` from the chosen draft (a Slide deliverable hands off to a deck builder instead, step 10).
 >
 > **Critical rules (read first):**
 >
@@ -142,15 +142,18 @@ Show the N drafts side by side — PNGs when rendered, otherwise the HTML paths 
 
 ## Step 10 — Record the pick and continue
 
-Write `tmp/design/<run>/direction-approved.md` from the template in `references/explore/gate-files.md`, quoting the user's reply verbatim — or, on the 1-option, no-question-tool or fallback paths, the recorded `Selection: USER — 1 option` / `Selection: AUTO-SELECTED — <reason>` line (never ask again on those paths). While the user can be asked, "continue", "looks good" or silence is NOT a pick — ask again. A mix ("a's layout with c's type") is a valid pick; record it verbatim and name the parts taken from each draft. "None fit" → record it, pick N new seeds (step 6) and repeat from step 7.
+Write `tmp/design/<run>/direction-approved.md` from the template in `references/explore/gate-files.md`, quoting the user's reply verbatim — or, on the 1-option, no-question-tool or fallback paths, the recorded `Selection: USER — 1 option` / `Selection: AUTO-SELECTED — <reason>` line (never ask again on those paths). While the user can be asked, "continue", "looks good" or silence is NOT a pick — ask again. A mix ("a's layout with c's type") is a valid pick; record it verbatim and name the parts taken from each draft. "None fit" → record it, pick N new seeds (step 6) and repeat from step 7. Fill its `## Design Plan tokens` section from the chosen draft's Design Plan (its step-7 note and HTML; for a mix, each part from the draft it was taken from): named colour hex values, type families with roles and scale, the layout concept, and each web font the draft loads with the packaging rule below — the next step reads the tokens from this file, never from a sub-agent note.
 
-Before continuing, **walk the main journeys (`UX-8`)** on the chosen draft: a cognitive walkthrough per journey plus the traceability matrix (`.claude/docs/ux-journey-process.md` §9). Record every unserved step and orphan element in `run-notes.md` as a fix `good` must make.
+Before continuing, **walk the main journeys (`UX-8`)** on the chosen draft: a cognitive walkthrough per journey plus the traceability matrix (`.claude/docs/ux-journey-process.md` §9). Record every unserved step and orphan element in the `## Journey fixes (UX-8)` table of `run-notes.md` as a fix the next step must make.
 
-Then run `--mode=good` from the chosen draft: the approved direction, every ADOPTED axis and the Journey Report are now fixed inputs, and `good` raises the draft to the full quality bar.
+Then continue by the deliverable type fixed in step 5:
+
+- **Slide** → do NOT run `--mode=good`; it refines a product screen, not a deck. Hand a deck builder two files: `direction-approved.md`, whose `## Design Plan tokens` section carries the named colour hex values, type families with roles and scale, and layout concept, and `run-notes.md` with its `## Journey fixes (UX-8)` table. The builder adopts the direction and its tokens as its design plan and applies every fix. A general deck → `$presentation-builder`, which takes them as its Step 4 design plan; it is command-only, so STOP here and tell the user to run `$presentation-builder` with those two paths. A deck that reviews a feature's specs, PBIs, ideas or mockups → `feature-presentation`, with the same two files. Write the chosen builder in the `## Next` line of `direction-approved.md` in place of `--mode=good`. A web font the draft loaded travels only when the deck builder packages the font file inside the deck; otherwise the deck uses the project's type token, then the closest system stack, and records the substitution as a departure from the picked direction.
+- **Every other deliverable** → run `--mode=good` from the chosen draft: the approved direction, every ADOPTED axis and the Journey Report are now fixed inputs, and `good` raises the draft to the full quality bar.
 
 ## Closing Reminders
 
-- **MUST** present the Journey Report (`UX-1`) and read the design authority (`UX-2`) ONCE before any seed; every draft serves the same main journeys and priority tiers, and the chosen draft is walked (`UX-8`) before `good` — why: drafts that differ on the journey cannot be compared on design.
+- **MUST** present the Journey Report (`UX-1`) and read the design authority (`UX-2`) ONCE before any seed; every draft serves the same main journeys and priority tiers, and the chosen draft is walked (`UX-8`) before `good` or, for a Slide deliverable, before the deck-builder hand-off with `run-notes.md` — why: drafts that differ on the journey cannot be compared on design.
 - **MUST** resolve authority per axis before any seed; adopted axes are never re-explored, and a pinned layout is shared by all N drafts — why: a house style or stated direction is an intentional identity.
 - **MUST** fix the deliverable canvas and one shared imagery set before fan-out, and render every draft at that canvas into its own `--out` folder — why: drafts built for different sizes or with different pictures cannot be compared.
 - **MUST** verify every fetched image (SVG: no active content) and have drafts place it only through `<img src>`, loading no remote script, frame or media — why: that is what keeps a draft project-produced, so html-export may render it without `--offline`.

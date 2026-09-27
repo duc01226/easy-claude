@@ -101,6 +101,28 @@
  *               anchors-only body edit can never strip the anchors themselves. A fixture row proves the
  *               rule names each stripped anchor; the live row is framework-repo guarded.
  *
+ *   TC-PD-001..012, 062 — one deck standard owned by presentation-builder
+ *               (spec: docs/specs/Presentation/README.PresentationDecks.md §8). The validator's no-profile
+ *               verdict equals `presenter` (001); `review` demotes EXACTLY the five editing checks (002)
+ *               and nothing else — a 7-slide deck with no overview control errors in both (004); missing or
+ *               blank notes fail both profiles (003); the validator CLI refuses any profile name but exactly
+ *               presenter/review with exit 2 and no verdict, and exits 1 with FAIL on a failing deck (005);
+ *               every verdict names its profile (006); the feature-presentation review-deck scaffold passes
+ *               `review` with Say/Why/Question notes on every slide, no editing control (no contenteditable
+ *               markup, no designMode) and its key states, an empty demo dropping its Simulated note behind an
+ *               iframe guard, and still passes with the §3b wireframe demo spliced in (007 + 022 + 062), loads
+ *               no outside asset (009) and keeps job-named slide ids its deck__slide route and html-export's
+ *               default selector both find (010); FP's Step 8 blocks hand-off on `--profile=review` and its
+ *               Step 6 outside-asset scan regex, applied case-insensitively, flags every network-load shape
+ *               (a font-only mockup included) and no plain link or data-src (008 + 013); the generator warns
+ *               only on the default look (011); PB, FP and design explore keep the design-authority, deck-kind
+ *               and slide hand-off routes, with the tokens and journey-fix sections of the explore gate files
+ *               (012 + 061). The review-deck engine itself runs in node:vm against a fake page: long slides
+ *               scroll first, each slide opens at its top, a held key stops at the edge, notes take the keys
+ *               only after Tab, Shift+Space goes back (062); presentation-builder's skill-local test files run
+ *               as child processes and must exit 0 (062 + 011).
+ *               Framework-repo guarded: they assert this repo's own presentation skills.
+ *
  * The 3 per-context inject hooks (design-system-canonical-guide / ba-refinement-context /
  * graph-grep-suggester) are now presence-asserted by TC-CP-004, TC-CP-006 and TC-CP-007
  * against the verbatim load-bearing phrases their guidance relocated to. A future skill edit
@@ -287,6 +309,261 @@ function hookTrustNoteGaps(guide) {
     const candidates = paragraphsMentioning(guide, /`\/hooks`/).map(missingIn);
     if (candidates.length === 0) return Object.keys(HOOK_TRUST_NOTES);
     return candidates.reduce((best, gaps) => (gaps.length < best.length ? gaps : best));
+}
+
+// TC-PD (spec: docs/specs/Presentation/README.PresentationDecks.md §8). presentation-builder owns one deck
+// standard and its validator; feature-presentation's review deck passes it under `review`. The five editing
+// checks are a literal on purpose: the test pins the contract, it never reads the set back from the script.
+const PD_EDITING_CHECKS = ['draft-persistence', 'edit-mode', 'edit-state', 'export', 'reset'];
+const PD_SKIP = IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own presentation skills (framework-repo signal)';
+const pdSkillPath = (...parts) => path.join(SKILLS_DIR, ...parts);
+// Markdown read with CRLF/CR normalized, so section and fence extraction work on any checkout.
+const pdReadText = (...parts) => readFile(pdSkillPath(...parts)).replace(/\r\n?/g, '\n');
+// Loaded lazily inside each case, so a bundle without presentation-builder never fails at suite load.
+const pdLoadValidator = () => require(pdSkillPath('presentation-builder', 'scripts', 'validate-presentation.cjs'));
+// The body of the first ```<lang> fence after the first line matching `heading` ('' when either is missing).
+function pdExtractFence(markdown, heading, lang = 'html') {
+    const text = String(markdown).replace(/\r\n?/g, '\n');
+    const section = text.search(heading);
+    if (section === -1) return '';
+    const opener = '```' + lang + '\n';
+    const open = text.indexOf(opener, section);
+    if (open === -1) return '';
+    const close = text.indexOf('\n```', open + opener.length);
+    return close === -1 ? '' : text.slice(open + opener.length, close);
+}
+// The review-deck scaffold: the first ```html fence under `## 1.` of feature-presentation's deck template.
+const pdExtractScaffold = markdown => pdExtractFence(markdown, /^## 1\./m);
+const pdScaffold = () => pdExtractScaffold(pdReadText('feature-presentation', 'references', 'deck-template.md'));
+// The spec-only wireframe demo slide: the ```html fence under §3b "### Spec-only wireframe demo".
+const pdWireframeSlide = () => pdExtractFence(pdReadText('feature-presentation', 'references', 'deck-template.md'), /^### Spec-only wireframe demo/m);
+const pdClassTokens = tag => {
+    const match = /\bclass\s*=\s*(["'])(.*?)\1/i.exec(tag);
+    return match ? match[2].split(/\s+/).filter(Boolean) : [];
+};
+const pdSlideIdOf = tag => {
+    const match = /\bdata-slide-id\s*=\s*(["'])(.*?)\1/i.exec(tag);
+    return match ? match[2] : null;
+};
+const pdErrorIds = result => result.checks.filter(check => !check.pass && check.level === 'error').map(check => check.id).sort();
+const pdCheck = (result, id) => result.checks.find(check => check.id === id);
+// A presenter-conforming deck (literal markup, so the invariant cases need no generator). Notes carry the
+// Say/Why/Question labels and exceed the 40-character depth floor.
+function pdFixtureDeck(slideIds = ['opening', 'evidence']) {
+    const slides = slideIds.map(id => `
+    <section class="slide" data-slide-id="${id}" data-purpose="explain" data-principle="This slide advances the story">
+      <h2>${id}</h2><p>The claim and supporting context.</p>
+      <template class="slide-notes"><p><strong>Say:</strong> Explain the claim.</p><p><strong>Why:</strong> Connect it to the audience.</p><p><strong>Question:</strong> What changes next?</p></template>
+    </section>`).join('\n');
+    return `<!doctype html>
+<html lang="en"><head><meta name="presentation-id" content="fixture"><style>
+  @media print { .controls { display: none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  button:focus-visible { outline: 3px solid currentColor; }
+</style></head><body>
+  <nav class="controls">
+    <button aria-expanded="false" data-action="toggle-notes" aria-controls="notes-panel">Notes</button>
+    <button aria-pressed="false" data-action="toggle-edit">Edit mode</button>
+    <button data-action="previous">Previous</button><button data-action="next">Next</button>
+    <button data-action="overview">All slides</button>
+    <button data-action="reset">Reset</button><button data-action="export">Export</button>
+  </nav>
+  <aside id="notes-panel" aria-labelledby="notes-title"><h2 id="notes-title">Speaker notes</h2><button data-action="close-notes">Close</button><div id="notes-content"></div></aside>
+  <div id="progress" aria-live="polite">Slide 1</div><span>Speaker notes are not included in print.</span>
+  <script>
+    document.addEventListener('keydown', (event) => { if (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === 'Home' || event.key === 'End') go(event.key); });
+    document.querySelector('[data-action="toggle-edit"]').setAttribute('aria-pressed', 'true');
+    document.querySelector('.editable').setAttribute('contenteditable', 'true');
+    localStorage.setItem('deck:draft', 'draft');
+  </script>
+  ${slides}
+</body></html>`;
+}
+// Apply a fixture mutation and fail loudly when it changed nothing (a no-op mutation proves nothing).
+function pdMutate(html, label, mutate) {
+    const next = mutate(html);
+    assertTrue(next !== html, `fixture setup: mutation "${label}" changed nothing`);
+    return next;
+}
+// OS essentials a spawned node child needs on Windows, macOS or Linux (the same allow-list as the presentation-builder
+// and html-export skill tests). Every other inherited key — framework feature switches, provider keys,
+// CLAUDE_PROJECT_DIR — is dropped, so nothing on a developer machine reaches the child (Portable Test Contract).
+const PD_CHILD_ENV_ALLOWLIST = new Set([
+    'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PROCESSOR_ARCHITECTURE',
+    'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
+]);
+// A scrubbed child environment for a PD script run: the allow-listed OS keys only (Windows spells `Path`, so names
+// compare upper-cased), with home and every temp key at the fixture dir (Node reads TEMP first on Windows, TMPDIR
+// first on POSIX).
+function pdChildEnv(root) {
+    const env = {};
+    for (const [name, value] of Object.entries(process.env)) {
+        if (PD_CHILD_ENV_ALLOWLIST.has(name.toUpperCase())) env[name] = value;
+    }
+    for (const name of ['HOME', 'USERPROFILE', 'TMPDIR', 'TEMP', 'TMP']) env[name] = root;
+    return env;
+}
+// Run the deck validator's CLI as a real process (argv array, no shell) and return its exit code and output.
+function pdRunValidatorCli(root, args) {
+    const { spawnSync } = require('child_process');
+    const script = pdSkillPath('presentation-builder', 'scripts', 'validate-presentation.cjs');
+    const run = spawnSync(process.execPath, [script, ...args], { cwd: root, env: pdChildEnv(root), encoding: 'utf8', timeout: 30000 });
+    return { code: run.status, stdout: String(run.stdout || ''), stderr: String(run.stderr || ''), error: run.error };
+}
+// A temp dir holding the conforming fixture deck as deck.html; removed after `use` settles.
+function pdWithFixtureDeckFile(prefix, use) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+    try {
+        const deck = path.join(root, 'deck.html');
+        fs.writeFileSync(deck, pdFixtureDeck(), 'utf8');
+        return use(root, deck);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+}
+// Evaluate a CSS selector list against one opening tag. Only the compound forms `tag.class[attr]` and `[attr]`
+// are supported; any other syntax (combinators, pseudo-classes, attribute values) throws, so a changed selector
+// fails this suite loudly instead of being judged by a matcher that does not understand it.
+function pdSelectorMatches(selectorList, tag) {
+    const name = (/^<([a-z][\w-]*)/i.exec(tag) || [])[1] || '';
+    return selectorList.split(',').map(part => part.trim()).some(compound => {
+        const parts = /^([a-z][\w-]*)?((?:\.[\w-]+)*)((?:\[[\w-]+\])*)$/i.exec(compound);
+        if (!compound || !parts) throw new Error(`unsupported selector syntax "${compound}" in "${selectorList}"`);
+        const [, element, classes, attributes] = parts;
+        if (element && element.toLowerCase() !== name.toLowerCase()) return false;
+        const tokens = pdClassTokens(tag);
+        if (classes.split('.').filter(Boolean).some(cls => !tokens.includes(cls))) return false;
+        const attrNames = (attributes.match(/[\w-]+/g) || []);
+        return attrNames.every(attr => new RegExp(`\\s${attr}(?=[\\s=/>])`, 'i').test(tag));
+    });
+}
+// Run the review-deck scaffold's REAL engine (its one inline <script>, as extracted from the deck template) in node:vm
+// against the smallest fake page it needs: the desktop layout, where the slide stage scrolls (getComputedStyle
+// reports overflow-y auto) and slide k is `heights[k]` px tall in a `viewport` px stage. The fake answers only the
+// selectors and ids the engine asks for and throws on any other, so an engine that starts reading something new
+// fails here loudly instead of running against a silent null. Layout-dependent paths a fake page cannot model
+// faithfully — the below-900px page scroll with notes stacked under the controls (scrollEnd's controls cap),
+// smooth scrolling, the overview dialog and fullscreen — are not exercised; the Step 8 browser check owns them.
+// `embeds(element)` builds the fake `.deck__embed` elements for the empty-demo swap from the harness's element factory.
+// Returns the key/mouse drivers and the observers.
+function pdRunDeckEngine(engineSource, { heights = [900, 900, 900], viewport = 500, notesHeight = 800, notesViewport = 300, embeds = () => [] } = {}) {
+    const vm = require('vm');
+    const calls = [];
+    const documentListeners = [];
+    const element = (members = {}) => {
+        const attributes = {};
+        const handlers = {};
+        const classes = new Set(members.classes || []);
+        const node = {
+            hidden: false, textContent: '', scrollTop: 0, dataset: {},
+            classList: {
+                add: name => classes.add(name),
+                contains: name => classes.has(name),
+                toggle: (name, force) => {
+                    const on = force === undefined ? !classes.has(name) : Boolean(force);
+                    if (on) classes.add(name); else classes.delete(name);
+                    return on;
+                },
+            },
+            setAttribute(name, value) { attributes[name] = String(value); },
+            getAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? attributes[name] : null; },
+            hasAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name); },
+            addEventListener(type, listener) { (handlers[type] = handlers[type] || []).push(listener); },
+            click() { (handlers.click || []).forEach(listener => listener({})); },
+            focus() {}, replaceChildren() {}, scrollIntoView() {},
+            remove() { node.removed = true; },
+            querySelector: () => null, querySelectorAll: () => [], closest: () => null,
+            getBoundingClientRect: () => ({ top: 0, bottom: 0 }),
+        };
+        for (const [key, value] of Object.entries(members)) if (key !== 'classes') node[key] = value;
+        return node;
+    };
+    const slides = heights.map((_, k) => element({
+        classes: ['slide', 'deck__slide'],
+        dataset: { slideId: `slide-job-${k}` },
+        querySelector: selector => (selector === 'h2' ? { textContent: `Title ${k + 1}` } : null),
+    }));
+    const activeIndex = () => slides.findIndex(slide => slide.classList.contains('deck__slide--active'));
+    // A scroll area clamps like a browser and records each requested step as [name, delta].
+    const scroller = (name, members) => {
+        const area = element(members);
+        area.scrollBy = ({ top }) => {
+            calls.push([name, top]);
+            area.scrollTop = Math.max(0, Math.min(area.scrollHeight - area.clientHeight, area.scrollTop + top));
+        };
+        return area;
+    };
+    const stage = scroller('stage', { clientHeight: viewport });
+    Object.defineProperty(stage, 'scrollHeight', { get: () => heights[Math.max(0, activeIndex())] });
+    const notesHead = element({ getBoundingClientRect: () => ({ top: 0, bottom: 40 }) });
+    const notesPanel = scroller('notes', {
+        hidden: true,
+        scrollHeight: notesHeight,
+        clientHeight: notesViewport,
+        contains: node => Boolean(node && node.inNotes),
+        querySelector: selector => (selector === '.deck__notes-head' ? notesHead : null),
+    });
+    const byId = {
+        'deck-status': element(),
+        'notes-panel': notesPanel,
+        'notes-slide': element(),
+        'notes-content': element(),
+        overview: element({ open: false }),
+        'overview-list': element(),
+    };
+    const buttons = {};
+    for (const action of ['previous', 'next', 'overview', 'toggle-notes', 'fullscreen', 'theme', 'close-notes', 'close-overview']) buttons[action] = element();
+    const singles = { '.deck': element(), '.deck__stage': stage, '.deck__nav': element({ getBoundingClientRect: () => ({ top: viewport - 60, bottom: viewport }) }) };
+    const embedElements = embeds(element);
+    const unexpected = what => { throw new Error(`fake page: the engine asked for ${what}, which this harness does not model`); };
+    const document = {
+        documentElement: element(),
+        scrollingElement: null,
+        fullscreenEnabled: false,
+        querySelector(selector) {
+            if (Object.prototype.hasOwnProperty.call(singles, selector)) return singles[selector];
+            const action = /^\[data-action="([\w-]+)"\]$/.exec(selector);
+            return action && buttons[action[1]] ? buttons[action[1]] : unexpected(`querySelector("${selector}")`);
+        },
+        querySelectorAll(selector) {
+            if (selector === 'section.deck__slide') return slides;
+            if (selector === '.deck__embed') return embedElements;
+            return unexpected(`querySelectorAll("${selector}")`);
+        },
+        getElementById: id => (Object.prototype.hasOwnProperty.call(byId, id) ? byId[id] : unexpected(`#${id}`)),
+        addEventListener(type, listener, capture) { documentListeners.push({ type, listener, capture: Boolean(capture) }); },
+        createTextNode: text => ({ text }),
+        createElement: () => element(),
+    };
+    const context = {
+        document,
+        window: { matchMedia: () => ({ matches: false }), innerHeight: viewport },
+        getComputedStyle: node => ({ overflowY: node === stage ? 'auto' : 'visible' }),
+        history: { replaceState() {} },
+        location: { hash: '' },
+    };
+    new vm.Script(engineSource, { filename: 'deck-template-engine.js' }).runInNewContext(context);
+    // Dispatch like a browser: capture listeners first, then the rest, in registration order.
+    const dispatch = (type, event) => {
+        for (const capture of [true, false]) {
+            for (const entry of documentListeners) if (entry.type === type && entry.capture === capture) entry.listener(event);
+        }
+        return event;
+    };
+    const page = { tagName: 'BODY', isContentEditable: false, closest: () => null };
+    return {
+        calls, stage, notesPanel, buttons,
+        notesSlide: byId['notes-slide'],
+        index: activeIndex,
+        status: () => byId['deck-status'].textContent,
+        press: (key, { shiftKey = false, repeat = false, target = page } = {}) => dispatch('keydown', {
+            key, shiftKey, repeat, target, altKey: false, ctrlKey: false, metaKey: false, defaultPrevented: false,
+            preventDefault() { this.defaultPrevented = true; },
+        }),
+        mousedown: () => dispatch('mousedown', { target: page }),
+        notesTarget: { tagName: 'DIV', isContentEditable: false, closest: () => null, inNotes: true },
+        embeds: embedElements,
+    };
 }
 
 // Assert a relocated inject-hook's guidance survives in its target skill. Each phrase is a
@@ -1474,7 +1751,7 @@ module.exports = {
             },
         },
         {
-            // Guards decision D-2: a utility that drops its manual-only flag re-enters the model's skill
+            // Guards decision D-2 (and spec TC-PD-021: the general deck builder starts only on a developer request): a utility that drops its manual-only flag re-enters the model's skill
             // list and self-triggers again; a flipped `commit`/`learn` breaks the agent and lesson paths.
             name: '[content-presence] TC-ADS-008 command-only utility skills are manual-only; commit, learn and git-conflict-resolve stay callable',
             skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skill defaults (framework-repo signal)',
@@ -1628,6 +1905,802 @@ module.exports = {
                 }
                 // Then no anchor lost emphasis markers
                 assertTrue(gaps.length === 0, `emphasis anchors stripped:\n  ${gaps.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-02): existing general decks keep their verdict — naming no profile is the
+            // presenter profile, so profiles never loosen the default.
+            name: '[content-presence] TC-PD-001 a deck checked with no profile is judged exactly as under presenter',
+            skip: PD_SKIP,
+            fn: () => {
+                const { validatePresentation } = pdLoadValidator();
+                // Given three decks: conforming, failing only draft saving, failing only the print path
+                const conforming = pdFixtureDeck();
+                const decks = [
+                    ['conforming', conforming],
+                    ['draft-saving', pdMutate(conforming, 'drop draft saving', html => html.replace(/localStorage\.setItem\([^;]+;/, ''))],
+                    ['print', pdMutate(conforming, 'drop print CSS', html => html.replace('@media print', '@media screen'))],
+                ];
+                const defects = [];
+                for (const [label, html] of decks) {
+                    // When each is checked with no profile named and against presenter
+                    const implicit = validatePresentation(html);
+                    const explicit = validatePresentation(html, { profile: 'presenter' });
+                    // Then the two verdicts are identical
+                    if (!require('util').isDeepStrictEqual(implicit, explicit)) defects.push(`${label}: no-profile verdict differs from presenter`);
+                }
+                // And the conforming deck passes while each failing deck fails on exactly its own check
+                const verdictOf = label => validatePresentation(decks.find(([name]) => name === label)[1]);
+                if (!verdictOf('conforming').ok) defects.push(`conforming deck failed: ${verdictOf('conforming').errors.join('; ')}`);
+                if (JSON.stringify(pdErrorIds(verdictOf('draft-saving'))) !== '["draft-persistence"]') {
+                    defects.push(`draft-saving deck must fail only draft-persistence with no profile, got ${JSON.stringify(pdErrorIds(verdictOf('draft-saving')))}`);
+                }
+                if (JSON.stringify(pdErrorIds(verdictOf('print'))) !== '["print"]') {
+                    defects.push(`print deck must fail only print, got ${JSON.stringify(pdErrorIds(verdictOf('print')))}`);
+                }
+                assertTrue(defects.length === 0, `TC-PD-001 default verdict drifted from presenter:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-03): a review deck is not forced to carry editing, and nothing else is
+            // relaxed — the review profile demotes exactly the five editing checks.
+            name: '[content-presence] TC-PD-002 the review profile demotes exactly the five editing checks',
+            skip: PD_SKIP,
+            fn: () => {
+                const { validatePresentation } = pdLoadValidator();
+                // Given a conforming deck with editing, draft saving, reset and export removed, keeping an edit
+                // control that announces no state (so edit-state is exercised, not skipped)
+                const noEditing = [
+                    ['unstated edit toggle', html => html.replace('<button aria-pressed="false" data-action="toggle-edit">', '<button data-action="toggle-edit">')],
+                    ['drop edit-state script', html => html.replace(/document\.querySelector\('\[data-action="toggle-edit"\]'\)[^;]+;/, '')],
+                    ['drop editing implementation', html => html.replace(/document\.querySelector\('\.editable'\)[^;]+;/, '')],
+                    ['drop draft saving', html => html.replace(/localStorage\.setItem\([^;]+;/, '')],
+                    ['drop reset and export', html => html.replace('<button data-action="reset">Reset</button><button data-action="export">Export</button>', '')],
+                ].reduce((html, [label, mutate]) => pdMutate(html, label, mutate), pdFixtureDeck());
+                // When it is checked against presenter and against review
+                const presenter = validatePresentation(noEditing, { profile: 'presenter' });
+                const review = validatePresentation(noEditing, { profile: 'review' });
+                // Then the ids at error under presenter and warning under review, derived from checks[], are exactly the five
+                const demoted = presenter.checks
+                    .filter(check => check.level === 'error' && (pdCheck(review, check.id) || {}).level === 'warning')
+                    .map(check => check.id)
+                    .sort();
+                assertTrue(JSON.stringify(demoted) === JSON.stringify(PD_EDITING_CHECKS),
+                    `TC-PD-002 review demotes ${JSON.stringify(demoted)}, expected exactly ${JSON.stringify(PD_EDITING_CHECKS)}`);
+                // And presenter fails on exactly those five, while review passes listing each as advisory
+                assertTrue(JSON.stringify(pdErrorIds(presenter)) === JSON.stringify(PD_EDITING_CHECKS),
+                    `TC-PD-002 presenter must fail exactly the editing checks, got ${JSON.stringify(pdErrorIds(presenter))}`);
+                assertTrue(review.ok === true, `TC-PD-002 review failed the deck: ${review.errors.join('; ')}`);
+                const unlisted = PD_EDITING_CHECKS.filter(id => !review.warnings.some(warning => warning.startsWith(`${id}:`)));
+                assertTrue(unlisted.length === 0, `TC-PD-002 review omits advisories for: ${unlisted.join(', ')}`);
+                // And each advisory names what is missing — never the wording of the same check passing
+                // (compared with presenter, whose passing records carry no profile suffix)
+                const passing = validatePresentation(pdFixtureDeck(), { profile: 'presenter' });
+                const suffix = ' (advisory under the review profile)';
+                const passLike = PD_EDITING_CHECKS.filter(id => {
+                    const details = pdCheck(review, id).details;
+                    if (pdCheck(passing, id).pass !== true || !details.endsWith(suffix)) return true;
+                    return details.slice(0, -suffix.length) === pdCheck(passing, id).details;
+                });
+                assertTrue(passLike.length === 0, `TC-PD-002 advisories read like a pass (or fixture does not pass) for: ${passLike.join(', ')}`);
+                // Edge: a deck with no editing (or notes) control has nothing to judge — the state check passes
+                // in both profiles and says so, instead of asking for a state the deck does not need
+                const noToggles = [
+                    ['edit-state', pdMutate(pdFixtureDeck(), 'drop edit toggle', html => html.replace('<button aria-pressed="false" data-action="toggle-edit">Edit mode</button>', ''))],
+                    ['notes-state', pdMutate(pdFixtureDeck(), 'drop notes toggle', html => html.replace('<button aria-expanded="false" data-action="toggle-notes" aria-controls="notes-panel">Notes</button>', ''))],
+                ];
+                const asking = [];
+                for (const [id, html] of noToggles) for (const profile of ['presenter', 'review']) {
+                    const check = pdCheck(validatePresentation(html, { profile }), id);
+                    if (!check || check.pass !== true || /needs/.test(check.details)) asking.push(`${id} (${profile}): ${check ? check.details : 'missing'}`);
+                }
+                assertTrue(asking.length === 0, `TC-PD-002 a state check with nothing to judge must pass without asking for a state:\n  ${asking.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-04): every deck can be presented by someone else — missing or blank notes
+            // fail in both profiles and the verdict names the slide.
+            name: '[content-presence] TC-PD-003 a slide with missing or blank notes fails both profiles and is named',
+            skip: PD_SKIP,
+            fn: () => {
+                const { validatePresentation } = pdLoadValidator();
+                // Given a three-slide deck whose second slide has no notes, and one whose third has blank notes
+                const deck = pdFixtureDeck(['opening', 'evidence', 'close']);
+                const notesOf = id => new RegExp(`(data-slide-id="${id}"[\\s\\S]*?)<template class="slide-notes">[\\s\\S]*?<\\/template>`);
+                const cases = [
+                    ['evidence', pdMutate(deck, 'drop evidence notes', html => html.replace(notesOf('evidence'), '$1'))],
+                    ['close', pdMutate(deck, 'blank close notes', html => html.replace(notesOf('close'), '$1<template class="slide-notes">   <p> </p><strong></strong>&nbsp; </template>'))],
+                ];
+                const defects = [];
+                for (const profile of ['presenter', 'review']) {
+                    for (const [slide, html] of cases) {
+                        // When it is checked against each profile
+                        const result = validatePresentation(html, { profile });
+                        // Then the verdict fails on notes coverage at error level and names that slide
+                        if (result.ok) defects.push(`${profile} passed a deck whose ${slide} slide has no real notes`);
+                        if ((pdCheck(result, 'notes-coverage') || {}).level !== 'error') defects.push(`${profile}: notes-coverage is not an error`);
+                        if (!result.errors.some(error => error.startsWith('notes-coverage:') && error.includes(slide))) {
+                            defects.push(`${profile}: verdict does not name the ${slide} slide`);
+                        }
+                    }
+                }
+                assertTrue(defects.length === 0, `TC-PD-003 notes rule weakened:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-03 property): the review profile relaxes editing only — a deck failing one
+            // non-editing check still fails review on that check, as presenter does.
+            name: '[content-presence] TC-PD-004 non-editing checks keep their weight under review',
+            skip: PD_SKIP,
+            fn: () => {
+                const { validatePresentation } = pdLoadValidator();
+                const defects = [];
+                for (const [id, mutate] of [
+                    ['print', html => html.replace('@media print', '@media screen')],
+                    ['live-status', html => html.replace(/aria-live="polite"/g, 'data-live="polite"')],
+                    ['document-lang', html => html.replace('<html lang="en">', '<html>')],
+                    ['reduced-motion', html => html.replace(/prefers-reduced-motion: reduce/, 'motion-disabled')],
+                ]) {
+                    // Given a deck failing only that one non-editing check
+                    const html = pdMutate(pdFixtureDeck(), id, mutate);
+                    // When it is checked against presenter and against review
+                    const presenter = validatePresentation(html, { profile: 'presenter' });
+                    const review = validatePresentation(html, { profile: 'review' });
+                    // Then both fail on exactly that check at error level
+                    if (JSON.stringify(pdErrorIds(presenter)) !== JSON.stringify([id])) defects.push(`fixture must fail only ${id} under presenter, got ${JSON.stringify(pdErrorIds(presenter))}`);
+                    if (review.ok) defects.push(`review passed a deck failing ${id}`);
+                    if (JSON.stringify(pdErrorIds(review)) !== JSON.stringify([id])) defects.push(`review must error on ${id} as presenter does, got ${JSON.stringify(pdErrorIds(review))}`);
+                    // And the failure names what is missing — never the wording of the same check passing
+                    const passed = pdCheck(validatePresentation(pdFixtureDeck(), { profile: 'presenter' }), id);
+                    if (!passed || passed.pass !== true) defects.push(`fixture setup: ${id} must pass on the conforming deck`);
+                    else if (pdCheck(review, id).details === passed.details) defects.push(`${id} failure reads like a pass: ${passed.details}`);
+                }
+                // Given a deck longer than six slides with no overview (jump) control — the one check whose level
+                // depends on deck length, so the two-slide fixture above never reaches its error branch
+                const longIds = ['opening', 'problem', 'evidence', 'options', 'decision', 'risks', 'close'];
+                const longDeck = pdMutate(pdFixtureDeck(longIds), 'drop overview control', html => html.replace('<button data-action="overview">All slides</button>', ''));
+                // When it is checked against presenter and against review
+                const longPresenter = validatePresentation(longDeck, { profile: 'presenter' });
+                const longReview = validatePresentation(longDeck, { profile: 'review' });
+                // Then both fail on exactly the overview check, at error level
+                if (longPresenter.slideCount !== longIds.length) defects.push(`fixture setup: long deck has ${longPresenter.slideCount} slides, expected ${longIds.length}`);
+                if (JSON.stringify(pdErrorIds(longPresenter)) !== '["overview"]') defects.push(`7-slide deck with no overview must fail only overview under presenter, got ${JSON.stringify(pdErrorIds(longPresenter))}`);
+                if (longReview.ok) defects.push('review passed a 7-slide deck with no overview control');
+                if (JSON.stringify(pdErrorIds(longReview)) !== '["overview"]') defects.push(`review must error on overview for a 7-slide deck as presenter does, got ${JSON.stringify(pdErrorIds(longReview))}`);
+                assertTrue(defects.length === 0, `TC-PD-004 review relaxed a non-editing check:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-01): a typo never yields a silently wrong verdict — only the exact names
+            // presenter and review produce one, through the CLI that feature-presentation's hand-off gate runs.
+            name: '[content-presence] TC-PD-005 the validator CLI refuses an unknown or malformed profile with exit 2 and no verdict',
+            skip: PD_SKIP,
+            fn: () => pdWithFixtureDeckFile('ck-pd-profile-', (root, deck) => {
+                const defects = [];
+                // Given a readable conforming deck
+                // When the CLI names another word, a different letter case, an empty name, or the name without "="
+                for (const args of [[deck, '--profile=draft'], [deck, '--profile=Review'], [deck, '--profile='], [deck, '--profile', 'review']]) {
+                    const label = args.slice(1).join(' ');
+                    const run = pdRunValidatorCli(root, args);
+                    // Then it exits 2, prints no verdict, and the message names both valid profiles
+                    if (run.code !== 2) defects.push(`${label}: exit ${run.code}${run.error ? ` (${run.error.message})` : ''}, expected 2`);
+                    if (run.stdout.trim() !== '') defects.push(`${label}: printed a verdict: ${run.stdout.split('\n')[0]}`);
+                    if (!/presenter/.test(run.stderr) || !/review/.test(run.stderr)) defects.push(`${label}: stderr does not name presenter and review: ${run.stderr}`);
+                }
+                // And the profile is judged before the deck is read: an unknown name on a missing file is a profile error
+                const beforeRead = pdRunValidatorCli(root, [path.join(root, 'missing.html'), '--profile=draft']);
+                if (beforeRead.code !== 2 || !/Unknown profile/.test(beforeRead.stderr)) defects.push(`unknown profile on a missing deck: exit ${beforeRead.code}, stderr ${beforeRead.stderr}`);
+                // When the exact names are given, Then each produces a passing verdict naming that profile
+                for (const profile of ['review', 'presenter']) {
+                    const run = pdRunValidatorCli(root, [deck, `--profile=${profile}`]);
+                    if (run.code !== 0) defects.push(`--profile=${profile}: exit ${run.code}, expected 0: ${run.stderr}`);
+                    if (!run.stdout.split('\n')[0].includes(`(profile: ${profile})`)) defects.push(`--profile=${profile}: verdict does not name ${profile}: ${run.stdout.split('\n')[0]}`);
+                }
+                // Given a deck failing exactly one non-editing check (no document language)
+                const failing = path.join(root, 'failing-deck.html');
+                fs.writeFileSync(failing, pdMutate(pdFixtureDeck(), 'drop document language', html => html.replace('<html lang="en">', '<html>')), 'utf8');
+                // When the CLI checks it under review and with no profile named
+                for (const args of [[failing, '--profile=review'], [failing]]) {
+                    const label = args.length > 1 ? args[1] : 'no profile';
+                    const run = pdRunValidatorCli(root, args);
+                    // Then it exits 1 (a verdict, not a usage error) and prints a FAIL verdict naming the check
+                    if (run.code !== 1) defects.push(`failing deck, ${label}: exit ${run.code}${run.error ? ` (${run.error.message})` : ''}, expected 1`);
+                    if (!run.stdout.split('\n')[0].startsWith('FAIL ')) defects.push(`failing deck, ${label}: verdict is not FAIL: ${run.stdout.split('\n')[0]}`);
+                    if (!run.stdout.includes('document-lang:')) defects.push(`failing deck, ${label}: verdict does not name document-lang`);
+                }
+                assertTrue(defects.length === 0, `TC-PD-005 validator profile names drifted:\n  ${defects.join('\n  ')}`);
+            }),
+        },
+        {
+            // Business Intent (BR-PD-01): every verdict states the standard it was judged against, so a review pass
+            // is never mistaken for a presenter pass.
+            name: '[content-presence] TC-PD-006 every validator CLI verdict names the profile it was judged against',
+            skip: PD_SKIP,
+            fn: () => pdWithFixtureDeckFile('ck-pd-verdict-', (root, deck) => {
+                const defects = [];
+                // Given the conforming fixture deck
+                // When it is checked through the CLI against review, with no profile named, and against review as JSON
+                const review = pdRunValidatorCli(root, [deck, '--profile=review']);
+                const unnamed = pdRunValidatorCli(root, [deck]);
+                const json = pdRunValidatorCli(root, [deck, '--json', '--profile=review']);
+                // Then the review verdict names review and the unnamed one names presenter
+                if (!review.stdout.split('\n')[0].includes('(profile: review)')) defects.push(`review verdict: ${review.stdout.split('\n')[0]}`);
+                if (!unnamed.stdout.split('\n')[0].includes('(profile: presenter)')) defects.push(`no-profile verdict: ${unnamed.stdout.split('\n')[0]}`);
+                // And the JSON verdict carries the profile as a field
+                let jsonProfile;
+                let jsonSteps = [];
+                try { ({ profile: jsonProfile, manualVerification: jsonSteps = [] } = JSON.parse(json.stdout)); } catch (error) { jsonProfile = `unparseable JSON (${error.message})`; }
+                if (jsonProfile !== 'review') defects.push(`JSON verdict profile is ${JSON.stringify(jsonProfile)}, expected "review"`);
+                // And its follow-up steps fit the review profile: no editing, draft, reset or export walk
+                if (!Array.isArray(jsonSteps) || jsonSteps.length === 0) defects.push('JSON verdict carries no follow-up steps');
+                else for (const step of [/edit/i, /draft/i, /reset/i, /export/i]) {
+                    if (step.test(jsonSteps.join('\n'))) defects.push(`review follow-up steps still ask for ${step}`);
+                }
+                assertTrue(defects.length === 0, `TC-PD-006 verdict profile naming drifted:\n  ${defects.join('\n  ')}`);
+            }),
+        },
+        {
+            // Business Intent (BR-PD-04/05, §6.4, §7): the review deck as documented meets the shared standard —
+            // reviewers get presentable notes, navigation, overview and print, never in-place editing, and
+            // always see where they are and a message instead of a blank demo.
+            name: '[content-presence] TC-PD-007 the feature-presentation review-deck scaffold passes review with full notes, no editing and its key states (TC-PD-022, TC-PD-062)',
+            skip: PD_SKIP,
+            fn: () => {
+                const { validatePresentation, findSlides } = pdLoadValidator();
+                // Given the review-deck scaffold from the deck template
+                const scaffold = pdScaffold();
+                assertTrue(scaffold.length > 0, 'TC-PD-007 deck-template.md §1 has no ```html scaffold fence');
+                // When it is checked against review
+                const review = validatePresentation(scaffold, { profile: 'review' });
+                const defects = [];
+                // Then the verdict passes
+                if (!review.ok) defects.push(`review verdict fails: ${review.errors.join('; ')}`);
+                // And every slide, the demo slide included, has notes giving Say, Why and the likely Question
+                const slides = findSlides(scaffold);
+                if (!slides.some(slide => /<iframe\b/i.test(slide.html))) defects.push('no demo slide (with an <iframe>) in the scaffold');
+                const notesTemplates = scaffold.match(/<template\b[^>]*\bclass\s*=\s*(["'])[^"']*\bslide-notes\b[^"']*\1[^>]*>[\s\S]*?<\/template>/gi) || [];
+                if (notesTemplates.length !== slides.length) defects.push(`${notesTemplates.length} notes templates for ${slides.length} slides`);
+                for (const slide of slides) {
+                    const notes = /<template\b[^>]*\bslide-notes\b[^>]*>([\s\S]*?)<\/template>/i.exec(slide.html);
+                    const id = pdSlideIdOf(slide.openingTag) || `#${slide.index}`;
+                    if (!notes) { defects.push(`${id}: no slide-notes template`); continue; }
+                    for (const label of ['Say:', 'Why:', 'Question:']) if (!notes[1].includes(label)) defects.push(`${id}: notes lack "${label}"`);
+                }
+                // And no editing, draft-saving, reset or export control is offered (TC-PD-022)
+                const actions = [...scaffold.matchAll(/\bdata-action\s*=\s*(["'])(.*?)\1/gi)].flatMap(m => m[2].split(/\s+/));
+                if (!actions.includes('next') || !actions.includes('toggle-notes')) defects.push('data-action scan found no deck controls (scan is vacuous)');
+                for (const forbidden of ['toggle-edit', 'reset', 'export']) if (actions.includes(forbidden)) defects.push(`editing control data-action="${forbidden}" present`);
+                if (/\b(?:localStorage|sessionStorage|indexedDB)\b/.test(scaffold)) defects.push('browser draft storage present');
+                // And nothing is editable in place: no contenteditable attribute in the markup (script and style bodies
+                // stripped, so the engine's own `isContentEditable` key guard is not markup) and no designMode anywhere
+                const editMarkup = scaffold.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+                if (/<[a-z][\w-]*\b[^>]*\scontenteditable\b/i.test(editMarkup)) defects.push('a contenteditable attribute is present in the markup');
+                if (/\bdesignMode\b/.test(scaffold)) defects.push('designMode is present');
+                // And the key states are present: live position, notes panel, overview with close, reduced motion, empty demo (TC-PD-062)
+                const states = [
+                    ['aria-live status', /\baria-live\s*=\s*(["'])(?:polite|assertive)\1/i],
+                    ['notes panel', /\bid\s*=\s*(["'])notes-panel\1/i],
+                    ['overview dialog', /<dialog\b/i],
+                    ['overview control', /\bdata-action\s*=\s*(["'])overview\1/i],
+                    ['overview close', /\bdata-action\s*=\s*(["'])close-overview\1/i],
+                    ['reduced-motion path', /prefers-reduced-motion/i],
+                    ['empty-demo message', /No prototype or design available/],
+                ];
+                for (const [state, pattern] of states) if (!pattern.test(scaffold)) defects.push(`missing key state: ${state}`);
+                // And a demo with nothing to embed drops its Simulated note: the empty-demo handler removes the
+                // demo narration's `deck__sim-note` (nothing is simulated when there is no prototype)
+                const demo = slides.find(slide => /<iframe\b/i.test(slide.html));
+                if (demo && !/\bdeck__sim-note\b/.test(demo.html)) defects.push('demo slide carries no Simulated note (empty-demo check is vacuous)');
+                const handlerAt = scaffold.search(/\.deck__embed['"]\)\.forEach\(/);
+                const handler = handlerAt === -1 ? '' : scaffold.slice(handlerAt, scaffold.indexOf('\n', scaffold.indexOf('});', handlerAt)));
+                if (!handler) defects.push('no empty-demo handler over .deck__embed');
+                else if (!/deck__sim-note['"]\)\.forEach\(\(?\w+\)?\s*=>\s*\w+\.remove\(\)\)/.test(handler)) defects.push('empty-demo handler no longer removes the Simulated note');
+                // And the swap acts only on an embed that holds an iframe: a wireframe demo (no iframe) is left as it is
+                const frameName = (/\b(?:const|let)\s+(\w+)\s*=\s*\w+\.querySelector\(['"]iframe['"]\)/.exec(handler) || [])[1];
+                if (handler && !(frameName && new RegExp(`\\bif\\s*\\(\\s*!\\s*${frameName}\\s*\\|\\|`).test(handler))) {
+                    defects.push('empty-demo handler lost its iframe guard (an embed without an iframe is no longer skipped)');
+                }
+                // Given the §3b spec-only wireframe demo, filled as the template says: two frames `demo-x` and `demo-x-2`
+                // whose escaped wireframe text carries an escaped `</section>` (and `<input>`, `Q&A`)
+                const wireframe = pdWireframeSlide();
+                if (!wireframe) defects.push('deck-template.md §3b has no ```html wireframe-demo fence');
+                else {
+                    // The frame replaces the iframe AND the empty-state line, so no empty-state text misfires beside it
+                    const pre = (/<pre\b[^>]*>(?=\{ESCAPED_ASCII_FRAME\}<\/pre>)/.exec(wireframe) || [])[0];
+                    if (!pre || !pdClassTokens(pre).includes('deck__wireframe')) defects.push('wireframe fence has no escaped-frame <pre class="deck__wireframe">');
+                    // And the frame, which scrolls sideways when wider than its box, is a keyboard-reachable named region
+                    // (WCAG 2.1.1: a scroller the keyboard cannot reach hides a wide frame at 200% zoom)
+                    else {
+                        if (!/\stabindex="0"/.test(pre)) defects.push('wireframe <pre> is not focusable (tabindex="0")');
+                        if (!/\srole="region"/.test(pre)) defects.push('wireframe <pre> is not a region (role="region")');
+                        if (!/\saria-label(?:ledby)?="[^"]*\S[^"]*"/.test(pre)) defects.push('wireframe <pre> has no accessible name (aria-label or aria-labelledby)');
+                    }
+                    if (/<iframe\b|deck__empty/.test(wireframe)) defects.push('wireframe fence still carries an iframe or the empty-state line');
+                    const escapedFrame = '+------------------------------+\n| &lt;input&gt; Name   [ Q&amp;A ] |\n| &lt;/section&gt; ends nothing   |\n+------------------------------+';
+                    // Every other placeholder gets plain text; the first frame drops its -1 suffix (the narration id keeps it)
+                    const frame = n => {
+                        const filled = wireframe
+                            .replace(/\{journey-slug\}/g, 'x')
+                            .replace(/\{n\}/g, String(n))
+                            .replace('{ESCAPED_ASCII_FRAME}', escapedFrame)
+                            .replace(/\{[^{}\n]*\}/g, 'Filled value for the review');
+                        return n === 1 ? filled.replace('data-slide-id="demo-x-1"', 'data-slide-id="demo-x"') : filled;
+                    };
+                    const summaryAt = scaffold.search(/<section\b[^>]*data-slide-id="summary"/);
+                    const withWireframe = summaryAt === -1 ? '' : `${scaffold.slice(0, summaryAt)}${frame(1)}\n${frame(2)}\n${scaffold.slice(summaryAt)}`;
+                    if (!withWireframe) defects.push('fixture setup: no summary slide to splice the wireframe frames before');
+                    else {
+                        // When the spliced deck is checked against review
+                        const spliced = validatePresentation(withWireframe, { profile: 'review' });
+                        // Then it passes, and the standard finds both frames as whole slides with their own ids
+                        if (!spliced.ok) defects.push(`scaffold with the wireframe demo fails review: ${spliced.errors.join('; ')}`);
+                        const splicedIds = findSlides(withWireframe).map(slide => pdSlideIdOf(slide.openingTag));
+                        if (!splicedIds.includes('demo-x') || !splicedIds.includes('demo-x-2')) defects.push(`wireframe frames not found as slides: ${JSON.stringify(splicedIds)}`);
+                        if (splicedIds.length !== slides.length + 2) defects.push(`${splicedIds.length} slides after splicing 2 frames into ${slides.length}`);
+                    }
+                }
+                // And the live status announces the position together with the current slide's title
+                if (!/'Slide '\s*\+[^\n]*' of '\s*\+[^\n]*': '\s*\+\s*titleOf\(/.test(scaffold)) defects.push('status no longer announces "Slide N of M: title"');
+                assertTrue(defects.length === 0, `TC-PD-007 review-deck scaffold drifted:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-05, BR-PD-06 embed clause): a failing review deck is never handed to
+            // reviewers as ready, and a deck never claims to be self-contained while its demos need a network.
+            name: '[content-presence] TC-PD-008 feature-presentation blocks hand-off on --profile=review and its outside-asset scan flags network loads only (TC-PD-013)',
+            skip: PD_SKIP,
+            fn: () => {
+                // Given feature-presentation's guidance
+                const fp = pdReadText('feature-presentation', 'SKILL.md');
+                const step6 = sectionBetween(fp, '### Step 6', '\n### ');
+                const step8 = sectionBetween(fp, '### Step 8:', '\n### ');
+                const defects = [];
+                // When Step 8 describes finishing the deck
+                // Then the review check is blocking, precedes the fidelity gate and the report, and a failing deck is never reported ready
+                for (const phrase of ['[BLOCKING]', 'validate-presentation.cjs', '--profile=review', 'Never report the deck ready while the check fails']) {
+                    if (!step8.includes(phrase)) defects.push(`Step 8 lacks "${phrase}"`);
+                }
+                const checkAt = step8.indexOf('--profile=review');
+                const fidelityAt = step8.indexOf('Fidelity Gate');
+                if (checkAt === -1 || fidelityAt === -1 || checkAt > fidelityAt) defects.push('Step 8 does not run the review check before the fidelity gate');
+                const reportAt = fp.indexOf('### Step 9');
+                if (reportAt === -1 || fp.indexOf('### Step 8:') > reportAt) defects.push('the conformance step does not precede the Step 9 report');
+                // And Step 6 carries the outside-asset scan with its declaration and the viewer notice
+                const scan = step6.split('\n').find(line => line.includes('**Outside-asset scan')) || '';
+                // (the regex runs case-insensitively — the test below applies it with the `i` flag the guidance names)
+                for (const phrase of ['presentation-asset-policy', 'external-allowed', 'how-to slide', 'Demos load outside assets; open online to see them exactly.', 'case-insensitively (flag `i`)']) {
+                    if (!scan.includes(phrase)) defects.push(`Step 6 outside-asset scan lacks "${phrase}"`);
+                }
+                // And both places that run the look-behind regex name an engine that supports it and warn off the ones
+                // that do not: `grep -E` silently matches nothing and plain `rg` refuses the pattern, so a scan run
+                // there would report "no outside asset" for a mockup that loads one
+                const recheck = step8.split('\n').find(line => line.includes('Step 6 regex')) || '';
+                if (!recheck) defects.push('Step 8 no longer re-runs the Step 6 regex on the deck');
+                for (const [label, text] of [['Step 6 outside-asset scan', scan], ['Step 8 deck re-check', recheck]]) {
+                    if (!text.includes('JavaScript RegExp')) defects.push(`${label} does not name the JavaScript RegExp engine`);
+                    if (!/grep -Pi?\b|rg --pcre2/.test(text)) defects.push(`${label} names no PCRE command-line engine (grep -P or rg --pcre2)`);
+                    if (!/\bnever\b[^.]*`grep -E`[^.]*plain `rg`/.test(text)) defects.push(`${label} does not warn off \`grep -E\` and plain \`rg\``);
+                }
+                const source = (/the regex `([^`\n]+)`/.exec(scan) || [])[1];
+                if (!source) defects.push('Step 6 outside-asset scan names no regex');
+                else {
+                    // When the regex, extracted from the guidance and applied case-insensitively as Step 6 says, runs on raw
+                    // mockup samples — one per load shape the presentation-builder asset rule also treats as outside
+                    // (protocol-relative `//` included)
+                    const rule = new RegExp(source, 'i');
+                    const flagged = [
+                        '<link rel="stylesheet" href="https://fonts.example.test/css2?family=Inter">',
+                        '<img src="https://cdn.example.test/hero.png" alt="Hero">',
+                        '<div style="background:url(https://cdn.example.test/bg.jpg)"></div>',
+                        '<div style="background:url(//cdn.example.test/bg.jpg)"></div>',
+                        '<iframe src="https://app.example.test/embed" title="Demo"></iframe>',
+                        '<video poster="https://cdn.example.test/poster.jpg" controls></video>',
+                        '<img srcset="https://cdn.example.test/hero.png 1x" alt="Hero">',
+                        '<style>@import "https://fonts.example.test/inter.css";</style>',
+                        // A mockup whose ONLY outside asset is a web font. The shared validator cannot see inside an
+                        // escaped srcdoc demo, so it would pass this deck with no policy meta: this scan is where the
+                        // font-only mockup gets its declaration and notice (R1-13, FP-owned).
+                        '<!doctype html><html><head><link href="https://fonts.example.test/css2?family=Inter" rel="stylesheet"><style>body{font-family:Inter,sans-serif}</style></head><body><p>Local text only.</p></body></html>',
+                        // A network address as the SECOND srcset candidate, after a local one
+                        '<img srcset="hero-1x.png 1x, https://cdn.example.test/hero-2x.png 2x" alt="Hero">',
+                        '<style>@import"https://fonts.example.test/inter.css";</style>',
+                        '<object data="https://cdn.example.test/chart.svg" type="image/svg+xml"></object>',
+                        '<IMG SRC="HTTPS://CDN.EXAMPLE.TEST/HERO.PNG" ALT="Hero">',
+                        '<div style="background:URL(https://cdn.example.test/bg.jpg)"></div>',
+                    ];
+                    const local = [
+                        '<img src="local.png" alt="Local">',
+                        '<p>Docs live at https://docs.example.test/guide for later reading.</p>',
+                        // Links and lazy-load data attributes load nothing
+                        '<a href="https://docs.example.test/guide">Guide</a>',
+                        '<a href=//docs.example.test/guide>Guide</a>',
+                        '<img data-src="https://cdn.example.test/lazy.png" src="local.png" alt="Lazy">',
+                        '<link rel="stylesheet" href="styles/local.css">',
+                    ];
+                    // Then every network load is flagged and neither local counter-case is
+                    for (const sample of flagged) if (!rule.test(sample)) defects.push(`scan misses outside asset: ${sample}`);
+                    for (const sample of local) if (rule.test(sample)) defects.push(`scan flags a local or plain-text reference: ${sample}`);
+                }
+                assertTrue(defects.length === 0, `TC-PD-008 review hand-off gate drifted:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-06): a review deck opens with its intended look without a network unless it
+            // declares outside assets allowed.
+            name: '[content-presence] TC-PD-009 the review-deck scaffold loads no outside asset and the asset rule holds on it',
+            skip: PD_SKIP,
+            fn: () => {
+                const { validatePresentation } = pdLoadValidator();
+                // Given the review-deck scaffold
+                const scaffold = pdScaffold();
+                assertTrue(scaffold.length > 0, 'TC-PD-009 deck-template.md §1 has no ```html scaffold fence');
+                const policyMeta = /<meta\b[^>]*\bname\s*=\s*(["'])presentation-asset-policy\1[^>]*\bcontent\s*=\s*(["'])external-allowed\2/i;
+                const outside = [
+                    ['<link> to a network address', /<link\b[^>]*https?:\/\//i],
+                    ['url() to a network address', /\burl\(\s*["']?https?:\/\//i],
+                    ['src/href to a network address', /\b(?:src|href)\s*=\s*["']?https?:\/\//i],
+                ].filter(([, pattern]) => pattern.test(scaffold)).map(([label]) => label);
+                const declared = policyMeta.test(scaffold);
+                const defects = [];
+                // When its markup is inspected, Then it loads nothing from a network unless it declares the policy
+                if (outside.length > 0 && !declared) defects.push(`undeclared outside asset: ${outside.join(', ')}`);
+                // And the declaration is conditional, never a default (only the Step 6 scan adds it)
+                if (declared) defects.push('the scaffold declares external-allowed by default');
+                // When an outside web font is added, Then review fails on the asset rule until the deck declares it
+                const withFont = pdMutate(scaffold, 'add outside font', html => html.replace('</head>', '<link rel="stylesheet" href="https://fonts.example.test/x.css"></head>'));
+                const undeclaredCheck = pdCheck(validatePresentation(withFont, { profile: 'review' }), 'asset-policy');
+                if (!undeclaredCheck || undeclaredCheck.pass || undeclaredCheck.level !== 'error') defects.push('an undeclared outside font passes the review asset rule');
+                const withPolicy = pdMutate(withFont, 'declare outside assets', html => html.replace('</head>', '<meta name="presentation-asset-policy" content="external-allowed" /></head>'));
+                if (!(pdCheck(validatePresentation(withPolicy, { profile: 'review' }), 'asset-policy') || {}).pass) defects.push('a declared outside font still fails the asset rule');
+                assertTrue(defects.length === 0, `TC-PD-009 review-deck asset rule drifted:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-07): a review deck exports every slide whichever route is used, and a slide
+            // keeps its identity when slides are added.
+            name: '[content-presence] TC-PD-010 both export routes find the same review-deck slides, each with a unique job-named id',
+            skip: PD_SKIP,
+            fn: () => {
+                const { findSlides } = pdLoadValidator();
+                // Given the review-deck scaffold
+                const scaffold = pdScaffold();
+                // When its slides are located by the shared standard and by the review-deck export selector (section.deck__slide)
+                const standard = findSlides(scaffold).map(slide => pdSlideIdOf(slide.openingTag));
+                const exportRoute = [...scaffold.matchAll(/<section\b[^>]*>/gi)]
+                    .map(m => m[0])
+                    .filter(tag => pdClassTokens(tag).includes('deck__slide'))
+                    .map(pdSlideIdOf);
+                const defects = [];
+                // Then both find the same N >= 2 slides in the same order
+                if (exportRoute.length < 2) defects.push(`export route finds ${exportRoute.length} slides; the scaffold needs N >= 2`);
+                if (JSON.stringify(standard) !== JSON.stringify(exportRoute)) {
+                    defects.push(`routes disagree: standard ${JSON.stringify(standard)} vs export ${JSON.stringify(exportRoute)}`);
+                }
+                // And every identity is present, unique and named for its job, not its position
+                for (const id of exportRoute) {
+                    if (!id) defects.push('a slide has no data-slide-id');
+                    else if (/^slide-?\d+$/i.test(id)) defects.push(`positional slide id "${id}"`);
+                }
+                const duplicates = exportRoute.filter((id, i) => id && exportRoute.indexOf(id) !== i);
+                if (duplicates.length > 0) defects.push(`duplicate slide ids: ${[...new Set(duplicates)].join(', ')}`);
+                // When the same slides are located by html-export's DEFAULT --slides selector, read from its library
+                // (loads without Playwright) so a changed selector is judged as it ships
+                const { DEFAULT_SLIDE_SELECTOR } = require(pdSkillPath('html-export', 'scripts', 'lib', 'slides.cjs'));
+                // (matcher sanity: the selector needs the shared `slide` class AND a slide id on the section)
+                assertTrue(pdSelectorMatches(DEFAULT_SLIDE_SELECTOR, '<section class="slide deck__slide" data-slide-id="x">')
+                    && !pdSelectorMatches(DEFAULT_SLIDE_SELECTOR, '<section class="deck__slide" data-slide-id="x">'),
+                    `fixture setup: the default-selector matcher misjudges "${DEFAULT_SLIDE_SELECTOR}"`);
+                // Opening tags outside script and style bodies, so engine code never reads as markup
+                const markup = scaffold.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+                const defaultRoute = [...markup.matchAll(/<[a-z][\w-]*\b[^>]*>/gi)]
+                    .map(m => m[0])
+                    .filter(tag => pdSelectorMatches(DEFAULT_SLIDE_SELECTOR, tag))
+                    .map(pdSlideIdOf);
+                // Then it finds every review-deck slide, in the same order and nothing else
+                if (JSON.stringify(defaultRoute) !== JSON.stringify(exportRoute)) {
+                    defects.push(`html-export default selector "${DEFAULT_SLIDE_SELECTOR}" finds ${JSON.stringify(defaultRoute)}, review-deck route finds ${JSON.stringify(exportRoute)}`);
+                }
+                assertTrue(defects.length === 0, `TC-PD-010 review-deck slide identity drifted:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (BR-PD-09, SOFT): a developer always learns when a deck ignored the design plan and
+            // fell back to the default look; the warning never stops the build.
+            name: '[content-presence] TC-PD-011 the generator warns on stderr only when the default look is used',
+            skip: PD_SKIP,
+            fn: () => {
+                const { spawnSync } = require('child_process');
+                const script = pdSkillPath('presentation-builder', 'scripts', 'create-presentation.cjs');
+                const { EXAMPLE_SPEC } = require(script);
+                // The warning is pinned by its meaning, never read back from the script: it must say the default look was used
+                const defaultLook = /default look/;
+                const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-pd-look-'));
+                try {
+                    // Given two deck descriptions identical except for the chosen look
+                    const noTheme = JSON.parse(JSON.stringify(EXAMPLE_SPEC));
+                    delete noTheme.theme;
+                    const themed = { ...JSON.parse(JSON.stringify(noTheme)), theme: { accent: '#7a2e1d', displayFont: 'Georgia, serif' } };
+                    const env = pdChildEnv(root);
+                    const build = (name, spec) => {
+                        const input = path.join(root, `${name}.json`);
+                        const output = path.join(root, `${name}.html`);
+                        fs.writeFileSync(input, JSON.stringify(spec), 'utf8');
+                        // When each is built through the generator's CLI (argv array, no shell)
+                        const run = spawnSync(process.execPath, [script, input, output], { cwd: root, env, encoding: 'utf8', timeout: 30000 });
+                        return { ...run, built: fs.existsSync(output) && fs.statSync(output).size > 0 };
+                    };
+                    const plain = build('no-theme', noTheme);
+                    const chosen = build('themed', themed);
+                    const defects = [];
+                    // Then both decks are built with exit 0
+                    for (const [label, run] of [['no-theme', plain], ['themed', chosen]]) {
+                        if (run.status !== 0 || !run.built) defects.push(`${label}: build failed (exit ${run.status}): ${run.stderr}`);
+                    }
+                    // And only the no-theme run prints the default-look warning, on stderr and never stdout
+                    if (!defaultLook.test(String(plain.stderr))) defects.push(`no-theme run lacks the default-look warning on stderr: ${plain.stderr}`);
+                    if (defaultLook.test(String(chosen.stderr))) defects.push('themed run printed the default-look warning');
+                    if (defaultLook.test(String(plain.stdout))) defects.push('the warning leaked onto stdout');
+                    assertTrue(defects.length === 0, `TC-PD-011 default-look warning drifted:\n  ${defects.join('\n  ')}`);
+                } finally {
+                    fs.rmSync(root, { recursive: true, force: true });
+                }
+            },
+        },
+        {
+            // Business Intent (BR-PD-08, BR-PD-10, BR-PD-11): the routes between design, the general deck and the
+            // review deck stay discoverable — a design authority is read and adopted, each deck kind says when to
+            // use the other, and a picked slide direction with its journey fixes reaches a deck builder (TC-PD-061).
+            name: '[content-presence] TC-PD-012 guidance links design authority, both deck kinds and the design slide hand-off (TC-PD-061)',
+            skip: PD_SKIP,
+            fn: () => {
+                // Given the guidance of the general builder, the review step and the visual exploration
+                const pb = pdReadText('presentation-builder', 'SKILL.md');
+                const fp = pdReadText('feature-presentation', 'SKILL.md');
+                const explore = pdReadText('design', 'references', 'explore', 'workflow.md');
+                const defects = [];
+                // When the general builder's design-plan step is read
+                const plan = sectionBetween(pb, '### 4. Make a subject-grounded design plan', '\n### ');
+                // Then it reads design authority before the plan, records the documents or the none-configured branch
+                // with the locations checked, adopts colour and type, and takes the explore hand-off inputs
+                for (const phrase of ['Design authority read', 'none configured', 'checked:', 'direction-approved.md', 'run-notes.md']) {
+                    if (!plan.includes(phrase)) defects.push(`presentation-builder Step 4 lacks "${phrase}"`);
+                }
+                if (!/\bdesign authority\b[^\n]*\bBEFORE writing the plan\b/.test(plan)) defects.push('presentation-builder no longer reads design authority before writing the plan');
+                if (!/\badopt\b[^.\n]*\bcolou?r and type\b/i.test(plan)) defects.push('presentation-builder lacks the adopt-colour-and-type instruction');
+                // And it routes a feature-artifact synthesis deck to feature-presentation, naming the review profile
+                const toReview = pb.split('\n').find(line => /\bsynthesi[sz]es\b[^\n]*\bartifacts\b/i.test(line) && line.includes('`feature-presentation`'));
+                if (!toReview) defects.push('presentation-builder no longer names feature-presentation beside the artifact-synthesis condition');
+                else if (!toReview.includes('--profile=review')) defects.push('presentation-builder names feature-presentation without its --profile=review');
+                if (!pb.includes('--profile=review')) defects.push('presentation-builder lacks --profile=review');
+                // And the review step says a general-subject deck belongs to the general builder
+                if (!/general-subject decks go to `\/presentation-builder`/i.test(fp)) defects.push('feature-presentation no longer routes general-subject decks to /presentation-builder');
+                // And it names the general builder as owner of the deck standard, and adopts a slide hand-off with its fixes
+                if (!/`presentation-builder` owns the deck standard/.test(fp)) defects.push('feature-presentation no longer names presentation-builder as owner of the deck standard');
+                const fpDesign = sectionBetween(fp, '### Step 3', '\n### ');
+                for (const phrase of ['direction-approved.md', 'run-notes.md']) {
+                    if (!fpDesign.includes(phrase)) defects.push(`feature-presentation Step 3 no longer adopts the explore hand-off "${phrase}"`);
+                }
+                // And a picked direction's web font is packaged or replaced, and a replacement is recorded as a departure (TC-PD-061)
+                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(fpDesign)) defects.push('feature-presentation Step 3 no longer states the packaged-or-replaced web-font rule with a recorded departure');
+                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(plan)) defects.push('presentation-builder Step 4 no longer states the packaged-or-replaced web-font rule with a recorded departure');
+                // When design explore Step 10 is read
+                const step10 = sectionBetween(explore, '## Step 10', '\n## ');
+                const lines = step10.split('\n');
+                const slide = lines.find(line => line.startsWith('- **Slide**')) || '';
+                const other = lines.find(line => line.startsWith('- **Every other deliverable**')) || '';
+                // Then a slide deliverable hands the direction and the recorded fixes to a deck builder, not to refinement
+                for (const phrase of ['presentation-builder', 'direction-approved.md', 'run-notes.md']) {
+                    if (!slide.includes(phrase)) defects.push(`design explore Step 10 slide hand-off lacks "${phrase}"`);
+                }
+                if (!/do NOT run `--mode=good`/.test(slide)) defects.push('design explore Step 10 no longer keeps a slide deliverable out of --mode=good');
+                if (!/web font[\s\S]{0,300}packag[\s\S]{0,300}departure/i.test(slide)) defects.push('design explore Step 10 slide hand-off no longer states the packaged-or-replaced web-font rule with a recorded departure');
+                // And every other deliverable still continues to its refinement step
+                if (!other.includes('--mode=good')) defects.push('design explore Step 10 lost the --mode=good refinement for other deliverables');
+                // When the explore gate-file templates are read (BR-PD-10: the picked direction's tokens travel in a file)
+                const gateFiles = pdReadText('design', 'references', 'explore', 'gate-files.md');
+                const templateOf = name => pdExtractFence(gateFiles, new RegExp(`^## \`${name.replace('.', '\\.')}\``, 'm'), 'markdown');
+                const approved = templateOf('direction-approved.md');
+                const runNotes = templateOf('run-notes.md');
+                // Then direction-approved.md carries a Design Plan tokens section with named hex colours and type roles
+                const tokens = sectionBetween(approved, '## Design Plan tokens', '\n## ');
+                if (!approved.includes('\n## Design Plan tokens\n')) defects.push('direction-approved.md template has no "## Design Plan tokens" section');
+                else if (!/#RRGGBB/.test(tokens) || !/Type family/.test(tokens)) defects.push('direction-approved.md Design Plan tokens section lost its hex-colour or type-family table');
+                // And run-notes.md carries the Journey fixes (UX-8) table the deck builder marks
+                if (!runNotes.includes('\n## Journey fixes (UX-8)\n')) defects.push('run-notes.md template has no "## Journey fixes (UX-8)" section');
+                // And both deck builders read the tokens from that section when they adopt a picked direction
+                if (!plan.includes('## Design Plan tokens')) defects.push('presentation-builder Step 4 does not name the "## Design Plan tokens" section');
+                if (!fpDesign.includes('## Design Plan tokens')) defects.push('feature-presentation Step 3 does not name the "## Design Plan tokens" section');
+                for (const [label, body] of [['presentation-builder Step 4', plan], ['feature-presentation Step 3', fpDesign]]) {
+                    if (!body.includes('## Journey fixes (UX-8)')) defects.push(`${label} does not name the "## Journey fixes (UX-8)" table`);
+                }
+                assertTrue(defects.length === 0, `TC-PD-012 presentation routes drifted:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (§6.4 key states, runtime contract §3): a reviewer driving the review deck by keyboard
+            // reads a long slide before it changes, starts each new slide at its top, never runs through slides on a
+            // held key, reads long notes by keyboard only when Tab put the focus there (a clicker keeps one press per
+            // slide) — and while it is there the scroll keys never move the deck, even at the notes' edge — and can go
+            // back with Shift+Space. Runs the scaffold's REAL engine in node:vm, so an engine edit
+            // that breaks one of these fails here, not only in a browser.
+            name: '[content-presence] TC-PD-062 the review-deck engine scrolls a long slide first, opens each slide at its top and sends keys to notes only after Tab',
+            skip: PD_SKIP,
+            fn: () => {
+                // Given the engine: the one inline <script> of the deck template's §1 scaffold, run as the browser gets it
+                const scaffold = pdScaffold();
+                const scripts = [...scaffold.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+                assertTrue(scripts.length === 1, `TC-PD-062 the scaffold must carry exactly one inline engine script, found ${scripts.length}`);
+                const engine = scripts[0];
+                const defects = [];
+                const expect = (label, actual, expected) => {
+                    if (!require('util').isDeepStrictEqual(actual, expected)) defects.push(`${label}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
+                };
+                // A three-slide deck, each slide 900px tall in a 500px stage: 400px of every slide is below the screen
+                const deck = options => pdRunDeckEngine(engine, options);
+                {
+                    const fresh = deck();
+                    expect('the deck opens on the first slide at its top', [fresh.index(), fresh.stage.scrollTop, fresh.status()], [0, 0, 'Slide 1 of 3: Title 1']);
+                }
+                // When a down key is pressed on a slide with content below the screen
+                // Then the slide scrolls (a line key one line, a page key up to the slide's end) and the slide stays
+                for (const [key, step] of [['ArrowDown', 40], ['PageDown', 400], [' ', 400]]) {
+                    const d = deck();
+                    const event = d.press(key);
+                    expect(`${JSON.stringify(key)} on a long slide`, [event.defaultPrevented, d.calls, d.index()], [true, [['stage', step]], 0]);
+                }
+                // When a down key is pressed at the slide's end (a sub-pixel remainder counts as the end)
+                // Then the deck moves to the next slide and opens it at its top
+                for (const scrollTop of [400, 399.5]) {
+                    const d = deck();
+                    d.stage.scrollTop = scrollTop;
+                    d.press('ArrowDown');
+                    expect(`ArrowDown at scrollTop ${scrollTop}`, [d.index(), d.stage.scrollTop, d.calls, d.status()], [1, 0, [], 'Slide 2 of 3: Title 2']);
+                }
+                // When the key is held down (auto-repeat) at the slide's end
+                // Then it stops there: no slide change, the press is still consumed
+                for (const key of ['ArrowDown', ' ', 'PageDown']) {
+                    const d = deck();
+                    d.stage.scrollTop = 400;
+                    const event = d.press(key, { repeat: true });
+                    expect(`held ${JSON.stringify(key)} at the end`, [event.defaultPrevented, d.index(), d.calls], [true, 0, []]);
+                }
+                // When the slide changes by Right, End or the Next button from the middle of a scrolled slide
+                // Then the new slide opens at its top
+                for (const [label, act] of [['ArrowRight', d => d.press('ArrowRight')], ['End', d => d.press('End')], ['Next button', d => d.buttons.next.click()]]) {
+                    const d = deck();
+                    d.stage.scrollTop = 200;
+                    act(d);
+                    expect(`${label} from a scrolled slide`, [d.index() > 0, d.stage.scrollTop], [true, 0]);
+                }
+                // When Shift+Space is pressed: mid-slide it scrolls back; at the slide's top it goes to the previous
+                // slide, landing at its end so reading carries on backwards; ArrowLeft goes back to the top instead
+                {
+                    const d = deck();
+                    d.press('ArrowRight');
+                    d.stage.scrollTop = 200;
+                    d.press(' ', { shiftKey: true });
+                    expect('Shift+Space mid-slide', [d.calls, d.index()], [[['stage', -200]], 1]);
+                    d.press(' ', { shiftKey: true });
+                    expect('Shift+Space at the top', [d.index(), d.stage.scrollTop], [0, 400]);
+                    const left = deck();
+                    left.press('ArrowRight');
+                    left.press('ArrowLeft');
+                    expect('ArrowLeft back', [left.index(), left.stage.scrollTop], [0, 0]);
+                }
+                // Given the notes open and taller than their panel (800px of notes in a 300px panel)
+                {
+                    const d = deck();
+                    d.buttons['toggle-notes'].click();
+                    if (d.notesPanel.hidden) defects.push('fixture setup: the Notes button did not open the notes');
+                    // When focus reached the notes by a mouse click (no Tab) and ArrowDown is pressed
+                    // Then the slide scrolls, never the notes, so a clicker keeps one press per slide
+                    d.press('ArrowDown', { target: d.notesTarget });
+                    expect('ArrowDown in the notes without Tab', d.calls.splice(0), [['stage', 40]]);
+                    // When Tab moved the focus into the notes
+                    // Then ArrowDown scrolls the notes and leaves the slide where it is
+                    d.press('Tab');
+                    d.press('ArrowDown', { target: d.notesTarget });
+                    expect('ArrowDown in the notes after Tab', [d.calls.splice(0), d.stage.scrollTop], [[['notes', 40]], 40]);
+                    // And at the notes' end a fresh (not held) scroll key moves neither the slide area nor the slide,
+                    // even with the slide area at its own end, where a key reaching the deck would change slide; the
+                    // press is still consumed so the browser does not scroll the page either (runtime contract §3)
+                    d.notesPanel.scrollTop = 500;
+                    d.stage.scrollTop = 400;
+                    for (const key of ['ArrowDown', 'PageDown', ' ']) {
+                        const event = d.press(key, { target: d.notesTarget });
+                        expect(`fresh ${JSON.stringify(key)} at the notes end after Tab`, [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop], [true, [], 0, 400]);
+                    }
+                    // And at the notes' top a fresh back scroll key does not go back a slide either
+                    d.press('ArrowRight');
+                    d.notesPanel.scrollTop = 0;
+                    for (const [key, shiftKey] of [['ArrowUp', false], ['PageUp', false], [' ', true]]) {
+                        const event = d.press(key, { shiftKey, target: d.notesTarget });
+                        expect(`fresh ${key === ' ' ? 'Shift+Space' : key} at the notes top after Tab`, [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop], [true, [], 1, 0]);
+                    }
+                    // And ArrowLeft, ArrowRight, Home and End still change slide from the notes (only scroll keys stay there)
+                    d.press('ArrowLeft', { target: d.notesTarget });
+                    expect('ArrowLeft from the notes after Tab', d.index(), 0);
+                    d.press('End', { target: d.notesTarget });
+                    expect('End from the notes after Tab', d.index(), 2);
+                    d.press('Home', { target: d.notesTarget });
+                    d.press('ArrowRight', { target: d.notesTarget });
+                    expect('Home then ArrowRight from the notes after Tab', d.index(), 1);
+                    d.press('ArrowLeft');
+                    // When a mouse press moves the focus again, Then the notes stop taking the keys
+                    d.notesPanel.scrollTop = 100;
+                    d.mousedown();
+                    d.press('ArrowDown', { target: d.notesTarget });
+                    expect('ArrowDown in the notes after a mouse press', d.calls.splice(0), [['stage', 40]]);
+                    // When the slide changes with the notes scrolled, Then the next slide's notes open at their top
+                    d.press('ArrowRight');
+                    expect('notes after a slide change', [d.notesPanel.scrollTop, d.notesSlide.textContent], [0, 'Slide 2 of 3: Title 2']);
+                }
+                // Given open notes that fit their panel, with Tab focus in them and the slide area at its end
+                // When a scroll key is pressed, Then the deck still does not move: the notes hold the keys even with
+                // nothing to scroll, until the focus leaves them
+                {
+                    const d = deck({ notesHeight: 200 });
+                    d.buttons['toggle-notes'].click();
+                    d.stage.scrollTop = 400;
+                    d.press('Tab');
+                    const event = d.press('ArrowDown', { target: d.notesTarget });
+                    expect('ArrowDown in notes that fit, after Tab', [event.defaultPrevented, d.calls.splice(0), d.index(), d.stage.scrollTop], [true, [], 0, 400]);
+                }
+                // Given a demo embed whose iframe has nothing to show, and a wireframe embed (no iframe) left with a
+                // stray empty-state line
+                const embedsOf = element => {
+                    const note = element();
+                    const demoSlide = element({ querySelectorAll: selector => (selector === '.deck__narration .deck__sim-note' ? [note] : []) });
+                    const frame = element();
+                    const demoEmpty = element({ hidden: true });
+                    const wireEmpty = element({ hidden: true });
+                    const parts = (iframe, empty, slide) => element({
+                        querySelector: selector => ({ iframe, '.deck__empty': empty })[selector] || null,
+                        closest: selector => (selector === '.deck__slide' ? slide : null),
+                    });
+                    return [Object.assign(parts(frame, demoEmpty, demoSlide), { note, frame, empty: demoEmpty }), Object.assign(parts(null, wireEmpty, element()), { empty: wireEmpty })];
+                };
+                // When the engine starts
+                let started = null;
+                try { started = deck({ embeds: embedsOf }); } catch (error) { defects.push(`the engine threw on a wireframe embed with no iframe: ${error.message}`); }
+                if (started) {
+                    const [demo, wire] = started.embeds;
+                    // Then the empty demo shows its message instead of a blank frame and drops its Simulated note,
+                    // and the wireframe embed is left exactly as it is
+                    expect('empty demo swap', [Boolean(demo.frame.removed), demo.empty.hidden, Boolean(demo.note.removed)], [true, false, true]);
+                    expect('wireframe embed untouched', wire.empty.hidden, true);
+                }
+                assertTrue(defects.length === 0, `TC-PD-062 review-deck engine key states drifted:\n  ${defects.join('\n  ')}`);
+            },
+        },
+        {
+            // Business Intent (TC-PD-062 generator key states, TC-PD-011 default-look warning, BR-PD-02..04 validator
+            // profiles): presentation-builder's own test files guard the general deck's runtime harness, its warning
+            // and its validator profiles. Running them here puts them in the aggregate runner and the commit gate, so
+            // a regression there fails the suite everyone runs, not only a file nobody invokes.
+            name: '[content-presence] TC-PD-062 presentation-builder skill-local tests pass inside the aggregate runner (TC-PD-011)',
+            skip: PD_SKIP,
+            fn: () => {
+                const { spawnSync } = require('child_process');
+                const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-pd-skill-tests-'));
+                try {
+                    const defects = [];
+                    for (const file of ['validate-presentation.test.cjs', 'create-presentation.test.cjs', 'skill-genericity.test.cjs']) {
+                        // Given a skill-local test file
+                        const script = pdSkillPath('presentation-builder', 'tests', file);
+                        if (!fs.existsSync(script)) { defects.push(`${file}: missing`); continue; }
+                        // When it runs as its own node process (argv array, no shell, scrubbed env, repository cwd)
+                        const run = spawnSync(process.execPath, [script], { cwd: PROJECT_DIR, env: pdChildEnv(root), encoding: 'utf8', timeout: 120000 });
+                        // Then it exits 0
+                        if (run.status !== 0) {
+                            const why = run.error ? run.error.message : String(run.stderr || run.stdout || '').trim().split('\n').slice(-6).join('\n    ');
+                            defects.push(`${file}: exit ${run.status}${run.signal ? ` (${run.signal})` : ''}\n    ${why}`);
+                        }
+                    }
+                    assertTrue(defects.length === 0, `TC-PD-062 presentation-builder skill-local tests failed:\n  ${defects.join('\n  ')}`);
+                } finally {
+                    fs.rmSync(root, { recursive: true, force: true });
+                }
             },
         },
         {

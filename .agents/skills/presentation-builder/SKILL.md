@@ -72,7 +72,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 **Workflow:** frame audience/goal/environment → research and source claims → choose narrative archetype → write slide map → make a subject-grounded design plan → generate → validate → manually rehearse/review → report evidence and limits.
 
-**Utilities:** `node .claude/skills/presentation-builder/scripts/create-presentation.cjs <deck.json> <output.html>` generates a self-contained contract-compliant starter deck; `node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html>` performs deterministic static checks. Run both utility test files after changing them.
+**Utilities:** `node .claude/skills/presentation-builder/scripts/create-presentation.cjs <deck.json> <output.html>` generates a self-contained contract-compliant starter deck; `node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html> [--profile=presenter|review]` performs deterministic static checks against one conformance profile (default `presenter`; `review` makes only the five editing checks advisory — `references/web-runtime-contract.md` §9). Run both utility test files after changing them.
 
 **Key Rules:**
 
@@ -89,7 +89,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 Use for a decision deck, strategy, product story, teaching lesson, research readout, project update, technical explanation, sales narrative, demo, portfolio, or any other subject where an audience must understand, remember, decide, or act.
 
-Use it to audit an existing HTML presentation when the request mentions structure, notes, edit mode, navigation, accessibility, or quality. For a UI-only mockup, use `pbi-mockup`; for a feature-artifact synthesis that specifically needs stakeholder journeys, use `feature-presentation` and apply this skill’s runtime contract to the output.
+Use it to audit an existing HTML presentation when the request mentions structure, notes, edit mode, navigation, accessibility, or quality. For a UI-only mockup, use `pbi-mockup`. When the deck synthesizes one feature's artifacts (its spec, PBIs, mockups, design specs) for product, analysis, development and QA reviewers, use `feature-presentation` instead: it builds the feature review deck and passes this skill's validator with `--profile=review` — the same deck standard with editing features advisory, because review text must match the specifications it summarizes. Use this skill for a deck on any other subject.
 
 ## Workflow
 
@@ -125,7 +125,16 @@ The opening must establish context quickly. The body must progress by causality,
 
 ### 4. Make a subject-grounded design plan
 
-Before coding, write a compact plan:
+**Read design authority first.** When the deck represents the project — its product, features, team, or brand — read the project's design authority BEFORE writing the plan. Resolve it from `designSystem` in `docs/project-config.json`: `docsPath` + `canonicalDoc`, every `tokenFiles` entry, and the `appMappings[]` entry whose app matches the deck's subject. Fallback when `designSystem` is absent or names no readable doc: the `design-system/` folder under the project-reference root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides it), starting with its `README.md`. Open the plan with exactly one record:
+
+- `Design authority read: <paths>` — then adopt its colour and type axes: take the palette and type families, roles, and scale from the authority, and add subject-specific tokens only where it is silent. Record each deliberate departure with its reason.
+- `N/A — none configured (checked: <paths>)` — neither the config nor the fallback yields a doc; list every location checked and derive colour and type from the subject.
+
+A deck whose subject is not the project (an external topic, a lesson, a talk) records `N/A — deck does not represent the project` and skips the read. The brief's stated visual direction outranks the authority; the authority outranks the `DD-*` clauses; a genuine conflict goes to the user, never resolved silently — why: a project deck that ignores its design system reads as someone else's product.
+
+**Design-explore hand-off.** When `$design` explore hands this skill a picked direction — `direction-approved.md` plus `run-notes.md` from its run folder — adopt `direction-approved.md`, including its `## Design Plan tokens` section (named colour hex values, type families with roles and scale, layout concept, web-font note), as this step's design plan instead of writing a new one; the pick counts as the brief's stated visual direction. A web font the picked draft loaded is kept only by packaging the font file inside the deck; otherwise use the project's type, then the closest system stack, and record the change as a departure in the design plan. Apply each fix in the `## Journey fixes (UX-8)` table of `run-notes.md` to the slide map and slide layouts, and list each fix as applied or `N/A` with a reason. Keep the design-authority record above, and confirm the adopted plan covers every item below; fill any gap.
+
+Otherwise, before coding, write a compact plan:
 
 - **Colour:** 4–6 named tokens with contrast checks and a reason tied to the subject.
 - **Type:** families, roles, scale, weight, line length, and language/script constraints.
@@ -155,7 +164,7 @@ The generated deck must include the stable markers used by the validator: `.slid
 
 Keep CSS tokens named for the subject, inline CSS/JS, and all required assets packaged locally by default. If network dependencies are explicitly accepted, set `allowExternalAssets: true` and expose that policy in the generated artifact. Escape user/source content once at the HTML boundary. Keep slide content and runtime controls separate so editing prose cannot corrupt navigation, data, brand chrome, SVG structure, or notes metadata.
 
-For repeatable generation, pass a JSON spec to `scripts/create-presentation.cjs`. The root must provide a stable `id`; each slide must provide a stable `id`, `title`, `purpose`, `principle`, one of `body`, `bodyHtml`, or typed `blocks`, and a `notes` object containing `say`, `why`, `evidence`, `transition`, `timing`, and `question`. A deck may contain one slide; zero slides are rejected. Typed blocks cover common text, list, quote, metric, image, and code needs; trusted author HTML remains available for subject-specific diagrams and visuals. The generator rejects missing structure or notes and emits the full runtime contract. Use `--example` to create a starter spec-shaped deck, then replace its content with sourced material.
+For repeatable generation, pass a JSON spec to `scripts/create-presentation.cjs`. The root must provide a stable `id`; each slide must provide a stable `id`, `title`, `purpose`, `principle`, one of `body`, `bodyHtml`, or typed `blocks`, and a `notes` object containing `say`, `why`, `evidence`, `transition`, `timing`, and `question`. A deck may contain one slide; zero slides are rejected. Typed blocks cover common text, list, quote, metric, image, and code needs; trusted author HTML remains available for subject-specific diagrams and visuals. The generator rejects missing structure or notes and emits the full runtime contract. Pass the Step 4 design plan as the root `theme` object (`paper`, `ink`, `muted`, `accent`, `accentSoft`, `panel`, `line`, `font`, `displayFont`); when `theme` is omitted or holds no usable key, the generator still builds the deck and warns on stderr that the default look was used — treat that warning as a missed design decision and fix the spec. Use `--example` to create a starter spec-shaped deck, then replace its content with sourced material.
 
 **Showcase before batch (decks of ≥5 slides):** build two representative slides first, render them (`node .claude/skills/html-export/scripts/export.cjs --to=png <deck.html> --slides` when html-export is installed; apply the Step 7 exit rule), self-critique them against the Step 4 design plan, fix, then generate the rest. This is an agent self-critique — no user stop.
 
@@ -180,11 +189,14 @@ node .claude/skills/presentation-builder/scripts/create-presentation.cjs <deck.j
 node .claude/skills/presentation-builder/scripts/create-presentation.cjs --example <output.html>
 node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html>
 node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html> --json
+node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html> --profile=review
 node .claude/skills/presentation-builder/tests/create-presentation.test.cjs
 node .claude/skills/presentation-builder/tests/validate-presentation.test.cjs
 ```
 
-Static validation is a gate, not a substitute for using the deck. When a browser is available, verify: first load; every navigation route; Home/End and Space; notes open/close/Escape; edit mode on/off; editing a slide and its notes; save status after reload; reset confirmation; export opens cleanly; fullscreen success/failure; overview jump; print; narrow viewport; focus order; screen-reader names; reduced motion; missing/slow asset behavior; and console errors. Test the actual audience path, not only isolated buttons.
+**Conformance profile:** `--profile=presenter|review`, written with `=`. No flag means `presenter` — the full standard, and the one this skill's decks must pass. `review` makes only the five editing checks advisory and is the profile `feature-presentation` passes; any other name is refused with exit 2 and no verdict. The verdict names the profile it was judged against — report it with the result. Profile table: `references/web-runtime-contract.md` §9.
+
+Static validation is a gate, not a substitute for using the deck. When a browser is available, verify: first load; every navigation route; Home/End and Space; notes open/close/Escape; edit mode on/off; editing a slide and its notes; save status after reload; reset confirmation; on a slide taller than the screen at 200% zoom, the down keys scroll to its end before moving on; export opens cleanly; fullscreen success/failure; overview jump; print; narrow viewport; focus order; screen-reader names; reduced motion; missing/slow asset behavior; and console errors. Test the actual audience path, not only isolated buttons.
 
 **Render check (when html-export is installed):** run `node .claude/skills/html-export/scripts/export.cjs --to=png <deck.html> --slides` (default slide selector). Exit 0 is evidence ONLY for first-load and per-slide render, zero page errors, and no blank captures; every other runtime check above stays `NOT VERIFIABLE` unless exercised another way. **html-export exit rule:** exit 0 → evidence as scoped; exit 4 → fix the page and re-run; exit 3 → `NOT VERIFIABLE` plus a one-line pointer to `$html-export` setup, never run install commands; exit 1/2 → tool failure: quote stderr, mark `NOT VERIFIABLE`, never count it as a design defect or a pass; any other code (such as 130 after an interrupt) → handle it like 1/2; evidence is only the files this run's manifest names (`report.json` `files[]` for png, `output` for pdf, `frames.json` `output` for video), since a reused `--out` keeps older files. The HTML stays canonical; never restructure it for an exporter.
 
@@ -200,7 +212,7 @@ Treat each item as a release gate. Record evidence or `N/A` with a reason; do no
 | Narrative | The sequence is causal, contrastive, chronological, or otherwise explainable; each slide has one job | Slide map with transitions |
 | Evidence | Consequential claims, charts, dates, quotes, and visuals have traceable sources or labels | Source ledger |
 | Content | No unsupported precision, filler, lorem ipsum, orphan terms, or unexplained acronyms | Copy/coherence pass |
-| Design | Subject-grounded plan, deliberate type/colour/layout, focal point, readable density, meaningful variation | Design plan + built-artifact critique |
+| Design | Design authority read and its colour/type adopted (or none configured), subject-grounded plan, deliberate type/colour/layout, focal point, readable density, meaningful variation | Design-authority record + design plan + built-artifact critique |
 | Notes | Every slide has detailed presenter notes covering talk track, why, evidence/caveat, timing, transition, and likely question | Notes coverage report; validator |
 | Edit mode | Visible toggle, state feedback, editable prose and notes, protected structure, local draft save/error status, reset confirmation, clean export | Manual interaction evidence + validator |
 | Navigation | Buttons, keyboard parity, focus order, progress announcement, overview/jump for longer decks, no auto-advance | Browser or explicit static limitation |
@@ -210,9 +222,9 @@ Treat each item as a release gate. Record evidence or `N/A` with a reason; do no
 ## Resources
 
 - `references/presentation-principles.md` — research-backed structure principles, narrative archetypes, slide-level checklist, delivery/rehearsal checks, and source links.
-- `references/web-runtime-contract.md` — canonical HTML schema and notes/edit/navigation/accessibility/persistence/export requirements, including generalized baseline-runtime lessons and upgrade requirements.
+- `references/web-runtime-contract.md` — canonical HTML schema and notes/edit/navigation/accessibility/persistence/export requirements, generalized baseline-runtime lessons and upgrade requirements, and the `presenter`/`review` conformance profiles (§9).
 - `scripts/create-presentation.cjs` — dependency-free JSON-to-self-contained-HTML generator with enforced detailed notes and presenter runtime.
-- `scripts/validate-presentation.cjs` — dependency-free static validator with JSON output.
+- `scripts/validate-presentation.cjs` — dependency-free static validator with JSON output and `--profile=presenter|review` (default `presenter`).
 - `tests/create-presentation.test.cjs` — generator contract and rejection-path tests.
 - `tests/validate-presentation.test.cjs` — regression tests for the validator’s hard requirements.
 - `node .claude/skills/html-export/scripts/export.cjs --to=pdf <deck.html> --page=1920x1080` — optional PDF copy when html-export is installed (the print CSS sets no page size); apply the Step 7 exit rule.
@@ -223,6 +235,7 @@ Treat each item as a release gate. Record evidence or `N/A` with a reason; do no
 
 - `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
+- `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
 - `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 
@@ -234,11 +247,17 @@ Treat each item as a release gate. Record evidence or `N/A` with a reason; do no
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:design-review-checklist:reminder -->
+
+- **MUST ATTENTION** when the change/plan/artifact has an applicable user-facing UI surface, READ `.claude/docs/design-review-checklist.md` and run it: `CL-1` establish context first (platform · user · task · metric · constraints · scope · artifacts — state missing context and its confidence impact) · `CL-2` evidence or nothing, cite a location per finding, NEVER invent a measurement (unmeasurable → `NOT VERIFIABLE`), tag `MEASURED`/`OBSERVED`/`HEURISTIC` · `CL-3` rank `P0`–`P4`, cap at top 10 by severity, NEVER pad, concrete fix on every `P0`/`P1` · `CL-4` sweep §A–§N plus §R over whole surfaces (changed files → affected views, composition reconstructed, render or `ENVIRONMENT-BLOCKED`), including surface load B12–B15, container fit E9–E11, §H by usage, Field Necessity Matrix for input, applying only relevant platform/product sections and the WCAG 2.2 AA web baseline plus any stricter applicable legal/project requirement, or the documented standard for other platforms · `CL-5` short on time → use the §P prompts · `CL-6` report in the §O shape · for source code, assess component ownership, base abstractions, reuse, and duplication using the project's documented taxonomy or observed boundaries. Project design-system docs and ADRs OUTRANK the checklist; report a defect ONCE across `UI-*`/`DD-*`/`CL-*`. For a plan, bind only applicable sections and states to acceptance criteria, and name each UI view's primary task, container, information priority, and creation-vs-deferred inputs; a plan review flags a UI phase that omits them. Skip when the work has no user-facing UI surface, and state why.
+
+<!-- /SYNC:design-review-checklist:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Turn any subject and source material into a clear, audience-specific presentation whose story, visuals, notes, and runtime behavior are all reviewable.
 
-**MUST ATTENTION workflow:** 1) frame audience/goal/environment and evidence boundary → 2) research/source ledger → 3) thesis, archetype, and slide map → 4) subject-grounded design plan and distinctiveness review → 5) semantic self-contained generation → 6) notes/edit/navigation/accessibility/persistence runtime → 7) static validation and browser/manual rehearsal → 8) evidence report, final review, and lessons gate.
+**MUST ATTENTION workflow:** 1) frame audience/goal/environment and evidence boundary → 2) research/source ledger → 3) thesis, archetype, and slide map → 4) design-authority record (`Design authority read:` or `N/A — none configured (checked: ...)`), subject-grounded design plan and distinctiveness review → 5) semantic self-contained generation → 6) notes/edit/navigation/accessibility/persistence runtime → 7) static validation (default `presenter` profile) and browser/manual rehearsal → 8) evidence report, final review, and lessons gate.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

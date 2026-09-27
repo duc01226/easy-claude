@@ -6,20 +6,20 @@ Tags propagated (each with its `:reminder` sibling):
   - SYNC:category-review-thinking        -> same 10 as batching (co-paired:
         the batching block names it as each batch agent's primary thinking model,
         so it must resolve wherever batching is adopted)
-  - SYNC:double-round-trip-review       -> 14 finding-PRODUCER review skills
+  - SYNC:double-round-trip-review       -> 13 finding-PRODUCER review skills
         (review->validate->fix->full-re-review loop; graders + loop-orchestrators
         excluded — see DOUBLE_ROUND_TRIP comment)
-  - SYNC:goal-contract-satisfaction-loop -> ALL_REVIEW_SKILLS (all 20)
+  - SYNC:goal-contract-satisfaction-loop -> ALL_REVIEW_SKILLS (all 17)
         (save-goal-before-loop + check-goal-each-cycle; additive-safe)
-  - SYNC:design-distinctiveness-gate    -> 15 visual-surface skills across FOUR roles
+  - SYNC:design-distinctiveness-gate    -> 13 visual-surface skills across FOUR roles
         (review / design-author / plan / build). Superset of the ui-ux-design-principles
         population -- see the DESIGN_DISTINCTIVENESS comment for why plan, scaffold and
         the build spine carry it while they do not carry the 40 UI-* clauses.
   - SYNC:ux-journey-gate                -> 6 skills that generate, plan or review a surface
         against its user journeys (see the UX_JOURNEY comment for the exclusions)
-  - SYNC:ui-copywriting                 -> 9 skills that author or review interface STRINGS
-        (strict subset of the above; see the UI_COPYWRITING comment for the exclusions)
-  - SYNC:design-review-checklist        -> 17 skills that review, author, plan or build a
+  - SYNC:ui-copywriting                 -> 7 skills that author or review interface STRINGS
+        (strict subset of design-distinctiveness-gate; see the UI_COPYWRITING comment for the exclusions)
+  - SYNC:design-review-checklist        -> 15 skills that review, author, plan or build a
         front-end surface. The executable review PROCEDURE (CL-1..CL-6) routing to the
         ~130-check catalog in .claude/docs/design-review-checklist.md. Superset of
         design-distinctiveness-gate by changes-review + plan-review -- see the
@@ -27,7 +27,7 @@ Tags propagated (each with its `:reminder` sibling):
         procedure but not the taste clauses. Every body is self-gating on "has a UI surface".
   - SYNC:e2e-visual-design-contract    -> the E2E/visual-review skill carriers
         (design authority + component/reuse + runtime/source ownership + baseline gates).
-  - SYNC:trade-off-interrogation-gate    -> ALL_REVIEW_SKILLS (all 20)
+  - SYNC:trade-off-interrogation-gate    -> ALL_REVIEW_SKILLS (all 17)
         (trade-off? worth it? material -> confirm with user; additive-safe,
          graders and loop-orchestrators included — see ALL_REVIEW_SKILLS comment)
 
@@ -220,7 +220,7 @@ DESIGN_REVIEW_CHECKLIST = [
     "changes-review", "plan-review",
     # design/author role — author against the checklist so the review finds nothing
     "design", "design-spec",
-    "pbi-mockup", "feature-presentation",
+    "pbi-mockup", "feature-presentation", "presentation-builder",
     # plan role — a plan containing front-end work binds the checklist into its acceptance criteria
     "plan", "scaffold",
     # build role — emits real markup/styles, so the checks are build constraints

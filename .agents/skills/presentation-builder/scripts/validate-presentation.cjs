@@ -11,6 +11,40 @@
 const fs = require('fs');
 const path = require('path');
 
+// Conformance profiles. `presenter` (the default) demands the full live-delivery
+// contract; `review` is for read-only review decks and treats the editing
+// features below as advisory. Every other check keeps the same level in both.
+// The demoted set is defined by the governing spec rule (BR-PD-03 of the
+// Presentation Decks spec) and mirrored here and in the runtime contract §9;
+// change it in that rule first, never with a local edit here.
+const PROFILES = ['presenter', 'review'];
+const DEFAULT_PROFILE = 'presenter';
+const REVIEW_OPTIONAL = new Set(['edit-mode', 'edit-state', 'draft-persistence', 'reset', 'export']);
+const USAGE = 'Usage: node validate-presentation.cjs <deck.html> [--json] [--profile=presenter|review]';
+
+function assertProfile(profile) {
+  if (!PROFILES.includes(profile)) {
+    throw new Error(`Unknown profile "${profile}"; use presenter or review`);
+  }
+  return profile;
+}
+
+function levelFor(id, level, profile) {
+  return profile === 'review' && level === 'error' && REVIEW_OPTIONAL.has(id) ? 'warning' : level;
+}
+
+// Browser steps a static check cannot prove. Review decks carry no editing, so their
+// list leaves out the edit, draft, reset and export steps.
+function manualVerificationFor(profile) {
+  return [
+    'Open the deck in a browser and exercise every navigation route.',
+    profile === 'review'
+      ? 'Toggle notes open and closed on several slides; confirm each panel shows the notes of its own slide.'
+      : 'Toggle notes and edit mode; edit a slide and its notes; reload; reset; export and reopen the clean file.',
+    'Verify fullscreen rejection, focus order, screen-reader names, print, reduced motion, narrow viewport, asset failures, and console errors.',
+  ];
+}
+
 function collectMatches(pattern, source) {
   return Array.from(source.matchAll(pattern));
 }
@@ -178,11 +212,14 @@ function accessibleVisualProblems(html) {
 
 function validatePresentation(html, options = {}) {
   if (typeof html !== 'string') throw new TypeError('html must be a string');
+  const profile = assertProfile(options.profile === undefined ? DEFAULT_PROFILE : options.profile);
 
   const errors = [];
   const warnings = [];
   const checks = [];
-  const addCheck = (id, pass, level, details) => {
+  const addCheck = (id, pass, requiredLevel, requiredDetails) => {
+    const level = levelFor(id, requiredLevel, profile);
+    const details = level === requiredLevel ? requiredDetails : `${requiredDetails} (advisory under the ${profile} profile)`;
     checks.push({ id, pass, level, details });
     if (!pass) (level === 'error' ? errors : warnings).push(`${id}: ${details}`);
   };
@@ -197,9 +234,13 @@ function validatePresentation(html, options = {}) {
   const ids = slides.map(slideId);
   const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index).filter((id, index, all) => all.indexOf(id) === index);
 
-  addCheck('document-lang', /<html\b[^>]*\blang\s*=\s*(["'])[^"']+\1/i.test(html), 'error', 'the root <html> element has a language');
+  const hasLang = /<html\b[^>]*\blang\s*=\s*(["'])[^"']+\1/i.test(html);
+  addCheck('document-lang', hasLang, 'error', hasLang ? 'the root <html> element has a language' : 'the root <html> element needs a lang attribute');
   addCheck('slide-count', slides.length >= 1, 'error', 'found ' + slides.length + '; at least one slide is required');
-  addCheck('stable-presentation-id', hasPresentationId(html), 'error', hasPresentationId(html) ? 'the presentation exposes a stable root identity' : 'the root presentation identity is required for draft persistence');
+  const identityReason = profile === 'review'
+    ? 'the root presentation identity is required; it identifies the deck across re-checks and exports'
+    : 'the root presentation identity is required for draft persistence';
+  addCheck('stable-presentation-id', hasPresentationId(html), 'error', hasPresentationId(html) ? 'the presentation exposes a stable root identity' : identityReason);
   addCheck('stable-slide-ids', missingIds.length === 0 && duplicateIds.length === 0, 'error', missingIds.length || duplicateIds.length ? `missing IDs in ${missingIds.join(', ') || 'none'}; duplicates: ${duplicateIds.join(', ') || 'none'}` : 'every slide has a unique data-slide-id');
   addCheck('slide-titles', missingTitles.length === 0, 'error', missingTitles.length ? `missing title in ${missingTitles.join(', ')}` : 'every slide has a heading or title marker');
   addCheck('slide-purpose', missingPurposes.length === 0, 'error', missingPurposes.length ? `missing data-purpose/data-principle in ${missingPurposes.join(', ')}` : 'every slide exposes its audience job/rationale');
@@ -215,16 +256,26 @@ function validatePresentation(html, options = {}) {
 
   addCheck('notes-toggle', notesToggle && hasNotesPanel(html), 'error', notesToggle && hasNotesPanel(html) ? 'notes control and named notes panel found' : 'notes toggle and named notes panel are both required');
   addCheck('notes-close', notesClose, 'error', notesClose ? 'notes panel has a close action' : 'notes panel requires a close action');
-  addCheck('notes-state', !notesToggle || controlHasState(html, 'toggle-notes', ['btnNotes', 'notesToggle']), 'error', controlHasState(html, 'toggle-notes', ['btnNotes', 'notesToggle']) ? 'notes control exposes aria-pressed/aria-expanded' : 'notes control needs aria-pressed or aria-expanded');
+  // Each message follows the check's outcome: a failed check never reads like a pass, and a check
+  // with nothing to judge says so instead of asking for a state it does not need.
+  const notesState = controlHasState(html, 'toggle-notes', ['btnNotes', 'notesToggle']);
+  addCheck('notes-state', !notesToggle || notesState, 'error', !notesToggle ? 'no notes control to judge' : (notesState ? 'notes control exposes aria-pressed/aria-expanded' : 'notes control needs aria-pressed or aria-expanded'));
   addCheck('edit-mode', editToggle && hasEditImplementation(html), 'error', editToggle && hasEditImplementation(html) ? 'edit control and contenteditable/designMode implementation found' : 'edit control plus an explicit editing implementation is required');
-  addCheck('edit-state', !editToggle || controlHasState(html, 'toggle-edit', ['btnEdit', 'editToggle']), 'error', controlHasState(html, 'toggle-edit', ['btnEdit', 'editToggle']) ? 'edit control exposes aria-pressed/aria-expanded' : 'edit control needs aria-pressed or aria-expanded');
+  const editState = controlHasState(html, 'toggle-edit', ['btnEdit', 'editToggle']);
+  addCheck('edit-state', !editToggle || editState, 'error', !editToggle ? 'no edit control to judge' : (editState ? 'edit control exposes aria-pressed/aria-expanded' : 'edit control needs aria-pressed or aria-expanded'));
   addCheck('navigation', navControls && hasKeyboardNavigation(html), 'error', navControls && hasKeyboardNavigation(html) ? 'previous/next controls and keyboard navigation found' : 'previous/next controls and keyboard navigation are required');
-  addCheck('live-status', /\baria-live\s*=\s*(["'])(?:polite|assertive)\1/i.test(html), 'error', 'slide/mode changes have an aria-live status region');
-  addCheck('draft-persistence', /\b(?:localStorage|sessionStorage|indexedDB)\b/i.test(html), 'error', 'browser-local draft persistence implementation found');
-  addCheck('reset', hasActionControl(html, 'reset', ['btnReset', 'reset']), 'error', 'a reset control is present');
-  addCheck('export', hasActionControl(html, 'export', ['btnExport', 'export']), 'error', 'a clean export control is present');
-  addCheck('reduced-motion', /prefers-reduced-motion/i.test(html), 'error', 'a reduced-motion path is declared');
-  addCheck('print', /@media\s+print/i.test(html), 'error', 'print CSS is declared');
+  const hasLiveStatus = /\baria-live\s*=\s*(["'])(?:polite|assertive)\1/i.test(html);
+  addCheck('live-status', hasLiveStatus, 'error', hasLiveStatus ? 'slide/mode changes have an aria-live status region' : 'slide/mode changes need an aria-live status region');
+  const hasDraftPersistence = /\b(?:localStorage|sessionStorage|indexedDB)\b/i.test(html);
+  addCheck('draft-persistence', hasDraftPersistence, 'error', hasDraftPersistence ? 'browser-local draft persistence implementation found' : 'no browser-local draft persistence implementation found');
+  const hasReset = hasActionControl(html, 'reset', ['btnReset', 'reset']);
+  addCheck('reset', hasReset, 'error', hasReset ? 'a reset control is present' : 'a reset control is missing');
+  const hasExport = hasActionControl(html, 'export', ['btnExport', 'export']);
+  addCheck('export', hasExport, 'error', hasExport ? 'a clean export control is present' : 'a clean export control is missing');
+  const hasReducedMotion = /prefers-reduced-motion/i.test(html);
+  addCheck('reduced-motion', hasReducedMotion, 'error', hasReducedMotion ? 'a reduced-motion path is declared' : 'a reduced-motion path is not declared');
+  const hasPrintCss = /@media\s+print/i.test(html);
+  addCheck('print', hasPrintCss, 'error', hasPrintCss ? 'print CSS is declared' : 'print CSS is not declared');
   const printNotesDisclosure = /notes[^.]{0,80}(?:not|excluded|omitted)[^.]{0,30}print/i.test(html) || /print[^.]{0,80}notes[^.]{0,30}(?:not|excluded|omitted)/i.test(html);
   addCheck('print-notes-disclosure', printNotesDisclosure, 'error', printNotesDisclosure ? 'the artifact discloses whether speaker notes are included in print' : 'the artifact must disclose whether speaker notes are included in print');
 
@@ -251,23 +302,20 @@ function validatePresentation(html, options = {}) {
 
   return {
     ok: errors.length === 0,
+    profile,
     file: options.file || null,
     slideCount: slides.length,
     notesCount: notes.filter(Boolean).length,
     errors,
     warnings,
     checks,
-    manualVerification: [
-      'Open the deck in a browser and exercise every navigation route.',
-      'Toggle notes and edit mode; edit a slide and its notes; reload; reset; export and reopen the clean file.',
-      'Verify fullscreen rejection, focus order, screen-reader names, print, reduced motion, narrow viewport, asset failures, and console errors.',
-    ],
+    manualVerification: manualVerificationFor(profile),
   };
 }
 
 function printHuman(result) {
   const status = result.ok ? 'PASS' : 'FAIL';
-  const lines = [`${status} ${result.file || 'presentation'}`, `Slides: ${result.slideCount} · non-empty note sources: ${result.notesCount}`];
+  const lines = [`${status} ${result.file || 'presentation'} (profile: ${result.profile})`, `Slides: ${result.slideCount} · non-empty note sources: ${result.notesCount}`];
   if (result.errors.length) {
     lines.push('Errors:');
     result.errors.forEach((error) => lines.push(`- ${error}`));
@@ -280,10 +328,30 @@ function printHuman(result) {
   return lines.join('\n');
 }
 
+function parseProfileArg(argv) {
+  let profile = DEFAULT_PROFILE;
+  for (const arg of argv) {
+    // Only the `--profile=<name>` form is accepted: a space-separated value would
+    // otherwise be mistaken for the deck path and yield a silently wrong verdict.
+    if (arg === '--profile') throw new Error('--profile needs a value; use --profile=presenter or --profile=review');
+    if (arg.startsWith('--profile=')) profile = assertProfile(arg.slice('--profile='.length));
+  }
+  return profile;
+}
+
 function main(argv) {
+  let profile;
+  try {
+    profile = parseProfileArg(argv);
+  } catch (error) {
+    console.error(error.message);
+    console.error(USAGE);
+    return 2;
+  }
+
   const fileArg = argv.find((arg) => !arg.startsWith('--'));
   if (!fileArg) {
-    console.error('Usage: node validate-presentation.cjs <deck.html> [--json]');
+    console.error(USAGE);
     return 2;
   }
 
@@ -296,7 +364,7 @@ function main(argv) {
     return 2;
   }
 
-  const result = validatePresentation(html, { file });
+  const result = validatePresentation(html, { file, profile });
   if (argv.includes('--json')) console.log(JSON.stringify(result, null, 2));
   else console.log(printHuman(result));
   return result.ok ? 0 : 1;
@@ -306,5 +374,6 @@ if (require.main === module) process.exitCode = main(process.argv.slice(2));
 
 module.exports = {
   findSlides,
+  main,
   validatePresentation,
 };

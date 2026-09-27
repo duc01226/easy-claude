@@ -128,6 +128,19 @@ function safeCssValue(value, fallback) {
   return value.trim();
 }
 
+const DEFAULT_LOOK_WARNING = 'Warning: no usable theme supplied — the default look was used; set "theme" from your design plan.';
+
+// A theme counts as chosen when at least one known key holds a value the renderer keeps; otherwise every
+// custom property falls back to DEFAULT_THEME and the deck ships the default look.
+function defaultLookWarning(spec) {
+  const theme = spec && typeof spec === 'object' ? spec.theme : undefined;
+  if (theme && typeof theme === 'object') {
+    const chosen = Object.keys(DEFAULT_THEME).some((key) => safeCssValue(theme[key], null) !== null);
+    if (chosen) return null;
+  }
+  return DEFAULT_LOOK_WARNING;
+}
+
 function safeUrl(value, label, allowExternalAssets) {
   const url = asNonEmptyString(value, label);
   if (/^javascript:/i.test(url)) fail('javascript: URLs are not allowed');
@@ -305,7 +318,7 @@ function renderCss(theme) {
     body { margin: 0; min-width: 18rem; background: var(--paper); color: var(--ink); }
     button { font: inherit; }
     button, [contenteditable="true"] { -webkit-tap-highlight-color: transparent; }
-    button:focus-visible, [contenteditable="true"]:focus-visible, dialog:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    button:focus-visible, [contenteditable="true"]:focus-visible, dialog:focus-visible, #notes-content:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
     .app-shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
     .toolbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem 1rem; background: color-mix(in srgb, var(--paper) 94%, transparent); border-bottom: 1px solid var(--line); backdrop-filter: blur(10px); }
     .toolbar-title { min-width: 0; display: flex; align-items: baseline; gap: .65rem; }
@@ -342,7 +355,7 @@ function renderCss(theme) {
     .progress-track { height: .35rem; overflow: hidden; border-radius: 999px; background: var(--line); }
     .progress-bar { height: 100%; width: 0; background: var(--accent); transition: width .2s ease-out; }
     .bottom-status { width: min(100% - 2rem, 78rem); margin: 0 auto 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-    .notes-panel { position: fixed; inset: 0 0 0 auto; z-index: 20; width: min(32rem, 100%); overflow: auto; padding: 1.25rem; background: var(--panel); border-left: 1px solid var(--line); box-shadow: -14px 0 40px rgba(31, 37, 35, .14); }
+    .notes-panel { position: fixed; inset: 0 0 0 auto; z-index: 20; width: min(32rem, 100%); overflow: auto; overscroll-behavior: contain; padding: 1.25rem; background: var(--panel); border-left: 1px solid var(--line); box-shadow: -14px 0 40px rgba(31, 37, 35, .14); }
     .notes-panel[hidden] { display: none; }
     .notes-header { display: flex; justify-content: space-between; gap: 1rem; align-items: start; margin-bottom: 1rem; }
     .notes-header h2 { margin: 0; font-family: var(--display-font); }
@@ -350,7 +363,7 @@ function renderCss(theme) {
     #notes-content { line-height: 1.55; }
     #notes-content p { margin: 0 0 .9rem; }
     #notes-content strong { color: var(--accent); }
-    dialog { width: min(54rem, calc(100% - 2rem)); max-height: min(80vh, 48rem); padding: 1rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: .8rem; box-shadow: var(--shadow); }
+    dialog { width: min(54rem, calc(100% - 2rem)); max-height: min(80vh, 48rem); overflow: auto; overscroll-behavior: contain; padding: 1rem; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: .8rem; box-shadow: var(--shadow); }
     dialog::backdrop { background: rgba(31, 37, 35, .42); }
     .overview-header { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
     .overview-header h2 { margin: 0; font-family: var(--display-font); }
@@ -457,6 +470,58 @@ function renderRuntime(meta) {
 
         function announce(message) { liveStatus.textContent = message; }
 
+        // Contract §3: the vertical keys scroll an overflowing slide first and change slide only at the
+        // edge. Slides have no inner scroll box, so the page scrolls them. The edge is the active slide's
+        // edge, never the page's: the progress row and status bar below the slide also make the page
+        // overflow, and a slide that fits the viewport must still change on the first press.
+        const SCROLL_FIRST_KEYS = ['ArrowDown', 'PageDown', ' ', 'ArrowUp', 'PageUp'];
+        const EDGE_TOLERANCE_PX = 1;
+        // An arrow key scrolls one line; a page key scrolls this share of the visible height and keeps the
+        // rest on screen as overlap with the previous view.
+        const LINE_STEP_PX = 40;
+        const PAGE_STEP_SHARE = 0.85;
+        const stage = document.getElementById('deck');
+        const toolbar = document.querySelector('.toolbar');
+        function scrollArea() { return document.scrollingElement || document.documentElement; }
+        // The active slide's box in viewport coordinates. The stage holds only the active slide and, unlike
+        // the slide, is never moved by the entrance animation, so a press during that animation measures true.
+        function slideBox() { return stage.getBoundingClientRect(); }
+        // Pixels of the active slide still out of view in this direction — below the viewport bottom, or above
+        // the bottom of the sticky toolbar that covers the top — capped by how far the page can still scroll.
+        function slideRoom(area, direction) {
+          const box = slideBox();
+          if (direction > 0) return Math.min(box.bottom - area.clientHeight, area.scrollHeight - area.clientHeight - area.scrollTop);
+          return Math.min(visibleTop() - box.top, area.scrollTop);
+        }
+        // Viewport y where slide content becomes visible: the bottom of the sticky toolbar. Nothing is pinned
+        // to the bottom of the page, so the visible band runs from here to the viewport bottom.
+        function visibleTop() { return toolbar ? Math.max(0, toolbar.getBoundingClientRect().bottom) : 0; }
+        // A page step is sized from the visible band, not the whole viewport: the toolbar covers the top, and at
+        // high zoom it is a large share of the screen, so a viewport-sized step would jump over lines that were
+        // never shown. The step keeps 15% of the band as overlap and never exceeds the band, so successive views
+        // always overlap or touch.
+        function pageStep(area) {
+          const band = Math.max(1, area.clientHeight - visibleTop());
+          return Math.min(band, Math.max(LINE_STEP_PX, Math.round(band * PAGE_STEP_SHARE)));
+        }
+        // 1 reads forward, -1 reads back. Space reads forward and Shift+Space back, as on any web page.
+        function keyDirection(key, shiftKey = false) { return key === 'ArrowUp' || key === 'PageUp' || (key === ' ' && shiftKey) ? -1 : 1; }
+        function isLineKey(key) { return key === 'ArrowUp' || key === 'ArrowDown'; }
+        function overviewIsOpen() { return Boolean(overview.open) || overview.hasAttribute('open'); }
+        // While the overview is open it owns the scroll keys: they scroll its card list, never the page or the
+        // slide behind it.
+        function overviewStep(key, direction) {
+          const page = Math.max(LINE_STEP_PX, Math.round(overview.clientHeight * PAGE_STEP_SHARE));
+          return direction * (isLineKey(key) ? LINE_STEP_PX : page);
+        }
+        // Pixels to scroll the area for this key in this direction: negative scrolls up, 0 means the slide is at the edge.
+        function scrollStep(area, key, direction) {
+          const room = slideRoom(area, direction);
+          if (!(room > EDGE_TOLERANCE_PX)) return 0;
+          const step = isLineKey(key) ? LINE_STEP_PX : pageStep(area);
+          return direction * Math.min(step, room);
+        }
+
         function renderNotes() {
           const slide = currentSlide();
           const template = templateOf(slide);
@@ -477,8 +542,12 @@ function renderRuntime(meta) {
           editedValues.forEach((element, index) => { if (targetValues[index]) targetValues[index].textContent = element.textContent; });
         }
 
+        // Every slide change opens the new slide at its top (page top, so the slide sits just below the toolbar)
+        // with its title in view. Only a scroll key crossing a slide edge backward overrides this afterwards.
         function showSlide(rawIndex, announceChange = true) {
+          const previousIndex = currentIndex;
           currentIndex = Math.max(0, Math.min(slides.length - 1, rawIndex));
+          if (currentIndex !== previousIndex) scrollArea().scrollTop = 0;
           slides.forEach((slide, index) => {
             const active = index === currentIndex;
             slide.classList.toggle('active', active);
@@ -594,8 +663,11 @@ function renderRuntime(meta) {
 
         function openOverview() {
           overviewOpener = document.activeElement;
+          // A shut overview can carry [hidden] (the no-showModal close path, a clean export); a modal opened
+          // while hidden is invisible yet makes the page inert, so every open path clears it first.
+          overview.hidden = false;
           if (typeof overview.showModal === 'function') overview.showModal();
-          else { overview.hidden = false; overview.setAttribute('open', ''); }
+          else overview.setAttribute('open', '');
           overviewGrid.querySelector('[data-overview-index="' + currentIndex + '"]')?.focus();
         }
 
@@ -699,15 +771,44 @@ function renderRuntime(meta) {
         document.addEventListener('keydown', (event) => {
           const target = event.target;
           const typing = target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+          const overviewOpen = overviewIsOpen();
           if (event.key === 'Escape') {
-            if (overview.open || !overview.hidden) { closeOverview(); event.preventDefault(); return; }
+            // The shut overview dialog is not [hidden], so only its open state decides; otherwise Escape goes on
+            // to close the notes.
+            if (overviewOpen) { closeOverview(); event.preventDefault(); return; }
             if (notesOn) { setNotes(false); event.preventDefault(); return; }
             if (typing) { target.blur(); event.preventDefault(); return; }
           }
           if (typing) return;
           const key = event.key;
-          if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(key)) { event.preventDefault(); showSlide(currentIndex + 1); }
-          else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(key)) { event.preventDefault(); showSlide(currentIndex - 1); }
+          // Space and Enter on a focused button, link or disclosure belong to it: the browser activates that
+          // control (a toolbar action, an overview card, Close) and the deck does not move.
+          if ((key === ' ' || key === 'Enter') && target && typeof target.closest === 'function' && target.closest('button, a[href], summary')) return;
+          const direction = keyDirection(key, event.shiftKey);
+          // Contract §3: while the overview is open it holds the keys. The scroll keys scroll its card list and
+          // every other deck key does nothing, so the deck behind it neither scrolls nor changes slide.
+          if (overviewOpen) {
+            if (SCROLL_FIRST_KEYS.includes(key)) { event.preventDefault(); overview.scrollBy(0, overviewStep(key, direction)); }
+            return;
+          }
+          if (SCROLL_FIRST_KEYS.includes(key)) {
+            // Focus inside the notes panel: the browser scrolls the notes. At narrow widths the panel covers
+            // the slide, so moving the page or the slide here would change content nobody can see.
+            if (notesPanel.contains(target)) return;
+            event.preventDefault();
+            const area = scrollArea();
+            const step = scrollStep(area, key, direction);
+            if (step !== 0) { area.scrollBy(0, step); return; }
+            if (event.repeat) return; // A held key stops at the slide edge instead of running through the deck.
+            // At the edge: change slide, and land where reading continues in that direction — forward at the
+            // top (showSlide does that), back with the slide's end at the viewport bottom (the top when it fits).
+            const forward = direction > 0;
+            const before = currentIndex;
+            showSlide(currentIndex + (forward ? 1 : -1));
+            if (!forward && currentIndex !== before) area.scrollTop = Math.max(0, area.scrollTop + slideBox().bottom - area.clientHeight);
+          }
+          else if (key === 'ArrowRight') { event.preventDefault(); showSlide(currentIndex + 1); }
+          else if (key === 'ArrowLeft') { event.preventDefault(); showSlide(currentIndex - 1); }
           else if (key === 'Home') { event.preventDefault(); showSlide(0); }
           else if (key === 'End') { event.preventDefault(); showSlide(slides.length - 1); }
           else if (key.toLowerCase() === 'n') { event.preventDefault(); setNotes(!notesOn); }
@@ -778,7 +879,7 @@ function generatePresentation(input) {
     </div>
     <aside id="notes-panel" class="notes-panel" role="dialog" aria-labelledby="notes-title" aria-describedby="notes-page" hidden>
       <div class="notes-header"><div><h2 id="notes-title">Speaker notes</h2><p id="notes-page" class="notes-page">Slide 1 of ${spec.slides.length}</p></div><button type="button" id="notes-close" class="notes-close" data-action="close-notes" aria-label="Close speaker notes">Close</button></div>
-      <div id="notes-content"></div>
+      <div id="notes-content" role="region" aria-label="Speaker notes text" tabindex="0"></div>
     </aside>
     <dialog id="overview-dialog" aria-labelledby="overview-title">
       <div class="overview-header"><h2 id="overview-title">All slides</h2><button type="button" class="overview-close" data-action="close-overview">Close</button></div>
@@ -818,6 +919,8 @@ function main(argv) {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, html, 'utf8');
     console.log(`Created ${target} (${html.length} bytes, ${spec.slides.length} slides)`);
+    const warning = defaultLookWarning(spec);
+    if (warning) console.error(warning);
     return 0;
   } catch (error) {
     console.error(error.message);
@@ -828,8 +931,11 @@ function main(argv) {
 if (require.main === module) process.exitCode = main(process.argv.slice(2));
 
 module.exports = {
+  DEFAULT_LOOK_WARNING,
   DEFAULT_THEME,
   EXAMPLE_SPEC,
+  defaultLookWarning,
   generatePresentation,
+  main,
   normalizeSpec,
 };

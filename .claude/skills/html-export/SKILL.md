@@ -124,13 +124,13 @@ Target flags: `--fps=<1-60>` (default 30 for mp4, 15 for gif), `--duration=<seco
 
 ## Producer selectors
 
-| Producer             | png                                      | pdf                             |
-| -------------------- | ---------------------------------------- | ------------------------------- |
-| presentation-builder | `--slides` (default selector)            | `--page=1920x1080` (print mode) |
-| feature-presentation | `--slides=section.deck__slide`           | `--slides=section.deck__slide`  |
-| pbi-mockup           | `--slides='[data-state]'` (every screen) | —                               |
+| Producer             | png                                                     | pdf                                                                |
+| -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| presentation-builder | `--slides` (default selector)                           | `--page=1920x1080` (print mode)                                    |
+| feature-presentation | `--slides=section.deck__slide`, or `--slides` (default) | `--page=1920x1080` (print mode), or `--slides=section.deck__slide` |
+| pbi-mockup           | `--slides='[data-state]'` (every screen)                | —                                                                  |
 
-Any other page can mark its items with `data-export-slide`.
+Any other page can mark its items with `data-export-slide`. feature-presentation slides carry both `slide` and `deck__slide` with a `data-slide-id`, so its existing `section.deck__slide` selector and the default selector find the same slides.
 
 ## Exit codes
 

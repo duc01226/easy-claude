@@ -82,13 +82,13 @@ flowchart TB
 
 | Role                     | Default                   | Override key                           |
 | ------------------------ | ------------------------- | -------------------------------------- |
-| Business specs           | `docs/specs`              | `specRoots.business.path`              |
-| Technical specs          | (none)                    | `specRoots.technical.path`             |
-| Project reference docs   | `docs/project-reference`  | `docsRoots.projectReference.path`      |
-| ADRs                     | `docs/adr`                | `docsRoots.adr.path`                   |
-| Plans                    | `plans`                   | `docsRoots.plans.path`                 |
-| Team artifacts (PBIs, mockups) | `team-artifacts`    | `docsRoots.teamArtifacts.path`         |
-| Product roadmap          | `docs/product-roadmap.md` | `docsRoots.productRoadmap.path`        |
+| Business specs           | `docs/specs`              | `docs/project-config.json` → `specRoots.business.path` |
+| Technical specs          | (none)                    | `docs/project-config.json` → `specRoots.technical.path` |
+| Project reference docs   | `docs/project-reference`  | `docs/project-config.json` → `docsRoots.projectReference.path` |
+| ADRs                     | `docs/adr`                | `docs/project-config.json` → `docsRoots.adr.path` |
+| Plans                    | `plans`                   | `docs/project-config.json` → `docsRoots.plans.path` |
+| Team artifacts (PBIs, mockups) | `team-artifacts`    | `docs/project-config.json` → `docsRoots.teamArtifacts.path` |
+| Product roadmap          | `docs/product-roadmap.md` | `docs/project-config.json` → `docsRoots.productRoadmap.path` |
 | Disposable output        | `tmp/` (or `temp/`)       | fixed; both git-ignored                |
 
 ---
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **135** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1000** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `run-all-tests.cjs` (full aggregate) | **1014** | Primary plus every `tests/suites/*.test.cjs` suite                     |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 135; `run-all-tests.cjs` = 1000 discovered. Both runners fail when these numbers drift from the docs.
+> Live-verified: `test-all-hooks.cjs` = 135; `run-all-tests.cjs` = 1014 discovered. Both runners fail when these numbers drift from the docs.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 
