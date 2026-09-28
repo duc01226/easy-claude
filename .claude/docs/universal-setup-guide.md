@@ -92,7 +92,7 @@ The framework is ready. Use workflows:
 - `/feature-implement` — Implement features step-by-step
 - `/fix` — Debug and fix issues
 - `/plan` — Create implementation plans
-- `/code-review` — Review code changes
+- `/code-quality-review` — Review code changes
 
 The workflow router injects the catalog; on the first task of a session the model auto-selects and activates the best-matching workflow (no confirmation step). Mid-session it never auto-activates a workflow — it works directly or with a lean chain of skills unless you call a workflow skill or ask for one in words, which always runs.
 

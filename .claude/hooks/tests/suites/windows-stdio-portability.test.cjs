@@ -200,7 +200,7 @@ const tests = [
     name: '[windows-stdio] design search --help works through its standalone fallback',
     fn: () => {
       const result = runSimulatedWindowsScript(
-        '.claude/skills/design/scripts/search.py',
+        '.claude/skills/ui-design/scripts/search.py',
         ['--help'],
         { blockImports: ['win_compat'] }
       );
@@ -217,7 +217,7 @@ const tests = [
         '.claude/scripts/scan_skills.py',
         '.claude/scripts/ck-help.py',
         '.claude/scripts/generate_catalogs.py',
-        '.claude/skills/design/scripts/search.py'
+        '.claude/skills/ui-design/scripts/search.py'
       ];
       const unsafe = /TextIOWrapper\s*\(\s*(?:io\.)?sys\.(?:stdout|stderr)\.buffer\b/g;
       for (const file of files) {

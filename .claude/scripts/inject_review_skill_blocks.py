@@ -62,13 +62,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 BATCHING = [
-    "changes-review", "code-review", "architecture-review", "domain-entities-review",
-    "ui-review", "integration-test-review", "security-review",
+    "changes-review", "code-quality-review", "architecture-review", "domain-entities-review",
+    "ui-review", "integration-test-review", "security-audit",
     "performance-review", "production-readiness-review", "architecture-review-full",
 ]
 SEVERITY = [
-    "code-review", "changes-review", "architecture-review",
-    "domain-entities-review", "ui-review", "integration-test-review", "security-review",
+    "code-quality-review", "changes-review", "architecture-review",
+    "domain-entities-review", "ui-review", "integration-test-review", "security-audit",
     "performance-review", "production-readiness-review", "knowledge-review", "artifact-review",
     "spec-clarify",
     "plan-review", "why-review", "code-simplifier", "architecture-review-full",
@@ -96,9 +96,9 @@ CATEGORY = list(BATCHING)  # co-paired with batching
 # trade-off accepted with that narrowing is that canonical edits to this protocol no longer
 # reach plan-review and must be re-applied to its OVERRIDE body by hand.
 DOUBLE_ROUND_TRIP = [
-    "changes-review", "code-review", "architecture-review", "architecture-review-full",
+    "changes-review", "code-quality-review", "architecture-review", "architecture-review-full",
     "domain-entities-review", "ui-review", "integration-test-review",
-    "security-review", "performance-review", "production-readiness-review",
+    "security-audit", "performance-review", "production-readiness-review",
     "knowledge-review", "artifact-review", "why-review",
 ]
 # EVERY review skill — finding-producers, graders, AND loop-orchestrators. Declared ONCE
@@ -110,13 +110,13 @@ DOUBLE_ROUND_TRIP = [
 # Adding a review skill here adopts it into every ALL_REVIEW_SKILLS tag at once; a tag that
 # must genuinely diverge replaces its alias below with its own literal list.
 ALL_REVIEW_SKILLS = [
-    "changes-review", "code-review", "architecture-review",
+    "changes-review", "code-quality-review", "architecture-review",
     "architecture-review-full",
     "architecture-scalability-review", "domain-entities-review", "ui-review",
     "integration-test-review",
     # Loop-orchestrator via its optional `--fix-loop` mode (Goal Contract + trade-off gated fixes).
     "integration-test-verify",
-    "security-review", "performance-review",
+    "security-audit", "performance-review",
     "production-readiness-review", "knowledge-review",
     "artifact-review", "plan-review", "why-review",
     "workflow-review-changes",
@@ -145,7 +145,7 @@ TRADE_OFF = list(ALL_REVIEW_SKILLS)
 # product surface from user journeys. Every body is self-gating on "has a user-facing surface".
 UX_JOURNEY = [
     # design/author role — the Journey Report is the first deliverable
-    "design", "design-spec", "pbi-mockup",
+    "ui-design", "design-spec", "pbi-mockup",
     # plan role — UI phases derive views and priority from the journeys
     "plan",
     # review role — walkthrough + traceability against the journeys
@@ -163,7 +163,7 @@ UI_DESIGN_PRINCIPLES = [
     # review role — clauses are fail-conditions citing UI-<clause> + file:line
     "ui-review", "web-design-guidelines", "artifact-review",
     # design/plan role — clauses shape the artifact the skill authors
-    "design", "design-spec",
+    "ui-design", "design-spec",
     # build role — pbi-mockup emits real markup, so clauses are build constraints
     "pbi-mockup",
 ]
@@ -186,7 +186,7 @@ DESIGN_DISTINCTIVENESS = [
     # review role — clauses are fail-conditions citing DD-<clause> + file:line
     "ui-review", "web-design-guidelines", "artifact-review",
     # design/author role — the gate shapes the artifact the skill authors
-    "design", "design-spec", "feature-presentation", "presentation-builder",
+    "ui-design", "design-spec", "feature-presentation", "presentation-builder",
     # plan role — the design plan + generic test are decided here, before any code exists
     "plan", "scaffold",
     # build role — emits real markup/styles, so the clauses are build constraints
@@ -200,7 +200,7 @@ DESIGN_DISTINCTIVENESS = [
 # voice), and `feature-presentation` (slide prose is not interface copy -- only its rule 6
 # would apply, and a block that is 5/6 inapplicable trains the reader to skim it).
 UI_COPYWRITING = [
-    "design", "design-spec",
+    "ui-design", "design-spec",
     "pbi-mockup", "plan-execute", "feature-implement",
     "ui-review", "web-design-guidelines",
 ]
@@ -219,7 +219,7 @@ DESIGN_REVIEW_CHECKLIST = [
     "ui-review", "web-design-guidelines", "artifact-review",
     "changes-review", "plan-review",
     # design/author role — author against the checklist so the review finds nothing
-    "design", "design-spec",
+    "ui-design", "design-spec",
     "pbi-mockup", "feature-presentation", "presentation-builder",
     # plan role — a plan containing front-end work binds the checklist into its acceptance criteria
     "plan", "scaffold",

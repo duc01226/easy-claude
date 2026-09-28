@@ -41,12 +41,12 @@ Expected behavior:
 
 ---
 
-### code-review
+### code-quality-review
 
 Direct invocation:
 
 ```
-/code-review
+/code-quality-review
 ```
 
 Inference test prompts:
@@ -130,12 +130,12 @@ Expected behavior:
 
 ---
 
-### security-review
+### security-audit
 
 Direct invocation:
 
 ```
-/security-review
+/security-audit
 ```
 
 Test prompts:

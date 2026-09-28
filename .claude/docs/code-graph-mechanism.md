@@ -230,7 +230,7 @@ Claude/Codex (or a graph-* skill) captures the JSON and reads it directly:
         │
         ▼
 Claude sees:
-  Blast Radius Analysis (pulled on demand for /code-review)
+  Blast Radius Analysis (pulled on demand for /code-quality-review)
   Risk: MEDIUM | Changed: 2 files, 5 nodes | Impacted: 8 nodes in 5 files
   Changed files: src/auth.py, src/api.py
   Impacted files: middleware.py, test_auth.py, api/routes.py, ...
@@ -244,7 +244,7 @@ The skills/gates below pull graph context on demand. Only the two graph hooks (`
 | Event                                  | Mechanism                                  | What's Surfaced                                                     |
 | -------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
 | Session start                          | `graph-session-init.cjs` (hook)            | Status: "Graph active. 94 files, 875 nodes" — only while the code graph is active (`hooks.codeGraph.enabled`: `on`, or `auto` with a built graph) |
-| `/code-review` running                 | skill runs `code_graph graph-blast-radius` | Blast radius summary, risk level, impacted files                    |
+| `/code-quality-review` running                 | skill runs `code_graph graph-blast-radius` | Blast radius summary, risk level, impacted files                    |
 | `/changes-review` running              | skill runs `code_graph graph-blast-radius` | Same as above                                                       |
 | `/investigate` running                 | skill runs `code_graph` trace/connections  | Structural overview for exploration                                 |
 | `/debug-investigate` running           | skill runs `code_graph` trace/query        | Dependency context for tracing                                      |
@@ -265,7 +265,7 @@ sequenceDiagram
     participant Py as Python CLI
     participant DB as graph.db
 
-    Dev->>CC: /code-review
+    Dev->>CC: /code-quality-review
     CC->>Skill: skill runs blast-radius step
     Skill->>Py: python code_graph graph-blast-radius --json
     Py->>DB: SQL queries + BFS traversal
@@ -465,7 +465,7 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 | `graph-export`       | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
 
 **Skills with graph integration** (RECOMMENDED if graph.db exists):
-investigate, debug, code-review, changes-review, production-readiness-review
+investigate, debug, code-quality-review, changes-review, production-readiness-review
 
 ## Example Workflow: Bug Fix with Graph
 
@@ -481,8 +481,8 @@ investigate, debug, code-review, changes-review, production-readiness-review
    PostToolUse fires → graph-auto-update.cjs
    → Incremental update: re-parses auth.py + dependents
 
-4. User: /code-review
-   code-review skill runs graph-blast-radius on the fix
+4. User: /code-quality-review
+   code-quality-review skill runs graph-blast-radius on the fix
    → "Risk: MEDIUM | Changed: 1 file, 3 nodes | Impacted: 8 nodes in 5 files"
    → "Impacted files: middleware.py, api/routes.py, test_auth.py"
    → "Changed production functions: validate_token"
@@ -541,7 +541,7 @@ graph LR
 
 ## How the Graph Helps in Workflows
 
-The graph integrates into easy-claude workflows through 2 auto-firing hooks (`graph-session-init.cjs`, `graph-auto-update.cjs`); the investigation baseline and code-review blast-radius pulls shown below are skill-driven:
+The graph integrates into easy-claude workflows through 2 auto-firing hooks (`graph-session-init.cjs`, `graph-auto-update.cjs`); the investigation baseline and code-quality-review blast-radius pulls shown below are skill-driven:
 
 ```mermaid
 sequenceDiagram
@@ -550,7 +550,7 @@ sequenceDiagram
     participant Hook as Graph (hooks + skills)
     participant Graph as graph.db
 
-    Note over Dev,Graph: Feature Workflow: /investigate → /feature-implement → /code-review
+    Note over Dev,Graph: Feature Workflow: /investigate → /feature-implement → /code-quality-review
 
     Dev->>WF: "implement login feature"
     WF->>WF: Detect: feature workflow
@@ -571,8 +571,8 @@ sequenceDiagram
     end
 
     rect rgb(230, 255, 230)
-        Note over WF,Graph: Step 3: /code-review
-        WF->>Hook: code-review skill runs blast-radius
+        Note over WF,Graph: Step 3: /code-quality-review
+        WF->>Hook: code-quality-review skill runs blast-radius
         Hook->>Graph: graph-blast-radius on all changes
         Graph-->>Hook: Risk: MEDIUM, 8 impacted nodes
         Hook-->>WF: review context
@@ -584,9 +584,9 @@ sequenceDiagram
 
 | Workflow          | Steps Where Graph Activates                                                                                 | What Graph Provides                                                |
 | ----------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **feature**       | /investigate, /feature-implement (auto-update), /code-review, /changes-review, /production-readiness-review | Structural overview, incremental tracking, blast radius for review |
-| **bugfix**        | /investigate, /debug-investigate, /fix (auto-update), /code-review                                          | Dependency tracing for root cause, impact assessment of fix        |
-| **refactor**      | /investigate, /plan-execute (auto-update), /code-review, /production-readiness-review                       | Ensures refactoring doesn't break callers/dependents               |
+| **feature**       | /investigate, /feature-implement (auto-update), /code-quality-review, /changes-review, /production-readiness-review | Structural overview, incremental tracking, blast radius for review |
+| **bugfix**        | /investigate, /debug-investigate, /fix (auto-update), /code-quality-review                                          | Dependency tracing for root cause, impact assessment of fix        |
+| **refactor**      | /investigate, /plan-execute (auto-update), /code-quality-review, /production-readiness-review                       | Ensures refactoring doesn't break callers/dependents               |
 | **hotfix**        | /investigate, /fix (auto-update), /changes-review, /production-readiness-review                             | Fast blast radius to verify minimal production impact              |
 | **investigation** | /investigate                                                                                                | Structural map for understanding code relationships                |
 
@@ -599,7 +599,7 @@ sequenceDiagram
 | `/graph-query`                 | Natural language queries: "who calls login?", "tests for AuthService?"                          |
 | `/graph-export`                | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
 | `/graph-connect-api`           | Detect frontend-backend API connections via graph edges                                         |
-| `/code-review`                 | Auto-receives blast radius context when graph exists                                            |
+| `/code-quality-review`                 | Auto-receives blast radius context when graph exists                                            |
 | `/investigate`                 | Auto-receives structural overview when graph exists                                             |
 | `/debug-investigate`           | Auto-receives dependency context for tracing                                                    |
 | `/production-readiness-review` | Auto-receives impact assessment for prod readiness                                              |
@@ -675,7 +675,7 @@ graph TD
     style CONSUMER fill:#da77f2,stroke:#9c36b5
 ```
 
-**What Claude sees when `/code-review` fires:**
+**What Claude sees when `/code-quality-review` fires:**
 
 ```
 [code-graph] Blast Radius Analysis
@@ -878,7 +878,7 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 | Session start       | `graph-session-init.cjs` fires once          | "Graph active. 350 files, 1200 edges" (~30 tokens) | 30 tokens  | Claude knows graph exists, uses queries instead of grep |
 | `/investigate` runs | investigate skill pulls `code_graph` context | Baseline structural overview (~200 tokens)         | 200 tokens | Claude maps code area in seconds vs minutes of grepping |
 | File edited         | `graph-auto-update.cjs` fires silently       | Nothing visible — graph.db updated in background   | 0 tokens   | Graph stays current. No manual rebuild needed           |
-| `/code-review`      | code-review skill runs `graph-blast-radius`  | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
+| `/code-quality-review`      | code-quality-review skill runs `graph-blast-radius`  | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
 | `/investigate`      | Skill RECOMMENDED section                    | Claude runs targeted graph queries (~500 tokens)   | 500 tokens | 4 queries replace reading 47 grep matches               |
 | `/plan-review`      | Completeness checklist item                  | `importers_of` per planned file (~200 tokens)      | 200 tokens | Catches missed dependents before implementation         |
 
@@ -900,7 +900,7 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 | Session starts           | "Graph active. 350 files, 1,200 edges" | Claude knows graph is available               |
 | `/investigate` runs      | Structural overview of target area     | Faster discovery than blind grep              |
 | File edited              | _(silent)_ graph updates in background | Always current for next query                 |
-| `/code-review` runs      | Full blast radius with risk level      | Reviews impacted files, not just changed ones |
+| `/code-quality-review` runs      | Full blast radius with risk level      | Reviews impacted files, not just changed ones |
 | `/investigate` runs      | Targeted callers/imports/tests queries | Maps call chains in seconds vs minutes        |
 | `/plan-review` runs      | Importers of planned files             | Catches missed dependents before coding       |
 | User asks "who calls X?" | `/graph-query` skill activates         | Direct answer with file:line locations        |

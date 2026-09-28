@@ -299,7 +299,7 @@ UI convention sources and cite which resolved: `docs/project-config.json`
 → `designSystem.canonicalDoc`, `tokenFiles`, `appMappings[]`; the resolved
 design-system doc, `frontend-patterns-reference.md`, `configured styling reference`;
 `.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md`;
-and the governing brief or accepted `/design` decision. Judging a design from
+and the governing brief or accepted `/ui-design` decision. Judging a design from
 memory is how a deliberate house convention gets reported as a bug — and a
 sub-agent inherits none of this from the calling conversation.
 

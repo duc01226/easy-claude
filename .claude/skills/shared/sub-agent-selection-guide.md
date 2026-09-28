@@ -79,7 +79,7 @@ Wave 1 (`initial-reviews`, `barrier: true`) — `changes-review` plus `why-revie
 | Wave-2 member                 | Sub-agent type          | Dispatch condition                                        |
 | ----------------------------- | ----------------------- | --------------------------------------------------------- |
 | `architecture-review`         | `architect`             | Always                                                    |
-| `security-review`             | `security-auditor`      | Always                                                    |
+| `security-audit`             | `security-auditor`      | Always                                                    |
 | `performance-review`          | `performance-optimizer` | Always                                                    |
 | `integration-test-review`     | `integration-tester`    | Always                                                    |
 | `production-readiness-review` | `code-reviewer`         | Always — read-only findings/score mode in the batch       |

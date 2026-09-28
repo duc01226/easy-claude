@@ -143,7 +143,7 @@ const GOAL_CONTRACT_REVIEW_SKILL_IDS = [
   "changes-review",
   "why-review",
   "plan-review",
-  "code-review",
+  "code-quality-review",
 ];
 
 // Workflow wrappers + verification/audit surfaces (Phases 05-06). The planned

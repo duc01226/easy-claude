@@ -170,7 +170,7 @@ Keep gathering proportional to scope — don't read the whole repo to explain on
 | The call/flow chain and its reach | `/graph-trace` · `/graph-blast-radius` | §2 D1/D3 · §10 Blast Radius · Step 2 Axis A |
 | Which spec owns a capability, when finding it is itself the problem | `/spec-index` | §3 stories + REAL `TC-*` IDs · §11 cases |
 
-1. **Read-only delegates ONLY.** NEVER invoke a skill that mutates files or issues findings/verdicts (`/fix`, `/changes-review`, `/code-review`, `/why-review`, `/plan-execute`) — this skill emits no findings and mutates nothing outside its own git-ignored artifacts, and a delegate must not smuggle either in through the back door.
+1. **Read-only delegates ONLY.** NEVER invoke a skill that mutates files or issues findings/verdicts (`/fix`, `/changes-review`, `/code-quality-review`, `/why-review`, `/plan-execute`) — this skill emits no findings and mutates nothing outside its own git-ignored artifacts, and a delegate must not smuggle either in through the back door.
 2. **MUST ATTENTION delegate on evidence of need — NEVER by reflex.** Try read + grep + trace first, within the group's budget. Announce each delegation in one line and record it in the report header — `Delegated: /investigate — G3 mechanics` — why: the reader calibrates on the provenance chain exactly as they do on a grep-derived route.
 3. **A delegate's output is INPUT, never a finished section.** Re-verify every claim you carry forward against `file:line` before it becomes a claim in the report; a `TC-*` ID that arrives through a delegate is still one you must have read yourself. The anti-hallucination bar does not relax by passing through another skill.
 4. **At tier S3+, delegation happens INSIDE the group's sub-agent**, never in the orchestrator — why: delegating from the orchestrator pulls a whole investigation transcript back into the one context the grouping exists to protect.
@@ -309,7 +309,7 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 **NOT for:** investigation/docs/design/research workflows where nothing was built or planned to understand; forcing comprehension as a hard gate.
 
-- **vs `/changes-review` and `/code-review`:** those **perform** the review and emit findings against the code. This one **prepares a human to perform it** — it emits no findings and passes no verdict. Want the machine's verdict → `/changes-review`. Want to be able to form your own → here, then `/changes-review`.
+- **vs `/changes-review` and `/code-quality-review`:** those **perform** the review and emit findings against the code. This one **prepares a human to perform it** — it emits no findings and passes no verdict. Want the machine's verdict → `/changes-review`. Want to be able to form your own → here, then `/changes-review`.
 - **vs `/demo-guide`:** that is **presenter-facing** — a standalone script for showing finished work to a room. §11 here is **reviewer-facing**: the same per-case shape (deliberately, so the two never drift), but in service of *understanding and verifying* the change rather than staging it. A whole-feature demo for stakeholders → `/demo-guide`.
 
 ## See Also

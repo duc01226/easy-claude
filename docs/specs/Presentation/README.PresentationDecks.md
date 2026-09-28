@@ -18,7 +18,7 @@ scope_mode: FRAMEWORK-LIBRARY
 | Conformance checker     | `.claude/skills/presentation-builder/scripts/validate-presentation.cjs`                                           | Deterministic check of a deck against a conformance profile.            |
 | Deck generator          | `.claude/skills/presentation-builder/scripts/create-presentation.cjs`                                             | Builds a conforming deck from a structured description.                 |
 | Feature review deck     | `.claude/skills/feature-presentation/SKILL.md`, `.claude/skills/feature-presentation/references/deck-template.md` | Workflow step that synthesizes feature artifacts into one review deck.  |
-| Visual direction        | `.claude/skills/design/references/explore/workflow.md`                                                            | Divergent drafts, including a slide canvas, from which the user picks.  |
+| Visual direction        | `.claude/skills/ui-design/references/explore/workflow.md`                                                         | Divergent drafts, including a slide canvas, from which the user picks.  |
 | Export and render check | `.claude/skills/html-export/SKILL.md`                                                                             | Renders a deck to images, paged document or recording.                  |
 | Spec Index (derived) | `docs/specs/Presentation/INDEX.md` | Generated navigation catalog for this bucket; refresh through the spec index owner. |
 

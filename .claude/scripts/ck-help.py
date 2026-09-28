@@ -117,8 +117,8 @@ CATEGORY_GUIDES = {
     "design": {
         "title": "Design",
         "workflow": [
-            ("Quick design", "`/design --mode=fast` \"description\""),
-            ("From screenshot", "`/design --mode=screenshot` <path>"),
+            ("Quick design", "`/ui-design --mode=fast` \"description\""),
+            ("From screenshot", "`/ui-design --mode=screenshot` <path>"),
             ("3D design", "`/design-3d` \"description\""),
         ],
         "tip": "Reference existing designs for consistency",
@@ -126,7 +126,7 @@ CATEGORY_GUIDES = {
     "review": {
         "title": "Code Review",
         "workflow": [
-            ("Full review", "`/code-review`"),
+            ("Full review", "`/code-quality-review`"),
         ],
         "tip": "Review before merging to main",
     },

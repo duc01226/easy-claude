@@ -43,11 +43,11 @@ const rootDir = rootResolution.rootDir;
 // never flagged (TC-CONVLOOP-043).
 export const REVIEW_FAMILY_SKILLS = [
     'changes-review',
-    'code-review',
+    'code-quality-review',
     'architecture-review',
     'architecture-review-full',
     'architecture-scalability-review',
-    'security-review',
+    'security-audit',
     'performance-review',
     'integration-test-review',
     'domain-entities-review',

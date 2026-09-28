@@ -207,7 +207,7 @@ const PROJECT_CONFIG_DESCRIBES = {
     "graphConnectors.implicitConnections[].target.keyGroup": "Default 1. Which capture group (1-based) of contentPattern or pathPattern holds the join key.",
     "graphConnectors.implicitConnections[].target.paths": "Optional repo-relative directories to scan for target files; overrides the rule-level paths for this side.",
     "graphConnectors.implicitConnections[].matchBy": "Required by the schema: key-equals (exact key match) or key-contains (either key contains the other). Any other value makes the rule create no edges.",
-    "architectureRules": "Optional layer-boundary rules checked by the code-review, changes-review and architecture-review skills on changed files. Omitted = the boundary check is skipped silently.",
+    "architectureRules": "Optional layer-boundary rules checked by the code-quality-review, changes-review and architecture-review skills on changed files. Omitted = the boundary check is skipped silently.",
     "architectureRules.layerBoundaries": "List of layers, each with paths and the layers it must not import from. A changed file's import from a forbidden layer is a blocking review finding.",
     "architectureRules.layerBoundaries[].layer": "Required. Layer name. Reviewers flag an import whose path contains a name listed in another layer's cannotImportFrom, so pick a name that appears in import paths.",
     "architectureRules.layerBoundaries[].paths": "Required. Glob patterns that assign a file to this layer.",

@@ -121,8 +121,8 @@
     code-quality review, or verifying completion claims.'
   has_references: true
   has_scripts: false
-  name: code-review
-  path: code-review/SKILL.md
+  name: code-quality-review
+  path: code-quality-review/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -204,18 +204,6 @@
   path: debug-investigate/SKILL.md
   removal_after: null
   status: active
-- category: utilities
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Research] Use when a workflow step or the user asks for deep research
-    on the top sources surfaced by web-research. Fetches, extracts, cross-validates
-    and builds the evidence base.'
-  has_references: false
-  has_scripts: false
-  name: deep-research
-  path: deep-research/SKILL.md
-  removal_after: null
-  status: active
 - category: other
   deprecated_by: null
   deprecated_since: null
@@ -226,17 +214,6 @@
   has_scripts: false
   name: demo-guide
   path: demo-guide/SKILL.md
-  removal_after: null
-  status: active
-- category: frontend
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|explore|describe|screenshot|video}
-    (default fast), --lane={product|marketing} (default product).'
-  has_references: true
-  has_scripts: true
-  name: design
-  path: design/SKILL.md
   removal_after: null
   status: active
 - category: frontend
@@ -598,7 +575,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Utilities] Use when teaching Claude a lesson that persists across
-    sessions.'
+    sessions, including an extra rule or lesson for one skill or for the kind of task
+    a skill owns (routed to project-skill-protocol).'
   has_references: false
   has_scripts: false
   name: learn
@@ -665,8 +643,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Project Management] Use when a workflow step or the user asks for
-    an interactive HTML mockup from PBI/story or spec artifacts. Flags: --explore asks
-    for 1-3 design directions (or skip) and lets the user pick, --source=<path>.'
+    an interactive HTML mockup from PBI/story or spec artifacts. Flags: --explore
+    asks for 1-3 design directions (or skip) and lets the user pick, --source=<path>.'
   has_references: true
   has_scripts: false
   name: pbi-mockup
@@ -893,8 +871,8 @@
     plus a standalone HTML presentation.'
   has_references: true
   has_scripts: false
-  name: release-notes
-  path: release-notes/SKILL.md
+  name: release-doc
+  path: release-doc/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -975,8 +953,8 @@
     infrastructure, CI/CD, AI-agent risks, host compromise.'
   has_references: false
   has_scripts: false
-  name: security-review
-  path: security-review/SKILL.md
+  name: security-audit
+  path: security-audit/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1000,6 +978,18 @@
   has_scripts: true
   name: skill-creator
   path: skill-creator/SKILL.md
+  removal_after: null
+  status: active
+- category: utilities
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Research] Use when a workflow step or the user asks for deep research
+    on the top sources surfaced by web-research. Fetches, extracts, cross-validates
+    and builds the evidence base.'
+  has_references: false
+  has_scripts: false
+  name: source-deep-dive
+  path: source-deep-dive/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1151,6 +1141,17 @@
   has_scripts: false
   name: test
   path: test/SKILL.md
+  removal_after: null
+  status: active
+- category: frontend
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|explore|describe|screenshot|video}
+    (default fast), --lane={product|marketing} (default product).'
+  has_references: true
+  has_scripts: true
+  name: ui-design
+  path: ui-design/SKILL.md
   removal_after: null
   status: active
 - category: frontend
@@ -1438,7 +1439,8 @@
   deprecated_since: null
   description: '[Workflow] Use when turning canonical specs into a reviewed interactive
     HTML mock-up: journey report and design authority first, one to three design directions
-    (the user chooses how many, or skips) to pick from, then the full multi-view mock app.'
+    (the user chooses how many, or skips) to pick from, then the full multi-view mock
+    app.'
   has_references: false
   has_scripts: false
   name: workflow-spec-to-mockup

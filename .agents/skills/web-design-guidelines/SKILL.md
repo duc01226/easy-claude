@@ -79,7 +79,7 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
 
 ## When NOT to Use
 
-- **Building** UI -- use `design --lane=marketing` (marketing/creative) or `design --lane=product` (product UIs)
+- **Building** UI -- use `ui-design --lane=marketing` (marketing/creative) or `ui-design --lane=product` (product UIs)
 - **Creating** design specs -- use `design-spec`
 - **Workflow-wired UI review gate** -- use `$ui-review` (the project UI review gate that runs in the `changes-review` parallel batch on frontend changes: long-content overflow, responsive flex, flex-vs-fixed sizing, z-index discipline, SCSS/BEM). This skill is the generic, framework-agnostic a11y/UX checklist that `$ui-review` cross-references — not a duplicate.
 - Project styling review: apply configured rules when present; otherwise use stack evidence and do not assume a preprocessor or naming method.
@@ -183,7 +183,7 @@ Group by file. Use `file:line` format. Terse findings. No preamble.
 
 | Skill             | When to use instead                                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `design`          | Building UI (not reviewing) — `--lane=marketing` (creative) or `--lane=product` (app UIs)                                  |
+| `ui-design`          | Building UI (not reviewing) — `--lane=marketing` (creative) or `--lane=product` (app UIs)                                  |
 | `design-spec`     | Creating design specifications                                                                                            |
 | `$ui-review`      | Project UI review gate (overflow, responsive flex, z-index, SCSS/BEM); runs in `changes-review` batch on frontend changes |
 
@@ -318,7 +318,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

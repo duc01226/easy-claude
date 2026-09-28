@@ -91,7 +91,7 @@ easy-claude/
 │   │   ├── workflow-spec-test-code-cycle-reference.md
 │   │   └── design-system/README.md                # Design System subset
 │   ├── release/                                   # 1 release-note archive
-│   ├── release-notes/                             # 2 release-notes skill outputs (+ HTML renders)
+│   ├── release-notes/                             # 2 release-doc skill outputs (+ HTML renders)
 │   ├── specs/                                     # Canonical business Feature Specs
 │   │   ├── Adoption/                              # 1 Feature Spec (2 parts) + 1 bucket catalog
 │   │   │   ├── INDEX.md

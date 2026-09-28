@@ -172,10 +172,10 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Planning**       | `/plan`, `/investigate`                                                                                    | Research, plan, investigate before coding                |
 | **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`                                                              | Write code with quality gates                            |
 | **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows  |
-| **Review**         | `/code-review`, `/changes-review`, `/security-review`                                                      | Code quality, security audits                            |
+| **Review**         | `/code-quality-review`, `/changes-review`, `/security-audit`                                               | Code quality, security audits                            |
 | **Documentation**  | `/docs-update`, `/spec`                                                                                    | Auto-generate and maintain docs                          |
-| **Research**       | `/web-research`, `/deep-research`                                                                          | Web research, library docs fetching                      |
-| **Design**         | `/design`, `/design-spec`, `/pbi-mockup`, `/excalidraw-diagram`                                            | UI/UX design, specs, wireframes, PBI visuals, diagrams   |
+| **Research**       | `/web-research`, `/source-deep-dive`                                                                       | Web research, library docs fetching                      |
+| **Design**         | `/ui-design`, `/design-spec`, `/pbi-mockup`, `/excalidraw-diagram`                                         | UI/UX design, specs, wireframes, PBI visuals, diagrams   |
 | **DevOps**         | `/fix --target=ci`, `/production-readiness-review`                                                         | CI/CD fixes, release reliability                         |
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs the project-reference gate reads |
 | **Documents**      | `/pdf-convert`, `/docx-convert`                                                                            | Document format conversion (both directions via `--to`)  |
@@ -211,12 +211,12 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | Review skill                   | Catches                                                                  |
 | ------------------------------ | ------------------------------------------------------------------------ |
 | `/changes-review`              | General correctness/quality on staged, unstaged, or branch-diff changes  |
-| `/code-review`                 | Targeted code-quality review and completion-claim verification           |
+| `/code-quality-review`         | Targeted code-quality review and completion-claim verification           |
 | `/why-review`                  | Weak rationale / unjustified changes in plans, diffs, PBIs, specs        |
 | `/architecture-review`         | Layering, messaging, service-boundary, CQRS, repo violations             |
 | `/domain-entities-review`      | DDD design quality of entities and value objects                         |
 | `/performance-review`          | N+1 queries, indexing, API latency, memory, render bottlenecks           |
-| `/security-review`             | OWASP Top 10, secrets exposure, dependency/supply-chain risk             |
+| `/security-audit`              | OWASP Top 10, secrets exposure, dependency/supply-chain risk             |
 | `/integration-test-review`     | Assertion quality, bug protection, repeatability, test↔spec traceability |
 | `/production-readiness-review` | Production readiness of service-layer and API changes                    |
 | `/ui-review`                   | Overflow, responsive layout, z-index, SCSS/BEM quality                   |

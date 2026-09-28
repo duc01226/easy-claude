@@ -66,7 +66,7 @@ removals** — deprecate-then-GC remains the standing rule.
 
 **Count derivation.** The change set has 51 distinct directory roots under
 `.claude/skills/` containing deleted files. Two of them — `plan` and
-`release-notes` — lost only some files and still exist on disk, so **49**
+`release-notes` — lost only some files and still exist on disk (`release-notes` was later renamed to `release-doc`; see [Built-in Name Collision Renames](#built-in-name-collision-renames-2026-09-29)), so **49**
 directories were removed outright. Every count in this section was derived that
 way (change-set deleted-file roots, filtered against what remains on disk), not
 estimated.
@@ -124,6 +124,9 @@ Two qualifications on Class 1, so the table is not read as a clean rename:
 `product-owner`, `prove-fix`, `quality-gate`, `recover`, `refactoring`,
 `release-doc`, `research`, `sequential-thinking`, `test-ui`, `threejs`,
 `worktree`
+
+(The name `release-doc` was reused on 2026-09-29 for the renamed `release-notes` skill; see
+[Built-in Name Collision Renames](#built-in-name-collision-renames-2026-09-29).)
 
 For these there is **no successor, no flag, and no equivalent invocation**. The
 capability left the harness; the name did not move somewhere else.
@@ -220,6 +223,42 @@ hand-written routing prose.
 **A third direct deletion requires either a lifecycle change proposed in a new
 ADR, or deprecate-then-GC as written above.** Two exceptions are the limit this
 ADR tolerates before the rule is fiction.
+
+### Built-in Name Collision Renames (2026-09-29)
+
+This is the lifecycle change the rule above asks for, not a third exception. It adds one path that
+deprecate-then-GC cannot serve: **a framework skill whose name collides with a Claude Code built-in
+command or bundled skill is renamed directly.** The collision is the defect — the skill takes over
+the built-in's `/name`, so the built-in disappears — and a deprecated shim under the old name would
+keep hiding it. `.claude/scripts/codex/tests/skill-builtin-names.test.mjs` fails on any such name,
+shim included.
+
+The path applies only when ALL of these hold:
+
+1. The old name is on the guard's built-in list.
+2. The skill keeps its capability under the new name — a rename, never a capability removal (those
+   still go through deprecate-then-GC).
+3. Every framework consumer is updated in the same change, and the guard passes.
+4. The adopter migration table in `.claude/config/README.md` → "Renamed skills — migrating an
+   adopting project" gains the old → new row, so adopting projects can find where the skill went.
+
+First application, 2026-09-29:
+
+| Old name          | New name              | Built-in made reachable again               |
+| ----------------- | --------------------- | ------------------------------------------- |
+| `code-review`     | `code-quality-review` | `/code-review` (and its `/review` alias)   |
+| `security-review` | `security-audit`      | `/security-review`                          |
+| `deep-research`   | `source-deep-dive`    | `/deep-research`                            |
+| `release-notes`   | `release-doc`         | `/release-notes`                            |
+| `design`          | `ui-design`           | `/design`                                   |
+
+`plan` also collides and keeps its name by owner decision: `/plan` is the framework's planning
+skill on purpose, and plan mode stays reachable without that command. The guard records it as its one
+accepted collision.
+
+`release-doc` reuses a name the consolidation list above records as removed with no successor. That
+earlier `release-doc` was a deprecated alias of `release-notes`; the name now belongs to the renamed
+`release-notes` skill itself, with the same capability.
 
 ### Lifecycle Phases
 
@@ -466,3 +505,10 @@ Recorded in the same pass: the release-time PO acceptance verdict
 (ACCEPT | REJECT | CONDITIONAL ACCEPT against an implementation) is
 **deliberately not carried forward** — see the subsection of that name in the
 Consolidation Cleanup Exception.
+
+### 2026-09-29 — built-in name collision rename path added
+
+Added [Built-in Name Collision Renames](#built-in-name-collision-renames-2026-09-29) to the Decision section as the lifecycle change the
+"third direct deletion" rule requires. It renamed five skills whose names hid Claude Code built-ins
+and added the guard test that keeps new collisions out. Deprecate-then-GC stays the rule for every
+other removal; this path covers only renames forced by a built-in name collision.

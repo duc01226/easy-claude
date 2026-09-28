@@ -38,7 +38,7 @@ const severityConsumers = [
     '.claude/skills/architecture-review/SKILL.md',
     '.claude/skills/artifact-review/SKILL.md',
     '.claude/skills/changes-review/SKILL.md',
-    '.claude/skills/code-review/SKILL.md',
+    '.claude/skills/code-quality-review/SKILL.md',
     '.claude/skills/code-simplifier/SKILL.md',
     '.claude/skills/domain-entities-review/SKILL.md',
     '.claude/skills/architecture-scalability-review/SKILL.md',
@@ -50,7 +50,7 @@ const severityConsumers = [
     '.claude/skills/performance-review/SKILL.md',
     '.claude/skills/plan-review/SKILL.md',
     '.claude/skills/production-readiness-review/SKILL.md',
-    '.claude/skills/security-review/SKILL.md',
+    '.claude/skills/security-audit/SKILL.md',
     '.claude/skills/spec-clarify/SKILL.md',
     '.claude/skills/ui-review/SKILL.md',
     '.claude/skills/why-review/SKILL.md',
@@ -552,7 +552,7 @@ test('R3-PROMPT-023: specialist overrides preserve role and durable budget', asy
 
 test('R3-PROMPT-023: local clean-pass summaries cannot override an explicit minimum', async () => {
     const files = [
-        ...['code-review', 'domain-entities-review', 'knowledge-review', 'plan', 'plan-review', 'production-readiness-review', 'security-review', 'seed-test-data']
+        ...['code-quality-review', 'domain-entities-review', 'knowledge-review', 'plan', 'plan-review', 'production-readiness-review', 'security-audit', 'seed-test-data']
             .map(name => `.claude/skills/${name}/SKILL.md`),
         '.claude/agents/code-reviewer.md',
     ];

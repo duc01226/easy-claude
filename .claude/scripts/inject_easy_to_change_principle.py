@@ -68,7 +68,7 @@ CLOSING = """
 # frontmatter / first `# ` title.
 TARGETS: list[tuple[str, list[str]]] = [
     # --- Review tier ---
-    ("code-review", [r"^## Core Principles \(ENFORCE ALL\)"]),
+    ("code-quality-review", [r"^## Core Principles \(ENFORCE ALL\)"]),
     ("changes-review", [r"^## Core Principles \(ENFORCE ALL\)"]),
     ("architecture-review", [r"^## Review Mindset \(NON-NEGOTIABLE\)"]),
     ("domain-entities-review", [r"^## Phase 0: "]),

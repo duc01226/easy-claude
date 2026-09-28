@@ -281,18 +281,18 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 - Check responsive states and sizes supported by the target platform; use breakpoints only where that platform supports them.
 - **Pre-read (design authority):** read configured design-system docs and token files when present. Otherwise follow the project's frontend references, accepted ADRs, and observed source; do not invent a shared token system or canonical component classes.
 
-**Required skills (when applicable):** `design` (local design-intelligence search + implementation patterns) → `web-design-guidelines` for web surfaces or the target platform's accessibility guidance for non-web UI (use project guidance when present, otherwise its native standard) → `ui-review` (source-level review when applicable).
+**Required skills (when applicable):** `ui-design` (local design-intelligence search + implementation patterns) → `web-design-guidelines` for web surfaces or the target platform's accessibility guidance for non-web UI (use project guidance when present, otherwise its native standard) → `ui-review` (source-level review when applicable).
 
 **Workflow:**
 
-**FIRST** — use the `design` skill's local search to understand context and common issues:
+**FIRST** — use the `ui-design` skill's local search to understand context and common issues:
 
 ```bash
 # Windows: py -3 · macOS/Linux: python3 (same arguments)
-py -3 .claude/skills/design/scripts/search.py "<product-type>" --domain product
-py -3 .claude/skills/design/scripts/search.py "<style-keywords>" --domain style
-py -3 .claude/skills/design/scripts/search.py "accessibility" --domain ux
-py -3 .claude/skills/design/scripts/search.py "z-index animation" --domain ux
+py -3 .claude/skills/ui-design/scripts/search.py "<product-type>" --domain product
+py -3 .claude/skills/ui-design/scripts/search.py "<style-keywords>" --domain style
+py -3 .claude/skills/ui-design/scripts/search.py "accessibility" --domain ux
+py -3 .claude/skills/ui-design/scripts/search.py "z-index animation" --domain ux
 ```
 
 If the user provides screenshots/videos, use the `visual analysis tooling` skill to describe the issue in detail so developers can predict the root causes.
@@ -357,7 +357,7 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 >
 > **AFTER that floor is met,** MUST ATTENTION use `AskUserQuestion` to offer what lies BEYOND the minimum (user decides):
 
-- **"Proceed with full workflow (Recommended)"** — Hand off to the best-fit workflow (e.g. `workflow-bugfix`) from here to add the remaining gates the minimum spine omits — `plan-validate`, `integration-test-review`, `integration-test-verify`, `production-readiness-review`, `security-review`, `docs-update`.
+- **"Proceed with full workflow (Recommended)"** — Hand off to the best-fit workflow (e.g. `workflow-bugfix`) from here to add the remaining gates the minimum spine omits — `plan-validate`, `integration-test-review`, `integration-test-verify`, `production-readiness-review`, `security-audit`, `docs-update`.
 - **"/test"** — Run the full test suite to verify the fix in context.
 - **"Commit & push"** — Hand the proven, reviewed change to the `git-manager` subagent.
 - **"Stop here"** — Minimum contract satisfied; user takes it from here.

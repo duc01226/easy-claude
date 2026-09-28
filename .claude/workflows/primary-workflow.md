@@ -12,7 +12,7 @@
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
 5. **Verify** — `/test`, `/integration-test`, and any spec reconciliation step defined by the selected project profile
 6. **Quality** — Use `workflow-review-changes` for the canonical review and repair cycle; follow its registered sequence in `.claude/workflows.json`. It invokes the `changes-review` skill as one part of the workflow.
-7. **Ship** — `/production-readiness-review`, `/security-review`, `/docs-update`, `/watzup`, `/workflow-end`
+7. **Ship** — `/production-readiness-review`, `/security-audit`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
 
@@ -37,7 +37,7 @@
 ## Phase 1: Planning
 
 - Use `/plan` skill to create an implementation plan with tasks in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
-- Use `/web-research` → `/deep-research` for investigating technical topics before planning
+- Use `/web-research` → `/source-deep-dive` for investigating technical topics before planning
 - Validate plan via `/plan-review` (recursive until its current severity bar is clear) and `/plan-validate` (critical questions)
 - **DO NOT** create new enhanced files — update existing files directly
 
@@ -70,14 +70,14 @@
 ## Phase 5: Quality
 
 - Use `workflow-review-changes` for the canonical review and repair workflow; follow its registered sequence and severity bar. Use the standalone `changes-review` skill only when a standalone review is the selected task.
-- Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/architecture-review`, `/performance-review`
+- Alternatively use individual skills: `/code-simplifier`, `/code-quality-review`, `/architecture-review`, `/performance-review`
 - Follow coding standards and conventions
 - Optimize for performance and maintainability
 
 ## Phase 6: Ship
 
 - Use `/production-readiness-review` for production readiness (service-layer/API changes)
-- Use `/security-review` for security review
+- Use `/security-audit` for security review
 - Use `/docs-update` to update documentation if needed
 - Use `/watzup` for summary report of all changes
 - Use `/workflow-end` to clear workflow state

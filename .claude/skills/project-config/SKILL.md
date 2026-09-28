@@ -207,7 +207,7 @@ protocol on top of the canonical route gate. The value is either:
   same "later valid layer wins" rule the on/off switch uses. To extend the team protocol locally, copy
   its text into the local value (or point the local `path` at the shared file and add your lines).
 - It is **runtime-only**. It is never stamped into tracked `CLAUDE.md` / `AGENTS.md` /
-  `.codex/CODEX_CONTEXT.md` (those remain team-owned), so `/ai-context-refresh` and `$sync-codex` are
+  `.codex/CODEX_CONTEXT.md` (those remain team-owned), so `/ai-context-refresh` and `/sync-codex` are
   never required to apply it.
 - A protocol edit changes the delivery content hash, so the next `UserPromptSubmit` re-delivers it.
 - **Safety and bounds.** A `path` naming a privacy-sensitive file (`.env`, credentials, secrets,
@@ -240,7 +240,7 @@ resolves the effective default + team + local cascade at `UserPromptSubmit`, ref
 context when enabled (gate + catalog + optional `workflowRouteProtocol`), and otherwise delivers
 a short routing-OFF notice that supersedes the tracked gate's auto-select for this checkout.
 
-**Do NOT tell the user to run `/ai-context-refresh` or `$sync-codex` to apply an override.** The
+**Do NOT tell the user to run `/ai-context-refresh` or `/sync-codex` to apply an override.** The
 next prompt resolves it at runtime. There is no option that bakes local routing or the custom
 protocol into tracked files.
 

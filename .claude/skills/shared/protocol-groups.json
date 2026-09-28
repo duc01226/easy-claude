@@ -132,5 +132,5 @@
       }
     }
   },
-  "inlineSkills": ["changes-review", "code-review", "plan-review", "why-review", "workflow-review-changes"]
+  "inlineSkills": ["changes-review", "code-quality-review", "plan-review", "why-review", "workflow-review-changes"]
 }

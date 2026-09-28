@@ -94,7 +94,7 @@ export const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
     '.claude/skills/feature-implement/SKILL.md',
     '.claude/skills/changes-review/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md',
-    '.claude/skills/code-review/SKILL.md',
+    '.claude/skills/code-quality-review/SKILL.md',
     '.claude/skills/why-review/SKILL.md',
     '.claude/agents/code-reviewer.md',
     '.claude/skills/workflow-bugfix/SKILL.md',

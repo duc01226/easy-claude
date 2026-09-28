@@ -108,7 +108,7 @@ The registry sequence is the recommended default order; `gate` occurrences alway
 | `/domain-entities-review --report-only`                           | entity / value-object / aggregate files changed                                                     | DDD model quality, invariants                                                           |
 | `/performance-review --report-only`                               | data access, hot paths, caching, concurrency, render-heavy UI                                       | measured or evidenced performance risk                                                  |
 | `/integration-test-review --report-only --prove-tests` (gate)     | always                                                                                              | coverage map (behavior change → scenario/case → executing test) + relevant test results |
-| `/security-review --report-only`                                  | auth, secrets, input handling, dependencies, CI/infra, PII/money — or not provably security-neutral | exploitable-risk findings                                                               |
+| `/security-audit --report-only`                                  | auth, secrets, input handling, dependencies, CI/infra, PII/money — or not provably security-neutral | exploitable-risk findings                                                               |
 | `/production-readiness-review --report-only`                      | deployable service/API/job/migration/config/operational surface                                     | deploy/operate readiness score + gate                                                   |
 | `/ui-review --report-only`                                        | frontend/UI files changed (also runs inside step 1's UI dimension, by design)                       | UI floor, layout, states, accessibility                                                 |
 | `/why-review --validate-findings`                                 | findings exist that their reviewer has not validated                                                | ≥85% survival validation before any fix                                                 |
@@ -140,7 +140,7 @@ Agent(architecture-review, subagent_type="architect", ...)           ← when se
 Agent(domain-entities-review, subagent_type="code-reviewer", ...)    ← when entity files changed
 Agent(performance-review, subagent_type="performance-optimizer", ...)
 Agent(integration-test-review, subagent_type="integration-tester", ...)  ← always
-Agent(security-review, subagent_type="security-auditor", ...)
+Agent(security-audit, subagent_type="security-auditor", ...)
 Agent(production-readiness-review, subagent_type="code-reviewer", ...)
 Agent(ui-review, subagent_type="ui-ux-designer", ...)                ← when frontend/UI files changed
 ```
@@ -174,7 +174,7 @@ ONLY when the invocation carries `--fix-loop`: read `references/fix-loop.md` in 
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /changes-review -> /why-review --target=whole-review-target -> /architecture-review --report-only -> /domain-entities-review --report-only -> /performance-review --report-only -> /integration-test-review --report-only --prove-tests -> /security-review --report-only -> /production-readiness-review --report-only -> /ui-review --report-only -> /why-review --validate-findings -> /debug-investigate -> /fix --target=review -> /code-simplifier -> /why-review -> /experience-review -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /changes-review -> /why-review --target=whole-review-target -> /architecture-review --report-only -> /domain-entities-review --report-only -> /performance-review --report-only -> /integration-test-review --report-only --prove-tests -> /security-audit --report-only -> /production-readiness-review --report-only -> /ui-review --report-only -> /why-review --validate-findings -> /debug-investigate -> /fix --target=review -> /code-simplifier -> /why-review -> /experience-review -> /scan --target=domain-entities -> /docs-update -> /workflow-end -> /watzup
 
 Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-review-changes` with the user's prompt as context.
 
@@ -633,7 +633,7 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 >
 > **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
 >
-> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-review`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
+> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-audit`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
 >
 > **Required review note:** `context/scope | principle/protocol checked | evidence | status/verdict | severity | owner/route | next step/revisit trigger`.
 >
@@ -676,7 +676,7 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 | Evasion                                                       | Rebuttal                                                                                                                                                  |
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | "Small diff, run every specialist anyway"                     | Triage decides — an unneeded specialist costs time and tokens and adds nothing; skip it with its `skipReason` and evidence.                               |
-| "Risky change but only 2 files, skip the specialists"         | Risk escalates depth, not file count — a 2-file auth change still gets `/security-review`.                                                                |
+| "Risky change but only 2 files, skip the specialists"         | Risk escalates depth, not file count — a 2-file auth change still gets `/security-audit`.                                                                |
 | "Findings look right, fix them directly"                      | Validate first — a false positive fixed is a regression shipped.                                                                                          |
 | "I already know what I fixed, skip re-review"                 | Orchestrator confirmation bias — re-read the settled whole target from scratch INLINE.                                                                    |
 | "Post-fix re-review can reuse `--validate-findings`"          | No — validation re-checks a findings list; the post-fix pass must run FULL mode over the whole target.                                                    |

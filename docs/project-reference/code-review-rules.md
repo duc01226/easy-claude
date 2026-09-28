@@ -126,7 +126,7 @@ description: '...' # Include trigger keywords for discoverability
 ---
 ```
 
-`name` and `description` identify and route the skill; this repository also versions its skills. Add only metadata supported by the skill's behavior and project conventions, such as `execution-mode`, `context-budget`, or `disable-model-invocation` (`.claude/skills/scan/SKILL.md:1-5`; `.claude/skills/code-review/SKILL.md:1-7`; `.claude/skills/design/SKILL.md:1-6`; `docs/project-config.json:18-21`).
+`name` and `description` identify and route the skill; this repository also versions its skills. Add only metadata supported by the skill's behavior and project conventions, such as `execution-mode`, `context-budget`, or `disable-model-invocation` (`.claude/skills/scan/SKILL.md:1-5`; `.claude/skills/code-quality-review/SKILL.md:1-7`; `.claude/skills/ui-design/SKILL.md:1-6`; `docs/project-config.json:18-21`).
 
 ### Naming Rules
 
@@ -353,7 +353,7 @@ If any of these are detected during review, the review must flag them as **CRITI
 ## Cross-Reference
 
 - **Read by:** review skills and agents through the project-reference-docs gate in `CLAUDE.md`
-- **Consumed by:** `/code-review`, `/changes-review`, and the `code-reviewer` agent
+- **Consumed by:** `/code-quality-review`, `/changes-review`, and the `code-reviewer` agent
 - **Canonical shared protocol source:** `.claude/skills/shared/sync-inline-versions.md`
 - **Hookless protocol composer:** `.claude/scripts/lib/hookless-prompt-protocol.cjs`
 - **Hook docs:** `.claude/docs/hooks/README.md`, `.claude/docs/hooks/extending-hooks.md`, `.claude/docs/hooks/architecture.md`

@@ -14,7 +14,7 @@ const expectedApplicability = {
   skipReason: "This scope has no commercial market to size (for example, an internal tool, migration, or infrastructure-only change), or this product's addressable market is already sized and unchanged by this feature.",
 };
 const expectedSequence = [
-  "idea", "web-research", "deep-research", "market-analysis", "business-evaluation",
+  "idea", "web-research", "source-deep-dive", "market-analysis", "business-evaluation",
   "spec-discovery", "domain-analysis", "why-review", "tech-stack-research", "architecture-design",
   "architecture-scalability-review", "why-review", "scenario", "plan", "plan-review",
   "refine", "artifact-review --type=pbi", "story", "artifact-review --type=story", "pbi-challenge",
@@ -111,7 +111,7 @@ test("market-analysis parity, consumer obligations, and all workflow steps stay 
   assert.equal(skill.split(when).length - 1, 1);
   assert.equal(skill.split(skipReason).length - 1, 1);
   assert.match(skill, /every market-sizing figure N\/A with the exact skip reason/i);
-  assert.match(skill, /never waives `\/web-research`, `\/deep-research`.*required user confirmations/i);
+  assert.match(skill, /never waives `\/web-research`, `\/source-deep-dive`.*required user confirmations/i);
   assert.match(evaluationSkill, /mark every market-sizing figure.*N\/A with that reason/i);
   assert.match(evaluationSkill, /NEVER re-derive sizing/);
   assert.match(workflow.preActions.injectContext, /EVERY research stage requires AskUserQuestion validation before proceeding/);

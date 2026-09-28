@@ -8,7 +8,7 @@ Sub-agents under ``.claude/agents/*.md`` are wired into block *body* sync
 ``inject_*`` coverage campaigns only ever targeted *skills*. Result: every
 agent carries the same generic baseline and ZERO role-specific rigor -- the
 flagship ``code-reviewer`` agent had none of the 14 review-quality blocks its
-twin ``code-review`` / ``changes-review`` skills carry. This module is the
+twin ``code-quality-review`` / ``changes-review`` skills carry. This module is the
 manifest that closes that gap: per-agent, which QUALITY blocks to ADD.
 
 POLICY: QUALITY propagates, ORCHESTRATION does not
@@ -215,7 +215,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-protocol-injection", "bug-detection", "complexity-prevention",
         "design-patterns-quality", "rationalization-prevention",
         "graph-assisted-investigation", "source-test-drift-check", "test-spec-verification",
-        # wave 2 (twin: code-review / changes-review)
+        # wave 2 (twin: code-quality-review / changes-review)
         "trade-off-interrogation-gate", "cross-stack-impact-trace", "spec-drift-adjudication",
         "integration-test-sync-check",
         # wave 3 (twin: changes-review Phase 3.8 -- domain entity gate)
@@ -244,7 +244,7 @@ AGENT_QUALITY_BLOCKS = {
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
         "fresh-context-review", "graph-assisted-investigation", "incremental-persistence",
         "source-test-drift-check",
-        # wave 2 (twin: security-review)
+        # wave 2 (twin: security-audit)
         "trade-off-interrogation-gate", "double-round-trip-review",
         "review-principle-awareness",
     ],
@@ -380,16 +380,16 @@ AGENT_QUALITY_BLOCKS = {
         "design-patterns-quality", "severity-rubric", "systematic-review-batching",
         "category-review-thinking", "double-round-trip-review", "fresh-context-review",
         "source-test-drift-check", "graph-assisted-investigation",
-        # wave 2 (twin: ui-review / design / design-spec)
+        # wave 2 (twin: ui-review / ui-design / design-spec)
         "trade-off-interrogation-gate", "ui-intent-layer", "existing-ui-research",
-        # UI/UX design principles -- 40 clauses (twin: ui-review / design / design-spec)
+        # UI/UX design principles -- 40 clauses (twin: ui-review / ui-design / design-spec)
         "ui-ux-design-principles",
-        # Visual IDENTITY, the question the 40 usability clauses do not ask (twin: design /
+        # Visual IDENTITY, the question the 40 usability clauses do not ask (twin: ui-design /
         # design-spec / ui-review). This agent AUTHORS the direction, so it owns both the
         # design plan + generic test (DD-3) and the interface voice.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
         "review-principle-awareness",
-        # Journey-first order (twin: design / design-spec / pbi-mockup / ui-review): this agent
+        # Journey-first order (twin: ui-design / design-spec / pbi-mockup / ui-review): this agent
         # is where a brief turns into a surface, so it must report the main user journeys and
         # read the project's design authority BEFORE it generates anything.
         "ux-journey-gate",
@@ -481,11 +481,11 @@ AGENT_QUALITY_BLOCKS = {
 AGENT_SKILL_CONNECTIONS = {
     "architect": [
         "architecture-design", "architecture-review", "architecture-scalability-review",
-        "architecture-review-full", "security-review", "performance-review",
+        "architecture-review-full", "security-audit", "performance-review",
     ],
     "backend-developer": ["feature-implement", "fix"],
     "code-reviewer": [
-        "code-review", "changes-review", "architecture-review-full", "seed-test-data", "ui-review",
+        "code-quality-review", "changes-review", "architecture-review-full", "seed-test-data", "ui-review",
     ],
     "code-simplifier": ["code-simplifier"],
     "database-admin": ["db-migrate", "seed-test-data"],
@@ -493,7 +493,7 @@ AGENT_SKILL_CONNECTIONS = {
     "docs-manager": ["docs-update"],
     "e2e-runner": ["e2e-test", "workflow-e2e"],
     "framework-maintainer": ["custom-agent", "skill-creator", "sync-skills-shared-protocols"],
-    "frontend-developer": ["feature-implement", "design"],
+    "frontend-developer": ["feature-implement", "ui-design"],
     "fullstack-developer": ["feature-implement"],
     "git-manager": ["commit"],
     "integration-tester": [
@@ -506,14 +506,14 @@ AGENT_SKILL_CONNECTIONS = {
     "performance-optimizer": ["performance-review"],
     "planner": ["plan", "plan-review"],
     "researcher": ["web-research"],
-    "security-auditor": ["security-review"],
+    "security-auditor": ["security-audit"],
     "solution-architect": [
         "architecture-design", "scaffold", "harness-setup",
         "workflow-greenfield-init", "tech-stack-research",
     ],
     "spec-compliance-reviewer": ["artifact-review", "spec", "spec-clarify"],
     "tester": ["test"],
-    "ui-ux-designer": ["design", "design-spec", "ui-review"],
+    "ui-ux-designer": ["ui-design", "design-spec", "ui-review"],
 }
 
 # The test-architecture contract is intentionally connected across the full

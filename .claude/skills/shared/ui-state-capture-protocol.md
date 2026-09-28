@@ -169,7 +169,7 @@ It is a run-scoped derived projection of configured owner/case/test carriers and
 - `docs/project-config.json` → `designSystem.canonicalDoc`, `tokenFiles`, `appMappings[]`
 - the resolved design-system doc, `frontend-patterns-reference.md`, `configured styling reference`
 - `.claude/docs/design-knowledge.md` (`DD-1`–`DD-8`) and `.claude/docs/design-review-checklist.md` (`CL-1`–`CL-6`, `P0`–`P4`)
-- the governing brief, spec, or accepted `/design` decision for the surface
+- the governing brief, spec, or accepted `/ui-design` decision for the surface
 
 Record which authority files resolved and which were absent. **Precedence:** brief/accepted design contract → project design-system, SCSS, frontend docs and ADRs → shared `UI-*`/`DD-*`/`CL-*`. A repo-wide convention is an intentional identity, never a distinctiveness finding. A genuine conflict goes to the user with both sides — never resolved silently.
 

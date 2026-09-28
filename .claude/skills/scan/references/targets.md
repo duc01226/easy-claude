@@ -407,7 +407,7 @@ Use the selected project's declared sections. If none are declared, document evi
 ## Target: code-review-rules
 
 - **doc:** `<ref>/code-review-rules.md`
-- **applies when:** project source and at least one real quality signal exist (tests, lint/format/type checks, CI, architecture rules, or code-review docs).
+- **applies when:** project source and at least one real quality signal exist (tests, lint/format/type checks, CI, architecture rules, or code-quality-review docs).
 - **skip when:** no code or project-owned quality signal exists from which local review guidance can be evidenced.
 - **description:** `[Documentation] Use when recording project-specific code-review checks and evidence-backed quality rules.`
 - **sub-agents:** up to 3 conditional branches — server/data code, UI/client code, and cross-cutting architecture/quality controls. Route only branches evidenced by the project; no language or app type is assumed.

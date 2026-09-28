@@ -421,7 +421,7 @@ the carrying cost is noise and slow builds, and the result is people learning to
 One well-configured enforcing check per class beats three advisory ones.
 
 **Depth owner:** `linter-setup` (selection and configuration), `SYNC:harness-setup` (feedforward vs
-feedback control design), `security-review` (dependency/supply-chain and secret depth).
+feedback control design), `security-audit` (dependency/supply-chain and secret depth).
 
 ---
 

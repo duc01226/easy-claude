@@ -25,7 +25,7 @@ disable-model-invocation: true
 
 - opencode has **no shell-command hook system** — hooks are JavaScript plugin callbacks. This skill compiles `.claude/settings.json` into a bridge plugin whose runtime drives the original Claude hooks from opencode's plugin events.
 - **Recommended opencode config is part of the framework.** `.opencode/opencode.recommended.json` is the single source of truth for the framework's opencode defaults; the `config` stage deep-merges it into the project-root `opencode.json` (recommended keys win, project-only keys survive).
-- Scope is **hooks + recommended config + skill permissions + the sub-agent mirror**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `$sync-codex`). opencode ignores `disable-model-invocation`, so the `skills` stage enforces the selection policy through `permission.skill` in the project-root `opencode.json` instead, and writes a `.opencode/commands/<name>.md` per hidden skill so its explicit `/name` keeps working — see [Skill permissions](#skill-permissions). Sub-agents are NOT auto-discovered, so `.claude/agents/*.md` IS mirrored into `.opencode/agent/*.md` by the `agents` stage — that is what lets the workflow protocols dispatch the same specialists (`architect`, `code-reviewer`, `security-auditor`, …) on opencode.
+- Scope is **hooks + recommended config + skill permissions + the sub-agent mirror**. opencode already auto-discovers skills from `.claude/skills` and `.agents/skills`, so there is **no skill mirroring** here (unlike `/sync-codex`). opencode ignores `disable-model-invocation`, so the `skills` stage enforces the selection policy through `permission.skill` in the project-root `opencode.json` instead, and writes a `.opencode/commands/<name>.md` per hidden skill so its explicit `/name` keeps working — see [Skill permissions](#skill-permissions). Sub-agents are NOT auto-discovered, so `.claude/agents/*.md` IS mirrored into `.opencode/agent/*.md` by the `agents` stage — that is what lets the workflow protocols dispatch the same specialists (`architect`, `code-reviewer`, `security-auditor`, …) on opencode.
 - Keep `.claude` canonical: edit `.claude/settings.json` / `.claude/hooks/**` and re-run this pipeline; never hand-edit the generated `.opencode/plugins/easy-claude-hooks.js`.
 - To change a default opencode setting, edit `.opencode/opencode.recommended.json`, then re-run this pipeline to propagate it into the root config of every project the `.opencode/` folder is copied into.
 - The legacy hand-written `.opencode/plugins/notification.js` is superseded by the generated bridge; the runner backs it up under `tmp/opencode-legacy/` and removes it so notifications are not sent twice.
@@ -75,7 +75,7 @@ reconciles them into whatever project the `.opencode/` folder is copied into.
 | **Generated target (never hand-edit for defaults)** | `<project-root>/opencode.json` |
 | Writer / verifier | `.claude/scripts/opencode/sync-config.mjs` (`--check` for verify) |
 
-> **To change a default recommended opencode setting in the future, edit `.opencode/opencode.recommended.json`** and re-run `$sync-opencode`. Every project that receives the `.opencode/` folder then gets the updated default the next time the pipeline runs. The recommended file is deliberately NOT named `.opencode/opencode.json` because opencode auto-loads that path as project config — keeping the `.recommended.json` name makes it a template, not an active config.
+> **To change a default recommended opencode setting in the future, edit `.opencode/opencode.recommended.json`** and re-run `/sync-opencode`. Every project that receives the `.opencode/` folder then gets the updated default the next time the pipeline runs. The recommended file is deliberately NOT named `.opencode/opencode.json` because opencode auto-loads that path as project config — keeping the `.recommended.json` name makes it a template, not an active config.
 
 **Merge semantics:** the writer deep-merges the recommended defaults into the existing root `opencode.json`. Recommended keys win at every leaf; object keys that exist only in the project survive untouched; arrays in the recommended file replace the project's array. A project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
 
@@ -117,7 +117,7 @@ Two traps for anyone setting their own `limit`, both verified against the releas
   reporting, and the `limits` handed to the AI SDK. Capping `input` while leaving `context`
   at 1M shows ~48% in the TUI at the moment it compacts.
 
-**Copying the framework into a new project:** copy `.claude/` and `.opencode/` (including `.opencode/opencode.recommended.json`), then run `$sync-opencode` — it generates/updates that project's root `opencode.json`, bridge plugin, and reports. Do NOT copy `.opencode/skill-permissions.generated.json` or `.opencode/commands/`: both are generated per project by the `skills` stage, and a copied ledger is ignored anyway because it names the other project — why: a ledger from another project would otherwise claim the adopter's own `permission.skill` entries.
+**Copying the framework into a new project:** copy `.claude/` and `.opencode/` (including `.opencode/opencode.recommended.json`), then run `/sync-opencode` — it generates/updates that project's root `opencode.json`, bridge plugin, and reports. Do NOT copy `.opencode/skill-permissions.generated.json` or `.opencode/commands/`: both are generated per project by the `skills` stage, and a copied ledger is ignored anyway because it names the other project — why: a ledger from another project would otherwise claim the adopter's own `permission.skill` entries.
 
 ## Skill permissions
 
@@ -273,7 +273,7 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs --skip=hooks
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act, never guess.
 
-**MUST ATTENTION** keep the `$sync-opencode` skill user-invoked-only; no unrelated skill, agent, or workflow may auto-run the mutating pipeline.
+**MUST ATTENTION** keep the `/sync-opencode` skill user-invoked-only; no unrelated skill, agent, or workflow may auto-run the mutating pipeline.
 **MUST ATTENTION** edit `.claude/settings.json` and `.claude/hooks/**` as the source, then regenerate; NEVER hand-edit `.opencode/plugins/easy-claude-hooks.js`
 **MUST ATTENTION** the framework's default opencode settings live in `.opencode/opencode.recommended.json` — edit THAT file to change defaults, then re-run this pipeline; never treat a project-root `opencode.json` as the source
 **MUST ATTENTION** the generated plugin must import only `node:` built-ins so `.claude`/`.opencode` stay portable into any project

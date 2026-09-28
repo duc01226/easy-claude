@@ -95,7 +95,7 @@ This reference records the limited CSS assets now and remains the output locatio
 
 easy-claude includes skill definitions that guide SCSS work in **other** projects — not in this repository:
 
-- **Skills:** `/design`, `/design-spec`, `/web-design-guidelines`
+- **Skills:** `/ui-design`, `/design-spec`, `/web-design-guidelines`
 - **Shared protocol blocks:** `SYNC:ui-system-context` and `SYNC:design-system-check` are defined in `.claude/skills/shared/sync-inline-versions.md:207,1239`; consuming skills inline them.
 - **Scan skill:** `/scan --target=scss-styling` — run this after adopting easy-claude into a project that uses SCSS to populate this file with mixins, variables, theming conventions, and responsive breakpoints.
 

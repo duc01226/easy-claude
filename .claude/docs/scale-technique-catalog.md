@@ -36,7 +36,7 @@
 
 ## 1 · Traffic & Edge
 
-Owning depth: **security-review** (WAF/DDoS/CORS boundary), **production-readiness-review** (edge posture).
+Owning depth: **security-audit** (WAF/DDoS/CORS boundary), **production-readiness-review** (edge posture).
 
 | Technique       | Warranting signal                                        | Min tier | Over-engineering caveat                                  |
 | --------------- | -------------------------------------------------------- | -------- | -------------------------------------------------------- |
@@ -174,7 +174,7 @@ Owning depth: **production-readiness-review**.
 
 ## 9 · Security & Compliance
 
-Owning depth: **security-review** (OWASP + secrets + boundary).
+Owning depth: **security-audit** (OWASP + secrets + boundary).
 
 | Technique             | Warranting signal                 | Min tier | Over-engineering caveat                                             |
 | --------------------- | --------------------------------- | -------- | ------------------------------------------------------------------- |

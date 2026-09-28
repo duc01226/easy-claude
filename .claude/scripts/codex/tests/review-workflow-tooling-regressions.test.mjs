@@ -48,7 +48,7 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review valida
                             sequence: [
                                 'changes-review',
                                 'why-review',
-                                'security-review',
+                                'security-audit',
                                 'why-review',
                                 'docs-update'
                             ]
@@ -66,7 +66,7 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review valida
             [
                 '# Workflow Test',
                 '',
-                '**Steps:** /changes-review -> /why-review -> /security-review -> /why-review -> /docs-update',
+                '**Steps:** /changes-review -> /why-review -> /security-audit -> /why-review -> /docs-update',
                 ''
             ].join('\n'),
             'utf8'
@@ -81,13 +81,13 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review valida
         );
         assert.deepEqual(
             workflowConfig.workflows['changes-review'].sequence,
-            ['changes-review', 'why-review', 'security-review', 'docs-update'],
+            ['changes-review', 'why-review', 'security-audit', 'docs-update'],
             'sweep must preserve changes-review -> why-review while removing a redundant control pair'
         );
 
         const skillText = normalizeEol(await fs.readFile(path.join(tempSkillDir, 'SKILL.md'), 'utf8'));
-        assert.match(skillText, /\/changes-review -> \/why-review -> \/security-review -> \/docs-update/);
-        assert.doesNotMatch(skillText, /\/security-review -> \/why-review/);
+        assert.match(skillText, /\/changes-review -> \/why-review -> \/security-audit -> \/docs-update/);
+        assert.doesNotMatch(skillText, /\/security-audit -> \/why-review/);
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
     }
@@ -132,8 +132,8 @@ test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and 
     assert.doesNotMatch(combined, /`performance`, `integration-test-review`, `security`/);
     assert.doesNotMatch(combined, /Agent\(security,/);
     assert.doesNotMatch(combined, /subagent_type(?:`|":\s*)\s*`?code-reviewer`?[^.\n]*Steps 3[–-]7/);
-    assert.match(combined, /`performance-review`, `integration-test-review`, `security-review`/);
-    assert.match(combined, /Agent\(security-review, subagent_type="security-auditor"/);
+    assert.match(combined, /`performance-review`, `integration-test-review`, `security-audit`/);
+    assert.match(combined, /Agent\(security-audit, subagent_type="security-auditor"/);
     assert.match(combined, /Agent\(architecture-review, subagent_type="architect"/);
 });
 

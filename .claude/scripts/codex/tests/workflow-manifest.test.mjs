@@ -228,10 +228,10 @@ test("variants: shipped research/spec/visualize workflows resolve every complete
   const registry = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.json"), "utf8"));
   const expected = {
     "workflow-research": {
-      synthesis: ["web-research", "deep-research", "knowledge-synthesis", "knowledge-review", "workflow-end", "watzup"],
-      "business-eval": ["web-research", "deep-research", "market-analysis", "business-evaluation", "knowledge-review", "workflow-end", "watzup"],
-      marketing: ["web-research", "deep-research", "market-analysis", "strategy-builder", "knowledge-review", "workflow-end", "watzup"],
-      course: ["web-research", "deep-research", "course-builder", "knowledge-review", "workflow-end", "watzup"]
+      synthesis: ["web-research", "source-deep-dive", "knowledge-synthesis", "knowledge-review", "workflow-end", "watzup"],
+      "business-eval": ["web-research", "source-deep-dive", "market-analysis", "business-evaluation", "knowledge-review", "workflow-end", "watzup"],
+      marketing: ["web-research", "source-deep-dive", "market-analysis", "strategy-builder", "knowledge-review", "workflow-end", "watzup"],
+      course: ["web-research", "source-deep-dive", "course-builder", "knowledge-review", "workflow-end", "watzup"]
     },
     "workflow-code-to-spec": {
       "init-full": ["investigate", "plan", "plan-review", "plan-validate", "spec [mode=init]", "spec [mode=tests]", "artifact-review --type=spec-tests", "artifact-review", "docs-update", "workflow-end", "watzup"],
@@ -240,7 +240,7 @@ test("variants: shipped research/spec/visualize workflows resolve every complete
     },
     "workflow-visualize": {
       codebase: ["investigate", "excalidraw-diagram", "workflow-end", "watzup"],
-      knowledge: ["web-research", "deep-research", "excalidraw-diagram", "workflow-end", "watzup"]
+      knowledge: ["web-research", "source-deep-dive", "excalidraw-diagram", "workflow-end", "watzup"]
     }
   };
   for (const [workflowId, modes] of Object.entries(expected)) {

@@ -341,7 +341,7 @@ UI convention sources and cite which resolved: `docs/project-config.json`
 → `designSystem.canonicalDoc`, `tokenFiles`, `appMappings[]`; the resolved
 design-system doc, `frontend-patterns-reference.md`, `configured styling reference`;
 `.claude/docs/design-knowledge.md` and `.claude/docs/design-review-checklist.md`;
-and the governing brief or accepted `$design` decision. Judging a design from
+and the governing brief or accepted `$ui-design` decision. Judging a design from
 memory is how a deliberate house convention gets reported as a bug — and a
 sub-agent inherits none of this from the calling conversation.
 
@@ -719,7 +719,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

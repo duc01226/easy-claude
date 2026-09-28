@@ -243,7 +243,7 @@ const tests = [
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'other-skill' }))));
             fx.append(toolUse('Skill', { skill: 'ui-review' }));
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'skill-tool' })), '');
-            fs.writeFileSync(fx.transcript, `${JSON.stringify({ type: 'user', timestamp: new Date(NOW - MINUTE).toISOString(), message: { content: '<command-name>/design</command-name>' } })}\n`);
+            fs.writeFileSync(fx.transcript, `${JSON.stringify({ type: 'user', timestamp: new Date(NOW - MINUTE).toISOString(), message: { content: '<command-name>/ui-design</command-name>' } })}\n`);
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'slash' })), '');
         })
     },

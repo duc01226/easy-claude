@@ -652,7 +652,7 @@ test('a manual-only skill whose own openai.yaml allows implicit invocation fails
 // repo's own skill defaults, which an adopting project may change (PORT-011 is the guard's tripwire).
 const COMMAND_ONLY_UTILITIES = [
     'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
-    'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-notes',
+    'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
     'git-developer-performance', 'skill-creator', 'scan-codebase-health', 'graph-export',
     'ck-help', 'project-help', 'custom-prompt',
 ];
@@ -877,13 +877,13 @@ test('TC-ADS-024 without a skill profile the Codex policy files are exactly the 
 });
 
 test('TC-ADS-045 hiding a called skill is refused before any mirror file is written unless allowHidingCalledSkills is set', async () => {
-    const refusal = /skill-profile: refusing to hide security-review \(commandOnly\): started by workflow workflow-review-changes; set skillProfile\.allowHidingCalledSkills: true to allow/;
+    const refusal = /skill-profile: refusing to hide security-audit \(commandOnly\): started by workflow workflow-review-changes; set skillProfile\.allowHidingCalledSkills: true to allow/;
     const fixture = allow => ({
-        skills: { 'security-review': [], 'workflow-review-changes': [] },
-        workflows: { 'workflow-review-changes': { sequence: ['security-review'] } },
-        skillProfile: { commandOnly: ['security-review'], ...(allow ? { allowHidingCalledSkills: true } : {}) }
+        skills: { 'security-audit': [], 'workflow-review-changes': [] },
+        workflows: { 'workflow-review-changes': { sequence: ['security-audit'] } },
+        skillProfile: { commandOnly: ['security-audit'], ...(allow ? { allowHidingCalledSkills: true } : {}) }
     });
-    // Given security-review is a workflow step and the profile makes it commandOnly, with no opt-in
+    // Given security-audit is a workflow step and the profile makes it commandOnly, with no opt-in
     await withProfileFixture('codex-profile-refused-', fixture(false), async ({ tempRoot, sync, write }) => {
         // When the Codex mirror is generated, Then it exits non-zero with the resolver's message
         await assert.rejects(sync(), error => {
@@ -917,10 +917,10 @@ test('TC-ADS-045 hiding a called skill is refused before any mirror file is writ
     await withProfileFixture('codex-profile-optin-', fixture(true), async ({ sync, policy }) => {
         // When the Codex mirror is generated
         const { stdout } = await sync();
-        // Then security-review is hidden from implicit invocation and one warning line names it
-        assert.match((await policy('security-review')) ?? '', IMPLICIT_OFF);
-        assert.match(await policy('security-review'), /skillProfile\.commandOnly/);
-        assert.equal(profileLines(stdout).filter(line => line.includes('hiding called skill security-review')).length, 1);
+        // Then security-audit is hidden from implicit invocation and one warning line names it
+        assert.match((await policy('security-audit')) ?? '', IMPLICIT_OFF);
+        assert.match(await policy('security-audit'), /skillProfile\.commandOnly/);
+        assert.equal(profileLines(stdout).filter(line => line.includes('hiding called skill security-audit')).length, 1);
     });
 });
 

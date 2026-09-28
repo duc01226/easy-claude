@@ -78,7 +78,7 @@ docs/                                      # Project-owned documentation
 │   └── workflow-spec-test-code-cycle-reference.md
 ├── release/                               # Release history
 │   └── release-notes-2026-03-15-to-2026-04-14.md
-├── release-notes/                         # Release-notes skill outputs (+ HTML renders)
+├── release-notes/                         # Release-doc skill outputs (+ HTML renders)
 │   ├── release-notes-d0e5d0cc.html
 │   ├── release-notes-d0e5d0cc.md
 │   ├── release-notes-unreleased-2026-09-26.html

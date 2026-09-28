@@ -24,7 +24,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - Two gates are NON-OPTIONAL: validate the problem hypothesis (Phase 3) before building, and run the 3-5 question validation interview (Phase 7) before writing the PBI — the user decides assumptions, scope, and dependencies, never the AI.
 - Acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the AI-SDD M1-M5 and M7 gate (Phase 5.1): tech-agnostic Business Intent, logical FR-/BR- IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, and every AC demoable as a business outcome (M7).
 - Estimate twice: Phase 6 drafts story points/man-days against draft scope, then Phase 7.5 RE-DERIVES them against the locked post-interview scope (per SYNC:estimation-framework) — shipping stale Phase 6 numbers is the cardinal failure.
-- The PBI frontmatter MUST carry `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, and every PBI MUST include a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`).
+- The PBI frontmatter MUST carry `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, and every PBI MUST include a complete Dependencies table with Dependency, Type (`must-before`/`can-parallel`/`blocked-by`/`independent`) and Status columns.
 - Apply `isLargeIdea = multipleIndependentOutcomes || ambiguousOrResearchHeavy || releaseScopeDecomposition || oversizedPbiThatMustSplit` before elicitation. When true, the owning PBI MUST carry the complete `large_idea_decomposition` block (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, and `deferred_work_owner`) and every slice must be independently releasable. Do not create the product-roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path) by default; use the standalone roadmap branch only for an explicit roadmap request. All-false ideas omit roadmap/milestone placeholders. An existing roadmap is read-only context.
 - Every generated PBI MUST be one independently releasable, actor-facing business outcome with a complete demonstrable journey. Technical-only, foundation-only, migration-only, or setup-only work belongs as enabling tasks/dependencies under a releasable PBI, never as a standalone PBI. Read `.claude/skills/shared/releasable-pbi-contract.md`.
 - For UI PBIs, the outcome MUST include the page/view inventory, navigation map, component inventory, applicable states, and full-flow demo journey required for a mock app outcome; one isolated screen is insufficient.
@@ -54,7 +54,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 - Validation interview NOT optional — always ask 3-5 questions
 - Use project domain-specific vocabulary when available
 - MUST ATTENTION include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` in PBI frontmatter
-- Every PBI MUST ATTENTION include Dependencies table — types: `must-before` | `can-parallel` | `blocked-by` | `independent`
+- Every PBI MUST ATTENTION include Dependencies table — columns Dependency, Type, Status; types: `must-before` | `can-parallel` | `blocked-by` | `independent`
 - Every generated PBI MUST ATTENTION pass the Releasable Outcome Gate: one actor-facing outcome, complete entry-to-result journey, observable evidence, and no standalone technical/foundation scope.
 - UI PBIs MUST ATTENTION define the full-flow surface: all required pages/views, navigation, reusable/domain/page components, applicable states, and a demo journey. A single screen is not a releasable UI PBI.
 - The business spec root (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) — read existing TCs for related features; recommend test spec generation for new PBIs
@@ -558,12 +558,14 @@ Then error "{message}"
 
 ## Dependencies
 
-| Dependency            | Type         | Description                    |
-| --------------------- | ------------ | ------------------------------ |
-| {PBI/service/feature} | must-before  | {Why this must be done first}  |
-| {PBI/service/feature} | can-parallel | {Why this can run in parallel} |
-| {PBI/service/feature} | blocked-by   | {What blocks this PBI}         |
-| -                     | independent  | {No dependencies — first item} |
+| Dependency            | Type         | Status           | Description                    |
+| --------------------- | ------------ | ---------------- | ------------------------------ |
+| {PBI/service/feature} | must-before  | done             | {Why this must be done first}  |
+| {PBI/service/feature} | can-parallel | refined, same PR | {Why this can run in parallel} |
+| {PBI/service/feature} | blocked-by   | not started      | {What blocks this PBI}         |
+| -                     | independent  | n/a              | {No dependencies — first item} |
+
+> **Status** = the dependency's current state, e.g. `done` · `in progress` · `not started` · `refined, same PR`; `n/a` only for an `independent` row. `/dor-gate` criterion 8 requires Dependency, Type and Status.
 
 ## Production Readiness Concerns
 
@@ -676,7 +678,7 @@ Then error "{message}"
 
 ## Key Rules
 
-- **Every PBI MUST ATTENTION include Dependencies table** — types: `must-before`, `can-parallel`, `blocked-by`, `independent`. Enables `/prioritize` and `/plan` to respect ordering.
+- **Every PBI MUST ATTENTION include Dependencies table** — columns Dependency, Type, Status; types: `must-before`, `can-parallel`, `blocked-by`, `independent`. Status records the dependency's current state (`done` / `in progress` / `not started` / `refined, same PR`). Enables `/prioritize` and `/plan` to respect ordering.
 - **No vague dependency descriptions** — Each dependency must specify concrete PBI, service, or feature and WHY relationship exists.
 - **Every generated PBI MUST ATTENTION be a releasable actor-facing outcome** with a complete entry-to-result journey and evidence. Technical-only, foundation-only, migration-only, and setup-only work is enabling work under a releasable PBI, never a standalone PBI.
 - **UI PBIs MUST ATTENTION include the full-flow surface** — all required pages/views, navigation, common/domain/page components, applicable states, and the demo journey. One screen or a disconnected screen set is not enough.
@@ -704,7 +706,7 @@ Then error "{message}"
 - [ ] (UI PBIs) Design spec linked — `/design-spec` artifact or inline UI specs present in `## UI Layout`; backend-only PBIs exempt (`N/A — Backend-only`)
 - [ ] AI pre-review passed (`/artifact-review --type=pbi` or `/pbi-challenge`)
 - [ ] Story points estimated by AI
-- [ ] Dependencies table complete
+- [ ] Dependencies table complete (Dependency · Type · Status)
 - [ ] Releasable Outcome Gate passed — one actor-facing outcome, complete journey, no standalone technical-only scope
 - [ ] (UI PBIs) Full-flow surface complete — page/view inventory, navigation, components, states, and demo journey; backend-only records an explicit reason
 
@@ -856,7 +858,7 @@ For domain PBIs: detect module from the directory names under the business spec 
 - **MANDATORY IMPORTANT MUST ATTENTION** apply the shared four-signal `isLargeIdea` rule before PBI elicitation; when true, require and propagate the complete five-field `large_idea_decomposition` block and stable slice IDs, then run conditional scenario analysis where needed. Only an explicit roadmap request uses the product-roadmap artifact (default `docs/product-roadmap.md`; path from `docsRoots.productRoadmap.path` in `docs/project-config.json`); ordinary ideas must not create it, and ambiguous product intent is BLOCKED rather than inferred.
 - **IMPORTANT MUST ATTENTION** acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the Phase 5.1 AI-SDD M1-M5 and M7 gate — tech-agnostic Business Intent, logical `FR-`/`BR-` IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, every AC demoable as a business outcome — why: a reader who must guess a rule/limit/role re-implements the wrong behavior
 - **IMPORTANT MUST ATTENTION** apply the M7 demo test to every AC's BODY — _"what would a stakeholder SEE change?"_; no answer → TECHNICAL-ONLY, drop it. FAIL a `WHEN` that is an invocation (handler runs, consumer receives, job fires, data syncs) or a `THEN` asserting schema/type/nullability/call-count; NEVER derive the AC count from an architecture inventory — why: M1 governs vocabulary, M7 governs subject matter — a technical AC in tech-free prose passes M1 and still rots the PBI
-- **IMPORTANT MUST ATTENTION** every PBI MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` frontmatter AND a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`) — fill even when `independent`
+- **IMPORTANT MUST ATTENTION** every PBI MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` frontmatter AND a complete Dependencies table with Dependency, Type (`must-before`/`can-parallel`/`blocked-by`/`independent`) and Status columns — fill even when `independent`
 - **IMPORTANT MUST ATTENTION** keep PBI Business Intent prose tech-agnostic — NO framework/product/language/design-pattern names; implementation hints go ONLY in `## Implementation Notes`, source refs ONLY in `[Source: namespace/service/id]` evidence carriers — why: a tech-leaked spec is not rebuildable on another stack (M1/M2)
 - **IMPORTANT MUST ATTENTION** greenfield mode: NEVER ask about tech stack during refinement — capture team skills/scale as signals only; tech decided after business analysis
 - **MANDATORY IMPORTANT MUST ATTENTION** before refining domain PBIs, read existing TCs in the business spec root and `domain-entities-reference.md` in the project-reference docs root (defaults `docs/specs/` and `docs/project-reference/`; `specRoots.business.path` / `docsRoots.projectReference.path` in `docs/project-config.json` override them); grep 3+ existing PBIs/specs for local conventions before authoring — why: project vocabulary and patterns override generic BABOK/INVEST defaults
@@ -873,7 +875,7 @@ For domain PBIs: detect module from the directory names under the business spec 
 | "Simple PBI, skip hypothesis validation"  | Wrong assumption wastes more time than validation check. Apply Phase 3 always. |
 | "Validation interview is optional here"   | NEVER optional — Phase 7 user decides assumptions, AI doesn't                  |
 | "Phase 6 estimate is fine, skip re-derive"| Phase 7.5 is MANDATORY — interview changed scope; stale numbers corrupt velocity |
-| "Skip Dependencies table, no blockers"    | Unknown blockers exist. Always fill table — even if `independent`              |
+| "Skip Dependencies table, no blockers"    | Unknown blockers exist. Always fill table (Dependency · Type · Status) — even if `independent` |
 | "Skip story points, just write ACs"       | `story_points`, `man_days_traditional`, `man_days_ai` mandatory in frontmatter |
 | "Add a stack hint, it clarifies the AC"   | Business Intent stays tech-agnostic (M1/M2) — hints go to `## Implementation Notes` only |
 | "Domain context not needed for small PBI" | Small PBIs touch entities. Read domain-entities-reference first                |

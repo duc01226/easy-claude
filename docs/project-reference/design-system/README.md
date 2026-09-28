@@ -87,7 +87,7 @@ This reference distinguishes current skill-local UI assets from an adopted appli
 
 easy-claude ships skill definitions and agents that produce design-system output for **other** projects — not for this repository:
 
-- **Skills:** `/design` (multi-mode/lane and local design intelligence), `/design-spec`, `/web-design-guidelines`
+- **Skills:** `/ui-design` (multi-mode/lane and local design intelligence), `/design-spec`, `/web-design-guidelines`
 - **Shared protocol blocks:** `SYNC:ui-system-context`, `SYNC:ui-wireframe-protocol`, and `SYNC:design-system-check` are defined in `.claude/skills/shared/sync-inline-versions.md:207,1172,1239`; consuming skills inline them.
 - **Agents:** `ui-ux-designer`, `frontend-developer`, `fullstack-developer`
 - **Scan skill:** `/scan --target=design-system` — run this after adopting easy-claude into a UI project to populate this file with actual design tokens, color palettes, and component inventories.

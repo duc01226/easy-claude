@@ -126,7 +126,7 @@ Ask of every change: **does this make the next change cheaper or more expensive?
 | Trigger (evidence) | Inline lens | Escalate to |
 | --- | --- | --- |
 | Behavior-bearing code | spec drift adjudication, test coverage | `$integration-test-review` (Phase 3.7) |
-| Auth, permissions, secrets, input handling, external data, dependencies, PII/money | enforcement on every path, negative tests, no secrets in diff | `$security-review --report-only` |
+| Auth, permissions, secrets, input handling, external data, dependencies, PII/money | enforcement on every path, negative tests, no secrets in diff | `$security-audit --report-only` |
 | Data access, loops over data, hot paths, caching, concurrency, render-heavy UI | N+1, unbounded queries, paging, allocation | `$performance-review --report-only` |
 | Cross-module change, new module/layer, public contract or dependency-direction change | layering, coupling, ADRs, backward compatibility of every caller | `$architecture-review --report-only` |
 | Domain entity / value-object / aggregate files | invariants, encapsulation (`SYNC:domain-entity-change-gate`) | `$domain-entities-review --report-only` (Phase 3.8) |
@@ -210,7 +210,7 @@ The report (`tmp/reports/changes-review-{date}-{slug}.md`) holds, in order: Revi
 | Skill | When | Why |
 | --- | --- | --- |
 | `$graph-blast-radius`, `$graph-trace` | `.code-graph/graph.db` exists | impact and risk order |
-| `$security-review`, `$performance-review`, `$architecture-review`, `$domain-entities-review`, `$production-readiness-review`, `$ui-review` — all `--report-only` | triggered dimension with material risk | specialist depth without a second fixer |
+| `$security-audit`, `$performance-review`, `$architecture-review`, `$domain-entities-review`, `$production-readiness-review`, `$ui-review` — all `--report-only` | triggered dimension with material risk | specialist depth without a second fixer |
 | `$integration-test-review --report-only` | behavior-bearing code | coverage map + assertion quality |
 | `$code-simplifier --report-only` | code changed | clarity/maintainability opportunities |
 | `$e2e-test-verify` (report-only) | positive E2E trigger | E2E quality gate |
@@ -1312,7 +1312,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
 >
-> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-review`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
+> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-audit`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
 >
 > **Required review note:** `context/scope | principle/protocol checked | evidence | status/verdict | severity | owner/route | next step/revisit trigger`.
 >
@@ -1347,7 +1347,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "Tiny diff, skip triage" | Triage on an XS diff takes a minute and is what licenses the lean path; a 2-file auth change still escalates to `$security-review`. |
+| "Tiny diff, skip triage" | Triage on an XS diff takes a minute and is what licenses the lean path; a 2-file auth change still escalates to `$security-audit`. |
 | "Big diff, run every specialist on everything" | Triage decides — spend specialist depth where the risk is, batch the rest, and verify mechanical churn by pattern. |
 | "Too many files, sample a few" | Never sample silently — every changed file is in the coverage ledger, reviewed or classified with evidence. |
 | "Finding is obvious, fix now" | Invoke `$why-review --validate-findings` first — unvalidated findings are not fixes. |
@@ -1403,7 +1403,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

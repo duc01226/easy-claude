@@ -44,7 +44,7 @@ SKILL_NAMES = [
     # Refactor / migration / scaffold
     "db-migrate", "scaffold",
     # Review family
-    "security-review", "code-review", "integration-test-review",
+    "security-audit", "code-quality-review", "integration-test-review",
     "knowledge-review", "architecture-review",
     "artifact-review", "changes-review", "domain-entities-review",
     "production-readiness-review", "architecture-review-full",
@@ -65,7 +65,7 @@ SKILL_NAMES = [
     "pbi-challenge", "pbi-mockup", "design-spec", "demo-guide",
     "feature-presentation", "excalidraw-diagram", "ui-review", "workflow-end",
     # Non-workflow skills that edit or explain project code/UI
-    "design", "understand", "tech-spec", "package-upgrade",
+    "ui-design", "understand", "tech-spec", "package-upgrade",
     "git-conflict-resolve", "web-design-guidelines",
 ]
 
@@ -76,7 +76,7 @@ EXEMPT_WORKFLOW_STEPS = {
     "spec": "own [BLOCKING] read gate for project-config, docs index, lessons and the spec doc set",
     "scan": "generator of the reference docs; validates project-config itself before scanning",
     "web-research": "external-source research; no project target files",
-    "deep-research": "external-source research; no project target files",
+    "source-deep-dive": "external-source research; no project target files",
     "knowledge-synthesis": "synthesizes external research into a report; no project target files",
     "market-analysis": "external market research; no project target files",
     "business-evaluation": "business viability report; no project target files",

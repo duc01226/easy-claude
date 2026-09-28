@@ -371,7 +371,7 @@ test("TC-ADS-060: a workflow called as another workflow's step keeps no entry un
   const root = await createProject({
     skills: { "workflow-review-changes": {}, "workflow-feature": {}, commit: { commandOnly: true } },
     workflows: {
-      "workflow-review-changes": wrapper(null, ["code-review"]),
+      "workflow-review-changes": wrapper(null, ["code-quality-review"]),
       "workflow-feature": wrapper(null, ["plan", "workflow-review-changes --fix-loop"]),
     },
     agents: { "git-manager": "commit" },
@@ -648,11 +648,11 @@ test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, a
   // Given three hidden skills, and an unmarked file with a generated-looking name (boundary: never
   // counted, changed or removed)
   const root = await createProject({
-    skills: { "pdf-convert": { commandOnly: true }, "docx-convert": { commandOnly: true }, "graph-export": { commandOnly: true }, "release-notes": {} },
+    skills: { "pdf-convert": { commandOnly: true }, "docx-convert": { commandOnly: true }, "graph-export": { commandOnly: true }, "release-doc": {} },
   });
   const lookalike = "Not generated: $ARGUMENTS\n";
   await fs.mkdir(path.join(root, COMMANDS_RELATIVE), { recursive: true });
-  await fs.writeFile(path.join(root, commandPath("release-notes")), lookalike, "utf8");
+  await fs.writeFile(path.join(root, commandPath("release-doc")), lookalike, "utf8");
 
   // When the sync runs twice, Then the second run writes nothing
   await materializeOpencodeSkills({ rootDir: root });
@@ -677,14 +677,14 @@ test("TC-ADS-062: commands are repeatable, --check catches edit/delete/unhide, a
   ]) {
     assert.ok(drift.reasons.includes(reason), `check lists: ${reason}`);
   }
-  assert.equal(drift.reasons.some((reason) => reason.includes("release-notes")), false, "the unmarked lookalike is never counted");
+  assert.equal(drift.reasons.some((reason) => reason.includes("release-doc")), false, "the unmarked lookalike is never counted");
 
   // When the sync runs, Then it repairs every drift and leaves the lookalike alone
   await materializeOpencodeSkills({ rootDir: root });
-  assert.deepEqual(await listCommands(root), ["docx-convert.md", "pdf-convert.md", "release-notes.md"]);
+  assert.deepEqual(await listCommands(root), ["docx-convert.md", "pdf-convert.md", "release-doc.md"]);
   assert.equal(await readText(root, commandPath("pdf-convert")), first["pdf-convert.md"], "the edited command is restored");
   assert.equal(await readText(root, commandPath("docx-convert")), first["docx-convert.md"], "the deleted command is restored");
-  assert.equal(await readText(root, commandPath("release-notes")), lookalike, "the lookalike is untouched");
+  assert.equal(await readText(root, commandPath("release-doc")), lookalike, "the lookalike is untouched");
   assert.equal((await checkOpencodeSkills({ rootDir: root })).ok, true);
 });
 
@@ -799,15 +799,15 @@ test("TC-ADS-024: without a skill profile the permission entries, ledger and com
 });
 
 test("TC-ADS-046: hiding a called skill is refused before any write unless allowHidingCalledSkills is set", async () => {
-  // Given security-review is a workflow step and the profile turns it off
+  // Given security-audit is a workflow step and the profile turns it off
   const spec = (allow) => ({
-    skills: { "security-review": { description: "Security review." }, "workflow-review-changes": {} },
-    workflows: { "workflow-review-changes": wrapper(null, ["security-review"]) },
-    projectConfig: profileConfig({ off: ["security-review"], ...(allow ? { allowHidingCalledSkills: true } : {}) }),
+    skills: { "security-audit": { description: "Security review." }, "workflow-review-changes": {} },
+    workflows: { "workflow-review-changes": wrapper(null, ["security-audit"]) },
+    projectConfig: profileConfig({ off: ["security-audit"], ...(allow ? { allowHidingCalledSkills: true } : {}) }),
     opencode: { theme: "dark" },
     files: { [PRESETS]: presetsText() },
   });
-  const refusal = /skill-profile: refusing to hide security-review \(off\): started by workflow workflow-review-changes; set skillProfile\.allowHidingCalledSkills: true to allow/;
+  const refusal = /skill-profile: refusing to hide security-audit \(off\): started by workflow workflow-review-changes; set skillProfile\.allowHidingCalledSkills: true to allow/;
   const root = await createProject(spec(false));
   const before = await readText(root, "opencode.json");
 
@@ -831,9 +831,9 @@ test("TC-ADS-046: hiding a called skill is refused before any write unless allow
   const result = await materializeOpencodeSkills({ rootDir: allowed });
 
   // Then deny and a command are written, and one warning line names the hidden skill
-  assert.equal((await readJson(allowed, "opencode.json")).permission.skill["security-review"], "deny");
-  assert.deepEqual(await listCommands(allowed), ["security-review.md"]);
-  assert.deepEqual(result.warnings.filter((line) => line.includes("hiding called skill security-review")).length, 1);
+  assert.equal((await readJson(allowed, "opencode.json")).permission.skill["security-audit"], "deny");
+  assert.deepEqual(await listCommands(allowed), ["security-audit.md"]);
+  assert.deepEqual(result.warnings.filter((line) => line.includes("hiding called skill security-audit")).length, 1);
   assert.deepEqual(result.skipped, [], "a profile entry the project opted into is not reported as skipped");
 });
 

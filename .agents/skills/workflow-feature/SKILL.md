@@ -148,7 +148,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 - gates awaiting user approval (`$spec-clarify`, `$plan-validate`, Plan Gate approval) are never parallelized;
 - `$workflow-end` runs last, then `$watzup`.
 
-Recommended: independent read-only work (for example `$spec-discovery` beside a code investigation) in one parallel wave; L/XL partitioned into bounded batches per module or slice with one report per batch; XS/S done inline. The nested review owns `$integration-test-review`, `$security-review`, `$domain-entities-review`, `$experience-review` and the conditional domain-entity reference refresh (`$scan --target=domain-entities` → `$docs-update`, run when the final diff changes an entity, data contract or schema represented in `domain-entities-reference.md`); this workflow's tail does not repeat them. `$experience-review` records `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` honestly and never promotes a new expectation without explicit acceptance.
+Recommended: independent read-only work (for example `$spec-discovery` beside a code investigation) in one parallel wave; L/XL partitioned into bounded batches per module or slice with one report per batch; XS/S done inline. The nested review owns `$integration-test-review`, `$security-audit`, `$domain-entities-review`, `$experience-review` and the conditional domain-entity reference refresh (`$scan --target=domain-entities` → `$docs-update`, run when the final diff changes an entity, data contract or schema represented in `domain-entities-reference.md`); this workflow's tail does not repeat them. `$experience-review` records `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` honestly and never promotes a new expectation without explicit acceptance.
 
 ## Memory & Reporting
 
@@ -283,7 +283,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

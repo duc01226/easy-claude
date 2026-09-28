@@ -212,7 +212,7 @@ const EXPECTED_WORKFLOW_IDS = [
 const REMOVED_WORKFLOW_IDS = ['workflow-build-specs', 'workflow-product-discovery'];
 // Step/skill ids renamed away — must never reappear as a sequence step.
 // Checked by EXACT array-element match (NOT substring) so legitimate compound
-// ids (code-review, code-simplifier, code-to-spec) are never false-flagged.
+// ids (code-quality-review, code-simplifier, code-to-spec) are never false-flagged.
 const REMOVED_STEP_IDS = ['cook', 'code'];
 
 function loadWorkflowConfig() {

@@ -243,7 +243,7 @@ def categorize_skill(name: str, description: str, content: str) -> str:
         return 'frameworks'
 
     # Utilities
-    if any(name_matches(lower_name, x) for x in ['debug', 'problem', 'code-review', 'plan', 'research', 'sequential']):
+    if any(name_matches(lower_name, x) for x in ['debug', 'problem', 'code-quality-review', 'plan', 'research', 'source-deep-dive', 'sequential']):
         return 'utilities'
 
     return 'other'

@@ -323,12 +323,12 @@
       "group": "spec-test",
       "summary": "Evidence and baseline rules for visual review in E2E and human QC",
       "when": "handling visual-review evidence or visual baseline updates",
-      "chars": 4397,
+      "chars": 4400,
       "file": ".claude/skills/shared/protocols/e2e-visual-design-contract.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/e2e-visual-design-contract.md",
-          "chars": 4397
+          "chars": 4400
         }
       ]
     },
@@ -351,12 +351,12 @@
       "group": "design",
       "summary": "Seven engineering-foundation dimensions judged by project profile",
       "when": "creating or reviewing how a project is built, run, tested or checked",
-      "chars": 8879,
+      "chars": 8878,
       "file": ".claude/skills/shared/protocols/engineering-foundation-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/engineering-foundation-gate.md",
-          "chars": 8879
+          "chars": 8878
         }
       ]
     },
@@ -519,12 +519,12 @@
       "group": "design",
       "summary": "Agent quality harness: feedforward guides and feedback sensors",
       "when": "setting up an agent quality harness",
-      "chars": 3166,
+      "chars": 3173,
       "file": ".claude/skills/shared/protocols/harness-setup.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/harness-setup.md",
-          "chars": 3166
+          "chars": 3173
         }
       ]
     },
@@ -869,12 +869,12 @@
       "group": "review",
       "summary": "Classify the change context first, then apply the current principles that fit it",
       "when": "starting any review",
-      "chars": 2963,
+      "chars": 2962,
       "file": ".claude/skills/shared/protocols/review-principle-awareness.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-principle-awareness.md",
-          "chars": 2963
+          "chars": 2962
         }
       ]
     },
@@ -943,12 +943,12 @@
       "group": "design",
       "summary": "Which scale techniques a system warrants, and which it does not",
       "when": "reviewing architecture or production readiness",
-      "chars": 3971,
+      "chars": 3969,
       "file": ".claude/skills/shared/protocols/scale-technique-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/scale-technique-gate.md",
-          "chars": 3971
+          "chars": 3969
         }
       ]
     },
@@ -1027,12 +1027,12 @@
       "group": "workflow-task",
       "summary": "Protocol copies in carriers are intentional: edit the canonical source, then propagate",
       "when": "editing a shared protocol or its carriers",
-      "chars": 2099,
+      "chars": 2107,
       "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
-          "chars": 2099
+          "chars": 2107
         }
       ]
     },

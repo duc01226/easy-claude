@@ -30,7 +30,7 @@ SKILL_NAMES = [
     "plan",
     "plan-review", "plan-validate",
     # Review family
-    "security-review", "code-review", "integration-test-review",
+    "security-audit", "code-quality-review", "integration-test-review",
     "knowledge-review", "architecture-review",
     "artifact-review", "changes-review", "domain-entities-review",
     "production-readiness-review", "architecture-review-full",

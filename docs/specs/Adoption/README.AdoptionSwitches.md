@@ -177,7 +177,7 @@ A project that adopts the framework gets a set of project-level switches that de
 **Acceptance Criteria:**
 
 - **AC-ADS-14** — **Given** skills whose emphasis was reduced **When** they are read and measured **Then** summary and closing emphasis stay, each decision is recorded per host, and the comparison runs leave the repository and host state unchanged
-- **AC-ADS-15** — **Given** the name-clash spike result **When** the documentation is read **Then** it matches the result
+- **AC-ADS-15** — **Given** a project whose skills include one named like a built-in command or skill **When** the framework's verification runs **Then** it fails and names the skill and the built-in it hides, unless the framework owner accepted that collision
 - **AC-ADS-16** — **Given** the step skills **When** the description lint runs **Then** every description starts with the routing prefix and is at most 250 characters, wrappers excepted
 
 ### US-ADS-08: One graph tooling install per machine (release D)
@@ -225,7 +225,7 @@ A project that adopts the framework gets a set of project-level switches that de
 | BR-ADS-13 | Settings writer never loses settings                      | Ownership     | [HARD]      | D       |
 | BR-ADS-14 | Skill profile on the second and third hosts               | Visibility    | [HARD]      | D       |
 | BR-ADS-15 | Emphasis reductions are anchored, measured and traceless  | Quality       | [HARD]      | D       |
-| BR-ADS-16 | Name-clash guidance follows the spike result              | Documentation | [SOFT]      | D       |
+| BR-ADS-16 | No framework skill hides a built-in skill                 | Visibility    | [HARD]      | D       |
 | BR-ADS-17 | Shared graph tooling environment                          | Activation    | [HARD]      | D       |
 | BR-ADS-18 | Install lock recovery                                     | Safety        | [HARD]      | D       |
 | BR-ADS-19 | Step-skill description form                               | Quality       | [SOFT]      | D       |
@@ -321,9 +321,9 @@ BR-ADS-09 overrides this table for called skills.
 
 **Statement:** A skill whose emphasis is reduced keeps its emphasis markers in its quick summary and closing reminders. A reduction is applied only when compliance on every host that ran is equal or higher and tokens are lower; a host that did not run is recorded as not run, never as pass. The comparison runs leave the repository status, branches, stashes and worktrees and the user host trust state exactly as before, and their run folders are deleted.
 
-### BR-ADS-16: Name-clash guidance follows the spike result [SOFT] (release D)
+### BR-ADS-16: No framework skill hides a built-in skill [HARD] (release D)
 
-**Statement:** When a framework skill shares its name with a built-in skill, the documentation gives the recipe that matches the recorded spike result: a way to prefer the built-in skill when the host restores it, or a rename proposal for the owner when it does not. Nothing is renamed without owner approval.
+**Statement:** For every skill in a project and every name the host reserves for a built-in command or skill, the skill's folder name and declared name differ from that reserved name, compared without regard to case — unless the framework owner accepted that one collision and recorded the reason. The host does not restore a built-in that a project skill shadows, so a collision is resolved by renaming the skill, never by a preference setting. A renamed framework skill keeps its capability, and the adopter documentation lists the old and new names so adopting projects can migrate their own references. Nothing is renamed without owner approval.
 
 ### BR-ADS-17: Shared graph tooling environment [HARD] (release D)
 
@@ -1186,7 +1186,7 @@ Then each is marked as command-only
         "presentation-builder",
         "remotion",
         "sync-skills-shared-protocols",
-        "release-notes",
+        "release-doc",
         "git-developer-performance",
         "skill-creator",
         "scan-codebase-health",

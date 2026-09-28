@@ -29,7 +29,7 @@ function seed(root, bad) {
     write(root, spec, `---\nfeature_code: ROOT\ntc_status_summary: Untested=${bad ? 2 : 1}\n---\n# Root\n${bad ? '[Part 2](README.Root-Part2.md)\n' : ''}## 8. Test Specifications\n### TC-ROOT-001: Parent\n> **CoveredBy:** Untested · **Status:** Untested\n`);
     if (bad) write(root, 'docs/specs/Root/README.Root-Part2.md', '---\nfeature_code: ROOT\nparent_spec: README.Root.md\n---\n# Root Part 2\n[Parent](README.Root.md)\n### TC-ROOT-002: Continuation\n> **CoveredBy:** Untested · **Status:** Untested\n');
     write(root, '.claude/skills/root-sentinel/SKILL.md', bad ? 'AppBaseComponent\n' : 'Project-neutral fixture.\n');
-    write(root, '.claude/skills/code-review/SKILL.md', bad ? '# Review\nReport findings.\n' : '# Review\nReport findings; /why-review --validate-findings\n');
+    write(root, '.claude/skills/code-quality-review/SKILL.md', bad ? '# Review\nReport findings.\n' : '# Review\nReport findings; /why-review --validate-findings\n');
     write(root, '.claude/docs/architecture-knowledge.md', `# Catalog\n\n${[3, 8, 9, 10].map(n => `## ${n}. Section\n> **Provenance — default basis for this section:** \`[textbook]\`\n`).join('\n')}\n${bad ? '`[texbook: ROOT-SENTINEL]`' : '`[textbook: ROOT-SENTINEL]`'}\n`);
     const context = 'Root fixture context.\n';
     write(root, '.codex/CODEX_CONTEXT.md', context);
@@ -74,7 +74,7 @@ const sentinels = {
     'feature-registry': /PASS \(2 canonical TC definitions\)/,
     'no-project-residue': /\.claude\/skills\/root-sentinel\/SKILL\.md:1: project symbol "AppBaseComponent"/,
     'provenance-markers': /architecture-knowledge\.md:15: marker `\[texbook\]` is not a declared tag/,
-    'review-validate-coverage': /code-review: carries findings\/severity language but no/,
+    'review-validate-coverage': /code-quality-review: carries findings\/severity language but no/,
     'skill-protocol-compliance': new RegExp(`AGENTS\\.md is ${OVERSIZE_AGENTS_BYTES} bytes, above the ${AGENTS_ROOT_LIMIT_BYTES}-byte bounded projection limit`),
     'sync-adoption-parity': /skill-a :: SYNC:alpha.*injected body differs from canonical/,
     'sdd-semantic-compliance': /error SDD022 docs\/specs\/Root\/README\.RootSentinel\.md:/,

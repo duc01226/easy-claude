@@ -11,7 +11,7 @@ disable-model-invocation: false
 
 **Use it when** the answer must come from external sources and end in a durable, cited deliverable. **Use a sibling instead** for a quick lookup with no artifact (plain `/web-research`), for questions about this codebase (`/investigate`), or for a diagram of researched knowledge (`workflow-visualize --mode=knowledge`).
 
-**IMPORTANT MANDATORY Steps:** resolve the `workflow-research` manifest variant for `--output` first, then create one task per returned occurrence (default: /web-research -> /deep-research -> /knowledge-synthesis -> /knowledge-review -> /workflow-end -> /watzup).
+**IMPORTANT MANDATORY Steps:** resolve the `workflow-research` manifest variant for `--output` first, then create one task per returned occurrence (default: /web-research -> /source-deep-dive -> /knowledge-synthesis -> /knowledge-review -> /workflow-end -> /watzup).
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
 
@@ -19,7 +19,7 @@ This skill is the canonical Research & Synthesis entry point. Invoke it with `--
 
 ## Output Modes (--output)
 
-Pick the mode from the prompt BEFORE creating tasks. When the prompt is ambiguous, use `synthesis` and state the assumption. Every mode shares the research scaffold (`/web-research → /deep-research`) and the `/knowledge-review → /workflow-end → /watzup` close; only the terminal synthesis skill(s) differ.
+Pick the mode from the prompt BEFORE creating tasks. When the prompt is ambiguous, use `synthesis` and state the assumption. Every mode shares the research scaffold (`/web-research → /source-deep-dive`) and the `/knowledge-review → /workflow-end → /watzup` close; only the terminal synthesis skill(s) differ.
 
 | `--output`              | Deliverable                          | Terminal synthesis skill(s)                 |
 | ----------------------- | ------------------------------------ | ------------------------------------------- |
@@ -41,7 +41,7 @@ without failing the workflow.
 
 ## Question-Scope Triage (first action)
 
-Classify the question and record it in the workflow report. Scope sets research DEPTH inside each skill's caps (`/web-research` ≤10 searches, `/deep-research` ≤8 fetches); it never lowers the evidence bar.
+Classify the question and record it in the workflow report. Scope sets research DEPTH inside each skill's caps (`/web-research` ≤10 searches, `/source-deep-dive` ≤8 fetches); it never lowers the evidence bar.
 
 | Scope                          | Signals                                                                           | Depth                                                                                                                                                                                                                  |
 | ------------------------------ | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -65,7 +65,7 @@ Classify the question and record it in the workflow report. Scope sets research 
 | Skill                       | Role | When it earns its cost                                                       | Proves / feeds                                                                           |
 | --------------------------- | ---- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `/web-research`             | core | Always; depth per triage.                                                    | Tiered source map with gaps (`.claude/tmp/_sources-{slug}.md`).                          |
-| `/deep-research`            | core | Always; fetch count per triage. The synthesis skills read its evidence base. | Cross-validated evidence base (`.claude/tmp/_evidence-{slug}.md`).                       |
+| `/source-deep-dive`            | core | Always; fetch count per triage. The synthesis skills read its evidence base. | Cross-validated evidence base (`.claude/tmp/_evidence-{slug}.md`).                       |
 | Terminal synthesis skill(s) | core | Per the Output Modes table.                                                  | The deliverable.                                                                         |
 | `/knowledge-review`         | gate | Always.                                                                      | `review-converged`: template, citation, confidence, source-quality and anti-bias checks. |
 | `/workflow-end`             | gate | Always, last.                                                                | `run-closed`.                                                                            |
@@ -75,7 +75,7 @@ Classify the question and record it in the workflow report. Scope sets research 
 
 You choose inline vs sub-agent, batching and ordering to minimize wall-clock and tokens at equal quality. Narrow questions run inline. For broad questions, independent sub-topic research passes can run as one parallel wave, because each writes only its own source and evidence files. Merge them before synthesis.
 
-Fixed data dependencies: the source map exists before `/deep-research`; the evidence base exists before synthesis; `market-analysis` writes `MARKET_ANALYSIS_PATH` before its consumer reads it; `/knowledge-review` checks the final artifact; `/workflow-end` runs last.
+Fixed data dependencies: the source map exists before `/source-deep-dive`; the evidence base exists before synthesis; `market-analysis` writes `MARKET_ANALYSIS_PATH` before its consumer reads it; `/knowledge-review` checks the final artifact; `/workflow-end` runs last.
 
 ## Memory & Reporting
 
@@ -86,7 +86,7 @@ Fixed data dependencies: the source map exists before `/deep-research`; the evid
 
 ## Findings & Fix Path
 
-- `/knowledge-review` is read-only. Validate each REVISE/BLOCKED finding against the evidence, then fix it at its owner. An evidence gap takes a targeted `/deep-research` pass on that gap. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill. Then re-run `/knowledge-review` on the fixed artifact.
+- `/knowledge-review` is read-only. Validate each REVISE/BLOCKED finding against the evidence, then fix it at its owner. An evidence gap takes a targeted `/source-deep-dive` pass on that gap. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill. Then re-run `/knowledge-review` on the fixed artifact.
 - Loop bounds: round 1 exits on zero findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 2 rounds (+1 when a validated CRITICAL/HIGH is still open); escalate via `AskUserQuestion` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
@@ -130,7 +130,7 @@ Fixed data dependencies: the source map exists before `/deep-research`; the evid
 
 - **MUST ATTENTION** select the `--output` mode and triage the question scope FIRST. Scope sets research depth inside the skill caps; it never lowers the citation or cross-validation bar.
 - **MUST ATTENTION** for `business-eval` and `marketing`, derive one `ARTIFACT_SLUG` and `MARKET_ANALYSIS_PATH` before the first research step and pass the exact values to every child.
-- **MUST ATTENTION** fix validated review findings at their owner (evidence gap → targeted `/deep-research`, synthesis defect → the artifact), then re-run `/knowledge-review`.
+- **MUST ATTENTION** fix validated review findings at their owner (evidence gap → targeted `/source-deep-dive`, synthesis defect → the artifact), then re-run `/knowledge-review`.
 - **MUST ATTENTION Variant closure:** record the selected `--output` mode, resolver fingerprint, ordered occurrence IDs, each invoked skill's evidence, and every deviation before `/workflow-end`; a variant mismatch is a workflow failure.
 
 **Protocols in force (digest; the guide entries above point to the full text):** Nested Task Creation · Critical Thinking · AI Mistake Prevention · Incremental Persistence · Sub-Agent Return Contract · Session Goal Ledger · Workflow Registry Binding.

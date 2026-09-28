@@ -3,7 +3,7 @@
 /**
  * HTML report quality contract — generated HTML reports are readable, and their rules agree.
  *
- * Business intent: `/watzup` and `/release-notes` hand people an auto-opened HTML page that must
+ * Business intent: `/watzup` and `/release-doc` hand people an auto-opened HTML page that must
  * be beautiful, easy to read and easy to understand. The rules live only in prompt text and a
  * template, so an edit can silently bring back the defects this contract prevents: a status
  * placeholder that must carry raw markup (breaking the escape-every-value rule of an auto-opened
@@ -14,7 +14,7 @@
  *     the Status column's markup lives in the template and both status placeholders are plain text;
  *     each Key-changes area sits in its own <tbody> so a rowgroup header labels only its rows;
  *   - watzup skill: a stated quality goal, and a readability check that runs before the report opens;
- *   - release-notes: four gates including the visual-clarity gate, recorded in the final report,
+ *   - release-doc: four gates including the visual-clarity gate, recorded in the final report,
  *     with a source-only record when no renderer exists, never a plain PASS.
  *
  * Portability: reads only files that ship inside `.claude/`, resolved from this file's own
@@ -31,8 +31,8 @@ const read = (...parts) => fs.readFileSync(path.join(CLAUDE_DIR, ...parts), 'utf
 
 const WATZUP_SKILL = () => read('skills', 'watzup', 'SKILL.md');
 const WATZUP_TEMPLATE = () => read('skills', 'watzup', 'references', 'session-report-template.html');
-const RELEASE_SKILL = () => read('skills', 'release-notes', 'SKILL.md');
-const RELEASE_PROCEDURE = () => read('skills', 'release-notes', 'references', 'html-release-report.md');
+const RELEASE_SKILL = () => read('skills', 'release-doc', 'SKILL.md');
+const RELEASE_PROCEDURE = () => read('skills', 'release-doc', 'references', 'html-release-report.md');
 
 /** Body of the `## {heading}` section, up to the next level-2 heading. */
 function section(text, heading) {
@@ -100,7 +100,7 @@ const tests = [
         }
     },
     {
-        name: '[html-report] TC-HRQ-005 release-notes: four gates, the visual-clarity gate among them, all reported',
+        name: '[html-report] TC-HRQ-005 release-doc: four gates, the visual-clarity gate among them, all reported',
         fn: () => {
             const procedure = RELEASE_PROCEDURE();
             assert.match(procedure, /## R8\. \[BLOCKING\] Gates — run ALL FOUR before reporting done/);
@@ -113,7 +113,7 @@ const tests = [
         }
     },
     {
-        name: '[html-report] TC-HRQ-006 release-notes: with no renderer the visual gate records source-only, never a plain PASS',
+        name: '[html-report] TC-HRQ-006 release-doc: with no renderer the visual gate records source-only, never a plain PASS',
         fn: () => {
             const procedure = RELEASE_PROCEDURE();
             const r65 = procedure.slice(procedure.indexOf('### R6.5'), procedure.indexOf('## R7.'));

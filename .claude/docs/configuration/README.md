@@ -101,7 +101,7 @@ baseline, and explicit-acceptance lifecycle.
 
 #### Code Review Configuration
 
-The `codeReview` section records which project-specific review-rule doc the review skills/agents read (rules are read on demand via the project-reference-docs gate in `CLAUDE.md`):
+The `codeReview` section records which project-specific review-rule doc the review skills/agents read. No hook or script reads this section: review skills read the rules on demand via the project-reference-docs gate in `CLAUDE.md`, so these fields document intent and change no behavior.
 
 | Field            | Type     | Description                                                                                                                                                                                                                         |
 | ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -110,8 +110,6 @@ The `codeReview` section records which project-specific review-rule doc the revi
 | `injectOnSkills` | string[] | Skills associated with the review-rules doc                                                                                                                                                                                         |
 
 **To update code review rules:** Edit `code-review-rules.md` in the project-reference docs root directly. Review skills/agents read it on demand via the project-reference-docs gate.
-
-**To add new trigger skills:** Edit `.claude/.ck.json`, add skill name to `injectOnSkills` array. Matching is case-insensitive and partial.
 
 ### Per-file convention injection
 
@@ -405,7 +403,7 @@ Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-o
     "version": "2.4.0",
     "workflows": {
         "feature": {
-            "sequence": ["plan", "feature-implement", "test", "code-review", "docs-update"],
+            "sequence": ["plan", "feature-implement", "test", "code-quality-review", "docs-update"],
             "whenToUse": "User wants to implement new functionality"
         }
     }
@@ -455,7 +453,7 @@ Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-o
 
 ### opencode.json (recommended defaults)
 
-**Purpose:** opencode's project config. The framework ships recommended defaults and reconciles them into each consuming project through `$sync-opencode`.
+**Purpose:** opencode's project config. The framework ships recommended defaults and reconciles them into each consuming project through `/sync-opencode`.
 
 | Item                                           | Path                                                                                                  |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -466,9 +464,9 @@ Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-o
 | Sub-agent mirror target (generated)            | `.opencode/agent/<name>.md` — one per canonical agent, `mode: subagent` + the canonical body verbatim |
 | Sub-agent mirror writer / verifier             | `.claude/scripts/opencode/sync-agents.mjs` (`--check` verifies)                                       |
 
-**To update a default recommended opencode setting:** edit `.opencode/opencode.recommended.json` and run `$sync-opencode` (or `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs`). The `config` stage deep-merges the recommended defaults into the project-root `opencode.json` — recommended keys win at every leaf, project-only keys survive untouched, and a project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
+**To update a default recommended opencode setting:** edit `.opencode/opencode.recommended.json` and run `/sync-opencode` (or `node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs`). The `config` stage deep-merges the recommended defaults into the project-root `opencode.json` — recommended keys win at every leaf, project-only keys survive untouched, and a project with no root config receives the recommended defaults verbatim. A malformed existing root config is reported, never clobbered.
 
-**Adopting the framework in a new project:** copy the `.opencode/` folder (including `opencode.recommended.json`) plus `.claude/`, then run `$sync-opencode` to generate/update the project's root `opencode.json`, the hooks bridge, the `.opencode/agent/*.md` sub-agent mirror, the `permission.skill` entries and the `.opencode/commands/<name>.md` files. Do NOT copy `.opencode/skill-permissions.generated.json` (the skill-permission ownership ledger) or `.opencode/commands/`: both are generated per project. The ledger records its project's name (`project.name` from the project config, default `docs/project-config.json`), so a ledger copied from another project is ignored and treated as empty.
+**Adopting the framework in a new project:** copy the `.opencode/` folder (including `opencode.recommended.json`) plus `.claude/`, then run `/sync-opencode` to generate/update the project's root `opencode.json`, the hooks bridge, the `.opencode/agent/*.md` sub-agent mirror, the `permission.skill` entries and the `.opencode/commands/<name>.md` files. Do NOT copy `.opencode/skill-permissions.generated.json` (the skill-permission ownership ledger) or `.opencode/commands/`: both are generated per project. The ledger records its project's name (`project.name` from the project config, default `docs/project-config.json`), so a ledger copied from another project is ignored and treated as empty.
 
 **No compaction pin (all three surfaces):**
 
@@ -480,7 +478,7 @@ The portable bundle sets no auto-compaction budget on any host, so each host com
 | Codex       | Codex's own default                                                                                            | `model_auto_compact_token_limit` in `~/.codex/config.toml`, or top-level in the project `.codex/config.toml`                                                                                                                                                                                              |
 | opencode    | The model's registry window; the bundled model declares a 1M `context` and 384K `output`, so it compacts at 968,000 | `provider.<id>.models.<model>.limit` in the project-root `opencode.json` or your global opencode config                                                                                                                                                                                                    |
 
-**Retiring the old pin.** Earlier bundles pinned 500K on every host. `$sync-codex` removes a top-level `model_auto_compact_token_limit` from `.codex/config.toml` only when its value is exactly `500000`, along with the bundled comment block above it when that block is unchanged. `$sync-opencode` removes the pinned model's `limit` from the root `opencode.json` only when it is exactly `{ "context": 500000, "output": 384000 }`. Any other value belongs to the user: the sync keeps it and prints one `kept user-set …` line. A personal 500K budget should therefore live in user-level config (`~/.codex/config.toml`, the global opencode config), where no sync looks.
+**Retiring the old pin.** Earlier bundles pinned 500K on every host. `/sync-codex` removes a top-level `model_auto_compact_token_limit` from `.codex/config.toml` only when its value is exactly `500000`, along with the bundled comment block above it when that block is unchanged. `/sync-opencode` removes the pinned model's `limit` from the root `opencode.json` only when it is exactly `{ "context": 500000, "output": 384000 }`. Any other value belongs to the user: the sync keeps it and prints one `kept user-set …` line. A personal 500K budget should therefore live in user-level config (`~/.codex/config.toml`, the global opencode config), where no sync looks.
 
 **Codex `AGENTS.md` read budget:** the same upsert raises top-level `project_doc_max_bytes` to 98304 in `.codex/config.toml` (a larger project value is kept). Codex silently stops reading `AGENTS.md` at 32 KiB by default, and the generated root is larger; the projection orders Doc Lookup and Git discipline first so they survive the default window if the host ignores the project key (set it in `~/.codex/config.toml` then). The budget is shared by every `AGENTS.md` Codex concatenates from the project root down to the working directory, so nested `AGENTS.md` files eat into the root's share.
 

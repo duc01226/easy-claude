@@ -13,7 +13,7 @@
     "presentation-builder": "deny",
     "product-roadmap": "deny",
     "project-help": "deny",
-    "release-notes": "deny",
+    "release-doc": "deny",
     "remotion": "deny",
     "scan-codebase-health": "deny",
     "skill-creator": "deny",

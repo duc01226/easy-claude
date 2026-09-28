@@ -463,11 +463,11 @@ test('TC-PDL-033: one file carrying the full body and a guide for the same tag f
 });
 
 test('TC-PDL-083: a skill listed in inlineSkills fails when it carries any guide entry', () => {
-    const args = { relativePath: '.claude/skills/code-review/SKILL.md', skillName: 'code-review', inlineSkills: ['code-review'], projectionExists: () => true };
+    const args = { relativePath: '.claude/skills/code-quality-review/SKILL.md', skillName: 'code-quality-review', inlineSkills: ['code-quality-review'], projectionExists: () => true };
     // Given S in inlineSkills, When S carries a guide entry, Then the verifier fails naming S
     const failures = checkGuideCarrierRules({ ...args, content: guideBlock('alpha') });
     assert.equal(failures.length, 1);
-    assert.match(failures[0], /skill "code-review" is listed in inlineSkills .* carries guide entries: alpha/);
+    assert.match(failures[0], /skill "code-quality-review" is listed in inlineSkills .* carries guide entries: alpha/);
     // When S carries only full bodies, Then it passes
     assert.deepEqual(checkGuideCarrierRules({ ...args, content: '<!-- SYNC:alpha -->\n\n> Alpha.\n\n<!-- /SYNC:alpha -->\n' }), []);
 });

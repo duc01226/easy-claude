@@ -105,7 +105,7 @@ Create structured UI/UX design specification documents from requirements or PBIs
 ## When NOT to Use
 
 - Wireframes run internally via `--mode=wireframe` — no separate skill call
-- Building UI — use `design --lane=marketing` (marketing/creative) or `design --lane=product` (product UIs)
+- Building UI — use `ui-design --lane=marketing` (marketing/creative) or `ui-design --lane=product` (product UIs)
 - Reviewing UI code — use `web-design-guidelines`
 
 ## Prerequisites
@@ -212,7 +212,7 @@ For ANY visual input, extract design context FIRST, then generate the spec.
 | Hand-drawn sketch photo | Image with rough/organic lines          | Analyze with wireframe prompts (this mode)   |
 | Digital wireframe       | Image with clean lines/shapes           | Analyze with wireframe prompts (this mode)   |
 | Wireframe tool export   | Image from Excalidraw/Balsamiq/MockFlow | Analyze with wireframe prompts (this mode)   |
-| App screenshot          | Polished UI with real data              | Route to `$design --mode=screenshot` instead |
+| App screenshot          | Polished UI with real data              | Route to `$ui-design --mode=screenshot` instead |
 
 ### Wireframe Analysis
 
@@ -530,8 +530,8 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 | Skill                   | When to use instead                  |
 | ----------------------- | ------------------------------------ |
-| `design --lane=marketing` | Build marketing/creative UI             |
-| `design --lane=product`   | Build product UI (dashboards, apps)     |
+| `ui-design --lane=marketing` | Build marketing/creative UI             |
+| `ui-design --lane=product`   | Build product UI (dashboards, apps)     |
 | `web-design-guidelines`   | Review existing UI for compliance       |
 
 ---
@@ -540,7 +540,7 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Run the design sequence** (Recommended) — `$design-spec` → `$design --lane=product` (product UIs) or `$design --lane=marketing` (marketing/creative) → `$workflow-review-changes`
+> 1. **Run the design sequence** (Recommended) — `$design-spec` → `$ui-design --lane=product` (product UIs) or `$ui-design --lane=marketing` (marketing/creative) → `$workflow-review-changes`
 > 2. **Execute `$design-spec` directly** — run this skill standalone
 
 ---
@@ -741,7 +741,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

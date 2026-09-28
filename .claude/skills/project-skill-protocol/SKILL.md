@@ -1,6 +1,6 @@
 ---
 name: project-skill-protocol
-version: 1.0.0
+version: 1.0.1
 description: '[Utilities] Use when a project adds, changes, lists, or removes its OWN protocol rules layered over a framework skill. Overlays are ADDITIVE ONLY. Subcommands: list | add | update | delete.'
 ---
 
@@ -15,6 +15,7 @@ description: '[Utilities] Use when a project adds, changes, lists, or removes it
 - **Resolution is specificity-based, not order-based.** `exact` > `glob` > `*`, winner tier takes all — and that ordering ranks overlays against EACH OTHER, never against the skill.
 - **Project payload, not framework.** Overlays live under `docs/`, never `.claude/`. A rule that stabilizes and generalizes gets PROMOTED to a real skill via `/skill-creator`.
 - **ADD authors the best version, then confirms it.** The user's raw wording is raw material, NEVER the artifact. Infer intent, generalize past the incident, draft the body, then run the rules through **`/prompt-enhance`** and the prompt-engineering rubric (imperative · observable · decidable · one rule per line · carries its WHY) — an overlay is an AI instruction that fires unattended, so a vague rule is a nondeterministic one. Show what changed and why, and always offer "save my wording verbatim".
+- **`/learn` routes here.** When a user asks to learn/remember a rule for one skill, or for the kind of task a skill owns, `/learn` asks the user which carrier to use (overlay recommended) and then calls this skill's `add`/`update`; read `.claude/skills/learn/SKILL.md` § *Skill-Specific Project-Protocol Route* when invoked from `/learn`. Every gate below still applies in full.
 - **Three writes, one turn — then the mirror.** Body + index row + the `CLAUDE.md` `CK:PROJECT-PROTOCOLS` block, then AUTO-RUN the Codex mirror sync (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`) so `AGENTS.md` never lags behind the block. Report the sync's real outcome. Never commit.
 
 **Workflow:**

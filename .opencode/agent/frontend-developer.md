@@ -16,7 +16,7 @@ Source: .claude/agents/frontend-developer.md
 
 Connected contracts:
 - `feature-implement`
-- `design`
+- `ui-design`
 <!-- AGENT-SKILL-CONNECTIONS:END -->
 
 ## Quick Summary

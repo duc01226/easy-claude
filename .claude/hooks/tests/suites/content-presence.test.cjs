@@ -178,7 +178,7 @@ const IS_FRAMEWORK_REPO = frameworkRepoGuard.isFrameworkRepo(PROJECT_DIR);
 // `commit`; `learn` auto-activates by design; the agent resolves conflicts from its own pull-before-commit step).
 const COMMAND_ONLY_UTILITIES = [
     'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
-    'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-notes',
+    'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
     'git-developer-performance', 'skill-creator', 'scan-codebase-health', 'graph-export',
     'ck-help', 'project-help', 'custom-prompt',
 ];
@@ -187,9 +187,9 @@ const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve'];
 // TC-HTMLX-052. Skills that run html-export's script by path and restate its exit rule in prose.
 const HTML_EXPORT_CALLERS = ['presentation-builder', 'pbi-mockup', 'feature-presentation'];
 // Skill reference files (relative to the skills root) that carry the same one-line rule.
-const HTML_EXPORT_CALLER_REFERENCES = ['design/references/lane-marketing/motion-storyboard.md'];
+const HTML_EXPORT_CALLER_REFERENCES = ['ui-design/references/lane-marketing/motion-storyboard.md'];
 // Skill reference files that restate the rule as a `| Exit | ... |` table with their own actions.
-const HTML_EXPORT_EXIT_TABLES = ['design/references/explore/workflow.md'];
+const HTML_EXPORT_EXIT_TABLES = ['ui-design/references/explore/workflow.md'];
 const HTML_EXPORT_EXIT_RULE = /\*\*html-export exit rule:\*\*[^\r\n]*/g;
 const HTML_EXPORT_SCRIPT = '.claude/skills/html-export/scripts/export.cjs';
 
@@ -236,7 +236,7 @@ function htmlExportExitTableDefects(markdown, EXIT) {
 // changes body prose only; lowering a floor is a deliberate anchor change, never a side effect.
 const EMPHASIS_MARKERS = /\b(?:MUST|NEVER|CRITICAL|IMPORTANT|BLOCKING)\b/g;
 const EMPHASIS_ANCHOR_FLOORS = {
-    'deep-research': { top: 12, closing: 47 },
+    'source-deep-dive': { top: 12, closing: 47 },
     'web-research': { top: 7, closing: 35 },
     'business-evaluation': { top: 9, closing: 41 },
     test: { top: 11, closing: 38 },
@@ -1106,7 +1106,7 @@ module.exports = {
             // the obvious key: it also appears in the authority-resolution step earlier in the
             // skill, so it survives deleting this bullet entirely and would assert nothing here
             // while reading as though it did.
-            fn: () => assertRelocated('design-system-canonical-guide', 'design', [
+            fn: () => assertRelocated('design-system-canonical-guide', 'ui-design', [
                 'before choosing tokens, component patterns, breakpoints, or BEM conventions',
                 'never invent a canonical path or token vocabulary',
             ]),
@@ -2456,7 +2456,7 @@ module.exports = {
                 // Given the guidance of the general builder, the review step and the visual exploration
                 const pb = pdReadText('presentation-builder', 'SKILL.md');
                 const fp = pdReadText('feature-presentation', 'SKILL.md');
-                const explore = pdReadText('design', 'references', 'explore', 'workflow.md');
+                const explore = pdReadText('ui-design', 'references', 'explore', 'workflow.md');
                 const defects = [];
                 // When the general builder's design-plan step is read
                 const plan = sectionBetween(pb, '### 4. Make a subject-grounded design plan', '\n### ');
@@ -2497,7 +2497,7 @@ module.exports = {
                 // And every other deliverable still continues to its refinement step
                 if (!other.includes('--mode=good')) defects.push('design explore Step 10 lost the --mode=good refinement for other deliverables');
                 // When the explore gate-file templates are read (BR-PD-10: the picked direction's tokens travel in a file)
-                const gateFiles = pdReadText('design', 'references', 'explore', 'gate-files.md');
+                const gateFiles = pdReadText('ui-design', 'references', 'explore', 'gate-files.md');
                 const templateOf = name => pdExtractFence(gateFiles, new RegExp(`^## \`${name.replace('.', '\\.')}\``, 'm'), 'markdown');
                 const approved = templateOf('direction-approved.md');
                 const runNotes = templateOf('run-notes.md');

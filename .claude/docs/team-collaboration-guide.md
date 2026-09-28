@@ -155,7 +155,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 2. **Review against design system**
    Map to configured tokens when the project has a design system; otherwise record approved design values and open decisions without inventing a token system
 
-**Workflow trigger:** Say "design spec for" → runs **/design-spec** then **/design --lane=product** (or **/design --lane=marketing**)
+**Workflow trigger:** Say "design spec for" → runs **/design-spec** then **/ui-design --lane=product** (or **/ui-design --lane=marketing**)
 
 ---
 
@@ -207,7 +207,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 | Skill                    | Purpose                              | Example                    |
 | ------------------------ | ------------------------------------ | -------------------------- |
 | `/design-spec`           | Create UI/UX design specification    | `/design-spec {pbi-file}`  |
-| `/design`                | Production-grade frontend interfaces | `/design --lane=marketing` |
+| `/ui-design`                | Production-grade frontend interfaces | `/ui-design --lane=marketing` |
 | `/web-design-guidelines` | WCAG 2.2, responsive, best practices | `/web-design-guidelines`   |
 
 ### Process & Collaboration
@@ -223,7 +223,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 | -------------- | -------------------------- | ------------------------ |
 | `/plan`        | Create implementation plan | `/plan {description}`    |
 | `/investigate` | Deep code investigation    | `/investigate {feature}` |
-| `/code-review` | Review code quality        | `/code-review`           |
+| `/code-quality-review` | Review code quality        | `/code-quality-review`           |
 
 ---
 
@@ -263,20 +263,20 @@ QC:                    /artifact-review --type=spec-tests ──→ [PASS/FAIL r
 
 ---
 
-### Workflow 3: Design (`/design-spec` → `/design --lane=product` or `/design --lane=marketing`)
+### Workflow 3: Design (`/design-spec` → `/ui-design --lane=product` or `/ui-design --lane=marketing`)
 
 **Trigger:** "ui spec", "component spec", "design the", "landing page", "screenshot"
 **Roles:** UX Designer, Developer
-**IMPORTANT MANDATORY Steps:** `/design-spec` → `/design --lane=product` | `/design --lane=marketing` → `/code-review`
+**IMPORTANT MANDATORY Steps:** `/design-spec` → `/ui-design --lane=product` | `/ui-design --lane=marketing` → `/code-quality-review`
 
 ```
 UX:   [PBI] ──→ /design-spec ──→ [component spec + states + tokens]
                                         │
                               DESIGN IMPLEMENTATION GATE:
-                              Product UIs → /design --lane=product
-                              Marketing/Creative → /design --lane=marketing
+                              Product UIs → /ui-design --lane=product
+                              Marketing/Creative → /ui-design --lane=marketing
                                         │
-Dev:                             /code-review ──→ Implementation
+Dev:                             /code-quality-review ──→ Implementation
 ```
 
 **Design spec checklist:**
@@ -469,7 +469,7 @@ PLANNING
 | BA   | `/refine`, `/story`                                             | idea-to-pbi            |
 | QA   | `/spec [mode=tests]`, `/integration-test`, `/test`              | write-integration-test |
 | QC   | `/dor-gate`, `/artifact-review`, `/production-readiness-review` | —                      |
-| UX   | `/design-spec`, `/design`                                       | —                      |
+| UX   | `/design-spec`, `/ui-design`                                       | —                      |
 
 Plan status tracking is not a separate role here: `/plan-execute` updates `plan.md` and phase status inline as it runs.
 
@@ -479,7 +479,7 @@ Plan status tracking is not a separate role here: `/plan-execute` updates `plan.
 | ------------------------------ | ---------------------------- | ------------------------------------------------------- |
 | "new idea" / "feature request" | idea-to-pbi                  | /idea → /refine → /story → /prioritize                  |
 | "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /artifact-review --type=spec-tests |
-| "design spec for"              | `/design-spec`               | /design-spec → /design --lane=product                   |
+| "design spec for"              | `/design-spec`               | /design-spec → /ui-design --lane=product                   |
 | "TDD" / "test-first"           | feature                      | /plan → /spec [mode=tests] → /feature-implement → /test |
 
 ### Common Patterns

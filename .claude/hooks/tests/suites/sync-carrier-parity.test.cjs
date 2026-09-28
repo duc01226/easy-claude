@@ -431,7 +431,7 @@ module.exports = {
         },
         {
             // Pinned carrier count (no silent cap): review-protocol-injection reaches 13 carriers =
-            // 9 review SKILLs (code-review, changes-review, artifact-review, knowledge-review,
+            // 9 review SKILLs (code-quality-review, changes-review, artifact-review, knowledge-review,
             // production-readiness-review, plan-review, why-review, spec-clarify, architecture-review-full)
             // + 4 review AGENTS (code-reviewer, spec-compliance-reviewer, planner, integration-tester).
             // spec-clarify (the post-spec clarification gate) joined as the 8th skill: it runs INLINE for

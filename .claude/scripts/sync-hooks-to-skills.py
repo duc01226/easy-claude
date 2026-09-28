@@ -359,13 +359,13 @@ ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatc
 # a task list does NOT belong here — it cannot act on the protocol.
 ORCHESTRATOR_SKILLS = {
     "architecture-design", "architecture-review", "architecture-review-full", "artifact-review",
-    "changes-review", "code-review", "code-simplifier", "commit",
-    "db-migrate", "debug-investigate", "design", "docs-update",
+    "changes-review", "code-quality-review", "code-simplifier", "commit",
+    "db-migrate", "debug-investigate", "ui-design", "docs-update",
     "demo-guide", "domain-entities-review", "e2e-test", "feature-presentation", "integration-test",
     "integration-test-review", "investigate", "knowledge-review",
     "performance-review", "plan", "plan-execute", "plan-review",
     "production-readiness-review", "project-init", "scan",
-    "scan-codebase-health", "security-review", "seed-test-data",
+    "scan-codebase-health", "security-audit", "seed-test-data",
     "spec-clarify", "spec-discovery", "spec-index", "start-workflow",
     "tech-spec", "test", "ui-review", "understand", "why-review",
     "workflow-code-to-spec", "workflow-idea-to-pbi", "workflow-idea-to-spec",

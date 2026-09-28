@@ -30,14 +30,14 @@ const PRESETS = JSON.parse(fs.readFileSync(PRESETS_FILE, 'utf8'));
 const CALLED_BY_OTHERS = PRESETS.calledByOthers.skills;
 const ENTRY_SKILLS = PRESETS.entrySkills.skills;
 const MANUAL_SKILL = 'manual-utility';
-const PLAIN_SKILLS = ['plain-a', 'plain-b', 'security-review', 'plan', 'variant-only', 'agent-skill'];
+const PLAIN_SKILLS = ['plain-a', 'plain-b', 'security-audit', 'plan', 'variant-only', 'agent-skill'];
 const ALL_SKILLS = [...new Set([...CALLED_BY_OTHERS, ...ENTRY_SKILLS, ...PLAIN_SKILLS, MANUAL_SKILL])];
 
-/** Fixture workflows: `security-review` is a default-mode step; `variant-only` runs only in mode b. */
+/** Fixture workflows: `security-audit` is a default-mode step; `variant-only` runs only in mode b. */
 const WORKFLOWS = {
     version: '1',
     workflows: {
-        'wf-review': { sequence: ['plan', 'security-review'] },
+        'wf-review': { sequence: ['plan', 'security-audit'] },
         'wf-variant': {
             defaultMode: 'a',
             variants: {
@@ -154,7 +154,7 @@ test('[skill-profile] TC-ADS-017 preset minimal keeps only the entry skills list
 
 test('[skill-profile] TC-ADS-018 no preset or list makes a called skill off or user-invocable-only', () => withProject({}, root => {
     // Given the fixture's callers, collected independently of the resolver: workflow steps in every mode, agent skills:, the curated calledByOthers and entrySkills lists
-    const called = new Set([...CALLED_BY_OTHERS, ...ENTRY_SKILLS, 'plan', 'security-review', 'variant-only', 'agent-skill']);
+    const called = new Set([...CALLED_BY_OTHERS, ...ENTRY_SKILLS, 'plan', 'security-audit', 'variant-only', 'agent-skill']);
     for (const preset of ['full', 'standard', 'minimal']) {
         for (const list of [undefined, 'commandOnly', 'off']) {
             const profile = { preset };
@@ -162,7 +162,7 @@ test('[skill-profile] TC-ADS-018 no preset or list makes a called skill off or u
             // When resolved
             const resolved = profileLib.resolveProfile(root, { skillProfile: profile });
             // Then every called skill is protected, including a step that runs only in a non-default mode and an agent skill
-            for (const name of ['variant-only', 'agent-skill', 'security-review', ...CALLED_BY_OTHERS, ...ENTRY_SKILLS]) assert.ok(resolved.called.has(name), `${name} is in the called set`);
+            for (const name of ['variant-only', 'agent-skill', 'security-audit', ...CALLED_BY_OTHERS, ...ENTRY_SKILLS]) assert.ok(resolved.called.has(name), `${name} is in the called set`);
             for (const name of called) {
                 assert.ok(!['commandOnly', 'off'].includes(resolved.overrides[name]), `${preset}/${list}: ${name} -> ${resolved.overrides[name]}`);
             }
@@ -172,16 +172,16 @@ test('[skill-profile] TC-ADS-018 no preset or list makes a called skill off or u
 }));
 
 test('[skill-profile] TC-ADS-019 user keys and user-changed owned keys are kept with a conflict line', () => {
-    const userSettings = SETTINGS_TEXT.replace('  "cleanupPeriodDays": 30,', '  "cleanupPeriodDays": 30,\n  "skillOverrides": { "code-review": "on", "my-own": "off" },');
+    const userSettings = SETTINGS_TEXT.replace('  "cleanupPeriodDays": 30,', '  "cleanupPeriodDays": 30,\n  "skillOverrides": { "code-quality-review": "on", "my-own": "off" },');
     withProject({ profile: { preset: 'standard' }, settingsText: userSettings }, root => {
         // Given user-authored keys, one of which the profile also wants / When synced
         const first = run(root);
         assert.equal(first.status, 0, first.stderr);
         let overrides = readSettings(root).skillOverrides;
         // Then the user's keys are untouched and the clash is reported
-        assert.equal(overrides['code-review'], 'on');
+        assert.equal(overrides['code-quality-review'], 'on');
         assert.equal(overrides['my-own'], 'off');
-        assert.match(first.stdout, /conflict: skillOverrides\.code-review is "on", generator wants "name-only"; kept the user value/);
+        assert.match(first.stdout, /conflict: skillOverrides\.code-quality-review is "on", generator wants "name-only"; kept the user value/);
         assert.equal(overrides.commit, 'name-only');
 
         // Given the user later changes an owned key
@@ -273,24 +273,24 @@ test('[skill-profile] TC-ADS-041 only the skillOverrides member changes; guards,
     assert.deepEqual(tempFiles(root), []);
 }));
 
-test('[skill-profile] TC-ADS-042 hiding a called skill is refused without the opt-in and warned with it', () => withProject({ profile: { preset: 'full', commandOnly: ['security-review'] } }, root => {
+test('[skill-profile] TC-ADS-042 hiding a called skill is refused without the opt-in and warned with it', () => withProject({ profile: { preset: 'full', commandOnly: ['security-audit'] } }, root => {
     // Given commandOnly on a workflow step skill and no opt-in / When synced and checked
     const result = run(root);
     const check = run(root, '--check');
     // Then both exit non-zero naming the skill and its caller, and nothing is written
     for (const outcome of [result, check]) {
         assert.equal(outcome.status, 1);
-        assert.match(outcome.stderr, /skill-profile: refusing to hide security-review \(commandOnly\): started by workflow wf-review; set skillProfile\.allowHidingCalledSkills: true to allow/);
+        assert.match(outcome.stderr, /skill-profile: refusing to hide security-audit \(commandOnly\): started by workflow wf-review; set skillProfile\.allowHidingCalledSkills: true to allow/);
     }
     assert.equal(fs.readFileSync(settingsPath(root), 'utf8'), SETTINGS_TEXT);
     assert.equal(fs.existsSync(path.join(root, '.claude', 'skill-profile.generated.json')), false);
 
     // Given the explicit opt-in / When synced / Then the value is written and a warning line names the skill
-    setProfile(root, { preset: 'full', commandOnly: ['security-review'], allowHidingCalledSkills: true });
+    setProfile(root, { preset: 'full', commandOnly: ['security-audit'], allowHidingCalledSkills: true });
     const allowed = run(root);
     assert.equal(allowed.status, 0, allowed.stderr);
-    assert.equal(readSettings(root).skillOverrides['security-review'], 'user-invocable-only');
-    assert.match(allowed.stdout, /skill-profile: hiding called skill security-review \(commandOnly\): started by workflow wf-review/);
+    assert.equal(readSettings(root).skillOverrides['security-audit'], 'user-invocable-only');
+    assert.match(allowed.stdout, /skill-profile: hiding called skill security-audit \(commandOnly\): started by workflow wf-review/);
 }));
 
 test('[skill-profile] TC-ADS-042 an entry skill (the workflow runner) is protected like any called skill', () => withProject({ profile: { preset: 'full', commandOnly: ['start-workflow'] } }, root => {

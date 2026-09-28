@@ -8,7 +8,7 @@
 > 2. **Authority first.** An axis pinned by the brief, the project design system or the existing UI is ADOPTED, never re-explored; a design system that pins colour, type AND layout skips explore with a logged reason. — why: a house style is an intentional identity; re-deciding it per PBI is incoherence.
 > 3. **The user picks from drafts, never from text.** After presenting the N rendered drafts, open them in the default browser and ask with ask the user directly, your evidence-backed recommendation first; never pick for the user while they can be asked (no way to show the drafts or no question tool → AUTO-SELECT the recommended draft, Step 7); "continue", "looks good" and silence are NOT a pick. — why: the choice is the user's, and a paraphrased or assumed pick is not evidence.
 
-Read this file at Step 3d, when `--explore` is set. It adapts the design skill's explore procedure — `.claude/skills/design/references/explore/workflow.md` (steps cited below as `explore step N`) — to a mock app; that file stays the source for the shared mechanics, and the gate-file templates are in `.claude/skills/design/references/explore/gate-files.md`. Create ONE task per step below. All run artifacts live under `tmp/design/<run>/`, where `<run>` is `YYMMDD-HHmm-<pbi-or-spec-slug>` — disposable run output, never project docs.
+Read this file at Step 3d, when `--explore` is set. It adapts the design skill's explore procedure — `.claude/skills/ui-design/references/explore/workflow.md` (steps cited below as `explore step N`) — to a mock app; that file stays the source for the shared mechanics, and the gate-file templates are in `.claude/skills/ui-design/references/explore/gate-files.md`. Create ONE task per step below. All run artifacts live under `tmp/design/<run>/`, where `<run>` is `YYMMDD-HHmm-<pbi-or-spec-slug>` — disposable run output, never project docs.
 
 ## Step 0 — Apply the scope decision from `SKILL.md` Step 0
 
@@ -48,13 +48,13 @@ Classify **colour · type · layout** as `ADOPTED — <source>` or `FREE`, from 
 
 ## Step 3 — Facts, references, brand, imagery, canvas
 
-Run explore steps 2–5 as written: fact-check any named product or standard; ask the ONE optional reference question; run `.claude/skills/design/references/explore/brand-asset-protocol.md` only when the brief names a real external brand (the project's own design system is authority, not a brand to scrape — record `Brand: N/A — project design system` otherwise); gather one shared imagery set only when content needs real images.
+Run explore steps 2–5 as written: fact-check any named product or standard; ask the ONE optional reference question; run `.claude/skills/ui-design/references/explore/brand-asset-protocol.md` only when the brief names a real external brand (the project's own design system is authority, not a brand to scrape — record `Brand: N/A — project design system` otherwise); gather one shared imagery set only when content needs real images.
 
 Canvas: an app screen → `--viewport=1440x900,390x844` unless the brief or the project states another size. Write the `DD-3` Design Plan skeleton — subject · audience · job (`DD-1`), canvas, ADOPTED axes with sources, FREE axes left open — shared by all N drafts.
 
 ## Step 4 — Pick N divergence seeds
 
-Explore step 6 (take the first N): (a) `node .claude/skills/design/scripts/pick-style.cjs` · (b) the user's liked reference, else one web-verified published design from an adjacent field, cited by URL · (c) a studio persona described only by traits, never a real name. A seed that clashes with an ADOPTED axis only informs the free axes.
+Explore step 6 (take the first N): (a) `node .claude/skills/ui-design/scripts/pick-style.cjs` · (b) the user's liked reference, else one web-verified published design from an adjacent field, cited by URL · (c) a studio persona described only by traits, never a real name. A seed that clashes with an ADOPTED axis only informs the free axes.
 
 ## Step 5 — Fan out N drafts in ONE message
 

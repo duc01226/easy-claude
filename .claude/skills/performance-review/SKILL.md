@@ -393,7 +393,7 @@ MUST ATTENTION find:
 - linear membership/lookup inside a loop — `.find`/`.includes`/`.indexOf`/`in list`/`.contains` where a `Set`/`Map`/dict gives O(1)
 - wrong data structure for the access pattern: array used as a keyed store; repeated `.filter().length` for existence
 - string built by concatenation in a loop; repeated `JSON.parse`/`stringify`/deep-clone/serialize per iteration
-- catastrophic-backtracking regex on user- or attacker-sized input (ReDoS — cross-link `/security-review`)
+- catastrophic-backtracking regex on user- or attacker-sized input (ReDoS — cross-link `/security-audit`)
 - pure-CPU result recomputed every call when inputs are stable (memoization candidate, distinct from data cache)
 - redundant sort/re-sort, or sorting when a single-pass min/max/partition suffices
 

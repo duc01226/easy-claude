@@ -54,7 +54,7 @@ See `backend-patterns-reference.md` in the project-reference docs root — defau
 
 | Skill                   | Triggers                           | Description                         |
 | ----------------------- | ---------------------------------- | ----------------------------------- |
-| `design`                | UI, design, screenshot             | UI implementation (multi-mode/lane) |
+| `ui-design`                | UI, design, screenshot             | UI implementation (multi-mode/lane) |
 | `web-design-guidelines` | accessibility, WCAG, visual review | UI compliance review                |
 
 See `frontend-patterns-reference.md` in the project-reference docs root for project-specific frontend patterns.
@@ -66,7 +66,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill                | Triggers                              | Description                                       |
 | -------------------- | ------------------------------------- | ------------------------------------------------- |
 | `performance-review` | performance, optimization, bottleneck | Performance tuning + architecture-altitude review |
-| `security-review`    | security, vulnerabilities             | Security analysis                                 |
+| `security-audit`    | security, vulnerabilities             | Security analysis                                 |
 
 ---
 
@@ -89,7 +89,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | --------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `web-research`  | find docs, library docs                                  | Source discovery and triage (Context7 MCP optional accelerator)            |
 | `spec`          | business docs, module docs, feature docs, feature readme | Business/feature documentation (single canonical Feature Spec per feature) |
-| `release-notes` | release notes, git history                               | Release notes from git commits (tag-to-tag)                                |
+| `release-doc` | release notes, git history                               | Release notes from git commits (tag-to-tag)                                |
 
 ---
 
@@ -99,7 +99,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | `commit`                      | commit, stage, save changes                             | Git commits; adds a `Fix-Origin:` trailer only when `commit.fixOriginTrailer` is `true` in `docs/project-config.json` (new commits only) |
 | `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch from `pullRequest.targetBranch` (default `main`), `/workflow-review-changes --fix-loop` over the whole branch, commit, push, create or ready the PR, loop CI to green — in the main session, without asking |
-| `code-review`                 | review, feedback, PR review                             | Code review                                          |
+| `code-quality-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
 
@@ -135,7 +135,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill             | Triggers                                         | Description                  |
 | ----------------- | ------------------------------------------------ | ---------------------------- |
 | `code-simplifier` | simplify, refine, clarity                        | Code cleanup                 |
-| `learn`           | remember this, always do, patterns, list learned | Pattern learning and viewing |
+| `learn`           | remember this, always do, patterns, list learned, rule for a skill, when doing X always | Pattern learning and viewing; skill-specific rules route to `project-skill-protocol` overlays |
 
 ---
 
@@ -245,7 +245,7 @@ Set `disable-model-invocation: true` on a skill the model must never start on it
 
 **Manual-only skills shipped here** (list them with `grep -l "^disable-model-invocation: true" .claude/skills/*/SKILL.md`):
 
-- **Command-only utilities** — `ck-help`, `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-notes`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
+- **Command-only utilities** — `ck-help`, `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-doc`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
 - **Mirror syncs** — `sync-codex`, `sync-opencode`: they rewrite generated folders, so only the user starts them.
 - **Other** — `product-roadmap`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
 
@@ -262,7 +262,7 @@ Skills are often activated alongside commands:
 | `/feature-implement` | `feature`, `plan`, `spec [mode=tests]` |
 | `/fix`               | `debug-investigate`                    |
 | `/plan`              | `plan`, `plan-review`                  |
-| `/review`            | `code-review`                          |
+| `/review`            | `code-quality-review`                          |
 | `/test`              | `spec [mode=tests]`, `e2e-test`        |
 | `/idea`              | `idea`                                 |
 | `/refine`            | `refine`                               |

@@ -116,7 +116,7 @@ const UI_UX_GATE = Object.freeze({
     ]),
     reinjectAfterTokens: 100000,
     evidenceDocs: Object.freeze(['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md']),
-    evidenceSkills: Object.freeze(['ui-review', 'design', 'design-spec', 'web-design-guidelines', 'pbi-mockup', 'artifact-review'])
+    evidenceSkills: Object.freeze(['ui-review', 'ui-design', 'design-spec', 'web-design-guidelines', 'pbi-mockup', 'artifact-review'])
 });
 
 /**

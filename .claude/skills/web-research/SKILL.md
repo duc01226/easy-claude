@@ -15,15 +15,15 @@ description: '[Research] Use when a workflow step or the user asks for web resea
 
 ## Quick Summary
 
-**Goal:** Run broad web research, classify and deduplicate candidate sources, and produce a tiered source map + gap list for `deep-research`, never a final report.
+**Goal:** Run broad web research, classify and deduplicate candidate sources, and produce a tiered source map + gap list for `source-deep-dive`, never a final report.
 
 **Summary:**
 
-- **Purpose:** Breadth-first discovery + triage for `deep-research`; produce a tiered, deduplicated source map, never synthesis.
-- **Main steps (all 5, in order):** (1) Define scope — parse topic; generate 5-10 angle-varied queries (overview, current-state, comparison, data, expert, criticism); (2) Execute searches — run `WebSearch` per query (≤10 calls); record title/URL/snippet/source type; (3) Triage — classify each result Tier 1-4; dedupe; (4) Build map — write `.claude/tmp/_sources-{slug}.md` (Sources + Gaps Identified); (5) Identify gaps — note underexplored angles for `deep-research`.
+- **Purpose:** Breadth-first discovery + triage for `source-deep-dive`; produce a tiered, deduplicated source map, never synthesis.
+- **Main steps (all 5, in order):** (1) Define scope — parse topic; generate 5-10 angle-varied queries (overview, current-state, comparison, data, expert, criticism); (2) Execute searches — run `WebSearch` per query (≤10 calls); record title/URL/snippet/source type; (3) Triage — classify each result Tier 1-4; dedupe; (4) Build map — write `.claude/tmp/_sources-{slug}.md` (Sources + Gaps Identified); (5) Identify gaps — note underexplored angles for `source-deep-dive`.
 - Hard-cap fan-out at 10 `WebSearch` calls/invocation; generate 5-10 varied queries, then stop; breadth then triage, not deep-dive.
 - Tier every result (.gov/.edu/official > industry reports > established blogs/Wikipedia > forums/social); dedupe URL/syndicated content before counting.
-- Deliverable: intermediate source map at `.claude/tmp/_sources-{slug}.md` (Sources + Gaps Identified), not synthesis; hand off to `deep-research`.
+- Deliverable: intermediate source map at `.claude/tmp/_sources-{slug}.md` (Sources + Gaps Identified), not synthesis; hand off to `source-deep-dive`.
 - Mine gaps: missing perspectives, quantitative data, stale recency; guide the next deep dive.
 
 **Workflow:**
@@ -32,7 +32,7 @@ description: '[Research] Use when a workflow step or the user asks for web resea
 2. **Execute searches** — Run `WebSearch`; collect results
 3. **Source triage** — Classify each source Tier 1-4; dedupe
 4. **Build source map** — Write structured source list to working file
-5. **Identify gaps** — Note underexplored angles for `deep-research`
+5. **Identify gaps** — Note underexplored angles for `source-deep-dive`
 
 **Key Rules:**
 
@@ -55,7 +55,7 @@ description: '[Research] Use when a workflow step or the user asks for web resea
 5. Use enforced template; include all sections
 6. Working files → `.claude/tmp/`; final output → `docs/knowledge/`
 
-This protocol is canonical for knowledge/research rules; `deep-research` and `knowledge-synthesis` reference it.
+This protocol is canonical for knowledge/research rules; `source-deep-dive` and `knowledge-synthesis` reference it.
 
 ## Step 1: Define Search Scope
 
@@ -118,7 +118,7 @@ Review source map for:
 - Missing data types (no quantitative data? need statistics)
 - Recency issues (all sources old? need current data)
 
-Note gaps for `deep-research`.
+Note gaps for `source-deep-dive`.
 
 ---
 
@@ -126,7 +126,7 @@ Note gaps for `deep-research`.
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT in a workflow, use `AskUserQuestion`; user chooses. NEVER decide it is "simple enough" to skip:
 >
-> 1. **Activate `workflow-research` workflow** (Recommended) — web-research → deep-research → synthesis → review
+> 1. **Activate `workflow-research` workflow** (Recommended) — web-research → source-deep-dive → synthesis → review
 > 2. **Execute `/web-research` directly** — run this skill standalone
 
 ---
@@ -135,7 +135,7 @@ Note gaps for `deep-research`.
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use `AskUserQuestion`; user chooses:
 
-- **"/deep-research (Recommended)"** — Deep-dive into top sources
+- **"/source-deep-dive (Recommended)"** — Deep-dive into top sources
 - **"/market-analysis"** — If sizing the market (TAM/SAM/SOM), competitors, trends — required before `/business-evaluation`
 - **"/business-evaluation"** — If evaluating business viability. **Run `/market-analysis` first** — this skill consumes its sized-market output as evidence and MUST NOT re-derive market sizing.
 - **"Skip, continue manually"** — user decides
@@ -188,7 +188,7 @@ Note gaps for `deep-research`.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Run broad web research, classify and deduplicate candidate sources, and produce a tiered source map + gap list for `deep-research`, never a final report.
+**IMPORTANT MUST ATTENTION Goal:** Run broad web research, classify and deduplicate candidate sources, and produce a tiered source map + gap list for `source-deep-dive`, never a final report.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -196,11 +196,11 @@ Note gaps for `deep-research`.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** Traced proof per claim, confidence >80% to act; NEVER present guess as fact.
 
-**IMPORTANT MUST ATTENTION** run ALL 5 main steps in order — (1) define scope + generate 5-10 angle-varied queries → (2) execute `WebSearch` (≤10 calls), record title/URL/snippet/type → (3) triage each result Tier 1-4 + dedupe → (4) build source map at `.claude/tmp/_sources-{slug}.md` → (5) identify gaps for `deep-research` — why: skipping a step (esp. triage or gaps) yields untiered, gap-blind feedstock that breaks the next stage.
+**IMPORTANT MUST ATTENTION** run ALL 5 main steps in order — (1) define scope + generate 5-10 angle-varied queries → (2) execute `WebSearch` (≤10 calls), record title/URL/snippet/type → (3) triage each result Tier 1-4 + dedupe → (4) build source map at `.claude/tmp/_sources-{slug}.md` → (5) identify gaps for `source-deep-dive` — why: skipping a step (esp. triage or gaps) yields untiered, gap-blind feedstock that breaks the next stage.
 **IMPORTANT MUST ATTENTION** cap WebSearch at 10 calls per invocation; generate 5-10 angle-varied queries (overview, current-state, comparison, data, expert, criticism) then stop at the cap — why: bounded fan-out keeps this breadth-then-triage, not a deep-dive into one angle.
-**IMPORTANT MUST ATTENTION** rank every source by tier (Tier 1 .gov/.edu/official > Tier 2 industry reports > Tier 3 established blogs/Wikipedia > Tier 4 forums/social) and dedupe by URL/syndicated content before it counts — why: tier ranking + dedupe keep the feedstock high-signal for deep-research.
+**IMPORTANT MUST ATTENTION** rank every source by tier (Tier 1 .gov/.edu/official > Tier 2 industry reports > Tier 3 established blogs/Wikipedia > Tier 4 forums/social) and dedupe by URL/syndicated content before it counts — why: tier ranking + dedupe keep the feedstock high-signal for source-deep-dive.
 **MANDATORY IMPORTANT MUST ATTENTION** NEVER cite a Tier 4 / single source as authoritative — cross-validate every factual claim against 2+ independent sources and declare confidence (95/80/60/<60%) — why: one unverified source = a hallucination-amplifier downstream.
-**MANDATORY IMPORTANT MUST ATTENTION** the deliverable is the intermediate source map at `.claude/tmp/_sources-{slug}.md` (sources table + Gaps Identified), NOT a synthesized report — hand it off to `deep-research`; mine the set for gaps (missing perspectives, missing quantitative data, stale recency) so the next step knows where to dig.
+**MANDATORY IMPORTANT MUST ATTENTION** the deliverable is the intermediate source map at `.claude/tmp/_sources-{slug}.md` (sources table + Gaps Identified), NOT a synthesized report — hand it off to `source-deep-dive`; mine the set for gaps (missing perspectives, missing quantitative data, stale recency) so the next step knows where to dig.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; add a final review todo task to verify work quality; transition one task at a time.
 **IMPORTANT MUST ATTENTION** persist intermediate findings/results to a report file in `tmp/reports/` for complex or lengthy work — why: external memory prevents context loss and is itself the deliverable.
 **MANDATORY IMPORTANT MUST ATTENTION** if NOT already in a workflow, validate the route with the user via `AskUserQuestion` — NEVER auto-decide "simple enough to skip"; the user decides workflow vs. standalone `/web-research`.
@@ -211,13 +211,13 @@ Note gaps for `deep-research`.
 | Evasion                                      | Rebuttal                                                                            |
 | -------------------------------------------- | ----------------------------------------------------------------------------------- |
 | "One strong source is enough"                | NEVER — cross-validate against 2+ independent sources; Tier 4 is never authoritative |
-| "I'll just write the report now"             | Out of scope — output the source map + gaps; `deep-research` synthesizes, not this  |
+| "I'll just write the report now"             | Out of scope — output the source map + gaps; `source-deep-dive` synthesizes, not this  |
 | "Keep searching, more results help"          | Hard-cap is 10 WebSearch calls — breadth then triage, never an unbounded crawl      |
 | "Topic is simple, skip tiering/dedupe"       | Tier + dedupe every source — untiered feedstock degrades every downstream step      |
 | "Just do it, skip task tracking"             | Skip depth, never skip tracking — `TaskCreate` first, one task in progress          |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
-**IMPORTANT MUST ATTENTION Goal:** triaged, tiered, deduplicated source map + gap list as feedstock for `deep-research` — NOT a final report.
+**IMPORTANT MUST ATTENTION Goal:** triaged, tiered, deduplicated source map + gap list as feedstock for `source-deep-dive` — NOT a final report.
 **IMPORTANT MUST ATTENTION** cap WebSearch at 10; cross-validate every claim with 2+ sources; NEVER cite Tier 4 as fact.
 **IMPORTANT MUST ATTENTION** `TaskCreate` to break ALL work into small tasks BEFORE starting — this is very important.

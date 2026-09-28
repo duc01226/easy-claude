@@ -2,7 +2,7 @@
 
 > **Role:** the **authoritative knowledge body** for _how an expert UX designer derives an interface from the people who use it_. Owns the JOURNEY-FIRST LAWS, the NINE-STAGE EXPERT PROCESS, the JOURNEY REPORT template, the MAIN-JOURNEY selection rule, the INFORMATION-PRIORITY method, the BUSINESS-LOGIC → INTERACTION map, the UX LAWS reference, and the WALKTHROUGH validation method. Owns NO procedure — procedure lives in the consuming skills; the executable gate is `SYNC:ux-journey-gate` (`UX-1`–`UX-11`).
 >
-> **Consumed by:** `design` (all modes and both lanes) · `design-spec` · `pbi-mockup` · `plan` · `ui-review` · `artifact-review` · `workflow-spec-to-mockup` · `workflow-idea-to-pbi`, plus the `ui-ux-designer` agent. A carrier belongs here ONLY if it carries `SYNC:ux-journey-gate` (inline, as a guide line, or as a reminder) or an explicit pointer to this file. NEVER add an aspirational consumer.
+> **Consumed by:** `ui-design` (all modes and both lanes) · `design-spec` · `pbi-mockup` · `plan` · `ui-review` · `artifact-review` · `workflow-spec-to-mockup` · `workflow-idea-to-pbi`, plus the `ui-ux-designer` agent. A carrier belongs here ONLY if it carries `SYNC:ux-journey-gate` (inline, as a guide line, or as a reminder) or an explicit pointer to this file. NEVER add an aspirational consumer.
 >
 > **Drift-guard:** the `UX-*` clause text is single-sourced in `SYNC:ux-journey-gate` (`.claude/skills/shared/sync-inline-versions.md`); this file is the deep catalog behind it. On any change here, grep `ux-journey-process.md` and `SYNC:ux-journey-gate` and update every consumer.
 >

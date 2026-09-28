@@ -38,7 +38,7 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
 
 ## When NOT to Use
 
-- **Building** UI -- use `design --lane=marketing` (marketing/creative) or `design --lane=product` (product UIs)
+- **Building** UI -- use `ui-design --lane=marketing` (marketing/creative) or `ui-design --lane=product` (product UIs)
 - **Creating** design specs -- use `design-spec`
 - **Workflow-wired UI review gate** -- use `/ui-review` (the project UI review gate that runs in the `changes-review` parallel batch on frontend changes: long-content overflow, responsive flex, flex-vs-fixed sizing, z-index discipline, SCSS/BEM). This skill is the generic, framework-agnostic a11y/UX checklist that `/ui-review` cross-references — not a duplicate.
 - Project styling review: apply configured rules when present; otherwise use stack evidence and do not assume a preprocessor or naming method.
@@ -142,7 +142,7 @@ Group by file. Use `file:line` format. Terse findings. No preamble.
 
 | Skill             | When to use instead                                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `design`          | Building UI (not reviewing) — `--lane=marketing` (creative) or `--lane=product` (app UIs)                                  |
+| `ui-design`          | Building UI (not reviewing) — `--lane=marketing` (creative) or `--lane=product` (app UIs)                                  |
 | `design-spec`     | Creating design specifications                                                                                            |
 | `/ui-review`      | Project UI review gate (overflow, responsive flex, z-index, SCSS/BEM); runs in `changes-review` batch on frontend changes |
 

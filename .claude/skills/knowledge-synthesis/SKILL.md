@@ -14,7 +14,7 @@ description: '[Research] Use when a workflow step or the user asks for a researc
 
 **Summary:**
 
-- **Purpose/input/output:** Synthesize `.claude/tmp/_evidence-{slug}.md` + `_sources-{slug}.md` from `deep-research` into `docs/knowledge/research/{slug}.md`; do not gather sources — upstream gathering already happened; no alternate mode or flag.
+- **Purpose/input/output:** Synthesize `.claude/tmp/_evidence-{slug}.md` + `_sources-{slug}.md` from `source-deep-dive` into `docs/knowledge/research/{slug}.md`; do not gather sources — upstream gathering already happened; no alternate mode or flag.
 - **Main path:** (1) create small tasks; (2) load evidence and inventory findings/confidence/discrepancies/gaps; (3) load template; (4) synthesize every section with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit citations; (6) roll up confidence, flag `<60%`, run final review, then clean working files after success.
 - **Evidence gate:** Every factual claim MUST have inline `[N]` and 2+ independent sources; every Sources-table row needs a reference; Tier 4 is NEVER cited as fact; preserve gaps and discrepancies.
 - **Template/terminal gate:** Every enforced-template section, including Knowledge Gaps, MUST appear; final output is `docs/knowledge/research/{slug}.md`, with `.claude/tmp/` cleanup only after successful synthesis.
@@ -122,7 +122,7 @@ Clean up `.claude/tmp/` working files after successful synthesis.
 
 **IMPORTANT MUST ATTENTION Main path:** (1) create small `TaskCreate` tasks; keep one `in_progress`; add a final review task; (2) load both evidence files and inventory findings/confidence/discrepancies/gaps; (3) load the enforced template and retain every section; (4) synthesize to `docs/knowledge/research/{slug}.md` with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit claim citations, Sources-table coverage, and orphan citations; (6) average scores, weight by importance, flag `<60%`, run final review, then clean `.claude/tmp/` only after success.
 
-**IMPORTANT MUST ATTENTION Mode/boundary:** No alternate mode or flag; consume existing `deep-research` evidence; NEVER gather sources, fabricate, or upgrade findings; clean `.claude/tmp/` only after successful synthesis.
+**IMPORTANT MUST ATTENTION Mode/boundary:** No alternate mode or flag; consume existing `source-deep-dive` evidence; NEVER gather sources, fabricate, or upgrade findings; clean `.claude/tmp/` only after successful synthesis.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** MUST ATTENTION honor every block below — each is a signpost to its canonical body above.
 

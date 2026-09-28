@@ -45,7 +45,7 @@ Common ways to make the framework lighter for one project. Team settings go in `
 | Reading a file stops pulling authoring docs | Per convention class: `on: "edit"` on the `contextGroups[]` entry (`read`, `edit` or `both`; default `both`). For every class: `conventionInjection.onRead: false` | Remove `on` / the key |
 | Code graph only when the project wants it | `hooks.codeGraph.enabled`: `auto` (default: active only once `.code-graph/graph.db` exists, built with `/graph-build`), `on`, or `off` (graph hooks silent, graph CLI refuses) | Remove the key |
 | No `Fix-Origin:` commit trailer | Nothing to do: it is off by default. Set `commit.fixOriginTrailer: true` to opt in; it applies to new commits only, and a check that demands it on older commits must be made forward-only rather than rewriting history | Remove the key |
-| The host's built-in code reviewer | Type `/review` in Claude Code; the framework ships no skill of that name, so the built-in runs. It stops working if `code-review` is set `off` (see [Skill visibility and settings precedence](#skill-visibility-and-settings-precedence)) | None needed |
+| The host's built-in code reviewer | Type `/code-review` (or its `/review` alias) in Claude Code; the framework ships no skill of that name (its own review skill is `code-quality-review`), so the built-in runs. The same holds for `/security-review`, `/deep-research`, `/release-notes` and `/design`, whose framework skills are `security-audit`, `source-deep-dive`, `release-doc` and `ui-design`. It stops working if `code-review` is set `off` (see [Skill visibility and settings precedence](#skill-visibility-and-settings-precedence)) | None needed |
 | Fewer skills in the model's list | `skillProfile` in `docs/project-config.json`, then `node .claude/scripts/sync-skill-profile.cjs` (see [Skill profile](#skill-profile)) | Remove `skillProfile` and run the sync again |
 | Your own compaction window | The framework sets none, so each host uses its default. Claude: `/autocompact <size>`, or an `env` entry in `.claude/settings.local.json`. Codex and OpenCode: see "No compaction pin" in `.claude/docs/configuration/README.md` | Remove your value |
 | One session without the framework | Claude: the launcher in [Run without the framework](#run-without-the-framework). Codex: `[features] hooks = false` in your personal Codex config (hooks off; project instructions and skills still load). OpenCode: start it with the environment variable `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS=1` (stops loading `.claude/skills`) | Per session |
@@ -70,7 +70,27 @@ A skill whose frontmatter already sets `disable-model-invocation: true` is left 
 ## Skill visibility and settings precedence
 
 - **Precedence (Claude Code, per key):** `--settings` flag > `.claude/settings.local.json` > `.claude/settings.json` > the user file `~/.claude/settings.json`. Put a personal override in `.claude/settings.local.json`; a value in your user file loses to a team key of the same name.
-- **`off` also blocks the built-in skill of that name.** A project skill named like a built-in (for example `code-review`, `design`, `plan`, `security-review`) replaces the built-in's `/name`, and `skillOverrides` `"<name>": "off"` disables both: the built-in does not come back. That includes the `/review` alias, which reaches the built-in code reviewer only while `code-review` is not `off`. There is no profile setting that turns a framework skill off and restores the built-in.
+- **`off` also blocks the built-in skill of that name.** A project skill named like a built-in replaces the built-in's `/name`, and `skillOverrides` `"<name>": "off"` disables both: the built-in does not come back. That includes the `/review` alias, which reaches the built-in code reviewer only while `code-review` is not `off`. There is no profile setting that turns a framework skill off and restores the built-in.
+- **The framework avoids built-in names.** `.claude/scripts/codex/tests/skill-builtin-names.test.mjs` fails when any project skill takes one — framework or your own — so rename a colliding skill of yours. The one owner-accepted exception is `plan`: `/plan` runs the framework's planning skill, and plan mode stays reachable without that command.
+
+### Renamed skills — migrating an adopting project
+
+Five framework skills were renamed so the Claude Code built-ins of the same name stay reachable:
+
+| Old name | New name | Built-in it no longer hides |
+| --- | --- | --- |
+| `code-review` | `code-quality-review` | `/code-review` (and its `/review` alias) |
+| `security-review` | `security-audit` | `/security-review` |
+| `deep-research` | `source-deep-dive` | `/deep-research` |
+| `release-notes` | `release-doc` | `/release-notes` |
+| `design` | `ui-design` | `/design` |
+
+After refreshing `.claude/` from the framework:
+
+1. **Delete the old skill folders** `.claude/skills/{code-review,security-review,deep-research,release-notes,design}/`. Copying `.claude/` over an existing one never removes them, and a leftover folder keeps hiding its built-in.
+2. **Rename the old names in `docs/project-config.json`:** `skillProfile` lists, `contextGroups[].skills` and `contextGroups[].evidenceSkills`, and any steps of your own workflows. A stale name no longer matches the renamed skill.
+3. **Update project overlays** whose Target is an old name (`/project-skill-protocol list`). Targets match by exact name, so an old one stops applying without a warning.
+4. **Re-run `node .claude/scripts/sync-skill-profile.cjs`** when you use `skillProfile`: it removes the `skillOverrides` keys it wrote for the old names, and until then a committed `"code-review": "off"` still blocks the built-in. Then run `/sync-codex` to regenerate the Codex and OpenCode mirrors.
 
 ## Codex trust entries
 

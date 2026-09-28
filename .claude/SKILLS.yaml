@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-26'
+  last_updated: '2026-09-28'
   total_skills: 128
   total_by_status:
     active: 128
@@ -571,7 +571,8 @@ skills:
     - name: learn
       path: learn/SKILL.md
       description: '[Utilities] Use when teaching Claude a lesson that persists across
-        sessions.'
+        sessions, including an extra rule or lesson for one skill or for the kind
+        of task a skill owns (routed to project-skill-protocol).'
       category: other
       has_scripts: false
       has_references: false
@@ -803,8 +804,8 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: release-notes
-      path: release-notes/SKILL.md
+    - name: release-doc
+      path: release-doc/SKILL.md
       description: '[Git] Use when creating release notes or a release document from
         git history at any scope (tag-to-tag, branch-to-branch, time range), producing
         markdown plus a standalone HTML presentation.'
@@ -885,8 +886,8 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: security-review
-      path: security-review/SKILL.md
+    - name: security-audit
+      path: security-audit/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for a
         security review or audit. OWASP Top 10, secrets exposure, dependency/supply-chain
         malware, infrastructure, CI/CD, AI-agent risks, host compromise.'
@@ -1346,8 +1347,8 @@ skills:
       deprecated_since: null
       removal_after: null
     utilities:
-    - name: code-review
-      path: code-review/SKILL.md
+    - name: code-quality-review
+      path: code-quality-review/SKILL.md
       description: '[Code Quality] Use when evaluating review feedback, requesting
         a targeted code-quality review, or verifying completion claims.'
       category: utilities
@@ -1362,18 +1363,6 @@ skills:
       description: '[Fix & Debug] Use when a workflow step or the user asks for a
         bug''s root cause. Reproduce, trace end-to-start, test hypotheses and pinpoint
         the defect before any fix.'
-      category: utilities
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: deep-research
-      path: deep-research/SKILL.md
-      description: '[Research] Use when a workflow step or the user asks for deep
-        research on the top sources surfaced by web-research. Fetches, extracts, cross-validates
-        and builds the evidence base.'
       category: utilities
       has_scripts: false
       has_references: false
@@ -1439,6 +1428,18 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
+    - name: source-deep-dive
+      path: source-deep-dive/SKILL.md
+      description: '[Research] Use when a workflow step or the user asks for deep
+        research on the top sources surfaced by web-research. Fetches, extracts, cross-validates
+        and builds the evidence base.'
+      category: utilities
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: web-research
       path: web-research/SKILL.md
       description: '[Research] Use when a workflow step or the user asks for web research.
@@ -1462,17 +1463,6 @@ skills:
       deprecated_since: null
       removal_after: null
     frontend:
-    - name: design
-      path: design/SKILL.md
-      description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|explore|describe|screenshot|video}
-        (default fast), --lane={product|marketing} (default product).'
-      category: frontend
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: design-spec
       path: design-spec/SKILL.md
       description: '[Project Management] Use when a workflow step or the user asks
@@ -1481,6 +1471,17 @@ skills:
       category: frontend
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: ui-design
+      path: ui-design/SKILL.md
+      description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|explore|describe|screenshot|video}
+        (default fast), --lane={product|marketing} (default product).'
+      category: frontend
+      has_scripts: true
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

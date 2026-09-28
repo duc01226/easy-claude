@@ -312,7 +312,7 @@ Use real domain entities and relationships for realistic mockup data:
 
 ### Step 3d: Explore N Directions (`--explore` only)
 
-> **Runs ONLY with `--explore`, after Steps 2a–3c and before Step 4.** Without the flag, record `Explore: not requested` and go to Step 4 (single direction). **First action: read `references/explore-directions.md`** and follow it step by step — it adapts the design skill's explore workflow (`.claude/skills/design/references/explore/workflow.md`) to a mock app.
+> **Runs ONLY with `--explore`, after Steps 2a–3c and before Step 4.** Without the flag, record `Explore: not requested` and go to Step 4 (single direction). **First action: read `references/explore-directions.md`** and follow it step by step — it adapts the design skill's explore workflow (`.claude/skills/ui-design/references/explore/workflow.md`) to a mock app.
 
 0. **Use the Step 0 scope decision.** Build the number of drafts the user chose at Step 0 (3, 2 or 1). Skip was already handled at Step 0, and with no question tool Step 0 fixed ONE auto-selected draft, so pick seeds and fan out only that many sub-agents.
 1. **Resolve authority per axis** (colour · type · layout) from Steps 3 + 3b. A project design system (or existing UI) that pins all three → record them `ADOPTED`, write the exemption in `tmp/design/<run>/direction-approved.md`, log `Explore: SKIPPED — <reason>`, and continue at Step 4.
@@ -813,7 +813,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

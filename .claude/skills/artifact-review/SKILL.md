@@ -115,7 +115,7 @@ Select the checklist + output template by artifact type. Pass `--type={pbi|story
 | `pbi`       | Product Backlog Item | PBI Review Result                           |
 | `story`     | User story set       | Story Review Result (+ AC Coverage Matrix)  |
 | `spec-tests` | Test specification   | Test Spec Review Result (+ Coverage Matrix) |
-| `design`    | Design spec          | Artifact Review                             |
+| `ui-design`    | Design spec          | Artifact Review                             |
 
 ### PBI Review (`--type=pbi`)
 

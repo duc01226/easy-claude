@@ -329,7 +329,7 @@ The budget is **per event and per host**: the added wall time of all delivery st
 
 ### BR-PDL-11: The five review-family skills stay inline [HARD]
 
-The skills on the inline list of the group data keep every full protocol body in their main file. **Decided list:** changes-review, code-review, plan-review, why-review, workflow-review-changes — each carries between 55,176 and 121,781 characters of shared protocol text, more than the 57,000 characters six bins can deliver per load, so delivery would reach them mostly as paths. They are never converted, even when a conversion run names their protocols; they declare no guide entries, so no group delivers to them, the universal exceptions included; a guide entry in one of them fails verification. Every name on the list must be a valid skill name with an existing skill folder. Agents keep their full protocol text as before and are never converted.
+The skills on the inline list of the group data keep every full protocol body in their main file. **Decided list:** changes-review, code-quality-review, plan-review, why-review, workflow-review-changes — each carries between 55,176 and 121,781 characters of shared protocol text, more than the 57,000 characters six bins can deliver per load, so delivery would reach them mostly as paths. They are never converted, even when a conversion run names their protocols; they declare no guide entries, so no group delivers to them, the universal exceptions included; a guide entry in one of them fails verification. Every name on the list must be a valid skill name with an existing skill folder. Agents keep their full protocol text as before and are never converted.
 
 `[Source: rule/skills/inline-skills]`
 

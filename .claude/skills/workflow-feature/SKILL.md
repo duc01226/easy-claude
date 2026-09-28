@@ -106,7 +106,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 - gates awaiting user approval (`/spec-clarify`, `/plan-validate`, Plan Gate approval) are never parallelized;
 - `/workflow-end` runs last, then `/watzup`.
 
-Recommended: independent read-only work (for example `/spec-discovery` beside a code investigation) in one parallel wave; L/XL partitioned into bounded batches per module or slice with one report per batch; XS/S done inline. The nested review owns `/integration-test-review`, `/security-review`, `/domain-entities-review`, `/experience-review` and the conditional domain-entity reference refresh (`/scan --target=domain-entities` → `/docs-update`, run when the final diff changes an entity, data contract or schema represented in `domain-entities-reference.md`); this workflow's tail does not repeat them. `/experience-review` records `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` honestly and never promotes a new expectation without explicit acceptance.
+Recommended: independent read-only work (for example `/spec-discovery` beside a code investigation) in one parallel wave; L/XL partitioned into bounded batches per module or slice with one report per batch; XS/S done inline. The nested review owns `/integration-test-review`, `/security-audit`, `/domain-entities-review`, `/experience-review` and the conditional domain-entity reference refresh (`/scan --target=domain-entities` → `/docs-update`, run when the final diff changes an entity, data contract or schema represented in `domain-entities-reference.md`); this workflow's tail does not repeat them. `/experience-review` records `NOT-APPLICABLE` or `ENVIRONMENT-BLOCKED` honestly and never promotes a new expectation without explicit acceptance.
 
 ## Memory & Reporting
 

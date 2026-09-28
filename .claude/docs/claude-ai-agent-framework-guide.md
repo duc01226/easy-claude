@@ -45,7 +45,7 @@ The design bet: **static rules carry the contract; hooks only accelerate it.** E
 | Review your changes                   | `/changes-review` (quick) · `/workflow-review-changes --fix-loop` (full) |
 | Commit                                | `/commit` (the only agent commit path)                  |
 | Open a pull request                   | `/pull-request` (branch → review → commit → PR → CI green) |
-| Design or mock up UI                  | `/design`, `/pbi-mockup --explore`, `/workflow-spec-to-mockup` |
+| Design or mock up UI                  | `/ui-design`, `/pbi-mockup --explore`, `/workflow-spec-to-mockup` |
 | Write or sync a spec                  | `/spec`, `/workflow-feature-spec`, `/workflow-spec-sync` |
 | Write or fix tests                    | `/workflow-write-integration-test`, `/workflow-integration-test-green`, `/workflow-e2e` |
 | Set up a project                      | `/project-init`, then `/scan-all`                       |
@@ -176,18 +176,18 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 | Planning & architecture          | 10    | `plan`, `plan-review`, `plan-validate`, `scenario`, `architecture-design` |
 | Implementation                   | 5     | `feature-implement`, `plan-execute`, `code-simplifier`               |
 | Understand, fix, debug, graph    | 10    | `investigate`, `understand`, `debug-investigate`, `fix`, `graph-*`   |
-| Review & quality                 | 15    | `changes-review`, `why-review`, `security-review`, `ui-review`       |
+| Review & quality                 | 15    | `changes-review`, `why-review`, `security-audit`, `ui-review`       |
 | Testing                          | 9     | `test`, `integration-test`, `e2e-test`, `experience-review`          |
 | Specs & reference docs           | 9     | `spec`, `spec-clarify`, `tech-spec`, `docs-update`, `scan`           |
-| Design & UI                      | 4     | `design`, `design-spec`, `pbi-mockup`, `excalidraw-diagram`          |
+| Design & UI                      | 4     | `ui-design`, `design-spec`, `pbi-mockup`, `excalidraw-diagram`          |
 | Product / PBI                    | 7     | `idea`, `refine`, `story`, `prioritize`, `dor-gate`                  |
-| Research & business content      | 8     | `web-research`, `deep-research`, `market-analysis`                   |
+| Research & business content      | 8     | `web-research`, `source-deep-dive`, `market-analysis`                   |
 | Documents, decks & media         | 8     | `feature-presentation`, `html-export`, `demo-guide`, `watzup`        |
-| Git & delivery                   | 5     | `commit`, `pull-request`, `git-conflict-resolve`, `release-notes`    |
+| Git & delivery                   | 5     | `commit`, `pull-request`, `git-conflict-resolve`, `release-doc`    |
 | Project setup, context & help    | 9     | `project-init`, `ai-context-refresh`, `project-skill-protocol`, `learn` |
 | Framework maintenance            | 6     | `sync-codex`, `sync-opencode`, `skill-creator`, `prompt-enhance`     |
 
-**Who can start a skill.** Most skills are model-invocable. 18 are command-only (`disable-model-invocation: true`, e.g. `sync-codex`, `release-notes`, `product-roadmap`) — only the user starts them with `/name`. A team can hide more with a **skill profile** (`skillProfile` in `docs/project-config.json`): preset `full` · `standard` · `minimal`, plus `nameOnly`, `commandOnly` and `off` lists; `node .claude/scripts/sync-skill-profile.cjs` writes the result into `.claude/settings.json` `skillOverrides`. Hiding a skill that a workflow, agent or hook calls is refused unless `allowHidingCalledSkills: true`.
+**Who can start a skill.** Most skills are model-invocable. 18 are command-only (`disable-model-invocation: true`, e.g. `sync-codex`, `release-doc`, `product-roadmap`) — only the user starts them with `/name`. A team can hide more with a **skill profile** (`skillProfile` in `docs/project-config.json`): preset `full` · `standard` · `minimal`, plus `nameOnly`, `commandOnly` and `off` lists; `node .claude/scripts/sync-skill-profile.cjs` writes the result into `.claude/settings.json` `skillOverrides`. Hiding a skill that a workflow, agent or hook calls is refused unless `allowHidingCalledSkills: true`.
 
 **Review-family modes.** `--fix-loop` (review → validate → fix → fresh re-review until converged; mints a review receipt) and `--report-only` (a leaf reviewer that only reports — no fixes, no questions, no nested fan-out — used when a caller owns the fixes).
 
@@ -286,7 +286,7 @@ Any task that creates or reshapes a user-facing screen runs three rule sets in o
 | `DD-1`–`DD-8` | Is it this product's interface, not a generic template        | `.claude/docs/design-knowledge.md`    |
 | `CL-1`–`CL-6` | How to review: context, evidence, P0–P4 severity, sweep       | `.claude/docs/design-review-checklist.md` |
 
-Precedence: the brief's visual direction → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/pbi-mockup --explore`, `/design --mode=explore`) first asks how many drafts (3, 2, 1 or skip), opens them in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
+Precedence: the brief's visual direction → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/pbi-mockup --explore`, `/ui-design --mode=explore`) first asks how many drafts (3, 2, 1 or skip), opens them in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
 
 ---
 

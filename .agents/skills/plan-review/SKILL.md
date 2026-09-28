@@ -111,7 +111,7 @@ Before scoring, build an impact matrix from the plan's files, behaviors, contrac
 | Domain entity, value object, aggregate, invariant, lifecycle rule, domain event, or business-rule ownership | `$domain-entities-review` (apply its A–P checklist inline; delegate only under its escalation rule) | Domain/subdomain fit; aggregate boundary; invariant ownership; lifecycle/events; validation; persistence; and regression/invariant tests. |
 | Backend endpoint, command/query, handler, service, repository, API, or public contract | `$architecture-review` + `$production-readiness-review` | Lowest responsible layer; validation/error contracts; auth; compatibility and consumers; observability; performance; and operational safety. |
 | Schema, migration, backfill, index, retention, or production data change | `$db-migrate` | Ordering; locking/downtime; forward/backward compatibility; integrity; scale; rollback/recovery; and migration validation. |
-| Authentication, authorization, tenancy, secrets, untrusted input, payments, or sensitive data | `$security-review` | Threat model; boundaries; validation; redaction/logging; abuse paths; and secure failure behavior. |
+| Authentication, authorization, tenancy, secrets, untrusted input, payments, or sensitive data | `$security-audit` | Threat model; boundaries; validation; redaction/logging; abuse paths; and secure failure behavior. |
 | Queue, event, webhook, external API, third-party integration, or cross-service workflow | `$integration-test-review` | Contracts; timeouts; retries; idempotency; ordering/duplicates; compensations; and integration coverage. |
 | Critical browser journey or changed E2E-visible behavior | `$e2e-test` | Happy, error, and permission journeys; fixtures; stable selectors/page objects; and browser coverage. |
 | Hot path, large dataset, expensive query, rendering concern, or background job | `$performance-review` | Budgets; query/algorithm cost; cache behavior; load characteristics; and measurable verification. |
@@ -1736,7 +1736,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
 >
-> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-review`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
+> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-audit`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
 >
 > **Required review note:** `context/scope | principle/protocol checked | evidence | status/verdict | severity | owner/route | next step/revisit trigger`.
 >
@@ -1870,7 +1870,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

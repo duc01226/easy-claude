@@ -132,7 +132,7 @@ The opening must establish context quickly. The body must progress by causality,
 
 A deck whose subject is not the project (an external topic, a lesson, a talk) records `N/A — deck does not represent the project` and skips the read. The brief's stated visual direction outranks the authority; the authority outranks the `DD-*` clauses; a genuine conflict goes to the user, never resolved silently — why: a project deck that ignores its design system reads as someone else's product.
 
-**Design-explore hand-off.** When `$design` explore hands this skill a picked direction — `direction-approved.md` plus `run-notes.md` from its run folder — adopt `direction-approved.md`, including its `## Design Plan tokens` section (named colour hex values, type families with roles and scale, layout concept, web-font note), as this step's design plan instead of writing a new one; the pick counts as the brief's stated visual direction. A web font the picked draft loaded is kept only by packaging the font file inside the deck; otherwise use the project's type, then the closest system stack, and record the change as a departure in the design plan. Apply each fix in the `## Journey fixes (UX-8)` table of `run-notes.md` to the slide map and slide layouts, and list each fix as applied or `N/A` with a reason. Keep the design-authority record above, and confirm the adopted plan covers every item below; fill any gap.
+**Design-explore hand-off.** When `$ui-design` explore hands this skill a picked direction — `direction-approved.md` plus `run-notes.md` from its run folder — adopt `direction-approved.md`, including its `## Design Plan tokens` section (named colour hex values, type families with roles and scale, layout concept, web-font note), as this step's design plan instead of writing a new one; the pick counts as the brief's stated visual direction. A web font the picked draft loaded is kept only by packaging the font file inside the deck; otherwise use the project's type, then the closest system stack, and record the change as a departure in the design plan. Apply each fix in the `## Journey fixes (UX-8)` table of `run-notes.md` to the slide map and slide layouts, and list each fix as applied or `N/A` with a reason. Keep the design-authority record above, and confirm the adopted plan covers every item below; fill any gap.
 
 Otherwise, before coding, write a compact plan:
 
@@ -322,7 +322,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/a linter catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

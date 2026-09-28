@@ -65,7 +65,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | Understand code            | `/investigate`                       | `investigate`                 |
 | Plan implementation        | `/plan`                              | `plan`                        |
 | Run tests                  | `/test`                              | `test`                        |
-| Review code                | `/review`                            | `code-review`                 |
+| Review code                | `/review`                            | `code-quality-review`                 |
 | Debug issues               | `/debug-investigate`                 | `debug-investigate`           |
 | Create user story          | `/story`                             | `story`                       |
 | Prioritize backlog         | `/prioritize`                        | `prioritize`                  |

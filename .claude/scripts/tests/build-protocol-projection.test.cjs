@@ -40,7 +40,7 @@ const BIN = 9500;
 const SHARED = ['.claude', 'skills', 'shared'];
 const OUT_REL = '.claude/skills/shared/protocols';
 const ROOT_CARRIED = ['critical-thinking-mindset', 'ai-mistake-prevention', 'project-reference-docs-guide', 'project-protocol-overlay'];
-const INLINE_SKILLS = ['changes-review', 'code-review'];
+const INLINE_SKILLS = ['changes-review', 'code-quality-review'];
 /** A drive-letter path or a POSIX home/temp root: text that would pin the projection to one machine. */
 const ABSOLUTE_PATH = /(?:\b[A-Za-z]:[\\/])|(?:\/(?:Users|home|private|var\/folders)\/)/;
 
@@ -447,7 +447,7 @@ test('TC-PDL-080: the shipped groups file keeps the four universal tags and the 
     const groups = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...SHARED, 'protocol-groups.json'), 'utf8'));
     // When it is read, Then universal is the root-carried set and inlineSkills is the owner's list (BR-PDL-11)
     assert.deepEqual(Object.keys(groups.groups.universal.tags).sort(), [...projection.ROOT_CARRIED_TAGS].sort());
-    assert.deepEqual(groups.inlineSkills, ['changes-review', 'code-review', 'plan-review', 'why-review', 'workflow-review-changes']);
+    assert.deepEqual(groups.inlineSkills, ['changes-review', 'code-quality-review', 'plan-review', 'why-review', 'workflow-review-changes']);
 });
 
 /** Compression ceiling for one canonical body (F3): every tag fits one bin with headroom. */

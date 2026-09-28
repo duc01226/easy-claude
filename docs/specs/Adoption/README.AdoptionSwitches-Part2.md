@@ -18,7 +18,7 @@ roadmap_status: null
 
 # Adoption Switches — Feature Spec, Part 2 (release D test cases)
 
-> **DRAFT — provisional spec.** The skill-profile cases (TC-ADS-016…024, 040…042, 045…048) and the shared graph tooling cases (TC-ADS-028…031, 044, 049, 051…053) have landed: they carry `Implemented` with the test location (passed during implementation, not yet in the release-close full test run) and a `[Source:]` anchor. The emphasis anchor lock (TC-ADS-025) and the step-skill description cases (TC-ADS-032, 033, 050) also carry `Implemented`, but their tests were written and never executed. The emphasis comparison cases (TC-ADS-026, 043) are `Planned — deferred to after commit`. Every other case here stays `Planned (release D)` with `Evidence: TBD`. After the close run, reconcile with `/spec [mode=update]`, flip the implemented cases to `Tested`, and clear the provisional flag once no case is left planned.
+> **DRAFT — provisional spec.** The skill-profile cases (TC-ADS-016…024, 040…042, 045…048) and the shared graph tooling cases (TC-ADS-028…031, 044, 049, 051…053) have landed: they carry `Implemented` with the test location (passed during implementation, not yet in the release-close full test run) and a `[Source:]` anchor. The emphasis anchor lock (TC-ADS-025) and the step-skill description cases (TC-ADS-032, 033, 050) also carry `Implemented`, but their tests were written and never executed. The built-in name guard (TC-ADS-027) carries `Implemented` and its test passed twice on 2026-09-29. The emphasis comparison cases (TC-ADS-026, 043) are `Planned — deferred to after commit`. Every other case here stays `Planned (release D)` with `Evidence: TBD`. After the close run, reconcile with `/spec [mode=update]`, flip the implemented cases to `Tested`, and clear the provisional flag once no case is left planned.
 
 > **Continuation part.** Sections 1–7, the rule catalog, the test summary and the release-A cases live in the parent spec. This part holds only the release-D Section 8 cases, split out under the project's forty-case rule; their IDs are unchanged.
 
@@ -569,7 +569,7 @@ And with the opt-in the value is written and a warning names the skill
 ```json
 {
     "skillProfile": {
-        "commandOnly": ["security-review"]
+        "commandOnly": ["security-audit"]
     },
     "optIn": "allowHidingCalledSkills"
 }
@@ -865,7 +865,7 @@ And with the opt-in the policy is written and a warning names the skill
 ```json
 {
     "skillProfile": {
-        "commandOnly": ["security-review"]
+        "commandOnly": ["security-audit"]
     }
 }
 ```
@@ -926,7 +926,7 @@ And with the opt-in the skill is hidden with a command and a warning names it
 ```json
 {
     "skillProfile": {
-        "off": ["security-review"]
+        "off": ["security-audit"]
     }
 }
 ```
@@ -1186,26 +1186,26 @@ And each skill has a decision
 
 ---
 
-#### TC-ADS-027: Name-clash guidance matches the spike result [P2]
+#### TC-ADS-027: A skill named like a built-in fails verification [P1]
 
-**Objective:** Prove that the documentation describes the name-clash outcome the spike recorded: a recipe when the built-in skill returns, a rename proposal otherwise.
+**Objective:** Prove that a project skill whose folder or declared name matches a built-in command or skill fails verification, and that an owner-accepted collision does not.
 
-**Business Intent / Invariant Guarded:** Adopters get guidance that matches how the host actually resolves a clash (BR-ADS-16).
+**Business Intent / Invariant Guarded:** Every built-in stays reachable: no project skill silently takes over its name (BR-ADS-16).
 
 **Traces:** AC-ADS-15 / BR-ADS-16
 
 **Preconditions:**
 
-- The spike recorded its result
+- The host's reserved built-in names are listed in the verification
 
-**Real-World Reachability:** A team notices a framework skill shadows a built-in one.
+**Real-World Reachability:** A framework refresh brings back a skill under a built-in's name, or a team adds its own skill with such a name.
 
-**Demo Flow:** Read the documentation section for the clash.
+**Demo Flow:** Add a skill named like a built-in and run the framework verification.
 
 ```gherkin
-Given the spike recorded whether the built-in skill returns
-When the documentation is read
-Then it gives the recipe for the recorded outcome
+Given a project skill whose declared name is a built-in name
+When the framework verification runs
+Then it fails and names that skill and the built-in it hides
 ```
 
 **Expected Result:**
@@ -1213,32 +1213,35 @@ Then it gives the recipe for the recorded outcome
 | Dimension               | Expectation                                                                                                                                               |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, command output and the generated settings files |
-| **System behavior**     | Docs follow the result                                                                                                                                    |
-| **Business data state** | Docs present                                                                                                                                              |
-| **Data shown on UI**    | Recipe or proposal link                                                                                                                                   |
+| **System behavior**     | Verification fails on an unaccepted collision; an owner-accepted collision passes                                                                         |
+| **Business data state** | No file is changed by the check                                                                                                                           |
+| **Data shown on UI**    | The failing skill path and the built-in name it hides                                                                                                     |
 
 **Acceptance Criteria:**
 
-- ✅ Guidance matches the result
-- ❌ Guidance for the other outcome
+- ✅ A folder or declared name matching a built-in fails, ignoring case
+- ✅ A trailing comment after the declared name is ignored; a blank declared name falls back to the folder
+- ✅ Nested skill folders are checked; ignored folders are not
+- ❌ An accepted collision fails
 
 **Test Data:**
 
 ```json
 {
-    "results": "tmp/spikes/name-clash/results.md"
+    "skill": ".claude/skills/probe/SKILL.md",
+    "name": "simplify # probe"
 }
 ```
 
 **Edge Cases:**
 
-- Inconclusive result → documented as such
+- A project that removed the accepted skill → the framework-only checks are skipped, the collision check still runs
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `TBD (pre-implementation)`
-> **Related Behaviors:** `requirement/framework/name-clash`
-> **CoveredBy:** `Manual-QC` (checked at the release-D close) · **Status:** Planned (release D)
+> **Evidence:** `[Source: rule/scripts/skill-builtin-names]`
+> **Related Behaviors:** `requirement/framework/name-clash` · `test/scripts/skill-builtin-names`
+> **CoveredBy:** `.claude/scripts/codex/tests/skill-builtin-names.test.mjs` · **Status:** Implemented — evidence: `.claude/scripts/codex/tests/skill-builtin-names.test.mjs` (5/5 passed twice on 2026-09-29)
 
 ---
 

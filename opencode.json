@@ -28,7 +28,6 @@
       "presentation-builder": "deny",
       "product-roadmap": "deny",
       "project-help": "deny",
-      "release-notes": "deny",
       "remotion": "deny",
       "scan-codebase-health": "deny",
       "skill-creator": "deny",
@@ -36,7 +35,8 @@
       "sync-opencode": "deny",
       "sync-skills-shared-protocols": "deny",
       "workflow-big-feature": "ask",
-      "workflow-greenfield-init": "ask"
+      "workflow-greenfield-init": "ask",
+      "release-doc": "deny"
     }
   }
 }

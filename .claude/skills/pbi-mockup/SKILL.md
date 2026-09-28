@@ -270,7 +270,7 @@ Use real domain entities and relationships for realistic mockup data:
 
 ### Step 3d: Explore N Directions (`--explore` only)
 
-> **Runs ONLY with `--explore`, after Steps 2a–3c and before Step 4.** Without the flag, record `Explore: not requested` and go to Step 4 (single direction). **First action: read `references/explore-directions.md`** and follow it step by step — it adapts the design skill's explore workflow (`.claude/skills/design/references/explore/workflow.md`) to a mock app.
+> **Runs ONLY with `--explore`, after Steps 2a–3c and before Step 4.** Without the flag, record `Explore: not requested` and go to Step 4 (single direction). **First action: read `references/explore-directions.md`** and follow it step by step — it adapts the design skill's explore workflow (`.claude/skills/ui-design/references/explore/workflow.md`) to a mock app.
 
 0. **Use the Step 0 scope decision.** Build the number of drafts the user chose at Step 0 (3, 2 or 1). Skip was already handled at Step 0, and with no question tool Step 0 fixed ONE auto-selected draft, so pick seeds and fan out only that many sub-agents.
 1. **Resolve authority per axis** (colour · type · layout) from Steps 3 + 3b. A project design system (or existing UI) that pins all three → record them `ADOPTED`, write the exemption in `tmp/design/<run>/direction-approved.md`, log `Explore: SKIPPED — <reason>`, and continue at Step 4.

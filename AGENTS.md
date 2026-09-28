@@ -304,7 +304,7 @@ Place logic with the owner selected by the project's documented architecture. Re
 | Files          | kebab-case       | `context-injector.cjs`, `session-manager.cjs` |
 | Hook files     | `<name>.cjs`     | `.claude/hooks/review-commit-gate.cjs`        |
 | Hook libraries | `<name>.cjs`     | `.claude/hooks/lib/project-config-schema.cjs` |
-| Skill dirs     | `<skill-name>/`  | `.claude/skills/code-review/SKILL.md`         |
+| Skill dirs     | `<skill-name>/`  | `.claude/skills/code-quality-review/SKILL.md` |
 | Agent files    | `<name>.md`      | `.claude/agents/code-reviewer.md`             |
 | Constants      | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`                             |
 | Booleans       | Prefix with verb | `isActive`, `hasPermission`, `canEdit`        |
@@ -385,7 +385,7 @@ Add a final task — "Analyze AI mistakes & lessons learned" — to every non-tr
 3. Write it as a **universal rule** — strip project-specific names/paths/classes so it is useful on any codebase.
 4. **Consolidate:** multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in a future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review` / `$code-simplifier` / `$security-review` / a linter catch this mechanically?" — Yes → improve that review skill instead of writing a lesson.
+6. **Auto-fix gate:** "Could `$code-quality-review` / `$code-simplifier` / `$security-audit` / a linter catch this mechanically?" — Yes → improve that review skill instead of writing a lesson.
 7. **Both gates pass → ask the user to run `$learn`** to capture the lesson durably. Never silently self-edit instruction files.
 
 ---
@@ -435,7 +435,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 <!-- /SECTION:skill-activation -->
 
-**Design routing:** SCSS / style files → ui-review / design skill (BEM conventions live there). UI / HTML / CSS files → design skill (canonical design-system doc: tokens, components, BEM).
+**Design routing:** SCSS / style files → ui-review / ui-design skill (BEM conventions live there). UI / HTML / CSS files → ui-design skill (canonical design-system doc: tokens, components, BEM).
 
 > **[DESIGN-GATE] — binds Claude, Codex and Copilot equally, with or without hooks.** Any task that CREATES or RESHAPES a user-facing visual surface — a plan phase, a mockup, a design spec, a scaffolded frontend example, an implemented component, a UI review — is governed by **three rule sets, all binding, in this order**:
 >

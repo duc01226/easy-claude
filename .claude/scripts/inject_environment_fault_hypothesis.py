@@ -25,7 +25,7 @@ of the SYNC:test-failure-fault-adjudication / SYNC:root-cause-debugging carriers
              verdict must carry this gate in its own definition.
 
 Deliberately EXCLUDED: pure code-review / spec-review carriers (code-reviewer,
-spec-compliance-reviewer, changes-review, code-review). They judge code against
+spec-compliance-reviewer, changes-review, code-quality-review). They judge code against
 intent from a diff, not a running failure, so an environment sweep has nothing to
 act on there and would be role-irrelevant noise.
 

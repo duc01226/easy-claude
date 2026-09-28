@@ -4,11 +4,11 @@
   "calledByOthers": {
     "_description": "Skills that other skills (by /name prose) or hooks start. Skills call each other in prose, not through a Skill( call, so this list cannot be computed; workflow steps and agent skills: entries are computed at run time and need no entry here. A skill in this list, in entrySkills, a workflow step or an agent skills: entry is never made commandOnly or off without skillProfile.allowHidingCalledSkills. This list is also the standard preset's nameOnly selector, so entry skills are kept in entrySkills instead.",
     "skills": [
-      "code-review",
+      "code-quality-review",
       "commit",
       "course-builder",
       "db-migrate",
-      "design",
+      "ui-design",
       "feature-implement",
       "graph-blast-radius",
       "graph-build",
