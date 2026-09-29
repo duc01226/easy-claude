@@ -77,7 +77,7 @@ You choose inline vs sub-agent, batching and ordering — optimize wall-clock an
 
 - One task per step (per spec when several) so nothing is lost after compaction; write the run report `tmp/reports/workflow-spec-to-mockup-{YYMMDD}-{HHmm}-{slug}.md` FIRST and append per step; after compaction re-read it, `TaskList` and `tmp/design/<run>/direction-approved.md` before continuing.
 - **Artifact placement:** drafts, renders, product facts and run notes are disposable run output under `tmp/design/<run>/` (`<run>` = `YYMMDD-HHmm-<slug>`); the design spec lives under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides); the final mockup lives at the `pbi-mockup` spec-source output path, `design-specs/` under the same team-artifacts root — never inside the business spec root, which holds canonical specs only.
-- **Fix path:** findings are validated before fixing; fix journey, priority or rule findings in the design spec (and re-run `artifact-review --type=design`), visual or interaction findings in the mockup (and re-render, then re-run `ui-review`), and spec-intent gaps in the spec through `spec [mode=update]`. Review loop: round 1 exits on zero findings; round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
+- **Fix path:** findings are validated before fixing; fix journey, priority or rule findings in the design spec (and re-run `artifact-review --type=design`), visual or interaction findings in the mockup (and re-render, then re-run `ui-review`), and spec-intent gaps in the spec through `spec [mode=update]`. Review loop: round 1 exits on zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
 - **Handoff at close:** spec path(s), design-spec path(s), the final mockup path(s), the picked direction and its `Selection:` line quoted from `direction-approved.md` (or `Mockup: SKIPPED by user`), the walkthrough verdict per main journey, render evidence or `NOT VERIFIABLE`, open questions below 80% confidence, and the next route — `workflow-spec-to-pbi` for a backlog or `workflow-implement-spec` to build.
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -146,6 +146,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 

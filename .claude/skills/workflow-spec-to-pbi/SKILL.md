@@ -91,7 +91,7 @@ Paths are relative to the team-artifacts root (default `team-artifacts/`; `docsR
 - **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality; 1–3 capabilities run inline; 10+ capabilities run in bounded capability-group batches, one report section per batch. Fixed dependencies: freshness and clarification precede decomposition; a PBI exists before it is reviewed; `/prioritize` runs once after every PBI loop finishes; `/docs-update` follows it; gates awaiting user answers are never parallelized; `/workflow-end` runs last. When `/prioritize` changes a rank after a mockup was built, refresh the mockup's priority badge.
 - **Memory:** one task per selected step (per capability group when batched). Create `tmp/reports/spec-to-pbi-{date}-{bucket}.md` first, append after each capability/feature, and re-read it plus `TaskList` after compaction; never hold all PBIs in memory. Sub-agent briefs make report writing their first deliverable.
 - **Fix path:** findings are validated before fixing; fix in the owning artifact (`/refine` for the PBI, `/story` for stories, `/spec [mode=update]` for confirmed spec changes) and re-run the reviewer that raised it.
-- **Loop bounds:** round 1 zero findings, or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); on no progress escalate via `AskUserQuestion`.
+- **Loop bounds:** round 1 zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); on no progress escalate via `AskUserQuestion`.
 
 ---
 

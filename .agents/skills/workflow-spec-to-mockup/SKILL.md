@@ -119,7 +119,7 @@ You choose inline vs sub-agent, batching and ordering — optimize wall-clock an
 
 - One task per step (per spec when several) so nothing is lost after compaction; write the run report `tmp/reports/workflow-spec-to-mockup-{YYMMDD}-{HHmm}-{slug}.md` FIRST and append per step; after compaction re-read it, the current task list and `tmp/design/<run>/direction-approved.md` before continuing.
 - **Artifact placement:** drafts, renders, product facts and run notes are disposable run output under `tmp/design/<run>/` (`<run>` = `YYMMDD-HHmm-<slug>`); the design spec lives under the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides); the final mockup lives at the `pbi-mockup` spec-source output path, `design-specs/` under the same team-artifacts root — never inside the business spec root, which holds canonical specs only.
-- **Fix path:** findings are validated before fixing; fix journey, priority or rule findings in the design spec (and re-run `artifact-review --type=design`), visual or interaction findings in the mockup (and re-render, then re-run `ui-review`), and spec-intent gaps in the spec through `spec [mode=update]`. Review loop: round 1 exits on zero findings; round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); escalate by asking the user directly on no progress.
+- **Fix path:** findings are validated before fixing; fix journey, priority or rule findings in the design spec (and re-run `artifact-review --type=design`), visual or interaction findings in the mockup (and re-render, then re-run `ui-review`), and spec-intent gaps in the spec through `spec [mode=update]`. Review loop: round 1 exits on zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); escalate by asking the user directly on no progress.
 - **Handoff at close:** spec path(s), design-spec path(s), the final mockup path(s), the picked direction and its `Selection:` line quoted from `direction-approved.md` (or `Mockup: SKIPPED by user`), the walkthrough verdict per main journey, render evidence or `NOT VERIFIABLE`, open questions below 80% confidence, and the next route — `workflow-spec-to-pbi` for a backlog or `workflow-implement-spec` to build.
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -188,6 +188,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
@@ -255,17 +256,19 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
+3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run `$learn`.
+5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
+6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
+7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
+8. ALL three gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
 **Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
 ## Common AI Mistake Prevention (System Lessons)
 

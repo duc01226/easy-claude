@@ -80,12 +80,13 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
+3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip \`$learn\`.
-6. **Auto-fix gate:** "Could \`$code-quality-review\`/\`$code-simplifier\`/\`$security-audit\`/a linter catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run \`$learn\`.`;
+5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip \`$learn\`.
+6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip \`$learn\`.
+7. **Auto-fix gate:** "Could \`$code-quality-review\`/\`$code-simplifier\`/\`$security-audit\`/a linter catch this?" — Yes → improve review skill instead.
+8. ALL three gates pass → ask user to run \`$learn\`.`;
 }
 
 function buildPromptProtocolSections(rootDir, options = {}) {

@@ -120,7 +120,7 @@ Recommended: independent read-only work (for example `/spec-discovery` beside a 
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green.
 - Plan ceremony (`/plan` → `/plan-review`) for a fix set only when it is large, cross-module or ambiguous; a handful of validated local fixes are fixed directly.
-- Review loops (each `/artifact-review` occurrence, the nested review): round 1 fixes every validated finding; round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 2 rounds, +1 when a CRITICAL/HIGH stays open; failing tests are uncapped; escalate with `AskUserQuestion` on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
+- Review loops (each `/artifact-review` occurrence, the nested review): round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 2 rounds, +1 when a CRITICAL/HIGH stays open; failing tests are uncapped; escalate with `AskUserQuestion` on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
 - Spec-loop discipline: §8 derives invariant/property TCs for every hard rule and invariant, not only example scenarios; every behavior-changing finding updates BOTH the spec and the tests, never code alone.
 
 <!-- PROTOCOL-GUIDES:START -->
@@ -176,6 +176,7 @@ Recommended: independent read-only work (for example `/spec-discovery` beside a 
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 

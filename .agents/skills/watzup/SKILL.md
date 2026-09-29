@@ -232,16 +232,22 @@ If failure mode applies in only one specific file or case → go up one abstract
 - Must read as useful advice on a completely different codebase in a different language
 - If multiple mistakes share the same failure mode → consolidate into ONE lesson
 - Test: "Would this prevent the same class of mistake in a Java, Go, or Python project?" If yes → good. If no → rewrite.
+- A stable convention of THIS project is the one exception: state the convention itself (not this session's incident) — it passes as a project-convention lesson.
+
+**2d. Value gate — recommend only what is worth reading every day.** Keep a lesson as a `$learn` candidate ONLY when it is a project convention (a stable rule this codebase follows in everyday work) or a universal best-practice protocol that an agent would benefit from reading on an ordinary day. Drop rare AI-agent quirks, one-off incidents, tool/environment hiccups and details specific to this session's task — mention them in the report's Flags if useful, never as a `$learn` candidate. Also drop a lesson a review skill or linter already catches (the `$learn` Auto-fix gate). — why: persisted lessons are read on every task; a rare or session-specific note costs every future reader attention and prevents nothing.
 
 ### Step 3 — Ask user to persist
 
-> "Found [N] root-cause lesson(s). Should I use `$learn` to save them for future sessions?"
+Ask ONLY when at least one lesson passed the Value gate:
+
+> "Found [N] lesson(s) worth persisting. Should I use `$learn` to save them for future sessions?"
 
 Wait for user confirmation before invoking `$learn`.
 
 **Output one of:**
 
-- A numbered list: failure mode → universal lesson → proposed `$learn` text
+- A numbered list: failure mode → lesson (project convention or universal protocol) → proposed `$learn` text
+- `No lesson worth persisting` — mistakes were found but none passed the Value gate (list them briefly in Flags)
 - `No AI mistakes identified in this session` — if genuinely none found
 
 **Be honest and self-critical.** Surface-level symptom fixes ("always check file X") applying only to this codebase are NOT lessons — they are noise. Purpose: root-cause prevention compounding across sessions.
@@ -377,7 +383,7 @@ After the report is written, MUST ATTENTION use ask the user directly to present
 **IMPORTANT MUST ATTENTION** make the HTML report beautiful, easy to read and easy to understand — one-line outcome, text status per request, changes grouped by area, a before → after or flow for changed behaviour, plain short sentences, no empty optional block — and check it before opening — why: a correct report nobody can scan hands over no understanding.
 **IMPORTANT MUST ATTENTION** HTML-escape every placeholder value in the report and keep every `href` a relative, `file:` or `vscode:` link — why: the report is auto-opened in a browser, and unescaped session text can hide report content or run as markup.
 
-**IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases; surface-level "always check file X" notes are noise — why: only root-cause prevention compounds across sessions.
+**IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases (or a stable project convention); recommend `$learn` ONLY for a project convention or a universal best-practice protocol worth reading on everyday work — rare AI-agent quirks, one-off incidents and current-task details are noise, and so are surface-level "always check file X" notes — why: persisted lessons are read on every task, so only everyday-valuable prevention compounds across sessions.
 **IMPORTANT MUST ATTENTION** send lessons to `$learn` ONLY after explicit user confirmation — NEVER auto-persist or self-edit instruction files — why: lesson capture is a durable instruction change the user must own.
 **IMPORTANT MUST ATTENTION** use ask the user directly for the Next Steps decision — NEVER auto-decide the route even when it "seems obvious" — why: the user owns the workflow-end / commit / continue choice.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks with task tracking BEFORE starting (one task per file read), keep exactly one `in_progress`, and add a final review todo to verify work quality — why: long files exhaust context; granular tasks survive compaction.
@@ -440,17 +446,19 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
+3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run `$learn`.
+5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
+6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
+7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
+8. ALL three gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
 **Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
 ## Common AI Mistake Prevention (System Lessons)
 

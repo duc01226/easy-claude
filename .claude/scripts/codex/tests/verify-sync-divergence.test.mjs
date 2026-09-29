@@ -291,6 +291,10 @@ const EXPECTED_RENDERED_GROUPS = [
     // tokens cross the next hooks.tokenBudget.checkpointTokens multiple. Its own group on the
     // prompt-ledger matcher, so the prompt-ledger group above renders byte-identical.
     ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
+    // core-principles-inject (2026-09-29): re-delivers the SYNC:core-engineering-principles gate
+    // (easy to change / scale / maintain) at task-step boundaries, ledger-deduplicated to about
+    // once per 100k tokens. Its own group on the prompt-ledger matcher, like token-budget-checkpoint.
+    ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
     // Protocol delivery (2026-09-25): the six protocol-inject-<group> entries. Their Claude
     // `Skill` and `Read` groups are not mirrored — Codex has neither tool — and are reported
     // as `matcher-names-no-codex-tool`. Codex reads a skill file implicitly through its shell,
@@ -335,6 +339,8 @@ const EXPECTED_RENDERED_GROUPS = [
     // commit-skill-route (2026-09-24): routes a commit request to the `commit` skill ($commit on Codex).
     ['UserPromptSubmit', null, 1],
     // judgement-integrity-route (2026-09-24): anti-confirmation-bias answer why-review on verdict prompts.
+    ['UserPromptSubmit', null, 1],
+    // core-principles-inject (2026-09-29): the same gate on prompts, sharing the step group's ledger record.
     ['UserPromptSubmit', null, 1],
     // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.
     ['UserPromptSubmit', null, 1],

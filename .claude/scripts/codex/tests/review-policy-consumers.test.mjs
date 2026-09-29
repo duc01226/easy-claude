@@ -386,7 +386,7 @@ test('TC-HARNESS-006: simplifier loop uses the shared round floor', async () => 
 test('TC-HARNESS-006: plan-execute does not collapse review acceptance to critical-only', async () => {
     const planExecute = await fs.readFile(path.join(root, '.claude', 'skills', 'plan-execute', 'SKILL.md'), 'utf8');
     assert.match(planExecute, /current severity bar/);
-    assert.match(planExecute, /Round 1[^\n]*zero validated findings/);
+    assert.match(planExecute, /Round 1[^\n]*zero (?:open )?validated findings/);
     assert.match(planExecute, /Round 2[^\n]*zero validated CRITICAL\/HIGH\/MEDIUM/);
     assert.match(planExecute, /LOW findings (?:recorded|deferred)/i);
     assert.doesNotMatch(planExecute, /Repeat until no critical issues/);
@@ -401,7 +401,7 @@ test('TC-HARNESS-006: integration-test review and workflow handoff use the same 
         ['.claude/skills/integration-test-review/SKILL.md', review],
         ['.claude/skills/workflow-write-integration-test/SKILL.md', workflow]
     ]) {
-        assert.match(text, /round 1[^\n]*(?:every validated finding|every validated severity)/i, `${relative} must keep round-1 strictness`);
+        assert.match(text, /round 1[^\n]*every open validated (?:finding|severity)[^\n]*Round-1 LOW closure/i, `${relative} must keep round-1 strictness with the Round-1 LOW closure`);
         assert.match(text, /round 2[^\n]*CRITICAL\/HIGH\/MEDIUM/i, `${relative} must keep C/H/M blocking from round 2`);
         assert.match(text, /LOW-only[^\n]*(?:deferred|recorded)/i, `${relative} must defer LOW-only round-2 results`);
         assert.doesNotMatch(text, /NEVER proceed with CRITICAL\/HIGH issues outstanding/i, `${relative} must not omit MEDIUM`);
@@ -554,7 +554,8 @@ test('R3-PROMPT-023: local clean-pass summaries cannot override an explicit mini
     const files = [
         ...['code-quality-review', 'domain-entities-review', 'knowledge-review', 'plan', 'plan-review', 'production-readiness-review', 'security-audit', 'seed-test-data']
             .map(name => `.claude/skills/${name}/SKILL.md`),
-        '.claude/agents/code-reviewer.md',
+        // Leaf reviewer agents (code-reviewer) are not listed: they no longer carry the round loop,
+        // so they state no clean-pass termination of their own; the orchestrating skills above own it.
     ];
     const assertMinimum = line => assert.match(line, /persisted `minRounds` is met/, 'clean-pass termination retains explicit minimum');
     for (const relative of files) {

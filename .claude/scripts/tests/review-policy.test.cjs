@@ -8,7 +8,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const {
     MAX_ROUNDS, HARD_MAX_ROUNDS, POLICY_VERSION, blockingFindings, blockingSeverities, SEVERITY_DEFINITIONS, NON_SEVERITY_STATES,
-    grantsExtension, evaluateRound, startRun, getRun, recordRound,
+    grantsExtension, evaluateRound, startRun, getRun, recordRound, LOW_RESOLUTIONS,
     acceptRun, interruptRun, resumeRun, invalidateRun
 } = require('../lib/review-policy.cjs');
 const { resolveProjectRoot } = require('../../hooks/lib/project-root.cjs');
@@ -26,6 +26,78 @@ test('TC-HARNESS-006: shared predicate applies round floor and never waives bina
     assert.equal(evaluateRound({ round: 2, findings: [low] }).deferredLow.length, 1);
     assert.equal(evaluateRound({ round: 2, findings: [low] }).canComplete, true);
     assert.equal(evaluateRound({ round: 2, findings: [low], minRounds: 2 }).canComplete, true);
+});
+
+test('TC-HARNESS-044: a round-1 LOW closes by scoped check or deferral without buying another full round', () => {
+    const low = { id: 'L1', severity: 'LOW', summary: 'typo in log message' };
+    // Given a round-1 LOW with no closure, it still blocks: round 1 stays strict
+    assert.equal(blockingFindings(1, [low]).length, 1);
+    assert.equal(evaluateRound({ round: 1, findings: [low] }).canComplete, false);
+    // When the LOW was fixed locally and its scoped check passed, the round can end
+    const fixed = { ...low, resolution: 'scoped-fix-verified' };
+    const afterFix = evaluateRound({ round: 1, findings: [fixed] });
+    assert.equal(afterFix.canComplete, true, 'a scoped-verified LOW does not force a full re-review round');
+    assert.deepEqual(afterFix.scopedClosedLow.map(f => f.id), ['L1']);
+    assert.deepEqual(afterFix.deferredLow, []);
+    // When its fix needs new code or tests, deferral closes it and it stays on record
+    const deferred = evaluateRound({ round: 1, findings: [{ ...low, resolution: 'deferred' }] });
+    assert.equal(deferred.canComplete, true);
+    assert.deepEqual(deferred.deferredLow.map(f => f.id), ['L1'], 'a deferred LOW is never silently dropped');
+    // A closed LOW never masks a real blocker in the same round
+    const mixed = evaluateRound({ round: 1, findings: [fixed, { id: 'M1', severity: 'MEDIUM', summary: 'unbounded retry' }] });
+    assert.equal(mixed.canComplete, false);
+    assert.deepEqual(mixed.blocking.map(f => f.id), ['M1']);
+    // And a failed binary gate still blocks
+    assert.equal(evaluateRound({ round: 1, findings: [fixed], hardGates: [{ id: 'tests', kind: 'test', status: 'FAIL' }] }).canComplete, false);
+});
+
+test('TC-HARNESS-045: only a LOW may carry a resolution, and only a known one', () => {
+    assert.deepEqual([...LOW_RESOLUTIONS], ['scoped-fix-verified', 'deferred']);
+    for (const severity of ['CRITICAL', 'HIGH', 'MEDIUM', 'NOT VERIFIABLE']) {
+        assert.throws(() => blockingFindings(1, [{ id: 'X', severity, resolution: 'scoped-fix-verified' }]), /only on a LOW/,
+            `${severity} must stay open until fixed and fully re-reviewed`);
+    }
+    assert.throws(() => blockingFindings(1, [{ id: 'L', severity: 'LOW', resolution: 'ignored' }]), /resolution must be one of/);
+});
+
+test('TC-HARNESS-046: deferred and scoped-closed LOW lists never overlap at any round', () => {
+    const fixed = { id: 'L1', severity: 'LOW', resolution: 'scoped-fix-verified' };
+    const open = { id: 'L2', severity: 'LOW' };
+    for (const round of [1, 2, 3]) {
+        const result = evaluateRound({ round, findings: [fixed, open, { id: 'L3', severity: 'LOW', resolution: 'deferred' }] });
+        const deferred = result.deferredLow.map(f => f.id);
+        const closed = result.scopedClosedLow.map(f => f.id);
+        assert.deepEqual(closed, ['L1'], `round ${round}: the scoped-fixed LOW is closed`);
+        assert.ok(!deferred.includes('L1'), `round ${round}: a fixed LOW is never also deferred`);
+        assert.ok(deferred.includes('L3'), `round ${round}: an explicitly deferred LOW stays on record`);
+        assert.equal(deferred.includes('L2'), round >= 2, `round ${round}: an open LOW is deferred only by the round-2 floor`);
+    }
+});
+
+test('TC-HARNESS-047: the durable record closes round 1 once, after the LOW closure, naming what the full pass reviewed', () => {
+    const storeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'review-policy-low-closure-'));
+    try {
+        const base = { storeDir, runId: 'low-closure' };
+        startRun({ ...base, targetFingerprint: 'sha256:reviewed', now: 1000 });
+        const fixedLow = { id: 'L1', severity: 'LOW', summary: 'typo', resolution: 'scoped-fix-verified' };
+        // A scoped-fixed LOW without the reviewed target is refused: the record would claim a full pass saw the fix
+        assert.throws(() => recordRound({ ...base, targetFingerprint: 'sha256:fixed', round: 1, findings: [fixedLow], now: 1100 }),
+            /reviewedFingerprint is required/);
+        // A reviewed target that differs without any scoped-checked fix is refused
+        assert.throws(() => recordRound({ ...base, targetFingerprint: 'sha256:fixed', reviewedFingerprint: 'sha256:reviewed', round: 1,
+            findings: [{ id: 'L2', severity: 'LOW', resolution: 'deferred' }], now: 1100 }), /may differ .* only when scoped-checked LOW fixes/);
+        // Recorded once after the closure, round 1 is complete without spending round 2
+        const recorded = recordRound({ ...base, targetFingerprint: 'sha256:fixed', reviewedFingerprint: 'sha256:reviewed', round: 1, findings: [fixedLow], now: 1200 });
+        assert.equal(recorded.roundsCompleted, 1, 'no phantom round 2 is consumed');
+        assert.equal(recorded.status, 'ready');
+        const record = recorded.rounds[recorded.rounds.length - 1];
+        assert.equal(record.targetFingerprint, 'sha256:fixed');
+        assert.equal(record.reviewedFingerprint, 'sha256:reviewed', 'the record keeps what the full pass actually saw');
+        const accepted = acceptRun({ ...base, targetFingerprint: 'sha256:fixed', now: 1300 });
+        assert.equal(accepted.status, 'accepted');
+    } finally {
+        fs.rmSync(storeDir, { recursive: true, force: true });
+    }
 });
 
 test('TC-HARNESS-006: severity definitions and round eligibility are shared and explicit', () => {
@@ -405,4 +477,4 @@ test('TC-HARNESS-PORT-014: project root resolves from nested cwd and copied bund
 
 assert.equal(MAX_ROUNDS, 2);
 assert.equal(HARD_MAX_ROUNDS, 3);
-assert.equal(POLICY_VERSION, 4);
+assert.equal(POLICY_VERSION, 5);

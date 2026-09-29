@@ -60,7 +60,7 @@ You choose inline vs sub-agent, batching and ordering — optimize wall-clock an
 ## 5. Memory, Reporting and Fix Path
 
 - One task per selected step; write the run report under `tmp/reports/` FIRST and append per step; re-read it and `TaskList` after compaction.
-- Findings are validated before fixing; fix in the owning spec role; re-run the review that raised them. Review loop: round 1 exits on zero findings; round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 when a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
+- Findings are validated before fixing; fix in the owning spec role; re-run the review that raised them. Review loop: round 1 exits on zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 when a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
 - Define success criteria before the first edit (the sections, cases and decisions that must exist) and loop until each is observably true.
 <!-- PROTOCOL-GUIDES:START -->
 

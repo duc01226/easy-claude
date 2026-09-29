@@ -87,7 +87,7 @@ Fixed data dependencies: the source map exists before `/source-deep-dive`; the e
 ## Findings & Fix Path
 
 - `/knowledge-review` is read-only. Validate each REVISE/BLOCKED finding against the evidence, then fix it at its owner. An evidence gap takes a targeted `/source-deep-dive` pass on that gap. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill. Then re-run `/knowledge-review` on the fixed artifact.
-- Loop bounds: round 1 exits on zero findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 2 rounds (+1 when a validated CRITICAL/HIGH is still open); escalate via `AskUserQuestion` when a round makes no progress.
+- Loop bounds: round 1 exits on zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 2 rounds (+1 when a validated CRITICAL/HIGH is still open); escalate via `AskUserQuestion` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 

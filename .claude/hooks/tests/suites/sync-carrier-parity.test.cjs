@@ -430,30 +430,34 @@ module.exports = {
             },
         },
         {
-            // Pinned carrier count (no silent cap): review-protocol-injection reaches 13 carriers =
+            // Pinned carrier count (no silent cap): review-protocol-injection reaches 9 carriers =
             // 9 review SKILLs (code-quality-review, changes-review, artifact-review, knowledge-review,
             // production-readiness-review, plan-review, why-review, spec-clarify, architecture-review-full)
-            // + 4 review AGENTS (code-reviewer, spec-compliance-reviewer, planner, integration-tester).
+            // (the 4 review AGENTS that once carried it are leaves now: they receive the template in their
+            // brief, and code-reviewer also through its preloaded code-quality-review skill).
             // spec-clarify (the post-spec clarification gate) joined as the 8th skill: it runs INLINE for
             // its AskUserQuestion gate but performs the SAME validate→fix→fresh-full-re-review cycle as its
             // review-family peers, so it carries the trio (double-round-trip / fresh-context / protocol-injection)
             // at parity with artifact-review. architecture-review-full (the whole-project architecture-health
             // audit) joined as the 9th skill: it is an adoption-matrix review skill (BATCHING + SEVERITY in
             // inject_review_skill_blocks.py) that synthesizes a consolidated report, so it carries the plain
-            // review-protocol trio at parity. A 14th appearing — or one vanishing — must surface loudly here
+            // review-protocol trio at parity. A 10th appearing — or one of the 9 vanishing — must surface loudly here
             // rather than quietly widen/narrow the guarded set. After the review-group conversion the
             // non-inline skills carry a guide line instead of the body; they still count (N5), while the
-            // inline skills and the agents keep the body.
-            name: 'COVERAGE: review-protocol-injection reaches all 13 carriers and carries the Triangulation protocol (post-P1)',
+            // inline skills keep the body.
+            name: 'COVERAGE: review-protocol-injection reaches all 9 carriers and carries the Triangulation protocol (post-P1)',
             fn() {
                 const canon = CANON_BODY.get('review-protocol-injection');
                 const cov = coverageCarriers(CARRIERS, RPI, projectionTextFor(SKILLS_DIR, RPI), canon);
                 assertEqual(cov.problems.length, 0, `review-protocol-injection guide problems:\n  ${cov.problems.join('\n  ')}`);
                 const carriers = [...cov.body, ...cov.guided];
+                // 9 = the orchestrating review skills (body or guide). Leaf reviewer agents no longer
+                // carry it: they receive the template's rules in their brief (agent_protocol_matrix.py,
+                // review-loop orchestration exclusion), so 4 agent copies were removed on purpose.
                 assertEqual(
                     carriers.length,
-                    13,
-                    `expected 13 review-protocol-injection carriers (body or guide), found ${carriers.length} (${cov.body.length} body, ${cov.guided.length} guide)`
+                    9,
+                    `expected 9 review-protocol-injection carriers (body or guide), found ${carriers.length} (${cov.body.length} body, ${cov.guided.length} guide)`
                 );
                 assertTrue(
                     canon != null && /Spec ↔ Tests ↔ Code Triangulation/.test(canon),

@@ -86,7 +86,7 @@ Before `/integration-test`, `/investigate` emits one evidence-backed record and 
 ## Fix Path & Loop Bounds
 
 - Validate a review finding (evidence-backed, reproducible) before fixing it; fix at the component that owns the violated contract, then restart the full integration-test review. A red test is adjudicated first (gate 6) and fixed on the side the verdict names.
-- Round 1 blocks on every validated severity; from round 2 onward CRITICAL/HIGH/MEDIUM remain blocking and LOW-only findings are recorded/deferred without another fix/review round. Cap 2 rounds, +1 when a CRITICAL/HIGH stays open; never relabel a material finding LOW to exit.
+- Round 1 blocks on every open validated severity (Round-1 LOW closure); from round 2 onward CRITICAL/HIGH/MEDIUM remain blocking and LOW-only findings are recorded/deferred without another fix/review round. Cap 2 rounds, +1 when a CRITICAL/HIGH stays open; never relabel a material finding LOW to exit.
 - Failing tests are not capped by rounds — they loop until green; escalate via `AskUserQuestion` on no progress or an `ENVIRONMENT-BLOCKED`/`AMBIGUOUS` verdict.
 
 ---
@@ -170,6 +170,7 @@ Before `/integration-test`, `/investigate` emits one evidence-backed record and 
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 

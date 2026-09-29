@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->46<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->128<!-- /COUNT --> skills · <!-- COUNT:workflows -->21<!-- /COUNT --> workflows · <!-- COUNT:agents -->23<!-- /COUNT --> agents · <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->24<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->46<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->128<!-- /COUNT --> skills · <!-- COUNT:workflows -->21<!-- /COUNT --> workflows · <!-- COUNT:agents -->23<!-- /COUNT --> agents · <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual version:** `.claude/docs/claude-ai-agent-framework-guide.html` (same content, one standalone page).
 
@@ -17,7 +17,7 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **23 top-level hook files**, **128 skills**, **21 registered workflows**, and **23 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **24 top-level hook files**, **128 skills**, **21 registered workflows**, and **23 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
@@ -263,7 +263,7 @@ Why hybrid: a rule already in context beats a rule the model must go read, but r
 
 ## 10. The quality chain — review, commit, pull request
 
-1. **Review** — `changes-review` or `workflow-review-changes`. Round 1 must reach zero validated findings; from round 2 only Critical/High/Medium block; two rounds plus at most one extension, then escalate to the user.
+1. **Review** — `changes-review` or `workflow-review-changes`. Round 1 must reach zero open findings (Round-1 LOW closure: a LOW closed by scoped check or deferred is not open); from round 2 only Critical/High/Medium block; two rounds plus at most one extension, then escalate to the user.
 2. **Validate findings** — `why-review --validate-findings` checks every finding against evidence before any fix. It is terminal: it never recurses, so validation cannot loop.
 3. **Fix** — `fix --target=review` fixes validated findings at the owning layer and records FIXED / REJECTED / DEFERRED with reasons; an unexplained defect is traced with `debug-investigate` first.
 4. **Receipt** — a converged `--fix-loop` mints a review receipt bound to the exact changeset; any later edit invalidates it.
@@ -360,12 +360,12 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
-| `test-all-hooks.cjs` (primary gate)  | **135** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1014** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `test-all-hooks.cjs` (primary gate)  | **137** | Hook behaviors, bridged suites and the count guard                     |
+| `run-all-tests.cjs` (full aggregate) | **1045** | Primary plus every `tests/suites/*.test.cjs` suite                     |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 135; `run-all-tests.cjs` = 1014 discovered. Both runners fail when these numbers drift from the docs.
+> Live-verified: `test-all-hooks.cjs` = 137; `run-all-tests.cjs` = 1045 discovered. Both runners fail when these numbers drift from the docs.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

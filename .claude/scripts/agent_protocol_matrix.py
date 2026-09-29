@@ -138,6 +138,17 @@ EXCLUDED_ORCHESTRATION = {
     # sequence -- it receives one brief whose step the dispatching orchestrator
     # already selected and whose applicability it already evaluated.
     "workflow-registry-binding",
+    # Review-loop orchestration: the round budget and re-review loop, batching,
+    # reviewer-prompt construction and the durable round record belong to the
+    # ORCHESTRATING review skill, which carries them inline. A leaf reviewer gets one
+    # scoped brief with the rules it applies already embedded; carrying these bodies
+    # too cost about 11k tokens per spawn and told a leaf to batch, loop and spawn
+    # reviewers it must not.
+    "double-round-trip-review",
+    "fresh-context-review",
+    "systematic-review-batching",
+    "review-protocol-injection",
+    "review-policy",
 }
 
 # Per-agent exceptions: a normally-excluded block IS legitimate content for this
@@ -210,11 +221,16 @@ OFF_ROLE_TRIMS = {
 AGENT_QUALITY_BLOCKS = {
     # --- review family ---------------------------------------------------
     "code-reviewer": [
-        "severity-rubric", "review-policy", "systematic-review-batching", "category-review-thinking",
-        "fresh-context-review", "double-round-trip-review", "logic-and-intention-review",
-        "review-protocol-injection", "bug-detection", "complexity-prevention",
+        "core-engineering-principles",
+        "whole-diff-correctness",
+        "severity-rubric", "category-review-thinking",
+        "logic-and-intention-review",
+        "bug-detection", "complexity-prevention",
         "design-patterns-quality", "rationalization-prevention",
         "graph-assisted-investigation", "source-test-drift-check", "test-spec-verification",
+        # Leaf rules the reviewer template used to deliver: `fix` dispatches this agent directly for a
+        # bugfix review, and hosts without a skill preload (Codex, OpenCode) would otherwise lose them.
+        "behavioral-delta-matrix", "spec-tests-code-triangulation",
         # wave 2 (twin: code-quality-review / changes-review)
         "trade-off-interrogation-gate", "cross-stack-impact-trace", "spec-drift-adjudication",
         "integration-test-sync-check",
@@ -241,34 +257,39 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "security-auditor": [
-        "severity-rubric", "systematic-review-batching", "category-review-thinking",
-        "fresh-context-review", "graph-assisted-investigation", "incremental-persistence",
+        "severity-rubric", "category-review-thinking",
+        "graph-assisted-investigation", "incremental-persistence",
         "source-test-drift-check",
         # wave 2 (twin: security-audit)
-        "trade-off-interrogation-gate", "double-round-trip-review",
+        "trade-off-interrogation-gate",
         "review-principle-awareness",
     ],
     "performance-optimizer": [
-        "severity-rubric", "systematic-review-batching", "category-review-thinking",
+        "core-engineering-principles",
+        "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation", "graph-impact-analysis",
         # wave 2 (twin: performance-review)
         "trade-off-interrogation-gate", "scenario-stress-eval",
         "review-principle-awareness",
     ],
     "spec-compliance-reviewer": [
-        "severity-rubric", "double-round-trip-review", "fresh-context-review",
-        "review-protocol-injection", "behavioral-delta-matrix", "spec-drift-adjudication",
+        "severity-rubric",
+        "behavioral-delta-matrix", "spec-drift-adjudication",
         "test-spec-verification",
         # wave 2 (twin: artifact-review / spec)
         "trade-off-interrogation-gate", "spec-tests-code-triangulation", "ui-intent-layer",
         # Judges spec<->test alignment, so it meets red tests and must reach a
         # verdict on the same five-way scale as the author (/why-review F-M2).
         "test-failure-fault-adjudication",
+        # Leaf rules the reviewer template delivered before it left agent files: this agent is
+        # dispatched directly too, and no rule may depend on a Claude-only skill preload.
+        "bug-detection", "design-patterns-quality", "graph-assisted-investigation",
+        "logic-and-intention-review", "rationalization-prevention",
         "review-principle-awareness",
     ],
-
     # --- investigation / research family ---------------------------------
     "debugger": [
+        "core-engineering-principles",
         "end-to-start-debugger-trace", "root-cause-debugging", "red-flag-stop-conditions",
         "graph-assisted-investigation", "incremental-persistence",
         # wave 2 (twin: debug-investigate / investigate)
@@ -284,22 +305,27 @@ AGENT_QUALITY_BLOCKS = {
         "trade-off-interrogation-gate",
         "review-principle-awareness",
     ],
-
     # --- planning / product / architecture family ------------------------
     "planner": [
+        "core-engineering-principles",
         "estimation-framework", "plan-quality", "plan-granularity",
         "iterative-phase-quality", "preservation-inventory", "behavioral-delta-matrix",
-        "severity-rubric", "review-policy", "fresh-context-review", "double-round-trip-review",
-        "graph-assisted-investigation", "review-protocol-injection",
+        "severity-rubric",
+        "graph-assisted-investigation",
         # wave 2 (twin: plan-review)
         "trade-off-interrogation-gate",
         # wave 3 (twin: plan Domain Entity Gate / plan-review Dimension 8)
         "domain-entity-change-gate",
+        # Leaf rules the reviewer template delivered before it left agent files: this agent is
+        # dispatched directly too, and no rule may depend on a Claude-only skill preload.
+        "bug-detection", "design-patterns-quality", "logic-and-intention-review",
+        "rationalization-prevention", "spec-tests-code-triangulation", "test-spec-verification",
         "review-principle-awareness",
     ],
     "architect": [
-        "severity-rubric", "systematic-review-batching", "category-review-thinking",
-        "double-round-trip-review", "graph-assisted-investigation",
+        "core-engineering-principles",
+        "severity-rubric", "category-review-thinking",
+        "graph-assisted-investigation",
         "design-patterns-quality",
         # wave 2 (twin: architecture-design / architecture-review)
         # NOT source-test-drift-check: an explicit off-role trim for architect
@@ -316,6 +342,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "solution-architect": [
+        "core-engineering-principles",
         "design-patterns-quality", "scaffold-production-readiness",
         "estimation-framework", "module-detection",
         # wave 2 -- already carries the companion `scenario-stress-eval`; the base
@@ -329,22 +356,26 @@ AGENT_QUALITY_BLOCKS = {
         # can use the application before feature fan-out.
         "ai-agent-as-user-access",
     ],
-
     # --- test family -----------------------------------------------------
     "integration-tester": [
+        "core-engineering-principles",
         "repeatable-test-principle", "source-test-drift-check", "red-flag-stop-conditions",
         "graph-impact-analysis", "incremental-persistence", "rationalization-prevention",
-        "severity-rubric", "systematic-review-batching", "category-review-thinking",
-        "fresh-context-review", "double-round-trip-review", "review-protocol-injection",
+        "severity-rubric", "category-review-thinking",
         # wave 2 (twin: integration-test / integration-test-review)
         "trade-off-interrogation-gate", "test-failure-fault-adjudication",
         "integration-test-execution-discipline", "spec-tests-code-triangulation",
         "spec-drift-adjudication", "test-data-isolation",
         "real-world-fidelity-testing",
         "test-architecture-execution-contract",
+        # Leaf rules the reviewer template delivered before it left agent files: this agent is
+        # dispatched directly too, and no rule may depend on a Claude-only skill preload.
+        "behavioral-delta-matrix", "bug-detection", "design-patterns-quality",
+        "graph-assisted-investigation", "logic-and-intention-review", "test-spec-verification",
         "review-principle-awareness",
     ],
     "tester": [
+        "core-engineering-principles",
         "source-test-drift-check", "repeatable-test-principle",
         "test-spec-verification", "red-flag-stop-conditions",
         # wave 2 (twin: test)
@@ -358,6 +389,7 @@ AGENT_QUALITY_BLOCKS = {
         "logic-and-intention-review",
     ],
     "e2e-runner": [
+        "core-engineering-principles",
         "source-test-drift-check", "repeatable-test-principle",
         # wave 2 (twin: e2e-test)
         "test-failure-fault-adjudication", "real-world-fidelity-testing",
@@ -369,16 +401,17 @@ AGENT_QUALITY_BLOCKS = {
         "logic-and-intention-review",
     ],
     "database-admin": [
+        "core-engineering-principles",
         "graph-impact-analysis",
         # wave 2 (twin: db-migrate)
         "source-test-drift-check",
     ],
-
     # --- design / craft / docs family ------------------------------------
     "ui-ux-designer": [
+        "core-engineering-principles",
         "ui-system-context", "ui-wireframe", "design-system-check",
-        "design-patterns-quality", "severity-rubric", "systematic-review-batching",
-        "category-review-thinking", "double-round-trip-review", "fresh-context-review",
+        "design-patterns-quality", "severity-rubric",
+        "category-review-thinking",
         "source-test-drift-check", "graph-assisted-investigation",
         # wave 2 (twin: ui-review / ui-design / design-spec)
         "trade-off-interrogation-gate", "ui-intent-layer", "existing-ui-research",
@@ -395,6 +428,7 @@ AGENT_QUALITY_BLOCKS = {
         "ux-journey-gate",
     ],
     "code-simplifier": [
+        "core-engineering-principles",
         "complexity-prevention", "design-patterns-quality", "severity-rubric",
         "shared-protocol-duplication-policy",
         # wave 2 (twin: code-simplifier)
@@ -404,12 +438,12 @@ AGENT_QUALITY_BLOCKS = {
         "incremental-persistence", "ai-discovery-doc-quality",
     ],
     "framework-maintainer": [
+        "core-engineering-principles",
         "context-engineering-principles", "sub-agent-selection",  # sub-agent-selection whitelisted
         # wave 2 (twin: skill-creator / custom-agent) -- it EDITS SYNC blocks, so the
         # policy governing inline-protocol duplication is core subject matter for it
         "shared-protocol-duplication-policy", "output-quality-principles",
     ],
-
     # --- implementer family (no review twin -> role-derived blocks) ------
     # `ui-system-context` goes only to the two UI-touching implementers -- its body
     # gates on .ts/.html/.scss/.css work, so it is dead weight on backend-developer.
@@ -424,6 +458,7 @@ AGENT_QUALITY_BLOCKS = {
     # but its own .md. The precedent is `code-reviewer`, given the test-architecture
     # contract in this same campaign for the same reason.
     "backend-developer": [
+        "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation",
@@ -434,6 +469,7 @@ AGENT_QUALITY_BLOCKS = {
         "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
     "frontend-developer": [
+        "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
@@ -447,6 +483,7 @@ AGENT_QUALITY_BLOCKS = {
         "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
     "fullstack-developer": [
+        "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan-execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
@@ -460,7 +497,6 @@ AGENT_QUALITY_BLOCKS = {
         # report's concrete error path routed through.
         "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
-
     # --- operations family ------------------------------------------------
     # These agents still receive Core-6 and have an explicit skill connection.
     # Empty additive rows are valid when the twin skill has no role-specific

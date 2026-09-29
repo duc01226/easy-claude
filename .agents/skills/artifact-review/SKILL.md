@@ -62,10 +62,10 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 **Summary:**
 
 - **Purpose:** review ONE artifact (PBI · user story set · test spec · design spec) for completeness + quality so it ships evidence-backed and handoff-ready — no missing assumptions, no acceptance gaps. Default stance = SKEPTIC, not presence-checker: sections that exist but hold weak/untestable content are worse than missing ones — they breed false confidence.
-- **Main steps (in order):** (1) **Identify** type — dispatch on `--type={pbi|story|spec-tests|design}`, infer if omitted; (2) **Adversarial Mindset** — run ALL 6 techniques (steel-man rejected alternatives · stress-test 3 assumptions · AC-testability · pre-mortem · unseen alternatives · contrarian pass) + clear the Anti-Bias Gate before any verdict; (3) **Type checklist** — score Required + Recommended; (4) **M1-M7 gate** (BLOCKING, ALL types); (5) **Readability checklist**; (6) **Output** per-type template (verdict + Required/Recommended tallies + coverage/AC matrix); (7) **Validated-fix + full re-review loop** — validate findings → fix only current-round blocking findings → restart until the round bar is clear (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
+- **Main steps (in order):** (1) **Identify** type — dispatch on `--type={pbi|story|spec-tests|design}`, infer if omitted; (2) **Adversarial Mindset** — run ALL 6 techniques (steel-man rejected alternatives · stress-test 3 assumptions · AC-testability · pre-mortem · unseen alternatives · contrarian pass) + clear the Anti-Bias Gate before any verdict; (3) **Type checklist** — score Required + Recommended; (4) **M1-M7 gate** (BLOCKING, ALL types); (5) **Readability checklist**; (6) **Output** per-type template (verdict + Required/Recommended tallies + coverage/AC matrix); (7) **Validated-fix + full re-review loop** — validate findings → fix only current-round blocking findings → restart until the round bar is clear (Round 1: zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
 - **Type dispatch + verdict:** each `--type` has its own Required/Recommended checklist and output template — verdict = PASS (all Required + ≥50% Recommended) | WARN (all Required, <50% Recommended) | FAIL (any Required fails).
 - **M1-M7 gate (ALL types, BLOCKING):** any **M1-M5 or applicable M7** violation forces NEEDS WORK citing the mandate ID + exact section/line. For spec-test artifacts, resolve the project profile first: the strict TC/Section 8 profile applies only when no native case contract is declared; a native profile declared by config or required references supplies its logical IDs, section roles, evidence carriers, and case identities. Exempt source identifiers only in the selected profile's evidence carriers (the strict default uses `[Source:]`, `**Evidence**`, `CoveredBy`, legacy `IntegrationTest`, frontmatter, and Mermaid); flag leakage in narrative prose. **M7 (business-visibility) is judged on each applicable business case's BODY via the demo test, NOT its prose** — a tech-free-sounding case about a consumer/sync/handler passes M1 and STILL fails M7. — why: carriers preserve auditable code links, M1 governs vocabulary, and M7 governs subject matter.
-- **Validated-fix loop:** before fixing, invoke `$why-review --validate-findings <report-path>` on the review report FIRST (validate-before-fix discipline, at parity with `$plan-review`) — NEVER edit the artifact to resolve findings before this gate returns CLEAN. Then fix only validated blocking findings, do not confirm-in-place, restart the FULL review (fresh `general-purpose` sub-agent — artifacts are NOT code), and loop until the current exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+- **Validated-fix loop:** before fixing, invoke `$why-review --validate-findings <report-path>` on the review report FIRST (validate-before-fix discipline, at parity with `$plan-review`) — NEVER edit the artifact to resolve findings before this gate returns CLEAN. Then fix only validated blocking findings, do not confirm-in-place, restart the FULL review (fresh `general-purpose` sub-agent — artifacts are NOT code), and loop until the current exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
 - **PBI releaseability is a Required check:** every generated PBI MUST be one independently releasable actor-facing outcome with a complete entry-to-result journey. For UI PBIs, the review MUST also verify the page/view inventory, navigation, component inventory, applicable states, and full-flow demo surface; a technical-only PBI or single static screen FAILS.
 
 **Workflow:**
@@ -83,23 +83,9 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-## First Principle — Easy to Change
+## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
-
-When evaluating code, refactor, test, or abstraction, ask:
-**does this make next change cheaper or more expensive?**
-
-- Reject "best practices" raising change cost (premature abstraction,
-  speculative generality, leaky indirection, ceremony without payoff).
-- Name real enemies in findings: **coupling, hidden state, duplicated
-  knowledge, unclear intent, irreversible decisions exposed too early**.
-- Simpler design easy to change beats sophisticated design that isn't.
-
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if downstream rule would raise change cost, this principle wins.
+> The full gate is `SYNC:core-engineering-principles` (protocol guide below; a hook delivers its text); its closing digest ends this file.
 
 ---
 
@@ -473,6 +459,7 @@ After sub-agent returns:
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
@@ -540,6 +527,7 @@ After sub-agent returns:
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
@@ -566,7 +554,7 @@ After sub-agent returns:
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `$why-review --validate-findings` pass, before it is treated as final.
-- **MANDATORY severity floor:** round 1 exits only on zero findings at any severity; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY severity floor:** round 1 exits only on zero OPEN findings at any severity — a LOW closes by a local fix plus scoped check, or by deferral when it needs new code or tests, and a LOW-only fix set needs no full re-review (never a receipt); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
 - **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate by asking the user directly**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
@@ -593,6 +581,7 @@ After sub-agent returns:
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
@@ -644,15 +633,15 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 - **Critical Thinking Mindset:** Traced `file:line` proof; confidence >80% to act.
 - **Evidence Based Reasoning:** No claim without cited evidence; state confidence.
 - **Understand Code First:** Read code, grep 3+ patterns before any change.
-- **Double Round Trip Review:** Validate findings, fix only current-round blocking findings, and restart the full review until the round severity bar is clear (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
+- **Double Round Trip Review:** Validate findings, fix only current-round blocking findings, and restart the full review until the round severity bar is clear (Round 1: zero open findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred; binary gates always block).
 - **Releasable PBI Contract:** Apply `.claude/skills/shared/releasable-pbi-contract.md`; technical-only PBIs and UI PBIs represented by one isolated screen are FAIL, not WARN.
 - **Fresh Context Review:** Spawn fresh zero-memory sub-agent after each fix cycle.
 - **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in sub-agent prompts.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
+- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** execute the main steps IN ORDER — (1) Identify type → (2) Adversarial Mindset + Anti-Bias Gate → (3) type Required/Recommended checklist → (4) M1-M7 BLOCKING gate → (5) Readability checklist → (6) per-type output template → (7) validated-fix + full re-review loop until the current round bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred); NEVER skip or merge steps without explicit user approval — why: each step catches a distinct defect class the others miss.
+**IMPORTANT MUST ATTENTION** execute the main steps IN ORDER — (1) Identify type → (2) Adversarial Mindset + Anti-Bias Gate → (3) type Required/Recommended checklist → (4) M1-M7 BLOCKING gate → (5) Readability checklist → (6) per-type output template → (7) validated-fix + full re-review loop until the current round bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred); NEVER skip or merge steps without explicit user approval — why: each step catches a distinct defect class the others miss.
 **IMPORTANT MUST ATTENTION** be a SKEPTIC, not a presence-checker — run ALL 6 adversarial techniques (steel-man rejected alternatives, stress-test 3 assumptions, AC-testability, pre-mortem, unseen alternatives, contrarian pass) and clear the Anti-Bias Gate BEFORE any verdict — why: sections that exist but hold weak/untestable content create false confidence worse than missing ones.
 **IMPORTANT MUST ATTENTION** enforce the BLOCKING M1-M7 gate on ALL types — any **M1-M5 or M7** violation forces NEEDS WORK citing the mandate ID + exact section/line; NEVER pass an M1-M5/M7 violation — why: passing it makes this review itself defective.
 **IMPORTANT MUST ATTENTION** M7 (business-visibility) is judged on each case's BODY via the demo test — *"what would a stakeholder SEE change?"*; no answer → NEEDS WORK as TECHNICAL-ONLY. A `When` that is an invocation (handler runs, consumer receives, job fires, data syncs, model inspected) or a `Then` asserting schema/type/nullability/call-count FAILS M7 **even in flawless tech-free prose** — why: M1 governs vocabulary, M7 governs subject matter, and passing a case because its prose is clean is exactly how technical cases accumulate in business specs one bugfix at a time.
@@ -663,21 +652,13 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 **IMPORTANT MUST ATTENTION** for `--type=spec-tests`, resolve the case profile before applying identity, evidence, section, or cardinality rules; an unresolved or conflicting profile blocks the verdict — why: a native case contract must not be rejected for differing syntax or silently copied into a duplicate registry.
 **IMPORTANT MUST ATTENTION** property coverage: every universal hard rule/invariant in the selected contract section maps to a universally quantified property case and a boundary counter-case; strict default uses `[HARD]` §4/§5 property TCs, while a native profile uses its declared section and case carrier — why: example-only coverage cannot protect an invariant across its input domain.
 **IMPORTANT MUST ATTENTION** run the findings-validation gate BEFORE fixing — invoke `$why-review --validate-findings <report-path>` first; NEVER edit the artifact to resolve findings before this gate returns CLEAN — why: validate-before-fix at parity with `$plan-review` prevents fixing phantom findings.
-**IMPORTANT MUST ATTENTION** fix only validated blocking findings, then restart the FULL review with a fresh `general-purpose` sub-agent (artifacts are NOT code) and loop until the current exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — NEVER spawn a confirmation sub-agent after a bar-clearing round — why: every fix invalidates the prior verdict, but a bar-clearing pass needs no re-confirmation.
+**IMPORTANT MUST ATTENTION** fix only validated blocking findings, then restart the FULL review with a fresh `general-purpose` sub-agent (artifacts are NOT code) and loop until the current exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — NEVER spawn a confirmation sub-agent after a bar-clearing round — why: every fix invalidates the prior verdict, but a bar-clearing pass needs no re-confirmation.
 **IMPORTANT MUST ATTENTION** cite `file:line`/section+line evidence for every finding (confidence >80% to act, <60% DO NOT recommend); every NEEDS WORK item must be actionable — why: speculation produces non-fixable findings.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo task to verify work quality.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
-
----
-
-> **Closing reminder — Easy to Change is the success metric.** Every finding,
-> test, refactor, and abstraction must answer one question: _does this make
-> the next change cheaper or more expensive?_ If it doesn't reduce future
-> change cost, reject it. Coupling, hidden state, duplicated knowledge, and
-> unclear intent are the real enemies — call them out by name.
 
 **Anti-Rationalization:**
 
@@ -691,13 +672,19 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 | "No tech words in it — M7 passes" | M1 ≠ M7. Apply the demo test to the BODY: what would a stakeholder SEE change? No answer → FAIL, however clean the prose. |
 | "This sync/consumer case is business-critical, so it stays" | If it's business-critical it's demoable — rewrite it demoably. A case that CANNOT be rewritten demoably is exactly what M7 moves out. |
 | "Source name in prose, flag it" | Check the selected profile's declared carrier first — the strict default uses `[Source:]`/`**Evidence**`/`CoveredBy`/legacy `IntegrationTest`/frontmatter/Mermaid. |
-| "Fix the finding, then I'm done" | Validate findings (`$why-review`) BEFORE fixing, then restart the FULL review until the current exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). |
+| "Fix the finding, then I'm done" | Validate findings (`$why-review`) BEFORE fixing, then restart the FULL review until the current exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). |
 | "Skip evidence for review judgments" | Cite section+line for every finding; confidence >80% to act, <60% DO NOT recommend. |
 
 **IMPORTANT MUST ATTENTION** SKEPTIC stance — clear the Anti-Bias Gate (adversarial techniques) before any verdict.
 **IMPORTANT MUST ATTENTION** M6 enforcement — NEEDS WORK on any **M1-M5 or M7** violation, cite mandate ID + section/line; carriers exempt.
 **IMPORTANT MUST ATTENTION** M7 — apply the demo test to each case's BODY, not its prose; an invocation-shaped `When` or a schema/type/call-count `Then` is TECHNICAL-ONLY and FAILS even when perfectly tech-free.
-**IMPORTANT MUST ATTENTION** validate findings before fixing, then restart the FULL fresh review until the current exit bar is clear (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+**IMPORTANT MUST ATTENTION** validate findings before fixing, then restart the FULL fresh review until the current exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+
+<!-- SYNC:core-engineering-principles:reminder -->
+
+**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
+
+<!-- /SYNC:core-engineering-principles:reminder -->
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)
@@ -740,17 +727,19 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
+3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run `$learn`.
+5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
+6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
+7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
+8. ALL three gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
 **Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
 ## Common AI Mistake Prevention (System Lessons)
 

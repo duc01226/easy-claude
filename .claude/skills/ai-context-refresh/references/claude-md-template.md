@@ -44,7 +44,7 @@ Store disposable generated output in the project workspace. Treat it as disposab
 
 Advance by verified results and task state, never by waiting for a hook. Execute the selected canonical sequence without skipping or reordering gates. Inline and delegated returns use the same acceptance criteria; a return alone is not proof of completion.
 
-Tag independent disjoint-write tasks `PAR`; otherwise `SEQ` with the dependency. Declare waves before work; dispatch all members together and enforce the all-return barrier before the next step or mutation. Record absent conditional triggers as skipped. Never parallelize shared writers, dependent tasks, trivial work, fixed sequence gates or pending approvals. Plan execution fans out only with explicit PAR/SEQ metadata and per-phase write sets; untagged plans run sequentially.
+Tag independent disjoint-write tasks `PAR`; otherwise `SEQ` with the dependency. Declare waves before work; dispatch all members together and enforce the all-return barrier before the next step or mutation. Record absent conditional triggers as skipped. Never parallelize shared writers, dependent tasks, trivial work, work smaller than a sub-agent's fixed context load, fixed sequence gates or pending approvals; prefer fewer, larger agents. Plan execution fans out only with explicit PAR/SEQ metadata and per-phase write sets; untagged plans run sequentially.
 
 Nested workflows use a sub-agent with incremental report, except `workflow-review-changes` runs INLINE in the main session to own its goal and re-review loop. Its individual reviewers remain delegated. Fan-out is one level unless the agent definition authorizes more. Give each agent its concrete scope, owned files, required context and evidence obligations; verify actual outputs before acceptance.
 
@@ -92,7 +92,7 @@ UI planning/review/building also applies checklist `CL-1`–`CL-6`: establish pl
 
 ## Continuous Improvement — Lesson Extraction Gate
 
-Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the root reasoning failure, generalize to at least three contexts, remove project specifics and consolidate duplicates. Skip nonrecurring lessons; improve the review skill when mechanical review can catch the failure. If recurring and not mechanically catchable, ask the user to run `/learn`; never silently self-edit instructions.
+Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the root reasoning failure, generalize to at least three contexts, remove incident specifics and consolidate duplicates. Recommend only a project convention or a universal best-practice protocol worth reading on everyday work — skip rare AI-agent quirks, one-off incidents and details of the current task. Skip nonrecurring lessons; improve the review skill when mechanical review can catch the failure. If valuable, recurring and not mechanically catchable, ask the user to run `/learn`; never silently self-edit instructions.
 
 <!-- SECTION:dev-commands -->
 <!-- /SECTION:dev-commands -->
@@ -103,4 +103,4 @@ Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the ro
 <!-- SECTION:skill-activation -->
 <!-- /SECTION:skill-activation -->
 
-Critical reminders: operate only within user authority; read the project config, docs index, `lessons.md` and the matching Doc Lookup row before answering or editing — never from memory; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; verify evidence and every required gate before completion.
+Critical reminders: operate only within user authority; read the project config, docs index, `lessons.md` and the matching Doc Lookup row before answering or editing — never from memory; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; make every plan, implementation and review easy to change, easy to scale and easy to maintain (`SYNC:core-engineering-principles`: reuse first, bounded growth, intent-named tests, harness green); verify evidence and every required gate before completion.

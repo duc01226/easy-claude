@@ -127,12 +127,12 @@
       "group": "review",
       "summary": "Four bug-detection categories checked on every review",
       "when": "reviewing code for defects",
-      "chars": 2969,
+      "chars": 3263,
       "file": ".claude/skills/shared/protocols/bug-detection.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/bug-detection.md",
-          "chars": 2969
+          "chars": 3263
         }
       ]
     },
@@ -175,6 +175,20 @@
         {
           "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
           "chars": 3315
+        }
+      ]
+    },
+    {
+      "tag": "core-engineering-principles",
+      "group": "design",
+      "summary": "Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost",
+      "when": "planning, implementing or reviewing any change",
+      "chars": 3906,
+      "file": ".claude/skills/shared/protocols/core-engineering-principles.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/core-engineering-principles.md",
+          "chars": 3906
         }
       ]
     },
@@ -309,12 +323,12 @@
       "group": "review",
       "summary": "Validated-finding fix loop: review, validate, fix, then a fresh full re-review, capped at two rounds",
       "when": "running a review that fixes findings and must re-review until the severity bar clears",
-      "chars": 8864,
+      "chars": 8913,
       "file": ".claude/skills/shared/protocols/double-round-trip-review.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/double-round-trip-review.md",
-          "chars": 8864
+          "chars": 8913
         }
       ]
     },
@@ -449,12 +463,12 @@
       "group": "review",
       "summary": "Restart the full review in isolated sub-agents after fixes to avoid confirmation bias",
       "when": "re-reviewing after a fix cycle",
-      "chars": 3719,
+      "chars": 3910,
       "file": ".claude/skills/shared/protocols/fresh-context-review.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/fresh-context-review.md",
-          "chars": 3719
+          "chars": 3910
         }
       ]
     },
@@ -575,12 +589,12 @@
       "group": "workflow-task",
       "summary": "Score complexity before planning and size the phases by it",
       "when": "starting a plan",
-      "chars": 797,
+      "chars": 895,
       "file": ".claude/skills/shared/protocols/iterative-phase-quality.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/iterative-phase-quality.md",
-          "chars": 797
+          "chars": 895
         }
       ]
     },
@@ -687,12 +701,12 @@
       "group": "workflow-task",
       "summary": "Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once",
       "when": "a task list has independent tasks",
-      "chars": 2324,
+      "chars": 3179,
       "file": ".claude/skills/shared/protocols/parallel-subagent-dispatch.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/parallel-subagent-dispatch.md",
-          "chars": 2324
+          "chars": 3179
         }
       ]
     },
@@ -855,12 +869,12 @@
       "group": "review",
       "summary": "Executable review policy: one round-eligibility predicate and durable review state transitions",
       "when": "deciding round eligibility, blocking findings or review state",
-      "chars": 4092,
+      "chars": 4587,
       "file": ".claude/skills/shared/protocols/review-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-policy.md",
-          "chars": 4092
+          "chars": 4587
         }
       ]
     },
@@ -883,12 +897,12 @@
       "group": "review",
       "summary": "Verbatim template and protocol blocks for every fresh sub-agent review prompt",
       "when": "spawning a fresh sub-agent to review",
-      "chars": 16713,
+      "chars": 16987,
       "file": ".claude/skills/shared/protocols/review-protocol-injection.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-protocol-injection.part-1.md",
-          "chars": 8859
+          "chars": 9133
         },
         {
           "file": ".claude/skills/shared/protocols/review-protocol-injection.part-2.md",
@@ -1013,12 +1027,12 @@
       "group": "review",
       "summary": "One consequence-based Critical, High, Medium, Low scale for every finding and gate",
       "when": "classifying a finding or deciding whether a review round passes",
-      "chars": 7900,
+      "chars": 8921,
       "file": ".claude/skills/shared/protocols/severity-rubric.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/severity-rubric.md",
-          "chars": 7900
+          "chars": 8921
         }
       ]
     },
@@ -1125,12 +1139,12 @@
       "group": "review",
       "summary": "Map-reduce review: size-capped batches, one sub-agent per batch, then reduce",
       "when": "reviewing a large changeset",
-      "chars": 5050,
+      "chars": 7940,
       "file": ".claude/skills/shared/protocols/systematic-review-batching.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/systematic-review-batching.md",
-          "chars": 5050
+          "chars": 7940
         }
       ]
     },
@@ -1369,6 +1383,20 @@
         {
           "file": ".claude/skills/shared/protocols/web-research.md",
           "chars": 446
+        }
+      ]
+    },
+    {
+      "tag": "whole-diff-correctness",
+      "group": "review",
+      "summary": "Read a behavior-changing diff once as one change and hunt cross-file defects through real situations",
+      "when": "reviewing a behavior-changing diff",
+      "chars": 2062,
+      "file": ".claude/skills/shared/protocols/whole-diff-correctness.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/whole-diff-correctness.md",
+          "chars": 2062
         }
       ]
     },

@@ -47,7 +47,7 @@ context-budget: high
 - Check backend, frontend, dependency, pipeline, AND host attack surfaces — code being clean does not mean the system is clean
 - Use project authorization attributes and entity-level access expressions (see `backend-patterns-reference.md` in the project-reference docs root — default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`)
 - NEVER install or execute unvetted third-party code as part of this review — vet first (Domain D4)
-- Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full security review from the beginning. Round 1 requires zero findings; Round 2 requires zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
+- Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full security review from the beginning. Round 1 requires zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); Round 2 requires zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
 
 <scope>$ARGUMENTS</scope>
 
@@ -474,7 +474,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 3. Run targeted verification for the changed security-sensitive paths.
 4. Restart the full `/security-audit` from Scope over the complete current target, not only the fixed files.
 5. The restarted pass MUST create brand-new review tasks, reload local security context, rerun graph/caller traces where applicable, and analyze the full target from the beginning.
-6. Repeat validate → fix → full security re-review until a complete pass clears the current round's exit bar (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+6. Repeat validate → fix → full security re-review until a complete pass clears the current round's exit bar (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
 7. If the same validated blocker repeats across 2 full invocations with no progress, stop and ask the user for a decision.
 
 **Non-negotiable rules:**
@@ -590,7 +590,8 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 <!-- SYNC:systematic-review-batching:reminder -->
 
-- **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
+- **MANDATORY** Large changeset → risk-weighted batches, one parallel sub-agent per batch: high-risk ≤8 files OR ≤2000 diff-lines; low-risk (styling, tests, docs, config text) may pool to ≤20 files OR ≤4000 diff-lines; mechanical churn is verified by pattern, not batched. Never review many files one-by-one.
+- **MANDATORY** Each batch agent validates its own findings (`/why-review --validate-findings` in its own session); the reducer deduplicates by root cause FIRST, then re-validates only CRITICAL/HIGH (including in-batch rejections and demotions), reviewer conflicts, unvalidated findings and a MEDIUM sample.
 - **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
 
 <!-- /SYNC:systematic-review-batching:reminder -->
@@ -598,6 +599,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
@@ -625,7 +627,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `/why-review --validate-findings` pass, before it is treated as final.
-- **MANDATORY severity floor:** round 1 exits only on zero findings at any severity; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY severity floor:** round 1 exits only on zero OPEN findings at any severity — a LOW closes by a local fix plus scoped check, or by deferral when it needs new code or tests, and a LOW-only fix set needs no full re-review (never a receipt); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
 - **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
@@ -652,6 +654,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
@@ -687,7 +690,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 - **Source Test Drift Check:** When source behavior changes, reconcile affected tests from evidence.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Systematic Batching:** Large changeset → size-capped parallel batches, then reduce.
-- **Severity Rubric:** Classify by consequence using `SYNC:severity-rubric`; round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
+- **Severity Rubric:** Classify by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
 - **Category Review Thinking:** Derive each category's concerns from first principles, NEVER a fixed checklist.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 

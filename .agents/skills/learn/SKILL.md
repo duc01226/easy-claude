@@ -54,7 +54,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 **Summary:** read-this-if-nothing-else digest of the main steps —
 
 - **Generalize before anything else** — climb from the incident to the reusable failure mode; a lesson naming this ticket's files/services/tools is not a lesson yet.
-- **Triage (recurrence + auto-fix) BEFORE routing** — a lesson a review skill already catches is noise.
+- **Triage (value + recurrence + auto-fix) BEFORE routing** — persist only a project convention or a universal best-practice protocol worth reading on everyday work; a rare AI-agent quirk, a one-off incident or a detail of the current task is noise, and so is a lesson a review skill already catches.
 - **Skill-specific lessons use the project protocol route:** when the lesson is an extra rule for a skill — learned during an active skill invocation, during a task whose route matched a skill, naming a skill, or about the kind of task one skill mainly owns (e.g. "when writing integration tests…" → `integration-test`) — treat it as a candidate overlay for that skill, compare it against the project-reference docs (`docs/project-reference` by default) and `docs/project-config.json` before recommending, ask the Carrier Choice question, and on an overlay pick call `$project-skill-protocol` with `add` for a new overlay or `update <exact-name>` only after exact-name resolution; save to a reference doc or config field only when the user picks that carrier.
 - **Ask which carrier, with a recommendation:** present the carrier options by asking the user directly — recommended option first, labelled `(Recommended)` — before any write; never pick the carrier silently.
 - **Keep ordinary routing for ordinary lessons:** when the lesson is not skill-specific or no active/matching skill exists, use the existing FACT/RULE carrier route and confirmation flow.
@@ -76,7 +76,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 - **GENERALIZE FIRST (the #1 protocol):** Extract the GENERIC lesson that applies to many cases — NEVER save the specific case as-is. The user's words describe one incident; your job is to climb from that incident to the reusable rule. Strip every project/file/tool/domain name. If the saved text only helps on this exact ticket, you failed — abstract it up a level. (Enforced by the Lesson Quality Gate below.)
 - Triggers on "remember this", "always do X", "never do Y"
-- **Triage first:** pass Recurrence gate + Auto-fix gate BEFORE routing or saving
+- **Triage first:** pass the Value gate (project convention or universal best-practice protocol, worth reading on everyday work) + Recurrence gate + Auto-fix gate BEFORE routing or saving
 - Smart-route to the most relevant file, NOT always `lessons.md` in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
 - **Consider `docs/project-config.json` on EVERY routing decision** — a lesson that is really a project fact (path, run-command, module map, tooling choice) belongs in the machine-readable map, not in prose; read it or use `$project-config` to know its schema before deciding
 - Use exact config schema field names (`node .claude/hooks/lib/project-config-schema.cjs --describe`) and prefer an existing field — NEVER invent a key, and route config writes through `$project-config`
@@ -180,10 +180,11 @@ Rules:
 
 | Gate           | Question                                                                               | Pass           | Fail → Action                                        |
 | -------------- | -------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------- |
+| **Value**      | "Is this a project convention (a stable rule this codebase follows in everyday work) or a universal best-practice protocol — worth an agent reading on an ordinary day?" | Yes → continue | No → skip `$learn`; rare AI-agent quirks, one-off incidents, tool/environment hiccups and details of the current session's task are not lessons |
 | **Recurrence** | "Would this mistake recur in a future session WITHOUT this reminder?"                  | Yes → continue | No → skip `$learn`; mistake is situational           |
 | **Auto-fix**   | "Could `$code-quality-review`, `$code-simplifier`, `$security-audit`, or a linter catch this automatically?" | No → continue  | Yes → skip `$learn`; update the review skill instead |
 
-**Both gates must pass.** A lesson review skills already catch adds noise without value. A one-off situational mistake won't be prevented by a persisted rule.
+**All three gates must pass.** Persistent memory is read on every task, so it holds only what makes everyday work better: a project convention or a universal best practice. A rare agent quirk or a detail of this session's task costs every future reader attention and prevents nothing; a lesson review skills already catch adds noise; a one-off situational mistake won't be prevented by a persisted rule.
 
 ---
 
@@ -248,7 +249,7 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 
 | Prevention Layer                            | When to use                                                                   | Example                                                                                     |
 | ------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Doc update only**                         | One-off awareness, rare edge case, team convention                            | "Always use fluent validation API" → `backend-patterns-reference.md` |
+| **Doc update only**                         | Team convention or rule needed only when doing that kind of work (the lesson already passed the Value gate) | "Always use fluent validation API" → `backend-patterns-reference.md` |
 | **Project config field** (`docs/project-config.json`) | The lesson is a machine-readable project FACT every skill should ground on before acting | "Integration tests need the system started first" → `integrationTestVerify.startupScript` / `systemCheckCommand` via `$project-config` |
 | **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task                                | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
 | **Static protocol lesson** (`sync-inline-versions.md`) | Universal AI mistake, high recurrence, silent failure, any project | "Re-read files after context compaction" → `.claude/skills/shared/sync-inline-versions.md` |
@@ -285,7 +286,7 @@ After generalizing a lesson, evaluate whether it qualifies as a **Static Protoco
 
 **If qualified:** Recommend "Doc + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run the project-init / sync pipeline so `CLAUDE.md`, `AGENTS.md`, and Codex carriers regenerate from the shared source.
 
-**If NOT qualified:** Explain why (e.g., "Too project-specific", "Already covered by existing Static Protocol Lesson about X", "Low recurrence — only happens in rare edge cases"). Proceed with doc-only or prompt-rule option.
+**If NOT qualified:** Explain why (e.g., "A project convention, not universal", "Already covered by existing Static Protocol Lesson about X", "Not silent — the failure is already visible"). Proceed with doc-only or prompt-rule option. (A rare or one-off lesson never reaches this step — the Value gate already rejected it.)
 
 ### Lesson Quality Gate (BLOCKING — generalize before you save)
 
@@ -315,6 +316,7 @@ Does this failure mode apply to ≥3 different contexts or codebases? If only on
 - Must be useful on any codebase, any language, any task type
 - If multiple mistakes share the same failure mode → consolidate to ONE lesson, not many
 - Test: "Would an AI working in Java, Go, or Python on a different project benefit from this?" If yes → good. If no → rewrite.
+- **Project-convention exception:** a stable rule of THIS codebase (the Value gate's first kind) keeps the convention's own terms — state the rule an agent follows on everyday work here, never this session's incident, and route it to the project doc whose Read Trigger fires for that work.
 
 **Anti-pattern examples:**
 
@@ -336,8 +338,8 @@ Run these 2 tasks at the end of every `$learn` operation:
     - Universal across many projects/codebases, OR
     - A stable project-wide principle (architecture invariant, naming invariant, workflow invariant).
 - Reject lessons that are:
-    - Specific to the current ticket/change/file,
-    - Rare edge cases with low recurrence,
+    - Specific to the current ticket/change/file or to what happened in this session's task,
+    - Rare AI-agent quirks or edge cases with low recurrence — nothing an agent would benefit from reading on an ordinary day,
     - Already covered by existing lessons or review skills.
 - If target is `lessons.md` (injected on every prompt), apply stricter bar: high impact + high recurrence only.
 
@@ -352,7 +354,7 @@ Run these 2 tasks at the end of every `$learn` operation:
 
 ### Routing Decision Process
 
-1. **Run Triage Gate** — recurrence + auto-fix filters; stop here if either fails
+1. **Run Triage Gate** — value + recurrence + auto-fix filters; stop here if any fails
 2. **Read the lesson text** — identify keywords and domain
 3. **Apply Lesson Quality Gate** — analyze root cause, generalize, verify universality
 4. **Detect skill-specific route.** If any trigger T1–T4 holds, follow the Skill-Specific Project-Protocol Route: it runs step 5 (FACT vs RULE) and step 6 (Prevention Depth) as part of its carrier comparison and Carrier Choice question, then replaces steps 7–8 (steps 9–10 still save a doc or config pick); otherwise continue.
@@ -522,7 +524,7 @@ $prompt-enhance <reference-docs root>/<modified-file>.md
 **IMPORTANT MUST ATTENTION Goal:** Persist each lesson at its failure-mode level into the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc or `docs/project-config.json` when the lesson is really a machine-readable project fact.
 
 **IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**compare carriers; an overlay pick delegates to `$project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `$why-review` → `$prompt-enhance` → AI-discovery gate (lesson reachable from a top/bottom anchor and from the docs index).
-**IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if recurrence is low OR review skills can catch it, skip `$learn` entirely
+**IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if the lesson is not a project convention or a universal best-practice protocol worth reading on everyday work, OR recurrence is low, OR review skills can catch it, skip `$learn` entirely
 **IMPORTANT MUST ATTENTION** check Reference Doc Catalog to find the best target file — NOT always `lessons.md`
 **IMPORTANT MUST ATTENTION** consider `docs/project-config.json` as a candidate carrier on EVERY routing decision, alongside the prose docs — read it directly or use `$project-config` to learn its sections and exact field names first — why: a project fact written only as prose is invisible to the tooling that reads the config and is contradicted the next time the generated docs regenerate from it.
 **IMPORTANT MUST ATTENTION** when routing into the config, copy field names verbatim from `node .claude/hooks/lib/project-config-schema.cjs --describe`, prefer an EXISTING field, and route the write through `$project-config`; no field fits → surface a proposed schema addition to the user instead of inventing a key — why: unknown keys only warn (`project-config-schema.cjs` unknown-key warnings), so an invented key looks applied while no consumer reads it.
@@ -584,17 +586,19 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
+3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run `$learn`.
+5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
+6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
+7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
+8. ALL three gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
 **Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
 ## Common AI Mistake Prevention (System Lessons)
 

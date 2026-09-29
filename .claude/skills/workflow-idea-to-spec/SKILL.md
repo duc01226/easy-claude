@@ -72,7 +72,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 
 - One task per selected step (per capability when several) so nothing is lost after compaction; write the run report under `tmp/reports/` FIRST and append per step; after compaction re-read the report and `TaskList` before continuing.
 - Write every artifact immediately to its configured root (plans, team artifacts, business spec root) — never batch.
-- Findings are validated (evidence-backed) before fixing; fix in the owning spec role; re-run the review that raised them. Review loop: round 1 exits on zero findings; round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 when a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
+- Findings are validated (evidence-backed) before fixing; fix in the owning spec role; re-run the review that raised them. Review loop: round 1 exits on zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 2 rounds (+1 when a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
 - **Provisional output:** no code exists yet, so use the provisional/planned-evidence convention of the native profile. The first `workflow-code-to-spec` / `spec [mode=update]` run against real code reconciles planned cases with executable proof and clears provisional markers only when the profile's acceptance rule is met.
 - **Handoff at close:** canonical spec paths, case/evidence coverage, open questions below 80% confidence, the presentation path when produced, and the next route — `workflow-spec-to-pbi` for a backlog or `workflow-implement-spec` to build.
 <!-- PROTOCOL-GUIDES:START -->
@@ -121,6 +121,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 

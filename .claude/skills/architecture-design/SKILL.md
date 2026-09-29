@@ -57,6 +57,12 @@ description: '[Architecture] Use when a workflow step or the user asks for a sol
 
 ---
 
+## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
+
+> The full gate is `SYNC:core-engineering-principles` (protocol guide below; a hook delivers its text); its closing digest ends this file.
+
+---
+
 ## Inputs & Handoffs (consume vs produce)
 
 Skill sits mid-workflow: consume settled upstream decisions; produce named artifacts downstream steps need. NEVER re-derive upstream-owned decisions or leave consumers without their artifact — why: re-derivation wastes effort and risks divergence.
@@ -921,6 +927,7 @@ Run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `engineering-foundation-gate` — Seven engineering-foundation dimensions judged by project profile; creating or reviewing how a project is built, run, tested or checked → .claude/skills/shared/protocols/engineering-foundation-gate.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
@@ -960,6 +967,7 @@ Run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
@@ -1074,3 +1082,9 @@ Run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3
 | "One good candidate is enough"                        | Design it TWICE. A one-way door with a single candidate was not decided — and its ADR alternatives are advocacy. |
 | "The ORM handles transactions" / "we take a lock"     | Name the ISOLATION LEVEL and the FENCING TOKEN. Write skew and split brain pass every single-user test. |
 | "Use Kafka / Redis / K8s for that"                    | Prescribe the TACTIC (§2), not the product. Name the ordering/replay/durability property first.       |
+
+<!-- SYNC:core-engineering-principles:reminder -->
+
+**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
+
+<!-- /SYNC:core-engineering-principles:reminder -->

@@ -258,13 +258,6 @@ test("review convergence uses one blocking predicate and byte-identical low-only
   assert.match(loop, /changed fingerprint.*re-review/i);
 
   const reviewCarriers = [
-    ".claude/agents/architect.md",
-    ".claude/agents/code-reviewer.md",
-    ".claude/agents/integration-tester.md",
-    ".claude/agents/planner.md",
-    ".claude/agents/security-auditor.md",
-    ".claude/agents/spec-compliance-reviewer.md",
-    ".claude/agents/ui-ux-designer.md",
     ".claude/skills/architecture-review-full/SKILL.md",
     ".claude/skills/architecture-review/SKILL.md",
     ".claude/skills/artifact-review/SKILL.md",
@@ -287,6 +280,12 @@ test("review convergence uses one blocking predicate and byte-identical low-only
     assert.ok(carriesBlockingPredicate(content, projection, { acceptGuide: rel.startsWith(".claude/skills/") }),
       `${rel} must carry blocking_findings(round, findings) inline, or (skills only) a ${BLOCKING_PREDICATE_TAG} guide entry whose projection file carries it`);
     assert.doesNotMatch(content, /Issues found \(FAIL, or any non-zero findings\)/, rel);
+  }
+  // Leaf reviewer agents no longer run the round loop (the orchestrating skills above own the
+  // predicate), but none may restate a conflicting any-finding-fails rule of its own.
+  for (const name of ["architect", "code-reviewer", "integration-tester", "planner", "security-auditor", "spec-compliance-reviewer", "ui-ux-designer"]) {
+    const rel = `.claude/agents/${name}.md`;
+    assert.doesNotMatch(await read(rel), /Issues found \(FAIL, or any non-zero findings\)/, rel);
   }
 });
 

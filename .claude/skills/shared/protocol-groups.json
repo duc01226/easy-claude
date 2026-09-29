@@ -17,7 +17,8 @@
         "review-principle-awareness": { "summary": "Classify the change context first, then apply the current principles that fit it", "when": "starting any review" },
         "review-protocol-injection": { "summary": "Verbatim template and protocol blocks for every fresh sub-agent review prompt", "when": "spawning a fresh sub-agent to review" },
         "severity-rubric": { "summary": "One consequence-based Critical, High, Medium, Low scale for every finding and gate", "when": "classifying a finding or deciding whether a review round passes" },
-        "systematic-review-batching": { "summary": "Map-reduce review: size-capped batches, one sub-agent per batch, then reduce", "when": "reviewing a large changeset" }
+        "systematic-review-batching": { "summary": "Map-reduce review: size-capped batches, one sub-agent per batch, then reduce", "when": "reviewing a large changeset" },
+        "whole-diff-correctness": { "summary": "Read a behavior-changing diff once as one change and hunt cross-file defects through real situations", "when": "reviewing a behavior-changing diff" }
       }
     },
     "evidence-trace": {
@@ -100,6 +101,7 @@
         "agent-code-standards": { "summary": "Development rules: YAGNI, KISS, DRY, and read the pattern docs first", "when": "an agent writes or changes code" },
         "ai-agent-as-user-access": { "summary": "Treat an AI agent as a first-class machine actor with its own identity and authority", "when": "creating a greenfield system or reviewing actor-facing architecture" },
         "complexity-prevention": { "summary": "Change-cost lens on complexity (Ousterhout)", "when": "designing or reviewing code" },
+        "core-engineering-principles": { "summary": "Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost", "when": "planning, implementing or reviewing any change" },
         "cross-cutting-quality": { "summary": "Check cross-cutting concerns on changed paths against the declared architecture", "when": "reviewing operational and cross-cutting concerns" },
         "design-distinctiveness-gate": { "summary": "Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint", "when": "designing, implementing or reviewing a visual surface" },
         "design-patterns-quality": { "summary": "Design quality: one owner per rule, fitted patterns, no speculative abstraction", "when": "designing or reviewing code structure" },

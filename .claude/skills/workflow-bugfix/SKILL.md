@@ -105,7 +105,7 @@ Recommended: XS/S work inline without sub-agents; independent read-only investig
 - **Goal Contract:** resolve the active goal at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the bug report); pass the same goal file to every child step; emit the Goal Satisfaction matrix before `/workflow-end`.
 - **Spec context:** when the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) holds a spec for the affected module, read its rules and contracts before investigating.
 - **Fix path:** validate a finding (evidence-backed, reproducible) before fixing it; fix at the owning layer; re-run the reviewer or test that raised it, plus a holistic pass when fixes were non-trivial. When the bug touches a `[HARD]` rule or invariant, regression TCs add invariant/property cases whose bar is a killed mutant, not line coverage, and each behavior-changing finding updates BOTH spec and tests.
-- **Loop bounds:** round 1 fixes every validated finding; from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); failing tests are uncapped; no progress → escalate via `AskUserQuestion`. Single-occurrence review steps converge inside their own skill loop.
+- **Loop bounds:** round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); failing tests are uncapped; no progress → escalate via `AskUserQuestion`. Single-occurrence review steps converge inside their own skill loop.
 
 ## Activation
 
@@ -170,6 +170,7 @@ Recommended default order (roles in the table above):
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 

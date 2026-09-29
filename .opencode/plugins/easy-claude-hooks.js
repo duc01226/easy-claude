@@ -84,6 +84,15 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
+          "command": ".claude/hooks/core-principles-inject.cjs"
+        }
+      ],
+      "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
           "command": ".claude/hooks/protocol-inject-review.cjs"
         },
         {
@@ -301,6 +310,14 @@ const HOOKS = {
         {
           "type": "command",
           "command": ".claude/hooks/judgement-integrity-route.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/core-principles-inject.cjs"
         }
       ]
     },

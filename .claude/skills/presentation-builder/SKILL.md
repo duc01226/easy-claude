@@ -201,7 +201,7 @@ Treat each item as a release gate. Record evidence or `N/A` with a reason; do no
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
-> **[BLOCKING]** Finish with the final review task and the AI-mistake/lessons gate. Extract only a general lesson that passes the recurrence and generality tests; ask the user to run `/learn` when a lesson should be persisted.
+> **[BLOCKING]** Finish with the final review task and the AI-mistake/lessons gate. Extract only a lesson that passes the value (a project convention or a universal best-practice protocol worth reading on everyday work — never a rare AI-agent quirk or a detail of this task), recurrence and generality tests; ask the user to run `/learn` when a lesson should be persisted.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 

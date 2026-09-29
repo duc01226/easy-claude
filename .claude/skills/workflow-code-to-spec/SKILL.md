@@ -88,7 +88,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 ## 6. Memory, Reporting and Fix Path
 
 - One task per selected step and per capability; write the run report under `tmp/reports/` FIRST and append per section — never hold findings in memory.
-- Findings are validated before fixing; fix only validated gaps that block the current round, in the owning spec role, then restart the full artifact-review pass. Review loop: round 1 exits on zero findings; round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; binary gates always block; cap 2 rounds (+1 when a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
+- Findings are validated before fixing; fix only validated gaps that block the current round, in the owning spec role, then restart the full artifact-review pass. Review loop: round 1 exits on zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; binary gates always block; cap 2 rounds (+1 when a CRITICAL/HIGH stays open); escalate via `AskUserQuestion` on no progress.
 - **Spec-loop discipline:** derive property cases with boundary counter-cases for every hard invariant; protected core logic uses the mutation-score gate, not line coverage; feed uncovered behavior into both spec and tests through a dual-feedback ledger until no new gap or hidden rule remains.
 - **Audit output:** `tmp/reports/spec-audit-{date}-{Bucket}.md` — stale capabilities/roles, stale coverage %, priority order; `/watzup` recommends an `update` run scoped to the stale capabilities.
 <!-- PROTOCOL-GUIDES:START -->
@@ -143,6 +143,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 

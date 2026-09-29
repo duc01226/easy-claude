@@ -66,7 +66,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - The DB Performance Protocol is MANDATORY and non-advisory: ALL list queries must paginate (no unbounded GetAll/ToList) and ALL filter fields, foreign keys, and sort columns must have matching indexes.
 - The /24 rating is advisory only; overall PASS/FAIL follows the canonical round predicate and binary gates; the graph gate, validated-fix full re-review, and DB Performance Protocol are NEVER skippable regardless of change size — and when batched (≥10 files), re-score all 12 criteria holistically from combined cross-batch evidence, never by averaging per-batch scores.
 - **`--report-only`:** read-only leaf mode for a caller that owns every fix and re-review — main steps 1–5 and 7 plus the Why-Review Findings Validation Gate, no fix, no restart, no nested sub-agents, no user prompt, no writer beyond the report; returns the `/24` score, gate verdict, and severity-grouped findings; see [Report-Only Mode](#report-only-mode---report-only).
-- After applying any fix, validate findings first, then rerun the FULL review (fresh sub-agent with zero prior-round memory); a pass clearing the current round's exit bar ENDS the loop (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). Do not start another round for LOW-only findings; failed binary gates remain blocking.
+- After applying any fix, validate findings first, then rerun the FULL review (fresh sub-agent with zero prior-round memory); a pass clearing the current round's exit bar ENDS the loop (Round 1: zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). Do not start another round for LOW-only findings; failed binary gates remain blocking.
 
 **Workflow:**
 
@@ -409,7 +409,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `$why-review --validate-findings` pass, before it is treated as final.
-- **MANDATORY severity floor:** round 1 exits only on zero findings at any severity; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
+- **MANDATORY severity floor:** round 1 exits only on zero OPEN findings at any severity — a LOW closes by a local fix plus scoped check, or by deferral when it needs new code or tests, and a LOW-only fix set needs no full re-review (never a receipt); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
 - **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate by asking the user directly**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
@@ -467,7 +467,8 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 <!-- SYNC:systematic-review-batching:reminder -->
 
-- **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
+- **MANDATORY** Large changeset → risk-weighted batches, one parallel sub-agent per batch: high-risk ≤8 files OR ≤2000 diff-lines; low-risk (styling, tests, docs, config text) may pool to ≤20 files OR ≤4000 diff-lines; mechanical churn is verified by pattern, not batched. Never review many files one-by-one.
+- **MANDATORY** Each batch agent validates its own findings (`$why-review --validate-findings` in its own session); the reducer deduplicates by root cause FIRST, then re-validates only CRITICAL/HIGH (including in-batch rejections and demotions), reviewer conflicts, unvalidated findings and a MEDIUM sample.
 - **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
 
 <!-- /SYNC:systematic-review-batching:reminder -->
@@ -475,6 +476,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
@@ -530,6 +532,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
@@ -566,19 +569,19 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 - **Task Tracking & External Report:** Bootstrap tasks; persist review findings to `tmp/reports/`.
 - **Critical Thinking Mindset:** Apply critical + sequential thinking; no guess as fact.
 - **Evidence-Based Reasoning:** Cite `file:line` for every claim; confidence >80% to act.
-- **Double Round-Trip Review:** Review → validate → fix blocking findings → full re-review; round 1 requires zero findings, round 2 requires zero CRITICAL/HIGH/MEDIUM with LOW deferred.
+- **Double Round-Trip Review:** Review → validate → fix blocking findings → full re-review; round 1 requires zero open findings, round 2 requires zero CRITICAL/HIGH/MEDIUM with LOW deferred.
 - **Fresh Context Review:** Spawn fresh zero-memory sub-agent after fixes; never reuse.
 - **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in sub-agent prompts.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Systematic Batching:** ≥10 files → size-capped parallel batches, then reduce.
-- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; map 0–2 scores onto it. Round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
+- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; map 0–2 scores onto it. Round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
 - **Category Review Thinking:** Derive each category's concerns from first principles, not a checklist.
 - **Scale-Technique Gate (advisory):** Derive scale tier from evidence, emit the Technique Applicability Matrix as guidance — NEVER mutate the `/24`, the `{n}/8` gate, or the verdict.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** every score requires `file:line` evidence — unprovable score = 0; assume the worst without proof — why: an unverified "looks fine" is how silent operational gaps reach production.
 **IMPORTANT MUST ATTENTION** the DB Performance Protocol, graph gate, and validated-fix full re-review are NEVER skippable regardless of change size — the /24 rating is advisory, overall PASS/FAIL and these process steps are not — why: small changes are exactly where unbounded queries and missing re-reviews slip through.
-**IMPORTANT MUST ATTENTION** validate findings BEFORE any fix, then rerun the FULL review (fresh sub-agent, zero prior-round memory) before declaring PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict.
+**IMPORTANT MUST ATTENTION** validate findings BEFORE any fix, then rerun the FULL review (fresh sub-agent, zero prior-round memory) before declaring PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict.
 
 The following are all MANDATORY:
 
@@ -602,13 +605,13 @@ The following are all MANDATORY:
 | "Already checked observability"               | Show `file:line` proof. No proof = no check                                                  |
 | "The score is advisory so skip MANDATORY steps" | Only the rating is advisory. Overall PASS/FAIL, binary gates, graph checks and validated-fix re-review remain mandatory |
 | "Score it from what I remember of the code"   | Re-read and cite `file:line`; inference is not evidence — unprovable = 0                      |
-| "Batched, so average the per-batch scores"    | Re-score all 12 holistically from combined evidence; per-batch sees ≤8 files and false-flags |
+| "Batched, so average the per-batch scores"    | Re-score all 12 holistically from combined evidence; each batch sees only its own files and false-flags |
 | "Tests pass, mutation gate is covered"        | Green coverage over un-asserted behavior fails the gate; a surviving mutant is a blocker     |
 
 **IMPORTANT MUST ATTENTION** every score needs `file:line` evidence or it is `0`; assume worst without proof.
 **IMPORTANT MUST ATTENTION** `--report-only` runs steps 1–5 and 7 plus findings validation — no fix, no restart, no batching fan-out, no user question, no writer beyond the report; return the `/24` score, gate verdict, and findings grouped by severity — why: a read-only leaf that fixes, fans out, or asks races or stalls its barrier siblings.
 **IMPORTANT MUST ATTENTION** DB Performance Protocol + graph gate + validated-fix full re-review are NEVER skippable regardless of change size.
-**IMPORTANT MUST ATTENTION** validate findings before fixing, then rerun the FULL review before PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
+**IMPORTANT MUST ATTENTION** validate findings before fixing, then rerun the FULL review before PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)
@@ -651,17 +654,19 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
+3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run `$learn`.
+5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
+6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
+7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
+8. ALL three gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
 **Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
 ## Common AI Mistake Prevention (System Lessons)
 

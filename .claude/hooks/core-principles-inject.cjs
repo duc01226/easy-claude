@@ -1,0 +1,184 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * Core engineering principles reminder — Easy to Change · Easy to Scale · Easy to Maintain.
+ *
+ * Re-delivers the canonical `SYNC:core-engineering-principles` body from
+ * `.claude/skills/shared/sync-inline-versions.md` so the gate stays near the model's attention
+ * while it plans, implements and reviews. Triggers:
+ *   - UserPromptSubmit (plain stdout), and
+ *   - PostToolUse on the task/plan step boundaries `TodoWrite|TaskCreate|TaskUpdate|update_plan`
+ *     (JSON `additionalContext`), so a long autonomous turn with no new prompt is covered too.
+ *
+ * De-duplication: `deliverOnce` of the session-scoped convention ledger (`lib/convention-ledger.cjs`,
+ * the same owner `workflow-route-inject.cjs` delivers through) keeps one record per scope (main
+ * conversation or one sub-agent). The body is delivered again only when the content changes, the context is
+ * compacted, or the transcript has grown by about `reinjectAfterTokens` tokens since the last
+ * delivery (default 100,000; bytes = tokens × `BYTES_PER_TOKEN`, the measured transcript ratio in
+ * `lib/file-conventions.cjs`). A host that exposes no transcript gets one delivery until the next
+ * compaction or content change: elapsed time is not evidence that the context moved on.
+ *
+ * Accelerator only: the static `**Core engineering principles:**` line in CLAUDE.md / AGENTS.md
+ * (the `SYNC:core-engineering-principles` digest, composed there from the `critical-thinking-mindset:full`
+ * block) binds every host without this hook; skills declaring the tag get the body from the
+ * design-group protocol hook. Advisory; never blocks; every failure stays silent (exit 0).
+ *
+ * On by default. Off with `.claude/.ck.json` `corePrinciplesInject.enabled: false` (a developer
+ * override in `.claude/.ck.local.json` wins) or env CK_CORE_PRINCIPLES_INJECT=0. The interval is
+ * `corePrinciplesInject.reinjectAfterTokens` (integer within `CLASS_REINJECT_TOKENS_RANGE` of
+ * `lib/file-conventions.cjs`, the framework's one token-window range); an out-of-range value falls
+ * back to the default rather than guessing.
+ *
+ * @hook UserPromptSubmit
+ * @hook PostToolUse (TodoWrite|TaskCreate|TaskUpdate|update_plan)
+ */
+
+const crypto = require('crypto');
+const path = require('path');
+
+const HOOK_NAME = 'core-principles-inject';
+const RECORD_GROUP = 'core-principles';
+const SYNC_TAG = 'core-engineering-principles';
+const MARKER_START = '<!-- CK:CORE-ENGINEERING-PRINCIPLES -->';
+const MARKER_END = '<!-- /CK:CORE-ENGINEERING-PRINCIPLES -->';
+const SETTINGS_SECTION = 'corePrinciplesInject';
+const ENV_SWITCH = 'CK_CORE_PRINCIPLES_INJECT';
+const STEP_TOOLS = new Set(['TodoWrite', 'TaskCreate', 'TaskUpdate', 'update_plan']);
+const DEFAULT_REINJECT_TOKENS = 100000;
+// Used only when the canonical file cannot be read, so the reminder is never empty.
+const FALLBACK_BODY =
+    '**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, sized to the real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?';
+
+function nonBlank(value) {
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isPlainObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function defaultProjectDir(input, env) {
+    const { resolveProjectRoot } = require('./lib/project-root.cjs');
+    const cwd = nonBlank(input?.cwd) ? input.cwd : process.cwd();
+    return resolveProjectRoot({ cwd, scriptPath: __filename, env }).rootDir;
+}
+
+/** Event kind this hook serves, or null to stay silent. */
+function eventKind(input) {
+    const event = input.hook_event_name;
+    if (event === 'PostToolUse') return STEP_TOOLS.has(input.tool_name) ? 'step' : null;
+    if (event === undefined || event === 'UserPromptSubmit') return 'prompt';
+    return null;
+}
+
+/** Re-injection interval in tokens from the merged settings; out of range → default. */
+function resolveReinjectTokens(settings) {
+    const value = isPlainObject(settings) ? settings.reinjectAfterTokens : undefined;
+    const [min, max] = require('./lib/file-conventions.cjs').CLASS_REINJECT_TOKENS_RANGE;
+    return Number.isInteger(value) && value >= min && value <= max ? value : DEFAULT_REINJECT_TOKENS;
+}
+
+/** Ledger settings: byte window only; no age-based re-arming (see the header). */
+function ledgerSettings(reinjectTokens) {
+    const { BYTES_PER_TOKEN } = require('./lib/file-conventions.cjs');
+    return {
+        reinjectAfterBytes: reinjectTokens * BYTES_PER_TOKEN,
+        reinjectAfterMinutes: null,
+        blindReinjectAfterMinutes: null,
+        compactionMarkers: [require('./lib/convention-ledger.cjs').CODEX_COMPACTION_MARKER]
+    };
+}
+
+function buildContent(projectDir) {
+    let body = null;
+    try {
+        const { buildCanonicalProtocolText } = require('../scripts/lib/hookless-prompt-protocol.cjs');
+        body = buildCanonicalProtocolText(projectDir, SYNC_TAG);
+    } catch {
+        body = null;
+    }
+    return [MARKER_START, nonBlank(body) ? body.trim() : FALLBACK_BODY, MARKER_END].join('\n');
+}
+
+function formatPayload(kind, content) {
+    if (kind === 'step') {
+        return JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: content } });
+    }
+    return `${content}\n`;
+}
+
+function defaultWrite(text, done) {
+    try {
+        process.stdout.write(text, error => done(!error));
+    } catch {
+        done(false);
+    }
+}
+
+/**
+ * Resolve to the text written, or '' when the hook stays silent.
+ * deps (tests): env, now, projectDir, rawSettings, content, ledger, storeRoot, write.
+ */
+function run(input, deps = {}) {
+    return new Promise(resolve => {
+        const finish = value => resolve(value);
+        try {
+            if (!isPlainObject(input) || !nonBlank(input.session_id)) return finish('');
+            const kind = eventKind(input);
+            if (!kind) return finish('');
+
+            const env = deps.env || process.env;
+            const now = typeof deps.now === 'number' ? deps.now : Date.now();
+            const projectDir = deps.projectDir || defaultProjectDir(input, env);
+            const routeUtils = require('./lib/prompt-route-utils.cjs');
+            // One settings read serves both the switch and the interval.
+            const rawSettings = deps.rawSettings !== undefined ? deps.rawSettings : routeUtils.loadRouterSettings(projectDir, SETTINGS_SECTION);
+            if (!routeUtils.isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, { env, projectDir, rawSettings })) return finish('');
+            const settings = ledgerSettings(resolveReinjectTokens(rawSettings));
+
+            const content = deps.content || buildContent(projectDir);
+            const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+            const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
+            ledger.deliverOnce({
+                root: deps.storeRoot || path.join(projectDir, 'tmp', 'core-principles'),
+                input,
+                group: RECORD_GROUP,
+                hash,
+                payload: formatPayload(kind, content),
+                settings,
+                now,
+                write: deps.write || defaultWrite
+            }).then(finish, () => finish(''));
+        } catch {
+            finish('');
+        }
+    });
+}
+
+module.exports = {
+    HOOK_NAME,
+    RECORD_GROUP,
+    SYNC_TAG,
+    MARKER_START,
+    MARKER_END,
+    SETTINGS_SECTION,
+    ENV_SWITCH,
+    DEFAULT_REINJECT_TOKENS,
+    resolveReinjectTokens,
+    buildContent,
+    run
+};
+
+// Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).
+if (require('./lib/hook-runner.cjs').isHookEntryPoint(module)) {
+    process.exitCode = 0;
+    let input = null;
+    try {
+        const { parseStdinSync } = require('./lib/stdin-parser.cjs');
+        input = parseStdinSync({ defaultValue: null, throwOnError: true, context: HOOK_NAME });
+    } catch {
+        input = null;
+    }
+    if (input) run(input).then(() => { process.exitCode = 0; }, () => { process.exitCode = 0; });
+}

@@ -10,6 +10,8 @@
  * - `stripCode(text)` — drop fenced and inline code so quoted commands never read as intent.
  * - `isRouterEnabled(section, envVar, deps)` — per-router opt-out: `.claude/.ck.json`
  *   `<section>.enabled: false` (overlaid by `.claude/.ck.local.json`) or `<envVar>=0`.
+ * - `loadRouterSettings(projectDir, section)` — the whole merged `<section>` object, for a hook
+ *   that reads more than the switch (`core-principles-inject.cjs` reads `reinjectAfterTokens`).
  * - `isHostEnvelope(prompt)` / `userPromptText(prompt)` — the two halves of `readUserPrompt`.
  * - `isHookEntryPoint(mod)` — re-exported from `hook-runner.cjs`, its owner.
  */
@@ -112,5 +114,6 @@ module.exports = {
     readUserPrompt,
     isHostEnvelope,
     userPromptText,
+    loadRouterSettings,
     isRouterEnabled
 };

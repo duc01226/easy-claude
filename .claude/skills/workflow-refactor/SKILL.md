@@ -90,7 +90,7 @@ Recommended: XS/S work inline without sub-agents; L/XL mechanical changes applie
 - **Tasks:** one task per selected step or batch so nothing is lost after compaction; child skills expand their phases under the parent row.
 - **Report first:** create `tmp/reports/workflow-refactor-{YYMMDD}-{HHmm}-{slug}.md` before the first finding; append triage, baseline evidence, pattern examples, batch results and deviations per step; re-read it and `TaskList` after compaction. Sub-agent briefs make report-writing their first deliverable.
 - **Fix path:** validate a finding (evidence-backed, reproducible) before fixing it; fix at the owning layer; re-run the reviewer or test that raised it, plus a holistic pass when fixes were non-trivial. A failing test after the change means the refactor changed behavior until proven otherwise — adjudicate it before editing either side.
-- **Loop bounds:** round 1 fixes every validated finding; from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); failing tests are uncapped; no progress → escalate via `AskUserQuestion`.
+- **Loop bounds:** round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); failing tests are uncapped; no progress → escalate via `AskUserQuestion`.
 
 ## Activation
 

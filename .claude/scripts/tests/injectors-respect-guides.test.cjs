@@ -43,8 +43,7 @@ const carrier = require(path.join(SCRIPTS_DIR, 'lib', 'protocol-guide-carrier.cj
 /** Injectors outside this contract, each with its reason. A stale entry fails the suite. */
 const EXCLUDED = {
     'inject_agent_protocol_blocks.py': 'agent-only: agents keep full protocol text',
-    'inject_agent_skill_connections.py': 'agent-only: agents keep full protocol text',
-    'inject_easy_to_change_principle.py': 'inserts a prose section, not a protocol tag, so no guide entry can name it (newline case only)'
+    'inject_agent_skill_connections.py': 'agent-only: agents keep full protocol text'
 };
 /** Skill writers that are not named `inject_*.py`. */
 const EXTRA = ['sync-hooks-to-skills.py', 'sync_project_reference_block.py'];
@@ -306,24 +305,6 @@ test('TC-PDL-066: no skill injector inserts a body into a guided skill; reminder
                 }
             });
         }
-    } finally {
-        project.cleanup();
-    }
-});
-
-test('newline style: the excluded prose injector keeps LF and CRLF files as they are', () => {
-    // Given bare fixture skills in LF and in CRLF
-    const script = 'inject_easy_to_change_principle.py';
-    const project = makeProject();
-    try {
-        const bare = mapFiles(FIXTURE_SKILLS, name => skillText(name));
-        // When the injector runs on each
-        const lfOut = project.run(script, bare);
-        const crlfOut = project.run(script, mapFiles(FIXTURE_SKILLS, name => crlf(bare[name])));
-        // Then it did write (non-vacuous), the LF result has no CR, and the CRLF result is the same text in CRLF
-        assert.ok(FIXTURE_SKILLS.some(name => lfOut[name] !== bare[name]), `${script} changed none of ${FIXTURE_SKILLS.join(', ')}`);
-        assertNoCR(script, 'lf', lfOut);
-        for (const name of FIXTURE_SKILLS) assert.equal(crlfOut[name], crlf(lfOut[name]), `${script} did not keep CRLF in ${name}`);
     } finally {
         project.cleanup();
     }

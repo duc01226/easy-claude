@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->23<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->128<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->21<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->23<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->24<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->128<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->21<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->23<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -134,7 +134,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->23<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->46<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->24<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->46<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -143,7 +143,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 | **Safety**             | `review-commit-gate`                                                                                                                 | Block an agent `git commit` with no review fix-loop receipt or user-approved skip; other git and GitHub writes are model-behavioral                                                                                                                               |
 | **Quality**            | `doc-sync-gate`                                                                                                                      | Warn on doc⇄code drift                                                                                                                                                                                                                                            |
 | **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                           | Initialize state, load config, seed the graph                                                                                                                                                                                                                     |
-| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, and remind the judgement-integrity check on verdict requests |
+| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route`, `core-principles-inject` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, and remind the judgement-integrity check on verdict requests |
 | **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`, `token-budget-checkpoint`                                       | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits, emit an advisory token checkpoint at task steps                                                                                                        |
 | **Protocol delivery**  | `protocol-inject-review`, `-evidence-trace`, `-workflow-task`, `-spec-test`, `-design`, `-universal`                                 | Deliver the full shared-protocol texts a skill declares, once per session, on a skill load, a typed `/command`, or a skill-preloading sub-agent start                                                                                                             |
 
@@ -247,7 +247,7 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 23 specialized agent definitions
-│   ├── hooks/                # 23 top-level hook files + lib/ utilities
+│   ├── hooks/                # 24 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
@@ -283,7 +283,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 23 Hook Files + 128 Skills + 21 Flows │
+│ 24 Hook Files + 128 Skills + 21 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

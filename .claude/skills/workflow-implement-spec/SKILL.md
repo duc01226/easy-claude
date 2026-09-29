@@ -91,7 +91,7 @@ Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module 
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green. A test that contradicts the supplied spec is adjudicated against the spec, never silently rewritten.
 - Plan ceremony (`/plan` → `/plan-review`) for a fix set only when it is large, cross-module or ambiguous; a handful of validated local fixes are fixed directly.
-- The nested review keeps the framework loop bounds: round 1 fixes every validated finding; round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 2 rounds, +1 when a CRITICAL/HIGH stays open; failing tests are uncapped; escalate with `AskUserQuestion` on no progress.
+- The nested review keeps the framework loop bounds: round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 2 rounds, +1 when a CRITICAL/HIGH stays open; failing tests are uncapped; escalate with `AskUserQuestion` on no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 

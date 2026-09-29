@@ -5,6 +5,9 @@
  * Guards: explicit opt-in, class membership/ordering, deliver-only-what-is-missing (per working context,
  * condensation, version, distance, static credit), completed-delivery records, size budget, static parity,
  * additive setup merge, and never-block behaviour. Each test name starts with its TC id (spec join key).
+ * The `[convention-ledger] TC-CLED-*` cases guard the ledger's shared `deliverOnce` sequence
+ * (check → lock → re-check → write → record → release) that workflow-route-inject and core-principles-inject
+ * deliver through; they are library contracts outside the PFCI spec.
  * Fixtures live in unique temp dirs and are removed in `finally`; the delivery store is always a fixture dir.
  */
 
@@ -204,6 +207,33 @@ function validationDelta(extra) {
 
 function appendBytes(file, bytes) {
     fs.appendFileSync(file, 'x'.repeat(bytes));
+}
+
+// ── deliverOnce (shared ledger delivery sequence) ───────────────────────────
+
+const DO_GROUP = 'delivery-group';
+const DO_HASH = 'hash-v1';
+const DO_PAYLOAD = 'reminder payload\n';
+// Numeric age windows so the future-stamp rule (a record stamped after `now` reads absent) applies.
+const DO_SETTINGS = { reinjectAfterBytes: 100000, reinjectAfterMinutes: 60, blindReinjectAfterMinutes: 5, compactionMarkers: [] };
+
+/** One deliverOnce call on a transcript-less main scope; `write` defaults to an accepting spy. */
+function deliverOnceFor(fx, sessionId, { write, now = NOW } = {}) {
+    const calls = [];
+    const spy = write || ((text, done) => done(true));
+    return ledger.deliverOnce({
+        root: fx.store,
+        input: { session_id: sessionId },
+        group: DO_GROUP,
+        hash: DO_HASH,
+        payload: DO_PAYLOAD,
+        settings: DO_SETTINGS,
+        now,
+        write: (text, done) => {
+            calls.push(text);
+            return spy(text, done);
+        }
+    }).then(result => ({ result, calls }));
 }
 
 const tests = [
@@ -2801,6 +2831,72 @@ const tests = [
             const r3 = await spawnHook(fx, e2e({ tool: 'Edit', file: '.claude/hooks/b.cjs' }));
             assert.ok(r1.includes('If you will edit this file') && r2.includes('MUST read first'), `${r1}\n---\n${r2}`);
             assertSilent(r3, 'second change after the mandatory re-delivery');
+        })
+    },
+
+    {
+        name: '[convention-ledger] TC-CLED-001 deliverOnce stays silent while a peer holds the group lock and leaves the peer claim intact',
+        fn: async () => withFixture(async fx => {
+            // Given a live peer claim on the group (a concurrent hook is mid-delivery)
+            const lock = ledger.lockFile(fx.store, 'held', 'main', DO_GROUP);
+            const peerToken = ledger.acquireLock(lock, NOW);
+            assert.ok(peerToken, 'precondition: peer claim taken');
+            // When this process tries to deliver the same group
+            const { result, calls } = await deliverOnceFor(fx, 'held');
+            // Then nothing is written or recorded, and the peer's claim is not removed
+            assert.equal(result, '');
+            assert.deepEqual(calls, [], 'no write while another process owns the claim');
+            assert.equal(ledger.readRecord(fx.store, 'held', 'main', DO_GROUP), null, 'no record');
+            assert.ok(fs.existsSync(lock), 'peer claim still in place');
+            ledger.releaseLock(lock, peerToken);
+        })
+    },
+    {
+        name: '[convention-ledger] TC-CLED-002 deliverOnce re-checks under the lock: a peer delivery stamped after this check is honored, lock released',
+        fn: async () => withFixture(async fx => {
+            // Given a peer that started later delivered and stamped its record from its own clock, 5 s ahead —
+            // the record reads ABSENT at this process's clock (future stamp), so only the re-check can see it
+            const peerRecord = { hash: DO_HASH, deliveredAt: NOW + 5000, transcriptBytes: null, form: 'full' };
+            assert.ok(ledger.writeRecordAtomic(fx.store, 'raced', 'main', DO_GROUP, peerRecord));
+            assert.equal(ledger.isPresent(peerRecord, DO_HASH, { lastCompactionAt: -Infinity, transcriptSize: null, now: NOW }, DO_SETTINGS), false,
+                'precondition: the first check reads the peer record as absent');
+            // When this process delivers
+            const { result, calls } = await deliverOnceFor(fx, 'raced');
+            // Then the re-check under the lock sees the peer delivery: no second write, record untouched, claim released
+            assert.equal(result, '');
+            assert.deepEqual(calls, [], 'the peer already delivered this content');
+            assert.deepEqual(ledger.readRecord(fx.store, 'raced', 'main', DO_GROUP), peerRecord, 'peer record not overwritten');
+            assert.ok(!fs.existsSync(ledger.lockFile(fx.store, 'raced', 'main', DO_GROUP)), 'claim released after the re-check');
+        })
+    },
+    {
+        name: '[convention-ledger] TC-CLED-003 deliverOnce records nothing when the host rejects the write, so the next trigger delivers again',
+        fn: async () => withFixture(async fx => {
+            // Given the output channel reports failure
+            const rejected = await deliverOnceFor(fx, 'rejected', { write: (text, done) => done(false) });
+            // Then nothing counts as delivered: no payload, no record, claim released
+            assert.equal(rejected.result, '');
+            assert.deepEqual(rejected.calls, [DO_PAYLOAD], 'the write was attempted once');
+            assert.equal(ledger.readRecord(fx.store, 'rejected', 'main', DO_GROUP), null, 'an unaccepted delivery is never recorded');
+            assert.ok(!fs.existsSync(ledger.lockFile(fx.store, 'rejected', 'main', DO_GROUP)), 'claim released');
+            // When the next trigger arrives and the host accepts it / Then it delivers and records
+            const retried = await deliverOnceFor(fx, 'rejected', { now: NOW + 1000 });
+            assert.equal(retried.result, DO_PAYLOAD);
+            assert.equal(ledger.readRecord(fx.store, 'rejected', 'main', DO_GROUP).hash, DO_HASH);
+        })
+    },
+    {
+        name: '[convention-ledger] TC-CLED-004 deliverOnce survives a throwing write: silent, unrecorded, and the claim is released for the next call',
+        fn: async () => withFixture(async fx => {
+            // Given a write function that throws synchronously
+            const thrown = await deliverOnceFor(fx, 'throws', { write: () => { throw new Error('stdout gone'); } });
+            // Then the call resolves silent (fail-open), records nothing and releases its claim
+            assert.equal(thrown.result, '');
+            assert.equal(ledger.readRecord(fx.store, 'throws', 'main', DO_GROUP), null);
+            assert.ok(!fs.existsSync(ledger.lockFile(fx.store, 'throws', 'main', DO_GROUP)), 'claim released');
+            // When a later call arrives inside the lock's stale window / Then it can claim and deliver
+            const later = await deliverOnceFor(fx, 'throws', { now: NOW + 1000 });
+            assert.equal(later.result, DO_PAYLOAD, 'a leaked claim would block this call for the stale window');
         })
     }
 ];

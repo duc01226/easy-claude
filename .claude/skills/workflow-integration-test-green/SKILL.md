@@ -87,7 +87,7 @@ You choose inline vs sub-agent, batching, clustering and ordering to minimise wa
 
 ## Loop Bounds
 
-The loop is bounded by `/integration-test-verify --fix-loop`: round cap 3 by default; STOP and escalate via `AskUserQuestion` when the failing count does not shrink across 2 rounds, failures increase, coverage is lost, a validated review finding stays open, the cap is hit with failures open, or a failure is `ENVIRONMENT-BLOCKED` or `AMBIGUOUS`. The cap triggers escalation, never acceptance of a red test. The per-round fix-diff review follows the framework round bar: round 1 clears every validated finding; round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW.
+The loop is bounded by `/integration-test-verify --fix-loop`: round cap 3 by default; STOP and escalate via `AskUserQuestion` when the failing count does not shrink across 2 rounds, failures increase, coverage is lost, a validated review finding stays open, the cap is hit with failures open, or a failure is `ENVIRONMENT-BLOCKED` or `AMBIGUOUS`. The cap triggers escalation, never acceptance of a red test. The per-round fix-diff review follows the framework round bar: round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW.
 
 ## Test Architecture Contract Handoff
 

@@ -117,7 +117,7 @@ Each PBI carries: title, problem statement, hypothesis, GIVEN/WHEN/THEN acceptan
 - **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality. XS/S work runs inline; with 6+ selected opportunities spawn one sub-agent per opportunity (brainstorm context + its task list) and keep `/prioritize` in the main context, updating a summary table every 3 opportunities. Fixed dependencies: an artifact exists before it is reviewed; the draft spec and its test specs are reviewed and clarified before the PBI is derived from them; DoR passes before the mockup is finalized; `/docs-update` follows `/prioritize`; gates awaiting user answers are never parallelized; `/workflow-end` runs last. When `/prioritize` changes a PBI's rank after its mockup was built, refresh the mockup's priority badge.
 - **Memory:** one task per selected step (per opportunity in the loop). Create `tmp/reports/workflow-idea-to-pbi-{YYMMDD}-{HHmm}-{slug}.md` first, append after every step, and re-read it plus `TaskList` after compaction. Sub-agent briefs make report writing their first deliverable.
 - **Fix path:** findings are validated before fixing; fix in the owning artifact (`/refine` for the PBI, `/spec` for TCs, `/story` for stories) and re-run the reviewer that raised it.
-- **Loop bounds:** round 1 zero findings, or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); on no progress escalate via `AskUserQuestion`.
+- **Loop bounds:** round 1 zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); on no progress escalate via `AskUserQuestion`.
 
 ---
 
@@ -182,6 +182,7 @@ Activate with `/start-workflow workflow-idea-to-pbi` and the user's prompt as co
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 

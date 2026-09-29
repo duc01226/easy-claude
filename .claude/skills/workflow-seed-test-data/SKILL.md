@@ -71,7 +71,7 @@ You choose inline vs sub-agent, batching and ordering, optimizing wall-clock and
 
 Validate each finding (evidence-backed, reproducible) before fixing. A failing test follows the test-investigation protocol before either side changes. Fix at the owning layer: a seeder that violates an invariant is fixed in the seeder; a command that rejects valid inputs or breaks a domain rule is a product defect — trace its root cause and route it, never work around it in the seeder. Re-run the test or reviewer that raised the finding, plus a holistic pass when fixes were non-trivial. Plan ceremony (`/plan` → `/plan-review`) only when the fix set is large, cross-module or ambiguous.
 
-Review loop: round 1 zero findings converges; round 2 converges on zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH is open); failing tests are uncapped; no progress → escalate via `AskUserQuestion`.
+Review loop: round 1 zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`) converges; round 2 converges on zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH is open); failing tests are uncapped; no progress → escalate via `AskUserQuestion`.
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.

@@ -662,6 +662,67 @@ function maybePrune(root, now = Date.now(), intervalMs = PRUNE_INTERVAL_MS) {
     return pruneStale(root, now);
 }
 
+/**
+ * One advisory delivery per session scope and record group — the shared owner of the
+ * check → lock → re-check → write → record → release sequence used by the injection hooks.
+ * Skips while the stored record is still present for `hash` (same content, no compaction since,
+ * transcript growth under `settings.reinjectAfterBytes`); otherwise claims the group lock,
+ * re-checks under it (BR-PFCI-17), writes `payload` through `write(text, done)`, and records the
+ * delivery only when the write reported success. Resolves to the payload written, or '' when
+ * nothing was delivered. Fail-open: any error delivers nothing and releases the lock.
+ */
+function deliverOnce({ root, input, group, hash, payload, settings, now = Date.now(), write }) {
+    return new Promise(resolve => {
+        let lock = null;
+        let token = null;
+        const release = () => {
+            if (token) {
+                releaseLock(lock, token);
+                token = null;
+            }
+        };
+        try {
+            const sessionId = input.session_id;
+            const scope = scopeFor(input);
+            const history = transcriptPathFor(input);
+            const context = () => ({
+                lastCompactionAt: lastCompactionAt(root, sessionId, scope, input, settings, now),
+                transcriptSize: transcriptSize(history),
+                now
+            });
+            maybePrune(root, now);
+            if (isPresent(readRecord(root, sessionId, scope, group), hash, context(), settings)) return resolve('');
+            lock = lockFile(root, sessionId, scope, group);
+            token = acquireLock(lock, now);
+            if (!token) return resolve('');
+            if (isPresent(readRecord(root, sessionId, scope, group), hash, recheckContext(context()), settings)) {
+                release();
+                return resolve('');
+            }
+            write(payload, ok => {
+                try {
+                    if (ok !== false) {
+                        writeRecordAtomic(root, sessionId, scope, group, {
+                            hash,
+                            deliveredAt: now,
+                            transcriptBytes: transcriptSize(history),
+                            form: 'full'
+                        });
+                    }
+                } catch {
+                    /* fail open: delivered but unrecorded costs one extra reminder */
+                } finally {
+                    release();
+                }
+                resolve(ok === false ? '' : payload);
+            });
+        } catch {
+            release();
+            resolve('');
+        }
+    });
+}
+
 module.exports = {
     MAIN_SCOPE,
     CODEX_COMPACTION_MARKER,
@@ -693,5 +754,6 @@ module.exports = {
     scanEvidence,
     pruneStale,
     maybePrune,
+    deliverOnce,
     _resetCarrierCache: () => carrierCache.clear()
 };

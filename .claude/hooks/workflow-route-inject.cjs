@@ -206,58 +206,16 @@ function run(input, deps = {}) {
             }
             const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
             const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
-            const root = deps.storeRoot || path.join(projectDir, 'tmp', 'workflow-routing');
-            const sessionId = input.session_id;
-            const scope = ledger.scopeFor(input);
-            const history = ledger.transcriptPathFor(input);
-            const context = () => ({
-                lastCompactionAt: ledger.lastCompactionAt(root, sessionId, scope, input, SETTINGS, now),
-                transcriptSize: ledger.transcriptSize(history),
-                now
-            });
-
-            ledger.maybePrune(root, now);
-            if (ledger.isPresent(ledger.readRecord(root, sessionId, scope, RECORD_GROUP), hash, context(), SETTINGS)) {
-                return finish('');
-            }
-
-            const lock = ledger.lockFile(root, sessionId, scope, RECORD_GROUP);
-            const token = ledger.acquireLock(lock, now);
-            if (!token) return finish('');
-            try {
-                if (ledger.isPresent(ledger.readRecord(root, sessionId, scope, RECORD_GROUP), hash, ledger.recheckContext(context()), SETTINGS)) {
-                    ledger.releaseLock(lock, token);
-                    return finish('');
-                }
-            } catch {
-                ledger.releaseLock(lock, token);
-                return finish('');
-            }
-
-            const payload = `${content}\n`;
-            const write = deps.write || defaultWrite;
-            try {
-                write(payload, ok => {
-                    try {
-                        if (ok !== false) {
-                            ledger.writeRecordAtomic(root, sessionId, scope, RECORD_GROUP, {
-                                hash,
-                                deliveredAt: now,
-                                transcriptBytes: ledger.transcriptSize(history),
-                                form: 'full'
-                            });
-                        }
-                    } catch {
-                        /* fail open */
-                    } finally {
-                        ledger.releaseLock(lock, token);
-                    }
-                    finish(ok === false ? '' : payload);
-                });
-            } catch {
-                ledger.releaseLock(lock, token);
-                finish('');
-            }
+            ledger.deliverOnce({
+                root: deps.storeRoot || path.join(projectDir, 'tmp', 'workflow-routing'),
+                input,
+                group: RECORD_GROUP,
+                hash,
+                payload: `${content}\n`,
+                settings: SETTINGS,
+                now,
+                write: deps.write || defaultWrite
+            }).then(finish, () => finish(''));
         } catch {
             finish('');
         }

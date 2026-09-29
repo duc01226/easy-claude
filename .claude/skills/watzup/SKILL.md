@@ -190,16 +190,22 @@ If failure mode applies in only one specific file or case → go up one abstract
 - Must read as useful advice on a completely different codebase in a different language
 - If multiple mistakes share the same failure mode → consolidate into ONE lesson
 - Test: "Would this prevent the same class of mistake in a Java, Go, or Python project?" If yes → good. If no → rewrite.
+- A stable convention of THIS project is the one exception: state the convention itself (not this session's incident) — it passes as a project-convention lesson.
+
+**2d. Value gate — recommend only what is worth reading every day.** Keep a lesson as a `/learn` candidate ONLY when it is a project convention (a stable rule this codebase follows in everyday work) or a universal best-practice protocol that an agent would benefit from reading on an ordinary day. Drop rare AI-agent quirks, one-off incidents, tool/environment hiccups and details specific to this session's task — mention them in the report's Flags if useful, never as a `/learn` candidate. Also drop a lesson a review skill or linter already catches (the `/learn` Auto-fix gate). — why: persisted lessons are read on every task; a rare or session-specific note costs every future reader attention and prevents nothing.
 
 ### Step 3 — Ask user to persist
 
-> "Found [N] root-cause lesson(s). Should I use `/learn` to save them for future sessions?"
+Ask ONLY when at least one lesson passed the Value gate:
+
+> "Found [N] lesson(s) worth persisting. Should I use `/learn` to save them for future sessions?"
 
 Wait for user confirmation before invoking `/learn`.
 
 **Output one of:**
 
-- A numbered list: failure mode → universal lesson → proposed `/learn` text
+- A numbered list: failure mode → lesson (project convention or universal protocol) → proposed `/learn` text
+- `No lesson worth persisting` — mistakes were found but none passed the Value gate (list them briefly in Flags)
 - `No AI mistakes identified in this session` — if genuinely none found
 
 **Be honest and self-critical.** Surface-level symptom fixes ("always check file X") applying only to this codebase are NOT lessons — they are noise. Purpose: root-cause prevention compounding across sessions.
@@ -335,7 +341,7 @@ After the report is written, MUST ATTENTION use `AskUserQuestion` to present the
 **IMPORTANT MUST ATTENTION** make the HTML report beautiful, easy to read and easy to understand — one-line outcome, text status per request, changes grouped by area, a before → after or flow for changed behaviour, plain short sentences, no empty optional block — and check it before opening — why: a correct report nobody can scan hands over no understanding.
 **IMPORTANT MUST ATTENTION** HTML-escape every placeholder value in the report and keep every `href` a relative, `file:` or `vscode:` link — why: the report is auto-opened in a browser, and unescaped session text can hide report content or run as markup.
 
-**IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases; surface-level "always check file X" notes are noise — why: only root-cause prevention compounds across sessions.
+**IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases (or a stable project convention); recommend `/learn` ONLY for a project convention or a universal best-practice protocol worth reading on everyday work — rare AI-agent quirks, one-off incidents and current-task details are noise, and so are surface-level "always check file X" notes — why: persisted lessons are read on every task, so only everyday-valuable prevention compounds across sessions.
 **IMPORTANT MUST ATTENTION** send lessons to `/learn` ONLY after explicit user confirmation — NEVER auto-persist or self-edit instruction files — why: lesson capture is a durable instruction change the user must own.
 **IMPORTANT MUST ATTENTION** use `AskUserQuestion` for the Next Steps decision — NEVER auto-decide the route even when it "seems obvious" — why: the user owns the workflow-end / commit / continue choice.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks with `TaskCreate` BEFORE starting (one task per file read), keep exactly one `in_progress`, and add a final review todo to verify work quality — why: long files exhaust context; granular tasks survive compaction.

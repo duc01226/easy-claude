@@ -159,6 +159,15 @@ Alternatives for the record itself:
 - Registration: `.claude/settings.json`. Codex generator: `.claude/scripts/codex/sync-hooks.mjs` (lean launcher, remapped UserPromptExpansion, shell mapping, SubagentStart). OpenCode generator: `.claude/scripts/opencode/sync-hooks.mjs` (bridge `if` check). Codex inline list: `.claude/scripts/codex/migrate-claude-to-codex.mjs`.
 - Guide tooling: `.claude/scripts/sync-update-blocks.py` guide mode. It never touches agents, `inlineSkills` or `references/*.md`.
 
+## Amendment (2026-09-29): leaf reviewer agents carry no review-loop orchestration
+
+Decision 3 ("agents keep full protocol text") is narrowed, not reversed. An agent still carries in full every protocol it applies. It no longer carries protocols that only the orchestrating review skill executes: `review-protocol-injection`, `systematic-review-batching`, `double-round-trip-review`, `fresh-context-review` and `review-policy` join `EXCLUDED_ORCHESTRATION` in `.claude/scripts/agent_protocol_matrix.py`. That applies the matrix's existing rule (orchestration does not propagate to a headless leaf) to the review loop.
+
+- **Why:** a measured external review run spent most of its tokens on standing context in fifteen sub-agents. `code-reviewer.md` alone was about 42k tokens, 87% synced protocol text, including the full reviewer-prompt template that every orchestrated brief already embeds. The exclusion cuts about 11k tokens per `code-reviewer` spawn and 2–10k per other reviewer agent. It also removes instructions that told a leaf to batch, loop and spawn reviewers it must not; on Claude, where `code-reviewer` still preloads `code-quality-review`, that skill's leaf-reviewer boundary says the same.
+- **What stays:** the orchestrating skills (`changes-review`, `workflow-review-changes` and the other review skills) keep these bodies inline. An orchestrated review brief embeds the reviewer template, whose Reference Docs section now asks only for the docs resolved for that lane. A `code-reviewer` dispatched without it (for example from `fix` or `feature-implement`) still holds the template's leaf rules on every harness: it carries each as its own block, including `behavioral-delta-matrix` and `spec-tests-code-triangulation`, which only the template used to deliver. On Claude its preloaded `code-quality-review` skill also carries the template inline; that preload is kept on purpose. Codex and OpenCode render the preload as a pointer, so no rule depends on it.
+- **Guard:** `review-lanes.test.cjs` (TC-RL-003) plus the matrix's orchestration-leak validation.
+- **Related addition:** the whole-diff correctness lane (`SYNC:whole-diff-correctness`). Its history, comment and instruction lenses and its anchored 0–100 confidence scale are adapted from Anthropic's `code-review` plugin (claude-plugins-official, Apache-2.0), rewritten as intent-level guidance. No host-native reviewer is required, so the lane runs on any harness.
+
 ## Related
 
 - `docs/specs/ContextDelivery/README.ProtocolDelivery.md`: BR-PDL-01…15 and TC-PDL-001…084.

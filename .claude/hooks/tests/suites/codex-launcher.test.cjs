@@ -12,7 +12,7 @@
  * - isHookEntryPoint recognises the running hook on both launch shapes, through a symlink/junction
  *   install, and case-insensitively on Windows — and never mistakes a required module for the entry.
  * - Each hook migrated to the shared check (review-commit-gate, doc-sync-gate, init-prompt-gate,
- *   session-init-docs, file-convention-inject, prompt-ledger, workflow-route-inject) produces ITS OWN
+ *   session-init-docs, file-convention-inject, prompt-ledger, workflow-route-inject, core-principles-inject) produces ITS OWN
  *   observable outcome when Codex launches it. Reverting any of them to `require.main === module` fails its test.
  *
  * Fixture projects hold a COPY of the hook tree (the launcher runs the tree under the nearest `.claude`
@@ -400,6 +400,38 @@ const launcherTests = [
                 // And records the delivery in the fixture project's route ledger
                 const record = conventionLedger.readRecord(path.join(root, 'tmp', 'workflow-routing'), sessionId, 'main', 'workflow-route');
                 assertTrue(Boolean(record && record.hash), 'delivery must be recorded under <fixture>/tmp/workflow-routing');
+            } finally {
+                removeTemp(root);
+            }
+        }
+    },
+    {
+        name: '[codex-launcher] TC-CXL-009 core-principles-inject under the Codex launcher delivers the project\'s canonical principles and records the delivery',
+        fn: () => {
+            // Given a fixture project carrying its own canonical principles body and the script library that reads it
+            const root = makeHookProject('coreprinciples');
+            const sessionId = 'codex-launcher-core-principles';
+            try {
+                fs.cpSync(path.join(CLAUDE_DIR, 'scripts', 'lib'), path.join(root, '.claude', 'scripts', 'lib'), { recursive: true });
+                writeFile(root, '.claude/skills/shared/sync-inline-versions.md',
+                    '# Shared\n\n## SYNC:core-engineering-principles\n\nFIXTURE-CORE-PRINCIPLES: Easy to change · Easy to scale · Easy to maintain.\n\n---\n');
+                // A clean machine: every inherited CK_* switch removed, home and temp pointed into the fixture
+                const env = { ...HOOK_ENV_RESET, HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root };
+                for (const key of Object.keys(process.env)) {
+                    if (/^CK_/i.test(key)) env[key] = undefined;
+                }
+                // When Codex launches the UserPromptSubmit hook on a prompt
+                const result = runCodexLauncher('core-principles-inject.cjs',
+                    JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: sessionId, cwd: root, prompt: 'implement the exporter' }),
+                    { cwd: root, env });
+                // Then it emits its own marker-wrapped block built from the FIXTURE project's canonical file
+                assertEqual(result.code, 0, `stderr: ${result.stderr}`);
+                assertContains(result.stdout, '<!-- CK:CORE-ENGINEERING-PRINCIPLES -->');
+                assertContains(result.stdout, 'FIXTURE-CORE-PRINCIPLES: Easy to change');
+                assertContains(result.stdout, '<!-- /CK:CORE-ENGINEERING-PRINCIPLES -->');
+                // And records the delivery in the fixture project's ledger
+                const record = conventionLedger.readRecord(path.join(root, 'tmp', 'core-principles'), sessionId, 'main', 'core-principles');
+                assertTrue(Boolean(record && record.hash), 'delivery must be recorded under <fixture>/tmp/core-principles');
             } finally {
                 removeTemp(root);
             }

@@ -8,4 +8,4 @@
 > - Follows cycle: plan → implement → review → fix → verify
 > - Start Phase N+1 only after Phase N passes VERIFY — why: building on an unverified phase compounds errors downstream
 >
-> **Phase success = all TCs pass + code-reviewer agent approves + no blocking findings under the current review bar.** Round 1 requires zero validated findings at any severity; from round 2 onward a phase requires zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded as deferred. Failed binary gates remain blocking at every round.
+> **Phase success = all TCs pass + code-reviewer agent approves + no blocking findings under the current review bar.** Round 1 requires zero validated findings at any severity (a LOW closes by a local fix plus scoped check, or by deferral — `SYNC:double-round-trip-review`); from round 2 onward a phase requires zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded as deferred. Failed binary gates remain blocking at every round.

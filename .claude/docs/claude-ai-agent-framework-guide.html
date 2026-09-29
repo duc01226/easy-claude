@@ -200,7 +200,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="stat"><b><!-- COUNT:skills -->128<!-- /COUNT --></b><span>skills</span></div>
         <div class="stat"><b><!-- COUNT:workflows -->21<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->23<!-- /COUNT --></b><span>agents</span></div>
-        <div class="stat"><b><!-- COUNT:hooks -->23<!-- /COUNT --></b><span>hook files</span></div>
+        <div class="stat"><b><!-- COUNT:hooks -->24<!-- /COUNT --></b><span>hook files</span></div>
         <div class="stat"><b><!-- COUNT:lib-modules -->46<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
@@ -450,7 +450,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
     <section id="quality" aria-labelledby="quality-h">
       <h2 id="quality-h">The quality chain — review, commit, pull request</h2>
       <ol class="steps">
-        <li><div><b>Review</b><span>Round 1 must reach zero validated findings; from round 2 only Critical/High/Medium block; two rounds plus one extension, then ask the user.</span></div></li>
+        <li><div><b>Review</b><span>Round 1 must reach zero open findings (Round-1 LOW closure: a LOW closed by scoped check or deferred is not open); from round 2 only Critical/High/Medium block; two rounds plus one extension, then ask the user.</span></div></li>
         <li><div><b>Validate findings</b><span><code>why-review --validate-findings</code> checks each finding against evidence before any fix, and never recurses.</span></div></li>
         <li><div><b>Fix at the owner</b><span><code>fix --target=review</code> records FIXED / REJECTED / DEFERRED; an unexplained defect is traced first.</span></div></li>
         <li><div><b>Receipt</b><span>A converged fix-loop mints a receipt for that exact changeset; any later edit invalidates it.</span></div></li>
@@ -537,7 +537,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="scroll"><table>
         <thead><tr><th>Runner</th><th>Tests</th><th>Covers</th></tr></thead>
         <tbody>
-          <tr><td><code>test-all-hooks.cjs</code> (primary gate)</td><td class="num"><b>135</b></td><td>Hook behaviors and the count guard</td></tr>
+          <tr><td><code>test-all-hooks.cjs</code> (primary gate)</td><td class="num"><b>137</b></td><td>Hook behaviors and the count guard</td></tr>
           <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1014</b></td><td>Primary plus every suite</td></tr>
           <tr><td><code>node --test .claude/scripts/codex/tests</code></td><td class="num">—</td><td>Mirror generators and verifiers</td></tr>
           <tr><td><code>run-codex-sync.mjs --verify-only</code></td><td class="num">—</td><td>All read-only gates before a commit</td></tr>

@@ -62,13 +62,13 @@ Connected contracts:
 
 ## Quick Summary
 
-**Goal:** Run systematic, report-driven code quality assessment with fix-triggered fresh-context re-review, so every defect ships with `file:line` evidence and no fix cycle merges unverified.
+**Goal:** Run systematic, report-driven code quality assessment of the scope your brief assigns, so every defect ships with `file:line` evidence and the caller that owns the fix loop gets findings it can act on.
 
 **Summary:**
 
 - The report is the work product — built file-by-file, then re-read whole, because holistic defects surface only across the accumulated set.
 - No finding ships without `file:line` proof, and no convention is flagged without grepping 3+ existing patterns first.
-- A fix cycle mandates a fresh-context Phase 4 re-review; the main agent rationalizes its own prior pass, so fresh eyes are non-negotiable.
+- You return findings; the caller owns the fix and re-review loop. A post-fix brief is Phase 4 — re-read the whole target with fresh eyes, never just the fixes.
 
 **Workflow:**
 
@@ -76,24 +76,23 @@ Connected contracts:
 2. **Phase 1: File-by-File** — Read each file, analyze, update report with issues (naming, typing, responsibility)
 3. **Phase 2: Holistic Review** — Re-read accumulated report; assess architecture coherence, DRY, YAGNI/KISS
 4. **Phase 3: Final Result** — Overall assessment, critical/high/medium issues, architecture recommendations
-5. **Phase 4: Fresh Re-Review** — Run only after a fix cycle; re-scan ALL files with fresh eyes, focus on cross-cutting concerns and prior blind spots
+5. **Phase 4: Fresh Re-Review** — Run only when your brief is a post-fix re-review; re-scan ALL files with fresh eyes, focus on cross-cutting concerns and prior blind spots
 
 **Key Rules:**
 
 - Report-driven — build report incrementally file-by-file, then re-read for big picture — why: holistic defects surface only across the accumulated set, not per file
 - Every finding requires `file:line` — no "looks fine" without proof
 - Convention check — grep 3+ existing patterns before flagging violations — why: codebase convention wins over textbook rules
-- Double round-trip MANDATORY — Phase 4 never optional after a fix cycle
+- Post-fix brief ⇒ Phase 4 full re-read of the whole target; the orchestrator owns the round loop and decides when it ends
 
-> **[IMPORTANT]** NEVER approve code unread — "looks fine" without `file:line` proof is forbidden. Fresh-context re-review MANDATORY after any fix cycle. — why: the main agent rationalizes its own prior pass; fresh eyes catch what it dismissed.
+> **[IMPORTANT]** NEVER approve code unread — "looks fine" without `file:line` proof is forbidden. A post-fix brief means a full Phase 4 re-read, never a fixes-only skim. — why: a prior pass rationalizes its own findings; fresh eyes catch what it dismissed.
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% act, <80% verify first).
 > **External Memory:** For complex/lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report in `tmp/reports/` — prevents context loss, serves as deliverable.
 
 ## Project Context
 
-> **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following reference docs:
+> **MANDATORY IMPORTANT MUST ATTENTION** Read the reference docs your brief resolves — each costs context before any review work. When the brief names none, read:
 >
-> - `.claude/docs/development-rules.md` — canonical development rules, code-quality guidelines, and pre-commit checklist (READ when reviewing or editing code)
 > - `code-review-rules.md` — anti-patterns, review checklists, quality standards (READ FIRST). It and `project-structure-reference.md` resolve inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
 > - `project-structure-reference.md` — service list, directory tree, conventions
 >
@@ -105,7 +104,7 @@ Connected contracts:
 2. **Phase 1: File-by-File** — Per file: read, analyze, update report with change summary, purpose, issues (naming, typing, magic numbers, responsibility placement)
 3. **Phase 2: Holistic Review** — Re-read accumulated report; assess architecture coherence, duplication, responsibility layers, YAGNI/KISS/DRY compliance
 4. **Phase 3: Final Result** — Update report with overall assessment, critical/high/medium issues, architecture recommendations, positive observations
-5. **Phase 4: Fresh Re-Review** — After any fix cycle, re-read report, re-scan all files with fresh eyes; focus on cross-cutting concerns, prior blind spots, missed edge cases; append a Round N Findings section
+5. **Phase 4: Fresh Re-Review** — When your brief is a post-fix re-review, re-read report, re-scan all files with fresh eyes; focus on cross-cutting concerns, prior blind spots, missed edge cases; append a Round N Findings section
 
 ## Key Rules
 
@@ -117,7 +116,7 @@ Connected contracts:
 - **Convention Check** — Grep 3+ existing codebase patterns before flagging violations — why: codebase convention wins over textbook rules
 - **DRY Check** — Grep for similar/duplicate code before accepting new code
 - **Doc Staleness** — Cross-reference changed files against related docs; flag stale docs in report
-- **Fix-Triggered Re-Review** — Review found issues and a fix cycle ran? MUST ATTENTION execute Phase 4 per `SYNC:double-round-trip-review`; a clean Round 1 with zero findings ends the loop once the persisted `minRounds` is met
+- **Fix-Triggered Re-Review** — a post-fix brief is Phase 4: re-read the whole target from scratch, never just the fixes; the orchestrator owns the round loop and decides when it ends
 
 ## Review Checklist (Priority Order)
 
@@ -377,6 +376,8 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 >
 > **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
 >
+> **Reachable trigger path (required):** a finding also names HOW a supported configuration reaches the defect — the caller, input, state or event sequence that drives execution or data there. A concern on a path nothing reaches (dead code, a branch its guard excludes, an impossible state) is an observation: record it as advice, never as a LOW to fix. Also never a finding: what a compiler, type checker, linter or test run for this change already reports in the review evidence; a behavior change the stated intent asks for; an issue silenced by a suppression that predates this change and states its reason (a suppression the change adds is itself reviewed); a pre-existing issue on a line the change neither touched nor made reachable. When reachability cannot be settled and the concern would be MEDIUM or higher, emit `NOT VERIFIABLE` naming what would settle it; a polish-level concern with unsettled reachability is an observation. — why: a speculative LOW admitted as a finding becomes build work in round 1.
+>
 > | Severity | Action | Definition and examples |
 > | --- | --- | --- |
 > | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
@@ -409,52 +410,6 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 <!-- /SYNC:severity-rubric -->
 
-<!-- SYNC:systematic-review-batching -->
-
-> **Systematic Review Batching (map-reduce)** — When a changeset is large, do NOT review files one-by-one. Partition into size-capped batches, fire one specialized sub-agent per batch in parallel, then reduce. This bounds EVERY context — each batch agent AND the orchestrator — so coverage stays complete as file count grows.
->
-> **Trigger ladder (one ordered escalation — not competing thresholds):**
->
-> 1. **< 10 changed files** → sequential per-file review (default; no batching).
-> 2. **≥ 10 changed files** → switch to systematic parallel mode. Announce: `"Detected {N} changed files. Switching to systematic parallel review protocol."` Then: categorize → size-capped batches → flat consolidation.
-> 3. **categories > 6 OR files > 40** → additionally insert the hierarchical synthesis tier (below). Everything from rung 2 still applies.
->
-> **Step 1 — Categorize.** Group changed files into logical categories derived from the project's actual structure (not forced). Category is the *concern axis*; orient with these examples, derive what fits the repository:
->
-> | Category Type | Example Groupings |
-> | --- | --- |
-> | Agent/Tooling | AI scripts, hooks, skill definitions, workflow configs, linting rules |
-> | Root config/docs | Root README, project config, CI/CD pipeline configs |
-> | Reference docs | Architecture docs, patterns references, setup guides |
-> | Feature/domain docs | Business feature documentation, spec files, ADRs |
-> | Backend logic | Service/handler/controller source (infer from project structure) |
-> | Frontend logic | UI component/state/API source (infer from project structure) |
-> | Data/Schema | Migrations, schema files, seed data |
-> | Tests | Unit, integration, E2E test files |
-> | Infrastructure | Docker, k8s, CI/CD, cloud manifests |
->
-> **Step 2 — Size-capped batches.** One sub-agent per batch of **≤8 files OR ≤2000 diff-lines**, whichever hits first. Category stays the concern axis, but any category exceeding a cap splits into multiple size-capped batches (30 backend files → 4 batches). Size caps — not category caps — make "many files" safe: a category cap alone lets one giant category blow a single agent's context.
->
-> **Step 2a — Sub-agent type per batch** (match the batch's dominant concern):
->
-> - Code logic (any stack) → `code-reviewer`
-> - Security-sensitive changes → `security-auditor`
-> - Performance-critical paths → `performance-optimizer`
-> - Docs, plans, specs, configs, infra → `general-purpose`
->
-> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `tmp/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
->
-> **Step 3 — Reduce.**
->
-> - **Flat reduction (rung 2, ≤6 categories AND ≤40 files):** the orchestrator collects each batch report, cross-references counts/tables/contracts ACROSS batches, detects gaps visible only across categories (feature in code but missing from docs; new API endpoint with no client call), and consolidates into one categorized holistic report.
-> - **Hierarchical reduction (rung 3, > 6 categories OR > 40 files):** insert a mid-tier — each concern gets ONE synthesizer agent that reads only its own batch reports and emits a single concern-synthesis. The orchestrator reads the **concern-syntheses (~5)**, never the raw batch reports — keeping the reducer's context O(#concerns), not O(#files).
->   - **Cross-concern interaction pass (mandatory at rung 3 — closes the synthesis-tier blind spot):** concern-siloed synthesis can drop an interaction spanning two concerns AND two batches (tainted source in data-layer/batch 7 → sink in api/batch 3). So: (a) each concern-synthesizer MUST emit an explicit **"cross-concern interaction candidates"** list — entities/symbols/contracts it touched that plausibly bind to another concern (shared DTOs, event names, table/collection names, exported symbols); (b) the orchestrator MUST run the Step-3 cross-reference/gap step **over those candidate lists across all concern-syntheses**, not only within a batch, before concluding. Without this pass the tier trades completeness for context-bounding on exactly the large diffs it targets.
->
-> **Step 4 — Holistic assessment.** With all findings combined, judge: overall coherence as a unified intent; cross-category sync (docs match code? contracts match callers?); risk areas where categories interact; missing doc/spec updates for changed artifacts.
->
-> **No silent truncation.** If any cap forces sampling or a batch is dropped for budget, ANNOUNCE the dropped/sampled scope explicitly — bounded coverage must never read as complete coverage.
-
-<!-- /SYNC:systematic-review-batching -->
 
 <!-- SYNC:category-review-thinking -->
 
@@ -493,93 +448,7 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 <!-- /SYNC:category-review-thinking -->
 
-<!-- SYNC:fresh-context-review -->
 
-> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable. A report-only/read-only reviewer never edits source, generated output, or user data: it validates and records the finding/repair handoff, then returns to the caller, which owns the fix and any re-review.
->
-> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
->
-> **When:** After a validated-finding fix cycle, or to satisfy an explicitly declared independent-pass `minRounds`. A review round that finds zero issues ENDS the loop once that persisted minimum is met — do NOT invent a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
->
-> **How:**
->
-> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `spawn_agent` tool calls — use `code-reviewer` agent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
-> 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. A reviewer prompt carries every protocol body inline and is never handed a path to go read (the reviewer-prompt rule of `SYNC:shared-protocol-duplication-policy`)
-> 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
-> 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
-> 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
->
-> **Rules:**
->
-> - SKIP fresh sub-agent when the prior full review found zero issues AND the persisted `minRounds` is met (no fixes or required independent pass = nothing new to verify)
-> - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
-> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero findings at any severity; **round 2 (and the conditional round 3)** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). The budget is 2 rounds plus ONE extension to round 3, granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); round 3 is the review hard cap. A failing test gate is not budgeted — keep fixing and re-running until the tests pass. If the same validated blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
-> - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
-
-<!-- /SYNC:fresh-context-review -->
-
-<!-- SYNC:double-round-trip-review -->
-
-> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle or an explicitly declared independent-pass minimum, not by a round number alone. Review purpose: `review → validate findings → fix validated findings that block the current round → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop once the persisted `minRounds` is met (default 1); an explicitly declared minimum such as 2 still requires that independent pass.**
->
-> _aka **Self-Review Convergence Loop**._ "Double-round-trip" means a validated-finding fix cycle forces at least one fresh re-review. The loop is bounded by the **2-round ceiling — extendable ONCE to round 3 when CRITICAL/HIGH remain**. A failing **test gate** (a suite that must actually pass) is outside that ceiling: the loop keeps fixing and re-running until the tests pass.
->
-> **Round cap — 2 rounds MAX, extendable ONCE to round 3 (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds`; the cap never obliges an extra round. When round 2 completes with blocking findings still open (severity floor applied):
->
-> - **Validated CRITICAL or HIGH still open → ONE extra round is granted (round 3, the review hard cap).** A failed non-test binary gate (security must-fix, required artifact, generated parity, policy compliance) counts as a CRITICAL blocker here. The extension is earned by that evidence alone, granted at most once per run, and never renews.
-> - **Only MEDIUM (or an unresolved `NOT VERIFIABLE`) still open → NO extension.** → **STOP and escalate by asking the user directly** with the still-open findings listed.
-> - **Round 3 completes with ANY review blocker still open → STOP and escalate by asking the user directly.** No review finding or non-test gate opens a round 4.
-> - **A failing TEST gate → NO round cap, at any round.** Failing tests never escalate for budget or no-progress and never buy or spend the extension: run the failed-test investigation gate, fix at the owning layer, and re-run until the tests pass — past round 3 if needed. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
->
-> NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER loop past round 3 on review blockers. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
->
-> **Severity floor — from round 2, LOW stops blocking.** One predicate everywhere: `blocking_findings(round, findings)` returns all validated findings in round 1 and only validated CRITICAL/HIGH/MEDIUM findings from round 2 onward. A binary gate (test-green, security must-fix, required artifact) is exempt only when its owning invariant explicitly says so; in practice binary gates always remain blocking when they fail.
->
-> | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
-> | --- | --- | --- |
-> | 1 | zero validated findings at ANY severity | CRITICAL · HIGH · MEDIUM · LOW |
-> | 2 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
-> | 3 — extension, ONLY when round 2 left CRITICAL/HIGH open (or failing tests were the only blocker) | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
-> | 4+ — test-gate continuation, ONLY while failing test gates were the sole blocker | the tests pass and no review blocker is open | failing tests; any review blocker here escalates |
->
-> From round 2 onward a round whose validated findings are ALL LOW **ENDS the loop once the persisted minimum is met**. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM must clear the current round · LOW record/defer); round 1 stays strict.
->
-> **Severity-floor rules:**
->
-> - **Never silently drop a deferred LOW.** List every unfixed LOW under `## Deferred LOW Findings (severity floor, round ≥2)` with file, line, and description; dropping it is a protocol violation, not a clean pass.
-> - **Never re-tier a finding to trigger the exit, or to reach or dodge the extension.** Demoting a real CRITICAL/HIGH/MEDIUM to LOW, promoting a MEDIUM to HIGH to buy round 3, or demoting a CRITICAL/HIGH to force an earlier escalation is a FALSE classification. Severity is set by consequence before the round bar and the extension test apply. — why: a bound reachable by relabeling bounds nothing.
-> - **The floor bounds the loop, not the standard.** It ends *iteration*; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, and never lowers the finding-survival bar.
-> - **The floor never applies to a hard gate.** Test-green, security must-fix, and any binary (not severity-rated) gate are unaffected — a failing test is a failure, not a LOW finding.
->
-> **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `$why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** before it is final.
->
-> **Routing invariant (author-facing):** a skill that validates findings MUST route them through `$why-review --validate-findings` (the terminal validator) — NEVER fork an inline finding-validation; the `verify-review-validate-coverage` sensor enforces this route mechanically.
->
-> **Round 1:** Main-session review; output findings + verdict (PASS / FAIL). Then:
->
-> - **No issues found (PASS, zero findings)** → review ENDS if `round >= minRounds`; otherwise perform the explicitly required independent pass. Do NOT invent a confirmation pass.
-> - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first (default `$why-review --validate-findings <report-path>`). Fix only validated findings that block the current round, then restart the full review protocol with a fresh task breakdown.
->
-> **Fresh full re-review after every fix cycle:** re-run the whole review protocol over the current full target. When it uses sub-agents, spawn NEW `spawn_agent` calls — never reuse prior agents; reviewers re-read ALL files with ZERO memory of prior rounds (`SYNC:fresh-context-review` for the spawn mechanism, `SYNC:review-protocol-injection` for the prompt template). Each pass hunts missed cross-cutting concerns, interactions between changed files, convention drift, missing pieces, rationalized edge cases, and regressions from the fixes.
->
-> **Loop termination:** after each full re-review, apply **that round's exit bar**: bar cleared and persisted minimum met → END; otherwise validate → fix → restart. Escalate by asking the user directly at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 2 completes with MEDIUM-only (or `NOT VERIFIABLE`) blocking · round 3 completes with any review blocker open. A failing test gate triggers none of these — it loops until green. NEVER convert cap exhaustion into a PASS.
->
-> **Rules:**
->
-> - A clean Round 1 ENDS the review when `minRounds=1`; an explicitly declared `minRounds=2` requires the independent second pass
-> - LOW-only rounds from round 2 are listed as deferred, never fixed in a new round N+1
-> - NEVER fix unvalidated findings; validate first using the caller's validation gate
-> - Every surviving finding must also clear why-review's **finding-survival bar** (Findings Validation Routine — stricter than the generic act-gate); a finding below it is demoted or dropped
-> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict); NEVER reuse a sub-agent across rounds
-> - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - The cap, the single extension (ONLY validated CRITICAL/HIGH or a failed non-test binary gate at round 2), and the 2 repeated-no-progress rule are escalation triggers for review blockers, never completion criteria; the cap never replaces the clean-review requirement
-> - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
-> - Final verdict must incorporate ALL rounds executed
->
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever LOWs stayed open. When round 3 ran, name the CRITICAL/HIGH findings that granted it; when rounds continued on failing tests, name each round's failing test gates.**
-
-<!-- /SYNC:double-round-trip-review -->
 
 <!-- SYNC:logic-and-intention-review -->
 
@@ -596,186 +465,6 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 <!-- /SYNC:logic-and-intention-review -->
 
-<!-- SYNC:review-protocol-injection -->
-
-> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM, copied WHOLESALE and unmodified. They are the review-tier renderings of their canonical `SYNC:` tags, not literal copies; when a canonical protocol changes, update the matching body here in the same edit. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
->
-> **Why inline expansion:** A fresh reviewer must hold every rule it reviews against from its first token; a path or a placeholder would make it depend on a file read, or on a hook that may not fire for it. Reviewer prompts are therefore the one place the hybrid policy (`SYNC:shared-protocol-duplication-policy`) always keeps full bodies: the template carries all 11 protocol bodies pre-embedded, and the orchestrator copies it wholesale.
-
-### Subagent Type Selection
-
-- `code-reviewer` — for code reviews (reviewing source files, git diffs, implementation)
-- `general-purpose` — for plan / doc / artifact reviews (reviewing markdown plans, docs, specs)
-
-### Canonical Agent Call Template (Copy Verbatim)
-
-```
-spawn_agent({
-  description: "Fresh Round {N} review",
-  agent_type: "code-reviewer",
-  prompt: `
-## Task
-{review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
-
-## Round
-Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
-
-## Protocols (follow VERBATIM — these are non-negotiable)
-
-### Spec ↔ Tests ↔ Code Triangulation
-DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone. Read `docs/project-config.json` and resolve `specArtifacts`: a valid profile selects its configured `intent/contracts/evidence` section roles, identifiers, ownership rule, and test-carrier dialects; only an absent profile selects the strict-default business-spec shape (§3 ACs / §4 BRs / §5 invariants / §8 TCs). A malformed or unsupported declaration is `BLOCKED`; never treat it as absent or fall back. Load the governing artifact, its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
-1. Locate all three faces: the canonical owner section(s), the tests that guard them, and the production code that implements them. With a native profile, preserve owner path + case/scenario ID + optional variant and resolve each through its configured carrier to the actual test. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
-2. Triangulate pairwise — every disagreement is a finding; classify which face is wrong:
-   - code vs spec: behavior the code does that no configured `intent/contracts` rule (or strict-default §3/§4/§5/§8 rule) describes → CODE-EXTRA or SPEC-STALE; a hard contract/invariant with no enforcing path → CODE-WRONG.
-   - tests vs spec: a configured native case with no executing assertion, or a test asserting behavior no native rule/case names → TEST-GAP or SPEC-SILENT. Without `specArtifacts`, check strict-default §8 TCs.
-   - tests vs code: a changed code path with no covering test → TEST-GAP; a test that still passes against a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
-3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding, added to the profile's configured `intent` or `contracts` section, and linked from its `evidence` section to a native case whose executing assertion is inspected. Without a profile, use strict-default §3/§4/§5/§8 and TC. This is the enrichment loop, never a silent pass.
-4. Only after the three faces agree — or every disagreement is logged as a finding — proceed to the per-protocol checks below; when enrichment adds spec/test content, re-review the package against the enriched spec.
-NEVER mark review PASS while any spec/test/code face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
-
-### Evidence-Based Reasoning
-Speculation is FORBIDDEN. Every claim needs proof.
-1. Cite file:line, grep results, or framework docs for EVERY claim
-2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-3. Cross-service validation required for architectural changes
-4. "I don't have enough evidence" is valid and expected output
-BLOCKED until: Evidence file path (file:line) provided; Grep search performed; 3+ similar patterns found; Confidence level stated.
-Forbidden without proof: "obviously", "I think", "should be", "probably", "this is because".
-If incomplete → output: "Insufficient evidence. Verified: [...]. Not verified: [...]."
-
-### Bug Detection
-MUST check categories 1-4 for EVERY review. Never skip.
-1. Null Safety: Can params/returns be null? Are they guarded? Optional chaining gaps? .find() returns checked?
-2. Boundary Conditions: Off-by-one (< vs <=)? Empty collections handled? Zero/negative values? Max limits?
-3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
-4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
-5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
-6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
-Classify every finding by consequence (never by effort): CRITICAL = immediate material security/safety/data-loss risk or failed binary gate → block; HIGH = material correctness, contract, privacy, or authority risk → must fix; MEDIUM = bounded consequential edge/resilience/maintainability gap → must clear the current round, or escalate with an explicit residual-risk follow-up that does not create a clean pass; LOW = non-blocking polish with no credible present impact → record/defer from round 2; `NOT VERIFIABLE` is unresolved evidence, not LOW.
-
-### Design Patterns Quality
-Priority checks for every code change:
-1. Consistency and reuse: follow documented local patterns; extract a shared abstraction only when repetition or a demonstrated consumer need justifies its cost. Similar names alone do not require a shared base class.
-2. Responsibility: follow the architecture established by project configuration, references, accepted decisions, and existing code. Place behavior with its actual owner; do not presume an entity/service/controller hierarchy or forbid a layer without project evidence.
-3. Apply cohesion, coupling, and dependency-management principles when their assumptions fit the project's paradigm. SOLID is useful for object-oriented boundaries, not a mandatory checklist for every language or codebase.
-4. After extraction/move/rename: Grep ENTIRE scope for dangling references. Zero tolerance.
-5. YAGNI gate: Treat repeated patterns as evidence to evaluate extraction, not a numeric threshold. Extract when a shared reason to change, real consumers, or an evidenced ownership/substitution boundary lowers total change cost; do not create patterns for hypothetical future use.
-6. Purpose-oriented naming: Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract.
-7. Contract-fit check: Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior.
-8. Mechanism/generic-name smell: Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility.
-9. Concrete implementation names: Provider, strategy, transport, or test-double names are valid on concrete types when they distinguish real behavior (`AzureBlobStorage`, `InMemoryStorage`, `RetryingStorage`); keep those details out of the caller-facing contract unless the contract promises them.
-10. Language convention: Preserve local interface syntax and naming style; `.NET` `I` prefixes and Google TypeScript's unmarked interfaces are both valid local conventions.
-Anti-patterns to flag: God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
-
-### Logic & Intention Review
-Verify WHAT code does matches WHY it was changed.
-1. Change Intention Check: Every changed file MUST serve the stated purpose. Flag unrelated changes as scope creep.
-2. Happy Path Trace: Walk through one complete success scenario through changed code.
-3. Error Path Trace: Walk through one failure/edge case scenario through changed code.
-4. Acceptance Mapping: If plan context available, map every acceptance criterion to a code change.
-5. Tests Verify Intent: For test/spec changes, verify tests name the protected business rule or invariant and would fail if that intent breaks.
-6. Migration Test Exclusion: Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
-NEVER mark review PASS without completing both traces (happy + error path).
-
-### Test Spec Verification
-Map changed code to test specifications.
-1. Identify the project's test/spec format from existing docs, test-case files, BDD feature files, or spec folders.
-2. Every changed code path MUST map to a corresponding test case/spec (or flag as "needs test case").
-3. New functions/endpoints/handlers → flag for test spec creation.
-4. Migration files are excluded from test/spec creation; schema/data migrations are one-time execution paths, not core application logic.
-5. If spec evidence fields exist, verify they point to actual code (file:line, not stale references).
-6. Verify each meaningful test case names the business intent/invariant; flag behavior-only cases that only mirror implementation details.
-7. Auth/data changes → verify corresponding authorization and data-state test cases exist.
-8. If no specs exist for a changed path → log the gap and recommend the project's test-spec workflow.
-NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
-
-### Behavioral Delta Matrix
-MANDATORY for any bugfix review. Produce input-state × pre-fix × post-fix × delta table BEFORE writing verdict.
-- Minimum 3 rows; include at least one row OUTSIDE the original bug report.
-- Any "REGRESSION" delta → review returns FAIL until a preservation test is added.
-- Narrative descriptions do NOT substitute for the matrix.
-Example rows (external-record sync fix):
-| Input                 | Pre-fix | Post-fix                  | Delta      |
-| --------------------- | ------- | ------------------------- | ---------- |
-| Record exists (valid) | Reused  | Always recreated → orphan | REGRESSION |
-| Record missing (404)  | Error   | Recreated                 | Fixed      |
-
-### Fix-Layer Accountability
-Do not assume the crash site owns the defect. Trace the actual execution and data flow, then fix the component that owns the violated contract.
-MANDATORY before ANY fix:
-1. Trace the affected path — map the real origin, transformations, boundaries, and observed failure in the surfaces this project uses. Do not invent absent layers.
-2. Identify the contract owner — use project architecture and code evidence to find which component is responsible for the invalid state or behavior.
-3. Choose the correction point — fix the authoritative owner and retain any validation required at untrusted boundaries. A multi-file correction can be valid; justify it by the contracts each file owns rather than a file-count threshold.
-4. Check bypass paths — inspect relevant constructors, adapters, parsers, caches, persistence, or other entry points that actually exist in the affected flow.
-BLOCKED until: The affected path is traced; the owner is supported by file:line evidence; relevant consumers and bypass paths are checked; and the correction point fits the project's architecture.
-Anti-patterns (REJECT): assuming the symptom site is the owner; scattering workarounds without tracing the contract; assuming the lowest technical layer is always authoritative; removing validation from a real trust boundary to force a single correction point.
-
-### Rationalization Prevention
-AI skips steps via these evasions. Recognize and reject:
-- "Too simple for a plan" → Simple + wrong assumptions = wasted time. Plan anyway.
-- "I'll test after" → RED before GREEN. Write/verify test first.
-- "Already searched" → Show grep evidence with file:line. No proof = no search.
-- "Just do it" → Still need task tracking. Skip depth, never skip tracking.
-- "Just a small fix" → Small fix in wrong location cascades. Verify file:line first.
-- "Code is self-explanatory" → Future readers need evidence trail. Document anyway.
-- "Combine steps to save time" → Combined steps dilute focus. Each step has distinct purpose.
-
-### Graph-Assisted Investigation
-MANDATORY when .code-graph/graph.db exists.
-HARD-GATE: MUST run at least ONE graph command on key files before concluding any investigation.
-Pattern: Grep finds files → trace --direction both reveals full system flow → Grep verifies details.
-- Investigation: trace --direction both on 2-3 entry files
-- Fix/Debug: callers_of on buggy function + tests_for
-- Feature/Enhancement: connections on files to be modified
-- Code Review: tests_for on changed functions
-- Blast Radius: trace --direction downstream
-CLI: python .claude/scripts/code_graph {command} --json. Use --node-mode file first (10-30x less noise), then --node-mode function for detail.
-
-### Understand Code First
-HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
-1. Search 3+ similar patterns (grep/glob) — cite file:line evidence.
-2. Read existing files in target area — understand structure, base classes, conventions.
-3. Run python .claude/scripts/code_graph trace <file> --direction both --json when .code-graph/graph.db exists.
-4. Map dependencies via connections or callers_of — know what depends on your target.
-5. Write investigation to tmp/analysis/ for non-trivial tasks (3+ files).
-6. Re-read analysis file before implementing — never work from memory alone.
-7. NEVER invent new patterns when existing ones work — match exactly or document deviation.
-BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
-
-## Reference Docs (READ before reviewing)
-- `.claude/docs/development-rules.md` — canonical development rules, code-quality guidelines, and pre-commit checklist
-- `code-review-rules.md`, inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
-- {skill-specific reference docs — e.g., integration-test-reference.md for integration-test-review; backend-patterns-reference.md for backend reviews; frontend-patterns-reference.md for frontend reviews}
-
-## Target Files
-{explicit file list OR "run git diff to see uncommitted changes" OR "read all files under {plan-dir}"}
-
-## Output
-Write a structured report to tmp/reports/{review-type}-round{N}-{date}.md with sections:
-- Status: PASS | FAIL
-- Issue Count: {number}
-- Critical Issues (with file:line evidence)
-- High Priority Issues (with file:line evidence)
-- Medium / Low Issues
-- Cross-cutting findings
-
-Return the report path and status to the main agent.
-Every finding MUST have file:line evidence. Speculation is forbidden.
-`
-})
-```
-
-### Rules
-
-- DO copy the template wholesale — including all 11 embedded protocol sections
-- DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
-- DO choose `code-reviewer` agent_type for code reviews and `general-purpose` for plan / doc / artifact reviews
-- DO NOT paraphrase, summarize, or skip any protocol section
-- DO NOT pass file contents inline — the sub-agent reads via its own tool calls so it has a fresh context
-- DO NOT reference protocols by file path or tag name — the bodies are already embedded above
-- DO NOT introduce placeholder markers for the protocols — they must stay literally expanded
-
-<!-- /SYNC:review-protocol-injection -->
 
 <!-- SYNC:bug-detection -->
 
@@ -787,6 +476,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 4. **Resource Management:** Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 > 5. **Concurrency (if async):** Missing `await`? Race conditions on shared state? Stale closures? Retry storms?
 > 6. **Stack-Specific:** Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
+>
+> **Admit a finding only with a reachable trigger path** (the caller, input or state that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (`SYNC:severity-rubric`).
 >
 > **Classify every finding by consequence, not by fix effort; `SYNC:severity-rubric` is authoritative and this is only a quick reminder:**
 > - **CRITICAL → block immediately:** an immediate material security/authorization or safety bypass, secret/PII exposure, destructive action, data loss/corruption, or silent failure on a critical path. A failed binary gate is a separate hard blocker (represented as synthetic CRITICAL by the executable policy), not an ordinary tier judgment.
@@ -1067,17 +758,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:test-architecture-execution-contract -->
 
-<!-- SYNC:review-policy -->
-
-> **Executable review policy — one predicate, one durable transition model.** Review skills and their tooling MUST use the canonical helper `.claude/scripts/lib/review-policy.cjs` (policy version 4) for round eligibility. The helper's `blockingFindings(round, findings, hardGates)` predicate returns every validated finding in round 1, and only CRITICAL/HIGH/MEDIUM findings from round 2 onward; `NOT VERIFIABLE` is a separate unresolved-evidence state that remains blocking at every round. Failed binary gates are synthetic CRITICAL blocking findings at every round; record a test-green gate with `kind: 'test'` and every other gate with `kind: 'binary'` (the default). `evaluateRound` retains floor-round LOWs in `deferredLow`, never treats a LOW-only round as blocked after the floor applies, reports `extensionGranted` plus an `ESCALATE` status when the review budget is spent with review blockers open, and reports `failingTestGates` / `testLoopContinues` when failing test gates keep the round open. Severity is assigned before the predicate and never changed to obtain a PASS.
->
-> **Round and minimum rules.** `MAX_ROUNDS` (the base budget) is 2 and `HARD_MAX_ROUNDS` is 3; both are ceilings, never targets. Round 3 is an EXTENSION, not part of the default budget: the helper grants it only when the recorded round-2 evaluation still has a validated CRITICAL or HIGH review blocker — a finding, or a failed non-test binary gate carried as synthetic CRITICAL — (`extensionGranted`), grants it at most once per run, and rejects any attempt to reach round 3 without that evidence, except the failing-test continuation below, when round 2's only blockers are failing test gates. **Failing test gates are outside the review budget:** they never earn the extension and never escalate, so while failing `kind: 'test'` gates are the ONLY blockers the helper keeps the run in `CONTINUE` and accepts the next round — past round 3 if needed — until the tests pass. A review blocker past the budget still escalates, and a round with no failing test gate never re-opens the run past its budget. A round-2 evaluation whose blockers are only MEDIUM or `NOT VERIFIABLE` ends the budget and escalates. A clean review ends once `round >= minRounds`; the default minimum is 1 and an explicit `minRounds` may not exceed the base budget of 2 — the extension is earned by evidence, never declared up front. The declaration is persisted and cannot be inferred from a round counter. A failing test-green, security-must-fix, required-artifact, or other binary gate is never waived by the severity floor.
->
-> **Durable run record.** A review run MUST identify `runId`, target fingerprint, policy version, target revision, minimum/maximum rounds, completed rounds, full findings/gate evidence, interruption/resume metadata, and acceptance. Use the atomic, lock-serialized transitions in `review-policy.cjs`: `start`, `record`, `accept`, `interrupt`, `resume`, `invalidate`, and `check`. Repeating an identical completed round is idempotent and MUST NOT consume budget twice. A changed target fingerprint invalidates prior evidence and acceptance but MUST preserve the bounded round budget; stale evidence cannot be accepted. A policy-version change (including the round-2 LOW floor and the conditional round-3 extension) invalidates old records; start a new run rather than interpreting old evidence under new semantics. Interrupted/resumed runs retain completed rounds and findings. The record is bookkeeping, not consent, native permission, or proof that a host actually performed the review.
->
-> **CLI boundary.** The helper CLI accepts JSON on stdin and uses its own real clock; a supplied `now` is rejected. State directories must be absolute, non-root real directories, records are size-bounded, and malformed/locked state fails closed for the transition. Full reports remain on disk; an inline result envelope is only a transport summary. Any new review policy consumer must add a semantic fixture, boundary counter-cases, a seeded mutant, and a report with the target fingerprint and command exit status.
-
-<!-- /SYNC:review-policy -->
 
 <!-- SYNC:test-failure-fault-adjudication -->
 
@@ -1119,6 +799,64 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **BLOCKED when:** an applicable principle is required for safety/correctness but missing, unowned, or untestable. Otherwise record an evidence-backed `NOT-APPLICABLE`, advisory, `DEFER-AS-OPPORTUNITY`, or `UNVERIFIED` result according to the lifecycle and change context; creating a greenfield foundation remains subject to its own blocking protocol.
 
 <!-- /SYNC:review-principle-awareness -->
+
+<!-- SYNC:core-engineering-principles -->
+
+> **Core Engineering Principles — Easy to Change · Easy to Scale · Easy to Maintain** — The success metric of every plan, implementation and review is _future change cost_: the next change must be cheap, safe and provable. DRY, reuse, abstraction, interfaces, wrappers, patterns, layering, tests and the harness exist only to serve that goal. Apply this gate BEFORE any narrower design rule or checklist; when a narrower design rule would raise change cost, this principle wins — it never waives a required gate (tests, review, security, user confirmation). It is evidence-gated: judge fit against the project's config, accepted decisions and local patterns, and never impose a technique the project does not use.
+>
+> 1. **Easy to change.** Keep one owner per piece of knowledge — DRY the rule, not look-alike text. Reuse an existing helper, component or module before writing a new one (search 3+ siblings and cite them). Put purpose-named interfaces or ports at volatile boundaries: wrap a third-party SDK or infrastructure dependency in an adapter when it is volatile, likely to be swapped, or needs a test seam, so a swap touches one place — a stable dependency used directly is fine, and a pass-through wrapper that lowers no change cost is a defect. Keep units small and cohesive with explicit dependencies; no hidden state, boolean traps or leaked implementation detail. Extract an abstraction for a real second consumer or an evidenced change axis, never for speculation; prefer the reversible decision and defer an irreversible one until evidence forces it. Depth → `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`.
+> 2. **Easy to scale.** Growth in features, modules, team, data or load must not multiply edit sites or cost. Add a variant by extension (a new handler, registration or config entry), not by editing every switch over the same discriminator. Keep module boundaries and dependency direction explicit. Bound every loop, query, result set, queue and concurrency on the paths that matter, so work grows with the request, not with total data. Scale only what the project's profile warrants — no speculative distribution or infrastructure. Depth → `SYNC:scale-technique-gate`, `SYNC:engineering-foundation-gate` (F5, F6).
+> 3. **Easy to maintain.** Protect every changed behavior with tests that name the business intent or invariant and FAIL when it breaks — happy, error, edge, boundary and regression paths, not only the changed line. Tests are repeatable and isolated. The mechanical harness (format, lint, types, build, test — the same command locally and in CI) runs and passes. Names and structure state intent, and docs or specs that embed the behavior stay in sync. Depth → `SYNC:engineering-foundation-gate` (F3, F4, F7), `SYNC:harness-setup`.
+>
+> **By phase:**
+>
+> - **Plan** — each phase names what it reuses (`file:line`), the seam or abstraction it adds or why none is needed, the next plausible change and its edit-site count, the growth bound, and the test that proves each invariant — or `N/A` with a reason where an item cannot apply (a docs-only phase has no growth bound).
+> - **Implement** — search for reuse before writing; after writing, recount the edit sites of the next plausible change, confirm each new test fails when its intent breaks, and run the harness.
+> - **Review** — judge each pillar `PASS` / `FAIL` / `N/A` with `file:line` evidence and name the real enemy: coupling, duplicated knowledge, hidden state, unbounded growth, untested intent, unclear intent or an irreversible decision exposed too early. A finding names its consequence for the next change; absence of a pattern is not a defect.
+>
+> **Self-check before claiming done:** (1) What is the next plausible change, and how many files would it touch? (2) What breaks at 10× features, data or load? (3) Which named test goes red if this behavior breaks, and does the harness run it?
+
+<!-- /SYNC:core-engineering-principles -->
+
+<!-- SYNC:whole-diff-correctness -->
+
+> **Whole-Diff Correctness Lane** — Purpose: catch the defects that only appear when a change is read as one behavior rather than as files — a flow that breaks across layers, a boundary the change mishandles, a caller it silently breaks. One reviewer reads the complete behavior-changing diff, plus whatever surrounding code it needs, as a single change. Split only when the diff cannot fit one context with room to reason, and then along the change's own flows, never by file type. It is one assignment: the orchestrator runs it inline when the change fits its context, otherwise gives it to a reviewer that already reads the whole target, and to a dedicated reviewer only when none has room; a batch or specialist reviewer reviews only its own scope. Batches and specialists add depth; they never replace this pass.
+>
+> **Hunt:** walk each changed behavior through the situations real users and data create — empty, first and last, limits, time crossing a day or time zone, alternate clients, roles, channels and states, retries and partial failure, concurrent use. The history of the changed lines (blame, recent commits) and the comments beside them record intent the change can break; the project's own instructions and conventions are part of the contract.
+>
+> **Report:** rate how sure you are each candidate is real and reachable — 0 not a defect, or not introduced or newly exposed by this change; 25 plausible, unverified; 50 likely, not confirmed; 85 confirmed by tracing the code path; 100 confirmed with a concrete failing input — and keep what reaches 85, each with its reachable trigger path and consequence. Rarity and impact set severity, never confidence: a confirmed rare defect is still reported. A candidate whose reality or reachability cannot be settled (below 85, not ruled out) is never silently dropped when its consequence would be MEDIUM or higher: report it as `NOT VERIFIABLE`, naming what would settle it; a lower-consequence unsettled candidate is an observation. What is never a finding is defined once in `SYNC:severity-rubric`.
+
+<!-- /SYNC:whole-diff-correctness -->
+
+<!-- SYNC:behavioral-delta-matrix -->
+
+> **Behavioral Delta Matrix** — MANDATORY for bugfix reviews. Produce this table BEFORE PASS/FAIL verdict. Narrative descriptions don't substitute.
+>
+> | Input state | Pre-fix behavior   | Post-fix behavior | Delta                                |
+> | ----------- | ------------------ | ----------------- | ------------------------------------ |
+> | {condition} | {current behavior} | {fixed behavior}  | Preserved ✓ / Fixed ✓ / REGRESSION ✗ |
+>
+> **Rules:** ≥3 rows · ≥1 row the bug report did NOT mention · REGRESSION delta → FAIL until a preservation test covers it (`spec-tests-template.md#preservation-tests-mandatory-for-bugfix-specs`)
+>
+> **BLOCKED until:** ≥3 rows · ≥1 row outside bug report · no unmitigated REGRESSION
+
+<!-- /SYNC:behavioral-delta-matrix -->
+
+<!-- SYNC:spec-tests-code-triangulation -->
+
+> **Spec ↔ Tests ↔ Code Triangulation** — The unit of review is the WHOLE PACKAGE (spec + tests + code), not the diff alone. Load all three faces together and reason mutual-consistency FIRST, before any isolated per-file check.
+>
+> 1. **Locate all three faces** for the changed behavior. Resolve `docs/project-config.json → specArtifacts`: use its configured `sections.intent/contracts/evidence`, business owner path, and test-carrier dialects only when valid; use the strict default Feature Spec sections (§3 ACs / §4 BRs / §5 invariants / §8 TCs) only when the profile is absent. A malformed or unsupported declaration blocks and never falls back. Load the tests and production code with the owner artifact; a missing face is a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+> 2. **Triangulate pairwise** — classify which face is wrong on every disagreement:
+>     - code vs spec → CODE-EXTRA / SPEC-STALE / CODE-WRONG (a hard rule in the configured `contracts` role, or strict-default §4/§5 invariant, with no enforcing path is CODE-WRONG).
+>     - tests vs spec → TEST-GAP / SPEC-SILENT; with a native profile, check owner + case/scenario ID + optional variant against the actual executor and inspected assertion, not an ID match alone.
+>     - tests vs code → TEST-GAP / WEAK-TEST (a test that survives a deliberately broken invariant).
+> 3. **Capture hidden rules** — an invariant the code enforces but the spec never states (SPEC-SILENT) is surfaced as a finding, added to the configured `intent` or `contracts` section and represented in its `evidence` section with a guarding native case/test; without a profile, use strict-default §3/§4/§8 and TC. This is the enrichment loop, never a silent pass.
+> 4. **Re-review after enrichment** — when triangulation adds spec content or a test, re-review the package against the enriched spec; converge only when a full pass surfaces no new disagreement.
+>
+> NEVER mark PASS while any face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
+
+<!-- /SYNC:spec-tests-code-triangulation -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -1169,18 +907,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
 <!-- /SYNC:severity-rubric:reminder -->
 
 
-<!-- SYNC:systematic-review-batching:reminder -->
-
-- **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
-- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
-
-<!-- /SYNC:systematic-review-batching:reminder -->
 
 <!-- SYNC:category-review-thinking:reminder -->
 
@@ -1189,13 +922,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:category-review-thinking:reminder -->
 
-<!-- SYNC:double-round-trip-review:reminder -->
-
-- **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `$why-review --validate-findings` pass, before it is treated as final.
-- **MANDATORY severity floor:** round 1 exits only on zero findings at any severity; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate by asking the user directly**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
-
-<!-- /SYNC:double-round-trip-review:reminder -->
 
 
 
@@ -1245,9 +971,21 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
 
+<!-- SYNC:core-engineering-principles:reminder -->
+
+**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
+
+<!-- /SYNC:core-engineering-principles:reminder -->
+
+<!-- SYNC:whole-diff-correctness:reminder -->
+
+**MUST ATTENTION** Whole-diff correctness lane: read the complete behavior-changing diff once as one change (split only by flow when it cannot fit); hunt defects through real situations — boundaries, time crossing a day or zone, alternate clients, roles and states, retries, concurrency — using blame/history and adjacent comments as recorded intent; keep only confirmed findings (85+: code path traced) with a reachable trigger path, and report an unsettled candidate that would be MEDIUM or higher as `NOT VERIFIABLE` naming what would settle it, never dropped — rarity sets severity, never confidence.
+
+<!-- /SYNC:whole-diff-correctness:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Run systematic, report-driven code quality assessment with fix-triggered fresh-context re-review, so every defect ships with `file:line` evidence and no fix cycle merges unverified.
+**IMPORTANT MUST ATTENTION Goal:** Run systematic, report-driven code quality assessment of the scope your brief assigns, so every defect ships with `file:line` evidence and the caller that owns the fix loop gets findings it can act on.
 
 **Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this agent carries; each line a signpost to its canonical body above):**
 
@@ -1263,13 +1001,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Critical Thinking:** Traced proof per claim; skeptical of own confidence.
 - **Sequential Thinking Protocol:** Multi-step Thought N/M with confidence closers.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Severity Rubric:** Classify by consequence on one Critical/High/Medium/Low scale using `SYNC:severity-rubric`; round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
-- **Systematic Batching:** Large changesets → size-capped parallel sub-agent batches.
+- **Severity Rubric:** Classify by consequence on one Critical/High/Medium/Low scale using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Category Review Thinking:** Derive concerns from first principles, NEVER a fixed checklist.
-- **Fresh Context Review:** Zero-memory sub-agent re-review after fixes.
-- **Double Round-Trip Review:** Fix cycle → full re-review until clean.
+- **Post-fix brief:** re-read the whole target from scratch; the orchestrator owns the re-review loop.
 - **Logic & Intention Review:** Code matches intent; trace happy and error paths.
-- **Review Protocol Injection:** Embed 11 protocol bodies verbatim into sub-agents.
 - **Bug Detection:** ALWAYS check null/boundary/error/resource categories every review.
 - **Complexity Prevention:** Measure code by cost of change; extract on first write.
 - **Design Patterns Quality:** Serial dimension passes; 3+ similar → extract abstraction.
@@ -1279,27 +1014,27 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Test Spec Verification:** ALWAYS map every changed code path to a test case.
 
 **IMPORTANT MUST ATTENTION** NEVER approve code unread — "looks fine" without `file:line` proof is forbidden — why: an unread file is an unreviewed file; assumed correctness merges the bug.
-**IMPORTANT MUST ATTENTION** NEVER skip fresh-context Phase 4 re-review after a fix cycle; a clean first review with zero findings ends the loop once the persisted `minRounds` is met per `SYNC:double-round-trip-review` — why: the main agent rationalizes its own prior pass, so fresh zero-memory eyes are non-negotiable.
+**IMPORTANT MUST ATTENTION** a post-fix brief is a fresh Phase 4 re-review of the whole target, never just the fixes — why: a prior pass rationalizes its own findings; fresh zero-memory eyes are the point.
 **IMPORTANT MUST ATTENTION** ALWAYS attach `file:line` evidence to every finding and recommendation, with confidence (>80% act, 60-80% verify first, <60% DO NOT recommend) — grep results count; "Insufficient evidence" is valid output — NEVER speculate ("obviously", "I think", "should be").
 **IMPORTANT MUST ATTENTION** ALWAYS grep 3+ existing patterns before flagging a convention or DRY violation — why: codebase convention wins over textbook rules; a hallucinated finding sends the fix to the wrong place.
 **IMPORTANT MUST ATTENTION** Bootstrap a task tracking breakdown FIRST and build the report incrementally to `tmp/reports/code-review-{date}-{slug}.md` — persist findings per file/section, synthesize from disk — why: long reviews exhaust context and lose findings; the report file is the work product and recovery anchor.
-**IMPORTANT MUST ATTENTION** Read the reference docs before reviewing — `.claude/docs/development-rules.md`, plus `code-review-rules.md`, `lessons.md` and `project-structure-reference.md` from the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — why: project conventions and known anti-patterns override generic framework defaults.
+**IMPORTANT MUST ATTENTION** Read the reference docs your brief resolves before reviewing — when it names none, `code-review-rules.md`, `lessons.md` and `project-structure-reference.md` from the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — why: project conventions and known anti-patterns override generic framework defaults.
 **IMPORTANT MUST ATTENTION** When `.code-graph/graph.db` exists, run at least one graph command (`trace`/`callers_of`/`tests_for`) on key files before concluding — why: grep alone misses callers, importers, tests, and event consumers.
-**IMPORTANT MUST ATTENTION** Classify EVERY finding Critical/High/Medium/Low by consequence (not fix-effort); round 1 blocks on every validated finding, round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred; failed binary gates always block — why: one shared scale and predicate keep "High" meaning the same across all reviews.
+**IMPORTANT MUST ATTENTION** Classify EVERY finding Critical/High/Medium/Low by consequence (not fix-effort); round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred; failed binary gates always block — why: one shared scale and predicate keep "High" meaning the same across all reviews.
 **IMPORTANT MUST ATTENTION** Run Bug Detection categories 1-4 (null safety, boundary, error handling, resource management) on EVERY review and trace BOTH happy AND error paths before any PASS — why: untested code paths and unchecked edges are the top source of production bugs.
-**IMPORTANT MUST ATTENTION** Large changeset (≥10 files) → switch to systematic parallel batching (≤8 files OR ≤2000 diff-lines per sub-agent); ANNOUNCE any dropped/sampled scope — why: per-file serial review silently loses coverage as file count grows.
+**IMPORTANT MUST ATTENTION** review exactly the scope your brief assigns — batching and fan-out belong to the orchestrator; if the scope is too large to review well, say so in your return instead of sampling silently.
 **IMPORTANT MUST ATTENTION** Evaluate fit before copying a nearby pattern — verify the new context shares the same base class, scope, and constraints — why: the closest example is not always a matching example.
 
 **Anti-Rationalization:**
 
 | Evasion                            | Rebuttal                                                                 |
 | ---------------------------------- | ------------------------------------------------------------------------ |
-| "Diff is small, skip Phase 4"      | Fresh re-review is MANDATORY after any fix cycle — never optional        |
+| "Diff is small, skip Phase 4"      | A post-fix brief is Phase 4: re-read the whole target, never just fixes  |
 | "Looks fine, no need to read it"   | Show `file:line` proof; an unread file is an unreviewed file             |
 | "Textbook says it's a violation"   | Grep 3+ codebase patterns first — local convention wins                  |
 | "Already searched"                 | Show the grep evidence with `file:line`. No proof = no search.           |
 | "Graph trace adds no value here"   | When `graph.db` exists it is a HARD-GATE — grep misses callers/consumers |
 | "Just do it, skip the report file" | Still need task tracking + the report; skip depth, never skip tracking   |
 
-**IMPORTANT MUST ATTENTION** Top 3 (primacy-recency echo): (1) NEVER approve code unread — `file:line` proof or it is unreviewed; (2) NEVER skip fresh-context Phase 4 re-review after a fix cycle; (3) ALWAYS grep 3+ existing patterns before flagging a convention violation.
+**IMPORTANT MUST ATTENTION** Top 3 (primacy-recency echo): (1) NEVER approve code unread — `file:line` proof or it is unreviewed; (2) a post-fix brief is a full Phase 4 re-read of the whole target — you return findings, the caller owns the loop; (3) ALWAYS grep 3+ existing patterns before flagging a convention violation.
 """

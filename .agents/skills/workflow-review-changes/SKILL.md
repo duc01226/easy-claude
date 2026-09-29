@@ -68,7 +68,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **Triage first, then choose:** classify the target (size band, change kinds, risk) and let the triage decide which optional specialists run and how deep — see [Triage](#triage--decide-what-deserves-review).
 - **Required quality gates** are fixed ([list](#required-quality-gates)); **how** you orchestrate them — inline vs sub-agent, wave composition, batching, ordering within the data dependencies — is your call, optimized for wall-clock and token cost at equal quality.
 - **Memory:** one task per selected step/aspect and ONE living report (the step-1 `$changes-review` report) that every reviewer, validation, fix and re-review appends to — the report is what survives compaction.
-- **Loop:** review → validate → fix → re-review until the round bar clears (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOWs deferred), bounded at **2 rounds MAX**, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open (escalate by asking the user directly at whichever trips first: 2 no-progress repeats of the same blocker, review blockers increasing round-over-round (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget spent with a review blocker still open — round 2 blocked by MEDIUM/`NOT VERIFIABLE` alone, or round 3 by any review blocker — cap exhaustion escalates, never PASSes; a failing test gate is outside the budget and loops until green).
+- **Loop:** review → validate → fix → re-review until the round bar clears (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOWs deferred), bounded at **2 rounds MAX**, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open (escalate by asking the user directly at whichever trips first: 2 no-progress repeats of the same blocker, review blockers increasing round-over-round (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget spent with a review blocker still open — round 2 blocked by MEDIUM/`NOT VERIFIABLE` alone, or round 3 by any review blocker — cap exhaustion escalates, never PASSes; a failing test gate is outside the budget and loops until green).
 - **`--fix-loop` (OPTIONAL mode flag — absent by default, and absence changes nothing in this skill):** wraps this WHOLE workflow in an OUTER convergence loop that re-runs the default workflow INLINE round after round over a fixed scope until a complete round applies **ZERO fixes**, so every selected specialist re-reviews the fixed code from scratch. **When `--fix-loop` is passed, read `references/fix-loop.md` FIRST (BLOCKING).**
 
 **Key Rules:**
@@ -81,24 +81,9 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 ---
 
-## First Principle — Easy to Change
+## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
-
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
-
-- Reject "best practices" that raise change cost (premature abstraction,
-  speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
-  knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
-
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+> The full gate is `SYNC:core-engineering-principles`, inlined with this skill's protocol blocks below; its closing digest ends this file.
 
 ---
 
@@ -127,11 +112,11 @@ Escalate depth on risk and ambiguity, not file count alone. Mechanical churn (ge
 
 The workflow is not done until every applicable gate holds, each with its evidence in the living report:
 
-1. **Coverage** — every changed file is assigned to a reviewer or batch and reviewed (or classified mechanical with evidence); the Review Plan names which dimensions ran and why the others did not.
+1. **Coverage** — every changed file is assigned to a reviewer or batch and reviewed (or classified mechanical with evidence), and a behavior-changing diff is also read whole once (`SYNC:whole-diff-correctness`); the Review Plan names which dimensions ran and why the others did not.
 2. **Evidence** — every finding cites `file:line`, consequence, severity (per `SYNC:severity-rubric`) and confidence; speculation is not a finding.
-3. **Validated before fixed** — no finding is fixed until it is validated: report-only specialists validate their own findings; everything else goes through `$why-review --validate-findings` (the `validate-findings` occurrence).
+3. **Validated before fixed** — no finding is fixed until it is validated: report-only specialists and batch reviewers validate their own findings in their own session (`$why-review --validate-findings`, `SYNC:systematic-review-batching` Step 2b); the orchestrator re-validates in the main session only findings no reviewer validated plus the independent check set of `SYNC:systematic-review-batching` Step 3 (the `validate-findings` occurrence).
 4. **Fixed at the owner** — every validated finding that blocks the current round is fixed at its owning layer (`$fix --target=review`), with its Fix Log row appended to the living report; a defect finding whose owning cause the report does not trace gets `$debug-investigate` first.
-5. **Re-reviewed** — when any fix or simplification landed, the post-fix `why-review` runs INLINE in FULL mode over the settled whole target (never `--validate-findings`, never just the last fix); a specialist whose finding was fixed also gets a scoped re-run of its dimension unless the holistic pass covers it with written justification.
+5. **Re-reviewed** — when any fix or simplification landed, the post-fix `why-review` runs INLINE in FULL mode over the settled whole target (never `--validate-findings`, never just the last fix) — except a round-1 fix set of LOWs closed by scoped check or deferral with no simplification landed (`SYNC:double-round-trip-review` → Round-1 LOW closure), which needs no full re-review; a specialist whose finding was fixed also gets a scoped re-run of its dimension unless the holistic pass covers it with written justification.
 6. **Tests** — every changed behavior is covered by tests that ran green in this run (`integration-test-review` is the `tests-pass` prover: its read-only run of the relevant tests is REQUIRED and a red or not-run result keeps the gate open; the fix step re-runs the tests its fixes affect).
 7. **Spec/test/code sync** — every behavior-changing file is adjudicated CODE-WRONG / SPEC-STALE / SPEC-SILENT / AMBIGUOUS against its configured canonical owner, and every behavior-changing finding reconciles BOTH its profile-declared scenario/case and the mapped executing assertion/result (the strict default profile expresses these as §3/§4 requirements and §8 TCs). Green tests never normalize drift.
 8. **User-decision gates** — integration-test coverage gaps and multilingual UI translation gaps are surfaced by asking the user directly by the orchestrator at consolidation (report-only reviewers only record them), never silently passed.
@@ -153,11 +138,11 @@ The registry sequence is the recommended default order; `gate` occurrences alway
 | `$security-audit --report-only`                                  | auth, secrets, input handling, dependencies, CI/infra, PII/money — or not provably security-neutral | exploitable-risk findings                                                               |
 | `$production-readiness-review --report-only`                      | deployable service/API/job/migration/config/operational surface                                     | deploy/operate readiness score + gate                                                   |
 | `$ui-review --report-only`                                        | frontend/UI files changed (also runs inside step 1's UI dimension, by design)                       | UI floor, layout, states, accessibility                                                 |
-| `$why-review --validate-findings`                                 | findings exist that their reviewer has not validated                                                | ≥85% survival validation before any fix                                                 |
+| `$why-review --validate-findings`                                 | after dedup: findings no reviewer validated, plus the independent check set (CRITICAL/HIGH, reviewer conflicts, MEDIUM sample) | ≥85% survival validation before any fix                                                 |
 | `$debug-investigate` | a validated blocking finding is a defect whose report names the symptom but not the owning cause | root cause traced end-to-start before its fix (`root-cause-traced`) |
 | `$fix --target=review`                                            | validated blocking findings exist                                                                   | owning-layer fixes + Fix Log + affected-test results                                    |
 | `$code-simplifier`                                                | source code changed (diff or fixes)                                                                 | clarity/maintainability, behavior preserved; re-reviewed afterwards                     |
-| `$why-review` (post-fix, INLINE, FULL mode)                       | a fix or simplification landed                                                                      | the settled post-fix whole target is clean at the round's bar                           |
+| `$why-review` (post-fix, INLINE, FULL mode)                       | a fix or simplification landed, other than a round-1 LOW-only fix set closed by scoped check with no simplification | the settled post-fix whole target is clean at the round's bar                           |
 | `$experience-review`                                              | a configured or likely observable surface is affected                                               | runtime evidence + acceptance state; when it lands source fixes, re-run the post-fix `why-review` over the settled target before `$docs-update` (same round budget)                   |
 | `$scan --target=domain-entities`                                  | final diff changes entity/model, DTO/contract, schema/migration or entity-sync evidence             | entity reference catalog fresh; otherwise skip it as a `pre-action` deviation authorized by the DOMAIN-ENTITY REFRESH clause of `preActions.injectContext`, with the cited reason                          |
 | `$docs-update`                                                    | always                                                                                              | docs and specs synced to the final changeset                                                |
@@ -172,10 +157,11 @@ You decide inline vs sub-agent, wave composition, batch boundaries and whether t
 - A change is reviewed before it is fixed; fixes are re-verified (post-fix re-review + affected tests) after they land; `$code-simplifier` edits are re-reviewed; `$docs-update` runs on the final changeset; the close runs last.
 - Read-only reviewers never share a wave with a writer; mutating steps (fix, simplify, experience-review remediation) run only after every reviewer they depend on has returned (the all-return barrier).
 - The orchestrator stays inline in the main session; it never delegates the whole workflow to a sub-agent.
+- Before consolidating findings and before trusting a failing test, confirm the target did not move under the run: `workflow-baseline.cjs report` for this run (or `git status` against the Review Plan). A path changed outside this run's own writes means another writer is active — stop and ask before attributing findings or failures on those paths to the change.
 
 **Initial Parallel Phase (Steps 1–2)** — launch `$why-review --target=whole-review-target` as a fresh `code-reviewer` sub-agent in FULL mode over the whole review target combined with the current changes, then immediately run `$changes-review` inline while it is active. Neither consumes the other's output. Advance only after BOTH return, then fold the whole-target report into the living report.
 
-**Specialist wave** — spawn every selected specialist together in ONE message and advance only after every spawned reviewer returns (a skipped optional member counts as returned). Recommended dispatch:
+**Specialist wave** — size the wave before you spawn it; every lens and gate still runs, only the number of agents changes. Specialists whose lenses read the same files share one agent that loads each lens's skill, unless the combined context would not fit with room to reason. An optional specialist whose surface is small and carries no material risk in its lens is folded into a reviewer that already reads those files, as concrete lens questions, without loading its skill — logged as a `merged` deviation. A `gate` specialist always runs its own skill and may carry merged lenses. Spawn the resulting agents together in ONE message and advance only after every one returns (a skipped or merged member counts as returned). Maximum shape, one agent per selected specialist:
 
 ```
 spawn_agent(architecture-review, agent_type="architect", ...)           ← when selected
@@ -191,20 +177,20 @@ Each reviewer brief carries: the `--report-only` flag (`integration-test-review`
 
 ## Fix & Re-Review Loop
 
-1. **Consolidate** — merge every reviewer report into the living report: findings by severity, conflicts between reviewers, deferred LOWs.
-2. **Validate** — run `$why-review --validate-findings <living-report>` on findings not already validated by their reviewer; rejected findings are recorded with the evidence that rejected them.
+1. **Consolidate** — merge every reviewer report into the living report: findings by severity, conflicts between reviewers, deferred LOWs. **Deduplicate by root cause FIRST** (same owning `file:line` range and same violated rule — one entry listing every source reviewer, the highest justified severity) so no duplicate is validated or fixed twice.
+2. **Validate** — run `$why-review --validate-findings <living-report>` in the main session over findings no reviewer validated plus the independent check set of `SYNC:systematic-review-batching` Step 3. Rejected findings are recorded with the evidence that rejected them.
 3. **Fix** — `$fix --target=review` on validated blocking findings; it appends a Fix Log row per finding (FIXED / REJECTED / DEFERRED) and re-runs the affected tests. Each behavior-changing fix reconciles its configured canonical owner, profile-declared scenario/case and mapped assertion/result (spec enrichment per cycle).
 4. **Simplify** — `$code-simplifier` when source code changed; its edits join the post-fix target.
 5. **Re-review** — the post-fix `why-review` re-reads the settled whole target from scratch INLINE in FULL mode (orchestrator confirmation bias is the risk it counters) and appends its verdict to the living report; blocking findings re-enter step 2 of this loop.
 
-**Severity floor & budget** — round 1 converges on a zero-finding pass at any severity; from round 2 the bar is zero validated CRITICAL/HIGH/MEDIUM, and a LOW-only round ENDS the loop with the LOWs listed under `## Deferred LOW Findings (severity floor, round ≥2)`. Never re-tier a real finding to reach the exit, and never apply the floor to a binary gate. Budget rules:
+**Severity floor & budget** — round 1 converges on a pass with zero open findings at any severity — a LOW closes by a local fix plus scoped check, or by deferral when its fix needs new code or tests, and a LOW-only fix set with no simplification needs no full re-review (`SYNC:double-round-trip-review` → Round-1 LOW closure); from round 2 the bar is zero validated CRITICAL/HIGH/MEDIUM, and a LOW-only round ENDS the loop with the LOWs listed under `## Deferred LOW Findings (severity floor, round ≥2)`. Never re-tier a real finding to reach the exit, and never apply the floor to a binary gate. Budget rules:
 
 - **Repeated blocker cap** — if the same validated finding repeats for 2 full invocations with no progress, STOP and escalate by asking the user directly.
 - **Review blockers increasing** — if round N finds MORE review blockers (validated findings at its own bar plus failed non-test binary gates; round-2 LOWs and failing test gates never count) than round N-1, STOP and escalate by asking the user directly — unless round 2 left a validated CRITICAL/HIGH open, which takes the one extension round first.
 - **Durable budget** — track rounds, findings and repeated blockers in the durable `review-policy.cjs` run record. Resume the same run after interruption; resume preserves completed rounds and findings. A changed target invalidates prior evidence and acceptance but must preserve the spent round budget — never reset to round 0 because context was lost.
 - **Goal satisfaction** — at start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` and pass it to every child step; a required criterion at FAIL in the Goal Satisfaction matrix enters the same loop as a code finding.
 
-PASS = one complete pass finds zero blocking issues after all validated fixes and verification are included. When no fix or simplification landed and no validated blocking finding was rejected by the fix step, the clean initial reviews and green tests are the PASS evidence and the post-fix re-review is skipped with its registry `skipReason`. A `REJECTED` Fix Log row is never self-certifying: it goes back through `$why-review --validate-findings` (or to the user) and the post-fix re-review runs.
+PASS = one complete pass finds zero blocking issues after all validated fixes and verification are included — or, in round 1, a pass whose only findings were LOWs closed by scoped check or deferral with no simplification landed (`SYNC:double-round-trip-review` → Round-1 LOW closure), with each closure recorded. When no fix or simplification landed and no validated blocking finding was rejected by the fix step, the clean initial reviews and green tests are the PASS evidence and the post-fix re-review is skipped with its registry `skipReason`. A `REJECTED` Fix Log row is never self-certifying: it goes back through `$why-review --validate-findings` (or to the user) and the post-fix re-review runs.
 
 ## Nested Invocation
 
@@ -220,13 +206,41 @@ ONLY when the invocation carries `--fix-loop`: read `references/fix-loop.md` in 
 
 Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-review-changes` with the user's prompt as context.
 
+<!-- SYNC:core-engineering-principles -->
+
+> **Core Engineering Principles — Easy to Change · Easy to Scale · Easy to Maintain** — The success metric of every plan, implementation and review is _future change cost_: the next change must be cheap, safe and provable. DRY, reuse, abstraction, interfaces, wrappers, patterns, layering, tests and the harness exist only to serve that goal. Apply this gate BEFORE any narrower design rule or checklist; when a narrower design rule would raise change cost, this principle wins — it never waives a required gate (tests, review, security, user confirmation). It is evidence-gated: judge fit against the project's config, accepted decisions and local patterns, and never impose a technique the project does not use.
+>
+> 1. **Easy to change.** Keep one owner per piece of knowledge — DRY the rule, not look-alike text. Reuse an existing helper, component or module before writing a new one (search 3+ siblings and cite them). Put purpose-named interfaces or ports at volatile boundaries: wrap a third-party SDK or infrastructure dependency in an adapter when it is volatile, likely to be swapped, or needs a test seam, so a swap touches one place — a stable dependency used directly is fine, and a pass-through wrapper that lowers no change cost is a defect. Keep units small and cohesive with explicit dependencies; no hidden state, boolean traps or leaked implementation detail. Extract an abstraction for a real second consumer or an evidenced change axis, never for speculation; prefer the reversible decision and defer an irreversible one until evidence forces it. Depth → `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`.
+> 2. **Easy to scale.** Growth in features, modules, team, data or load must not multiply edit sites or cost. Add a variant by extension (a new handler, registration or config entry), not by editing every switch over the same discriminator. Keep module boundaries and dependency direction explicit. Bound every loop, query, result set, queue and concurrency on the paths that matter, so work grows with the request, not with total data. Scale only what the project's profile warrants — no speculative distribution or infrastructure. Depth → `SYNC:scale-technique-gate`, `SYNC:engineering-foundation-gate` (F5, F6).
+> 3. **Easy to maintain.** Protect every changed behavior with tests that name the business intent or invariant and FAIL when it breaks — happy, error, edge, boundary and regression paths, not only the changed line. Tests are repeatable and isolated. The mechanical harness (format, lint, types, build, test — the same command locally and in CI) runs and passes. Names and structure state intent, and docs or specs that embed the behavior stay in sync. Depth → `SYNC:engineering-foundation-gate` (F3, F4, F7), `SYNC:harness-setup`.
+>
+> **By phase:**
+>
+> - **Plan** — each phase names what it reuses (`file:line`), the seam or abstraction it adds or why none is needed, the next plausible change and its edit-site count, the growth bound, and the test that proves each invariant — or `N/A` with a reason where an item cannot apply (a docs-only phase has no growth bound).
+> - **Implement** — search for reuse before writing; after writing, recount the edit sites of the next plausible change, confirm each new test fails when its intent breaks, and run the harness.
+> - **Review** — judge each pillar `PASS` / `FAIL` / `N/A` with `file:line` evidence and name the real enemy: coupling, duplicated knowledge, hidden state, unbounded growth, untested intent, unclear intent or an irreversible decision exposed too early. A finding names its consequence for the next change; absence of a pattern is not a defect.
+>
+> **Self-check before claiming done:** (1) What is the next plausible change, and how many files would it touch? (2) What breaks at 10× features, data or load? (3) Which named test goes red if this behavior breaks, and does the harness run it?
+
+<!-- /SYNC:core-engineering-principles -->
+
+<!-- SYNC:whole-diff-correctness -->
+
+> **Whole-Diff Correctness Lane** — Purpose: catch the defects that only appear when a change is read as one behavior rather than as files — a flow that breaks across layers, a boundary the change mishandles, a caller it silently breaks. One reviewer reads the complete behavior-changing diff, plus whatever surrounding code it needs, as a single change. Split only when the diff cannot fit one context with room to reason, and then along the change's own flows, never by file type. It is one assignment: the orchestrator runs it inline when the change fits its context, otherwise gives it to a reviewer that already reads the whole target, and to a dedicated reviewer only when none has room; a batch or specialist reviewer reviews only its own scope. Batches and specialists add depth; they never replace this pass.
+>
+> **Hunt:** walk each changed behavior through the situations real users and data create — empty, first and last, limits, time crossing a day or time zone, alternate clients, roles, channels and states, retries and partial failure, concurrent use. The history of the changed lines (blame, recent commits) and the comments beside them record intent the change can break; the project's own instructions and conventions are part of the contract.
+>
+> **Report:** rate how sure you are each candidate is real and reachable — 0 not a defect, or not introduced or newly exposed by this change; 25 plausible, unverified; 50 likely, not confirmed; 85 confirmed by tracing the code path; 100 confirmed with a concrete failing input — and keep what reaches 85, each with its reachable trigger path and consequence. Rarity and impact set severity, never confidence: a confirmed rare defect is still reported. A candidate whose reality or reachability cannot be settled (below 85, not ruled out) is never silently dropped when its consequence would be MEDIUM or higher: report it as `NOT VERIFIABLE`, naming what would settle it; a lower-consequence unsettled candidate is an observation. What is never a finding is defined once in `SYNC:severity-rubric`.
+
+<!-- /SYNC:whole-diff-correctness -->
+
 <!-- SYNC:review-policy -->
 
-> **Executable review policy — one predicate, one durable transition model.** Review skills and their tooling MUST use the canonical helper `.claude/scripts/lib/review-policy.cjs` (policy version 4) for round eligibility. The helper's `blockingFindings(round, findings, hardGates)` predicate returns every validated finding in round 1, and only CRITICAL/HIGH/MEDIUM findings from round 2 onward; `NOT VERIFIABLE` is a separate unresolved-evidence state that remains blocking at every round. Failed binary gates are synthetic CRITICAL blocking findings at every round; record a test-green gate with `kind: 'test'` and every other gate with `kind: 'binary'` (the default). `evaluateRound` retains floor-round LOWs in `deferredLow`, never treats a LOW-only round as blocked after the floor applies, reports `extensionGranted` plus an `ESCALATE` status when the review budget is spent with review blockers open, and reports `failingTestGates` / `testLoopContinues` when failing test gates keep the round open. Severity is assigned before the predicate and never changed to obtain a PASS.
+> **Executable review policy — one predicate, one durable transition model.** Review skills and their tooling MUST use the canonical helper `.claude/scripts/lib/review-policy.cjs` (policy version 5) for round eligibility. The helper's `blockingFindings(round, findings, hardGates)` predicate returns every validated finding in round 1 except a LOW closed under the round-1 LOW closure (`resolution: 'scoped-fix-verified' | 'deferred'`, accepted only on a LOW), and only CRITICAL/HIGH/MEDIUM findings from round 2 onward; `NOT VERIFIABLE` is a separate unresolved-evidence state that remains blocking at every round. Failed binary gates are synthetic CRITICAL blocking findings at every round; record a test-green gate with `kind: 'test'` and every other gate with `kind: 'binary'` (the default). `evaluateRound` retains floor-round and deferred LOWs in `deferredLow` and scoped-fixed LOWs in `scopedClosedLow` (never both), never treats a LOW-only round as blocked after the floor applies, reports `extensionGranted` plus an `ESCALATE` status when the review budget is spent with review blockers open, and reports `failingTestGates` / `testLoopContinues` when failing test gates keep the round open. Severity is assigned before the predicate and never changed to obtain a PASS.
 >
 > **Round and minimum rules.** `MAX_ROUNDS` (the base budget) is 2 and `HARD_MAX_ROUNDS` is 3; both are ceilings, never targets. Round 3 is an EXTENSION, not part of the default budget: the helper grants it only when the recorded round-2 evaluation still has a validated CRITICAL or HIGH review blocker — a finding, or a failed non-test binary gate carried as synthetic CRITICAL — (`extensionGranted`), grants it at most once per run, and rejects any attempt to reach round 3 without that evidence, except the failing-test continuation below, when round 2's only blockers are failing test gates. **Failing test gates are outside the review budget:** they never earn the extension and never escalate, so while failing `kind: 'test'` gates are the ONLY blockers the helper keeps the run in `CONTINUE` and accepts the next round — past round 3 if needed — until the tests pass. A review blocker past the budget still escalates, and a round with no failing test gate never re-opens the run past its budget. A round-2 evaluation whose blockers are only MEDIUM or `NOT VERIFIABLE` ends the budget and escalates. A clean review ends once `round >= minRounds`; the default minimum is 1 and an explicit `minRounds` may not exceed the base budget of 2 — the extension is earned by evidence, never declared up front. The declaration is persisted and cannot be inferred from a round counter. A failing test-green, security-must-fix, required-artifact, or other binary gate is never waived by the severity floor.
 >
-> **Durable run record.** A review run MUST identify `runId`, target fingerprint, policy version, target revision, minimum/maximum rounds, completed rounds, full findings/gate evidence, interruption/resume metadata, and acceptance. Use the atomic, lock-serialized transitions in `review-policy.cjs`: `start`, `record`, `accept`, `interrupt`, `resume`, `invalidate`, and `check`. Repeating an identical completed round is idempotent and MUST NOT consume budget twice. A changed target fingerprint invalidates prior evidence and acceptance but MUST preserve the bounded round budget; stale evidence cannot be accepted. A policy-version change (including the round-2 LOW floor and the conditional round-3 extension) invalidates old records; start a new run rather than interpreting old evidence under new semantics. Interrupted/resumed runs retain completed rounds and findings. The record is bookkeeping, not consent, native permission, or proof that a host actually performed the review.
+> **Durable run record.** A review run MUST identify `runId`, target fingerprint, policy version, target revision, minimum/maximum rounds, completed rounds, full findings/gate evidence, interruption/resume metadata, and acceptance. Use the atomic, lock-serialized transitions in `review-policy.cjs`: `start`, `record`, `accept`, `interrupt`, `resume`, `invalidate`, and `check`. Repeating an identical completed round is idempotent and MUST NOT consume budget twice. A changed target fingerprint invalidates prior evidence and acceptance but MUST preserve the bounded round budget; stale evidence cannot be accepted. Record round 1 once, after any round-1 LOW closure: `targetFingerprint` is the post-fix target and `reviewedFingerprint` the target the full pass reviewed — required whenever a finding carries `scoped-fix-verified`, so the record never claims a full pass saw code it did not. A policy-version change (including the round-2 LOW floor, the conditional round-3 extension and the round-1 LOW closure) invalidates old records; start a new run rather than interpreting old evidence under new semantics. Interrupted/resumed runs retain completed rounds and findings. The record is bookkeeping, not consent, native permission, or proof that a host actually performed the review.
 >
 > **CLI boundary.** The helper CLI accepts JSON on stdin and uses its own real clock; a supplied `now` is rejected. State directories must be absolute, non-root real directories, records are size-bounded, and malformed/locked state fails closed for the transition. Full reports remain on disk; an inline result envelope is only a transport summary. Any new review policy consumer must add a semantic fixture, boundary counter-cases, a seeded mutant, and a report with the target fingerprint and command exit status.
 
@@ -283,9 +297,9 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 > **Rules:**
 >
 > - SKIP fresh sub-agent when the prior full review found zero issues AND the persisted `minRounds` is met (no fixes or required independent pass = nothing new to verify)
-> - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
+> - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict (exception: a round-1 LOW-only fix set closed by scoped check, with no simplification landed, per `SYNC:double-round-trip-review`)
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero findings at any severity; **round 2 (and the conditional round 3)** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). The budget is 2 rounds plus ONE extension to round 3, granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); round 3 is the review hard cap. A failing test gate is not budgeted — keep fixing and re-running until the tests pass. If the same validated blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
+> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero open findings at any severity (a LOW closed by scoped check or deferral is not open); **round 2 (and the conditional round 3)** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). The budget is 2 rounds plus ONE extension to round 3, granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); round 3 is the review hard cap. A failing test gate is not budgeted — keep fixing and re-running until the tests pass. If the same validated blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
 > - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
 
 <!-- /SYNC:fresh-context-review -->
@@ -483,7 +497,9 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 > 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
 > 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
 >
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
+> **Cost check before every wave:** each sub-agent pays a fixed context load before any work — its agent definition, every skill it loads or preloads, its brief and reference docs — commonly tens of thousands of tokens, far more than one duplicated protocol block. Dispatch only a task whose own work clearly exceeds that load; otherwise do it inline, or fold it into an agent that already reads the same files as concrete questions (that agent need not load the task's whole skill) — unless the task's risk needs its full protocol: risk sets depth, file count never does. Merge tasks that read the same files or reference docs into one agent, and prefer fewer, larger agents over many small ones. Parallelism buys wall-clock time, never free tokens.
+>
+> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · a task whose own work is smaller than its sub-agent's fixed context load (do it inline or merge it) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
 >
 > **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
 
@@ -502,6 +518,8 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 > **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
 >
 > **Finding vs observation (required):** An observation becomes a finding only when it names the affected user/system/data/contract, the shipped consequence, the evidence location, and the normalized tier. `INFO`, advice, preference, duplicate wording, or an unsubstantiated concern is not a finding and must not reopen a loop. If the concern might affect a required behavior or gate but evidence is incomplete, emit `NOT VERIFIABLE` with the missing evidence and keep it unresolved; never silently convert uncertainty into LOW.
+>
+> **Reachable trigger path (required):** a finding also names HOW a supported configuration reaches the defect — the caller, input, state or event sequence that drives execution or data there. A concern on a path nothing reaches (dead code, a branch its guard excludes, an impossible state) is an observation: record it as advice, never as a LOW to fix. Also never a finding: what a compiler, type checker, linter or test run for this change already reports in the review evidence; a behavior change the stated intent asks for; an issue silenced by a suppression that predates this change and states its reason (a suppression the change adds is itself reviewed); a pre-existing issue on a line the change neither touched nor made reachable. When reachability cannot be settled and the concern would be MEDIUM or higher, emit `NOT VERIFIABLE` naming what would settle it; a polish-level concern with unsettled reachability is an observation. — why: a speculative LOW admitted as a finding becomes build work in round 1.
 >
 > | Severity | Action | Definition and examples |
 > | --- | --- | --- |
@@ -575,6 +593,12 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- /SYNC:workflow-registry-binding -->
 
+<!-- SYNC:whole-diff-correctness:reminder -->
+
+**MUST ATTENTION** Whole-diff correctness lane: read the complete behavior-changing diff once as one change (split only by flow when it cannot fit); hunt defects through real situations — boundaries, time crossing a day or zone, alternate clients, roles and states, retries, concurrency — using blame/history and adjacent comments as recorded intent; keep only confirmed findings (85+: code path traced) with a reachable trigger path, and report an unsettled candidate that would be MEDIUM or higher as `NOT VERIFIABLE` naming what would settle it, never dropped — rarity sets severity, never confidence.
+
+<!-- /SYNC:whole-diff-correctness:reminder -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
@@ -635,6 +659,7 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
@@ -658,6 +683,7 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
@@ -698,11 +724,11 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** take the current changes to a converged review — triage-selected reviewers, validated findings, owning-layer fixes, a post-fix re-review of the settled whole target, tests green, specs/docs in sync — at the lowest cost the change's size and risk allow (round 1: zero findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred).
+**IMPORTANT MUST ATTENTION Goal:** take the current changes to a converged review — triage-selected reviewers, validated findings, owning-layer fixes, a post-fix re-review of the settled whole target, tests green, specs/docs in sync — at the lowest cost the change's size and risk allow (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOWs recorded as deferred).
 
 **IMPORTANT MUST ATTENTION** triage first (size band · change kinds · risk) and write the Review Plan into the living report before any reviewer starts; the triage selects the optional specialists and the orchestration — every skipped optional step carries its registry `skipReason` and evidence.
 **IMPORTANT MUST ATTENTION** launch the whole-target FULL-mode `$why-review` as a fresh sub-agent, immediately run `$changes-review` inline, and advance only after BOTH return; then spawn the selected specialists (`--report-only`) in ONE message and advance only after every spawned reviewer returns.
-**IMPORTANT MUST ATTENTION** no finding is fixed before it is validated; validated blocking findings go to `$fix --target=review`; any fix or simplification triggers the post-fix `why-review` INLINE in FULL mode over the settled whole target — re-read from scratch, never just the last fix.
+**IMPORTANT MUST ATTENTION** no finding is fixed before it is validated; validated blocking findings go to `$fix --target=review`; any fix or simplification — except a round-1 LOW-only fix set closed by scoped check with no simplification — triggers the post-fix `why-review` INLINE in FULL mode over the settled whole target — re-read from scratch, never just the last fix.
 **IMPORTANT MUST ATTENTION** every finding/verdict needs `file:line` evidence + confidence (>80% act, <60% DO NOT recommend); "Insufficient evidence" is valid output — no speculation.
 **IMPORTANT MUST ATTENTION** adjudicate every behavior-vs-spec divergence (CODE-WRONG / SPEC-STALE / SPEC-SILENT / AMBIGUOUS) against the configured canonical owner; every behavior-changing fix reconciles its profile-declared scenario/case and mapped executing assertion/result — green tests never normalize drift.
 **IMPORTANT MUST ATTENTION** treat integration-test coverage gaps and multilingual UI translation gaps as mandatory ask the user directly user-decision gates.
@@ -726,6 +752,12 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 | "Same blocker again, one more loop will fix it"               | 2 no-progress repeats or a spent budget → escalate by asking the user directly; never loop open-ended.                                                          |
 | "Round 2 turned up two more nits, loop again"                 | From round 2 a LOW-only round ends the loop — defer and list the LOWs.                                                                                    |
 | "`--fix-loop`: the round's review was clean, so it converged" | Not while that round landed any edit (a `$code-simplifier` change included) — run the next round to prove a zero-fix pass, or escalate at a spent budget. |
+
+<!-- SYNC:core-engineering-principles:reminder -->
+
+**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
+
+<!-- /SYNC:core-engineering-principles:reminder -->
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)
@@ -768,17 +800,19 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
+3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run `$learn`.
+5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
+6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
+7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
+8. ALL three gates pass → ask user to run `$learn`.
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
 **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
 **Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
 ## Common AI Mistake Prevention (System Lessons)
 

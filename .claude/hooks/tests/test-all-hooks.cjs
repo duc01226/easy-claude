@@ -1222,6 +1222,13 @@ async function testLessonLearnedReminder() {
         logResult('Returns reminder with no transcript', result !== null && result.includes('[LESSON-LEARNED-REMINDER]'));
         logResult('Contains task tracking instruction', result.includes('task tracking'));
         logResult('Contains $learn instruction', result.includes('$learn'));
+        // Invariant: /learn is recommended only for everyday-valuable lessons — a project convention or a
+        // universal best-practice protocol — and only when all three gates pass, never for rare agent quirks.
+        logResult('Value gate precedes the $learn recommendation',
+            /\*\*Value gate:\*\*[^\n]*project convention[^\n]*universal best-practice protocol[^\n]*everyday work/.test(result) &&
+            result.indexOf('**Value gate:**') < result.indexOf('ALL three gates pass'));
+        logResult('Value gate rejects rare AI-agent quirks and current-task details',
+            /Value gate:[^\n]*rare AI-agent quirks[^\n]*current task[^\n]*skip/i.test(result));
     }
 
     // Test 2: Dedup — returns null when marker in recent transcript

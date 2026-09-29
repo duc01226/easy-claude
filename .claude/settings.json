@@ -81,6 +81,15 @@
       {
         "hooks": [
           {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-principles-inject.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "TodoWrite|TaskCreate|TaskUpdate|update_plan"
+      },
+      {
+        "hooks": [
+          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-review.cjs",
             "type": "command"
           },
@@ -360,6 +369,14 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/judgement-integrity-route.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/core-principles-inject.cjs",
             "type": "command"
           }
         ]

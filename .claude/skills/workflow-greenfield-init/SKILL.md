@@ -105,7 +105,7 @@ Declared all-return barriers — advance only after every member returns:
 
 ## Fix Path & Loop Bounds
 
-Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass after non-trivial fixes. Plan ceremony for fixes only when the fix set is large, cross-module or ambiguous. Review loops: round 1 exits on zero validated findings; from round 2 only CRITICAL/HIGH/MEDIUM block (LOW deferred); cap 2 rounds (+1 on open CRITICAL/HIGH); failing tests are uncapped; no progress → `AskUserQuestion`.
+Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass after non-trivial fixes. Plan ceremony for fixes only when the fix set is large, cross-module or ambiguous. Review loops: round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); from round 2 only CRITICAL/HIGH/MEDIUM block (LOW deferred); cap 2 rounds (+1 on open CRITICAL/HIGH); failing tests are uncapped; no progress → `AskUserQuestion`.
 
 ## Step Chain
 

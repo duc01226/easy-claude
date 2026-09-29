@@ -52,20 +52,9 @@ description: '[Testing] Use when a workflow step or the user asks for integratio
 
 ---
 
-## First Principle — Easy to Change
+## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
-> **Success metric: future change cost.** DRY, SRP, abstraction, patterns,
-> naming, layering, and tests serve one goal: **make the next change cheaper**.
-
-Ask before applying any rule: **does this make the next change cheaper or more expensive?**
-
-- Reject "best practices" that raise change cost: premature abstraction,
-  speculative generality, leaky indirection, or ceremony without payoff.
-- Name the real enemies: **coupling, hidden state, duplicated knowledge,
-  unclear intent, and irreversible decisions exposed too early**.
-- Prefer simple designs that are easy to change over sophisticated ones that are not.
-
-Apply this lens **before** any rule, pattern, or checklist below; it wins when a downstream rule raises change cost.
+> The full gate is `SYNC:core-engineering-principles` (protocol guide below; a hook delivers its text); its closing digest ends this file.
 
 ---
 
@@ -599,6 +588,7 @@ Unfixable failures (product decision, unclear intent, environment) → **escalat
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
+- `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `environment-fault-hypothesis` — Weigh the environment as a competing cause, with a named discriminator; judging a bug report, failing test, error or unexpected output → .claude/skills/shared/protocols/environment-fault-hypothesis.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
@@ -775,3 +765,9 @@ Unfixable failures (product decision, unclear intent, environment) → **escalat
 **IMPORTANT MUST ATTENTION** read `integrationTestVerify` config and project reference docs FIRST, harvest cited preconditions, settle every row before the first test command, and use `quickRunCommand` — NEVER hardcode a language-specific runner.
 **IMPORTANT MUST ATTENTION** NEVER weaken assertions, add skips, or mutate domain data to force green — fix the root-cause layer and rerun the full 2-run sequence.
 **IMPORTANT MUST ATTENTION** `--fix-loop` (optional) = bounded verify → Fault Verdict → owning-layer fix → fix-diff review → integrity check loop over a fixed WHOLE-SYSTEM scope until 2 consecutive zero-failure runs; each round is the default pass WITHOUT the flag, and escalation beats spinning.
+
+<!-- SYNC:core-engineering-principles:reminder -->
+
+**MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
+
+<!-- /SYNC:core-engineering-principles:reminder -->

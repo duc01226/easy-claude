@@ -75,9 +75,9 @@ HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
 
 ## Reference Docs (READ before reviewing)
-- `.claude/docs/development-rules.md` — canonical development rules, code-quality guidelines, and pre-commit checklist
+Read only the docs resolved for this lane — every doc costs context before any review work; do not re-resolve the whole doc set.
 - `code-review-rules.md`, inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
-- {skill-specific reference docs — e.g., integration-test-reference.md for integration-test-review; backend-patterns-reference.md for backend reviews; frontend-patterns-reference.md for frontend reviews}
+- {lane-specific docs the orchestrator resolved — e.g., the pattern doc for the files under review, integration-test-reference.md for a test lane, the governing spec for a spec-compliance lane}
 
 ## Target Files
 {explicit file list OR "run git diff to see uncommitted changes" OR "read all files under {plan-dir}"}

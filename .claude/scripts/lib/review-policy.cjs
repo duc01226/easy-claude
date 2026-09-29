@@ -11,7 +11,11 @@
  *
  * Policy:
  *   - base budget of two rounds (a ceiling, not a target);
- *   - round 1 blocks on every validated finding;
+ *   - round 1 blocks on every validated finding, except a LOW the caller
+ *     closed under the round-1 LOW closure rule (`resolution`:
+ *     'scoped-fix-verified' after a local fix passed its scoped check, or
+ *     'deferred' when its fix needs new code or tests) - a LOW never buys a
+ *     full review round on its own; no other tier can carry a resolution;
  *   - from round 2 only CRITICAL/HIGH/MEDIUM findings block;
  *   - failed binary gates always block, at every round;
  *   - LOW findings deferred by the severity floor remain in the record;
@@ -41,7 +45,7 @@ const SCHEMA_VERSION = 1;
 // Bump whenever the round eligibility predicate changes.  Existing durable
 // records are intentionally invalidated rather than interpreted under a new
 // severity floor; callers must start a fresh run with the current policy.
-const POLICY_VERSION = 4;
+const POLICY_VERSION = 5;
 // Base budget every run starts with. A round-2 evaluation still blocked by a
 // CRITICAL/HIGH review blocker (a finding, or a failed non-test binary gate
 // carried as synthetic CRITICAL) raises this run's budget to HARD_MAX_ROUNDS
@@ -51,6 +55,9 @@ const HARD_MAX_ROUNDS = 3;
 const SEVERITIES = Object.freeze(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
 const NON_SEVERITY_STATES = Object.freeze(['NOT VERIFIABLE']);
 const LOW_FINDING_FLOOR_ROUND = 2;
+// Round-1 LOW closure: how a caller records that a validated LOW is closed
+// without another full review round. Valid only on a LOW finding.
+const LOW_RESOLUTIONS = Object.freeze(['scoped-fix-verified', 'deferred']);
 // Only these tiers can unlock the single extension round.  MEDIUM and the
 // NOT VERIFIABLE evidence state keep a round blocked without buying another.
 const EXTENSION_SEVERITIES = Object.freeze(['CRITICAL', 'HIGH']);
@@ -129,6 +136,16 @@ function normalizeFinding(finding, index) {
     }
     const id = finding.id === undefined ? `finding-${index + 1}` : boundedText(finding.id, `findings[${index}].id`, 128);
     const result = { id, severity };
+    if (finding.resolution !== undefined) {
+        const resolution = String(finding.resolution).toLowerCase();
+        if (!LOW_RESOLUTIONS.includes(resolution)) {
+            throw new Error(`findings[${index}].resolution must be one of ${LOW_RESOLUTIONS.join(', ')}`);
+        }
+        // Only a LOW closes without a fix-and-full-re-review cycle; a higher tier
+        // or an unresolved evidence state stays open until it is fixed.
+        if (severity !== 'LOW') throw new Error(`findings[${index}].resolution is allowed only on a LOW finding`);
+        result.resolution = resolution;
+    }
     for (const key of ['summary', 'file', 'line', 'confidence']) {
         if (finding[key] !== undefined) {
             result[key] = typeof finding[key] === 'number' ? finding[key] : boundedText(String(finding[key]), `findings[${index}].${key}`, 1024);
@@ -187,7 +204,7 @@ function blockingFindings(round, findings = [], hardGates = []) {
     validateRound(round);
     const normalized = normalizeFindings(findings);
     const allowed = new Set(blockingSeverities(round));
-    const blockers = normalized.filter(finding => allowed.has(finding.severity) ||
+    const blockers = normalized.filter(finding => (allowed.has(finding.severity) && !finding.resolution) ||
         NON_SEVERITY_STATES.includes(finding.severity));
     const failedGates = normalizeHardGates(hardGates).filter(gate => !gatePassed(gate.status)).map(gate => ({
         id: gate.id,
@@ -227,7 +244,13 @@ function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {})
     const normalizedGates = normalizeHardGates(hardGates);
     const minimum = validateMinRounds(minRounds).value;
     const blocking = blockingFindings(round, normalizedFindings, normalizedGates);
-    const deferredLow = round >= LOW_FINDING_FLOOR_ROUND ? normalizedFindings.filter(finding => finding.severity === 'LOW') : [];
+    // A LOW is either deferred (recorded, unfixed) or closed by a scoped-checked
+    // fix — never both: from round 2 an unfixed LOW is deferred by the floor.
+    const deferredLow = normalizedFindings.filter(finding => finding.severity === 'LOW' &&
+        finding.resolution !== 'scoped-fix-verified' &&
+        (round >= LOW_FINDING_FLOOR_ROUND || finding.resolution === 'deferred'));
+    // Round-1 LOWs fixed locally and closed by a scoped check, not a full re-review.
+    const scopedClosedLow = normalizedFindings.filter(finding => finding.resolution === 'scoped-fix-verified');
     const minimumMet = round >= minimum;
     const canComplete = minimumMet && blocking.length === 0;
     const bounded = reviewBlockers(blocking);
@@ -248,6 +271,7 @@ function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {})
         hardGates: normalizedGates,
         blocking,
         deferredLow,
+        scopedClosedLow,
         extensionGranted,
         extensionFindings: extensionGranted
             ? bounded.filter(finding => EXTENSION_SEVERITIES.includes(finding.severity))
@@ -448,7 +472,18 @@ function recordRound(options) {
         const targetFingerprint = validateFingerprint(options.targetFingerprint);
         const round = validateRound(options.round);
         const evaluation = evaluateRound({ round, findings: options.findings, hardGates: options.hardGates, minRounds: state.minRounds });
-        const proposedDigest = digest(evaluation);
+        // A scoped-checked LOW fix changed the target after the full pass, so the
+        // record must name what that pass reviewed; otherwise the round would
+        // claim a full review of code the pass never saw.
+        const reviewedFingerprint = options.reviewedFingerprint === undefined
+            ? null : validateFingerprint(options.reviewedFingerprint);
+        if (evaluation.scopedClosedLow.length > 0 && reviewedFingerprint === null) {
+            throw new Error('reviewedFingerprint is required when a finding carries resolution scoped-fix-verified');
+        }
+        if (reviewedFingerprint !== null && reviewedFingerprint !== targetFingerprint && evaluation.scopedClosedLow.length === 0) {
+            throw new Error('reviewedFingerprint may differ from targetFingerprint only when scoped-checked LOW fixes changed the target');
+        }
+        const proposedDigest = digest({ evaluation, reviewedFingerprint });
         const duplicate = state.rounds.find(item => item.valid && item.round === round && item.targetFingerprint === targetFingerprint);
         // A retried completion is a read-only idempotent transition. Check it
         // before the next-round guard so callers can safely retry after a lost
@@ -467,6 +502,7 @@ function recordRound(options) {
         const record = {
             round,
             targetFingerprint,
+            ...(reviewedFingerprint === null ? {} : { reviewedFingerprint }),
             targetRevision: state.targetRevision,
             valid: true,
             recordedAt: now,
@@ -574,6 +610,7 @@ module.exports = {
     EXTENSION_SEVERITIES,
     TEST_GATE_KIND,
     HARD_GATE_KINDS,
+    LOW_RESOLUTIONS,
     SEVERITY_DEFINITIONS,
     blockingSeverities,
     blockingFindings,

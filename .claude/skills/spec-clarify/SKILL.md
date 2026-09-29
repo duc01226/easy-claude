@@ -280,6 +280,7 @@ Run **Phase 0 (Spec-Context Detection)** above first — it sets the context + b
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
+- **MANDATORY** A finding names a reachable trigger path (caller, input, state or event that reaches the defect) and a consequence; an unreachable concern is an observation, and unsettled reachability is `NOT VERIFIABLE` only when the concern would be MEDIUM or higher (an observation otherwise) — never a speculative LOW.
 - **MANDATORY** Keep binary gates separate from severity: a failed test, security must-fix, required artifact, or parity check blocks at every round and is never relabeled LOW.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
@@ -301,6 +302,7 @@ Run **Phase 0 (Spec-Context Detection)** above first — it sets the context + b
 
 - **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
 - **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
+- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
@@ -324,7 +326,7 @@ Run **Phase 0 (Spec-Context Detection)** above first — it sets the context + b
 - **Critical Thinking Mindset:** Traced `file:line` proof; confidence >80% to act.
 - **Evidence Based Reasoning:** No claim without cited evidence; state confidence.
 - **Understand Code First:** Read code, grep 3+ patterns before any change.
-- **Fresh Context Review:** Validate findings, fix only current-round blocking findings, and restart the full review until the severity bar is clear (Round 1: zero findings; Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred); spawn a fresh zero-memory sub-agent after each fix cycle (re-review only — this skill itself runs inline).
+- **Fresh Context Review:** Validate findings, fix only current-round blocking findings, and restart the full review until the severity bar is clear (Round 1: zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred); spawn a fresh zero-memory sub-agent after each fix cycle (re-review only — this skill itself runs inline).
 - **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in any fresh sub-agent prompt.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence.

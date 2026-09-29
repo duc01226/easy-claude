@@ -177,12 +177,13 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 
 ### Advisory prompt routers
 
-Two UserPromptSubmit accelerators are ON by default and inject a short conditional directive; the static `CLAUDE.md` / `AGENTS.md` rules bind every host without them, so turning one off loses only the reminder. `.claude/.ck.local.json` overrides `.ck.json` per key (local wins), and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
+Three UserPromptSubmit accelerators are ON by default and inject a short directive; the static `CLAUDE.md` / `AGENTS.md` rules bind every host without them, so turning one off loses only the reminder. `.claude/.ck.local.json` overrides `.ck.json` per key (local wins), and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
 
 | Hook                            | Injects when                                                                                                                                 | Opt-out (`.claude/.ck.json`)                          | Env opt-out                      |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------- |
 | `commit-skill-route.cjs`        | the prompt asks for a commit — run the `commit` skill, never a raw `git commit` (`review-commit-gate.cjs` still blocks an unreviewed commit) | `{ "commitSkillRoute": { "enabled": false } }`        | `CK_COMMIT_SKILL_ROUTE=0`        |
 | `judgement-integrity-route.cjs` | the prompt asks for a verdict, root cause, evaluation, or gap hunt — the `SYNC:judgement-integrity:reminder` directive                       | `{ "judgementIntegrityRoute": { "enabled": false } }` | `CK_JUDGEMENT_INTEGRITY_ROUTE=0` |
+| `core-principles-inject.cjs`    | first prompt or task step of a session scope, then again after ~`reinjectAfterTokens` (default 100000) of transcript growth or a compaction — the `SYNC:core-engineering-principles` gate | `{ "corePrinciplesInject": { "enabled": false } }`  | `CK_CORE_PRINCIPLES_INJECT=0`    |
 
 ### Default-on workflow routing
 

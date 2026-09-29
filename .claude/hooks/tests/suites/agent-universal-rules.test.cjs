@@ -146,6 +146,14 @@ const AGENT_ADOPTION_EXEMPT = new Set([
     'project-protocol-overlay',    // overlay resolution is performed by whoever INVOKES the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the dispatching orchestrator already resolved
     'session-goal-ledger',         // tracks the USER's session prompts; a headless leaf never sees the user conversation (its brief already carries the goal) and the prompt-ledger hook injects nothing inside a helper agent
     'workflow-registry-binding',   // binds a workflow SKILL.md to its .claude/workflows.json entry so whoever RESOLVES a step reads both projections; a headless leaf gets one already-resolved brief and never evaluates a sequence's applicability
+    // Review-loop orchestration: the orchestrating review skill runs batching, the round loop,
+    // reviewer-prompt construction and the round record; a leaf reviewer gets one scoped brief with
+    // the rules it applies already embedded (agent_protocol_matrix.py EXCLUDED_ORCHESTRATION).
+    'review-protocol-injection',
+    'systematic-review-batching',
+    'double-round-trip-review',
+    'fresh-context-review',
+    'review-policy',
 ]);
 const AGENT_SKILL_CONNECTIONS_OPEN = '<!-- AGENT-SKILL-CONNECTIONS:START -->';
 const AGENT_SKILL_CONNECTIONS_CLOSE = '<!-- AGENT-SKILL-CONNECTIONS:END -->';

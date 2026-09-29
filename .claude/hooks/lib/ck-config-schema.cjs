@@ -80,6 +80,16 @@ const CK_SCHEMA = {
       enabled: { type: "boolean", required: false },
     },
   },
+  // Core engineering principles reminder (core-principles-inject.cjs). On by default;
+  // `enabled: false` or CK_CORE_PRINCIPLES_INJECT=0 switches it off.
+  corePrinciplesInject: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+      reinjectAfterTokens: { type: "number", required: false, min: 20000, max: 2000000 },
+    },
+  },
   portability: {
     type: "object",
     required: false,
