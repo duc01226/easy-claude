@@ -86,6 +86,9 @@ test('TC-HARNESS-047: the durable record closes round 1 once, after the LOW clos
         // A reviewed target that differs without any scoped-checked fix is refused
         assert.throws(() => recordRound({ ...base, targetFingerprint: 'sha256:fixed', reviewedFingerprint: 'sha256:reviewed', round: 1,
             findings: [{ id: 'L2', severity: 'LOW', resolution: 'deferred' }], now: 1100 }), /may differ .* only when scoped-checked LOW fixes/);
+        // A malformed reviewed target is refused, and the error names that field rather than the post-fix target
+        assert.throws(() => recordRound({ ...base, targetFingerprint: 'sha256:fixed', reviewedFingerprint: 'bad fingerprint!', round: 1,
+            findings: [fixedLow], now: 1100 }), /reviewedFingerprint contains unsupported characters/);
         // Recorded once after the closure, round 1 is complete without spending round 2
         const recorded = recordRound({ ...base, targetFingerprint: 'sha256:fixed', reviewedFingerprint: 'sha256:reviewed', round: 1, findings: [fixedLow], now: 1200 });
         assert.equal(recorded.roundsCompleted, 1, 'no phantom round 2 is consumed');

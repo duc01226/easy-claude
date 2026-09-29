@@ -140,8 +140,8 @@ function hasAgentsProtocol(content) {
 
 /**
  * Canonical root agent files and the skill that (re)generates each.
- * `aiRunnable` distinguishes routes Claude can invoke itself (/ai-context-refresh) from
- * routes that may need a standalone script fallback.
+ * `aiRunnable` distinguishes routes Claude can invoke itself (/ai-context-refresh, /sync-codex) from
+ * routes only the user can start (`ask the user to run …`).
  * `updateArgs` is the smart-merge argument for THAT file's runner, and must stay per-file:
  * `--mode update` is a flag of generate-claude-md.cjs only. The full run-codex-sync.mjs route
  * performs its own 19-stage CLAUDE.md preflight, while the ai-context-refresh completion handoff
@@ -160,7 +160,7 @@ const AGENT_FILES = [
     {
         file: 'AGENTS.md',
         route: '/sync-codex',
-        aiRunnable: false,
+        aiRunnable: true,
         fallbackCommand: 'node .claude/skills/sync-codex/scripts/run-codex-sync.mjs',
         // No flag: the sync regenerates AGENTS.md from canonical CLAUDE.md on a plain run.
         updateArgs: '',
@@ -370,7 +370,7 @@ function buildOfferMessage(issues) {
         '',
         'Targeted routes:',
         '  /ai-context-refresh   — generate or smart-merge project AI context from project-config + template',
-        '  /sync-codex           — user-invoked only; generate AGENTS.md (Codex mirror of CLAUDE.md); use the node runner if the skill is unavailable',
+        '  /sync-codex           — generate AGENTS.md (Codex mirror of CLAUDE.md); use the node runner if the skill is unavailable',
         '  opt out permanently   — set portability.requireUniversalGuides=false in .claude/.ck.json',
         '                          (works with no project config) or in the project config when you have one;',
         '                          keeps a project-only file — disables the content check, not existence',

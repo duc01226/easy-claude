@@ -66,7 +66,7 @@ Connected contracts:
 
 - Edit SOURCE ONLY (`.claude/**` + `CLAUDE.md`); the mirrors (`.agents/`, `.codex/`, `AGENTS.md`) are generated — fix a mirror by editing its source and re-syncing.
 - SYNC protocols follow the hybrid duplication policy: change the canonical in `sync-inline-versions.md`, then propagate to EVERY body copy, rebuild the projection and verify fence balance — never hand-extract a body to a file reference.
-- Keep generic surfaces project-neutral (residue verifier fails the build on leaks); after source edits that touch mirrors, use the documented `$ai-context-refresh` completion handoff when it owns the source edit, otherwise STOP and tell the user to run `$sync-codex`.
+- Keep generic surfaces project-neutral (residue verifier fails the build on leaks); after source edits that touch mirrors, use the documented `$ai-context-refresh` completion handoff when it owns the source edit, otherwise run the sync runner once the source is final (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — this agent has no skill invocation).
 - Grep 3+ siblings and cite `file:line` before authoring; never fabricate hook/skill/SYNC/script names.
 
 **Workflow:**
@@ -77,7 +77,7 @@ Connected contracts:
 4. **Plan** — list exact files + ALL SYNC copies + catalog regenerations + mirrors going stale.
 5. **Execute against conventions** — per artifact type.
 6. **Validate** — run tests + read-only codex verifiers.
-7. **Keep mirrors current** — an explicit `$ai-context-refresh` completion may hand off to the standalone runner; for independent framework-source edits, report stale mirrors and instruct the user to run `$sync-codex`.
+7. **Keep mirrors current** — an explicit `$ai-context-refresh` completion may hand off to the standalone runner; for independent framework-source edits, run the sync runner (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`) after the final source verification and report the result.
 
 **Key Rules:**
 
@@ -90,7 +90,7 @@ Connected contracts:
 >
 > 1. **EDIT SOURCE, NEVER MIRRORS.** `.claude/**` + root `CLAUDE.md` are the ONLY hand-editable surfaces. `.agents/`, `.codex/`, `AGENTS.md` are GENERATED — the next sync overwrites any direct edit. If asked to change a mirror, change its source and re-sync.
 > 2. **SYNC PROTOCOLS FOLLOW THE HYBRID POLICY.** Shared protocols are authored once in `.claude/skills/shared/sync-inline-versions.md`; every other copy is a projection (`SYNC:shared-protocol-duplication-policy`). Converted skills carry one guide line per protocol and a hook delivers the full text from `.claude/skills/shared/protocols/`; the five review-family skills, `references/*.md` bodies, agents and reviewer prompts keep the verbatim body between paired `SYNC:{tag}` HTML-comment fences. To change one: edit the canonical, then propagate (`sync-update-blocks.py <tag>` via the `sync-skills-shared-protocols` skill), rebuild the projection (`node .claude/scripts/build-protocol-projection.cjs`) and grep `SYNC:{tag}` for copies outside the tool's scope. NEVER hand-extract, deduplicate or replace a body outside those rules — a reader with no hook and no body loses the rule.
-> 3. **KEEP `$sync-codex` user-invoked-only for independent edits.** The explicit `$ai-context-refresh` completion may call the standalone runner with `--skip=claude-md` after final source verification; otherwise STOP and tell the user to run `$sync-codex`. Keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on any hardcoded project name/symbol.
+> 3. **RUN `$sync-codex` ONCE, AFTER the source is final.** The explicit `$ai-context-refresh` completion calls the standalone runner with `--skip=claude-md` after final source verification; for independent edits run the full `$sync-codex` yourself. Never hand-edit a mirror. Keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on any hardcoded project name/symbol.
 >
 > **Evidence Gate:** Every claim, change, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first). NEVER fabricate hook names, skill names, SYNC tags, npm scripts, or verifier behavior — grep to confirm first.
 > **External Memory:** For complex framework work (audits, multi-file SYNC propagation, refactors), write intermediate findings and the final result to `tmp/reports/` — prevents context loss and serves as the deliverable.
@@ -146,7 +146,7 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 - Cross-host parity: Claude and Codex may both run hooks, but the mirror TRANSFORM relays the same static contract (workflow catalog written inline; the lessons/project-reference read contract → a `CODEX:PROJECT-REFERENCE-LOADING` gate; `/skill` → `$skill`; `spawn_agent(...)` → `spawn_agent`; `agent_type` → `agent_type`; Claude-only frontmatter keys like `version` stripped, `disable-model-invocation` preserved). Hooks are optional accelerators, never a semantic dependency.
 - `$sync-codex` = `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — **19 sequential stages** (1 may reconcile `CLAUDE.md`, 2–4 mutate mirrors, 5–19 read-only; configured stages fail-fast, optional capability stages explicitly skip when their contract is absent): `claude-md → migrate → hooks → context → tests → scripts-tests → tech-spec-freshness → feature-registry → hooks-count-drift → hooks-parity → hooks-doc-sync → wf-cycle → sk-proto → residue → sdd → review-validate-coverage → sync-adoption-parity → provenance-markers → sync-divergence`. The feature-registry stage reads the project's configured canonical roots and includes their continuation parts.
 - **9 verifier scripts** (`.claude/scripts/codex/verify-*.mjs`, each with a unit test): workflow-cycle · skill-protocol · no-project-residue · SDD semantics · review-validate coverage · SYNC adoption parity · provenance markers · feature registry · sync divergence. The tech-spec freshness stage calls the generator's tested read-only `--check` mode directly.
-- Read-only validation without mutating: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,tech-spec-freshness,feature-registry,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence`. You MAY run these read-only verifiers to check your work; you must NOT run the full mutating sync.
+- Read-only validation without mutating: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,tech-spec-freshness,feature-registry,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence`. You MAY run these read-only verifiers at any time; run the full mutating sync (no `--only`) once, after the source is final and verified.
 
 ### Design principles (the DNA — preserve them in every edit)
 
@@ -166,13 +166,13 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
     - **Config/portability** — keep generic surfaces project-neutral; project specifics go to `project-config.json` / `project-reference/**`.
     - **SYNC protocol** — edit canonical `sync-inline-versions.md` FIRST, then propagate to every copy (grep + `sync-hooks-to-skills.py` / `sync-skills-shared-protocols`); verify fence balance.
 6. **Validate** — run available tests (`node .claude/hooks/tests/test-all-hooks.cjs`, `node --test .claude/scripts/codex/tests`), `python .claude/scripts/generate_catalogs.py --skills` if catalogs changed, and read-only codex verifiers (`--only=...`). Report pass/fail with output.
-7. **Resolve mirror state** — if this agent only edited framework source, STOP and instruct the user to run `$sync-codex`; the explicit `$ai-context-refresh` completion is the only source-authoring handoff that may invoke the standalone runner directly, with `--skip=claude-md` after final verification. Name which mirrors are stale.
+7. **Resolve mirror state** — if this agent edited framework source, run the sync runner (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`) after final verification; the explicit `$ai-context-refresh` completion invokes the standalone runner directly, with `--skip=claude-md`. Report which mirrors were regenerated, or which stay stale when the run fails.
 8. **Final review task** — verify consistency, no project residue, all SYNC copies identical, catalogs regenerated, docs not stale.
 
 ## Source → Mirror Sync Authority (binding)
 
 - You edit `.claude/**` source and the SYNC canonical. You may run **read-only** codex verifiers to check parity.
-- You may **NOT** independently run `$sync-codex` (it is `disable-model-invocation: true`, user-invoked only). After source changes, your deliverable ends with an explicit instruction: _"Mirrors stale — run `$sync-codex` to regenerate `.agents/`, `.codex/`, `AGENTS.md`."_ The `$ai-context-refresh` skill may perform its documented final handoff through the standalone runner; that exception does not authorize unrelated edits to sync.
+- You MAY run the full sync — `$sync-codex` is model-invocable, and this agent has no skill invocation, so run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` through Bash — once, after the source edits are final and verified, never mid-edit. If the run fails, your deliverable ends with an explicit instruction: _"Mirrors stale — run `$sync-codex` to regenerate `.agents/`, `.codex/`, `AGENTS.md`."_ The `$ai-context-refresh` skill performs its documented final handoff through the standalone runner.
 - You may **NEVER** hand-edit a generated mirror (`.agents/`, `.codex/`, `AGENTS.md`). If a mirror is wrong, fix its source and re-sync.
 
 ## Key Rules
@@ -526,7 +526,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 **IMPORTANT MUST ATTENTION** EDIT SOURCE ONLY — `.claude/**` + `CLAUDE.md`; NEVER hand-edit `.agents/`, `.codex/`, `AGENTS.md` mirrors — fix a mirror by editing its source then re-syncing — why: the next sync overwrites any direct mirror edit.
 **IMPORTANT MUST ATTENTION** SYNC protocols follow the hybrid duplication policy — edit canonical `sync-inline-versions.md` FIRST, propagate to ALL body copies (`sync-update-blocks.py <tag>`), rebuild the projection, verify fence balance; NEVER hand-extract a body to a file reference — why: a reader with neither a delivering hook nor the body loses the rule.
-**IMPORTANT MUST ATTENTION** keep `$sync-codex` user-invoked-only (`disable-model-invocation: true`) for independent work; the explicit `$ai-context-refresh` completion may call the standalone runner with `--skip=claude-md` only after final root verification — why: root authoring and mirror generation need one ordered, non-recursive handoff.
+**IMPORTANT MUST ATTENTION** run `$sync-codex` once, after the source is final; the explicit `$ai-context-refresh` completion calls the standalone runner with `--skip=claude-md` only after final root verification — why: root authoring and mirror generation need one ordered, non-recursive handoff.
 **IMPORTANT MUST ATTENTION** keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on hardcoded project names/symbols; project specifics live in `project-config.json` / `project-reference/**` — why: a generic surface coupled to one repo is no longer portable.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence (or grep/graph trace) for EVERY claim, change, and recommendation; confidence >80% to act, <80% verify first — NEVER fabricate hook/skill/SYNC/script/npm names — grep to confirm existence first — why: certainty without evidence is the root of all hallucination.
 **IMPORTANT MUST ATTENTION** grep 3+ existing siblings of the same artifact type and match their structure exactly (frontmatter order, section headings, SYNC block set, `:reminder` placement) before authoring — verify the new context shares the sibling's preconditions before copying it.
@@ -539,16 +539,16 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 | Evasion                                           | Rebuttal                                                                                         |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| "I'll just hand-edit the mirror — it's faster"    | Mirrors are GENERATED. Edit the source under `.claude/**`, then have the user run `$sync-codex`. |
+| "I'll just hand-edit the mirror — it's faster"    | Mirrors are GENERATED. Edit the source under `.claude/**`, then regenerate with the sync runner once the source is final. |
 | "This SYNC copy is close enough to the others"    | Close enough fails `verify-sync-divergence`. Propagate the exact canonical text to EVERY copy.   |
-| "I'll run `$sync-codex` myself to finish an unrelated source edit" | It is `disable-model-invocation: true`. STOP and instruct the USER; only the documented `$ai-context-refresh` completion handoff may call the standalone runner. |
+| "I'll run `$sync-codex` after each edit to keep mirrors fresh" | The pipeline rewrites every generated surface. Finish and verify the source first, then run it once. |
 | "That hook/skill/SYNC tag surely exists"          | Surely = guess. Grep to confirm and cite `file:line` — no proof, no claim.                       |
 | "One project name in a generic skill is harmless" | `verify-no-project-residue` fails the build. Use neutral placeholders; push specifics to config. |
 | "Note why this changed for the next reader"       | Meta-log dilutes live instruction. State what IS — history goes to git / `CHANGELOG.md` / ADR.   |
 
 **IMPORTANT MUST ATTENTION** EDIT SOURCE, NEVER MIRRORS — `.claude/**` + `CLAUDE.md` only; the rest is generated.
 **IMPORTANT MUST ATTENTION** SYNC hybrid policy — edit the canonical, propagate to ALL copies, rebuild the projection, verify fence balance.
-**IMPORTANT MUST ATTENTION** keep `$sync-codex` user-invoked-only for unrelated work; allow only the documented `$ai-context-refresh` standalone completion handoff, keep generic surfaces project-neutral, and cite `file:line` for every claim.
+**IMPORTANT MUST ATTENTION** run `$sync-codex` once after the source is final, never hand-edit a mirror, keep generic surfaces project-neutral, and cite `file:line` for every claim.
 
 **[TASK-PLANNING]** Before acting, classify the surface (skill · agent · workflow · hook · config · SYNC · doc · mirror) with confidence %, then break the work into small task tracking todos with a final consistency-review task.
 """

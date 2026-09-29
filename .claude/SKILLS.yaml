@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-28'
+  last_updated: '2026-09-29'
   total_skills: 128
   total_by_status:
     active: 128
@@ -783,8 +783,9 @@ skills:
     - name: pull-request
       path: pull-request/SKILL.md
       description: '[Git] Use when asked to create, open, finish, update or mark ready
-        a pull request. Runs in the main session without asking: branch, commit, /workflow-review-changes
-        --fix-loop over the whole branch, open the PR, drive CI to green.'
+        a pull request. Runs in the main session without asking: branch fresh from
+        the latest target, commit, /workflow-review-changes --fix-loop over the whole
+        branch, open the PR, drive CI to green.'
       category: other
       has_scripts: false
       has_references: false
@@ -996,7 +997,8 @@ skills:
     - name: sync-codex
       path: sync-codex/SKILL.md
       description: '[Codex] Use when running the full Codex mirror sync and verify
-        pipeline (migrate, hooks, context, verify).'
+        pipeline (migrate, hooks, context, verify), or when `.claude/**` source edits
+        leave `.agents/`, `.codex/` or `AGENTS.md` stale.'
       category: other
       has_scripts: true
       has_references: false

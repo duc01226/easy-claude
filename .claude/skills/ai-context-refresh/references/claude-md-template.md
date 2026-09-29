@@ -78,7 +78,7 @@ When `.code-graph/graph.db` exists, run at least one graph command on key files 
 
 ## Canonical Ownership
 
-Edit framework source `.claude/**` and root source `CLAUDE.md`. Never hand-edit generated `.agents/`, `.codex/` or `AGENTS.md`; fix their source. `/sync-codex` owns mirror generation, while an explicit `/ai-context-refresh` completion may invoke its standalone runner after final source edits; unrelated work must not auto-run the mutating pipeline. Shared SYNC protocols remain inline: change `sync-inline-versions.md` first, propagate every consumer and verify exact bodies/fences. Regenerate affected catalogs and validate every output; no project-specific names in portable surfaces. Root regeneration preserves unmanaged prose or reports overflow explicitly; it never truncates it.
+Edit framework source `.claude/**` and root source `CLAUDE.md`. Never hand-edit generated `.agents/`, `.codex/` or `AGENTS.md`; fix their source. `/sync-codex` owns mirror generation and is model-invocable: run it once, after the framework source edits are final and verified; an explicit `/ai-context-refresh` completion invokes its standalone runner directly. Never call it from inside its own stages, and never run it for work that touched no framework source. Shared SYNC protocols remain inline: change `sync-inline-versions.md` first, propagate every consumer and verify exact bodies/fences. Regenerate affected catalogs and validate every output; no project-specific names in portable surfaces. Root regeneration preserves unmanaged prose or reports overflow explicitly; it never truncates it.
 
 ## Project Protocol Overlays
 

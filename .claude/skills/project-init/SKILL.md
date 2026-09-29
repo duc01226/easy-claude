@@ -104,7 +104,7 @@ Map the result onto the Phase 1 route table and tell the user which route init w
 | User/downstream experience | `/experience-review` after a runnable outcome exists; during setup, configure the matrix or record evidence-backed `NOT-APPLICABLE`/`ENVIRONMENT-BLOCKED` |
 | Project reference docs | Ensure always-on `lessons.md` and `docs-index-reference.md` separately. Use `/scan-all` only for selected/evidenced applicable targets; use `/docs-init`, a built-in `/scan --target=<key>`, or the configured generic target for a selected stub/focused repair. |
 | Root AI context | `/ai-context-refresh` |
-| Codex mirror, `AGENTS.md`, `.agents`, `.codex` | Consume the `/ai-context-refresh` completion handoff when Codex context is present or requested; if required and unavailable, report the exact user-run route. |
+| Codex mirror, `AGENTS.md`, `.agents`, `.codex` | Consume the `/ai-context-refresh` completion handoff when Codex context is present or requested; if required and unavailable, report the exact `/sync-codex` route. |
 | Canonical specification and test-case artifacts | `/workflow-code-to-spec` only when canonical artifacts exist or an accepted product/capability scope identifies the owner target. Resolve `specRoots.business.path` when configured; a valid `specArtifacts` profile supplies the native format, while absence keeps strict TC/Section-8 defaults. |
 | Knowledge graph | Background `/graph-build` only when graph tooling is available and selected by code relationships or the active task. |
 
@@ -181,7 +181,7 @@ If `specArtifacts` is present, require it to validate before spec work. Preserve
 | `referenceDocs` explicitly lists a subset or `[]` | Preserve it exactly as task-specific selection. Do not restore unselected catalog entries; continue ensuring always-on docs separately. |
 | `CLAUDE.md` missing | Run `/ai-context-refresh --mode init` when the Claude host/root context is in use. |
 | `CLAUDE.md` exists but lacks universal guides | Run `/ai-context-refresh --mode update` if marker-managed. If markerless/project-only, manually merge the universal-guide blocks from `ai-context-refresh/references/claude-md-template.md` while preserving project content, then rerun update. |
-| `AGENTS.md`, `.agents`, or `.codex` missing/incomplete and Codex is present/requested | Consume the `/ai-context-refresh` completion handoff; if unavailable, report the user-run `/sync-codex` route. |
+| `AGENTS.md`, `.agents`, or `.codex` missing/incomplete and Codex is present/requested | Consume the `/ai-context-refresh` completion handoff; if unavailable, report the `/sync-codex` route. |
 | Canonical specs exist, or accepted product/capability scope identifies a spec owner | Run `/workflow-code-to-spec` for the selected owner. Existing specs normally select `audit`, or `update` when an active requirement/change is in scope. If no owner/scope exists, defer spec authoring with evidence; code/package names alone are insufficient. |
 | Existing native spec profile is valid | Preserve `specArtifacts` and route through its configured identifiers, sections, owners, and carriers. Do not translate it to TC identifiers. |
 | `specArtifacts` is absent | When a spec workflow is selected, apply strict business-spec and Section-8 TC defaults. Do not create a profile just to avoid those defaults. |
@@ -259,7 +259,7 @@ For selected observable-surface work, validate only declared or evidenced surfac
 
 Run `/changes-review` and then `/why-review` after setup and selected work are complete. If no files changed, record that result without claiming a review of nonexistent changes.
 
-Check root instructions and host mirrors only when those hosts/context files are installed or selected. Preserve user content; if Codex mirrors need regeneration, use the documented `/ai-context-refresh` completion handoff, or report the user-run `/sync-codex` route when that handoff is unavailable.
+Check root instructions and host mirrors only when those hosts/context files are installed or selected. Preserve user content; if Codex mirrors need regeneration, use the documented `/ai-context-refresh` completion handoff, or report the `/sync-codex` route when that handoff is unavailable.
 
 ## Phase 5: Conditional Graph Refresh
 
@@ -287,7 +287,7 @@ Report:
 - Graph refresh: `/graph-build` sub-agent outcome when selected, or evidence-backed skip.
 - Spec workflow: invoked mode (`init-full`, `audit`, `update`), profile validation result, or evidence-backed deferral reason and next trigger.
 - Verification commands and results.
-- Remaining manual action, especially any user-confirmed `/sync-codex` step.
+- Remaining manual action, especially any `/sync-codex` step that did not run.
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 

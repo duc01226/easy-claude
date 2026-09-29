@@ -98,7 +98,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill                         | Triggers                                                | Description                                          |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | `commit`                      | commit, stage, save changes                             | Git commits; adds a `Fix-Origin:` trailer only when `commit.fixOriginTrailer` is `true` in `docs/project-config.json` (new commits only) |
-| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch from `pullRequest.targetBranch` (default `main`), `/workflow-review-changes --fix-loop` over the whole branch, commit, push, create or ready the PR, loop CI to green — in the main session, without asking |
+| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch at the latest `pullRequest.targetBranch` (default `main`) — new branch when already merged, rebase when unpushed and behind, `/workflow-review-changes --fix-loop` over the whole branch, commit, push, create or ready the PR, loop CI to green — in the main session, without asking |
 | `code-quality-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
@@ -246,7 +246,7 @@ Set `disable-model-invocation: true` on a skill the model must never start on it
 **Manual-only skills shipped here** (list them with `grep -l "^disable-model-invocation: true" .claude/skills/*/SKILL.md`):
 
 - **Command-only utilities** — `ck-help`, `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-doc`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
-- **Mirror syncs** — `sync-codex`, `sync-opencode`: they rewrite generated folders, so only the user starts them.
+- **Mirror syncs** — `sync-opencode` rewrites a generated folder, so only the user starts it. `sync-codex` is model-callable: run it once, after the `.claude/**` source is final, to regenerate `.agents/`, `.codex/` and `AGENTS.md`.
 - **Other** — `product-roadmap`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
 
 `commit` and `learn` stay model-callable by decision. `content-presence.test.cjs` (TC-ADS-008) fails when a command-only utility loses the flag or `commit`/`learn` gains it, and `migrate-claude-to-codex.test.mjs` (TC-ADS-009) checks the Codex policy file for each utility.

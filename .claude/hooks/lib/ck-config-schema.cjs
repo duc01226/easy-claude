@@ -87,6 +87,8 @@ const CK_SCHEMA = {
     required: false,
     properties: {
       enabled: { type: "boolean", required: false },
+      // Mirrors file-conventions.cjs CLASS_REINJECT_TOKENS_RANGE (parity asserted by the core-principles-inject suite).
+      // The hook accepts only integers in range; any other value falls back to its default.
       reinjectAfterTokens: { type: "number", required: false, min: 20000, max: 2000000 },
     },
   },

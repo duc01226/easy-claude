@@ -1,7 +1,6 @@
 ---
 name: sync-codex
-description: '[Codex] Use when running the full Codex mirror sync and verify pipeline (migrate, hooks, context, verify).'
-disable-model-invocation: true
+description: '[Codex] Use when running the full Codex mirror sync and verify pipeline (migrate, hooks, context, verify), or when `.claude/**` source edits leave `.agents/`, `.codex/` or `AGENTS.md` stale.'
 ---
 
 > Codex compatibility note:
@@ -254,7 +253,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act, never guess.
 
-**MUST ATTENTION** keep the `$sync-codex` skill user-invoked-only. An explicit `$ai-context-refresh` completion may invoke the standalone runner directly with `--skip=claude-md` after final source verification; `$project-skill-protocol` may likewise run its documented completion handoff. No unrelated skill, agent, or workflow may auto-run the mutating pipeline.
+**MUST ATTENTION** `$sync-codex` is model-invocable: run it once, after the `.claude/**` source edits are final and verified, when they leave mirrors stale — why: the pipeline rewrites every generated surface, so a run over half-finished source has to be repeated. An `$ai-context-refresh` completion calls the runner with `--skip=claude-md`; `$project-skill-protocol` may run its documented completion handoff. Never call it from inside its own stages, and never hand-edit a mirror instead.
 **MUST ATTENTION** edit source `.claude/skills/sync-codex/**`, NEVER the `.agents/skills/sync-codex/**` mirror
 **MUST ATTENTION** never reinstall a Codex legacy `notify` command — it runs for every thread, subagents included; alerts belong to the main-thread `Stop`/`SessionEnd` hooks
 **MUST ATTENTION** keep Codex config upserts surgical; preserve unrelated `.codex/config.toml` keys and tables while updating the managed notification/status-line keys; retire the old compaction budget only on an exact bundled-value match

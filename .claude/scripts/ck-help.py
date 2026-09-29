@@ -119,7 +119,9 @@ CATEGORY_GUIDES = {
         "workflow": [
             ("Quick design", "`/ui-design --mode=fast` \"description\""),
             ("From screenshot", "`/ui-design --mode=screenshot` <path>"),
-            ("3D design", "`/design-3d` \"description\""),
+            # No "3D design" entry on purpose: there is no /design-3d skill (no .claude/skills/design-3d/SKILL.md).
+            # It was removed as a dead entry and a framework re-sync re-added it twice; `/ck-help design` then
+            # advertised a command that does not exist. Re-add only together with the skill itself.
         ],
         "tip": "Reference existing designs for consistency",
     },

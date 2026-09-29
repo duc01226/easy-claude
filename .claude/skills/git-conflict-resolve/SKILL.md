@@ -51,6 +51,8 @@ git diff --name-only --diff-filter=U  # Unmerged files (both modified)
 git status --short | grep "^DU\|^UD\|^UU\|^AA\|^DD"  # All conflict types
 ```
 
+**Which side is which.** The flags `--ours`/`--theirs`, and this skill's *target*/*source*, map by operation. Merge: ours = the branch you are on (target), theirs = the branch merged in (source). Cherry-pick and rebase: ours = the branch being built on (for a rebase, the upstream you replay onto), theirs = the commit being applied. Stash apply/pop: ours = the current branch, theirs = the stashed changes. A stash conflict shows no in-progress marker in `git status`, so take the operation from the caller. Choose what to keep from what each side holds, never from the flag name.
+
 Classify each conflict:
 
 - **DU (Deleted by us):** File exists on source but not on target branch

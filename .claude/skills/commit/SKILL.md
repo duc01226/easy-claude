@@ -502,7 +502,7 @@ This skill handles **commit** by default. A plain push delegates to the `git-man
 
 When the user asks for a pull request — create or open a PR, finish or update the current PR, make it ready to merge, or mark a draft ready — invoke the **`pull-request` skill** (`/pull-request`) instead of this skill or `git-manager`. It takes the work all the way to ready to merge, in the main session, without asking the user:
 
-1. branch from the target (the base named in the request → an open PR's base → `pullRequest.targetBranch` in `docs/project-config.json` → `main`), or stay on the current feature branch;
+1. branch at the latest target (the base named in the request → an open PR's base → `pullRequest.targetBranch` in `docs/project-config.json` → `main`): a branch already merged into the target is replaced by a new branch from it; an unpushed branch behind it is rebased (stash, `git-conflict-resolve` on conflicts); a pushed branch is never rebased;
 2. review the whole branch with `/workflow-review-changes --fix-loop` over `<target>...HEAD` ∪ uncommitted changes;
 3. commit through this skill;
 4. push, and create the PR or mark it ready;

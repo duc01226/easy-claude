@@ -1,6 +1,6 @@
 ---
 name: pull-request
-description: '[Git] Use when asked to create, open, finish, update or mark ready a pull request. Runs in the main session without asking: branch, commit, /workflow-review-changes --fix-loop over the whole branch, open the PR, drive CI to green.'
+description: '[Git] Use when asked to create, open, finish, update or mark ready a pull request. Runs in the main session without asking: branch fresh from the latest target, commit, /workflow-review-changes --fix-loop over the whole branch, open the PR, drive CI to green.'
 ---
 
 > Codex compatibility note:
@@ -55,12 +55,12 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **Purpose:** one invocation creates a new PR, finishes the current PR, or flips a draft to ready. Invocation IS explicit authority for add/commit/push/PR operations on the selected branch — nothing more.
 - **Main session, zero questions:** run every step inline; the [Autonomy Contract](#autonomy-contract) settles each ask point of called skills. Only a **Blocker** hands back: blocker list + report, plus a draft PR only when the branch already has pushed commits and PR tooling works.
 - **Review before commit:** the review receipt binds the exact candidate tree → review whole branch + pending changes first, then commit identical content. Every later edit (test fix, CI fix, merge) gets a fresh review before its commit.
-- **Main steps:** (1) target → (2) branch → (3) stage + guard → (4) `$workflow-review-changes --fix-loop` over `<target>...HEAD` ∪ uncommitted → (5) local tests → (6) `commit` skill → (7) push + create/ready PR → (8) CI loop until green → (9) mergeable check + report.
+- **Main steps:** (1) target → (2) fresh branch at the latest target → (3) stage + guard → (4) `$workflow-review-changes --fix-loop` over `<target>...HEAD` ∪ uncommitted → (5) local tests → (6) `commit` skill → (7) push + create/ready PR → (8) CI loop until green → (9) mergeable check + report.
 
 **Workflow:**
 
 1. **Target** — base named in request → open PR's base → `pullRequest.targetBranch` (`docs/project-config.json`) → `main`.
-2. **Branch** — on target or detached HEAD → `git switch -c <type>/<slug>` (uncommitted work carried along); any other branch → stay.
+2. **Branch** — a PR branch starts at the latest target. Already merged into target → `git switch --no-track -c <type>/<slug> origin/<target>`, no rebase. Otherwise on target or detached HEAD → new branch from HEAD. Behind the latest target and not yet pushed → stash, `git rebase origin/<target>`, pop; conflicts → `$git-conflict-resolve`. Already pushed → never rebased.
 3. **Stage + guard** — `git add -A` minus secrets; `doc-stamp-guard.cjs --staged` unstages stamp-only churn.
 4. **Review loop** — `$workflow-review-changes --fix-loop` over whole branch + pending work; converges on a zero-fix round, mints receipt.
 5. **Local tests** — configured test commands; fix at owning layer; re-review.
@@ -74,7 +74,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - MUST ATTENTION run inline in the main session; NEVER hand the whole task to a sub-agent — why: `workflow-review-changes` owns its convergence loop only in the main session.
 - MUST ATTENTION settle every ask point via the Autonomy Contract and record the decision in the report; NEVER ask the user mid-run — why: the user asked for a finished PR; a question only delays it.
 - MUST ATTENTION commit only content a converged review covered; NEVER self-approve a skip receipt — why: the commit gate binds the exact candidate tree.
-- NEVER merge the PR, enable auto-merge, push to the target branch, force-push, rebase/amend a pushed commit, or run a destructive git command — resolve drift with `git merge --no-commit` + `$git-conflict-resolve`, then review and commit through the `commit` skill.
+- NEVER merge the PR, enable auto-merge, push to the target branch, force-push, rebase/amend a pushed commit, or run a destructive git command — rebase only commits no remote ref contains (Step 2's never-pushed test); resolve drift on a pushed branch with `git merge --no-commit` + `$git-conflict-resolve`, then review and commit through the `commit` skill.
 - NEVER skip, weaken or delete a test or check — fix the failure at its root cause.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -83,7 +83,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 ## Authority
 
-Invocation IS the user's explicit request for every Git/GitHub operation below, scoped to the current repository and the PR branch it selects or creates: `add`, `commit`, `push` of that branch, branch creation, `gh pr create | edit | ready`. NEVER authorizes merging the PR, enabling auto-merge, pushing to the target branch, force-pushing, rewriting pushed history, or `reset --hard` / `clean -f` / `checkout -- <path>` / `restore <path>` / `stash drop`. Record a git-operation lease for `["add","commit","push"]` per `commit` skill Step 0; revoke it in a `finally` path.
+Invocation IS the user's explicit request for every Git/GitHub operation below, scoped to the current repository and the PR branch it selects or creates: `add`, `commit`, `push` of that branch, branch creation and `switch`, `stash push | pop`, `rebase` of that branch's own unpushed commits (Step 2), `gh pr create | edit | ready`. NEVER authorizes merging the PR, enabling auto-merge, pushing to the target branch, force-pushing, rewriting pushed history, or `reset --hard` / `clean -f` / `checkout -- <path>` / `restore <path>` / `stash drop`. Record a git-operation lease for `["add","commit","push"]` per `commit` skill Step 0; revoke it in a `finally` path.
 
 ## Execution — main session, no questions
 
@@ -104,13 +104,34 @@ Write `tmp/reports/pull-request-<date>-<branch>.md` from the first step; append 
    2. Open PR's `baseRefName` — covers finishing an existing PR.
    3. `pullRequest.targetBranch` in `docs/project-config.json`.
    4. `main`.
-4. Run `git fetch origin <target>`. Base ref = `origin/<target>`, falling back to local `<target>` when no remote branch exists. Neither exists → config or request wrong → Blocker.
+4. Run `git fetch --prune origin`. Base ref `R` = `origin/<target>`, falling back to local `<target>` when no remote branch exists. Neither exists → config or request wrong → Blocker. — why: pruning drops the `origin/<branch>` ref of a branch deleted after its merge, which Step 2 reads as "not pushed".
 
 ### Step 2 — Choose branch
 
-- **Current branch = target, or HEAD detached** → `git switch -c <type>/<slug>` from HEAD. `<type>` = conventional-commit type of the work (`feat`, `fix`, …); `<slug>` = kebab-case, ≤40 chars, from the change's intent; name exists locally or on `origin` → append `-2`, `-3`, …. Uncommitted work comes along; nothing stashed or reset. Local commits ahead of `origin/<target>` come along too — report that local `<target>` still holds them; NEVER reset it.
-- **Any other branch** → stay; it already carries the PR's work.
-- No commits ahead of base + no pending changes → nothing to PR; report and stop.
+<!-- REVIEWED FIXES — DO NOT REVERT. Each was reproduced in a throwaway git repo during the "branch PRs fresh" PR review; a framework re-sync had silently re-applied the old text three times.
+1. `git switch -c --no-track <name> R` FAILS with "only one reference expected": `-c` consumes the next word as the branch name. Write `git switch --no-track -c <name> R`.
+2. Every "merged" test must exclude HEAD == R: a zero-commit branch cut from an up-to-date R satisfies both `--is-ancestor` and the `merge-tree` tree comparison, and would be replaced, dropping the user's branch name.
+3. "No `origin/<branch>` ref" does NOT mean never pushed (a branch cut a moment ago, a detached HEAD on a pushed commit, and a branch deleted after its merge all lack one). Test the commits themselves against the remote refs.
+4. `--is-ancestor` cannot see squash or rebase merges (they get new SHAs); with no `gh` (Azure DevOps Server remotes) use the `merge-tree` tree comparison.
+5. `git rebase --continue` reopens the commit-message editor after a conflict; `git -c core.editor=true …` avoids it in every shell (`GIT_EDITOR=true` is POSIX-only). -->
+
+A PR branch starts at the latest `<target>` (`R` from Step 1.4). Name for a new branch: `<type>/<slug>` — `<type>` = conventional-commit type of the work (`feat`, `fix`, …); `<slug>` = kebab-case, ≤40 chars, from the change's intent; name exists locally or on `origin` → append `-2`, `-3`, ….
+
+1. **Merged already?** Never when `git rev-parse HEAD` equals `git rev-parse R`: that is a branch just cut from `R` (or the target itself, level with `R`), not a merged one → it falls to item 2 and stays — why: `--is-ancestor` is also true for a branch just created at `R`, and replacing it would drop the user's branch name. Otherwise yes when any of these holds:
+   - `HEAD` is an ancestor of `R`: `git merge-base --is-ancestor HEAD R` succeeds (also true on a local `<target>` behind `R`, and on a named branch whose commits `R` already contains).
+   - Squash or rebase merge, git-only: `git merge-tree --write-tree R HEAD` prints a tree equal to `git rev-parse R^{tree}` (git ≥ 2.38; skip this test when unsupported or when it reports conflicts) — the content is already in `R` under other SHAs, which `--is-ancestor` cannot see.
+   - `gh pr list --head <branch> --base <target> --state merged --json number,headRefOid` returns a PR whose `headRefOid` equals HEAD.
+   - **Yes** → `git status --short` first: a clean tree means nothing to PR — report and stop, creating no branch. Otherwise `git switch --no-track -c <name> R` (flag order matters: `-c` takes the next word as the branch name). No rebase — nothing on this branch is left to carry over.
+   - **Merged PR head is a proper ancestor of HEAD** (work added after the merge; needs `gh` for `headRefOid`) → `git switch -c <name>` from HEAD, then rebase with `--onto R <headRefOid>` only when the replayed commits pass the never-pushed test of item 2; otherwise stay.
+2. **Not merged** → on target or HEAD detached: `git switch -c <name>` from HEAD (pending work and local commits ahead of `R` come along; report that local `<target>` still holds them; NEVER reset it). Then judge the branch against `R`:
+   - **Up to date** (`git merge-base --is-ancestor R HEAD`) → stay.
+   - **Behind `R`, never pushed** → rebase onto `R`. Never pushed = no commit to replay is reachable from a remote ref: `git rev-list --count HEAD ^B --not --remotes` equals `git rev-list --count B..HEAD`, with `B` = `R` (or `headRefOid` on the `--onto` path). — why: a lookup of `origin/<branch>` by name misses a branch cut a moment ago from a pushed commit, and a detached HEAD.
+   - **Behind `R`, any commit to replay pushed** → stay, no rebase — it would rewrite pushed commits and need a force-push. Step 7.1 merges `origin/<branch>` and Step 9 merges `R` when GitHub reports the branch behind or conflicting.
+3. **Nothing to PR** — decided before any `git switch -c`, and only for a branch that is not merged (item 1 handles a merged one, whose old commits would otherwise count as "ahead"): no commits ahead of `R` + no pending changes → report and stop.
+
+**Moving with pending work.** `git switch` refuses when a local change collides with the destination, and `git rebase` refuses a dirty tree → `git stash push --include-untracked -m "pull-request <branch>"`, switch or rebase, `git stash pop`. A `pop` conflict → `$git-conflict-resolve` (stash-apply); the entry stays in the stash list, so name its ref in the report. NEVER `git stash drop`.
+
+**Rebase.** `git rebase R` (or `--onto` above) on the unpushed branch only. A conflict → `$git-conflict-resolve`, `git add` the resolved paths, `git -c core.editor=true rebase --continue` (keeps the original message without opening an editor in a non-interactive run; works in every shell). A conflict whose intent is unclear → `git rebase --abort`, restore the stash, **Blocker**. Step 4 reviews the rebased branch as a whole, resolved hunks called out — why: replayed commits are new commits made outside the `commit` skill, and only the whole-branch review vouches for them.
 
 ### Step 3 — Stage and guard pending changes
 
@@ -120,7 +141,7 @@ Write `tmp/reports/pull-request-<date>-<branch>.md` from the first step; append 
 
 ### Step 4 — Review whole branch: `$workflow-review-changes --fix-loop`
 
-Run `$workflow-review-changes --fix-loop` inline via the skill invocation, scope `<base-ref>...HEAD ∪ current uncommitted changes` — the three-dot base is the fixed merge-base, so the review covers every branch commit + pending work. Follow that workflow's `references/fix-loop.md` as written: each round re-runs the whole default workflow over the recomputed scope (parallel reviewers, validated fixes at the owning layer, `$docs-update`); converges on a zero-fix round; keeps round cap + severity floor; mints the `workflow-review-changes` receipt.
+Run `$workflow-review-changes --fix-loop` inline via the skill invocation, scope `<base-ref>...HEAD ∪ current uncommitted changes` — the three-dot base is the fixed merge-base, so the review covers every branch commit + pending work, a Step 2 rebase included. Follow that workflow's `references/fix-loop.md` as written: each round re-runs the whole default workflow over the recomputed scope (parallel reviewers, validated fixes at the owning layer, `$docs-update`); converges on a zero-fix round; keeps round cap + severity floor; mints the `workflow-review-changes` receipt.
 
 - A skipped review, partial scope, or self-approved skip receipt NEVER counts.
 - **Integration-merge scope** (uncommitted merge from Step 7.1 or Step 9): review the PR's net change — `git diff <base-ref>` over the working tree, after `git fetch origin <target>` — with conflict-resolved hunks called out. Incoming target-branch commits are NOT review targets: they were reviewed on the target branch. The receipt still binds the whole merge candidate. — why: during an uncommitted merge `HEAD` is the pre-merge commit, so the default `...HEAD ∪ uncommitted` scope would pull every incoming target commit into the review.
@@ -235,7 +256,7 @@ A **Blocker** ends the run — the only point control returns to the user. Hand 
 
 **IMPORTANT MUST ATTENTION Goal:** Drive current work to a pull request **ready to merge** — not draft, whole branch reviewed by a converged `$workflow-review-changes --fix-loop`, every CI check green — asking the user nothing until done or truly blocked.
 
-- **MUST ATTENTION — MAIN STEPS IN ORDER:** (1) target: request → open PR base → `pullRequest.targetBranch` → `main` · (2) branch: new only when on target or detached · (3) stage + guard · (4) `$workflow-review-changes --fix-loop` over `<target>...HEAD` ∪ uncommitted · (5) local tests · (6) `commit` skill · (7) push + create/ready PR · (8) CI loop until green · (9) mergeable check + report.
+- **MUST ATTENTION — MAIN STEPS IN ORDER:** (1) target: request → open PR base → `pullRequest.targetBranch` → `main` · (2) branch: merged → new branch at latest target; unpushed + behind → rebase (stash, `$git-conflict-resolve`); pushed → never rebased · (3) stage + guard · (4) `$workflow-review-changes --fix-loop` over `<target>...HEAD` ∪ uncommitted · (5) local tests · (6) `commit` skill · (7) push + create/ready PR · (8) CI loop until green · (9) mergeable check + report.
 - **MUST ATTENTION — INLINE, NO QUESTIONS:** run the whole procedure in the main session; the Autonomy Contract settles every ask point — why: `workflow-review-changes` owns its loop only in the main session, and the user asked not to be asked.
 - **MUST ATTENTION — REVIEW BEFORE COMMIT:** the receipt binds the exact candidate. Every later edit, CI fix included, gets a fresh `$workflow-review-changes --fix-loop` before its commit. NEVER self-approve a skip.
 - **MUST ATTENTION — CI FIXES:** root cause first, environment hypothesis included; one rerun only for a named infrastructure cause. NEVER weaken, skip or delete a test or check.
@@ -249,6 +270,7 @@ A **Blocker** ends the run — the only point control returns to the user. Hand 
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | "Hand the whole task to a sub-agent"                   | The procedure runs in the main session. `workflow-review-changes` must run inline there, and a sub-agent cannot own its loop.     |
 | "The user will want to confirm the branch name"        | They asked not to be asked. Derive the name, write it in the report, move on.                                                     |
+| "Rebase the pushed branch too, then force-push"        | Rebase rewrites pushed history and needs a force-push, which is never authorized. Merge `origin/<branch>` (Step 7.1) or `R` (Step 9) in instead.       |
 | "Only the new changes need review"                     | The first review covers `<target>...HEAD` ∪ uncommitted: the whole branch. Only later CI-fix rounds narrow to the new diff.       |
 | "CI is red because of a flaky test, rerun until green" | One rerun, and only for a named infrastructure cause. Anything else is investigated and fixed at its root.                        |
 | "Mark the failing test skipped so the PR goes green"   | That forces green. Adjudicate the test, then fix the source or the stale test.                                                    |

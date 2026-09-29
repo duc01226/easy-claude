@@ -17,7 +17,6 @@
     "remotion": "deny",
     "scan-codebase-health": "deny",
     "skill-creator": "deny",
-    "sync-codex": "deny",
     "sync-opencode": "deny",
     "sync-skills-shared-protocols": "deny",
     "workflow-big-feature": "ask",

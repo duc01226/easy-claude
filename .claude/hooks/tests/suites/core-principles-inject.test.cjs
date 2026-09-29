@@ -7,6 +7,8 @@
  *   dedup      a repeat event stays silent until the transcript grows by `reinjectAfterTokens`
  *              × BYTES_PER_TOKEN, then delivers again (the "about every 100k tokens" promise);
  *   scope      each sub-agent scope gets its own delivery (a sub-agent starts without it);
+ *   fallback   the built-in reminder equals the canonical `:reminder` body, and the config schema's
+ *              interval range equals the hook's accepted range;
  *   content    a changed principle text re-delivers at once;
  *   format     prompt → plain text; task step → PostToolUse additionalContext, never a decision;
  *   off        `enabled: false` or CK_CORE_PRINCIPLES_INJECT=0 prints and records nothing;
@@ -286,6 +288,23 @@ const tests = [
             // And one token outside either bound falls back to the default
             assert.equal(hook.resolveReinjectTokens({ reinjectAfterTokens: 19999 }), hook.DEFAULT_REINJECT_TOKENS, 'below the range');
             assert.equal(hook.resolveReinjectTokens({ reinjectAfterTokens: 2000001 }), hook.DEFAULT_REINJECT_TOKENS, 'above the range');
+        }
+    },
+    {
+        name: '[core-principles] TC-CEP-018 the built-in fallback equals the canonical reminder, and the schema range equals the hook range',
+        fn: () => {
+            // Given the shipped canonical reminder body
+            const canonical = fs.readFileSync(path.join(REPO_ROOT, ...CANONICAL_REL), 'utf8').replace(/\r\n/g, '\n');
+            const section = extractSection(canonical, 'core-engineering-principles:reminder');
+            assert.ok(section, 'canonical reminder present');
+            const reminder = section.slice(section.indexOf('\n')).trim();
+            // Then the text used when that file is unreadable is the same rule, word for word
+            assert.equal(hook.FALLBACK_BODY, reminder, 'fallback drifted from the canonical reminder');
+            // And the .ck.json schema accepts exactly the interval range the hook accepts
+            const { CK_SCHEMA } = require(path.join(HOOKS_DIR, 'lib', 'ck-config-schema.cjs'));
+            const { CLASS_REINJECT_TOKENS_RANGE } = require(path.join(HOOKS_DIR, 'lib', 'file-conventions.cjs'));
+            const field = CK_SCHEMA.corePrinciplesInject.properties.reinjectAfterTokens;
+            assert.deepEqual([field.min, field.max], [...CLASS_REINJECT_TOKENS_RANGE], 'schema range drifted from the hook range');
         }
     },
     {

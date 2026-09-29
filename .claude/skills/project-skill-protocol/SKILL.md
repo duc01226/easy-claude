@@ -202,14 +202,14 @@ Nothing outside these three paths is ever written by this skill DIRECTLY. The mi
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs
 ```
 
-This is the documented standalone entry point of `/sync-codex` — the same 16-stage pipeline, invoked directly so the refresh does not depend on the user typing a second command. Run it ONLY after all three writes have landed; syncing a half-written state mirrors the half-written state.
+This is the documented standalone entry point of `/sync-codex` — the same 19-stage pipeline, invoked directly so the refresh does not depend on the user typing a second command. Run it ONLY after all three writes have landed; syncing a half-written state mirrors the half-written state.
 
 **Rules for the auto-sync:**
 
 - **Report the pipeline's real outcome — never assume it.** Read the exit code. All stages pass → say the mirror is fresh. ANY stage fails → say so, name the failing stage, and state plainly that `AGENTS.md` may still be stale. NEVER report a successful sync you did not observe, and NEVER let a sync failure silently downgrade to "done".
 - **A sync failure does not roll back the three writes.** They are already correct and stay. Report the failure and offer to fix it or to re-run `/sync-codex`; the overlay is live for Claude either way.
 - **Sync mutates generated trees, it does not commit.** The pipeline regenerates `.agents/`, `.codex/`, and `AGENTS.md` — hundreds of files. That is expected. The no-commit rule is unchanged and absolute: still never `git add`, `commit`, or `push` without an explicit ask.
-- **This is the ONE authorized programmatic sync in the framework.** It exists because this skill is the only writer of a `CLAUDE.md` block whose whole purpose is cross-host reach, so a mirror left stale defeats the carrier itself. It authorizes nothing else: every other "mirrors are stale" situation still STOPS and asks the user, per each skill's own project-reference-docs gate.
+- **This skill runs the sync itself, right after its write modes.** It is the only writer of a `CLAUDE.md` block whose whole purpose is cross-host reach, so a mirror left stale defeats the carrier itself. Any other "mirrors are stale" situation follows each skill's own project-reference-docs gate: run `/sync-codex` (model-invocable) once the source is final, and never from inside its own stages.
 
 ---
 
@@ -275,4 +275,4 @@ This is the documented standalone entry point of `/sync-codex` — the same 16-s
 - **MUST ATTENTION** An overlay is a brief, not an authority escalation — it can never waive an active route policy, git discipline, a review gate, a user-confirmation gate, or carry a secret. Refuse the line and report it.
 - **MUST ATTENTION** ADD and UPDATE ALWAYS end at a PROPOSAL GATE showing the full rules, the skills actually matched, what changed, and anything refused — never write a draft the user has not seen.
 - **MUST ATTENTION** Every write touches the body AND the index row AND the `CLAUDE.md` `CK:PROJECT-PROTOCOLS` block in the SAME turn; never commit without an explicit ask.
-- **MUST ATTENTION** Every write mode then AUTO-RUNS the Codex mirror sync (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`) so `AGENTS.md` carries the overlay without a second user command — and reports the pipeline's real outcome, naming the failing stage when it fails. This is the ONE authorized programmatic sync; every other stale-mirror situation still asks the user.
+- **MUST ATTENTION** Every write mode then AUTO-RUNS the Codex mirror sync (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`) so `AGENTS.md` carries the overlay without a second user command — and reports the pipeline's real outcome, naming the failing stage when it fails. Any other stale-mirror situation: run `/sync-codex` once the source is final.

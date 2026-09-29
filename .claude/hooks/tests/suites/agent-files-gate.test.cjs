@@ -181,7 +181,7 @@ const libTests = [
                     const missing = getMissingAgentFiles();
                     assertEqual(missing.length, 1, 'One file missing');
                     assertEqual(missing[0].file, 'AGENTS.md', 'AGENTS.md is the missing one');
-                    assertEqual(missing[0].aiRunnable, false, 'AGENTS.md route is user-invoked only');
+                    assertEqual(missing[0].aiRunnable, true, 'AGENTS.md route is AI-runnable');
                     assertContains(missing[0].route, 'sync-codex', 'Routes to /sync-codex');
                 });
             } finally {
@@ -270,7 +270,7 @@ const libTests = [
         }
     },
     {
-        name: '[agent-files-gate] buildOfferMessage uses user-invoked phrasing for AGENTS.md route',
+        name: '[agent-files-gate] buildOfferMessage offers the AGENTS.md route as AI-runnable, not user-invoked only',
         fn: async () => {
             const tmpDir = createTempDir();
             try {
@@ -282,7 +282,9 @@ const libTests = [
                     assertEqual(claudeEntry.aiRunnable, true, 'CLAUDE.md route is AI-runnable');
                     const msg = buildOfferMessage(missing);
                     assertContains(msg, 'run /ai-context-refresh', 'aiRunnable=true → "run {route}" phrasing');
-                    assertContains(msg, 'ask the user to run /sync-codex', 'AGENTS.md route uses user-invoked phrasing');
+                    assertContains(msg, 'run /sync-codex', 'AGENTS.md route uses "run {route}" phrasing');
+                    assertTrue(!msg.includes('ask the user to run /sync-codex'), 'AGENTS.md route is no longer user-invoked only');
+                    assertTrue(!msg.includes('user-invoked only'), 'the targeted-routes list no longer labels /sync-codex user-invoked only');
                     assertContains(msg, 'node .claude/skills/sync-codex/scripts/run-codex-sync.mjs', 'AGENTS.md route includes node fallback');
                 });
             } finally {

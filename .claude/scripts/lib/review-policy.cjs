@@ -99,9 +99,9 @@ function validateRunId(value) {
     return value;
 }
 
-function validateFingerprint(value) {
-    boundedText(value, 'targetFingerprint', 256);
-    if (!FINGERPRINT.test(value)) throw new Error('targetFingerprint contains unsupported characters');
+function validateFingerprint(value, label = 'targetFingerprint') {
+    boundedText(value, label, 256);
+    if (!FINGERPRINT.test(value)) throw new Error(`${label} contains unsupported characters`);
     return value;
 }
 
@@ -476,7 +476,7 @@ function recordRound(options) {
         // record must name what that pass reviewed; otherwise the round would
         // claim a full review of code the pass never saw.
         const reviewedFingerprint = options.reviewedFingerprint === undefined
-            ? null : validateFingerprint(options.reviewedFingerprint);
+            ? null : validateFingerprint(options.reviewedFingerprint, 'reviewedFingerprint');
         if (evaluation.scopedClosedLow.length > 0 && reviewedFingerprint === null) {
             throw new Error('reviewedFingerprint is required when a finding carries resolution scoped-fix-verified');
         }

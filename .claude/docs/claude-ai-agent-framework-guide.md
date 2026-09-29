@@ -187,7 +187,7 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 | Project setup, context & help    | 9     | `project-init`, `ai-context-refresh`, `project-skill-protocol`, `learn` |
 | Framework maintenance            | 6     | `sync-codex`, `sync-opencode`, `skill-creator`, `prompt-enhance`     |
 
-**Who can start a skill.** Most skills are model-invocable. 18 are command-only (`disable-model-invocation: true`, e.g. `sync-codex`, `release-doc`, `product-roadmap`) — only the user starts them with `/name`. A team can hide more with a **skill profile** (`skillProfile` in `docs/project-config.json`): preset `full` · `standard` · `minimal`, plus `nameOnly`, `commandOnly` and `off` lists; `node .claude/scripts/sync-skill-profile.cjs` writes the result into `.claude/settings.json` `skillOverrides`. Hiding a skill that a workflow, agent or hook calls is refused unless `allowHidingCalledSkills: true`.
+**Who can start a skill.** Most skills are model-invocable. 17 are command-only (`disable-model-invocation: true`, e.g. `sync-opencode`, `release-doc`, `product-roadmap`) — only the user starts them with `/name`. A team can hide more with a **skill profile** (`skillProfile` in `docs/project-config.json`): preset `full` · `standard` · `minimal`, plus `nameOnly`, `commandOnly` and `off` lists; `node .claude/scripts/sync-skill-profile.cjs` writes the result into `.claude/settings.json` `skillOverrides`. Hiding a skill that a workflow, agent or hook calls is refused unless `allowHidingCalledSkills: true`.
 
 **Review-family modes.** `--fix-loop` (review → validate → fix → fresh re-review until converged; mints a review receipt) and `--report-only` (a leaf reviewer that only reports — no fixes, no questions, no nested fan-out — used when a caller owns the fixes).
 
@@ -268,7 +268,7 @@ Why hybrid: a rule already in context beats a rule the model must go read, but r
 3. **Fix** — `fix --target=review` fixes validated findings at the owning layer and records FIXED / REJECTED / DEFERRED with reasons; an unexplained defect is traced with `debug-investigate` first.
 4. **Receipt** — a converged `--fix-loop` mints a review receipt bound to the exact changeset; any later edit invalidates it.
 5. **Commit** — `/commit` stages, runs the test-verify and review gates, and writes a Conventional Commit. `review-commit-gate` blocks any agent `git commit` without a receipt or a user-approved skip.
-6. **Pull request** — `/pull-request` branches if needed, runs the review fix-loop over the whole branch, tests, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes. Target: `pullRequest.targetBranch` (default `main`).
+6. **Pull request** — `/pull-request` puts the work on a branch at the latest target (new branch if the old one was merged, rebase if it is unpushed and behind), runs the review fix-loop over the whole branch, tests, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes. Target: `pullRequest.targetBranch` (default `main`).
 7. **Doc sync** — reviewers flag spec/doc gaps read-only; `docs-update` applies them. `doc-sync-gate` warns when enforced areas change without their spec.
 
 **Git discipline** (model-behavioral on every host): never commit, push or stage without an explicit request; branch before committing on the default branch; never run a command that destroys uncommitted work without asking; treat `gh`/GitHub-MCP writes like a push. Only the literal `permissions.ask` patterns in `.claude/settings.json` still prompt; the commit review gate is the one mechanical rule.
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **137** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1045** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `run-all-tests.cjs` (full aggregate) | **1059** | Primary plus every `tests/suites/*.test.cjs` suite                     |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 137; `run-all-tests.cjs` = 1045 discovered. Both runners fail when these numbers drift from the docs.
+> Live-verified: `test-all-hooks.cjs` = 137; `run-all-tests.cjs` = 1059 discovered. Both runners fail when these numbers drift from the docs.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

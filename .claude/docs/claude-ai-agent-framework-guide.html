@@ -390,7 +390,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="cat"><span>Design &amp; UI</span><div class="cat-bar"><i style="width:40px"></i><b>4</b><span>design, design-spec, pbi-mockup</span></div></div>
       </div>
       <div class="grid">
-        <div class="card"><h4>Who can start a skill</h4><p>Most are model-invocable. 18 are command-only (<code>disable-model-invocation: true</code>): only you start them with <code>/name</code>.</p></div>
+        <div class="card"><h4>Who can start a skill</h4><p>Most are model-invocable. 17 are command-only (<code>disable-model-invocation: true</code>): only you start them with <code>/name</code>.</p></div>
         <div class="card"><h4>Skill profiles</h4><p><code>skillProfile</code> preset <code>full</code> · <code>standard</code> · <code>minimal</code>, plus <code>nameOnly</code>, <code>commandOnly</code>, <code>off</code>. Applied by <code>sync-skill-profile.cjs</code>; hiding a skill a workflow calls is refused.</p></div>
         <div class="card"><h4>Review modes</h4><p><code>--fix-loop</code> reviews, validates, fixes and re-reviews until converged. <code>--report-only</code> is a silent leaf reviewer for a caller that owns the fixes.</p></div>
       </div>
@@ -538,7 +538,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <thead><tr><th>Runner</th><th>Tests</th><th>Covers</th></tr></thead>
         <tbody>
           <tr><td><code>test-all-hooks.cjs</code> (primary gate)</td><td class="num"><b>137</b></td><td>Hook behaviors and the count guard</td></tr>
-          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1014</b></td><td>Primary plus every suite</td></tr>
+          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1059</b></td><td>Primary plus every suite</td></tr>
           <tr><td><code>node --test .claude/scripts/codex/tests</code></td><td class="num">—</td><td>Mirror generators and verifiers</td></tr>
           <tr><td><code>run-codex-sync.mjs --verify-only</code></td><td class="num">—</td><td>All read-only gates before a commit</td></tr>
         </tbody>

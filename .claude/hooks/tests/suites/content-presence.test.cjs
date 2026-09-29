@@ -81,7 +81,7 @@
  *               before any graph CLI call, and stops when the install fails.
  *
  *   TC-ADS-008 — the command-only utility skills (decision D-2) each declare exactly one
- *               `disable-model-invocation: true` in frontmatter, and `commit` / `learn` / `git-conflict-resolve` stay
+ *               `disable-model-invocation: true` in frontmatter, and `commit` / `learn` / `git-conflict-resolve` / `sync-codex` stay
  *               model-callable. Framework-repo guarded (synchronous signal + parity tripwire):
  *               it asserts this repo's own skill defaults, which an adopting project may change.
  *
@@ -174,15 +174,16 @@ const IS_FRAMEWORK_REPO = frameworkRepoGuard.isFrameworkRepo(PROJECT_DIR);
 
 // Owner decision D-2 (command-only utilities): plain utility skills that no workflow, agent preload,
 // Skill call or hook starts are manual-only — the user runs them as `/name` (`$name` on Codex), the
-// model never self-triggers them. `commit`, `learn` and `git-conflict-resolve` stay model-callable (an agent preloads
-// `commit`; `learn` auto-activates by design; the agent resolves conflicts from its own pull-before-commit step).
+// model never self-triggers them. `commit`, `learn`, `git-conflict-resolve` and `sync-codex` stay model-callable (an agent
+// preloads `commit`; `learn` auto-activates by design; the agent resolves conflicts from its own pull-before-commit step and
+// regenerates the host mirrors once the framework source is final).
 const COMMAND_ONLY_UTILITIES = [
     'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
     'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
     'git-developer-performance', 'skill-creator', 'scan-codebase-health', 'graph-export',
     'ck-help', 'project-help', 'custom-prompt',
 ];
-const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve'];
+const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve', 'sync-codex'];
 
 // TC-HTMLX-052. Skills that run html-export's script by path and restate its exit rule in prose.
 const HTML_EXPORT_CALLERS = ['presentation-builder', 'pbi-mockup', 'feature-presentation'];
@@ -1753,7 +1754,7 @@ module.exports = {
         {
             // Guards decision D-2 (and spec TC-PD-021: the general deck builder starts only on a developer request): a utility that drops its manual-only flag re-enters the model's skill
             // list and self-triggers again; a flipped `commit`/`learn` breaks the agent and lesson paths.
-            name: '[content-presence] TC-ADS-008 command-only utility skills are manual-only; commit, learn and git-conflict-resolve stay callable',
+            name: '[content-presence] TC-ADS-008 command-only utility skills are manual-only; commit, learn, git-conflict-resolve and sync-codex stay callable',
             skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skill defaults (framework-repo signal)',
             fn: () => {
                 // Given the command-only utilities and the skills the owner keeps model-callable

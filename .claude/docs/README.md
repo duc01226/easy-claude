@@ -159,7 +159,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->23<!-- /COUNT --> |
 | Workflows              | 21    |
-| Hook Tests             | 135   |
+| Hook Tests             | 137   |
 | Documentation Files    | 28    |
 
 ---

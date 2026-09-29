@@ -208,29 +208,29 @@ A project that adopts the framework gets a set of project-level switches that de
 
 ### Rule Catalog
 
-| Rule ID   | Name                                                      | Category      | Enforcement | Release |
-| --------- | --------------------------------------------------------- | ------------- | ----------- | ------- |
-| BR-ADS-01 | Graph mode decides graph activity                         | Activation    | [HARD]      | A       |
-| BR-ADS-02 | Graph tooling installs on use                             | Activation    | [HARD]      | A       |
-| BR-ADS-03 | Graph-not-built note: mode on only, once per session      | Presentation  | [HARD]      | A       |
-| BR-ADS-04 | Off means inert, and the graph command refuses            | Activation    | [HARD]      | A       |
-| BR-ADS-05 | Fix-origin trailer is opt-in and forward-only             | Policy        | [HARD]      | A       |
-| BR-ADS-06 | Utility skills are command-only on every host             | Visibility    | [HARD]      | A       |
-| BR-ADS-07 | Third-host entries follow the effective tier              | Visibility    | [HARD]      | A       |
-| BR-ADS-08 | The generator owns only what it wrote                     | Ownership     | [HARD]      | A       |
-| BR-ADS-09 | Called skills are never hidden without opt-in             | Visibility    | [HARD]      | A       |
-| BR-ADS-10 | Every hidden skill keeps a safe explicit command          | Visibility    | [HARD]      | A       |
-| BR-ADS-11 | Token checkpoint interval range                           | Validation    | [HARD]      | A       |
-| BR-ADS-12 | Skill profile on the primary host                         | Visibility    | [HARD]      | D       |
-| BR-ADS-13 | Settings writer never loses settings                      | Ownership     | [HARD]      | D       |
-| BR-ADS-14 | Skill profile on the second and third hosts               | Visibility    | [HARD]      | D       |
-| BR-ADS-15 | Emphasis reductions are anchored, measured and traceless  | Quality       | [HARD]      | D       |
-| BR-ADS-16 | No framework skill hides a built-in skill                 | Visibility    | [HARD]      | D       |
-| BR-ADS-17 | Shared graph tooling environment                          | Activation    | [HARD]      | D       |
-| BR-ADS-18 | Install lock recovery                                     | Safety        | [HARD]      | D       |
-| BR-ADS-19 | Step-skill description form                               | Quality       | [SOFT]      | D       |
-| BR-ADS-20 | No compaction budget on any host                          | Policy        | [HARD]      | A       |
-| BR-ADS-21 | A retired bundled value is removed only on an exact match | Ownership     | [HARD]      | A       |
+| Rule ID   | Name                                                      | Category     | Enforcement | Release |
+| --------- | --------------------------------------------------------- | ------------ | ----------- | ------- |
+| BR-ADS-01 | Graph mode decides graph activity                         | Activation   | [HARD]      | A       |
+| BR-ADS-02 | Graph tooling installs on use                             | Activation   | [HARD]      | A       |
+| BR-ADS-03 | Graph-not-built note: mode on only, once per session      | Presentation | [HARD]      | A       |
+| BR-ADS-04 | Off means inert, and the graph command refuses            | Activation   | [HARD]      | A       |
+| BR-ADS-05 | Fix-origin trailer is opt-in and forward-only             | Policy       | [HARD]      | A       |
+| BR-ADS-06 | Utility skills are command-only on every host             | Visibility   | [HARD]      | A       |
+| BR-ADS-07 | Third-host entries follow the effective tier              | Visibility   | [HARD]      | A       |
+| BR-ADS-08 | The generator owns only what it wrote                     | Ownership    | [HARD]      | A       |
+| BR-ADS-09 | Called skills are never hidden without opt-in             | Visibility   | [HARD]      | A       |
+| BR-ADS-10 | Every hidden skill keeps a safe explicit command          | Visibility   | [HARD]      | A       |
+| BR-ADS-11 | Token checkpoint interval range                           | Validation   | [HARD]      | A       |
+| BR-ADS-12 | Skill profile on the primary host                         | Visibility   | [HARD]      | D       |
+| BR-ADS-13 | Settings writer never loses settings                      | Ownership    | [HARD]      | D       |
+| BR-ADS-14 | Skill profile on the second and third hosts               | Visibility   | [HARD]      | D       |
+| BR-ADS-15 | Emphasis reductions are anchored, measured and traceless  | Quality      | [HARD]      | D       |
+| BR-ADS-16 | No framework skill hides a built-in skill                 | Visibility   | [HARD]      | D       |
+| BR-ADS-17 | Shared graph tooling environment                          | Activation   | [HARD]      | D       |
+| BR-ADS-18 | Install lock recovery                                     | Safety       | [HARD]      | D       |
+| BR-ADS-19 | Step-skill description form                               | Quality      | [SOFT]      | D       |
+| BR-ADS-20 | No compaction budget on any host                          | Policy       | [HARD]      | A       |
+| BR-ADS-21 | A retired bundled value is removed only on an exact match | Ownership    | [HARD]      | A       |
 
 ### BR-ADS-01: Graph mode decides graph activity [HARD]
 
@@ -261,7 +261,7 @@ A project that adopts the framework gets a set of project-level switches that de
 
 ### BR-ADS-06: Utility skills are command-only on every host [HARD]
 
-**Statement:** The fifteen utility skills are never selected by the assistant on its own on any host: the primary host marks them command-only, the second host copy stops their implicit selection, and the third host hides them. An explicit command runs each of them on all three hosts. The commit and learn skills stay selectable. A skill that any workflow, agent or automatic step calls is never in this set.
+**Statement:** The fifteen utility skills are never selected by the assistant on its own on any host: the primary host marks them command-only, the second host copy stops their implicit selection, and the third host hides them. An explicit command runs each of them on all three hosts. The commit, learn, git-conflict-resolve and sync-codex skills stay selectable. A skill that any workflow, agent or automatic step calls is never in this set.
 
 ### BR-ADS-07: Third-host entries follow the effective tier [HARD]
 
@@ -1200,14 +1200,14 @@ Then each is marked as command-only
 
 **Edge Cases:**
 
-- Commit, learn and git-conflict-resolve skills → stay selectable (owner decisions; the assistant resolves conflicts from its own pull-before-commit step)
+- Commit, learn, git-conflict-resolve and sync-codex skills → stay selectable (owner decisions; the assistant resolves conflicts from its own pull-before-commit step and regenerates the host mirrors once the framework source is final)
 - Check runs only in the framework repository; elsewhere reported as skipped
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: component/skills/utility-frontmatter]`
 > **Related Behaviors:** `component/skills/utility-frontmatter` · `test/hooks/content-presence`
-> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::[content-presence] TC-ADS-008 command-only utility skills are manual-only; commit, learn and git-conflict-resolve stay callable` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::[content-presence] TC-ADS-008 command-only utility skills are manual-only; commit, learn, git-conflict-resolve and sync-codex stay callable` · **Status:** Tested
 
 ---
 
