@@ -22,7 +22,7 @@ Use `Plan dir:` from `## Naming` section injected by hooks. This is the full com
 ├── phase-04-implement-ui-components.md        # UI components
 ├── phase-05-implement-authentication.md       # Auth & authorization
 ├── phase-06-implement-profile.md              # Profile page
-└── phase-07-final-gate.md                     # ONE final gate: docs/counts, mirrors, full suite, one review fix-loop
+└── phase-07-final-gate.md                     # ONE final gate: docs/counts, mirrors, one static review fix-loop, then verify once (full suite + mutation check)
 ```
 
 Plan directories contain canonical plan and phase files only; follow the report output rules below for disposable research, investigation, and verification output.
@@ -108,7 +108,7 @@ Execution waves: wave 1 = [phase-01] · SEQ = [phase-02 (needs phase-01's genera
 - Keep generic and under 80 lines
 - List each phase with status/progress
 - `Mode` column is MANDATORY — `PAR` when the phase's inputs contain no pending phase's output AND its write set is disjoint from every other `PAR` phase; otherwise `SEQ`
-- No test, review, or "close" phase per phase or per release: each implementation phase ends with its targeted check (own suites + one mutation check per new rule); the plan ends with ONE final gate phase (docs/counts, mirrors, full suite, one review fix-loop) — see `plan/SKILL.md` § Plan Parallelism Metadata
+- No test, review, or "close" phase per phase or per release: each implementation phase ends with type-check/compile only and writes its tests with its code; the plan ends with ONE final gate phase in this order (docs/counts, mirrors → one static review fix-loop → the single verify: full suite + mutation check → fix and re-run to green → re-review only if that fixed anything) — see `plan/SKILL.md` § Plan Parallelism Metadata
 - `## Execution Waves` is MANDATORY — it is the line `$plan-execute` reads to fan out; every `SEQ` entry names the phase + exact artifact that forces the ordering
 - Link to detailed phase files
 - Key dependencies

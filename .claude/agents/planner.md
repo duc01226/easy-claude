@@ -73,7 +73,7 @@ Connected contracts:
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plan.md`            | YAML frontmatter: title, description, status, priority, effort, branch, tags, created                                                                                |
 | Each `phase-XX-*.md` | Context, Overview, Requirements, Alternatives Considered (min 2), Design Rationale, Architecture, Implementation Steps, Todo list, Success Criteria, Risk Assessment |
-| Phase structure      | Critical-path `PAR` waves; each implementation phase ends with its targeted check; ONE final gate phase, no per-phase test/review phases — `plan` skill § Plan Parallelism Metadata |
+| Phase structure      | Critical-path `PAR` waves; each implementation phase ends with type-check/compile only and writes its tests with its code; ONE final gate phase (static review, then the single verify with mutation check), no per-phase test/review phases or test runs — `plan` skill § Plan Parallelism Metadata |
 | Research reports     | <=150 lines                                                                                                                                                          |
 | `plan.md`            | <=80 lines                                                                                                                                                           |
 

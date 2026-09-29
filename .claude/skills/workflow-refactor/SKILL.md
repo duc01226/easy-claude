@@ -60,8 +60,8 @@ Specs normally do not change in a refactor; the spec steps below run only when c
 | `/spec [mode=tests]` | optional | TCs reference moved code/tests, or an invariant lacks a TC | TCs match |
 | `/artifact-review --type=spec-tests` | optional | TC content changed beyond evidence paths | TC quality |
 | `/spec [mode=sync]` | optional | specs/TCs reference moved or renamed code/test paths | specs match |
-| `/integration-test-verify` | optional | integration tests written or changed in this run | integration tests green |
-| `/workflow-review-changes` | gate | always — INLINE in the main session | review converged |
+| `/workflow-review-changes --tests=defer` | gate | always — INLINE in the main session | review converged |
+| `/integration-test-verify` | optional | integration tests written or changed in this run — after the review | integration tests green |
 | `/test` | gate | always — after the change and review fixes, baseline scope | behavior preserved |
 | `/workflow-end` | gate | always | run closed |
 | `/watzup` | core | wrap-up summary | handoff |
@@ -79,7 +79,7 @@ A recommended step the triage shows would do no real work is not run; record it 
 You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. Fixed constraints (data dependencies):
 
 - The baseline and any characterization tests run green on the unrefactored code before `/plan-execute` changes it.
-- A change exists before it is reviewed or tested; a spec sync runs before the review that checks it; review fixes are re-verified by the final `/test` gate; `/workflow-end` runs last.
+- A change exists before it is reviewed or tested; a spec sync runs before the review that checks it; the review is static (`--tests=defer`) and the verify runs after it; a fix made by the verify step re-runs `/workflow-review-changes --tests=defer` (`SYNC:verify-last-order`); `/workflow-end` runs last.
 - `/workflow-review-changes` runs INLINE in the main session — never as a sub-agent — and owns the test-quality review and the docs/domain-entity reference refresh; do not repeat them here.
 - Gates awaiting user approval (plan validation, a behavior-change decision) are never parallelized.
 
@@ -98,7 +98,7 @@ Activate the `workflow-refactor` workflow: run `/start-workflow workflow-refacto
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /test -> /plan -> /plan-review -> /plan-validate -> /integration-test -> /plan-execute -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /integration-test-verify -> /workflow-review-changes -> /test -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /test -> /plan -> /plan-review -> /plan-validate -> /integration-test -> /plan-execute -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -111,6 +111,7 @@ Recommended default order (roles in the table above):
 - `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->

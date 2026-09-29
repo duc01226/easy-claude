@@ -11,7 +11,7 @@ disable-model-invocation: false
 
 **Use this** for seeders, dev/QC dummy data and realistic first-init data. Use `/seed-test-data --mode=review` alone for a read-only seeder audit, and `workflow-write-integration-test` / `workflow-e2e` when the deliverable is a test rather than seeded data.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /seed-test-data -> /experience-review -> /code-simplifier -> /test -> /changes-review -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /seed-test-data -> /experience-review -> /code-simplifier -> /changes-review -> /test -> /docs-update -> /workflow-end -> /watzup
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
 
@@ -46,8 +46,8 @@ The triage selects which recommended skills run and how deep; it never removes a
 | `/seed-test-data`                  | Always — it makes the change                                                                                    | Seeder invariants                                                                                                                                       |
 | `/experience-review` (conditional) | The seeded data reaches a configured or likely observable surface                                               | Seeded data observed                                                                                                                                    |
 | `/code-simplifier`                 | The seeder diff has duplication or scaffolding worth removing; XS single-scenario edits may do no real work     | Behavior-preserving cleanup before the checks that prove it                                                                                             |
-| `/test` (gate)                     | Always                                                                                                          | `tests-pass`                                                                                                                                            |
 | `/changes-review` (gate)           | Always                                                                                                          | `review-converged`, seeder-invariant compliance                                                                                                         |
+| `/test` (gate)                     | Always                                                                                                          | `tests-pass`                                                                                                                                            |
 | `/docs-update`                     | A seeder adds config keys, changes dev-data coverage materially, or encodes a domain rule                       | Spec/docs synced                                                                                                                                        |
 | `/workflow-end` + `/watzup`        | Always (top-level run)                                                                                          | `run-closed`, handoff summary                                                                                                                           |
 

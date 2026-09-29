@@ -64,7 +64,7 @@ Connected contracts:
 
 - This is a parallel-safe executor: your single hard boundary is the phase's "File Ownership" list — touch nothing outside it, never peek at other phases.
 - Confirm zero file overlap and read project pattern docs BEFORE coding; any conflict → STOP and report, do not work around it.
-- Implement steps in listed order, then gate on type checks + tests passing and every phase success criterion met.
+- Implement steps in listed order, writing the phase's tests with its code, then gate on type checks passing and every phase success criterion that needs no test run. NEVER run a test suite: the orchestrator runs the tests once, last (verify-last order).
 - Trust the phase file's dependency declarations; report files modified, tasks done, and test status back so dependent phases unblock.
 - **Frontend tasks only:** no UI task is done until the UI Pre-Completion Gate passes — 5 states + loading (`UI-5.2`), type-scale/spacing-unit values only (`UI-2.5`, `UI-4.1`), measured 4.5:1 / 3:1 contrast (`UI-3.1`), visible focus ring (`UI-5.5`), ≥44×44pt targets 8px apart (`UI-8.1`), reserved space (`UI-9.3`), <100ms response + 150–250ms ease-out motion (`UI-5.1`, `UI-5.4`), input preserved across errors/navigation/refresh (`UI-7.5`). Backend-only phases/tasks are exempt — record `UI gate: N/A — backend-only` explicitly.
 
@@ -73,7 +73,7 @@ Connected contracts:
 1. **Phase Analysis** — Read assigned phase file; verify file-ownership list; check parallelization info
 2. **Pre-Implementation Validation** — Confirm zero file overlap with parallel phases; read project docs; verify dependencies complete
 3. **Implementation** — Execute steps sequentially as listed; modify ONLY owned files
-4. **Quality Assurance** — Run type checks; run tests; fix failures; verify success criteria
+4. **Quality Assurance** — Run type checks; fix type errors; verify success criteria that need no test run (the orchestrator's single verify runs the tests)
 5. **Completion Report** — Report files modified, tasks completed, tests status, conflicts if any
 
 **Key Rules:**
@@ -120,8 +120,8 @@ Connected contracts:
 
 4. **Quality Assurance**
     - Run type checks: `npm run typecheck` or equivalent
-    - Run tests: `npm test` or equivalent
-    - Fix any type errors or test failures
+    - Do NOT run test suites — the orchestrator runs them once, after the static review; tests you wrote are executed there
+    - Fix any type errors
     - Verify success criteria from phase file
 
 5. **Completion Report**
@@ -185,8 +185,7 @@ Write reports under `tmp/reports/` using the `{date}-{slug}` naming convention (
 ### Tests Status
 
 - Type check: [pass/fail]
-- Unit tests: [pass/fail + coverage]
-- Integration tests: [pass/fail]
+- Tests written: [files; NOT run here — the orchestrator's single verify runs them]
 
 ### Issues Encountered
 
@@ -794,7 +793,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 **IMPORTANT MUST ATTENTION** NEVER touch files outside your phase's "File Ownership" section, NEVER read/write files owned by parallel phases — file conflict = STOP and report immediately, do not work around it — why: parallel phases corrupt each other when ownership leaks.
 **IMPORTANT MUST ATTENTION** Confirm zero file overlap AND read project pattern docs BEFORE coding — implement steps in listed order — why: local conventions override generic framework defaults, and out-of-order steps break declared dependencies.
-**IMPORTANT MUST ATTENTION** Gate completion on type checks + tests passing AND every phase success criterion met before reporting done — why: a phase reported done that fails CI blocks every dependent phase.
+**IMPORTANT MUST ATTENTION** Gate completion on type checks passing AND every phase success criterion that needs no test run; write the phase's tests with its code but NEVER run a test suite — the orchestrator's single verify does — why: per-phase test runs re-test the same code and serialize the whole run.
 **IMPORTANT MUST ATTENTION** Bootstrap a task breakdown before edits, keep one task in_progress, mark each complete immediately after its evidence lands — why: parallel execution + context loss silently drops findings without external tracking.
 **IMPORTANT MUST ATTENTION** Cite `file:line` evidence for every claim, confidence >80% to act and <80% verify first — NEVER fabricate file paths, function names, APIs, or behavior; grep to confirm existence before referencing — why: hallucinated symbols compile-fail or silently misbehave downstream.
 **IMPORTANT MUST ATTENTION** Search 3+ existing siblings and read target files before writing new code; match the local pattern, never invent a new one — verify the nearby example shares your context's base class/scope/constraints before copying — why: divergent patterns fragment the codebase and a mis-fit copy breaks on preconditions it never shared.
@@ -813,11 +812,11 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 | ----------------------------------------- | ---------------------------------------------------------------------------------- |
 | "This file is small, I own it anyway"     | Confirm it is in the phase's File Ownership list — outside = STOP, never assume.   |
 | "Already know the pattern, skip the docs" | Show `file:line` from 3+ siblings + the read pattern doc. No proof = no search.    |
-| "Tests are slow, report done now"         | Done = type checks + tests green + every success criterion met. No green, no done. |
+| "Let me run the tests before I report"    | No — write them with the code; the orchestrator runs the suite once, after review. |
 | "Just patch where it crashes"             | Trace to the owning layer; fix at the lowest layer that protects all consumers.    |
 | "Peek at the other phase to be safe"      | Never read parallel-phase files; trust phase-file dependencies, work independent.  |
 
 **IMPORTANT MUST ATTENTION** NEVER modify files outside your phase's File Ownership section — file conflict = STOP and report.
 **IMPORTANT MUST ATTENTION** Cite `file:line` with confidence >80% before acting; never fabricate paths/APIs/behavior.
-**IMPORTANT MUST ATTENTION** Gate completion on type checks + tests passing + every success criterion met before reporting done.
+**IMPORTANT MUST ATTENTION** Gate completion on type checks passing + every success criterion that needs no test run; tests are written here and run once by the orchestrator.
 """

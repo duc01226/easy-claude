@@ -42,7 +42,7 @@ Phase -1 bind loop (standalone) → Phase 0 triage + Review Plan → Phase 0.7 d
 
 ## Review Scope
 
-Target: current working-tree changes by default (`git status`, `git diff`, `git diff --cached`); an explicit branch diff (`git diff <base>...<head>`) or commit range (`git diff <base>..<head>`) when the user asks for one.
+Target: current working-tree changes by default (`git status`, `git diff`, `git diff --cached`); an explicit branch diff (`git diff <base>...<head>`) or commit range (`git diff <base>..<head>`) when the user asks for one. A pull-request or branch review ALWAYS uses the branch diff from the merge-base with the target (`git diff <target>...HEAD` ∪ uncommitted changes) — never only the latest commit or the working tree, so every commit of the branch is in scope.
 
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
@@ -149,7 +149,7 @@ Flag every doc, spec or test artifact the change makes stale (section + what cha
 **Trigger:** validated findings that block the current round (round 1: any severity; round 2+: CRITICAL/HIGH/MEDIUM). Round-2 LOW-only findings are recorded and deferred, not fixed — list them under `## Deferred LOW Findings (severity floor, round ≥2)`. In round 1 a LOW with a local fix is fixed and closed by a scoped check, and a LOW needing new code or tests is deferred (`SYNC:double-round-trip-review` → Round-1 LOW closure).
 
 1. SELF-FIX each validated finding that blocks the current round at its owning layer — inline for a handful of local fixes, `/fix --target=review <report>` for many or cross-module ones (called from this phase it is a reviewer-owned fix: no approval prompt and no nested `/changes-review` — this loop re-reviews); a defect whose owning cause the report does not trace gets `/debug-investigate` first; a finding the fixer believes is wrong is logged `REJECTED` with its new evidence and re-validated via `/why-review --validate-findings` before it counts as closed. Behavior-changing fixes add or update the guarding test; validated stale docs are fixed at the canonical artifact.
-2. Verify the fix set (affected tests, lint, spec/doc sync, config checks) and append `## Fix Cycle {N}` to the report: findings fixed, files changed, verification commands and results.
+2. Verify the fix set (affected tests, lint, spec/doc sync, config checks) and append `## Fix Cycle {N}` to the report: findings fixed, files changed, verification commands and results. When a later verify step runs the tests once, last (`SYNC:verify-last-order` — the caller says so or its sequence has one), this verification is static: lint, spec/doc sync and config checks only, and a fix may write or amend tests but does not run them.
 3. **Re-review the WHOLE current diff** (original changes + fixes) from Phase 0 with a fresh task list (a round-1 LOW-only fix set closed by scoped check or deferral, with no simplification proposal applied, is the one exception — `SYNC:double-round-trip-review` → Round-1 LOW closure) — re-read every changed file; the prior report is history, never truth. Re-triage: the fix may change the size band or add a change kind.
 4. Repeat until one complete pass clears the round bar.
 

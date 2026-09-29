@@ -1373,6 +1373,20 @@
       ]
     },
     {
+      "tag": "verify-last-order",
+      "group": "spec-test",
+      "summary": "Build all phases and write tests, review statically, then verify once with a mutation check",
+      "when": "planning or running any code-changing task",
+      "chars": 2824,
+      "file": ".claude/skills/shared/protocols/verify-last-order.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/verify-last-order.md",
+          "chars": 2824
+        }
+      ]
+    },
+    {
       "tag": "web-research",
       "group": "evidence-trace",
       "summary": "Structured web search for evidence gathering",

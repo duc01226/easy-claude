@@ -149,6 +149,11 @@ EXCLUDED_ORCHESTRATION = {
     "systematic-review-batching",
     "review-protocol-injection",
     "review-policy",
+    # Ordering of test runs across the steps of a task (build all phases, static review, ONE verify)
+    # is owned by the ORCHESTRATING skill or workflow. A leaf sub-agent receives one brief; the rules
+    # it must obey (a phase executor never runs a test suite, the tester runs once when told to) are
+    # written directly in fullstack-developer.md / frontend-developer.md rather than carried as a block.
+    "verify-last-order",
 }
 
 # Per-agent exceptions: a normally-excluded block IS legitimate content for this

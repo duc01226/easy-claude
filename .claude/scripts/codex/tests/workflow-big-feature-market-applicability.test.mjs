@@ -22,7 +22,7 @@ const expectedSequence = [
   "spec-clarify", "plan", "plan-review", "scaffold", "architecture-review-full",
   "scan --target=ui-system", "scan --target=backend-patterns", "scan --target=integration-tests",
   "scan --target=project-structure", "plan-validate", "plan-execute", "seed-test-data",
-  "integration-test", "integration-test-verify", "spec [mode=sync]", "workflow-review-changes",
+  "integration-test", "spec [mode=sync]", "workflow-review-changes --tests=defer", "integration-test-verify",
   "workflow-e2e --source=context", "test", "workflow-end", "watzup",
 ];
 

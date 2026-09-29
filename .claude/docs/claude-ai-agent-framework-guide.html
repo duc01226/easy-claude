@@ -356,7 +356,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h3>Key sequences</h3>
       <p class="caption">Amber edge: always runs. Dashed: optional. Simplified to the main steps.</p>
       <div class="seq"><h4>Bug fix</h4><ol class="flow">
-        <li><span class="node gate">Find root cause</span></li><li><span class="node opt">Plan</span></li><li><span class="node gate">Failing regression test</span></li><li><span class="node">Fix</span></li><li><span class="node">Test passes</span></li><li><span class="node gate">Verify</span></li><li><span class="node gate">Review changes</span></li><li><span class="node gate">Close</span></li>
+        <li><span class="node gate">Find root cause</span></li><li><span class="node opt">Plan</span></li><li><span class="node gate">Regression test</span></li><li><span class="node">Fix</span></li><li><span class="node gate">Review changes</span></li><li><span class="node gate">Verify</span></li><li><span class="node gate">Close</span></li>
       </ol></div>
       <div class="seq"><h4>Feature</h4><ol class="flow">
         <li><span class="node">Investigate</span></li><li><span class="node">Spec</span></li><li><span class="node">Plan + review</span></li><li><span class="node">Test specs</span></li><li><span class="node">Implement</span></li><li><span class="node">Spec sync</span></li><li><span class="node">Integration tests</span></li><li><span class="node gate">Review changes</span></li><li><span class="node gate">Test</span></li><li><span class="node gate">Close</span></li>
@@ -538,7 +538,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <thead><tr><th>Runner</th><th>Tests</th><th>Covers</th></tr></thead>
         <tbody>
           <tr><td><code>test-all-hooks.cjs</code> (primary gate)</td><td class="num"><b>137</b></td><td>Hook behaviors and the count guard</td></tr>
-          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1059</b></td><td>Primary plus every suite</td></tr>
+          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1065</b></td><td>Primary plus every suite</td></tr>
           <tr><td><code>node --test .claude/scripts/codex/tests</code></td><td class="num">—</td><td>Mirror generators and verifiers</td></tr>
           <tr><td><code>run-codex-sync.mjs --verify-only</code></td><td class="num">—</td><td>All read-only gates before a commit</td></tr>
         </tbody>

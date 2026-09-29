@@ -271,13 +271,14 @@
           }
         },
         "integration-test",
-        "integration-test-verify",
         "spec [mode=sync]",
         {
           "id": "big-feature-review",
           "skill": "workflow-review-changes",
+          "args": "--tests=defer",
           "role": "gate"
         },
+        "integration-test-verify",
         {
           "id": "big-feature-e2e",
           "skill": "workflow-e2e",
@@ -299,7 +300,7 @@
     },
     "workflow-bugfix": {
       "description": "Systematic debugging and fix workflow with end-to-start debugger trace before fix and an explicit-request-only near-end workflow-e2e handoff",
-      "intent": "Fix a reported defect at the root cause its end-to-start trace proves, guarded by a regression test that fails before the fix and passes after it.",
+      "intent": "Fix a reported defect at the root cause its end-to-start trace proves, guarded by a regression test that fails without the fix and passes with it.",
       "name": "Bug Fix",
       "outcomeGates": [
         {
@@ -325,7 +326,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "BUG FIX (lean, TDD-first). Intent: fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that is RED before the fix and GREEN after.\nFIRST: triage size (XS/S/M/L/XL), kind and risk per .claude/skills/workflow-bugfix/SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- /debug-investigate owns discovery AND root cause (there is no separate /investigate step). END-TO-START TRACE: start at the observed final state/output, trace backward through reader, storage/projection, writer, consumer/job and producer, enumerate every feeder path, build a hypothesis matrix and weigh environment causes. BLOCKED until the owning fix layer and forward convergence proof are written.\n- CODE BUG vs SPEC BUG before any regression TC or test: Code Bug (spec right, code diverged) -> TCs for the intended behavior; Spec Bug (spec documents the wrong behavior) -> /spec [mode=amend] first; Ambiguous -> ask the user. Never encode buggy behavior into specs or tests.\n- RED/GREEN: the first /integration-test must FAIL on the bug before /fix; after the fix the regression and affected tests must PASS in this run (/integration-test-verify). Tests name the Business Intent / Invariant Guarded; for lifecycle/state logic assert state before/after and invalid-transition rejection.\n- /plan earns its cost for size M+, a Spec Bug, several TCs, cross-module, public-contract/data/security fixes or several candidate fix layers; otherwise /fix plans inline and the investigation report records fix layer, blast radius and rollback.\n- When the bug touches a [HARD] rule or invariant, regression TCs add invariant/property cases (mutation-kill bar, not line coverage) and each behavior-changing finding updates BOTH spec and tests.\n- Spec sync runs when a canonical spec or TC changed, or specified behavior or a public contract changed (business spec root {SPEC_ROOT}).\n- /workflow-review-changes runs INLINE in the main session and converges the review of the whole package (spec + tests + fix); it owns the test-quality review and the docs/domain-entity reference refresh.\n- /workflow-e2e --source=context only on an explicit user E2E request; /demo-guide only for user-facing changes.\nPERFORMANCE-SDD ROUTE: a performance bug runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget); keep functional no-regression checks when behavior can change; update specs/docs for a changed SLA or behavior boundary.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root, docs/project-config.json and the docs index. Code-extracted specs are reference-only until accepted.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): only when the fix is large (size M+) and creates new user-facing UI like a feature (a new page/view, component or dialog), run /pbi-mockup --explore --source=<investigation report or amended spec>. MOCKUP SCOPE GATE FIRST (pbi-mockup --explore Step 0, asked at the very START of the mockup step, BEFORE any journey analysis, reading or drafting, so a skip saves tokens and time; a pre-generation confirm, not the post-generation pick): if AskUserQuestion is available ALWAYS ask first: 3, 2 or 1 mockup options, or skip mockups entirely (recommend by scope: new page or multi-view flow -> 3, single component or dialog -> 1-2); skip -> record Mockup: SKIPPED by user and continue without one. If AskUserQuestion is not available, generate ONLY ONE mockup in the recommended direction (best journey fit and best fit with the project design system), auto-select it, record Selection: AUTO-SELECTED — no question tool (1 draft) in direction-approved.md and the plan or run report, and continue. Then Journey Report (UX-1) and design-authority read (UX-2), the chosen 1-3 direction drafts rendered with html-export, each opened in the default browser (node .claude/scripts/open-report.cjs <draft>), then, with 2-3 drafts, AskUserQuestion with one option per draft and your evidence-backed recommendation first labelled (Recommended). Record the user's pick (1 draft -> Selection: USER — 1 option) in tmp/design/<run>/direction-approved.md; the plan's UI Layout builds on the selected mockup. Never pick for the user while they can be asked; if the drafts cannot be shown or AskUserQuestion errors after drafting, AUTO-SELECT the recommended draft (best journey fit + design-system fit) and record Selection: AUTO-SELECTED — <reason> in direction-approved.md and the plan. A fix inside existing UI skips this step with a stated reason. MAIN SESSION ONLY: the mockup scope gate and the pick run in the session that can ask the user, never inside a delegated sub-agent; only the draft builders may be sub-agents.",
+        "injectContext": "BUG FIX (lean, TDD-first). Intent: fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that is RED without the fix and GREEN with it.\nFIRST: triage size (XS/S/M/L/XL), kind and risk per .claude/skills/workflow-bugfix/SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- /debug-investigate owns discovery AND root cause (there is no separate /investigate step). END-TO-START TRACE: start at the observed final state/output, trace backward through reader, storage/projection, writer, consumer/job and producer, enumerate every feeder path, build a hypothesis matrix and weigh environment causes. BLOCKED until the owning fix layer and forward convergence proof are written.\n- CODE BUG vs SPEC BUG before any regression TC or test: Code Bug (spec right, code diverged) -> TCs for the intended behavior; Spec Bug (spec documents the wrong behavior) -> /spec [mode=amend] first; Ambiguous -> ask the user. Never encode buggy behavior into specs or tests.\n- RED/GREEN (verify last): the first /integration-test WRITES the regression test and does not run it; tests run once, after the static /workflow-review-changes --tests=defer, in /integration-test-verify, whose mutation check reverts the fix by hand-edit (never git checkout/restore/stash) and expects the regression test to FAIL (RED), then restores it and the regression and affected tests must PASS (GREEN) in this run. Tests name the Business Intent / Invariant Guarded; for lifecycle/state logic assert state before/after and invalid-transition rejection.\n- /plan earns its cost for size M+, a Spec Bug, several TCs, cross-module, public-contract/data/security fixes or several candidate fix layers; otherwise /fix plans inline and the investigation report records fix layer, blast radius and rollback.\n- When the bug touches a [HARD] rule or invariant, regression TCs add invariant/property cases (mutation-kill bar, not line coverage) and each behavior-changing finding updates BOTH spec and tests.\n- Spec sync runs when a canonical spec or TC changed, or specified behavior or a public contract changed (business spec root {SPEC_ROOT}).\n- /workflow-review-changes runs INLINE in the main session and converges the review of the whole package (spec + tests + fix); it owns the test-quality review and the docs/domain-entity reference refresh.\n- /workflow-e2e --source=context only on an explicit user E2E request; /demo-guide only for user-facing changes.\nPERFORMANCE-SDD ROUTE: a performance bug runs /performance-review with SLA/benchmark evidence (target metric, baseline, measurement command, regression budget); keep functional no-regression checks when behavior can change; update specs/docs for a changed SLA or behavior boundary.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root, docs/project-config.json and the docs index. Code-extracted specs are reference-only until accepted.\nNEW-UI EXPLORE MOCKUP (conditional, BEFORE plan): only when the fix is large (size M+) and creates new user-facing UI like a feature (a new page/view, component or dialog), run /pbi-mockup --explore --source=<investigation report or amended spec>. MOCKUP SCOPE GATE FIRST (pbi-mockup --explore Step 0, asked at the very START of the mockup step, BEFORE any journey analysis, reading or drafting, so a skip saves tokens and time; a pre-generation confirm, not the post-generation pick): if AskUserQuestion is available ALWAYS ask first: 3, 2 or 1 mockup options, or skip mockups entirely (recommend by scope: new page or multi-view flow -> 3, single component or dialog -> 1-2); skip -> record Mockup: SKIPPED by user and continue without one. If AskUserQuestion is not available, generate ONLY ONE mockup in the recommended direction (best journey fit and best fit with the project design system), auto-select it, record Selection: AUTO-SELECTED — no question tool (1 draft) in direction-approved.md and the plan or run report, and continue. Then Journey Report (UX-1) and design-authority read (UX-2), the chosen 1-3 direction drafts rendered with html-export, each opened in the default browser (node .claude/scripts/open-report.cjs <draft>), then, with 2-3 drafts, AskUserQuestion with one option per draft and your evidence-backed recommendation first labelled (Recommended). Record the user's pick (1 draft -> Selection: USER — 1 option) in tmp/design/<run>/direction-approved.md; the plan's UI Layout builds on the selected mockup. Never pick for the user while they can be asked; if the drafts cannot be shown or AskUserQuestion errors after drafting, AUTO-SELECT the recommended draft (best journey fit + design-system fit) and record Selection: AUTO-SELECTED — <reason> in direction-approved.md and the plan. A fix inside existing UI skips this step with a stated reason. MAIN SESSION ONLY: the mockup scope gate and the pick run in the session that can ask the user, never inside a delegated sub-agent; only the draft builders may be sub-agents.",
         "readFiles": [".claude/skills/workflow-bugfix/SKILL.md"]
       },
       "sequence": [
@@ -395,11 +396,6 @@
           "role": "core"
         },
         {
-          "id": "bugfix-test-verify",
-          "skill": "integration-test-verify",
-          "role": "gate"
-        },
-        {
           "id": "bugfix-spec-sync",
           "skill": "spec",
           "args": "[mode=sync]",
@@ -412,6 +408,12 @@
         {
           "id": "bugfix-review",
           "skill": "workflow-review-changes",
+          "args": "--tests=defer",
+          "role": "gate"
+        },
+        {
+          "id": "bugfix-test-verify",
+          "skill": "integration-test-verify",
           "role": "gate"
         },
         {
@@ -644,12 +646,13 @@
         },
         "spec [mode=sync]",
         "integration-test",
-        "integration-test-verify",
         {
           "id": "feature-review",
           "skill": "workflow-review-changes",
+          "args": "--tests=defer",
           "role": "gate"
         },
+        "integration-test-verify",
         {
           "id": "feature-e2e",
           "skill": "workflow-e2e",
@@ -728,13 +731,14 @@
         },
         "integration-test",
         {
-          "id": "implement-spec-integration-verify",
-          "skill": "integration-test-verify",
+          "id": "implement-spec-review",
+          "skill": "workflow-review-changes",
+          "args": "--tests=defer",
           "role": "gate"
         },
         {
-          "id": "implement-spec-review",
-          "skill": "workflow-review-changes",
+          "id": "implement-spec-integration-verify",
+          "skill": "integration-test-verify",
           "role": "gate"
         },
         {
@@ -1139,15 +1143,6 @@
           }
         },
         {
-          "id": "greenfield-integration-test-verify",
-          "skill": "integration-test-verify",
-          "role": "optional",
-          "applicability": {
-            "when": "The Test Architecture & Execution Contract marks the Integration/System tier APPLICABLE.",
-            "skipReason": "The Test Architecture & Execution Contract records the Integration/System tier as N/A with evidence."
-          }
-        },
-        {
           "id": "greenfield-e2e-test",
           "skill": "e2e-test",
           "role": "optional",
@@ -1167,13 +1162,23 @@
           }
         },
         {
-          "id": "greenfield-test",
-          "skill": "test",
+          "id": "greenfield-review",
+          "skill": "workflow-review-changes",
+          "args": "--tests=defer",
           "role": "gate"
         },
         {
-          "id": "greenfield-review",
-          "skill": "workflow-review-changes",
+          "id": "greenfield-integration-test-verify",
+          "skill": "integration-test-verify",
+          "role": "optional",
+          "applicability": {
+            "when": "The Test Architecture & Execution Contract marks the Integration/System tier APPLICABLE.",
+            "skipReason": "The Test Architecture & Execution Contract records the Integration/System tier as N/A with evidence."
+          }
+        },
+        {
+          "id": "greenfield-test",
+          "skill": "test",
           "role": "gate"
         },
         {
@@ -1636,6 +1641,12 @@
           }
         },
         {
+          "id": "refactor-review",
+          "skill": "workflow-review-changes",
+          "args": "--tests=defer",
+          "role": "gate"
+        },
+        {
           "id": "refactor-test-verify",
           "skill": "integration-test-verify",
           "role": "optional",
@@ -1643,11 +1654,6 @@
             "when": "Integration tests were written or changed in this run.",
             "skipReason": "No integration test was written or changed; the final test gate re-runs the existing suite."
           }
-        },
-        {
-          "id": "refactor-review",
-          "skill": "workflow-review-changes",
-          "role": "gate"
         },
         {
           "id": "refactor-test",
@@ -2751,13 +2757,13 @@
         },
         "code-simplifier",
         {
-          "id": "seed-test-data-test",
-          "skill": "test",
+          "id": "seed-test-data-review",
+          "skill": "changes-review",
           "role": "gate"
         },
         {
-          "id": "seed-test-data-review",
-          "skill": "changes-review",
+          "id": "seed-test-data-test",
+          "skill": "test",
           "role": "gate"
         },
         "docs-update",

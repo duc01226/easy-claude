@@ -19,14 +19,14 @@ context-budget: high
 
 **Goal:** Ship a correct, fully-verified feature that satisfies the saved Goal Contract — implemented with deep research, comprehensive planning, and maximum quality verification (planned, reviewed, tested, documented) — with no skipped quality gate on any non-trivial change.
 
-**Summary:** Resolve the saved goal and spec contract, research and trace the feature, obtain an approved plan, implement in verified phases, run tests and reviews, reconcile specs and docs, and close with evidence; use fast mode only when every trivial-task condition is satisfied.
+**Summary:** Resolve the saved goal and spec contract, research and trace the feature, obtain an approved plan, implement every phase with its tests written together, review statically, verify once with a mutation check (`SYNC:verify-last-order`), reconcile specs and docs, and close with evidence; use fast mode only when every trivial-task condition is satisfied.
 
 **Workflow:**
 
 1. **Research** — Deep investigation, multiple researcher subagents
 2. **Plan** — Detailed plan via `/plan`; user approval required
 3. **Implement** — Execute with full code review + SRE review
-4. **Verify** — Run all tests, review changes, update docs
+4. **Review, then verify once** — static review fix-loop over the whole changeset, then run all tests once with a mutation check (fix and re-run to green; re-review only if that edited anything), update docs
 
 **Key Rules:**
 
@@ -47,10 +47,11 @@ context-budget: high
 > 1. **`/spec` — spec-driven, BEFORE any plan or code.** Create or update the tech-free 8-section Feature Spec under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) so the plan and implementation satisfy an agreed contract, not chat memory. Decide the case from evidence: net-new capability with no code yet → `/spec [mode=draft]` (provisional, `Evidence: TBD`); enhancement to an already-documented feature → `/spec [mode=update]`; behavior/contract change to existing spec → `/spec [mode=amend]`; buggy/undocumented area that now warrants a spec → `/spec [mode=init]`. If a governing spec already exists and fully covers this change, record `Spec verified current — no change` with `file:line` evidence and proceed. **Skip ONLY in fast mode** (ALL Default Mode Policy trivial-task conditions met — no behavior/contract change); record the skip reason. Decide the case explicitly — skip only the authoring, never the decision.
 > 2. **`/plan`** — author the implementation plan from the spec. feature-implement's Comprehensive Planning phase (Step 2) satisfies this; emit a reviewable plan artifact under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides). Map each plan phase's `## Test Specifications` to the spec's §8 `TC-{FEATURE}-{NNN}` IDs.
 > 3. **`/plan-review`** — recursively review/validate the plan; fix validated findings that block the current severity bar before implementing.
-> 4. **Proceed** — execute the core implementation spine (research already done → implement → test → review → docs).
+> 4. **Proceed** — execute the core implementation spine up to the static code review (research already done → implement every phase with its tests → Step 4 review); the single Step 5 verify runs LAST, after every review below.
 > 5. **`/spec [mode=sync]`** — *spec-driven closure.* Reconcile the spec's §8 `TC-{FEATURE}-{NNN}` ↔ integration tests and refresh `Evidence: TBD` markers to real `file:line` now that code exists. Run `/spec [mode=tests]` first if the implementation introduced behavior not yet captured as a test case. Skip only when step 1 was skipped (fast-mode trivial, no spec touched).
 > 6. **`/changes-review`** — review the diff before commit.
 > 7. **`/why-review`** — review rationale and change quality of the implementation.
+> 8. **Verify once (Step 5)** — full tests + mutation check on the settled tree, then the documentation update and final report; a fix made here re-runs items 6-7 before the task is done (`SYNC:verify-last-order`).
 
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
@@ -143,10 +144,9 @@ When graph DB available, BEFORE writing code, trace blast radius:
 
 ### 3. Verified Implementation
 
-- Implement one phase at a time
+- Implement every phase, writing each phase's tests in the same pass as its code
 - After each phase:
-    - Run type-check, compile
-    - Run relevant tests
+    - Run type-check, compile ONLY — no test run, no mutation run, no review per phase (`SYNC:verify-last-order`)
     - Self-review before proceeding
 
 ### Batch Checkpoint (Large Plans)
@@ -165,28 +165,27 @@ Stop after every batch for human review. Prevents runaway execution where early
 mistakes compound through later tasks.
 </HARD-GATE>
 
-### 4. Mandatory Testing
+### 4. Mandatory Code Review (static)
 
-- Use `tester` subagent for full test coverage
-- Write tests for:
-    - Happy path scenarios
-    - Edge cases from research
-    - Error handling paths
-- NO mocks or fake data
-- Repeat until all tests pass
-
-### 5. Mandatory Code Review
-
-- Use `code-reviewer` subagent
+- Use `code-reviewer` subagent over the whole changeset; the review reads code and tests and runs NO test suite
 - Apply the canonical review policy: Round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`);
   Round 2 fixes only validated CRITICAL/HIGH/MEDIUM findings, while
   LOW-only findings are recorded as deferred and do not reopen the loop.
 - Failed binary gates (tests, required artifacts, security must-fix, parity)
   block at every round and are never relabeled LOW.
-- Re-run tests after fixes and start a fresh full review after every fix cycle.
+- Start a fresh full review after every fix cycle; a fix may write or amend tests but does not run them.
 - Stop when the current round's severity bar is clear; cap at two rounds — plus ONE extension round when round 2 leaves a validated CRITICAL/HIGH open — and
   escalate repeated/no-progress CRITICAL/HIGH/MEDIUM findings rather than
   looping open-ended.
+
+### 5. Mandatory Verify (tests + mutation check, once)
+
+- Use `tester` subagent ONCE for the full affected suite; then run the mutation check yourself (`tester` is read-only) on every changed core-logic line and new rule
+- Tests cover: happy path scenarios, edge cases from research, error handling paths
+- NO mocks or fake data
+- Any red test or surviving mutant: record the provisional verdict, fix at the owner, re-run until all tests pass and every mutant is killed
+- If fixing edited any source or test file, re-run the Step 4 review over the settled tree; a re-review that applies a fix sends you back here (capped at 2 turns, then escalate via `AskUserQuestion`)
+- Done = a green verify AND no edit after the last review; an edit after the last green run invalidates it
 
 ### 6. Documentation Update
 
@@ -216,8 +215,8 @@ mistakes compound through later tasks.
 | -------- | ------------------------- |
 | Research | 2+ researcher reports     |
 | Planning | Full plan directory       |
-| Tests    | All pass, no mocks        |
-| Review   | No blocking findings under the current severity bar; deferred LOWs listed |
+| Review   | No blocking findings under the current severity bar; deferred LOWs listed; static, before the verify |
+| Tests    | Verified once after the review: all pass, no mocks, every mutant killed |
 | Docs     | Updated if needed         |
 
 ---
@@ -259,6 +258,7 @@ mistakes compound through later tasks.
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-system-context` — Resolve the project's UI conventions before a UI change; changing a user-interface surface → .claude/skills/shared/protocols/ui-system-context.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -376,7 +376,7 @@ mistakes compound through later tasks.
 
 **IMPORTANT MUST ATTENTION Goal:** Ship a correct, fully-verified feature that satisfies the saved Goal Contract — implemented with deep research, comprehensive planning, and maximum quality verification (planned, reviewed, tested, documented) — with no skipped quality gate on any non-trivial change.
 
-**IMPORTANT MUST ATTENTION** follow the pipeline in order: resolve the Goal Contract → decide/create/sync the spec → research and trace → author and review the plan → implement one verified phase at a time → run full tests → review and fix validated findings that block the current severity bar → update docs/status → run spec sync, changes-review, and why-review → emit the final evidence report; use fast mode only when every opt-out condition passes.
+**IMPORTANT MUST ATTENTION** follow the pipeline in order: resolve the Goal Contract → decide/create/sync the spec → research and trace → author and review the plan → implement every phase with its tests (compile only between phases) → static review fix-loop until the current severity bar is clear → run spec sync, changes-review, and why-review (static) → run full tests + mutation check once, LAST, fix and re-run to green, re-review only if that edited anything → update docs/status → emit the final evidence report; use fast mode only when every opt-out condition passes.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each line is a signpost to its canonical body above):**
 
@@ -407,3 +407,9 @@ mistakes compound through later tasks.
 **MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
 
 <!-- /SYNC:core-engineering-principles:reminder -->
+
+<!-- SYNC:verify-last-order:reminder -->
+
+**IMPORTANT MUST ATTENTION** code-changing work runs tests ONCE, last: build all phases + write tests → static review fix-loop → verify once with mutation check → fix and re-run to green → re-review only if step 4 edited anything. No per-phase or in-review test runs.
+
+<!-- /SYNC:verify-last-order:reminder -->

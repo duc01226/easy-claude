@@ -658,12 +658,12 @@ Doc paths in this file are defaults resolved against the project-reference docs 
 
 ## Testing
 
-The primary runner passes with 137 tests. The full aggregate runner `run-all-tests.cjs` discovers 1059 tests across 69 suites, including the process-boundary Bash contract and code-graph storage portability suites; the total changes when suites or tests are added or removed.
+The primary runner passes with 137 tests. The full aggregate runner `run-all-tests.cjs` discovers 1065 tests across 69 suites, including the process-boundary Bash contract and code-graph storage portability suites; the total changes when suites or tests are added or removed.
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 137   | `.claude/hooks/tests/test-all-hooks.cjs`                          |
-| Aggregate runner      | 1059  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
+| Aggregate runner      | 1065  | `.claude/hooks/tests/run-all-tests.cjs` (all suites, discovered)  |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |
 

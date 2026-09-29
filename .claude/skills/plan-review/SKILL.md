@@ -436,7 +436,7 @@ PASSES after split: `"Phase 2A: Data Schema (1h, 3 files) — Create {source-roo
 - [ ] File paths follow project patterns
 - [ ] No conflicting or duplicate steps
 - [ ] Dependencies between steps are clear
-- [ ] **Plan speed** — flag as a finding any per-phase or per-release test, review, or "close" sub-phase (the plan has ONE final gate phase; each implementation phase ends with its targeted check), and any `SEQ` tag without a real data or write-set dependency.
+- [ ] **Plan speed** — flag as a finding any per-phase or per-release test, review, or "close" sub-phase (the plan has ONE final gate phase; each implementation phase ends with type-check/compile only), any per-phase test RUN or mutation run (tests run once, last, after the static review — `SYNC:verify-last-order`), and any `SEQ` tag without a real data or write-set dependency.
 - [ ] **Anti-Hallucination & Code-Proof Gate** — FAIL if ANY plan claim about existing source code lacks `file:line` proof.
 
 | Claim type             | Required proof                    |

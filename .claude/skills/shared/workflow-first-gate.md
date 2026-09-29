@@ -25,7 +25,7 @@
 >
 > **Tiers** (workflow `activation`): never self-start a `manual` workflow — name it in your route; ask once before self-starting a `confirm` one, only when a leaner route would also do; explicit requests run any tier.
 >
-> Declare `Route: {workflow-id | skill | custom-simple [step → step] | direct} — because {key signals}` (e.g. `Route: custom-simple [investigate → fix → test → changes-review] — because known cause, one module`), then ACTIVATE before edits, agents or commands. Workflow: invoke `start-workflow` with its id; map its canonical sequence to tasks 1:1. Skill: read and execute its SKILL.md. Custom/direct: one task per step plus a final review. Missing tools/details: stop and report; never fabricate invocation.
+> Declare `Route: {workflow-id | skill | custom-simple [step → step] | direct} — because {key signals}` (e.g. `Route: custom-simple [investigate → fix → changes-review → test] — because known cause, one module`), then ACTIVATE before edits, agents or commands. Workflow: invoke `start-workflow` with its id; map its canonical sequence to tasks 1:1. Skill: read and execute its SKILL.md. Custom/direct: one task per step plus a final review. Missing tools/details: stop and report; never fabricate invocation.
 >
 > Routing preserves operation authority, user data and all required quality gates.
 

@@ -158,11 +158,11 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 ### Key sequences (`gate` in bold)
 
 - **Feature:** investigate → spec (+ optional discovery, domain, scenario, mockup) → plan → plan-review → test specs → implement → spec sync → integration tests → **review changes** → **test** → **close**.
-- **Bug fix:** **root-cause investigation** → optional spec amend / plan → **failing regression test** → fix → test passes → **verify** → **review changes** → **close**.
+- **Bug fix:** **root-cause investigation** → optional spec amend / plan → **regression test written** → fix → **review changes** (static) → **verify** (tests + mutation check: the test fails without the fix, passes with it) → **close**.
 - **Refactor:** investigate → **run tests (green baseline)** → plan → optional safety-net tests → execute → **review changes** → **test** → **close**.
-- **Implement spec:** investigate → spec-clarify → plan → execute → integration tests → **verify** → **review changes** → **test** → **close**.
+- **Implement spec:** investigate → spec-clarify → plan → execute → integration tests → **review changes** (static) → **verify** → **test** → **close**.
 - **Spec to mockup:** design spec → **design review** → `pbi-mockup --explore` → `html-export` → **UI review** → **close**.
-- **Review changes:** `changes-review` ∥ whole-target `why-review` → triage-selected `--report-only` specialists (the integration-test review with `--prove-tests` always runs) → validate findings → trace unexplained defects → `fix --target=review` → simplify → post-fix re-review → `scan --target=domain-entities → docs-update`. The domain-entity scan runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason. `docs-update` always applies the spec/doc gaps the reviewers flagged read-only.
+- **Review changes:** `changes-review` ∥ whole-target `why-review` → triage-selected `--report-only` specialists (the integration-test review with `--prove-tests` always runs; a parent workflow that verifies once, last — `SYNC:verify-last-order` — passes `--tests=defer` and the review stays static) → validate findings → trace unexplained defects → `fix --target=review` → simplify → post-fix re-review → `scan --target=domain-entities → docs-update`. The domain-entity scan runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason. `docs-update` always applies the spec/doc gaps the reviewers flagged read-only.
 
 ---
 
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **137** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1059** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `run-all-tests.cjs` (full aggregate) | **1065** | Primary plus every `tests/suites/*.test.cjs` suite                     |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 137; `run-all-tests.cjs` = 1059 discovered. Both runners fail when these numbers drift from the docs.
+> Live-verified: `test-all-hooks.cjs` = 137; `run-all-tests.cjs` = 1065 discovered. Both runners fail when these numbers drift from the docs.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

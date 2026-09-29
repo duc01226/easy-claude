@@ -90,6 +90,7 @@
         "spec-tests-code-triangulation": { "summary": "Review spec, tests and code together for mutual consistency first", "when": "reviewing behavior that has a spec" },
         "tc-test-join-evidence": { "summary": "Prove that a test case resolves to an executing test", "when": "linking test cases to test evidence" },
         "test-architecture-execution-contract": { "summary": "Testability as an architecture condition: required test types and execution modes", "when": "setting up or reviewing a test architecture" },
+        "verify-last-order": { "summary": "Build all phases and write tests, review statically, then verify once with a mutation check", "when": "planning or running any code-changing task" },
         "test-data-isolation": { "summary": "Tests stay independent across the supported concurrency modes", "when": "writing stateful tests" },
         "test-failure-fault-adjudication": { "summary": "Decide whether the source or the test is at fault before editing either", "when": "a test fails" },
         "test-spec-verification": { "summary": "Map changed code to its test specifications", "when": "reviewing or verifying changed behavior" }

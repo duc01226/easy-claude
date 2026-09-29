@@ -38,7 +38,7 @@ Connected contracts:
 3. **Implement** — follow project's component / state / service / styling conventions as documented
 4. **Verify lifecycle** — every subscription / effect / listener torn down per project's documented pattern
 5. **Verify styling** — class naming follows project's documented methodology (BEM, utility-first, CSS modules — whichever applies)
-6. **Test** — compile / type-check / unit tests pass
+6. **Test** — compile / type-check pass; write the unit tests with the code — when an orchestrator runs the tests once, last (verify-last order), leave the run to it
 
 **Key Rules (universal — stack-specific details in `frontend-patterns-reference.md`):**
 
@@ -78,7 +78,7 @@ Connected contracts:
 3. **Implement** — follow project conventions per `frontend-patterns-reference.md`
 4. **Verify lifecycle teardown** — match the project's documented pattern
 5. **Verify styling** — match the project's documented class-naming methodology
-6. **Test** — compile / type-check / unit tests pass
+6. **Test** — compile / type-check pass; write the unit tests with the code — when an orchestrator runs the tests once, last (verify-last order), leave the run to it
 
 ## Key Rules
 

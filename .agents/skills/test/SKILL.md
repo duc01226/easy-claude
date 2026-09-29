@@ -78,6 +78,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - READ-ONLY: do not implement fixes, only report results
 - Activate relevant skills from catalog during process
 - Always use `tester` subagent, not direct test commands
+- **Single verify run (`SYNC:verify-last-order`):** in a code-changing task this is the ONE test run, made after the static review — never per phase, per wave or per fix. The mutation check is NOT done here (this skill is read-only): `$integration-test-verify` or the main session (`$plan-execute` Step 4) owns it.
 - An INTERMITTENT failure (red in one run, green in another) is NOT yet a product defect — route it through the same adjudication `$integration-test-verify` uses before reporting it as one: (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race. Report the verdict with its evidence, or report the failure as UNADJUDICATED — never as a product defect on the strength of one red run
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -148,6 +149,7 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
 - `test-failure-fault-adjudication` — Decide whether the source or the test is at fault before editing either; a test fails → .claude/skills/shared/protocols/test-failure-fault-adjudication.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -269,6 +271,12 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 **MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
 
 <!-- /SYNC:core-engineering-principles:reminder -->
+
+<!-- SYNC:verify-last-order:reminder -->
+
+**IMPORTANT MUST ATTENTION** code-changing work runs tests ONCE, last: build all phases + write tests → static review fix-loop → verify once with mutation check → fix and re-run to green → re-review only if step 4 edited anything. No per-phase or in-review test runs.
+
+<!-- /SYNC:verify-last-order:reminder -->
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

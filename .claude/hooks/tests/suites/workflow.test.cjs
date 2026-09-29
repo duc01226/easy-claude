@@ -965,8 +965,8 @@ const LEAN_ROUTE_SEQUENCE = [
     'plan-execute',
     'spec [mode=sync]',
     'integration-test',
+    'workflow-review-changes --tests=defer',
     'integration-test-verify',
-    'workflow-review-changes',
     'test',
     'workflow-end',
     'watzup'
@@ -1153,6 +1153,76 @@ const leanRouteTests = [
     }
 ];
 
+
+// ============================================================================
+// Verify-last order (SYNC:verify-last-order): a code-changing workflow builds, reviews STATICALLY, then runs
+// its tests once. The review defers tests to the later verify step; no test-running step may precede it
+// (the refactor baseline run, taken before the change, is the one declared exception).
+// ============================================================================
+
+const VERIFY_LAST_WORKFLOWS = [
+    'workflow-feature', 'workflow-bugfix', 'workflow-refactor', 'workflow-implement-spec',
+    'workflow-big-feature', 'workflow-greenfield-init'
+];
+const VERIFY_LAST_TEST_SKILLS = ['test', 'integration-test-verify', 'e2e-test-verify'];
+const PRE_CHANGE_BASELINE_IDS = new Set(['refactor-baseline-test']);
+
+function findVerifyLastGaps(config) {
+    const gaps = [];
+    for (const id of VERIFY_LAST_WORKFLOWS) {
+        const [manifest] = manifestsOf(config, id);
+        const steps = manifest.occurrences;
+        const reviewIndex = steps.findIndex(step => step.skill === 'workflow-review-changes');
+        if (reviewIndex < 0) {
+            gaps.push(`${id}: no workflow-review-changes step`);
+            continue;
+        }
+        if (!/(^|\s)--tests=defer(\s|$)/.test(steps[reviewIndex].args || '')) gaps.push(`${id}: review does not defer tests`);
+        steps.forEach((step, index) => {
+            if (index < reviewIndex && VERIFY_LAST_TEST_SKILLS.includes(step.skill) && !PRE_CHANGE_BASELINE_IDS.has(step.id)) {
+                gaps.push(`${id}: ${commandOf(step)} runs tests before the review`);
+            }
+        });
+        if (!steps.some((step, index) => index > reviewIndex && VERIFY_LAST_TEST_SKILLS.includes(step.skill))) gaps.push(`${id}: no verify step after the review`);
+    }
+    return gaps;
+}
+
+const verifyLastTests = [
+    {
+        name: '[guided-workflow] TC-GWF-069 code-changing workflows review statically first and run their tests once, after the review',
+        fn: () => {
+            // Given the shipped registry
+            const config = loadWorkflowConfig();
+            // When each code-changing workflow's order is read, Then the review defers tests and every verify step follows it
+            assertDeepEqual(findVerifyLastGaps(config), [], 'review must precede every test run and defer its own');
+            // And a verify step moved ahead of the review, or a review that runs its own tests, is detected
+            const mutated = cloneConfig(config);
+            const sequence = mutated.workflows['workflow-feature'].sequence;
+            const [verify] = sequence.splice(sequence.findIndex(step => step === 'integration-test-verify'), 1);
+            sequence.splice(sequence.findIndex(step => step.skill === 'workflow-review-changes'), 0, verify);
+            delete sequence.find(step => step.skill === 'workflow-review-changes').args;
+            const found = findVerifyLastGaps(mutated);
+            assertTrue(found.includes('workflow-feature: review does not defer tests'), `a review that runs tests must be detected: ${found.join('; ')}`);
+            assertTrue(found.includes('workflow-feature: integration-test-verify runs tests before the review'), `a verify before the review must be detected: ${found.join('; ')}`);
+        }
+    },
+    {
+        name: '[guided-workflow] TC-GWF-070 the review workflow defers its test run only on request; standalone keeps proving tests',
+        fn: () => {
+            // Given the review workflow skill
+            const text = fs.readFileSync(path.join(PROJECT_ROOT, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
+            // Then --tests=defer is documented, defaults to prove, and drops --prove-tests
+            assertContains(text, '`--tests={prove|defer}` (default `prove`)');
+            assertContains(text, 'without `--prove-tests`');
+            // And the registry still keeps the review's own test prover for the standalone default
+            const config = loadWorkflowConfig();
+            const prover = config.workflows['workflow-review-changes'].sequence.find(step => step.skill === 'integration-test-review');
+            assertEqual(prover.args, '--report-only --prove-tests');
+        }
+    }
+];
+
 // Export test suite
 module.exports = {
     name: 'Workflow Config Schema Guards',
@@ -1161,6 +1231,7 @@ module.exports = {
         ...renameFixGuardTests,
         ...guidedWorkflowTests,
         ...annotatedRegistryTests,
-        ...leanRouteTests
+        ...leanRouteTests,
+        ...verifyLastTests
     ]
 };

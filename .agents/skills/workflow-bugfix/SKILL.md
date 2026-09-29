@@ -49,14 +49,14 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 ## Quick Summary
 
-**Goal:** Fix a reported defect at the root cause its end-to-start trace proves, guarded by a regression test that fails before the fix and passes after it — cheap on a small local bug, thorough on a wide or risky one.
+**Goal:** Fix a reported defect at the root cause its end-to-start trace proves, guarded by a regression test that fails without the fix and passes with it — cheap on a small local bug, thorough on a wide or risky one.
 
-**Use this** for a bug, error, crash, regression or stale/incorrect output whose cause is unknown or whose reach is wide. A known one-line cause in one module fits a custom-simple route (investigate → fix → test → review). A request that changes intended behavior is a feature (`workflow-feature`); a behavior-preserving restructure is `workflow-refactor`.
+**Use this** for a bug, error, crash, regression or stale/incorrect output whose cause is unknown or whose reach is wide. A known one-line cause in one module fits a custom-simple route (investigate → regression test + fix → review → verify). A request that changes intended behavior is a feature (`workflow-feature`); a behavior-preserving restructure is `workflow-refactor`.
 
 **Key rules:**
 
 - **MUST** triage size, kind and risk FIRST — the triage picks which recommended skills run and how deep.
-- **MUST** trace the root cause end-to-start before any fix, classify Code Bug vs Spec Bug before any regression test, and prove the regression test RED before the fix and GREEN after.
+- **MUST** trace the root cause end-to-start before any fix, classify Code Bug vs Spec Bug before any regression test, and prove the regression test catches the bug (RED with the fix reverted) and passes with it (GREEN) in the single verify.
 - **MUST** fix at the layer that owns the violated invariant; converge the change review; sync the spec when a canonical spec or specified behavior changed.
 - **NEVER** encode the buggy behavior into a spec or test, and NEVER weaken a test to turn it green.
 
@@ -70,7 +70,7 @@ Classify the defect before choosing steps and record the result in the workflow 
 
 | Triage result | Typical route through the recommended skills |
 | --- | --- |
-| XS/S, one owning layer, Code Bug, no contract/data/security | investigate → RED test → fix → verify → review → close; `$fix` plans inline; spec steps only when a canonical spec covers the area |
+| XS/S, one owning layer, Code Bug, no contract/data/security | investigate → regression test + fix → review → verify (mutation check = RED proof) → close; `$fix` plans inline; spec steps only when a canonical spec covers the area |
 | M, or a Spec Bug, or several TCs | add `$plan`; add the spec-tests review when the TC change is more than one regression case |
 | L/XL, cross-module, contract/data/security, or ambiguous cause | full sequence; add an ad hoc `$plan-review` when the fix set is large or ambiguous; partition verification and review per module |
 
@@ -80,7 +80,7 @@ Non-negotiable — `$workflow-end` checks each against its evidence before the r
 
 1. **Root cause traced** (`$debug-investigate`, gate) — end-to-start trace from the observed final state through reader → storage/projection → writer → consumer/job → producer, every feeder path, a hypothesis matrix with the environment weighed as a competing cause, the owning fix layer and a forward convergence proof, all with `file:line`.
 2. **Code Bug vs Spec Bug classified** before any regression TC or test (gate below), with a preservation note: `current behavior → expected behavior → unchanged behavior to preserve → regression evidence`.
-3. **Regression guard RED → GREEN** — the first `$integration-test` (gate) reproduces the bug and FAILS; after `$fix` it PASSES. A test that passes before the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
+3. **Regression guard RED → GREEN** — the first `$integration-test` (gate) writes a test that reproduces the bug; the verify step's mutation check reverts `$fix` and the test FAILS (RED), with the fix it PASSES (GREEN). A test that passes without the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
 4. **Tests pass** (`$integration-test-verify`, gate) — every behavior the fix changed is covered by tests that ran green in THIS run.
 5. **Spec synced** — when a canonical spec or test-case artifact governs the affected area and behavior or a public contract changed, or that spec lacked the case the bug exposed. No canonical spec governs the area → the gate is N/A: record that fact with the searched paths and offer `$spec` as a follow-up.
 6. **Review converged** (`$workflow-review-changes`, gate, INLINE in the main session) — validated blocking findings fixed and the fixed state re-reviewed over the whole package (spec + tests + fix).
@@ -106,12 +106,12 @@ Non-negotiable — `$workflow-end` checks each against its evidence before the r
 | `$plan` | optional | size M+, Spec Bug, several TCs, cross-module, contract/data/security, several fix layers | fix plan |
 | `$spec [mode=tests]` | optional | a canonical spec/TC registry covers the area | regression TC |
 | `$artifact-review --type=spec-tests` | optional | TC change beyond one regression case, or M+ / risk | TC quality |
-| `$integration-test` | gate | always — RED: reproduce the bug, expect FAIL | guard catches the bug |
+| `$integration-test` | gate | always — write the regression test that reproduces the bug (not run here) | guard written |
 | `$fix` | core | always in practice — at the owning layer | the change |
-| `$integration-test` | core | GREEN after the fix; may fold into the verify gate | guard passes |
-| `$integration-test-verify` | gate | always | tests pass |
+| `$integration-test` | core | adjust the regression test after the fix (not run here); may fold into the write step | guard ready |
 | `$spec [mode=sync]` | optional | a canonical spec/TC changed, or specified behavior/contract changed | spec synced |
-| `$workflow-review-changes` | gate | always — INLINE in the main session | review converged |
+| `$workflow-review-changes --tests=defer` | gate | always — INLINE in the main session | review converged |
+| `$integration-test-verify` | gate | always — the one verify, after the review: full suite + mutation check (RED proof) | tests pass |
 | `$workflow-e2e --source=context` | optional | the user explicitly asks for E2E work | E2E evidence |
 | `$demo-guide` | optional | the fix changes user-facing behavior | demo path |
 | `$workflow-end` | gate | always | run closed |
@@ -133,8 +133,8 @@ A recommended step the triage shows would do no real work is not run; record it 
 
 You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate (pbi-mockup Step 0) and the post-generation pick run in the session that can ask the user — never inside a delegated sub-agent; only the direction-draft builders may be sub-agents. A sub-agent would silently fall back to one auto-selected draft even though the user could have been asked. Fixed constraints (data dependencies):
 
-- The root-cause trace exists before any fix plan, regression TC or fix; the RED run happens before `$fix` lands.
-- A change exists before it is reviewed or tested; the spec sync runs before the review that checks it; fixes are re-verified after they land; `$workflow-end` runs last.
+- The root-cause trace exists before any fix plan, regression TC or fix; the RED proof is the verify step's mutation check (revert the fix, the regression test must fail) — no separate RED run.
+- A change exists before it is reviewed or tested; the spec sync runs before the review that checks it; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `$workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`); `$workflow-end` runs last.
 - `$workflow-review-changes` runs INLINE in the main session — never as a sub-agent — and owns the test-quality review, the docs/domain-entity reference refresh and experience acceptance; do not repeat them here.
 - Gates awaiting user approval (Ambiguous classification, plan approval) are never parallelized.
 
@@ -155,7 +155,7 @@ Activate the `workflow-bugfix` workflow: run `$start-workflow workflow-bugfix` w
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** $debug-investigate -> $spec [mode=amend] -> $pbi-mockup --explore -> $plan -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $integration-test -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $workflow-e2e --source=context -> $demo-guide -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $debug-investigate -> $spec [mode=amend] -> $pbi-mockup --explore -> $plan -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $integration-test -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test-verify -> $workflow-e2e --source=context -> $demo-guide -> $workflow-end -> $watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -173,6 +173,7 @@ Recommended default order (roles in the table above):
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `test-failure-fault-adjudication` — Decide whether the source or the test is at fault before editing either; a test fails → .claude/skills/shared/protocols/test-failure-fault-adjudication.md
 - `ui-intent-layer` — Tech-agnostic UI intent layer in every UI-bearing spec; writing a spec for a feature with a user interface → .claude/skills/shared/protocols/ui-intent-layer.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -233,11 +234,11 @@ Recommended default order (roles in the table above):
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that fails before the fix and passes after it.
+**IMPORTANT MUST ATTENTION Goal:** fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that fails without the fix and passes with it.
 
 - **MUST ATTENTION** triage size, kind and risk FIRST; run only the recommended skills the triage shows do real work, and log every deviation with evidence.
 - **MUST ATTENTION** root cause before fix: `$debug-investigate` (gate) produces the trace, feeder paths, hypothesis matrix, owning fix layer and forward convergence proof; classify Code Bug vs Spec Bug before any regression test.
-- **MUST ATTENTION** regression guard: the RED `$integration-test` (gate) FAILS before `$fix` and the tests PASS after it in this run (`$integration-test-verify`, gate); NEVER encode buggy behavior or weaken a test to go green.
+- **MUST ATTENTION** regression guard: the first `$integration-test` (gate) writes the regression test without running it; the one `$integration-test-verify` (gate, after the static review) proves it FAILS with the fix reverted by hand-edit (never `git checkout`/`restore`/`stash`) and PASSES with it in this run; NEVER encode buggy behavior or weaken a test to go green.
 - **MUST ATTENTION** `$workflow-review-changes` runs INLINE in the main session and converges the whole package; sync the spec when a canonical spec or specified behavior changed; emit the Goal Satisfaction matrix and close with `$workflow-end`.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->

@@ -70,7 +70,7 @@ When the prompt doesn't cleanly match a single catalog workflow — or combining
 Declare the chosen route with its full step list and key signals, then activate it immediately. Do NOT use `AskUserQuestion` to choose between the catalog workflow and the custom pipeline — the declaration is the user's override point. The single exception is the one activation question a `confirm`-tier catalog workflow requires (Key Rules → Activation tier).
 
 ```
-Route: custom-simple "Quick Fix + Docs" [investigate → fix → test → changes-review → docs-update] — because known location, one module, no contract change; workflow-bugfix adds spec, integration-test and demo steps this request does not need
+Route: custom-simple "Quick Fix + Docs" [investigate → fix → changes-review → test → docs-update] — because known location, one module, no contract change; workflow-bugfix adds spec, integration-test and demo steps this request does not need
 ```
 
 **Rules:**
@@ -267,6 +267,7 @@ This section is the single owner of the flex rules (BR-GWF-16); `workflows.json`
 7. **Mechanics.** Run: `TaskUpdate in_progress` → **invoke `Skill` tool** → `TaskUpdate completed`. Skip or merge: `TaskUpdate in_progress` → comment "Skipped — {deviation-kind}: {evidence}" → deviation-log line → `TaskUpdate completed`. A skipped or merged task, including a conditionally skipped task, completes without invoking its Skill tool only after both the comment and the deviation-log line. Simplified and reordered steps still invoke their Skill tool and add their line. Never delete a task.
 8. **Validation gates** (`/plan-validate`, `/plan-review`, `/why-review`) MUST use explicit evidence and local project protocol — NEVER auto-approve inferred decisions. Explicit user approval in the prompt may satisfy the gate only when the gate's skill permits it.
 9. **Close.** `workflow-end` checks evidence for every outcome gate before the run closes.
+10. **Verify-last loop** (`SYNC:verify-last-order`). A code-changing workflow reviews statically, then verifies once. When a step after the review edits the tree, re-invoke the review gate with its same args; when that re-review applies a fix, re-invoke the verify gates. A re-invocation reuses the existing task row (comment `rerun N: <reason>`) and is a loop iteration, never a new step or a deviation. The verify ↔ re-review alternation is capped at 2 turns; a third turn, or the same failure returning, escalates via `AskUserQuestion`. `workflow-end` checks the review receipt (`review-converged`, a stale one is flagged) and requires the cited green run to be newer than the last source or test edit (`tests-pass`).
 
 ---
 
@@ -314,6 +315,7 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 - `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
 

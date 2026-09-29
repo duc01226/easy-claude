@@ -262,7 +262,11 @@ test("production workflows declare required and opt-in near-end E2E handoffs", (
     const manifest = resolve(registry, workflowId, { rootDir: root });
     const index = manifest.occurrences.findIndex(item => item.skill === "workflow-e2e");
     assert.ok(index > 0, `${workflowId} must include workflow-e2e`);
-    assert.equal(manifest.occurrences[index - 1].skill, "workflow-review-changes");
+    // Verify-last order: the near-end E2E handoff comes after the static review and after the verify
+    // step that follows it (`integration-test-verify` or `test`), never before either.
+    const reviewIndex = manifest.occurrences.findIndex(item => item.skill === "workflow-review-changes");
+    assert.ok(reviewIndex >= 0 && reviewIndex < index - 1, `${workflowId} must run its review before the verify that precedes E2E`);
+    assert.ok(["integration-test-verify", "test"].includes(manifest.occurrences[index - 1].skill), `${workflowId} E2E must follow a verify step`);
     assert.equal(manifest.occurrences[index].args, "--source=context");
     assert.equal(manifest.occurrences[index + 1].skill, nextSkill);
     if (required) {

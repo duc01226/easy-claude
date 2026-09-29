@@ -39,6 +39,7 @@ const {
   checkParallelGroupsMirrorParity,
   runtimeCatalogForm,
   RUNTIME_CATALOG_FORMS,
+  ensureWorkflowPolicy,
 } = await import(pathToFileURL(verifyScript).href);
 
 const workflowIds = [
@@ -1055,7 +1056,7 @@ test("read-workflow-entry returns the complete Big Feature entry through its ter
   // Big Feature delegates the reviewer + terminal docs refresh to the nested
   // workflow-review-changes, so its own sequence must NOT duplicate those steps.
   assert.ok(
-    workflow.sequence.includes("workflow-review-changes"),
+    workflow.sequence.some((step) => step.split(" ")[0] === "workflow-review-changes"),
     "Big Feature must route review through the nested workflow-review-changes"
   );
   assert.equal(workflow.sequence.includes("scan --target=domain-entities"), false);
@@ -1482,4 +1483,31 @@ test("workflow wrappers point to the guided step contract instead of a blanket n
   } finally {
     await fs.rm(rootDir, { recursive: true, force: true });
   }
+});
+
+test('a review that defers its tests is still the review gate and owns the terminal refresh (verify-last order)', () => {
+  const policyFailures = (sequence) => {
+    const failures = [];
+    ensureWorkflowPolicy('workflow-feature', { preActions: { injectContext: '' } }, sequence, failures);
+    return failures;
+  };
+  const refreshFailure = /domain-entity reference refresh <verification step>/;
+  const base = ['plan-execute', 'integration-test'];
+  const tail = ['integration-test-verify', 'test', 'workflow-end', 'watzup'];
+
+  // Given the review defers its tests and runs before the verify step
+  const deferred = policyFailures([...base, 'workflow-review-changes --tests=defer', ...tail]);
+  // Then it is recognised as the review gate and the settled-state refresh is delegated to it
+  assert.equal(deferred.some((line) => /missing workflow-review-changes gate/.test(line)), false);
+  assert.equal(deferred.some((line) => refreshFailure.test(line)), false);
+  assert.equal(deferred.some((line) => /missing ordered integration gate/.test(line)), false);
+
+  // And a review that runs its own tests before the verify step does NOT own the refresh: the parent must
+  const proving = policyFailures([...base, 'workflow-review-changes', ...tail]);
+  assert.equal(proving.some((line) => refreshFailure.test(line)), true);
+
+  // And a deferring review with no verify step after it leaves its own fixes unverified: it fails
+  const unverified = policyFailures([...base, 'integration-test-verify', 'test', 'workflow-review-changes --tests=defer', 'workflow-end', 'watzup']);
+  assert.equal(unverified.some((line) => /--tests=defer needs a verify step/.test(line)), true);
+  assert.equal(deferred.some((line) => /--tests=defer needs a verify step/.test(line)), false);
 });

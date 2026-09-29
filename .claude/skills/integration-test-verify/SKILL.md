@@ -30,7 +30,7 @@ description: '[Testing] Use when a workflow step or the user asks for integratio
 2. **System Check + Precondition Gate** — Verify the system is healthy AND every harvested precondition is met before running
 3. **Determine Test Projects** — Discover via `testProjectPattern` glob, `testProjects` list, or git auto-detect
 4. **Run Tests** — Execute `quickRunCommand` on determined projects for the repeat policy declared by `integrationTestVerify.guidance`; when absent, run twice for persistent/shared-state scopes. Fan out parallel `integration-tester` sub-agents only when project boundaries and test-data isolation support it.
-5. **Report** — Pass/fail counts, failed test names, next steps on failure
+5. **Report** — Pass/fail counts, failed test names, mutation-check result (mutants killed n/n per changed core-logic line, or `N/A — reason`), next steps on failure
 
 **Key Rules:**
 
@@ -43,6 +43,7 @@ description: '[Testing] Use when a workflow step or the user asks for integratio
 - If config says local infrastructure, databases, services, or full system startup is required, treat that as a blocking prerequisite
 - On test failure → diagnose root cause: test bug or service bug. NEVER weaken assertions.
 - ANY failing test at the end of the run → recommend `/workflow-integration-test-green` as the next step (it owns the converge-to-green loop); omit that recommendation when this run is itself a round of that loop
+- **Verify-last (`SYNC:verify-last-order`):** this is the single verify step of a code-changing task — run once, after the static review, never per phase or per fix. It also owns the mutation check on every changed core-logic line and new rule (project mutation tool when configured, else break the line, run only its covering tests, expect red, restore); a surviving mutant is a missing test — write it and re-run. When its fix loop edits any source or test file, the caller re-runs the static review (`/workflow-review-changes --tests=defer`) before the task is done.
 - On an INTERMITTENT failure (red in one run, green in another) → adjudicate the cause first — (a) unrealistic scenario / compressed pacing, (b) harness topology amplification, or (c) genuine product race — and record the verdict with evidence BEFORE any change. NEVER resolve a flake by widening a timeout, adding a retry, or skipping
 - Verification must satisfy `integrationTestVerify.guidance`; when absent, require two fresh successful runs for each relevant persistent/shared-state suite, preserving its documented cleanup/reset policy
 - When many independent, isolated test projects must run, fan out one `integration-tester` sub-agent per project (or balanced group) in parallel to speed it up — barrier on all returns, then aggregate; fall back to sequential when suites share a DB or aren't isolated
@@ -604,6 +605,7 @@ Unfixable failures (product decision, unclear intent, environment) → **escalat
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
 - `test-failure-fault-adjudication` — Decide whether the source or the test is at fault before editing either; a test fails → .claude/skills/shared/protocols/test-failure-fault-adjudication.md
 - `trade-off-interrogation-gate` — Three trade-off questions before any verdict, score or recommendation; rendering a verdict or recommending an option → .claude/skills/shared/protocols/trade-off-interrogation-gate.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -771,3 +773,9 @@ Unfixable failures (product decision, unclear intent, environment) → **escalat
 **MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
 
 <!-- /SYNC:core-engineering-principles:reminder -->
+
+<!-- SYNC:verify-last-order:reminder -->
+
+**IMPORTANT MUST ATTENTION** code-changing work runs tests ONCE, last: build all phases + write tests → static review fix-loop → verify once with mutation check → fix and re-run to green → re-review only if step 4 edited anything. No per-phase or in-review test runs.
+
+<!-- /SYNC:verify-last-order:reminder -->

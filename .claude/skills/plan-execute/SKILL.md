@@ -20,12 +20,13 @@ description: '[Implementation] Use when a workflow step or the user asks for an 
 **Summary:**
 
 - **Purpose:** consume an EXISTING plan, one phase per run — Step 0 detects `*.md` plan files under the plans root (default `plans`; a `docsRoots.plans.path` entry in `docs/project-config.json` wins, else `.ck.json` `paths.plans`) + selects the next incomplete phase (prefer IN_PROGRESS, else earliest Planned). Use `/feature-implement` instead when no plan exists yet — it creates plans, this consumes them.
-- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed `TaskCreate` 0–6 → Step 2 implement step-by-step (type-check + compile; UI → `ui-ux-designer`) → Step 3 test (`tester` → `debugger` until 100%) → Step 4 review (`code-reviewer` until the current severity bar is clear: round 1 zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`), round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
-- **Three BLOCKING gates cannot be faked-green:** Step 3 tests 100% pass, Step 4 has no blocking finding under the current round bar (round 1: no open finding — Round-1 LOW closure; round 2: no CRITICAL/HIGH/MEDIUM; failed binary gates always block), Step 5 explicit user approval before Finalize. These gates never grant Git authority. — why: quality acceptance and operation authority protect different boundaries.
+- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed `TaskCreate` 0–6 → Step 2 implement every phase step-by-step, code AND its tests written together (type-check + compile only, NO test run; UI → `ui-ux-designer`) → Step 3 static review (`code-reviewer` until the current severity bar is clear: round 1 zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`), round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred; runs no tests) → Step 4 verify ONCE (`tester` full suite, then the main session's mutation check → `debugger` until 100% and every mutant killed; re-run Step 3 only if Step 4 edited anything) → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
+- **Three BLOCKING gates cannot be faked-green:** Step 3 has no blocking finding under the current round bar (round 1: no open finding — Round-1 LOW closure; round 2: no CRITICAL/HIGH/MEDIUM; failed binary gates always block), Step 4 tests 100% pass with the mutation check clean and no edit after the last review, Step 5 explicit user approval before Finalize. These gates never grant Git authority. — why: quality acceptance and operation authority protect different boundaries.
 - **Two STOP-before-coding gates:** Pre-Implementation Granularity Gate (refuse planning verbs / unnamed files / unresolved decisions → sub-plan with `/plan`) + bugfix Trace Gate (require the End→Start debugger trace for any bug/regression/behavior-changing plan). Also the Spec-Loop Gate (property TC + mutation-killed test + Dual-Feedback) closes any behavior change.
 - **Step 2 is SEQUENTIAL by default; wave fan-out is OPT-IN.** `--parallel` / `--parallel=on` dispatches disjoint-write-set phases as one wave of `fullstack-developer` subagents in ONE message, barrier, then recomputes the next wave against the updated repo. `--parallel=auto` fans out ONLY when every in-scope phase carries the `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `/plan` — no block, no fan-out.
-- **Mode flags** add/remove ONE step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop over every incomplete phase), `--tests=off` (skip Step 3), `--parallel={auto|on|off}` (`off` default = sequential; bare `--parallel`/`on` opts in to wave dispatch; `auto` fans out only on plan-declared `PAR`/`SEQ` metadata). No flags = full 7-step spine, run sequentially.
-- **Standalone** (no parent `[Workflow]` row via `TaskList`) → wrap the spine in plan → plan-review → proceed → `/changes-review` → `/why-review`, the two reviews as the LAST todos.
+- **Verify-last order (`SYNC:verify-last-order`):** tests run ONCE, in Step 4, after the static Step 3 review — never per phase, per wave or inside the review. **Workflow-nested** (a parent `[Workflow]` row exists): run Steps 0–2 and 6 only; the parent's review and verify steps are Steps 3–4 (see [Workflow-Nested Mode](#workflow-nested-mode)).
+- **Mode flags** add/remove ONE step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop over every incomplete phase), `--tests=off` (skip Step 4), `--parallel={auto|on|off}` (`off` default = sequential; bare `--parallel`/`on` opts in to wave dispatch; `auto` fans out only on plan-declared `PAR`/`SEQ` metadata). No flags = full 7-step spine, run sequentially.
+- **Standalone** (no parent `[Workflow]` row via `TaskList`) → wrap the spine in plan → plan-review → Steps 0-3 → `/changes-review` → `/why-review` (static, run BEFORE the Step 4 verify) → Steps 4-6.
 
 > **Slash-command routing:** `/code`, `/code-auto`, `/code-no-test`, `/code-parallel` no longer resolve — use `/plan-execute` with the matching flag: `/code-auto` → `--approval=off`, `/code-no-test` → `--tests=off`, `/code-parallel` → `--parallel`.
 
@@ -33,21 +34,21 @@ description: '[Implementation] Use when a workflow step or the user asks for an 
 
 0. **Plan Detection** — Find latest plan or use provided path, select next incomplete phase
 1. **Analysis & Tasks** — Read the phase file fully and extract tasks into TaskCreate
-2. **Implementation** — Implement step-by-step, run type checks
-3. **Testing** — Call tester subagent; must reach 100% pass before proceeding
-4. **Code Review** — Call code-reviewer subagent; must clear the current severity bar: Round 1 has zero open validated findings of any severity; Round 2 has zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded/deferred. Failed binary gates always block.
+2. **Implementation** — Implement step-by-step, code and its tests together; run type checks only (no test run)
+3. **Code Review** — static: call code-reviewer subagent, no test run; must clear the current severity bar: Round 1 has zero open validated findings of any severity; Round 2 has zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded/deferred. Failed binary gates always block.
+4. **Verify** — call tester subagent once for the full suite, then run the mutation check in the main session; fix and re-run to 100%; re-run Step 3 only if Step 4 edited anything
 5. **User Approval** — BLOCKING gate: wait for explicit user approval
 6. **Finalize** — Update status/docs, report implementation complete; optionally handle an explicit Git request
 
 **Key Rules:**
 
-- Tests must be 100% passing (Step 3 gate)
-- No blocking findings under the current Step 4 review bar (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; binary gates always block)
+- Tests must be 100% passing with the mutation check clean, run ONCE after the static review (Step 4 gate)
+- No blocking findings under the current Step 3 review bar (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; binary gates always block)
 - User must explicitly approve before finalize (Step 5 gate)
 - Implementation completion, review approval, and `--approval=off` never authorize staging, committing, or pushing. Dispatch Git only with `operation`, `scope`, and `sourceRequest` from an explicit user request; run `git commit --amend` only on an explicit amend request, never a pushed commit or one this task did not create.
 - One plan phase per command run — a multi-phase run requires `--approval=off` with `$ALL_PHASES=Yes`
 - Phases run sequentially unless fan-out is explicitly opted in; even then, two phases writing the same file NEVER share a wave
-- **Mode flags** (see [Mode Flags](#mode-flags)): `--approval=off` (auto/trust, no approval gate + optional all-phases loop), `--tests=off` (skip the test step), `--parallel={auto|on|off}` (default `off` = sequential; `on` = opt in to wave dispatch; `auto` = fan out only when the plan declares `PAR`/`SEQ` tags + write sets). No flags = full 7-step spine below, run sequentially.
+- **Mode flags** (see [Mode Flags](#mode-flags)): `--approval=off` (auto/trust, no approval gate + optional all-phases loop), `--tests=off` (skip the verify step), `--parallel={auto|on|off}` (default `off` = sequential; `on` = opt in to wave dispatch; `auto` = fan out only when the plan declares `PAR`/`SEQ` tags + write sets). No flags = full 7-step spine below, run sequentially.
 
 **MUST ATTENTION READ** `CLAUDE.md` then **THINK HARDER** to start working on the following plan:
 
@@ -61,26 +62,36 @@ description: '[Implementation] Use when a workflow step or the user asks for an 
 
 ## Standalone Mode Pipeline (skip entirely if invoked inside a workflow)
 
-> **MANDATORY — standalone `/plan-execute` only.** When this skill is invoked OUTSIDE a workflow, wrap the core spine (Steps 0-6) in this quality loop. Detect an active workflow via `TaskList` FIRST: if a parent `[Workflow]` row exists, SKIP this section — the surrounding workflow already sequences plan/review/why-review (e.g. `workflow-refactor`).
+> **MANDATORY — standalone `/plan-execute` only.** When this skill is invoked OUTSIDE a workflow, wrap the core spine (Steps 0-6) in this quality loop; every review here is STATIC and runs before the single Step 4 verify (`SYNC:verify-last-order`). Detect an active workflow via `TaskList` FIRST: if a parent `[Workflow]` row exists, SKIP this section — the surrounding workflow already sequences plan/review/why-review (e.g. `workflow-refactor`).
 >
 > Create these as `TaskCreate` tasks up front, in order, then execute them:
 >
 > 1. **`/plan`** — if Step 0 finds no plan for the request, author one first. If a plan already exists, record that and skip to step 2.
 > 2. **`/plan-review`** — recursively review/validate the plan; fix validated findings that block the current severity bar before proceeding.
-> 3. **Proceed** — run the core spine (Steps 0-6) against the approved plan.
-> 4. **`/changes-review`** — review the diff before commit (the post-gate; see *Standalone Review Gate* below).
-> 5. **`/why-review`** — review rationale and change quality of the implementation.
+> 3. **Proceed to Step 3** — run Steps 0-3 (implement code + tests, static code review) against the approved plan.
+> 4. **`/changes-review`** — review the diff before commit, static (the post-gate; runs BEFORE Step 4 so its fixes are covered by the one verify).
+> 5. **`/why-review`** — review rationale and change quality of the implementation, static.
+> 6. **Steps 4-6** — verify once (tests + mutation check), approval, finalize; a fix made after the reviews re-runs them (Step 4 rule).
 >
 > This is the single pre+post quality loop for standalone runs.
 
+## Workflow-Nested Mode
+
+> **When a parent `[Workflow]` row exists (`TaskList`), the parent owns review and verification** — its later `workflow-review-changes` and test/verify steps ARE Steps 3–4 (`SYNC:verify-last-order`). Running them here too re-reviews and re-tests the same tree.
+>
+> - Run Steps 0–2 (detect, read, implement code + its tests) and Step 6 (status + docs; record the phase as `implemented — review and verify owned by the parent workflow`).
+> - SKIP Step 3 (`code-reviewer`), Step 4 (`tester`) and Step 5 (approval): the parent's `review-converged` and `tests-pass` gates prove quality, and the user's approval moves to `workflow-end` step 5a (one prompt on the final, verified result). Log each skip as `merged` in the deviation log, naming the parent step (`workflow-end` for Step 5); the log is evidence only, `workflow-end` step 5a reads the task list.
+> - Everything before the code stays: Goal Contract, Trace Gate, granularity gate, Spec-Loop obligations (write the property TC and the killing test — the parent's verify runs them).
+> - Standalone runs (no parent row) use the full spine.
+
 ## Mode Flags
 
-`/plan-execute` runs the full step spine below by default. Optional flags adapt the spine for the cases formerly served by dedicated skills — each flag only adds or removes a single step against the **host step numbering** (Step 3 Testing, Step 4 Code Review, Step 5 User Approval, Step 6 Finalize); the shared spine and every quality bar are otherwise unchanged.
+`/plan-execute` runs the full step spine below by default. Optional flags adapt the spine for the cases formerly served by dedicated skills — each flag only adds or removes a single step against the **host step numbering** (Step 3 Code Review, Step 4 Verify, Step 5 User Approval, Step 6 Finalize); the shared spine and every quality bar are otherwise unchanged.
 
 | Flag | Default | Effect |
 | ---- | ------- | ------ |
 | `--approval={on\|off}` | `on` | `off` = **trust/auto mode**: skip the Step 5 implementation-approval blocking gate and finalize without waiting; never grants Git authority. Pair with `$ALL_PHASES` to run every incomplete phase in one pass. |
-| `--tests={on\|off}` | `on` | `off` = skip the Step 3 Testing gate entirely (Implementation → Code Review → Approval → Finalize only). Use ONLY when the plan explicitly defers tests. |
+| `--tests={on\|off}` | `on` | `off` = skip the Step 4 Verify gate entirely (Implementation → Code Review → Approval → Finalize only). Use ONLY when the plan explicitly defers tests. |
 | `--parallel={auto\|on\|off}` | `off` | `off` = **default**: implement every phase sequentially in the main agent. `on` (also bare `--parallel`) = **explicit opt-in**: Step 2 groups disjoint-write-set phases into waves of `fullstack-developer` subagents with strict file-ownership boundaries; the user has accepted the risk, and YOU must still name every phase's write set — including its cascade/generated writes — before grouping. `auto` = **metadata-gated**: fan out only when every in-scope phase carries a `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `/plan`; absent that block, fall back to sequential — NEVER derive write sets optimistically. |
 
 **`$ALL_PHASES` (only meaningful with `--approval=off`):** `Yes` (default in auto mode) processes ALL incomplete phases in one run, auto-looping to the next phase after each Finalize; `No` implements one phase then asks before continuing. With `--approval=on` (default), always one phase per run — so cross-phase wave dispatch is only ever reachable in a multi-phase run (`--approval=off` + `$ALL_PHASES=Yes`) or on a phase whose sub-phases are independently implementable.
@@ -90,8 +101,8 @@ description: '[Implementation] Use when a workflow step or the user asks for an 
 - **`--parallel=auto` → Step 2 (Implementation):** metadata-gated fan-out — dispatch waves ONLY when every in-scope phase carries a `## Parallel Execution` block written by `/plan`; the moment one phase lacks it, the whole run reverts to sequential. `auto` NEVER derives a write set from the plan's prose — see [Step 2 Wave Dispatch](#step-2-wave-dispatch-opt-in---parallelon).
 - **`--parallel` / `--parallel=on` → Step 2:** the explicit opt-in — dispatch waves even when the plan declares no `PAR`/`SEQ` tags or `## Execution Waves` line. You MUST first derive each phase's write set yourself from its `Related Code Files` / Implementation Steps **and** from the generated/mirrored artifacts those edits cascade into; a phase whose write set you cannot name stays out of the wave. Colliding phases still go in different waves — opting in never authorizes co-scheduling two writers of one file.
 - **`--parallel=off` (DEFAULT) → Step 2:** no wave dispatch; implement every phase sequentially in the main agent. This is the normal path and needs no justification — no flag is required to stay sequential. All gates and quality bars unchanged.
-- **`--tests=off` → Step 3 (Testing):** Skip entirely. Proceed Implementation → Code Review. The Source/test drift check still applies to any tests that already exist. Keep existing tests real and genuinely passing — NEVER comment out tests, weaken assertions, or use fake data to make them pass — why: faked green hides the regression the test exists to catch.
-- **`--approval=off` → Step 5 (User Approval):** Skip the implementation-approval blocking gate. Finalize (status, docs, completion report) runs once Steps 1-4 pass; this flag never grants Git authority. When `$ALL_PHASES=Yes`, each phase's running gates are compile plus its targeted check, then loop back to Step 0 for the next incomplete phase; after the last phase, run Step 3 and Step 4 once over the whole changeset, then generate the summary report and ask about `/preview`.
+- **`--tests=off` → Step 4 (Verify):** Skip entirely. Proceed Implementation → Code Review → Approval. The Source/test drift check still applies to any tests that already exist. Keep existing tests real and genuinely passing — NEVER comment out tests, weaken assertions, or use fake data to make them pass — why: faked green hides the regression the test exists to catch.
+- **`--approval=off` → Step 5 (User Approval):** Skip the implementation-approval blocking gate. Finalize (status, docs, completion report) runs once Steps 1-4 pass; this flag never grants Git authority. When `$ALL_PHASES=Yes`, each phase's running gate is compile only (no test run), then loop back to Step 0 for the next incomplete phase; after the last phase, run Step 3 and Step 4 once over the whole changeset, then generate the summary report and ask about `/preview`.
 
 > **Behavior preserved:** the debugger-trace gate, granularity gate, testing/review quality bars, and all SYNC blocks apply in EVERY mode. Flags change *which gates run*, never *how rigorously a running gate is enforced*.
 
@@ -139,9 +150,9 @@ Read plan file completely. Map dependencies. List ambiguities. Identify required
 - Initialize TaskCreate with `Step 0: [Plan Name] - [Phase Name]` and all steps (1-6)
 - Read phase file, look for tasks/steps/phases/sections/numbered/bulleted lists
 - Convert to TaskCreate tasks with UNIQUE names:
-    - Phase Implementation tasks → Step 2.X (Step 2.1, Step 2.2, etc.)
-    - Phase Testing tasks → Step 3.X
-    - Phase Code Review tasks → Step 4.X
+    - Phase Implementation tasks (the code AND its tests) → Step 2.X (Step 2.1, Step 2.2, etc.)
+    - Phase Code Review tasks → Step 3.X
+    - Phase Verify tasks (one run, one mutation check) → Step 4.X
 
 **Output:** `✓ Step 1: Found [N] tasks across [M] phases - Ambiguities: [list or "none"]`
 
@@ -149,7 +160,7 @@ Read plan file completely. Map dependencies. List ambiguities. Identify required
 
 ## Step 2: Implementation
 
-Implement selected plan phase step-by-step following extracted tasks. Mark tasks complete as done. UI work → call `ui-ux-designer` subagent. Run type check + compile to verify.
+Implement selected plan phase step-by-step following extracted tasks. Mark tasks complete as done. Write each phase's tests in the same pass as its code (`SYNC:verify-last-order` step 1) — the test files belong to the phase's write set. UI work → call `ui-ux-designer` subagent. Run type check + compile only: NEVER a test suite, a mutation run or a review per phase. A plan's ONE final gate phase (`/plan`) holds docs/mirror tasks plus the static review and the single verify: Step 2 performs only its docs/mirror tasks; its review and verify tasks ARE Steps 3-4 (standalone) or are satisfied by the parent workflow's steps (nested), never a second run inside Step 2.
 
 **UI phases carry the design brief (`DD-1`–`DD-3`).** Before implementing — or briefing a sub-agent for — any phase that creates or reshapes a user-facing surface, read the phase file's `## UI Layout` → `### Design Plan` and the project's design-system / SCSS / token docs, and construct the surface to that plan: its palette, families, scale, alignment, and named memorable element. Pass the plan verbatim into any sub-agent brief (per `.claude/skills/shared/sub-agent-selection-guide.md`) — a leaf agent inherits nothing from this conversation. **If the phase has no Design Plan and the surface is new, do NOT improvise one silently:** state that the plan is missing, propose the four parts, and confirm before proceeding. Values land as tokens, never raw hex or magic numbers.
 
@@ -163,7 +174,7 @@ Fan-out is OFF unless opted in. Run this section only when BOTH hold: (a) this r
 4. **Barrier, then re-evaluate against the updated repo** — advance only after EVERY member returns. The barrier is YOUR accounting, not a signal you wait for: hold the wave's member list in the task tracker and mark each member by name as `returned` / `failed` / `timed-out` / `partial`. An unaccounted member is never dropped and never assumed successful. When every member is accounted for AND all returned cleanly, verify no file was written outside its owner's boundary, run type-check + compile on the merged result, THEN recompute the next wave against the repo as it now stands — never against the wave plan you computed before dispatch, because a returned phase can change what a later phase writes.
 5. **Wave failure branch — the barrier does NOT advance on an incomplete wave.** If any member fails, times out, or returns partial work:
     - **Classify partial as FAILED.** A member reporting "mostly done", or whose evidence does not match its declared write set, counts as failed — not returned.
-    - **Never let the survivors stand in for the missing member,** and never proceed to Step 3 on a wave that is not fully accounted for.
+    - **Never let the survivors stand in for the missing member,** and never proceed to Step 3 (review) on a wave that is not fully accounted for.
     - **Quarantine the failed member's work** — inspect exactly what it wrote, and revert its partial edits if they leave the tree uncompilable. Record the files it touched.
     - **Fall back to sequential for that phase** — merge the clean returns, restore compile-green, then re-implement the failed phase INLINE in the main agent (never re-dispatch it into another wave). A phase that also fails sequentially → STOP and report; do not carry it into the next wave.
     - **A cross-boundary write fails the whole wave** — revert the out-of-boundary edits, re-run that phase sequentially, and drop fan-out for the remainder of the run: the write-set model that authorized the wave is proven wrong.
@@ -171,35 +182,37 @@ Fan-out is OFF unless opted in. Run this section only when BOTH hold: (a) this r
     - **Report the failure in the Step 2 output** — a wave that fell back is never reported as a clean fan-out.
 6. **Do not dispatch when the gain is not there** — a single-phase run, a one-file phase, or a wave of one implements inline (dispatch overhead > gain).
 
-**Gates are SEQ boundaries and are never parallelized away.** Step 3 Testing, Step 4 Code Review, and the Step 5 user-approval gate run AFTER the barrier on the merged result — never concurrently with the phases they gate, and a subagent's own self-check NEVER substitutes for the host gate.
+**Gates are SEQ boundaries and are never parallelized away.** Step 3 Code Review, Step 4 Verify, and the Step 5 user-approval gate run AFTER the barrier on the merged result — never concurrently with the phases they gate, and a subagent's own self-check NEVER substitutes for the host gate.
 
-**Multi-phase run** (`--approval=off` with `$ALL_PHASES=Yes`, or a wave dispatch): per phase, run only type-check/compile plus the phase's targeted check (its own suites + one mutation check per new rule); Step 3 and Step 4 run ONCE after the last wave, over the whole changeset. **Early dispatch = its own single-member wave.** A phase whose declared dependencies have all returned, and whose write set is disjoint from every running member, may dispatch without waiting for the rest of its wave: it opens a new single-member wave with its own all-return barrier (item 4), so the per-wave barrier rule still holds — no member is ever advanced past, only started sooner. Step 3 and Step 4 wait for every wave, early ones included. A one-phase run is unchanged.
+**Multi-phase run** (`--approval=off` with `$ALL_PHASES=Yes`, or a wave dispatch): per phase, run only type-check/compile — no test run of any kind; Step 3 and Step 4 run ONCE after the last wave, over the whole changeset. **Early dispatch = its own single-member wave.** A phase whose declared dependencies have all returned, and whose write set is disjoint from every running member, may dispatch without waiting for the rest of its wave: it opens a new single-member wave with its own all-return barrier (item 4), so the per-wave barrier rule still holds — no member is ever advanced past, only started sooner. Steps 3 and 4 wait for every wave, early ones included. A one-phase run is unchanged.
 
 **Output:** `✓ Step 2: Implemented [N] files - [X/Y] tasks complete, compilation passed` — when waves ran, append `- waves: [w1 members] → [w2 members]`, and name any member that failed/timed-out plus the phase that fell back to sequential
 
 ---
 
-## Step 3: Testing
+## Step 3: Code Review (static)
 
-Call `tester` subagent (multi-phase run: once, after the last wave, over the whole changeset). ANY tests fail → STOP, call `debugger` subagent, fix, re-run. Repeat until 100% pass.
+Call `code-reviewer` subagent (multi-phase run: once, after the last wave, over the whole changeset). The review is STATIC: it reads code and tests (TEST-GAP, WEAK-TEST by mutation thinking) and runs NO test suite (`SYNC:verify-last-order` step 2). If the current round has validated blocking findings, stop and fix them at the owning layer — a fix may write or amend tests but nothing runs them until Step 4 — and run a fresh full `code-reviewer` pass, unless the round-1 fix set holds only LOWs closed by scoped check or deferred (Round-1 LOW closure). Round 1 blocks on every open validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, so LOW-only findings are recorded/deferred and do not reopen the cycle. Failed binary gates always block.
 
-**Testing standards:** Unit tests may use mocks. Integration tests use test environment. Forbidden: commenting out tests, changing assertions to pass, TODO/FIXME to defer fixes.
+**Output:** `✓ Step 3: Code reviewed - blocking findings: Critical=[n] | High=[n] | Medium=[n] | Low deferred=[n] | binary gates=[n]`
 
-**Output:** `✓ Step 3: Tests [X/X passed] - All requirements met`
+**Validation:** Apply `.claude/scripts/lib/review-policy.cjs` before deciding whether to proceed. If the current round has any blocking finding, or any failed binary gate, Step 3 is INCOMPLETE — do not proceed. A Round 2 LOW-only result is complete only when the LOWs are listed as deferred; it does not reopen the fix/review cycle.
 
-**Validation:** If X ≠ total, Step 3 INCOMPLETE - do not proceed.
+> **Severity classification (canonical `SYNC:severity-rubric`):** CRITICAL is immediate material security/safety/authority/data-loss risk or a failed binary gate; HIGH is material correctness, contract, privacy, or authority risk; MEDIUM is a bounded but consequential edge/resilience/maintainability gap; LOW is evidenced non-blocking polish with no credible present material impact. `NOT VERIFIABLE` is unresolved evidence, not LOW; if it could affect required behavior or a binary gate it remains blocking until proved or explicitly owner-accepted with residual risk. Classify by consequence and cite `file:line`, never by effort or proximity to the round cap.
 
 ---
 
-## Step 4: Code Review
+## Step 4: Verify (tests + mutation check, once)
 
-Call `code-reviewer` subagent (multi-phase run: once, after Step 3, over the whole changeset). If the current round has validated blocking findings, stop and fix them at the owning layer, re-run `tester`, and run a fresh full `code-reviewer` pass — unless the round-1 fix set holds only LOWs closed by scoped check or deferred (Round-1 LOW closure). Round 1 blocks on every open validated severity; Round 2 blocks only CRITICAL/HIGH/MEDIUM, so LOW-only findings are recorded/deferred and do not reopen the cycle. Failed binary gates always block.
+Call `tester` subagent ONCE over the whole changeset (multi-phase run: once, after Step 3) for the full affected suite. Then the main session runs the mutation check — `tester` is read-only — on every changed core-logic line and each new rule or regression test (`SYNC:verify-last-order` step 3; a bugfix's mutation check is its RED proof). ANY test fails or a mutant survives → record the provisional verdict (SOURCE-WRONG · TEST-WRONG · TEST-NOT-OPTIMAL · ENVIRONMENT-BLOCKED · AMBIGUOUS) before any edit, call `debugger` subagent, fix at the owning layer, re-run the failing set, then the whole set once. Repeat until 100% pass with every mutant killed. A surviving mutant is a missing test: write the killing test, then re-run.
 
-**Output:** `✓ Step 4: Code reviewed - blocking findings: Critical=[n] | High=[n] | Medium=[n] | Low deferred=[n] | binary gates=[n]`
+**Re-review loop:** if fixing in this step edited ANY source or test file, re-run Step 3 over the settled tree; a re-review that applies a fix sends you back to Step 4. This alternation is capped at 2 turns; a third turn, or the same failure returning, escalates via `AskUserQuestion`. In a standalone run, `/changes-review` and `/why-review` re-run with Step 3 whenever it does. Step 4 is complete only when a verify run is green AND no edit followed the last Step 3. An edit after the last green run invalidates that run.
 
-**Validation:** Apply `.claude/scripts/lib/review-policy.cjs` before deciding whether to proceed. If the current round has any blocking finding, or any failed binary gate, Step 4 is INCOMPLETE — do not proceed. A Round 2 LOW-only result is complete only when the LOWs are listed as deferred; it does not reopen the fix/review cycle.
+**Testing standards:** Unit tests may use mocks. Integration tests use test environment. Forbidden: commenting out tests, changing assertions to pass, TODO/FIXME to defer fixes.
 
-> **Severity classification (canonical `SYNC:severity-rubric`):** CRITICAL is immediate material security/safety/authority/data-loss risk or a failed binary gate; HIGH is material correctness, contract, privacy, or authority risk; MEDIUM is a bounded but consequential edge/resilience/maintainability gap; LOW is evidenced non-blocking polish with no credible present material impact. `NOT VERIFIABLE` is unresolved evidence, not LOW; if it could affect required behavior or a binary gate it remains blocking until proved or explicitly owner-accepted with residual risk. Classify by consequence and cite `file:line`, never by effort or proximity to the round cap.
+**Output:** `✓ Step 4: Verified [X/X passed] - mutants killed [n/n] - re-review [not needed | round N clean]`
+
+**Validation:** If X ≠ total, a mutant survives, or an edit followed the last review, Step 4 INCOMPLETE - do not proceed.
 
 ---
 
@@ -253,14 +266,14 @@ This approval accepts the implementation; it does not authorize staging, committ
 
 **TaskCreate tracking required:** Initialize at Step 0, mark each step complete before next.
 
-**Mandatory subagent calls:** Step 3: `tester` | Step 4: `code-reviewer` | Step 6: `docs-manager` (status updated inline)
+**Mandatory subagent calls:** Step 3: `code-reviewer` | Step 4: `tester` | Step 6: `docs-manager` (status updated inline)
 
 **Conditional subagent call:** Step 6: `git-manager` only for an explicit user request with operation/scope/sourceRequest. No request means implementation can finish without Git.
 
 **Blocking gates:**
 
-- Step 3: Tests must be 100% passing
-- Step 4: No blocking findings under the current review round bar (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; binary gates always block)
+- Step 3: No blocking findings under the current review round bar (Round 1: all severities; Round 2: CRITICAL/HIGH/MEDIUM; binary gates always block)
+- Step 4: Tests 100% passing, mutation check clean, no edit after the last Step 3 review
 - Step 5: User must explicitly approve
 
 Execute every step in declared order; proceed only when validation passes and the user has approved; run one plan phase per command. Do not skip steps, proceed on failed validation, or assume approval without a user response.
@@ -288,9 +301,9 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ## Standalone Review Gate (Non-Workflow Only)
 
-> **Post-gate of the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-if-invoked-inside-a-workflow).** Full standalone loop: plan → plan-review → proceed → `/changes-review` → `/why-review`; the two review steps below are its tail.
+> **Post-gate of the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-if-invoked-inside-a-workflow).** Full standalone loop: plan → plan-review → Steps 0-3 → `/changes-review` → `/why-review` → Steps 4-6; the two review steps below run after Step 3 and BEFORE the single Step 4 verify, so its one test run covers their fixes.
 >
-> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/plan-execute`), you MUST ATTENTION create `TaskCreate` todo tasks for `/changes-review` then `/why-review` as the **last tasks** in your task list. This ensures all changes are reviewed before commit even without a workflow enforcing it.
+> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/plan-execute`), you MUST ATTENTION create `TaskCreate` todo tasks for `/changes-review` then `/why-review` between the Step 3 and Step 4 tasks (the last reviews before the verify). This ensures all changes are reviewed before commit even without a workflow enforcing it.
 >
 > If already running inside a workflow (e.g., `workflow-feature`, `workflow-refactor`), skip this — the workflow sequence handles `/changes-review` at the appropriate step.
 
@@ -326,6 +339,7 @@ Execute every step in declared order; proceed only when validation passes and th
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -456,8 +470,8 @@ Execute every step in declared order; proceed only when validation passes and th
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** run the full step spine in declared order, emit `✓ Step N:` each: Step 0 detect plan + select next incomplete phase → Step 1 Analysis & Task Extraction (read plan, Goal-Contract read, Trace Gate, seed `TaskCreate`) → Step 2 Implementation (code + type-check/compile; UI → `ui-ux-designer`) → Step 3 Testing (`tester`→`debugger` until 100%) → Step 4 Code Review (`code-reviewer` until the current severity bar is clear: round 1 zero open findings, round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 5 User Approval (BLOCKING, wait) → Step 6 Finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
-**IMPORTANT MUST ATTENTION** execute Steps 0-6 in declared order; the three BLOCKING gates — tests 100% (Step 3), no blocking findings under the current severity bar (Step 4), explicit user approval (Step 5) — cannot be faked-green: NEVER skip a step, proceed on failed validation, or assume approval — why: a faked-green gate ships the regression the test exists to catch.
+**IMPORTANT MUST ATTENTION** run the full step spine in declared order, emit `✓ Step N:` each: Step 0 detect plan + select next incomplete phase → Step 1 Analysis & Task Extraction (read plan, Goal-Contract read, Trace Gate, seed `TaskCreate`) → Step 2 Implementation (code + its tests written together, type-check/compile only, no test run; UI → `ui-ux-designer`) → Step 3 Code Review (static, `code-reviewer` until the current severity bar is clear: round 1 zero open findings, round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred) → Step 4 Verify (`tester` once for the full suite, then the main session's mutation check, `debugger` until 100%; re-run Step 3 only if Step 4 edited anything) → Step 5 User Approval (BLOCKING, wait) → Step 6 Finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
+**IMPORTANT MUST ATTENTION** execute Steps 0-6 in declared order; the three BLOCKING gates — no blocking findings under the current severity bar (Step 3), tests 100% with the mutation check clean and no edit after the last review (Step 4), explicit user approval (Step 5) — cannot be faked-green: NEVER skip a step, proceed on failed validation, or assume approval — why: a faked-green gate ships the regression the test exists to catch.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim, finding, and recommendation with confidence % — >80% to act, <80% verify first, <60% do NOT recommend — why: speculation passed as fact is the root of every hallucinated fix.
 **IMPORTANT MUST ATTENTION** break work into small `TaskCreate` todos BEFORE the first read/edit, keep exactly one `in_progress`, mark `completed` immediately after each step's evidence, add a final review todo — on context loss call `TaskList` first, never duplicate — why: long files exhaust context and silently lose findings.
 
@@ -466,11 +480,11 @@ Execute every step in declared order; proceed only when validation passes and th
 **IMPORTANT MUST ATTENTION** fix at the component that owns the invariant or responsibility, using project architecture, references, and source evidence to identify it; never patch the symptom/crash site — trace "whose responsibility?" first — why: one fix at the invariant owner protects all downstream consumers.
 **IMPORTANT MUST ATTENTION** a behavior change is NOT done until the Spec-Loop closes — universally-quantified property TC + boundary counter-case for every [HARD] rule touched, a mutation-killed test on each changed core-logic line, and a Dual-Feedback Ledger entry into BOTH spec AND tests — re-verify the whole package (spec + tests + code), not just the diff.
 **IMPORTANT MUST ATTENTION** keep existing tests real and genuinely passing — NEVER comment out tests, weaken assertions, change assertions to pass, or use fake data; apply the source/test drift check when behavior changes — why: faked green hides the regression the test exists to catch.
-**IMPORTANT MUST ATTENTION** mode flags add/remove ONE step, never relax a running gate — `--approval=off` skips Step 5, `--tests=off` skips Step 3, `--parallel={auto|on|off}` controls Step 2 fan-out (`off` = default sequential, `on` = explicit opt-in, `auto` = fan out only on plan-declared `PAR`/`SEQ` metadata); debugger-trace + granularity + quality bars + all SYNC blocks apply in EVERY mode.
+**IMPORTANT MUST ATTENTION** mode flags add/remove ONE step, never relax a running gate — `--approval=off` skips Step 5, `--tests=off` skips Step 4, `--parallel={auto|on|off}` controls Step 2 fan-out (`off` = default sequential, `on` = explicit opt-in, `auto` = fan out only on plan-declared `PAR`/`SEQ` metadata); debugger-trace + granularity + quality bars + all SYNC blocks apply in EVERY mode.
 **IMPORTANT MUST ATTENTION** Step 2 is SEQUENTIAL by default — fan out only on the explicit `--parallel`/`--parallel=on` opt-in, or under `--parallel=auto` when EVERY in-scope phase carries a plan-declared `## Parallel Execution` block; `auto` with no such block falls back to sequential and NEVER derives write sets optimistically — why: a derived write set cannot see cascade/generated writes, so two "disjoint" phases silently collide on the same generated artifact.
 **IMPORTANT MUST ATTENTION** when a wave does run — NEVER co-schedule two writers of the same file, declare the wave plan, spawn every member in ONE message, then hold the barrier until EVERY member is accounted for by name; a failed, timed-out, or partial member blocks the barrier, is never assumed successful, and its phase is re-implemented sequentially before the next wave — why: an advanced barrier on an incomplete wave ships half a phase as if it were whole.
-**IMPORTANT MUST ATTENTION** gates are SEQ boundaries — Step 3 Testing, Step 4 Code Review, and the Step 5 approval gate run after the barrier on the merged result; a subagent's self-report NEVER substitutes for a host gate — why: parallelism may shorten the run, never the gate.
-**IMPORTANT MUST ATTENTION** standalone (no parent `[Workflow]` row via `TaskList`) → wrap Steps 0-6 in plan → plan-review → proceed → `/changes-review` → `/why-review`, with `/changes-review` + `/why-review` as the LAST todos; validate decisions with the user via `AskUserQuestion` — never auto-decide — why: standalone runs have no workflow enforcing review before commit.
+**IMPORTANT MUST ATTENTION** gates are SEQ boundaries — Step 3 Code Review, Step 4 Verify, and the Step 5 approval gate run after the barrier on the merged result; a subagent's self-report NEVER substitutes for a host gate — why: parallelism may shorten the run, never the gate.
+**IMPORTANT MUST ATTENTION** standalone (no parent `[Workflow]` row via `TaskList`) → wrap Steps 0-6 in plan → plan-review → Steps 0-3 → `/changes-review` → `/why-review` (static, BEFORE the Step 4 verify) → Steps 4-6, with a parent `[Workflow]` row instead running Steps 0-2 and 6 only (`SYNC:verify-last-order`); validate decisions with the user via `AskUserQuestion` — never auto-decide — why: standalone runs have no workflow enforcing review before commit.
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` and the path-matched project-reference docs (frontend/scss/design-system for UI, domain-entities for models) before starting.
 **IMPORTANT MUST ATTENTION** Easy to Change is the success metric — every finding, test, refactor, abstraction must make the NEXT change cheaper; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent) and reject anything that raises change cost.
 
@@ -478,7 +492,8 @@ Execute every step in declared order; proceed only when validation passes and th
 
 | Evasion                                          | Rebuttal                                                                                          |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| "Tests are basically passing"                    | 100% or Step 3 is INCOMPLETE — loop `tester`→`debugger` until X/X — partial green ships the bug.  |
+| "Tests are basically passing"                    | 100% or Step 4 is INCOMPLETE — loop `tester`→`debugger` until X/X — partial green ships the bug.  |
+| "Run the tests after each phase to be safe"      | No — tests run ONCE in Step 4 after the static review; per-phase runs re-test the same code and serialize the run (`SYNC:verify-last-order`). |
 | "Code review found only minor issues"            | Apply the current round bar: Round 1 clears every open validated severity (a LOW closes by scoped check or deferral — Round-1 LOW closure); Round 2 defers LOW-only findings but still blocks on CRITICAL/HIGH/MEDIUM and failed binary gates. |
 | "Obviously approved / they'll approve"           | Step 5 is BLOCKING — stop and wait for an explicit user response, never assume approval.           |
 | "Phase is clear enough to start"                 | Run the Granularity Gate — planning verbs / unnamed files / open decisions → sub-plan, don't code. |
@@ -502,3 +517,9 @@ Execute every step in declared order; proceed only when validation passes and th
 **MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
 
 <!-- /SYNC:core-engineering-principles:reminder -->
+
+<!-- SYNC:verify-last-order:reminder -->
+
+**IMPORTANT MUST ATTENTION** code-changing work runs tests ONCE, last: build all phases + write tests → static review fix-loop → verify once with mutation check → fix and re-run to green → re-review only if step 4 edited anything. No per-phase or in-review test runs.
+
+<!-- /SYNC:verify-last-order:reminder -->

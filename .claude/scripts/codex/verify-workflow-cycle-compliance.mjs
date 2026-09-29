@@ -646,7 +646,13 @@ export function checkWorkflowDebuggerTracePolicy(workflowId, workflow) {
   return `Workflow policy violation (${workflowId}): missing end-to-start debugger trace metadata term(s): ${missing.join(", ")}`;
 }
 
-function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
+// The nested review's `--tests={prove|defer}` mode flag (SYNC:verify-last-order) selects when its test
+// run happens, not which step it is: the policy identifies it by skill name.
+const REVIEW_TESTS_MODE_FLAG = /^workflow-review-changes\s+--tests=(?:prove|defer)$/;
+const REVIEW_DEFERS_TESTS_FLAG = /^workflow-review-changes\s+--tests=defer$/;
+
+function ensureWorkflowPolicy(workflowId, workflow, rawPolicySequence, failures) {
+  const sequence = rawPolicySequence.map((step) => (REVIEW_TESTS_MODE_FLAG.test(step) ? NESTED_REVIEW_WORKFLOW_ID : step));
   const nestedReview = delegatesNestedReview(sequence);
   const nestedReviewIndex = sequence.indexOf(NESTED_REVIEW_WORKFLOW_ID);
   const integrationIndex = sequence.indexOf("integration-test");
@@ -691,9 +697,23 @@ function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
   // The terminal domain-entity reference refresh is owned by the nested workflow-review-changes ONLY
   // when that review runs after the parent's terminal verification (i.e. it observes the settled
   // state). A nested review placed before verification must not absorb the requirement.
+  // Verify-last order (SYNC:verify-last-order): a review that defers its tests (`--tests=defer`) runs
+  // BEFORE the verify by design, but the protocol re-runs it after any edit the verify step makes
+  // (verify-last-order step 5; `workflow-end` reads the review receipt or a cited report), so its final
+  // run still observes the settled state. A deferring review with no verify step after it would leave its
+  // own fixes unverified, so that shape fails below.
+  const nestedReviewDefersTests = rawPolicySequence.some((step) => REVIEW_DEFERS_TESTS_FLAG.test(step));
+  if (nestedReviewDefersTests) {
+    const verifySteps = new Set(["integration-test-verify", "test", "e2e-test-verify"]);
+    if (!sequence.slice(nestedReviewIndex + 1).some((step) => verifySteps.has(step))) {
+      failures.push(
+        `Workflow policy violation (${workflowId}): workflow-review-changes --tests=defer needs a verify step (integration-test-verify|test|e2e-test-verify) after it — its fixes would otherwise never run under tests`
+      );
+    }
+  }
   const nestedReviewCoversTerminalState =
     nestedReviewIndex >= 0 &&
-    (integrationVerifyIndex < 0 || nestedReviewIndex > integrationVerifyIndex);
+    (integrationVerifyIndex < 0 || nestedReviewIndex > integrationVerifyIndex || nestedReviewDefersTests);
   if (DOMAIN_ENTITY_REFERENCE_REFRESH_WORKFLOW_IDS.has(workflowId) && !nestedReviewCoversTerminalState) {
     const domainEntityScanStep = "scan --target=domain-entities";
     const scanCount = sequence.filter((step) => step === domainEntityScanStep).length;

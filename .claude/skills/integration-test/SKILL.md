@@ -710,7 +710,9 @@ MUST ATTENTION verify ALL of the following:
 
 ## Test Execution & Failure Diagnosis (MANDATORY)
 
-> **IMPORTANT MUST ATTENTION:** After generating/modifying integration tests, MUST:
+> **Verify-last exception (`SYNC:verify-last-order`):** when the caller's sequence has a LATER verify step — a parent workflow or plan that runs `/integration-test-verify` or `/test` after its static review — this skill WRITES the tests and does NOT run them: that single verify, after the review, proves them (a fix step that amends a test does not run it either). One exception: characterization tests written BEFORE a refactor moves code get ONE targeted run on the unrefactored tree (`workflow-refactor` requires them proven green first). The rules below apply in full to a standalone call (no later verify step) and to the verify step itself.
+>
+> **IMPORTANT MUST ATTENTION:** After generating/modifying integration tests, when no later verify step exists, MUST:
 >
 > 1. **Run tests:** `/integration-test-verify` (reads `quickRunCommand` from `docs/project-config.json`)
 > 2. **If tests fail:** Diagnose root cause — (a) wrong test setup/assertions → fix test, or (b) service bug → report as finding
@@ -809,6 +811,7 @@ integration-test (you are here)
 - `test-data-isolation` — Tests stay independent across the supported concurrency modes; writing stateful tests → .claude/skills/shared/protocols/test-data-isolation.md
 - `test-failure-fault-adjudication` — Decide whether the source or the test is at fault before editing either; a test fails → .claude/skills/shared/protocols/test-failure-fault-adjudication.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
 

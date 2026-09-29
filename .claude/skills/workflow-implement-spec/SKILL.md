@@ -31,7 +31,7 @@ The gap review never shrinks: at every size `/spec-clarify` checks the supplied 
 
 | Gate                                                                                          | Evidence that proves it                                                                                                                                                                |
 | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tests pass** (`tests-pass`)                                                                 | `/integration-test-verify` and `/test` ran green in THIS run; every implemented TC has a test that names its `Business Intent / Invariant Guarded` and would fail if that intent broke |
+| **Tests pass** (`tests-pass`)                                                                 | `/integration-test-verify` (incl. the mutation check) and `/test` ran green in THIS run, once, after the static review; every implemented TC has a test that names its `Business Intent / Invariant Guarded` and would fail if that intent broke |
 | **Review converged** (`review-converged`)                                                     | nested `/workflow-review-changes` ran inline in the main session and converged — validated blocking findings fixed and the fixed state re-reviewed                                     |
 | **Spec synced** (`spec-synced`, when the implemented behavior differs from the supplied spec) | `/spec [mode=sync]` recorded the difference before `/integration-test` and the review                                                                                                  |
 | **Run closed** (`run-closed`)                                                                 | `/workflow-end` checked every gate                                                                                                                                                     |
@@ -54,8 +54,8 @@ The gap review never shrinks: at every size `/spec-clarify` checks the supplied 
 | `/plan-execute`            | core     | always                                                                        | the change                    |
 | `/spec [mode=sync]`        | optional | the implemented behavior differs from the supplied spec                       | spec-synced                   |
 | `/integration-test`        | core     | always — tests from the spec's TCs                                            | tests-pass                    |
+| `/workflow-review-changes --tests=defer` | gate     | always                                                                        | review-converged              |
 | `/integration-test-verify` | gate     | always                                                                        | tests-pass                    |
-| `/workflow-review-changes` | gate     | always                                                                        | review-converged              |
 | `/test`                    | gate     | always                                                                        | tests-pass                    |
 | `/workflow-end`            | gate     | always                                                                        | run-closed                    |
 | `/watzup`                  | core     | always                                                                        | handoff summary               |
@@ -64,7 +64,7 @@ The gap review never shrinks: at every size `/spec-clarify` checks the supplied 
 
 The registry's default order, parsed by the workflow verifier — keep it equal to `workflows.json`; the roles above decide what may flex:
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec-clarify -> /plan -> /plan-execute -> /spec [mode=sync] -> /integration-test -> /integration-test-verify -> /workflow-review-changes -> /test -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec-clarify -> /plan -> /plan-execute -> /spec [mode=sync] -> /integration-test -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-end -> /watzup
 
 **On-demand skills (not registry steps):** `/plan-review` — an M+ plan that crosses modules or touches a public contract, data/schema or security; `/debug-investigate` — a test fails and its cause is unknown.
 
@@ -72,7 +72,7 @@ The registry's default order, parsed by the workflow verifier — keep it equal 
 
 You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. Only these data dependencies are fixed:
 
-- the gap review precedes `/plan`; a change exists before it is reviewed or tested; fixes are re-verified after they land;
+- the gap review precedes `/plan`; a change exists before it is reviewed or tested; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `/workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`);
 - `/spec [mode=sync]`, when it runs, precedes `/integration-test` and the review;
 - the nested `/workflow-review-changes` runs inline in the main session — it owns the session's review→fix→re-review loop, and its own reviewers run as sub-agents;
 - a gap-review question to the user is never parallelized with later work;
@@ -104,6 +104,7 @@ Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module 
 - `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->

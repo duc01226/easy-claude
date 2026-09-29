@@ -74,6 +74,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - MUST ATTENTION run inline in the main session; NEVER hand the whole task to a sub-agent — why: `workflow-review-changes` owns its convergence loop only in the main session.
 - MUST ATTENTION settle every ask point via the Autonomy Contract and record the decision in the report; NEVER ask the user mid-run — why: the user asked for a finished PR; a question only delays it.
 - MUST ATTENTION commit only content a converged review covered; NEVER self-approve a skip receipt — why: the commit gate binds the exact candidate tree.
+- MUST ATTENTION review the WHOLE branch: scope is always `<base-ref>...HEAD` ∪ uncommitted (the total diff that will merge into the target), never the latest commit or the current changes alone — why: a defect introduced in an earlier commit of the branch ships in the PR exactly like one in the last commit.
 - NEVER merge the PR, enable auto-merge, push to the target branch, force-push, rebase/amend a pushed commit, or run a destructive git command — rebase only commits no remote ref contains (Step 2's never-pushed test); resolve drift on a pushed branch with `git merge --no-commit` + `$git-conflict-resolve`, then review and commit through the `commit` skill.
 - NEVER skip, weaken or delete a test or check — fix the failure at its root cause.
 
@@ -141,6 +142,8 @@ A PR branch starts at the latest `<target>` (`R` from Step 1.4). Name for a new 
 
 ### Step 4 — Review whole branch: `$workflow-review-changes --fix-loop`
 
+**Review scope invariant.** A pull-request review covers the TOTAL net change of the branch against the target: `git diff <base-ref>...HEAD` (three-dot, from the merge-base, every branch commit) ∪ uncommitted changes. NEVER only the latest commit (`HEAD~1..HEAD`, `git show`), never only the current working-tree changes, and never just the fix made since the last round — a later CI fix or merge is reviewed as part of the whole branch diff. Reviewing an existing PR (no local edits) uses the same scope from the PR's base (`baseRefName`) after `git fetch origin`. Record the scope proof in the report: base ref, merge-base SHA, `git rev-list --count <base-ref>..HEAD` and the changed-file count of `git diff --stat <base-ref>...HEAD`.
+
 Run `$workflow-review-changes --fix-loop` inline via the skill invocation, scope `<base-ref>...HEAD ∪ current uncommitted changes` — the three-dot base is the fixed merge-base, so the review covers every branch commit + pending work, a Step 2 rebase included. Follow that workflow's `references/fix-loop.md` as written: each round re-runs the whole default workflow over the recomputed scope (parallel reviewers, validated fixes at the owning layer, `$docs-update`); converges on a zero-fix round; keeps round cap + severity floor; mints the `workflow-review-changes` receipt.
 
 - A skipped review, partial scope, or self-approved skip receipt NEVER counts.
@@ -171,7 +174,7 @@ Invoke the `commit` skill over the staged candidate. Every mandatory message par
    1. Read the evidence. GitHub Actions → `gh run view <run-id> --log-failed` (run id in the check `link`). Other providers → the check's link or description.
    2. Test the environment hypothesis before blaming code. Log names an infrastructure cause (runner lost, registry/network timeout, quota) → **one** rerun: `gh run rerun <run-id> --failed`. Second infrastructure failure → Blocker. NEVER rerun to fish for green.
    3. Otherwise `$fix --target=ci`: trace the root cause backward from the failing log, fix at the owning layer — a stale test included, only once adjudicated TEST-WRONG. NEVER skip, delete, or weaken a check or test to get green.
-   4. Re-run Step 4 over the fix (scope = current uncommitted changes; the branch is already reviewed), then Step 5, Step 6, push.
+   4. Re-run Step 4 over the WHOLE branch diff again (`<base-ref>...HEAD ∪ uncommitted`, the fix included — never the fix alone; earlier reports are history only), then Step 5, Step 6, push.
 5. Loop to step 1. No attempt cap while each attempt removes a failure or changes its cause. **Blocker** when the same failure signature survives 3 attempts addressing different causes, or the fix needs something outside the repository (secret, permission, runner/service setup, product decision).
 
 ### Step 9 — Ready to merge
@@ -259,6 +262,7 @@ A **Blocker** ends the run — the only point control returns to the user. Hand 
 - **MUST ATTENTION — MAIN STEPS IN ORDER:** (1) target: request → open PR base → `pullRequest.targetBranch` → `main` · (2) branch: merged → new branch at latest target; unpushed + behind → rebase (stash, `$git-conflict-resolve`); pushed → never rebased · (3) stage + guard · (4) `$workflow-review-changes --fix-loop` over `<target>...HEAD` ∪ uncommitted · (5) local tests · (6) `commit` skill · (7) push + create/ready PR · (8) CI loop until green · (9) mergeable check + report.
 - **MUST ATTENTION — INLINE, NO QUESTIONS:** run the whole procedure in the main session; the Autonomy Contract settles every ask point — why: `workflow-review-changes` owns its loop only in the main session, and the user asked not to be asked.
 - **MUST ATTENTION — REVIEW BEFORE COMMIT:** the receipt binds the exact candidate. Every later edit, CI fix included, gets a fresh `$workflow-review-changes --fix-loop` before its commit. NEVER self-approve a skip.
+- **MUST ATTENTION — REVIEW THE TOTAL BRANCH DIFF:** every review round in a PR run covers `<base-ref>...HEAD ∪ uncommitted` (all branch commits against the merge-base), never only the latest commit or the working tree.
 - **MUST ATTENTION — CI FIXES:** root cause first, environment hypothesis included; one rerun only for a named infrastructure cause. NEVER weaken, skip or delete a test or check.
 - **NEVER** merge, enable auto-merge, push to the target branch, force-push, rewrite pushed history, or run a destructive git command — stop at ready to merge.
 - **Blocker** = listed blockers + report (+ draft PR only when pushed commits and PR tooling exist) — the only hand-back before done; NEVER commit unreviewed work to create a PR.
@@ -271,7 +275,7 @@ A **Blocker** ends the run — the only point control returns to the user. Hand 
 | "Hand the whole task to a sub-agent"                   | The procedure runs in the main session. `workflow-review-changes` must run inline there, and a sub-agent cannot own its loop.     |
 | "The user will want to confirm the branch name"        | They asked not to be asked. Derive the name, write it in the report, move on.                                                     |
 | "Rebase the pushed branch too, then force-push"        | Rebase rewrites pushed history and needs a force-push, which is never authorized. Merge `origin/<branch>` (Step 7.1) or `R` (Step 9) in instead.       |
-| "Only the new changes need review"                     | The first review covers `<target>...HEAD` ∪ uncommitted: the whole branch. Only later CI-fix rounds narrow to the new diff.       |
+| "Only the new changes need review"                     | The first review covers `<target>...HEAD` ∪ uncommitted: the whole branch. CI-fix rounds re-review the whole branch too — the fix is part of it.       |
 | "CI is red because of a flaky test, rerun until green" | One rerun, and only for a named infrastructure cause. Anything else is investigated and fixed at its root.                        |
 | "Mark the failing test skipped so the PR goes green"   | That forces green. Adjudicate the test, then fix the source or the stale test.                                                    |
 | "Checks passed, merge it"                              | The target is ready to merge, not merged. Never merge.                                                                            |

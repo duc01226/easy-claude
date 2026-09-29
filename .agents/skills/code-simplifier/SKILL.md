@@ -81,7 +81,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 2. **Identify Targets** — Recent git changes or specified files (skip generated/migration/vendor)
 3. **Analyze** — Apply simplification dimensions (see below)
 4. **Apply** — One refactoring type at a time following KISS/DRY/YAGNI
-5. **Verify** — Run related tests, confirm no behavior changes
+5. **Verify** — Run related tests, confirm no behavior changes; when a caller runs the tests once, last (`SYNC:verify-last-order`, e.g. a `--tests=defer` review fix loop), verify statically instead — re-read the diff against the covering tests and run none, the caller's single verify proves them
 6. **Self-Recursive Check** — Re-run this skill's simplification analysis until the current round's exit bar is clear: Round 1 requires zero validated findings at any severity (a LOW closes by a local fix plus scoped check, or by deferral — `SYNC:double-round-trip-review`); from Round 2 onward only validated CRITICAL/HIGH/MEDIUM findings reopen the loop, while LOW findings are recorded as deferred and do not justify another cycle. Failed binary gates always block.
 7. **Self-Review Gate (MANDATORY when code changed)** — If this skill modified any files, self-invoke `$code-quality-review` scoped to ONLY those changed files; skip + log if nothing changed
 
@@ -361,6 +361,7 @@ Rules:
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `ui-system-context` — Resolve the project's UI conventions before a UI change; changing a user-interface surface → .claude/skills/shared/protocols/ui-system-context.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -463,7 +464,7 @@ Rules:
 - **MANDATORY** reason by the 5 Simplification Dimensions — readability, evidenced DRY/abstraction, responsibility according to documented architecture and actual ownership, complexity reduction, and configured persistence/query bounds when relevant (otherwise N/A with a reason); every technique answers ONE test: does this make the next change cheaper?
 - **MANDATORY IMPORTANT MUST ATTENTION** compare repeated behavior before abstraction and assign responsibility from project docs and traced code; names/suffixes are clues only. After every extraction/move/rename, grep ENTIRE scope for dangling references — zero tolerance. — why: "primary file done" ≠ secondary files clean.
 - **MANDATORY IMPORTANT MUST ATTENTION** preserve ALL invariants — NEVER weaken, delete, or trivialize a property/mutation test guarding a `[HARD]` §4 rule or §5 invariant; a behavior change is a Dual-Feedback finding (feed spec AND tests, re-review) — report and stop, never ship silently. — why: green tests on a weakened bar are not a pass.
-- **MANDATORY IMPORTANT MUST ATTENTION** verify ALL affected outputs and tests pass after EACH change (apply one refactoring type at a time) — one build green ≠ all green. — why: multi-stack changes regress the stack you didn't check.
+- **MANDATORY IMPORTANT MUST ATTENTION** verify ALL affected outputs and tests pass after EACH change (apply one refactoring type at a time) — one build green ≠ all green; when a caller runs the tests once, last (`SYNC:verify-last-order`), compile/type-check each change and leave the test run to that caller's single verify. — why: multi-stack changes regress the stack you didn't check.
 - **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `$code-quality-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `$changes-review` — it recurses into `$code-simplifier`); skip + log the reason when nothing changed. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
 - **MANDATORY** validate route decisions with the user by asking the user directly when outside a workflow — never auto-decide "simple enough to skip". EXEMPT when invoked by a parent skill, as a sub-agent, or under `--report-only` — the caller owns routing.
 - **MANDATORY IMPORTANT MUST ATTENTION** `--report-only` runs steps 1–3 only — edit NO file, no nested sub-agent, no user question; every finding carries `file:line` + proposed change + behavior-preservation note; write only the report and return it. — why: a mutator inside a read-only review barrier races the diff its siblings are reading.

@@ -59,7 +59,7 @@ For full canonical detail, read `CLAUDE.md` and `.codex/CODEX_CONTEXT.md` direct
 >
 > **Tiers** (workflow `activation`): never self-start a `manual` workflow — name it in your route; ask once before self-starting a `confirm` one, only when a leaner route would also do; explicit requests run any tier.
 >
-> Declare `Route: {workflow-id | skill | custom-simple [step → step] | direct} — because {key signals}` (e.g. `Route: custom-simple [investigate → fix → test → changes-review] — because known cause, one module`), then ACTIVATE before edits, agents or commands. Workflow: invoke `start-workflow` with its id; map its canonical sequence to tasks 1:1. Skill: read and execute its SKILL.md. Custom/direct: one task per step plus a final review. Missing tools/details: stop and report; never fabricate invocation.
+> Declare `Route: {workflow-id | skill | custom-simple [step → step] | direct} — because {key signals}` (e.g. `Route: custom-simple [investigate → fix → changes-review → test] — because known cause, one module`), then ACTIVATE before edits, agents or commands. Workflow: invoke `start-workflow` with its id; map its canonical sequence to tasks 1:1. Skill: read and execute its SKILL.md. Custom/direct: one task per step plus a final review. Missing tools/details: stop and report; never fabricate invocation.
 >
 > Routing preserves operation authority, user data and all required quality gates.
 
@@ -474,7 +474,7 @@ Apply the shared AI-SDD contract from `shared/sdd-artifact-contract.md` and `SYN
 
 This compact pointer is auto-generated from `.codex/CODEX_CONTEXT.md` by `node .claude/scripts/codex/sync-context-workflows.mjs`.
 Read `.codex/CODEX_CONTEXT.md` before non-trivial project work; it carries shared quality and project-reference protocol detail.
-Context fingerprint (SHA-256): f11b49df848aa95d2f9337e177c852e6d7052cf7e998843fb08bf645601b338b
+Context fingerprint (SHA-256): e6a6662385ae4c4cf4a79a780b88e4eb3746e40a608ebef4f5256bea294e5aa2
 Do not edit this pointer manually; update canonical Claude sources and re-sync.
 
 ## Codex Project Reference Gate (Hook-Independent)

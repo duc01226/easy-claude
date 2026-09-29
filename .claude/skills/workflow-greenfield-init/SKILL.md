@@ -59,7 +59,7 @@ Each gate names the evidence that proves it:
 
 **Step contract:** `/start-workflow` owns how gate, core and optional steps run; this list summarizes the non-core roles in `.claude/workflows.json`, whose `when`/`skipReason` text is recorded verbatim on skip.
 
-- **Gates (always):** `/plan-validate` · `/test` · `/workflow-review-changes` · final `/test` · `/workflow-end`.
+- **Gates (always):** `/plan-validate` · `/workflow-review-changes --tests=defer` · `/test` · final `/test` · `/workflow-end`.
 - **Optional — research:** `/web-research`, `/source-deep-dive` (research needed) · `/market-analysis` (a market to size; when skipped, `/business-evaluation` marks market figures N/A) · `/business-evaluation` (value undecided) · `/spec-discovery` (existing specs or code).
 - **Optional — design and backlog:** `/scenario` (`isLargeIdea` or adversarial risk) · `/security-audit --report-only` (criticality) · `/performance-review --report-only` (scale or declared need) · PLAN₁ re-review `plan-architecture-rereview` (a risk review returned findings) · `/pbi-mockup` (UI) · `/spec-clarify` (open spec decisions).
 - **Optional — foundation and build:** `/scaffold` (no base abstractions yet) · `/scan --target=ui-system` (UI stack) · `/seed-test-data` (persistent state or seeded test/demo data) · post-implementation `/spec [mode=tests]` + `/artifact-review --type=spec-tests` (behavior beyond the initial test specs) · PLAN₃ `plan-integration-tests` + its review (integration architecture spans modules, services, external boundaries or shared data) · `/integration-test`, `/integration-test-verify` (Integration/System tier `APPLICABLE`) · `/e2e-test` (`docs/project-config.json` → `e2eTesting` declares a runnable framework) · `/spec [mode=sync]` (divergence).
@@ -74,8 +74,8 @@ Each gate names the evidence that proves it:
 - **Backlog** — `/refine` → PBI review → `/story` → story review → `/pbi-challenge` → `/dor-gate` → `/pbi-mockup` (UI) → releasable, DoR-ready PBIs.
 - **PLAN₂** — `/plan-validate` → `test-spec-initial` → its review → `/spec-clarify` → `plan-implementation` → its review → `plan-approved`, sprint-ready plan.
 - **Foundation** — `/scaffold` → `/linter-setup` → `/harness-setup` → `/architecture-review-full` → `reference-docs-and-rationale` barrier → reviewed foundation, reference docs, pre-coding rationale.
-- **Build** — `/plan-execute` → triaged seed data, post-implementation test specs, PLAN₃ → `/integration-test` → `/integration-test-verify` → `/e2e-test` → green tests in this run.
-- **Close** — `/spec [mode=sync]` → `/test` → `/workflow-review-changes` → `/workflow-e2e --source=context` → final `/test` → `/workflow-end` → `/watzup`.
+- **Build** — `/plan-execute` → triaged seed data, post-implementation test specs, PLAN₃ → `/integration-test` → `/e2e-test` → code and tests written, not run.
+- **Close** — `/spec [mode=sync]` → `/workflow-review-changes --tests=defer` (static) → `/integration-test-verify` → `/test` (the verify run: green tests in this run; the mutation check belongs to `/integration-test-verify`, or to the main session when that step is N/A — `/test` is read-only) → `/workflow-e2e --source=context` → final `/test` → `/workflow-end` → `/watzup`.
 
 ## Workflow-Specific Contracts
 
@@ -89,7 +89,7 @@ Each gate names the evidence that proves it:
 
 ## Orchestration Freedom
 
-You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. Fixed constraints only: a change exists before it is reviewed or tested; spec sync runs before the review that checks it; fixes are re-verified after they land; `/workflow-end` runs last; `/workflow-review-changes` runs INLINE in the main session; gates awaiting user approval are never parallelized. S prototypes run mostly inline; L/XL builds partition into bounded batches per module or outcome slice, one report per batch.
+You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. Fixed constraints only: a change exists before it is reviewed or tested; spec sync runs before the review that checks it; tests run once, last, after the static review (`--tests=defer`) — a verify fix re-runs the review, a review fix re-runs the verify (`SYNC:verify-last-order`); `/workflow-end` runs last; `/workflow-review-changes` runs INLINE in the main session; gates awaiting user approval are never parallelized. S prototypes run mostly inline; L/XL builds partition into bounded batches per module or outcome slice, one report per batch.
 
 Declared all-return barriers — advance only after every member returns:
 
@@ -111,7 +111,7 @@ Validate findings (evidence-backed, reproducible) before fixing; fix at the owni
 
 Registry sequence — the recommended default order, mirroring `.claude/workflows.json`:
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /source-deep-dive -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /security-audit --report-only -> /performance-review --report-only -> /plan-review -> /refine -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /seed-test-data -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /integration-test-verify -> /e2e-test -> /spec [mode=sync] -> /test -> /workflow-review-changes -> /workflow-e2e --source=context -> /test -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /source-deep-dive -> /market-analysis -> /business-evaluation -> /spec-discovery -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /architecture-scalability-review -> /why-review -> /scenario -> /plan -> /plan-review -> /security-audit --report-only -> /performance-review --report-only -> /plan-review -> /refine -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /plan-validate -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec-clarify -> /plan -> /plan-review -> /scaffold -> /linter-setup -> /harness-setup -> /architecture-review-full -> /scan --target=ui-system -> /scan --target=backend-patterns -> /scan --target=integration-tests -> /scan --target=project-structure -> /why-review -> /plan-execute -> /seed-test-data -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /integration-test -> /e2e-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-e2e --source=context -> /test -> /workflow-end -> /watzup
 
 Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-greenfield-init` with the user's prompt as context.
 
@@ -131,6 +131,7 @@ Activate the `workflow-greenfield-init` workflow. Run `/start-workflow workflow-
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->

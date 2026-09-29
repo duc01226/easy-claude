@@ -336,7 +336,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 3. **Every `SEQ` names its forcing dependency** — `SEQ — needs phase-02's {migration | generated type | contract | file}`. "Feels sequential", "safer in order", or an unnamed dependency is not a reason: retag it `PAR`.
 4. **Group `PAR` phases into waves** in a `## Execution Waves` line in `plan.md`:
    `Execution waves: wave 1 = [phase-01, phase-03] · wave 2 = [phase-04] · SEQ = [phase-02 (needs phase-01 schema), phase-06 (approval gate)]`.
-5. **One final gate, no test/review sub-phases.** Plan no per-phase or per-release test, review, or "close" phase. Each implementation phase ends with a cheap targeted check: its own suites plus one mutation check per new rule. The plan ends with ONE `SEQ` final gate phase: docs and counts, generated mirrors, the full suite, and one review fix-loop over the whole changeset. A user-approval or migration phase stays a `SEQ` boundary. — why: repeated gates re-test and re-review the same code and serialize the run.
+5. **One final gate, verify last (`SYNC:verify-last-order`).** Plan no per-phase or per-release test, review, or "close" phase, and no per-phase test RUN. Each implementation phase ends with type-check or compile only: its tests are WRITTEN with its code (test files sit in its write set) and RUN by nobody until the end. The plan ends with ONE `SEQ` final gate phase, in this order: docs and counts, generated mirrors → one static review fix-loop over the whole changeset (no test run) → the single verify (the full affected suite plus one mutation check per new rule or changed core-logic line) → fix and re-run until green → re-review only if that fixed anything. A user-approval or migration phase stays a `SEQ` boundary. — why: per-phase test runs and repeated gates re-test and re-review the same code and serialize the run.
 6. **Critical-path waves.** For a big plan, compute the critical path. Tag `SEQ` only where a real data or write-set dependency forces it; put everything else in `PAR` waves, merged across would-be release boundaries when write sets are disjoint. Name each dependent phase's exact dependencies so it starts as soon as THOSE return, not when its whole wave does (`/plan-execute` runs that early start as its own single-member wave with its own barrier). State the wall-time estimate as the critical-path length, not the sum of phase hours.
 7. **Serial chains.** Phases that share a file form one serial chain owned by one executor (`SEQ = [chain: phase-03 → phase-05 (share x.ts)]`), not separate waves.
 8. **Releases only on request.** Split the plan into releases only when the owner asks for separately shippable increments.
@@ -442,6 +442,7 @@ After creating all phase files, run **recursive decomposition loop**:
 - `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
 - `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
+- `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
@@ -482,7 +483,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 <!-- SYNC:iterative-phase-quality:reminder -->
 
-**IMPORTANT MUST ATTENTION** score complexity first. Score >=6 → decompose. Each phase: plan → implement → review → fix → verify. No skipping.
+**IMPORTANT MUST ATTENTION** score complexity first. Score >=6 → decompose. Phases: plan → implement all (code + tests) → ONE review fix-loop → ONE verify with mutation check → fix and re-run to green → re-review if that fixed anything. No skipping, and no per-phase test runs.
 
 <!-- /SYNC:iterative-phase-quality:reminder -->
 
@@ -650,3 +651,9 @@ After creating all phase files, run **recursive decomposition loop**:
 **MUST ATTENTION** Core Engineering Principles — every plan, implementation and review must be **Easy to change** (reuse first, one owner per rule, interfaces/adapters at volatile boundaries, no speculative abstraction) · **Easy to scale** (extend by addition, bounded growth, explicit boundaries, sized to the project's real profile) · **Easy to maintain** (intent-named tests that fail when the rule breaks across happy/error/edge paths; harness green locally and in CI). Before done: next change → how many edit sites? 10× → what breaks? which test goes red?
 
 <!-- /SYNC:core-engineering-principles:reminder -->
+
+<!-- SYNC:verify-last-order:reminder -->
+
+**IMPORTANT MUST ATTENTION** code-changing work runs tests ONCE, last: build all phases + write tests → static review fix-loop → verify once with mutation check → fix and re-run to green → re-review only if step 4 edited anything. No per-phase or in-review test runs.
+
+<!-- /SYNC:verify-last-order:reminder -->
