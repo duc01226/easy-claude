@@ -101,6 +101,10 @@ const POSITIVE = [
     ['how do we reduce hallucination in our answers?', 'hallucination'],
     ['write the system prompt for the support bot', 'system prompt'],
     ['set up an MCP server for our product', 'MCP server'],
+    ['build a browser agent that books tickets for customers', 'browser agent'],
+    ['design a computer-use agent for invoice entry', 'browser agent'],
+    ['implement agent-to-agent delegation over the A2A protocol', 'A2A protocol'],
+    ['add agent-to-agent communication between the planner and the booking service', 'agent protocol'],
     // The Claude provider, spelled as an API or SDK phrase (not the coding assistant's own name)
     ['integrate the Claude API into the checkout flow', 'provider API'],
     ['use the Claude SDK to draft replies', 'provider API'],
@@ -125,6 +129,10 @@ const NEGATIVE = [
     'embedding a video player in the page',
     'the rag in the page header is torn',
     'a gemini zodiac widget',
+    // Words that only look like the new surfaces: no agent, no protocol
+    'the browser use statistics page shows 40% Chrome',
+    'fix the A2A payment reconciliation job',
+    'update the browser agent notes in the skill docs',
     // The technique is named but nothing asks to act on it
     'what is RAG?',
     'explain embeddings to me',

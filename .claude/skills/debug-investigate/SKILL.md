@@ -37,6 +37,7 @@ description: '[Fix & Debug] Use when a workflow step or the user asks for a bug'
 
 **Key Rules:**
 
+- **AI surface?** Only if the defect sits in, or its fix changes, a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`; reproduce from recorded inputs and traces (`AE-6`, `AE-7`), not one sampled output; otherwise skip this line.
 - NEVER patch symptoms — trace full call chain, fix at owning layer
 - NEVER report root cause without `file:line` evidence
 - NEVER declare confirmed root cause without passing the `/why-review` validation gate

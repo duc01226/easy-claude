@@ -104,6 +104,10 @@ const CONTENT_LIMITS = Object.freeze({
 
 // Total wall-clock budget, per file and class, for the config-supplied content regexes (milliseconds).
 const CONTENT_REGEX_BUDGET_MS = 100;
+// The same hard ceiling applies to project-supplied path, file-name and exclusion regexes. Built-in
+// sources are audited and stay on the direct fast path; configuration sources run in the interruptible
+// VM so one accepted-but-pathological expression cannot stall a hook or a whole change-set scan.
+const PATH_REGEX_BUDGET_MS = 100;
 // Sources that ran out of budget stay skipped for the process; the set is capped so it cannot grow without bound.
 const MAX_TIMED_OUT_SOURCES = 1024;
 
@@ -391,6 +395,14 @@ const AI_FEATURE_GATE = Object.freeze({
 // The framework's own content sources: audited linear (see the perf and lint tests), so they may see the
 // whole 64 KiB sample. A project's copy of the class carries the same source strings and stays trusted.
 const TRUSTED_CONTENT_REGEXES = new Set(AI_FEATURE_GATE.contentRegexes);
+const TRUSTED_PATH_REGEXES = new Set([
+    ...UI_UX_GATE.pathRegexes,
+    ...UI_UX_GATE.fileNameRegexes,
+    ...(UI_UX_GATE.excludePathRegexes || []),
+    ...AI_FEATURE_GATE.pathRegexes,
+    ...AI_FEATURE_GATE.fileNameRegexes,
+    ...(AI_FEATURE_GATE.excludePathRegexes || [])
+]);
 
 /**
  * BR-PFCI-01 built-in fallback: used ONLY when the project config file does not exist. Delivery is
@@ -700,20 +712,151 @@ function createContentReader(projectDir, deps = {}) {
     };
 }
 
-const contentGuard = { directRuns: 0, vmRuns: 0, timeouts: 0, skipped: 0 };
+const contentGuard = {
+    directRuns: 0,
+    vmRuns: 0,
+    timeouts: 0,
+    skipped: 0,
+    pathDirectRuns: 0,
+    pathVmRuns: 0,
+    pathTimeouts: 0,
+    pathSkipped: 0
+};
 const timedOutSources = new Set();
+const timedOutPathSources = new Set();
+let isContentGuardSaturated = false;
+let isPathGuardSaturated = false;
 let guardScript = null;
 let guardContext = null;
 
 /** Counters of the content-regex guard (test seam): built-in runs, vm runs, timeouts, skipped sources. */
 function contentGuardStats() {
-    return { ...contentGuard, timedOutSources: timedOutSources.size };
+    return {
+        ...contentGuard,
+        timedOutSources: timedOutSources.size,
+        timedOutPathSources: timedOutPathSources.size,
+        isContentGuardSaturated,
+        isPathGuardSaturated
+    };
 }
 
 /** Forget every timed-out source and zero the counters (test seam; a fresh process starts clean anyway). */
 function resetContentGuard() {
     timedOutSources.clear();
+    timedOutPathSources.clear();
+    isContentGuardSaturated = false;
+    isPathGuardSaturated = false;
     for (const key of Object.keys(contentGuard)) contentGuard[key] = 0;
+}
+
+/** Execute a path/name/exclusion regex with one shared per-file/class budget (`deps` is a test seam). */
+function guardedPathRegexTest(source, subject, budget, deps = {}) {
+    const re = safeRegExp(source);
+    if (!re) return { matched: false, incomplete: false };
+    if (TRUSTED_PATH_REGEXES.has(source)) {
+        contentGuard.pathDirectRuns += 1;
+        return { matched: re.test(subject), incomplete: false };
+    }
+    if (isPathGuardSaturated || timedOutPathSources.has(source) || budget.remainingMs <= 0) {
+        contentGuard.pathSkipped += 1;
+        return { matched: false, incomplete: true };
+    }
+    const execute = typeof deps.execute === 'function' ? deps.execute : execWithTimeout;
+    const now = typeof deps.now === 'function' ? deps.now : Date.now;
+    const allowed = budget.remainingMs;
+    const started = now();
+    contentGuard.pathVmRuns += 1;
+    try {
+        return { matched: execute(re, subject, allowed) !== null, incomplete: false };
+    } catch (err) {
+        if (err && err.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
+            contentGuard.pathTimeouts += 1;
+            if (timedOutPathSources.size >= MAX_TIMED_OUT_SOURCES) isPathGuardSaturated = true;
+            else timedOutPathSources.add(source);
+        }
+        return { matched: false, incomplete: true };
+    } finally {
+        budget.remainingMs -= Math.max(0, now() - started);
+    }
+}
+
+/** End offset (exclusive) of one JSON string token, or -1 when the bounded prefix cuts it off. */
+function jsonStringEnd(text, start) {
+    if (text[start] !== '"') return -1;
+    for (let i = start + 1; i < text.length; i++) {
+        if (text[i] === '\\') i += 1;
+        else if (text[i] === '"') return i + 1;
+    }
+    return -1;
+}
+
+/** Find a root-object array property without mistaking the same text inside a JSON string for a key. */
+function rootJsonArrayStart(text, property) {
+    let objectDepth = 0;
+    let arrayDepth = 0;
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (char === '"') {
+            const end = jsonStringEnd(text, i);
+            if (end < 0) return -1;
+            if (objectDepth === 1 && arrayDepth === 0) {
+                let key = null;
+                try { key = JSON.parse(text.slice(i, end)); } catch { /* malformed prefix */ }
+                let cursor = end;
+                while (/\s/.test(text[cursor] || '')) cursor += 1;
+                if (key === property && text[cursor] === ':') {
+                    cursor += 1;
+                    while (/\s/.test(text[cursor] || '')) cursor += 1;
+                    if (text[cursor] === '[') return cursor;
+                }
+            }
+            i = end - 1;
+        } else if (char === '{') objectDepth += 1;
+        else if (char === '}') objectDepth = Math.max(0, objectDepth - 1);
+        else if (char === '[') arrayDepth += 1;
+        else if (char === ']') arrayDepth = Math.max(0, arrayDepth - 1);
+    }
+    return -1;
+}
+
+/**
+ * Code-cell source from every complete notebook cell contained in the bounded prefix. The whole notebook
+ * need not be valid/complete JSON: a truncated final cell is ignored, preserving the 64 KiB read ceiling.
+ */
+function notebookCodeSample(text) {
+    const cellsAt = rootJsonArrayStart(text, 'cells');
+    if (cellsAt < 0) return '';
+    const code = [];
+    let cellStart = -1;
+    let objectDepth = 0;
+    for (let i = cellsAt + 1; i < text.length; i++) {
+        const char = text[i];
+        if (char === '"') {
+            const end = jsonStringEnd(text, i);
+            if (end < 0) break;
+            i = end - 1;
+            continue;
+        }
+        if (char === '{') {
+            if (objectDepth === 0) cellStart = i;
+            objectDepth += 1;
+        } else if (char === '}' && objectDepth > 0) {
+            objectDepth -= 1;
+            if (objectDepth === 0 && cellStart >= 0) {
+                try {
+                    const cell = JSON.parse(text.slice(cellStart, i + 1));
+                    if (cell && cell.cell_type === 'code') {
+                        if (typeof cell.source === 'string') code.push(cell.source);
+                        else if (Array.isArray(cell.source)) code.push(cell.source.filter(value => typeof value === 'string').join(''));
+                    }
+                } catch {
+                    // One malformed cell is no signal; later complete cells may still be usable.
+                }
+                cellStart = -1;
+            }
+        } else if (char === ']' && objectDepth === 0) break;
+    }
+    return code.join('\n');
 }
 
 /**
@@ -751,7 +894,7 @@ function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUD
         contentGuard.directRuns += 1;
         const match = re.exec(text);
         matched = match ? match[0] : null;
-    } else if (timedOutSources.has(source) || budget.remainingMs <= 0) {
+    } else if (isContentGuardSaturated || timedOutSources.has(source) || budget.remainingMs <= 0) {
         contentGuard.skipped += 1;
     } else {
         const allowed = budget.remainingMs;
@@ -764,8 +907,8 @@ function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUD
             if (err && err.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
                 contentGuard.timeouts += 1;
                 if (allowed >= CONTENT_REGEX_BUDGET_MS) {
-                    if (timedOutSources.size >= MAX_TIMED_OUT_SOURCES) timedOutSources.clear();
-                    timedOutSources.add(source);
+                    if (timedOutSources.size >= MAX_TIMED_OUT_SOURCES) isContentGuardSaturated = true;
+                    else timedOutSources.add(source);
                 }
             }
         }
@@ -778,21 +921,23 @@ function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUD
  * Why a file is (not) a member of a class, by BR-PFCI-02: extension filter AND (any path/name include OR,
  * for a file whose extension is in `contentExtensions`, a `contentRegexes` match on bounded content) AND
  * no exclude. `ctx.readContent(rel)` supplies content; without it a class matches by path and name only.
- * Exclusions are decided first, so an excluded file is never read. `collectAll` keeps evaluating after
- * the first hit to report every signal (review-time scans); membership never needs it.
- * @returns {{ member: boolean, pathSignals: string[], contentSignals: string[] }}
+ * Exclusions are decided first, so an excluded file is never read. `collectAll` reports every location
+ * signal, but a location/name hit still decides membership without reading content (BR-PFCI-21).
+ * @returns {{ member: boolean, pathSignals: string[], contentSignals: string[], incomplete: boolean }}
  */
 function explainGroupMatch(group, rel, ctx, collectAll = false) {
-    const result = { member: false, pathSignals: [], contentSignals: [] };
+    const result = { member: false, pathSignals: [], contentSignals: [], incomplete: false };
     if (!isPlainObject(group) || !nonBlankString(rel)) return result;
     const extensions = normalizedExtensions(group);
     const extension = path.posix.extname(rel).toLowerCase();
     if (extensions.length > 0 && !extensions.includes(extension)) return result;
     const slashPath = `/${rel}`;
     const baseName = path.posix.basename(rel);
+    const pathBudget = { remainingMs: PATH_REGEX_BUDGET_MS };
     const testRegexes = (list, subject) => stringList(list).some(source => {
-        const re = safeRegExp(source);
-        return re ? re.test(subject) : false;
+        const verdict = guardedPathRegexTest(source, subject, pathBudget);
+        if (verdict.incomplete) result.incomplete = true;
+        return verdict.matched;
     });
     const testGlobs = list => stringList(list).some(glob => {
         const re = globToRegExp(glob);
@@ -802,7 +947,7 @@ function explainGroupMatch(group, rel, ctx, collectAll = false) {
     if (testRegexes(group.pathRegexes, slashPath)) result.pathSignals.push('pathRegexes');
     if ((collectAll || !result.pathSignals.length) && testGlobs(group.pathGlobs)) result.pathSignals.push('pathGlobs');
     if ((collectAll || !result.pathSignals.length) && testRegexes(group.fileNameRegexes, baseName)) result.pathSignals.push('fileNameRegexes');
-    if (result.pathSignals.length && !collectAll) {
+    if (result.pathSignals.length) {
         result.member = true;
         return result;
     }
@@ -818,9 +963,12 @@ function explainGroupMatch(group, rel, ctx, collectAll = false) {
         if (typeof text === 'string' && text) {
             const budget = { remainingMs: CONTENT_REGEX_BUDGET_MS };
             for (const source of sources) {
-                // The framework's audited sources see the whole sample; any other source a smaller one.
+                // Bound the on-disk prefix before notebook decoding: project patterns see 16 KiB of the
+                // file, while the framework's audited sources see 64 KiB (BR-PFCI-22).
                 const bound = TRUSTED_CONTENT_REGEXES.has(source) ? CONTENT_LIMITS.maxBytes : CONTENT_LIMITS.maxConfigBytes;
-                const signal = contentSignalOf(source, text.length > bound ? text.slice(0, bound) : text, budget);
+                const boundedText = text.length > bound ? text.slice(0, bound) : text;
+                const sample = extension === '.ipynb' ? notebookCodeSample(boundedText) : boundedText;
+                const signal = contentSignalOf(source, sample, budget);
                 if (signal === null) continue;
                 if (!result.contentSignals.includes(signal)) result.contentSignals.push(signal);
                 if (!collectAll) break;
@@ -1144,6 +1292,9 @@ module.exports = {
     contentGuardStats,
     resetContentGuard,
     CONTENT_REGEX_BUDGET_MS,
+    PATH_REGEX_BUDGET_MS,
+    MAX_TIMED_OUT_SOURCES,
+    guardedPathRegexTest,
     contentRegexLintReason,
     isSafeContentRegex,
     contentLabelOf,

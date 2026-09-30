@@ -78,6 +78,7 @@ Connected contracts:
 
 **Key Rules:**
 
+- **AI surface?** Only if the defect sits in a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`; reproduce from recorded inputs and traces (`AE-6`, `AE-7`), not one sampled output; otherwise skip this line.
 - NEVER guess. Unsure → state explicitly and investigate before claiming anything
 - Every root cause claim requires `file:line` evidence or log excerpts
 - Issues may span services — check message bus consumers, entity events, cross-service boundaries

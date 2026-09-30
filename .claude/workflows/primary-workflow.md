@@ -7,7 +7,7 @@
 **Core Phases (all workflows follow subsets of these):**
 
 1. **Discover** — Use `/investigate` to locate files and inspect patterns; run graph traces when the project's graph database is available
-2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
+2. **Plan** — `/plan` (add `/plan-validate` when decisions need user confirmation; `/plan-review` only on explicit request or inside the big workflows), save in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
 3. **Design Review** — `/why-review`; spec and test-spec work follows the project's configured spec-artifact profile or documented native spec contract
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
 5. **Verify** — `/test`, `/integration-test`, and any spec reconciliation step defined by the selected project profile
@@ -38,7 +38,7 @@
 
 - Use `/plan` skill to create an implementation plan with tasks in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
 - Use `/web-research` → `/source-deep-dive` for investigating technical topics before planning
-- Validate plan via `/plan-review` (recursive until its current severity bar is clear) and `/plan-validate` (critical questions)
+- Confirm plan decisions via `/plan-validate` (critical questions) when needed; `/plan-review` is a single pass, never automatic, and only `workflow-big-feature` and `workflow-greenfield-init` include it
 - **DO NOT** create new enhanced files — update existing files directly
 
 ## Phase 2: Design Review
@@ -48,7 +48,7 @@
 - Use `/spec [mode=tests]`, `/artifact-review --type=spec-tests`, and a Feature Spec Section 8 CREATE-before-implementation / UPDATE-after lifecycle only when the selected profile defines that format; otherwise follow its native artifact, identifier, and review contract
 - Every assertion-bearing test uses explicit `Given` → `When` → `Then` phases, names the guarded business intent/invariant or technical contract, and asserts an owned outcome; framework-native BDD, named helpers, or comments are valid, while bare Arrange/Act/Assert is insufficient unless all three GWT phases are also labeled
 - Every `changes-review` skill invocation or specialist review first applies `SYNC:review-principle-awareness`; route only contextually applicable scale-ready foundation, GWT test, AI-agent-as-user, and UI/component obligations to their detailed skill protocols, recording evidence-backed N/A/defer/block/unverified status rather than inventing findings or expanding scope
-- For features: two planning rounds — PLAN1 (architecture) then PLAN2 (incorporating test strategy)
+- Large features (`workflow-big-feature`): two plans — PLAN1 (architecture) then PLAN2 (incorporating test strategy); other feature routes use one plan
 
 ## Phase 3: Implementation
 

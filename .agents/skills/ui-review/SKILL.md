@@ -93,6 +93,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 **Key Rules:**
 
+- **AI surface?** Only if the UI shows, streams or triggers model output (see `node .claude/scripts/ai-signal-scan.cjs`): apply `AE-9` from `.claude/skills/shared/protocols/ai-engineering-gate.md` (labels, sources, retry/undo, streaming safety) and route depth to `$ai-engineering-review`; otherwise skip this line.
 - **`--report-only`:** read-only leaf mode for a caller that owns every fix — Phases 0–5 only, no fix of any size, no nested sub-agents, no user question, no writer beyond the report; returns validated findings grouped Critical/High/Medium/Low; see [Report-Only Mode](#report-only-mode---report-only).
 - Write the index to `tmp/reports/ui-review-{date}-{slug}.md`; per-surface and per-component analysis to `tmp/reports/ui-review-{date}-{slug}/surfaces/{surface}.md` and `.../components/{component}.md`, appended as each is finished
 - Judge what RENDERS: a finding about layout, overflow, stacking, spacing or contrast cites the composed result (ancestor and global styles included), never one file in isolation

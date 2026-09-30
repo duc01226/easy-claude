@@ -39,6 +39,7 @@ Connected contracts:
 
 **Key Rules:**
 
+- **AI surface?** Only if the suite exercises a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`; run only the default deterministic suite, never a live paid-model or eval run unless the task asks (`AE-6`); otherwise skip this line.
 - **Read-Only** — Report results only; NEVER implement fixes
 - **No Fabrication** — Unsure? Investigate first. NEVER invent file paths, function names, or behavior
 - **Evidence-Based** — Every failure report includes actual error messages + stack traces

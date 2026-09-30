@@ -141,17 +141,20 @@ function scan({ projectDir, files, config, mode = 'files', base = null, readCont
     const truncated = files.length > MAX_FILES;
     const scanned = truncated ? files.slice(0, MAX_FILES) : files;
     const aiSurface = [];
+    let incompleteMatches = 0;
     for (const file of scanned) {
         const explained = conventions.explainGroupMatch(group, file, ctx, true);
+        if (explained.incomplete) incompleteMatches += 1;
         // Names, not text: the matched source text stays out of the report (it may come from any file the scan reads).
         if (explained.member) aiSurface.push({ file, signals: { path: explained.pathSignals, content: explained.contentSignals.length ? [contentLabel || CONTENT_SIGNAL_NAME] : [] } });
     }
     // Only a complete scan that found nothing is "clean"; a git error, a rejected base, a cut-off list or a
     // requested path that was never scanned proves nothing.
-    const status = aiSurface.length > 0 ? 'surface' : (errors.length > 0 || truncated || unscanned > 0 ? 'unknown' : 'clean');
+    if (incompleteMatches > 0) warnings.push(`${incompleteMatches} file(s) could not be classified within the configured regex budget`);
+    const status = aiSurface.length > 0 ? 'surface' : (errors.length > 0 || truncated || unscanned > 0 || incompleteMatches > 0 ? 'unknown' : 'clean');
     return {
         tool: 'ai-signal-scan', mode, base, class: CLASS_NAME, classSource: source, contentLabel,
-        status, scanned: scanned.length, truncated, inScope: aiSurface.length > 0, aiSurface, errors, warnings
+        status, scanned: scanned.length, truncated, incompleteMatches, inScope: aiSurface.length > 0, aiSurface, errors, warnings
     };
 }
 

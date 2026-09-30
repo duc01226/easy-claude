@@ -78,6 +78,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 **Key Rules:**
 
+- **AI surface?** Only if the stack adds a model provider, agent framework, vector store or eval tool (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md`; verify model and provider facts against current provider docs, never memory; otherwise skip this line.
 - **MANDATORY IMPORTANT MUST ATTENTION** research minimum 3 options per stack layer
 - **MANDATORY IMPORTANT MUST ATTENTION** include confidence % with evidence for every recommendation
 - **MANDATORY IMPORTANT MUST ATTENTION** run user validation interview at end (NEVER skip)

@@ -206,6 +206,7 @@ A kind of file can be recognised by where it lives or what it is called, and —
 - **AC-PFCI-40** — **Given** a class with content signals that was delivered **When** its content signals or content file types are edited **Then** its content version changes and the next matching trigger delivers it again, while a class without content signals keeps the content version it had before content signals existed
 - **AC-PFCI-41** — **Given** a class declaring content signals **When** the project configuration is validated **Then** more than the accepted number of patterns, a pattern that is blank, longer than 500 characters, malformed or unsafe (AC-PFCI-54), more than the accepted number of file types, a file type of the wrong shape, an over-long label, or content patterns without content file types are errors naming the class, and file types without content patterns are only warned about
 - **AC-PFCI-54** — **Given** a content pattern a project supplies that is slow on a hostile file — a repeated group that itself repeats without limit, a repeated choice whose alternatives can begin alike, two open-ended repetitions in a row, more than ten optional elements in total, a reference back to an earlier part of the pattern, or a slow shape no static check recognizes (nested bounded counts, two overlapping runs split by an optional part) **When** the configuration is validated, and when a configuration that skipped validation is applied to a 16 KiB file built to make the pattern slow **Then** validation rejects the shapes it recognizes by name and delivery ignores such a pattern alone; every other pattern a project supplies runs under a hard time limit (about 100 milliseconds per file and class), a pattern that exceeds it counts as not matching without an error and is skipped for the rest of the process, so a scan over many files stalls at most once for it; a pattern is trusted by its exact text, never by the name of the class that carries it; the framework's own AI-feature patterns run directly and see the first 64 KiB, while every other pattern sees only the first 16 KiB
+- **AC-PFCI-59** — **Given** a location, file-name or exclusion pattern a project supplies that is slow on a hostile path **When** delivery, lookup or the review-time scan classifies that path **Then** all such project patterns for the file and class share a hard time limit of about 100 milliseconds, a pattern that exceeds it counts as not matching without an error and is skipped for the rest of the process, byte-identical framework patterns keep their direct path, and a scan with no detected AI-feature file reports unknown rather than clean when any classification was incomplete
 - **AC-PFCI-55** — **Given** a file reached through a link (shortcut, junction or symbolic link) whose real location is outside the project, or a location that cannot be resolved **When** the file is evaluated for content signals **Then** its content is never read and it matches by location and name only, whether the evaluation runs at delivery, in the lookup or in the review-time scan
 
 ### US-PFCI-10: AI-feature files receive the AI-engineering protocol
@@ -233,7 +234,7 @@ A kind of file can be recognised by where it lives or what it is called, and —
 - **AC-PFCI-46** — **Given** the project or the machine switched the prompt advisory off, or any internal failure occurs **When** a prompt is submitted **Then** nothing is shown, the prompt proceeds unchanged, and a failure is reported only on the diagnostic stream
 - **AC-PFCI-47** — **Given** a change set — the local changes, the staged changes, the unstaged changes, the changes since a named base revision (the commits since the merge base with it plus the local changes), or an explicit file list **When** the review-time scan runs **Then** it lists exactly the files that belong to the AI-feature class, each with the location or content signals that matched, states plainly when none does, and never fails the review: problems are reported in its output, a base revision that could be read as an option is rejected before any version-control command runs, and the answer carries a status that says whether it may be relied on (AC-PFCI-58)
 
-- **AC-PFCI-58** — **Given** a completed scan **When** it reports its answer **Then** the status is "surface" when at least one AI-feature file was found, "clean" when the scan finished over the whole change set and found none, and "unknown" when it could not finish — a version-control failure, a base revision that is missing, empty or rejected, or a change set cut at the size cap with no hit; only "clean" means the AI review may be skipped, and the plain-text form of an unknown answer says so and never claims that no AI surface exists
+- **AC-PFCI-58** — **Given** a completed scan **When** it reports its answer **Then** the status is "surface" when at least one AI-feature file was found, "clean" when the scan finished every classification over the whole change set and found none, and "unknown" when it could not finish — a version-control failure, a base revision that is missing, empty or rejected, a change set cut at the size cap with no hit, or a location classification that exceeded its regex budget; only "clean" means the AI review may be skipped, and the plain-text form of an unknown answer says so and never claims that no AI surface exists
 
 ### US-PFCI-12: AI-engineering guidance costs nothing without an AI surface
 
@@ -285,6 +286,7 @@ A kind of file can be recognised by where it lives or what it is called, and —
 | BR-PFCI-25 | Review-time scan uses the delivery decision             | Matching      | [HARD]      |
 | BR-PFCI-26 | Per-class reminder window and evidence of presence      | Deduplication | [HARD]      |
 | BR-PFCI-27 | AI guidance costs nothing without an AI surface         | Presentation  | [HARD]      |
+| BR-PFCI-28 | Bounded, fail-open location matching                    | Safety        | [HARD]      |
 
 ### BR-PFCI-01: Explicit opt-in and silence when nothing is deliverable [HARD]
 
@@ -490,7 +492,7 @@ The advisory is an accelerator of the AI-feature class, never the only carrier (
 
 **Statement:** The review-time scan answers "which files of this change are AI-feature surfaces?" with the same class and the same membership decision as delivery (BR-PFCI-02, BR-PFCI-21, BR-PFCI-22), so no second list of signals exists. The class is the project's own AI-feature class when the project declares one, otherwise the built-in class; the answer does not depend on the delivery switch, because scope is a question about the change, not about delivery. The change set is chosen by mode: the local changes (staged, unstaged and untracked, the default), the staged changes, the unstaged and untracked changes, the changes since a named base revision, or an explicit list of files. A base-revision scan is what a branch or pull-request review examines: the files committed since the merge base with that revision (not what the base revision itself moved on to) together with the local changes, each file listed once even when it is both committed and edited again. A file deleted from the working tree is not scanned, and a repository with no commit yet is scanned by its staged and untracked files. Each listed file carries the signals that matched as names only, in every output form: the matcher for a location signal and the class's content label for a content signal — never text taken from a scanned file, which may hold instructions aimed at the reviewer; the plain-text form also neutralizes control characters in file names. When nothing matches, the scan says so plainly.
 
-The answer carries a status (AC-PFCI-58): "surface" when a file was found, "clean" when the scan finished over the whole change set and found none, and "unknown" when it could not finish — a version-control failure, a base revision that is missing, empty or rejected, a change set cut at its size cap without a hit, or an explicit list of files that names no file or names a file outside the project (that file is never scanned). A base revision given without a value is an error that scans nothing; it never falls back to the local changes. Only "clean" permits a caller to skip the AI review; on "unknown" the caller runs the fallback search or the review.
+The answer carries a status (AC-PFCI-58): "surface" when a file was found, "clean" when the scan finished every classification over the whole change set and found none, and "unknown" when it could not finish — a version-control failure, a base revision that is missing, empty or rejected, a change set cut at its size cap without a hit, an explicit list of files that names no file or names a file outside the project (that file is never scanned), or a location classification that exceeded its regex budget (BR-PFCI-28). A base revision given without a value is an error that scans nothing; it never falls back to the local changes. Only "clean" permits a caller to skip the AI review; on "unknown" the caller runs the fallback search or the review.
 
 The scan only reads. It never fails the review: version-control or configuration problems are reported in its output and it always ends successfully; a base revision that could be read as an option — a leading dash, whitespace or control characters, a range operator or command syntax — is rejected before any version-control command runs, while every legal revision spelling (a branch, tag, commit, ancestor or reflog expression, including the characters + # = , and @) is accepted; files outside the project are not scanned and are reported in a warning (the answer is then unknown unless another file was a hit); a change set beyond a fixed size is truncated with a note. The scan reads file content through the same containment as delivery (BR-PFCI-22), so a link that leads out of the project is not followed.
 
@@ -509,6 +511,10 @@ The scan only reads. It never fails the review: version-control or configuration
 | Deep | The dedicated AI review, or its reviewer agent, is actually started | The checklist is read whole; the knowledge and calibration documents are read by section, only for the AI surfaces present                                    |
 
 Only the AI review procedure and its reviewer agent carry the AI protocols, bar one guide line for the engineering floor (and nothing else) that the plan-review and integration-test-review skills keep by owner decision; every other skill, helper agent and the always-loaded instructions hold only the tier-None pointer or, for the always-loaded AI block, at most four lines. Incidental mentions do not create a surface: prose, a vendor name inside a comment or string, and work on the framework's own assistant folders are not AI surfaces. The change-set scan (BR-PFCI-25) is the first step of a routing decision: an empty answer means no AI surface. Every read pointer that a digest, directive, skill, agent or always-loaded block gives names a document that exists.
+
+### BR-PFCI-28: Bounded, fail-open location matching [HARD]
+
+**Statement:** Every location, file-name and exclusion pattern supplied by a project is evaluated under one shared hard limit of about 100 milliseconds per file and class. A pattern that exceeds the limit counts as not matching, never raises an error, and is skipped for the rest of the process, so one slow expression can delay the process at most once. The framework's own audited location patterns, and a project's byte-identical copies of them, run directly; trust is by exact pattern text, never by class name. Automatic delivery and lookup remain fail-open. A review-time scan records every file whose location classification was incomplete and, when it found no AI-feature file, reports unknown rather than clean so an incomplete answer can never authorize skipping the AI review.
 
 ---
 
@@ -769,9 +775,9 @@ Setup detection acts on the delivery switch only on a maintainer's explicit requ
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
 | P0        | 12     | 12        | 0      |
-| P1        | 61     | 61        | 0      |
+| P1        | 62     | 62        | 0      |
 | P2        | 12     | 12        | 0      |
-| **Total** | **85** | **85**    | **0**  |
+| **Total** | **86** | **86**    | **0**  |
 
 | Category                                  | TCs                                                                                                                                           |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -787,7 +793,7 @@ Setup detection acts on the delivery switch only on a maintainer's explicit requ
 | Content Signal and AI-Feature Class Tests | TC-PFCI-094, TC-PFCI-095, TC-PFCI-096, TC-PFCI-097, TC-PFCI-098, TC-PFCI-099, TC-PFCI-100, TC-PFCI-101, TC-PFCI-102, TC-PFCI-103, TC-PFCI-104 |
 | Prompt Advisory and Change-Set Scan Tests | TC-PFCI-105, TC-PFCI-106, TC-PFCI-107, TC-PFCI-108, TC-PFCI-109                                                                               |
 | Zero-Cost Invariant Tests                 | TC-PFCI-110, TC-PFCI-111, TC-PFCI-112, TC-PFCI-113, TC-PFCI-114, TC-PFCI-115, TC-PFCI-116                                                     |
-| Hardening Tests                           | TC-PFCI-117, TC-PFCI-118, TC-PFCI-119, TC-PFCI-120, TC-PFCI-121, TC-PFCI-122                                                                  |
+| Hardening Tests                           | TC-PFCI-117, TC-PFCI-118, TC-PFCI-119, TC-PFCI-120, TC-PFCI-121, TC-PFCI-122, TC-PFCI-123                                                     |
 
 ### Core Delivery Tests
 
@@ -5801,7 +5807,7 @@ And when the same empty answer comes from a scan that could not finish, the stat
 
 ### Hardening Tests
 
-> Numbering note: these cases continue after 116 (117–122) and guard the bounds of content reading, the containment of reads and the reliability of the scan answer.
+> Numbering note: these cases continue after 116 (117–123) and guard the bounds of matching and content reading, the containment of reads and the reliability of the scan answer.
 
 #### TC-PFCI-117: A notebook with an AI import in a code cell is an AI-feature file; one that only mentions a library in prose is not [P1]
 
@@ -6186,6 +6192,72 @@ And the plain-text and the machine-readable forms name each member's signals (th
 > **Evidence:** `[Source: operation/scripts/scan-ai-signals]`
 > **Related Behaviors:** `operation/scripts/scan-ai-signals` · `rule/hooks/ai-guidance-cost-ceiling` · `test/hooks/ai-signal-scan` · `test/hooks/ai-gate-zero-cost`
 > **CoveredBy:** `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-009 deleted files are skipped, a repository with no commit is scanned, and a list past the cap is unknown`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-010 --files path spellings of the host resolve to one repo-relative file; control characters are neutralized in text`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-001 --files lists AI surfaces with the path matcher or the matched content, and omits everything else`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-012 neither the text form nor --json carries text taken from the scanned file`, `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-013 --files with no in-project path (or no path) is unknown, never clean`, `.claude/hooks/tests/suites/ai-gate-zero-cost.test.cjs::TC-AIZ-008 the scan answers a non-AI change set with an empty list (exit 0), an AI one with a hit, and ignores vendor mentions in prose and comments` · **Status:** Tested
+
+---
+
+#### TC-PFCI-123: A project location pattern cannot hold delivery or make an incomplete scan look clean [P1]
+
+**Objective:** Prove that project-supplied location, file-name and exclusion patterns share a hard per-file/class time limit, that a timed-out pattern is skipped afterwards, that framework patterns keep their direct path, and that a review-time scan whose only classification exceeded the limit reports unknown rather than clean.
+
+**Business Intent / Invariant Guarded:** A maintainer-controlled pattern runs on every matching decision; one pathological expression must not stall the assistant, and an incomplete decision must never authorize skipping a required AI review (BR-PFCI-28, BR-PFCI-25, BR-PFCI-10).
+
+**Traces:** AC-PFCI-59 / AC-PFCI-58 / BR-PFCI-28 / BR-PFCI-25 / BR-PFCI-10
+
+**Preconditions:**
+
+- An otherwise valid project class with a project-supplied location, file-name or exclusion pattern whose backtracking grows catastrophically on a near-matching path
+- A byte-identical copy of a framework location pattern
+
+**Real-World Reachability:** A maintainer adds a broad regular expression to classify files and a repository later gains a long near-matching file name.
+
+**Demo Flow:** Classify the hostile path once with each project-controlled pattern field, classify another file in the same process, and run the review-time scan; repeat with the framework pattern text.
+
+```gherkin
+Given a project class with a slow location, file-name or exclusion pattern
+When delivery, lookup or the review-time scan classifies a hostile path
+Then all project patterns for that file and class stop within the shared hard limit and the timed-out pattern counts as no match
+And later files skip that timed-out pattern, while a byte-identical framework pattern still runs directly
+And when the review-time scan found no AI-feature file, it reports an incomplete count and status unknown rather than clean
+And no timeout raises an error or blocks the assistant's work
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the observable surface is the reminder or scan report            |
+| **System behavior**     | Project location matching is bounded and fail-open; incomplete scan stays unknown |
+| **Business data state** | No delivery memory is written for a timed-out non-match                           |
+| **Data shown on UI**    | The scan reports the incomplete count and a warning                               |
+
+**Acceptance Criteria:**
+
+- ✅ Each project-controlled regex field is bounded; subsequent files skip a timed-out source; exact framework patterns retain the direct path
+- ✅ A scan with no hit and any incomplete classification reports unknown
+- ❌ A stalled process, thrown timeout, or clean status after incomplete classification
+
+**Test Data:**
+
+```json
+{
+    "fields": ["pathRegexes", "fileNameRegexes", "excludePathRegexes"],
+    "slowPattern": "^(a+)+$",
+    "nearMatch": "1000 letter-a characters followed by a non-matching suffix",
+    "budgetMs": 100,
+    "scanStatus": "unknown"
+}
+```
+
+**Edge Cases:**
+
+- A safe project pattern that does not match remains a complete negative decision
+- A detected AI-feature file keeps status surface even when another file's classification was incomplete
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: constraint/hooks/bounded-location-matching]`
+> **Related Behaviors:** `constraint/hooks/bounded-location-matching` · `operation/scripts/scan-ai-signals` · `rule/hooks/never-block` · `test/hooks/ai-signal-scan`
+> **CoveredBy:** `.claude/hooks/tests/suites/ai-signal-scan.test.cjs::TC-AIS-014 hostile project regexes are bounded: content regexes match nothing, location regexes make an incomplete scan unknown` · **Status:** Tested
 
 ---
 

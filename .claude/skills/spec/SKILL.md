@@ -38,6 +38,7 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 **Key Rules:**
 
+- **AI surface?** Only if the spec adds or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and write its quality bar and failure behavior as cases; otherwise skip this line.
 - Resolve the mode and artifact profile and read its matching reference body before any mutation; ambiguous mode → `AskUserQuestion`, invalid/conflicting profile → `UNKNOWN`/`BLOCKED`.
 - Keep the canonical owner and identifiers authoritative; never create duplicate case registries or overwrite existing owner content during `update`.
 - Apply the shared AI-SDD/large-idea gates, cross-service check, evidence rules, and review/sync boundaries before concluding.

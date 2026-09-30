@@ -39,6 +39,7 @@ Connected contracts:
 
 **Key Rules:**
 
+- **AI surface?** Only if the code holds a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`; never simplify away a timeout, retry bound, step or cost cap, output validation or approval gate; otherwise skip this line.
 - NEVER change external behavior — why: simplification must be behavior-preserving, callers depend on it
 - NEVER remove functionality — restructure only, never delete capability
 - NEVER simplify code you have not read first — read fully, then edit

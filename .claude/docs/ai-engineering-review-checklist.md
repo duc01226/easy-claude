@@ -332,6 +332,9 @@ Deep catalog: `.claude/docs/ai-engineering-knowledge.md` §K. Loop bounds are C1
 | K8 | The agent cannot write files that change its own trust boundary | Writable scope includes agent or MCP config, git hooks, CI workflows, shell rc, tool allowlists; create-versus-edit approval differences | P1 | AE-3.2, AE-3.4 | Those paths are read-only to the agent |
 | K9 | Multi-agent design is justified and contracted | More than two agents with no written protocol; one agent's output executed as instructions by another; shared mutable files; no single-agent baseline; no circuit breaker | P2 | AE-3.5 | Bounded fan-out with typed results and independent verification |
 | K10 | Permission-bypass flags do not ship in configs, scripts or CI | `--yolo`, `--trust-all-tools`, `--dangerously-skip-permissions`, `bypassPermissions` in non-sandbox settings | P1 | AE-3.4, AE-8.4 | Confined to a disposable sandbox with no credentials |
+| K11 | MCP clients validate the authorization server and bind state to the principal | Token exchange with no `iss` comparison; one client credential store shared across authorization servers; a state-handle argument accepted with no owner check; open Dynamic Client Registration with no policy | P1 | AE-2.5 | Stdio server with no OAuth and no cross-call state |
+| K12 | Browser and computer-use agents run isolated with code-enforced confirmation | Automation attached to a real signed-in profile or cookie store; unrestricted navigation; submit, pay or delete with no confirmation gate; page or screenshot text obeyed as instructions | P1 | AE-3.2, AE-2.3 | Read-only browsing of public pages in a disposable profile with no credentials |
+| K13 | Each agent has its own user-scoped identity and peers are authenticated | One service account or long-lived key shared by every agent; a peer agent's message or agent card trusted unverified; sub-agent spawn with no scope or depth limit | P1 | AE-3.5 | Single agent with no peers and no delegation |
 
 ---
 
@@ -354,6 +357,7 @@ Deep catalog: `.claude/docs/ai-engineering-knowledge.md` §L.
 | L9 | AI-generated code and dependencies get the same review and verification | New dependency absent from the lockfile or with few downloads and a near-popular name; large diff with no tests; new auth, crypto, SQL or shell code with no security review | P1 | AE-8.4, AE-6.2 | Dependency verified and pinned; tests and review present |
 | L10 | Multimodal and voice inputs are untrusted; media rights and disclosure are handled `[LEGAL-OWNER]` | Image, PDF or audio text passed to a tool-enabled agent unlabelled; voice agent passes as human; raw audio retained; generated media exported with metadata stripped | P1 | AE-2.1, AE-8.3 | Input from the operator only; retention and disclosure documented |
 | L11 | Experiment code is not on a production path | Notebook run by a scheduler or deploy; absolute local paths; commented experiment cells; no tests on feature code | P3 | AE-6.2 | Notebook is an output-only report |
+| L12 | Third-party agent skills, plugins and instruction files are pinned, reviewed and scanned as code | A skill, plugin or `SKILL.md`/`AGENTS.md` fetched unpinned or at runtime; prose that adds tools, network egress or shell access; no scan step in the install path | P1 | AE-8.4 | First-party files reviewed in the same change |
 
 ---
 

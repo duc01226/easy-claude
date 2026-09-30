@@ -42,6 +42,7 @@ Connected contracts:
 
 **Key Rules:**
 
+- **AI surface?** Only if the system adds or changes a model call, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and apply it in the stack and architecture stages; otherwise skip this line.
 - NEVER ask about tech stack upfront — derive from business analysis (Stages 1-6 first)
 - Every stage MUST end with `AskUserQuestion` before proceeding
 - Save artifacts at EVERY step — never keep findings only in memory

@@ -522,6 +522,19 @@ Keep tracked `.claude` defaults project-neutral. Put path-specific conventions i
 referenced project docs. `.ck.json.assertions` is retained for compatibility,
 but its values are not injected into the standard prompt context.
 
+### Tailor AI-feature review to a project
+
+The AI-engineering gate ships project-neutral. A project adds its own rules only through these routes, never by editing `.claude/skills/shared/protocols/ai-*.md`, the `ai-engineering-review` skill or the reviewer agent:
+
+| Need | Route |
+| --- | --- |
+| Which files are AI surface (an internal LLM wrapper, prompt folders, another SDK) and the short rules or docs delivered with them | Declare a `contextGroups` class named `ai-feature-gate` in `docs/project-config.json` (at least one include matcher, then `pathRegexes`, `contentRegexes`, `rules`, `referenceDocs`). It replaces the built-in class for the per-file hook and `ai-signal-scan.cjs` (`classSource: config`). |
+| Provider, approved models, data boundary, risk tier, eval thresholds | Record them in an ADR or a project reference doc listed in the docs index or `referenceDocs`. Project policy outranks the `AE-*` clauses, and the review records `Project policy read: <paths>`. |
+| An extra review rule for one skill (for example a house eval threshold for `ai-engineering-review`) | `/project-skill-protocol add` — an additive overlay that can never waive the gate. |
+| Turn the prompt reminder off | `.claude/.ck.json` `aiFeatureRoute.enabled: false` or `CK_AI_FEATURE_ROUTE=0`. |
+
+Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json`. A matcher change alters the class's content tag, so regenerate `CLAUDE.md` and `AGENTS.md` afterwards.
+
 ### Customize Plan Naming
 
 ```json

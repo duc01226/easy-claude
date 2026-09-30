@@ -73,7 +73,8 @@ const CONCRETE_SIGNALS = [
     signal('function calling', /\bfunction[- ]calling\b/i),
     signal('fine-tuning', /\bfine[- ]?tun(?:e|ed|es|ing)\b[^.?!\n]{0,40}\b(?:model|llm|llama|gpt|embedding|classifier|lora|dataset|training data)\b/i),
     signal('semantic search', /\bsemantic search\b/i),
-    signal('model routing', /\bmodel routing\b|\bmodel router\b/i)
+    signal('model routing', /\bmodel routing\b|\bmodel router\b/i),
+    signal('A2A protocol', /\bA2A protocol\b/i)
 ];
 
 // Generic AI vocabulary: it also occurs when maintaining a framework that is itself built on models, so it
@@ -87,12 +88,14 @@ const GENERIC_SIGNALS = [
     signal('hallucination', /\bhallucinat(?:e|es|ed|ion|ions|ing)\b/i),
     signal('tool calling', /\btool[- ](?:calling|use)\b/i),
     signal('MCP server', /\bMCP servers?\b|\bmodel context protocol\b/i),
+    signal('browser agent', /\b(?:browser|computer)[- ]use (?:agents?|tools?|apis?|mode)\b|\b(?:browser|computer[- ]use) agents?\b/i),
+    signal('agent protocol', /\bagent[- ]to[- ]agent (?:communication|delegation)\b/i),
     signal('prompt engineering', /\bprompt engineering\b|\bprompt templates?\b/i),
     signal('model eval', /\b(?:evals?|evaluation) (?:set|suite|harness|dataset|pipeline)s?\b[^.?!\n]{0,40}\b(?:model|llm|prompts?|rag)\b|\b(?:model|llm|prompt|rag) evals?\b/i)
 ];
 
 // Cheap prefilter over the raw prompt: any word either list can match. No hit, no further work.
-const PREFILTER = /\b(?:ai|llms?|rag|retrieval|embeddings?|openai|chatgpt|gpt|anthropic|gemini|mistral|cohere|bedrock|vertex|ollama|chat ?bot|copilot|agentic|vector|pgvector|pinecone|weaviate|qdrant|chromadb|milvus|lancedb|jailbreaks?|prompt|semantic|function[- ]calling|guardrails?|hallucinat\w*|tool[- ](?:calling|use)|mcp|model context|model rout\w*|model evals?|fine[- ]?tun\w*|evals?|evaluation)\b|\bclaude(?: agent)? (?:api|sdk)\b|\b(?:api|sdk|integration)\b[^.?!\n]{0,16}\bclaude\b/i;
+const PREFILTER = /\b(?:ai|llms?|rag|retrieval|embeddings?|openai|chatgpt|gpt|anthropic|gemini|mistral|cohere|bedrock|vertex|ollama|chat ?bot|copilot|agentic|vector|pgvector|pinecone|weaviate|qdrant|chromadb|milvus|lancedb|jailbreaks?|prompt|semantic|function[- ]calling|guardrails?|hallucinat\w*|tool[- ](?:calling|use)|mcp|model context|model rout\w*|model evals?|fine[- ]?tun\w*|evals?|evaluation|(?:browser|computer)[- ]use|browser agents?|a2a|agent[- ]to[- ]agent)\b|\bclaude(?: agent)? (?:api|sdk)\b|\b(?:api|sdk|integration)\b[^.?!\n]{0,16}\bclaude\b/i;
 
 // The framework's own machinery: this repo's artifact vocabulary and the cost of running it. Each entry
 // is one distinct cue; the number of distinct cues decides how meta a prompt is.

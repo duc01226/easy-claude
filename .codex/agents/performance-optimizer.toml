@@ -76,6 +76,7 @@ Connected contracts:
 
 **Key Rules:**
 
+- **AI surface?** Only if the change creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): apply `AE-4`, `AE-5` (context budget, caching layout, timeouts, cost caps) from `.claude/skills/shared/protocols/ai-engineering-gate.md` and route depth to `ai-engineering-review`; otherwise skip this line.
 - NEVER optimize without measuring — gather baseline metrics first; premature optimization is forbidden — why: a fix with no baseline cannot be proven to help
 - NEVER guess impact — cite evidence (query counts, timing, bundle size) for every recommendation
 - ALWAYS flag EVERY unbounded list query (full-collection fetch without pagination/limit) — OOM risk

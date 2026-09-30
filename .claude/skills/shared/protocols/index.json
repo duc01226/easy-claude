@@ -71,12 +71,12 @@
       "group": "design",
       "summary": "Thirty-eight AI-engineering clauses, AE-1.1 to AE-9.4: prompt contract, security, agents, retrieval, reliability, evals, operations, governance, UX",
       "when": "planning, building or reviewing a feature that calls a model",
-      "chars": 8900,
+      "chars": 8895,
       "file": ".claude/skills/shared/protocols/ai-engineering-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-engineering-gate.md",
-          "chars": 8900
+          "chars": 8895
         }
       ]
     },

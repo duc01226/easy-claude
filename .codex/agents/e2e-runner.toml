@@ -84,6 +84,7 @@ Connected contracts:
 
 **Key Rules:**
 
+- **AI surface?** Only if the journey exercises a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`; stub the model at one seam and assert outcomes, not exact prose; no live paid calls in default CI (`AE-6`); otherwise skip this line.
 - NEVER fabricate file paths, function names, or behavior — investigate first, then act — why: a hallucinated selector or path passes review and fails only at runtime
 - MUST ATTENTION map every test to the configured owner-qualified case identity and actual assertion/result; use TC (`TC-{MODULE}-E2E-{NNN}`) only under the strict default profile — why: traceability proves which accepted behavior the test protects
 - For browser locators, prefer accessible role/name, labels, or platform accessibility identifiers; next use configured stable test hooks, then documented project-owned locators or meaningful text. Styling classes are not semantic controls; avoid generated/positional selectors and XPath unless the project documents a reviewed exception — why: user-facing locators survive unrelated style and markup changes.

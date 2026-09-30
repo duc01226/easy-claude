@@ -88,6 +88,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 **Key Rules:**
 
+- **AI surface?** Only if the design adds or changes a model call, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and apply it to autonomy, trust boundaries and data flow; otherwise skip this line.
 - **MANDATORY IMPORTANT MUST ATTENTION** research minimum 3 options per architecture concern with web evidence
 - **MANDATORY IMPORTANT MUST ATTENTION** include confidence % with evidence for every recommendation
 - **MANDATORY IMPORTANT MUST ATTENTION** run user validation interview at end (never skip)

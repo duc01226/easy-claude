@@ -531,6 +531,31 @@ const tests = [
             assert.deepEqual(report.aiSurface, []);
             assert.equal(report.status, 'clean');
             assert.ok(elapsed < 10000, `the scan took ${elapsed} ms (bound 10000)`);
+
+            // Project-controlled location/name/exclusion regexes use the same hard availability boundary.
+            const nearMiss = `${'a'.repeat(1000)}!.py`;
+            fx.write(nearMiss, 'ordinary source\n');
+            const cases = [
+                ['pathRegexes', '^/(a+)+$'],
+                ['fileNameRegexes', '^(a+)+\\.py$'],
+                ['excludePathRegexes', '^/(a+)+$']
+            ];
+            for (const [field, source] of cases) {
+                fx.write('docs/project-config.json', JSON.stringify({
+                    project: { name: 'fixture' },
+                    contextGroups: [{ name: 'ai-feature-gate', pathRegexes: [], fileNameRegexes: [], excludePathRegexes: [],
+                        contentRegexes: [], contentExtensions: ['.py'], rules: ['house rule'], [field]: [source] }]
+                }));
+                const guarded = spawnSync(process.execPath, [SCRIPT, '--files', nearMiss, '--json'], {
+                    cwd: fx.project, encoding: 'utf8', windowsHide: true, env: fx.env(), timeout: 20000
+                });
+                assert.equal(guarded.error, undefined, `${field} outran the hard regex budget`);
+                assert.equal(guarded.status, 0, guarded.stderr);
+                const guardedReport = JSON.parse(guarded.stdout);
+                assert.equal(guardedReport.status, 'unknown', `${field} timeout cannot be reported clean`);
+                assert.equal(guardedReport.incompleteMatches, 1, `${field} reports one incomplete classification`);
+                assert.deepEqual(guardedReport.aiSurface, []);
+            }
         })
     }
 ];

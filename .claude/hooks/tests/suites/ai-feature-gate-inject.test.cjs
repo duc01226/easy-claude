@@ -347,6 +347,10 @@ const tests = [
             reads.length = 0;
             assert.deepEqual(matched(['src/prompts/a.py']), ['ai-feature-gate']);
             assert.deepEqual(reads, [], 'path-decided file is not read');
+            const explained = conventions.explainGroupMatch(GATE, 'src/prompts/a.py', ctx, true);
+            assert.deepEqual(explained.pathSignals, ['pathRegexes']);
+            assert.deepEqual(explained.contentSignals, [], 'review-time collect-all does not evaluate redundant content signals');
+            assert.deepEqual(reads, [], 'review-time collect-all preserves the no-read path shortcut');
             // Excluded path, extension outside contentExtensions, or no extension → no read, no match
             for (const rel of ['node_modules/x/a.py', '.claude/hooks/a.py', 'docs/a.py', 'src/notes.txt', 'src/Makefile']) {
                 reads.length = 0;
@@ -706,9 +710,6 @@ const tests = [
             for (const lookalike of ["import x from 'openaix'", "import x from 'ai-utils'", "import x from '@anthropic-ai'"]) {
                 assert.equal(matches('a.ts', `${lookalike};\n`), false, `${lookalike} is not an SDK import`);
             }
-            const explained = conventions.explainGroupMatch(GATE, 'src/prompts/a.py', ctx('import anthropic\nx = client.messages.create(model="m")\n'), true);
-            assert.deepEqual(explained.pathSignals, ['pathRegexes']);
-            assert.ok(explained.contentSignals.length >= 2, 'collect-all reports every content signal beside the path signal');
         }
     },
     {
@@ -799,6 +800,8 @@ const tests = [
             };
             const negatives = {
                 'nb/prose.ipynb': notebook([markdown(['We compare the anthropic SDK with openai and pinecone.\n', 'No imports here.']), code(['import pandas as pd\n', 'df = pd.DataFrame()'])]),
+                'nb/prose-import.ipynb': notebook([markdown(['Example only:\n', '```python\n', 'import openai\n', '```\n']), code(['import pandas as pd\n'])]),
+                'nb/prose-call.ipynb': notebook([markdown('Do not execute: requests.post("https://api.openai.com/v1/responses")\n'), code(['import numpy as np\n'])]),
                 'nb/plain.ipynb': notebook([code(['import numpy as np\n'])]),
                 'nb/vendor.ipynb': notebook([markdown('The openai_utils and anthropic_proxy helpers are ours.\n'), code(['import openai_utils\n'])])
             };
@@ -1015,6 +1018,51 @@ const tests = [
             assert.equal(file3.stats.vmRuns, 3, 'file 3: only the harmless source runs (two timed-out runs before it)');
             assert.ok(file3.ms < 300, `${Math.round(file3.ms)} ms`);
         })
+    },
+    {
+        // INTENT: project-controlled location regexes stay bounded for the process, while exact shipped patterns retain the fast path.
+        // Given an injected timeout executor, more distinct timed-out sources than the sticky-cache cap, and one shipped path source
+        // When the same custom source is retried, the cache saturates, and the shipped source is evaluated afterwards
+        // Then the custom source runs once, saturation never re-enables untrusted regexes, and the shipped source bypasses the executor
+        name: 'TC-AIG-024 location regex timeouts stay sticky through cache saturation; exact shipped sources run directly',
+        fn: () => {
+            const timeout = () => {
+                const error = new Error('synthetic timeout');
+                error.code = 'ERR_SCRIPT_EXECUTION_TIMEOUT';
+                throw error;
+            };
+
+            conventions.resetContentGuard();
+            let attempts = 0;
+            const execute = (...args) => { attempts += 1; return timeout(...args); };
+            const source = '^/custom/(a+)+$';
+            const first = conventions.guardedPathRegexTest(source, `/custom/${'a'.repeat(40)}!`, { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
+            const second = conventions.guardedPathRegexTest(source, `/custom/${'a'.repeat(40)}!`, { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
+            assert.deepEqual(first, { matched: false, incomplete: true });
+            assert.deepEqual(second, { matched: false, incomplete: true });
+            assert.equal(attempts, 1, 'a timed-out source is skipped on every later file in the process');
+
+            conventions.resetContentGuard();
+            attempts = 0;
+            for (let i = 0; i <= conventions.MAX_TIMED_OUT_SOURCES; i++) {
+                conventions.guardedPathRegexTest(`^/custom-${i}/(a+)+$`, `/custom-${i}/${'a'.repeat(40)}!`,
+                    { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
+            }
+            const saturated = conventions.contentGuardStats();
+            assert.equal(saturated.isPathGuardSaturated, true, 'the guard saturates instead of clearing timeout protection');
+            assert.equal(attempts, conventions.MAX_TIMED_OUT_SOURCES + 1, 'each source runs at most once before saturation');
+            conventions.guardedPathRegexTest('^/after-saturation/(a+)+$', '/after-saturation/aaaa!',
+                { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
+            assert.equal(attempts, conventions.MAX_TIMED_OUT_SOURCES + 1, 'no untrusted source runs after saturation');
+
+            const shipped = conventions.AI_FEATURE_GATE.pathRegexes[0];
+            const direct = conventions.guardedPathRegexTest(shipped, '/prompts/system.txt',
+                { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute: () => { throw new Error('trusted source entered VM seam'); } });
+            assert.deepEqual(direct, { matched: true, incomplete: false });
+            const finalStats = conventions.contentGuardStats();
+            assert.equal(finalStats.pathDirectRuns, 1, 'an exact shipped source retains the direct fast path even after saturation');
+            assert.equal(finalStats.pathSkipped, 2, 'the repeated source and the post-saturation source were skipped');
+        }
     }
 ];
 

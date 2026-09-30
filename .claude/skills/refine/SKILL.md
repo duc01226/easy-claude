@@ -50,6 +50,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 **Key Rules:**
 
+- **AI surface?** Only if the idea or PBI adds or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and put its job-fit, quality bar and autonomy limit in the acceptance criteria; otherwise skip this line.
 - NEVER skip hypothesis validation for new features
 - Validation interview NOT optional — always ask 3-5 questions
 - Use project domain-specific vocabulary when available

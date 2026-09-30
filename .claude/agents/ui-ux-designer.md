@@ -36,6 +36,7 @@ Connected contracts:
 
 **Key Rules:**
 
+- **AI surface?** Only if the UI shows, streams or triggers model output (see `node .claude/scripts/ai-signal-scan.cjs`): apply `AE-9` from `.claude/skills/shared/protocols/ai-engineering-gate.md` (AI labels, sources, retry/undo, streaming safety) and route depth to `ai-engineering-review`; otherwise skip this line.
 - **MUST ATTENTION** present the Journey Report (`UX-1`) and record the design authority read (`UX-2`) BEFORE any wireframe, plan, token table or UI code
 
 - **MUST ATTENTION** identify supported platforms, form factors, and input methods before choosing layouts or metrics

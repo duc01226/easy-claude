@@ -98,6 +98,7 @@ The semantic floor is identical in every profile: MUST ATTENTION retain authored
 
 **Key Rules:**
 
+- **AI surface?** Only if the code under test creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`, apply `AE-6` (model mocked at one seam, property asserts, no live paid calls in default CI); otherwise skip this line.
 - NEVER write smoke-only tests — trace the affected production boundary and assert the externally observable contract or relevant persisted state
 - For async/eventually consistent outcomes, use the configured synchronization/polling helper; for synchronous persistence, assert with the project's normal deterministic read path
 - Use the production entry path when that is the behavior under test; use project builders/factories/fixtures or other valid setup for unrelated preconditions, without skipping the tested contract
