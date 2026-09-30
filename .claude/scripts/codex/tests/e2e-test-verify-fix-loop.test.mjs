@@ -64,7 +64,7 @@ function assertModeGates(mode) {
 test("TC-E2EFL-001: e2e-test-verify advertises --fix-loop and --visual-review in delimited regions", () => {
   const text = read(SKILL);
   const frontmatter = text.split("\n---\n")[0];
-  assert.match(frontmatter, /^version: 1\.1\.0$/m);
+  assert.match(frontmatter, /^version: 1\.2\.0$/m);
   assert.match(frontmatter, /^description: '[^'\n]*--fix-loop[^'\n]*--visual-review=\{true\|false\}[^'\n]*project contract[^'\n]*'$/m);
   // Summary bullet · mode detection · mode section · closing reminders.
   assert.equal(text.split("<!-- FIX-LOOP-MODE:START -->").length - 1, 4, "four mode openers");
@@ -99,6 +99,9 @@ test("TC-E2EFL-003: without the flag the default pass stays report-only", () => 
   assert.match(defaults, /Do not repair failures in this default pass/);
   assert.match(defaults, /run the configured full command for the fixed scope/);
   assert.match(defaults, /`PASS`, `NOT-APPLICABLE`, `ENVIRONMENT-BLOCKED`, or `UNVERIFIED`/);
+  assert.match(defaults, /One review pass maximum/);
+  assert.match(defaults, /Never start an E2E review\/re-review loop/);
+  assert.match(defaults, /`--fix-loop` rounds are execution\/fix\/retest attempts, not review rounds/);
   assert.doesNotMatch(defaults, /`\/fix`|`\/debug-investigate`|`\/changes-review`|Goal Contract/, "repair routing lives only inside the mode");
   const reviewer = read(".claude/skills/changes-review/SKILL.md");
   assert.match(reviewer, /Invoke `\/e2e-test-verify` report-only/);

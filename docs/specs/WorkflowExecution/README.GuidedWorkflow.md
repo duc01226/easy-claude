@@ -33,7 +33,7 @@ roadmap_status: null
 | Rule owner            | `.claude/skills/start-workflow/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | The one place the step-flex rules are written.                                      |
 | Close check           | `.claude/skills/workflow-end/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Outcome-gate evidence check before a run closes.                                    |
 | Lean route            | `.claude/skills/workflow-implement-spec/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Route for work whose behavior is already written in a canonical spec.               |
-| Scope anchor          | `.claude/skills/plan/SKILL.md`, `.claude/skills/plan-review/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Spec baseline recorded at plan start and traced at plan review.                     |
+| Scope anchor          | `.claude/skills/workflow-implement-spec/SKILL.md`, `.claude/skills/plan/SKILL.md`, `.claude/skills/plan-review/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Workflow records the baseline identity before plan; plan and one-pass review enforce scope. |
 | Usage reading         | `.claude/hooks/lib/session-usage.cjs`, `.claude/scripts/session-usage-report.cjs`, `.claude/hooks/token-budget-checkpoint.cjs`                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Usage totals, the usage report and the spend checkpoint.                            |
 | Session report opener | `.claude/scripts/open-report.cjs`, `.claude/skills/watzup/SKILL.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Opens the session report safely (BR-GWF-18).                                        |
 | Test suites (planned) | `.claude/hooks/tests/suites/workflow.test.cjs`, `.claude/hooks/tests/suites/content-presence.test.cjs`, `.claude/hooks/tests/suites/scope-guard.test.cjs`, `.claude/hooks/tests/suites/session-usage.test.cjs`, `.claude/hooks/tests/suites/session-usage-report.test.cjs`, `.claude/hooks/tests/suites/token-budget-checkpoint.test.cjs`, `.claude/hooks/tests/suites/workflow-routing-switch.test.cjs`, `.claude/scripts/codex/tests/workflow-skills-catalog.test.mjs`, `.claude/scripts/tests/open-report.test.cjs`, `.claude/hooks/tests/suites/watzup-session-summary.test.cjs` | Executors for Section 8.                                                            |
@@ -83,7 +83,7 @@ Every workflow states the goal it must reach and the quality results a finished 
 | Lean Route         | A short route for work whose requested behavior is already written in a canonical spec                                                                  | Keeps every gate of the full route                                                            |
 | Full Feature Route | The complete feature route, which writes or updates the spec before building                                                                            | Taken when the spec lacks the requested behavior                                              |
 | Gap Review         | The lean route's early check of the supplied spec for vague, contradictory or missing behavior                                                          | A finding stops the lean route                                                                |
-| Spec Baseline      | The supplied spec's content as it stood when the plan started, stored so it can be read back later                                                      | Plan tasks trace to it, never to a later edit                                                 |
+| Spec Baseline      | The supplied spec path and revision/state recorded by the workflow before planning                                                                      | Governs plan phases and acceptance evidence without prescribing storage mechanics            |
 | Proposed Addition  | A requirement found during planning that the spec baseline does not contain                                                                             | Raised as a question for approval, never built silently                                       |
 | Usage Total        | The tokens a run adds: new input, cache writes and output, summed over the main session and every sub-agent                                             | The spend checkpoint and every run comparison use it                                          |
 | Cache Reads        | Tokens re-read from the prompt cache                                                                                                                    | Reported on their own line; never part of the usage total                                     |
@@ -140,14 +140,14 @@ Every workflow states the goal it must reach and the quality results a finished 
 ### US-GWF-04: Plans stay anchored to the spec as supplied
 
 **As a** product owner who supplied a spec
-**I want** every plan task to trace to the spec as I supplied it
+**I want** the workflow and plan to keep outcomes inside the supplied spec
 **So that** new requirements reach me as questions instead of growing the scope silently
 
 **Acceptance Criteria:**
 
-- **AC-GWF-12** — **Given** a plan that implements a supplied spec **When** the plan starts **Then** it records the spec baseline, and every requirement the baseline lacks becomes a proposed addition
-- **AC-GWF-13** — **Given** a spec baseline **When** the plan is reviewed **Then** tasks trace to the baseline content even if the spec changed later or was never saved to history; an unreadable or malformed baseline is a named finding with no fallback
-- **AC-GWF-14** — **Given** a plan with no supplied spec **When** it is planned **Then** no baseline is recorded and planning behaves as before
+- **AC-GWF-12** — **Given** a supplied-spec implementation **When** the workflow reaches planning **Then** its report has recorded the spec path and revision/state as `spec_baseline`, the plan names it as governing intent, and behavior outside it becomes a proposed addition
+- **AC-GWF-13** — **Given** a recorded spec baseline **When** the plan is reviewed **Then** the one-pass review checks governing intent, non-goals and silent expansion without imposing baseline storage or plan-frontmatter mechanics
+- **AC-GWF-14** — **Given** a plan with no supplied spec **When** it is planned **Then** the generic planning contract applies without baseline storage ceremony
 
 ### US-GWF-05: An advisory spend checkpoint
 
@@ -208,7 +208,7 @@ Every workflow states the goal it must reach and the quality results a finished 
 | BR-GWF-02 | Optional steps run only when their condition holds; each skip is logged | Execution    | [HARD]      |
 | BR-GWF-03 | The close requires evidence for every outcome gate                      | Quality      | [HARD]      |
 | BR-GWF-04 | The lean route escalates on a vague or contradictory spec               | Routing      | [HARD]      |
-| BR-GWF-05 | Plan tasks trace to the frozen spec baseline                            | Scope        | [HARD]      |
+| BR-GWF-05 | Spec-supplied work stays inside the recorded baseline                   | Scope        | [HARD]      |
 | BR-GWF-06 | The spend checkpoint is advisory, once per threshold, and can be off    | Visibility   | [SOFT]      |
 | BR-GWF-07 | Usage totals include sub-agents                                         | Visibility   | [HARD]      |
 | BR-GWF-08 | One run identity owns the deviation log                                 | Traceability | [HARD]      |
@@ -271,16 +271,16 @@ ELSE
 
 **Statement:** When the lean route's gap review finds the supplied spec vague or contradictory, or finds that the requested behavior is not in it, the route stops before planning and asks the user to clarify the spec or switch to the full feature route, which updates the spec first. It never guesses the missing behavior and never drops it silently.
 
-### BR-GWF-05: Plans trace to the frozen spec baseline [HARD]
+### BR-GWF-05: Spec-supplied work stays inside the recorded baseline [HARD]
 
-**Statement:** When a plan implements a supplied spec, the plan records a spec baseline — the spec's content as supplied, stored so it stays readable after later edits, even if the spec was never saved to history. Plan review traces every task to the baseline content, not to a spec edited later in the same run. A requirement the baseline lacks goes to a "proposed additions (need approval)" list and becomes a question, never a planned task. A baseline reference that is malformed, or whose content cannot be read back, is the named finding "baseline unrecoverable" — plan review never falls back to the current spec. With no supplied spec, planning is unchanged.
+**Statement:** Before planning a supplied-spec implementation, the workflow report records the governing spec path and revision as `spec_baseline`. The plan names that baseline as governing intent and keeps its phases and acceptance evidence within it. A requested behavior the baseline does not contain stops before planning under BR-GWF-04; another useful behavior discovered during planning is recorded as `Proposed additions — owner approval required`, never silently accepted as scope. Plan review performs one scope check against the recorded baseline without imposing storage, Git-object, or plan-frontmatter mechanics. With no supplied spec, the generic planning contract is unchanged.
 
-| Spec supplied | Baseline readable | Task traces to baseline      | Outcome                         |
-| ------------- | ----------------- | ---------------------------- | ------------------------------- |
-| No            | —                 | —                            | unchanged planning              |
-| Yes           | Yes               | Yes                          | task accepted                   |
-| Yes           | Yes               | No, not an approved addition | finding: untraced task          |
-| Yes           | No                | —                            | finding: baseline unrecoverable |
+| Spec supplied | Requested behavior in baseline | Proposed behavior approved | Outcome                                  |
+| ------------- | ------------------------------ | -------------------------- | ---------------------------------------- |
+| No            | —                              | —                          | generic planning contract                |
+| Yes           | No                             | —                          | stop before planning (BR-GWF-04)         |
+| Yes           | Yes                            | No                         | keep phases within baseline; ask on add  |
+| Yes           | Yes                            | Yes                        | approved addition may enter plan scope   |
 
 ### BR-GWF-06: The spend checkpoint is advisory [SOFT]
 
@@ -2233,7 +2233,8 @@ And the user is asked to clarify or switch to the full feature route, which upda
 ```gherkin
 Given the lean route description
 When it is read
-Then plan scope is anchored to the spec baseline recorded at plan start
+Then the workflow report records the spec baseline before plan
+And the plan names it as governing intent
 ```
 
 **Expected Result:**
@@ -2526,28 +2527,29 @@ And it neither guesses the behavior nor drops it
 
 ### Scope Guard Tests
 
-> Spec baseline and proposed additions (US-GWF-04).
+> Lightweight scope containment for spec-supplied work (US-GWF-04). The workflow owns baseline identity; plan and review remain storage-agnostic.
 
-#### TC-GWF-023: A plan records the spec baseline when a spec is supplied [P1]
+#### TC-GWF-023: The workflow records the supplied spec identity before planning [P1]
 
-**Objective:** Prove the plan instructions record the spec location and a stored content anchor at plan start.
+**Objective:** Prove the workflow report records the supplied spec path and revision as `spec_baseline` before `/plan`.
 
-**Business Intent / Invariant Guarded:** The spec as supplied stays readable for the whole run (BR-GWF-05).
+**Business Intent / Invariant Guarded:** The planning boundary has one explicit governing owner (BR-GWF-05).
 
 **Traces:** AC-GWF-12 / BR-GWF-05
 
 **Preconditions:**
 
-- The plan instructions
+- A supplied spec and the lean workflow instructions
 
-**Real-World Reachability:** Every plan that implements a supplied spec.
+**Real-World Reachability:** Every lean-route plan.
 
-**Demo Flow:** Read the baseline rule.
+**Demo Flow:** Read the workflow-owned baseline rule.
 
 ```gherkin
-Given the plan instructions
-When a spec is supplied
-Then the plan records the spec location and a content anchor that stores the content for later read-back
+Given behavior already written in a supplied canonical spec
+When the lean route reaches planning
+Then its workflow report has already recorded the spec path and revision as spec_baseline
+And the plan names that baseline as governing intent
 ```
 
 **Expected Result:**
@@ -2555,48 +2557,48 @@ Then the plan records the spec location and a content anchor that stores the con
 | Dimension               | Expectation                                                                                                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
-| **System behavior**     | States the baseline rule                                                                                                                                                           |
-| **Business data state** | Baseline recorded in the plan                                                                                                                                                      |
-| **Data shown on UI**    | The rule text                                                                                                                                                                      |
+| **System behavior**     | Records the baseline identity before planning                                                                                                                                      |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The workflow report and plan summary                                                                                                                                               |
 
 **Acceptance Criteria:**
 
-- ✅ Location and stored anchor
-- ❌ Anchor that does not store the content
+- ✅ Workflow-owned identity before planning
+- ❌ Hidden or plan-invented baseline
 
 **Edge Cases:**
 
-- A spec location that looks like an option → still read as a location
+- A working-tree spec → its current path and revision/state are recorded without adding plan storage mechanics
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: rule/skills/plan-spec-baseline]`
-> **Related Behaviors:** `rule/skills/plan-spec-baseline`
+> **Evidence:** `[Source: rule/skills/implement-spec-anchor]`
+> **Related Behaviors:** `rule/skills/implement-spec-anchor`
 > **CoveredBy:** `.claude/hooks/tests/suites/scope-guard.test.cjs::TC-GWF-023` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/scope-guard.test.cjs:104` (passed in P16; not re-run at the final gate)
 
 ---
 
-#### TC-GWF-024: Plan review traces tasks to the baseline, not the current spec [P1]
+#### TC-GWF-024: Plan review checks supplied scope without storage mechanics [P1]
 
-**Objective:** Prove the plan review instructions trace against the baseline content when one exists.
+**Objective:** Prove the one-pass reviewer checks the plan against a supplied baseline without prescribing Git objects, shell commands, or frontmatter.
 
-**Business Intent / Invariant Guarded:** A spec edited mid-run cannot justify new scope (BR-GWF-05).
+**Business Intent / Invariant Guarded:** Scope review stays portable and planning-level (BR-GWF-05).
 
 **Traces:** AC-GWF-13 / BR-GWF-05
 
 **Preconditions:**
 
-- The plan review instructions
+- A plan with a workflow-recorded supplied baseline
 
-**Real-World Reachability:** A spec edited after planning started.
+**Real-World Reachability:** Every one-pass review of a spec-supplied plan.
 
-**Demo Flow:** Read the trace rule.
+**Demo Flow:** Read the scope dimension and supplied-baseline rule.
 
 ```gherkin
 Given the plan review instructions
 When a baseline exists
-Then every task is traced to the baseline content
-And an untraced task that is not an approved addition is a finding
+Then governing intent, non-goals, and silent expansion are checked against it
+And the reviewer requires no baseline storage implementation
 ```
 
 **Expected Result:**
@@ -2604,30 +2606,30 @@ And an untraced task that is not an approved addition is a finding
 | Dimension               | Expectation                                                                                                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
-| **System behavior**     | States the trace rule                                                                                                                                                              |
+| **System behavior**     | Applies one scope check                                                                                                                                                            |
 | **Business data state** | No change                                                                                                                                                                          |
 | **Data shown on UI**    | The rule text                                                                                                                                                                      |
 
 **Acceptance Criteria:**
 
-- ✅ Baseline tracing
-- ❌ Tracing to the current spec
+- ✅ Scope verdict with evidence
+- ❌ Git-object or shell mechanics in the review contract
 
 **Edge Cases:**
 
-- An approved addition → not a finding
+- An approved addition → review against the updated governing scope
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: rule/skills/plan-review-baseline-trace]`
-> **Related Behaviors:** `rule/skills/plan-review-baseline-trace`
+> **Evidence:** `[Source: rule/skills/plan-review-scope]`
+> **Related Behaviors:** `rule/skills/plan-review-scope`
 > **CoveredBy:** `.claude/hooks/tests/suites/scope-guard.test.cjs::TC-GWF-024` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/scope-guard.test.cjs:121` (passed in P16; not re-run at the final gate)
 
 ---
 
-#### TC-GWF-025: A requirement the baseline lacks becomes a proposed addition [P1]
+#### TC-GWF-025: Behavior outside the baseline requires owner approval [P1]
 
-**Objective:** Prove new requirements go to "proposed additions (need approval)", not to plan tasks.
+**Objective:** Prove useful behavior absent from the baseline is proposed, never silently accepted or discarded.
 
 **Business Intent / Invariant Guarded:** Scope grows only with the owner's approval (BR-GWF-05).
 
@@ -2644,8 +2646,8 @@ And an untraced task that is not an approved addition is a finding
 ```gherkin
 Given the plan instructions
 When a requirement is not in the baseline
-Then it goes to "proposed additions (need approval)" and is raised as a question
-And it is not placed in a plan task
+Then it goes to "Proposed additions — owner approval required"
+And it does not enter an accepted plan phase without approval
 ```
 
 **Expected Result:**
@@ -2675,27 +2677,27 @@ And it is not placed in a plan task
 
 ---
 
-#### TC-GWF-026: The baseline returns the original content after the spec changes [P1]
+#### TC-GWF-026: Plan phases and acceptance gates stay within the baseline [P1]
 
-**Objective:** Prove on a temporary repository that a committed spec edited after the baseline reads back as supplied.
+**Objective:** Prove the baseline constrains outcomes and proof without pre-writing implementation mechanics.
 
-**Business Intent / Invariant Guarded:** The baseline is real, not a label (BR-GWF-05).
+**Business Intent / Invariant Guarded:** Execution cannot gain behavior through an untraced phase or acceptance gate (BR-GWF-05).
 
 **Traces:** AC-GWF-13 / BR-GWF-05
 
 **Preconditions:**
 
-- A temporary repository with a committed spec
+- A gap-reviewed supplied spec
 
-**Real-World Reachability:** A clarification edits the spec mid-run.
+**Real-World Reachability:** Every lean-route plan.
 
-**Demo Flow:** Record the baseline, edit the spec, read the baseline back.
+**Demo Flow:** Compare phase outcomes and acceptance evidence with governing intent.
 
 ```gherkin
-Given a baseline recorded for a committed spec
-When the spec is edited
-And the baseline is read back
-Then the original content returns
+Given the workflow recorded spec_baseline
+When the plan is written
+Then every phase and acceptance gate remains within the governing intent
+And local implementation mechanics remain executor discovery
 ```
 
 **Expected Result:**
@@ -2703,38 +2705,30 @@ Then the original content returns
 | Dimension               | Expectation                                                                                                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
-| **System behavior**     | Reads back the original                                                                                                                                                            |
-| **Business data state** | Spec edited; baseline unchanged                                                                                                                                                    |
-| **Data shown on UI**    | The original content                                                                                                                                                               |
+| **System behavior**     | Keeps phase outcomes within governing intent                                                                                                                                       |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | The phase and gate trace                                                                                                                                                           |
 
 **Acceptance Criteria:**
 
-- ✅ Original returned
-- ❌ Edited content returned
-
-**Test Data:**
-
-```yaml
-inputDomain: 'any spec content and any later edit'
-invariant: 'for ALL of them the baseline reads back the supplied content'
-boundaryCounterCase: 'a malformed anchor → baseline unrecoverable (TC-GWF-046)'
-```
+- ✅ Outcome-level trace
+- ❌ Behavior beyond the baseline
 
 **Edge Cases:**
 
-- An empty spec → an empty baseline, still readable
+- An executor discovers a better local technique → allowed when behavior and contracts remain within scope
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: operation/skills/plan-spec-baseline]`
-> **Related Behaviors:** `operation/skills/plan-spec-baseline`
+> **Evidence:** `[Source: rule/skills/plan-supplied-scope]`
+> **Related Behaviors:** `rule/skills/plan-supplied-scope`
 > **CoveredBy:** `.claude/hooks/tests/suites/scope-guard.test.cjs::TC-GWF-026` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/scope-guard.test.cjs:152` (passed in P16; not re-run at the final gate)
 
 ---
 
 #### TC-GWF-027: Without a supplied spec, planning is unchanged [P2]
 
-**Objective:** Prove the baseline rule applies only when a spec is supplied.
+**Objective:** Prove ordinary standalone plans do not pay for workflow-only baseline mechanics.
 
 **Business Intent / Invariant Guarded:** Plans without a spec behave as before (BR-GWF-05).
 
@@ -2749,9 +2743,10 @@ boundaryCounterCase: 'a malformed anchor → baseline unrecoverable (TC-GWF-046)
 **Demo Flow:** Read the no-spec rule.
 
 ```gherkin
-Given no supplied spec
-When a plan is made
-Then no baseline is recorded and no scope rule changes
+Given no supplied spec baseline
+When a plan is written
+Then the generic outcome, decisions, areas, phases, risks, and quality gates apply
+And no baseline storage field or command is required
 ```
 
 **Expected Result:**
@@ -2759,14 +2754,14 @@ Then no baseline is recorded and no scope rule changes
 | Dimension               | Expectation                                                                                                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
-| **System behavior**     | No baseline                                                                                                                                                                        |
+| **System behavior**     | Generic plan contract                                                                                                                                                              |
 | **Business data state** | No change                                                                                                                                                                          |
 | **Data shown on UI**    | The rule text                                                                                                                                                                      |
 
 **Acceptance Criteria:**
 
 - ✅ Unchanged
-- ❌ A baseline demanded
+- ❌ Baseline storage ceremony demanded
 
 **Edge Cases:**
 
@@ -2780,26 +2775,27 @@ Then no baseline is recorded and no scope rule changes
 
 ---
 
-#### TC-GWF-045: A spec never saved to history stays restorable [P1]
+#### TC-GWF-045: Baseline handling stays lightweight and workflow-owned [P1]
 
-**Objective:** Prove on a temporary repository that an uncommitted spec reads back as supplied after an edit.
+**Objective:** Prove plan stays concise by leaving baseline identity in the workflow report.
 
-**Business Intent / Invariant Guarded:** A brand-new spec is protected like a committed one (BR-GWF-05).
+**Business Intent / Invariant Guarded:** Scope containment does not turn every plan into a snapshot implementation (BR-GWF-05).
 
 **Traces:** AC-GWF-13 / BR-GWF-05
 
 **Preconditions:**
 
-- A temporary repository with a spec that was never committed
+- The lean workflow and plan skill contracts
 
-**Real-World Reachability:** A spec written in the same session as the plan.
+**Real-World Reachability:** Every supplied-spec workflow invocation.
 
-**Demo Flow:** Record the baseline, edit the spec, read it back.
+**Demo Flow:** Inspect the workflow owner and generic plan boundary.
 
 ```gherkin
-Given a spec that was never saved to history
-When its baseline is recorded, the spec is edited, and the baseline is read back
-Then the original content returns
+Given the lean workflow owns spec_baseline
+When the plan contract is inspected
+Then it preserves supplied scope
+And it contains no dedicated baseline section, Git-object command, or baseline frontmatter requirement
 ```
 
 **Expected Result:**
@@ -2807,48 +2803,49 @@ Then the original content returns
 | Dimension               | Expectation                                                                                                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
-| **System behavior**     | Stores the content with the baseline                                                                                                                                               |
-| **Business data state** | Content stored                                                                                                                                                                     |
-| **Data shown on UI**    | The original content                                                                                                                                                               |
+| **System behavior**     | Keeps one lightweight owner                                                                                                                                                        |
+| **Business data state** | No change                                                                                                                                                                          |
+| **Data shown on UI**    | Workflow baseline identity and lean plan                                                                                                                                           |
 
 **Acceptance Criteria:**
 
-- ✅ Original returned
-- ❌ Read-back fails
+- ✅ Lean ownership boundary
+- ❌ Implementation-specific snapshot protocol
 
 **Edge Cases:**
 
-- The stored content is later pruned by routine cleanup → baseline unrecoverable finding
+- A working-tree spec → workflow report records its current identity/state; no Git-object requirement is added to plan
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: operation/skills/plan-spec-baseline]`
-> **Related Behaviors:** `operation/skills/plan-spec-baseline`
+> **Evidence:** `[Source: rule/skills/implement-spec-anchor]`
+> **Related Behaviors:** `rule/skills/implement-spec-anchor`
 > **CoveredBy:** `.claude/hooks/tests/suites/scope-guard.test.cjs::TC-GWF-045` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/scope-guard.test.cjs:189` (passed in P16; not re-run at the final gate)
 
 ---
 
-#### TC-GWF-046: A malformed baseline anchor is refused and named [P0]
+#### TC-GWF-046: Missing requested behavior stops before planning [P0]
 
-**Objective:** Prove hostile or partial anchor values are refused before any read and produce the "baseline unrecoverable" finding.
+**Objective:** Prove the route never uses a baseline label to hide a real spec gap.
 
-**Business Intent / Invariant Guarded:** An editable plan field can never become an instruction, and a broken baseline never falls back to the current spec (BR-GWF-05).
+**Business Intent / Invariant Guarded:** Missing behavior is specified or clarified before implementation (BR-GWF-04, BR-GWF-05).
 
-**Traces:** AC-GWF-13 / BR-GWF-05
+**Traces:** AC-GWF-13 / BR-GWF-04 / BR-GWF-05
 
 **Preconditions:**
 
-- The plan review instructions and a temporary repository
+- The requested behavior is absent from the supplied spec
 
-**Real-World Reachability:** A plan file edited by hand, or a baseline pruned by cleanup.
+**Real-World Reachability:** A request names behavior beyond an existing spec.
 
-**Demo Flow:** Check each hostile value and a real anchor against the plan review rule.
+**Demo Flow:** Run the pre-plan gap review.
 
 ```gherkin
-Given the anchor rule from the plan review instructions
-When it checks a revision expression, an option-like value, a short identifier and a real anchor
-Then the three hostile values are refused and the real one passes
-And the instructions name the "baseline unrecoverable" finding with no fallback to the current spec
+Given the supplied spec lacks the requested behavior
+When the gap review compares the request with the spec
+Then the route stops before plan
+And asks for clarification or switches to workflow-feature
+And never guesses or drops the behavior
 ```
 
 **Expected Result:**
@@ -2856,39 +2853,24 @@ And the instructions name the "baseline unrecoverable" finding with no fallback 
 | Dimension               | Expectation                                                                                                                                                                        |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
-| **System behavior**     | Refuses malformed anchors                                                                                                                                                          |
+| **System behavior**     | Stops and routes before planning                                                                                                                                                   |
 | **Business data state** | No change                                                                                                                                                                          |
-| **Data shown on UI**    | The finding name                                                                                                                                                                   |
+| **Data shown on UI**    | The clarification or workflow-route question                                                                                                                                      |
 
 **Acceptance Criteria:**
 
-- ✅ Hostile values refused
-- ✅ Real anchor accepted
-- ❌ Any hostile value accepted
-- ❌ Fallback to the current spec
-
-**Test Data:**
-
-```yaml
-inputDomain: 'any text in the anchor field'
-invariant: 'for ALL values only a full-length content identifier is accepted'
-boundaryCounterCase: 'a short identifier → refused'
-```
-
-```json
-{
-    "hostile": ["HEAD:spec.md", "--batch", "abc123"]
-}
-```
+- ✅ Stop and route
+- ❌ Continue to plan
+- ❌ Guessed or silently dropped behavior
 
 **Edge Cases:**
 
-- A valid anchor whose content is gone → the same finding
+- A vague or contradictory statement → same stop behavior
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: rule/skills/plan-review-baseline-anchor]`
-> **Related Behaviors:** `rule/skills/plan-review-baseline-anchor`
+> **Evidence:** `[Source: rule/skills/implement-spec-escalation]`
+> **Related Behaviors:** `rule/skills/implement-spec-escalation`
 > **CoveredBy:** `.claude/hooks/tests/suites/scope-guard.test.cjs::TC-GWF-046` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/scope-guard.test.cjs:215` (passed in P16; not re-run at the final gate)
 
 ---

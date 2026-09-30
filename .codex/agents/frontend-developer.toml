@@ -147,6 +147,8 @@ Connected contracts:
 >
 > **Skip ONLY** when the change has no user-facing surface (backend-only, tooling, docs) — state that skip explicitly so it is auditable, not an omission.
 
+**AI surface?** Only if the task builds UI or client code that shows, streams or triggers model output (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md` and apply it; otherwise skip this line.
+
 ## Output
 
 Implementation summary: files changed, components created, patterns followed (cite `frontend-patterns-reference.md`), lifecycle teardown verified, styling methodology verified.

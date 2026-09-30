@@ -51,13 +51,13 @@
         "estimation-framework": { "summary": "Bottom-up estimation with derived story points and a min-max range", "when": "estimating effort" },
         "goal-contract-satisfaction-loop": { "summary": "Save the goal in a file and loop until every saved criterion passes", "when": "executing work against a user goal" },
         "incremental-persistence": { "summary": "Persist results per file or section while the work proceeds", "when": "a sub-agent or heavy step processes more than three files" },
-        "iterative-phase-quality": { "summary": "Score complexity before planning and size the phases by it", "when": "starting a plan" },
+        "iterative-phase-quality": { "summary": "Use outcome phases for real boundaries, then review and verify once on the settled tree", "when": "starting a plan" },
         "nested-task-creation": { "summary": "A child skill creates its own phase tasks under the workflow parent row", "when": "a skill runs as a workflow step" },
         "output-quality-principles": { "summary": "Token-efficient output without losing quality", "when": "writing generated docs or reports" },
         "parallel-phase-advancement": { "summary": "Run a declared parallel batch together and advance only after every member returns", "when": "a workflow declares parallel steps" },
         "parallel-subagent-dispatch": { "summary": "Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once", "when": "a task list has independent tasks" },
-        "plan-granularity": { "summary": "Five-point granularity check that each phase must pass", "when": "breaking a plan into phases" },
-        "plan-quality": { "summary": "Every plan phase carries test specifications and purpose-named contracts", "when": "writing or reviewing a plan" },
+        "plan-granularity": { "summary": "Outcome phases name decisions, boundaries and bounded discovery without replaying implementation", "when": "breaking a plan into phases" },
+        "plan-quality": { "summary": "Plans decide direction, affected owners, risks and final proof without pre-writing implementation", "when": "writing or reviewing a plan" },
         "preservation-inventory": { "summary": "Table of behavior a bugfix plan must preserve, written before the implementation steps", "when": "writing a bugfix plan" },
         "prompt-enhancement-transforms-base": { "summary": "Base transforms shared by every prompt-enhance operation", "when": "running prompt-enhance" },
         "session-goal-ledger": { "summary": "Keep the original goal and every user prompt of the session", "when": "running a long or multi-prompt session" },
@@ -101,6 +101,9 @@
       "tags": {
         "agent-code-standards": { "summary": "Development rules: YAGNI, KISS, DRY, and read the pattern docs first", "when": "an agent writes or changes code" },
         "ai-agent-as-user-access": { "summary": "Treat an AI agent as a first-class machine actor with its own identity and authority", "when": "creating a greenfield system or reviewing actor-facing architecture" },
+        "ai-engineering-gate": { "summary": "Thirty-eight AI-engineering clauses, AE-1.1 to AE-9.4: prompt contract, security, agents, retrieval, reliability, evals, operations, governance, UX", "when": "planning, building or reviewing a feature that calls a model" },
+        "ai-feature-framing-gate": { "summary": "Plan-time AI-feature framing AF-1 to AF-6: job and fit, eval first, blast radius, autonomy, data boundaries, operations", "when": "planning or specifying a feature that uses an LLM, agent, RAG or ML model" },
+        "ai-review-checklist": { "summary": "Executable AI-feature review protocol AR-1 to AR-6: context, evidence, severity, sweeps, report, triage", "when": "reviewing a plan or code that calls a model" },
         "complexity-prevention": { "summary": "Change-cost lens on complexity (Ousterhout)", "when": "designing or reviewing code" },
         "core-engineering-principles": { "summary": "Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost", "when": "planning, implementing or reviewing any change" },
         "cross-cutting-quality": { "summary": "Check cross-cutting concerns on changed paths against the declared architecture", "when": "reviewing operational and cross-cutting concerns" },
@@ -135,5 +138,5 @@
       }
     }
   },
-  "inlineSkills": ["changes-review", "code-quality-review", "plan-review", "why-review", "workflow-review-changes"]
+  "inlineSkills": ["changes-review", "code-quality-review", "why-review", "workflow-review-changes"]
 }

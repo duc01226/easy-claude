@@ -137,9 +137,9 @@ function assertFixLoopMode(parts) {
     // Each round is plain full mode in the main session — never a nested flag or a sub-agent.
     assert.match(section, /NEVER self-invoke with the flag/);
     assert.match(section, /NEVER the `Agent` tool/);
-    // Read-only callers never enable it; the plan-review wave member stays report-only.
-    assert.match(source, /These callers NEVER pass `--fix-loop`[^\n]*`\/plan-review` wave member is ALWAYS plain full mode/);
-    assert.match(source, /`\/plan-review`'s Parallel Review Wave \([^|\n]*NEVER `--fix-loop`\)/);
+    // Read-only callers never enable it; no specific caller can silently opt into the loop.
+    assert.match(source, /These callers NEVER pass `--fix-loop`/);
+    assert.doesNotMatch(source, /`\/plan-review`'s Parallel Review Wave|`\/plan-review` wave member/);
     assert.match(closing, /NEVER let a read-only caller pass the flag/);
 }
 

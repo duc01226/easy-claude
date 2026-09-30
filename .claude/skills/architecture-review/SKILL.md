@@ -135,6 +135,7 @@ This skill = one reviewer in a multi-reviewer pipeline — `workflow-review-chan
 | —                                                                                                                          | Domain entity / value-object DDD design quality → `domain-entities-review` |
 | —                                                                                                                          | Integration-test assertion quality, coverage, traceability → `integration-test-review` |
 | —                                                                                                                          | Runtime production-readiness of service/API changes (observability wiring, rollback) → `production-readiness-review` |
+| —                                                                                                                          | AI surface? Only if the design adds or changes a model call, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`, route depth to `ai-engineering-review`; else skip this row |
 
 When a finding clearly belongs to a sibling, record one-line `→ route to {skill}` pointer and move on — NEVER expand it. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
 

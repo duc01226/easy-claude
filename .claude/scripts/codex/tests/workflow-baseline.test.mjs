@@ -302,10 +302,15 @@ test("Git-unavailable closure is ambiguous instead of falsely qualified", (t) =>
   const gitDir = path.join(fx.root, ".git");
   const hidden = path.join(fx.root, ".git-hidden");
   fs.renameSync(gitDir, hidden);
+  // Stop Git discovery at this fixture even when its temp root lives beneath another repository.
+  // An invalid local gitdir indirection makes metadata unavailable without falling through to an
+  // ancestor checkout (the Windows symlinked-temp contract intentionally uses the repo's tmp/).
+  fs.writeFileSync(gitDir, "gitdir: .git-unavailable\n", "utf8");
   let report;
   try {
     report = baseline.reportBaseline({ ...fx.options, runId: "git-unavailable", now: BASE + 1 });
   } finally {
+    fs.rmSync(gitDir, { force: true });
     fs.renameSync(hidden, gitDir);
   }
   assert.equal(report.status, "AMBIGUOUS");

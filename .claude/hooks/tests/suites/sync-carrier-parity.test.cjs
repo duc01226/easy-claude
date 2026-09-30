@@ -41,14 +41,16 @@
 // reminder that legitimately needs to differ belongs in OVERRIDE, which has its own guard.
 //
 // OVERRIDE-SUBSTANCE GUARD (separate property): `<!-- OVERRIDE:<tag> -->` blocks are an
-// INTENTIONAL divergence — three review skills copy the review-protocol-injection template
+// INTENTIONAL divergence — two review skills copy the review-protocol-injection template
 // only to route their fresh-review sub-agent to a domain specialist instead of canonical's
-// generic code-reviewer, so they are (correctly) excluded from the equality property and
+// generic code-reviewer. The single-pass integration-test reviewer no longer starts a fresh
+// review sub-agent, so only architecture-review and ui-review retain this override. They are
+// (correctly) excluded from the equality property and
 // untouched by sync-update-blocks.py. But "intentional divergence on routing" must not become
 // "silent staleness on substance": the GUARD test pins each OVERRIDE copy to canonical's
 // protocol COUNT and every protocol HEADER **and BODY, verbatim** (derived at runtime, never
 // hard-coded), allowing only the documented subagent_type/ref-doc customization outside the
-// protocol region. This closes the exact gap that let the three copies sit at a stale
+// protocol region. This closes the exact gap that let the copies sit at a stale
 // "10 protocols / no Triangulation" after canonical reached 11 — and also catches a protocol
 // whose wording silently drifts in a copy, not only one that vanishes entirely.
 
@@ -174,10 +176,11 @@ for (const t of TAGS) {
 
 // --- OVERRIDE-substance contract (review-protocol-injection) ---------------------
 // Canonical's review-protocol-injection template tells a fresh review sub-agent to embed
-// N protocol blocks VERBATIM. Three review skills (integration-test-review, architecture-review,
-// ui-review) copy that template inside an <!-- OVERRIDE:review-protocol-injection --> block ONLY
-// to swap canonical's generic `code-reviewer` for a domain specialist (integration-tester /
-// architect / ui-ux-designer). Because OVERRIDE is excluded from the equality property and is
+// N protocol blocks VERBATIM. Two review skills (architecture-review and ui-review) copy that
+// template inside an <!-- OVERRIDE:review-protocol-injection --> block ONLY to swap canonical's
+// generic `code-reviewer` for a domain specialist (architect / ui-ux-designer). The single-pass
+// integration-test reviewer validates findings in its sole main-session pass and does not spawn
+// a fresh reviewer. Because OVERRIDE is excluded from the equality property and is
 // NOT touched by sync-update-blocks.py, those copies can silently fall behind canonical on the
 // SHARED substance — which is exactly how they drifted to a stale "10 protocols / no Triangulation"
 // template after canonical advanced to 11. This contract pins that substance (protocol count +
@@ -430,9 +433,10 @@ module.exports = {
             },
         },
         {
-            // Pinned carrier count (no silent cap): review-protocol-injection reaches 9 carriers =
-            // 9 review SKILLs (code-quality-review, changes-review, artifact-review, knowledge-review,
-            // production-readiness-review, plan-review, why-review, spec-clarify, architecture-review-full)
+            // Pinned carrier count (no silent cap): review-protocol-injection reaches 8 carriers =
+            // 8 converging review SKILLs (code-quality-review, changes-review, artifact-review,
+            // knowledge-review, production-readiness-review, why-review, spec-clarify,
+            // architecture-review-full). Single-pass plan-review does not spawn a reviewer.
             // (the 4 review AGENTS that once carried it are leaves now: they receive the template in their
             // brief, and code-reviewer also through its preloaded code-quality-review skill).
             // spec-clarify (the post-spec clarification gate) joined as the 8th skill: it runs INLINE for
@@ -441,23 +445,23 @@ module.exports = {
             // at parity with artifact-review. architecture-review-full (the whole-project architecture-health
             // audit) joined as the 9th skill: it is an adoption-matrix review skill (BATCHING + SEVERITY in
             // inject_review_skill_blocks.py) that synthesizes a consolidated report, so it carries the plain
-            // review-protocol trio at parity. A 10th appearing — or one of the 9 vanishing — must surface loudly here
+            // review-protocol trio at parity. A 9th appearing — or one of the 8 vanishing — must surface loudly here
             // rather than quietly widen/narrow the guarded set. After the review-group conversion the
             // non-inline skills carry a guide line instead of the body; they still count (N5), while the
             // inline skills keep the body.
-            name: 'COVERAGE: review-protocol-injection reaches all 9 carriers and carries the Triangulation protocol (post-P1)',
+            name: 'COVERAGE: review-protocol-injection reaches all 8 converging carriers and carries the Triangulation protocol',
             fn() {
                 const canon = CANON_BODY.get('review-protocol-injection');
                 const cov = coverageCarriers(CARRIERS, RPI, projectionTextFor(SKILLS_DIR, RPI), canon);
                 assertEqual(cov.problems.length, 0, `review-protocol-injection guide problems:\n  ${cov.problems.join('\n  ')}`);
                 const carriers = [...cov.body, ...cov.guided];
-                // 9 = the orchestrating review skills (body or guide). Leaf reviewer agents no longer
+                // 8 = the converging review skills (body or guide). Single-pass plan-review and leaf reviewer agents do not
                 // carry it: they receive the template's rules in their brief (agent_protocol_matrix.py,
                 // review-loop orchestration exclusion), so 4 agent copies were removed on purpose.
                 assertEqual(
                     carriers.length,
-                    9,
-                    `expected 9 review-protocol-injection carriers (body or guide), found ${carriers.length} (${cov.body.length} body, ${cov.guided.length} guide)`
+                    8,
+                    `expected 8 review-protocol-injection carriers (body or guide), found ${carriers.length} (${cov.body.length} body, ${cov.guided.length} guide)`
                 );
                 assertTrue(
                     canon != null && /Spec ↔ Tests ↔ Code Triangulation/.test(canon),
@@ -512,12 +516,12 @@ module.exports = {
                     contract.protocols.has('### Spec ↔ Tests ↔ Code Triangulation'),
                     'canonical is missing the Triangulation protocol — parser regressed or canonical reverted'
                 );
-                // Pin the known OVERRIDE carriers (no silent cap): a 4th appearing, or one vanishing,
+                // Pin the known OVERRIDE carriers (no silent cap): a 3rd appearing, or one vanishing,
                 // must surface loudly rather than quietly narrow/widen the guarded set.
                 assertEqual(
                     OVERRIDE_CARRIERS.length,
-                    3,
-                    `expected 3 OVERRIDE:${RPI} carriers (integration-test-review, architecture-review, ui-review), found ${OVERRIDE_CARRIERS.length}: ` +
+                    2,
+                    `expected 2 OVERRIDE:${RPI} carriers (architecture-review, ui-review), found ${OVERRIDE_CARRIERS.length}: ` +
                         `${OVERRIDE_CARRIERS.map((o) => o.carrier).join(', ') || '(none)'}`
                 );
                 const drift = [];
@@ -617,10 +621,10 @@ module.exports = {
                 assertEqual(missing.length, 0, `hybrid policy is missing: ${missing.join('; ')}`);
                 // And it names exactly the review-family skills that protocol-groups.json keeps inline
                 const inline = JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8')).inlineSkills;
-                assertTrue(Array.isArray(inline) && inline.length === 5, `expected 5 inlineSkills, found ${JSON.stringify(inline)}`);
+                assertTrue(Array.isArray(inline) && inline.length === 4, `expected 4 inlineSkills, found ${JSON.stringify(inline)}`);
                 const unnamed = inline.filter((skill) => !sections.policy.includes(`\`${skill}\``));
                 assertEqual(unnamed.length, 0, `policy does not name inline skill(s): ${unnamed.join(', ')}`);
-                assertTrue(/five review-family skills keep full SYNC bodies inline/.test(sections.policy), 'policy does not say the review-family skills keep full bodies inline');
+                assertTrue(/four converging review-family skills keep full SYNC bodies inline/.test(sections.policy), 'policy does not say the converging review-family skills keep full bodies inline');
                 // And no carrier (skill, references/*.md, agent — OVERRIDE copies and prose digests included)
                 // nor a framework doc describing the policy restates the old prohibition (P27 carry-over)
                 const docs = POLICY_DOCS.filter((f) => fs.existsSync(f)).map((f) => ({ rel: path.relative(REPO, f).split(path.sep).join('/'), text: fs.readFileSync(f, 'utf8') }));

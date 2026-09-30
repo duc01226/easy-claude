@@ -950,7 +950,8 @@ const annotatedRegistryTests = [
 // ============================================================================
 // Lean spec-supplied route (P15, BR-GWF-04/05/09)
 //   Invariant: `workflow-implement-spec` is shorter than the feature route only where
-//   the spec already exists — it keeps every gate, syncs the spec before the review,
+//   the requested behavior is already specified — it keeps every gate, reconciles
+//   behavior and test evidence once before the review,
 //   stops at its gap review when the spec lacks the requested behavior, and is chosen
 //   by "the requested behavior is already written in a canonical spec", never by a
 //   spec file merely existing. Each detector runs on the shipped registry (expect no
@@ -963,8 +964,8 @@ const LEAN_ROUTE_SEQUENCE = [
     'spec-clarify',
     'plan',
     'plan-execute',
-    'spec [mode=sync]',
     'integration-test',
+    'spec [mode=sync]',
     'workflow-review-changes --tests=defer',
     'integration-test-verify',
     'test',
@@ -1013,8 +1014,10 @@ function findLeanSpecSyncGaps(config) {
     if (step.role !== 'optional') gaps.push(`spec sync: role ${step.role}`);
     const applicability = step.applicability || {};
     if (!/behavior differs from the supplied spec/i.test(applicability.when || '')) gaps.push('spec sync: when');
-    if (!/implementation matches the supplied spec/i.test(applicability.skipReason || '')) gaps.push('spec sync: skipReason');
-    for (const later of ['integration-test', 'workflow-review-changes']) {
+    if (!/behavior and canonical case-to-test evidence still match the supplied spec/i.test(applicability.skipReason || '')) gaps.push('spec sync: skipReason');
+    const integrationIndex = sequence.findIndex(other => stepSkill(other) === 'integration-test');
+    if (!(integrationIndex >= 0 && integrationIndex < index)) gaps.push('spec sync: not after integration-test authoring');
+    for (const later of ['workflow-review-changes']) {
         if (!(index < sequence.findIndex(other => stepSkill(other) === later))) gaps.push(`spec sync: not before ${later}`);
     }
     return gaps;
@@ -1044,7 +1047,7 @@ function findSpecGapEscalationGaps(config) {
     const gapReview = skills.indexOf('spec-clarify');
     if (!(skills.indexOf('investigate') < gapReview && gapReview >= 0 && gapReview < skills.indexOf('plan'))) gaps.push('gap review does not run between investigate and plan');
     const context = workflow.preActions.injectContext;
-    for (const phrase of ['the requested behavior is not in it', 'STOP before /plan', 'switch to workflow-feature, which updates the spec first']) {
+    for (const phrase of ['vague, contradictory, or missing behavior stops before /plan', 'routes to user clarification or workflow-feature']) {
         if (!context.includes(phrase)) gaps.push(`injectContext: ${phrase}`);
     }
     return gaps;
@@ -1052,7 +1055,7 @@ function findSpecGapEscalationGaps(config) {
 
 const leanRouteTests = [
     {
-        name: '[guided-workflow] TC-GWF-017 the lean route has nine steps plus close, every outcome gate, and gate roles on its test check, review, test and close',
+        name: '[guided-workflow] TC-GWF-017 the lean route keeps its gap review, conditional reconciliation, static review, and final verification gates',
         fn: () => {
             // Given the shipped registry
             const config = loadWorkflowConfig();
@@ -1071,11 +1074,11 @@ const leanRouteTests = [
         }
     },
     {
-        name: '[guided-workflow] TC-GWF-018 the lean route syncs the spec only on a behavior difference, before the integration tests and the review',
+        name: '[guided-workflow] TC-GWF-018 the lean route reconciles once after test authoring and before the static review',
         fn: () => {
             // Given the shipped lean route
             const config = loadWorkflowConfig();
-            // When its spec sync occurrence is read, Then it is optional, conditioned, and placed before integration-test and the review
+            // When its spec sync occurrence is read, Then it is optional, conditioned, and placed after test authoring but before review
             assertDeepEqual(findLeanSpecSyncGaps(config), []);
             // And a spec sync moved after the review, or made unconditional, is detected
             const mutated = cloneConfig(config);
@@ -1088,7 +1091,6 @@ const leanRouteTests = [
                 'spec sync: role core',
                 'spec sync: when',
                 'spec sync: skipReason',
-                'spec sync: not before integration-test',
                 'spec sync: not before workflow-review-changes'
             ]);
         }
@@ -1121,8 +1123,11 @@ const leanRouteTests = [
             const mutated = cloneConfig(config);
             const lean = mutated.workflows[LEAN_ROUTE_ID];
             lean.sequence = lean.sequence.filter(step => stepSkill(step) !== 'spec-clarify');
-            lean.preActions.injectContext = lean.preActions.injectContext.replace('STOP before /plan', 'continue to /plan');
-            assertDeepEqual(findSpecGapEscalationGaps(mutated), ['gap review does not run between investigate and plan', 'injectContext: STOP before /plan']);
+            lean.preActions.injectContext = lean.preActions.injectContext.replace('stops before /plan', 'continues to /plan');
+            assertDeepEqual(findSpecGapEscalationGaps(mutated), [
+                'gap review does not run between investigate and plan',
+                'injectContext: vague, contradictory, or missing behavior stops before /plan'
+            ]);
         }
     },
     {

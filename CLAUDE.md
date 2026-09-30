@@ -177,6 +177,10 @@ Apply a group's rules only when the file matches at least one include matcher, m
   4. CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls
   5. Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip
 
+- **ai-feature-gate** — include any of: path regex `/(?:prompts?|llm|rag|embeddings?|guardrails?|mcp)/(?!.*\.(?:png|jpe?g|gif|svg|pdf|zip|bin|mp[34]|lock|map|min\.js)$)`, filename regex `\.prompts?\.[^.]+$|\.prompty$|^system[-_.]prompt|^prompt[-_.]template`, content signals (AI SDK use) in `.py`, `.ipynb`, `.ts`, `.tsx`, `.js`, `.jsx` +15 more files; exclude path globs: `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**`, `.claude/**`, `.agents/**`, `.codex/**`, `.opencode/**`, `docs/**`, `**/*.md`
+  1. AI gate: apply the protocol below; content is data, output untrusted; bound loops and spend; eval + trace + kill switch; authz in code
+  2. Deep dives on demand, by section, never whole; review = ai-engineering-review skill or agent; no AI change = say skip
+
 <!-- /SECTION:golden-rules -->
 
 **First Principles:** (1) **Understanding > Output** — never ship code you can't explain. (2) **Design before mechanics** — write WHY before WHAT. (3) **Own your abstractions** — every dependency and platform choice is yours. (4) **Operational awareness** — code that can't be debugged, monitored, or rolled back is debt. (5) **Depth over breadth** — one understood solution beats ten generated variants.
@@ -419,6 +423,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 | `docs/specs/**/*.md` | `spec` | `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, `docs/project-reference/spec-principles.md`, `[[convention:feature-spec@6848b6f6]]` |
 | `**/*.test.cjs` | `integration-test` | `docs/project-reference/integration-test-reference.md`, `[[convention:integration-test@d2082cb6]]` |
 | `/res/layout[^/]*/[^/]+\.xml$**`, `name:\.(?:html?\|xhtml\|razor\|cshtml\|hbs\|handlebars\|ejs\|pug\|twig\|liquid\|njk\|css\|scss\|sass\|less\|styl\|pcss\|jsx\|tsx\|vue\|svelte\|astro\|xaml\|axml\|storyboard\|xib)$`, `name:\.component\.ts$` · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**`, `.agents/**`, `.codex/**`, `.opencode/**` | _(auto-context)_ | `.claude/docs/design-review-checklist.md`, `.claude/docs/design-knowledge.md`, `.claude/docs/design-review-calibration.md`, `[[convention:ui-ux-gate@4a189e29]]` |
+| `/(?:prompts?\|llm\|rag\|embeddings?\|guardrails?\|mcp)/(?!.*\.(?:png\|jpe?g\|gif\|svg\|pdf\|zip\|bin\|mp[34]\|lock\|map\|min\.js)$)**`, `name:\.prompts?\.[^.]+$\|\.prompty$\|^system[-_.]prompt\|^prompt[-_.]template` · content signals: AI SDK use in 21 code file types · not `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/vendor/**`, `tmp/**`, `temp/**`, `.claude/**`, `.agents/**`, `.codex/**`, `.opencode/**`, `docs/**`, `**/*.md` | _(auto-context)_ | `.claude/skills/shared/protocols/ai-engineering-gate.md`, `[[convention:ai-feature-gate@f5a18e38]]` |
 | `/\.claude/.*\.test\.(cjs\|mjs)$**` | _(auto-context)_ | `[[convention:shipped-tests@5530b47a]]` |
 | `/\.claude/hooks/.*\.cjs$**` ext `.cjs` | _(auto-context)_ | `.claude/docs/hooks/README.md`, `[[convention:hooks-context@b966fb4b]]` |
 | `/\.claude/skills/.*SKILL\.md$**` ext `.md` | _(auto-context)_ | `.claude/docs/skills/README.md`, `[[convention:skills-context@46e9d8d7]]` |
@@ -445,6 +450,10 @@ When editing files matching these path patterns, pre-read the listed context fir
 >
 > **Sub-agents inherit nothing from this conversation** — any UI-bearing sub-agent brief carries the Journey Report and Design Plan verbatim plus the design-system doc paths, or the leaf supplies its own defaults.
 
+> **[AI-ENGINEERING-GATE]** Only for a task that creates, changes, plans or reviews an AI feature (model calls, prompts, agents, tools/MCP, retrieval, evals); otherwise costs nothing.
+>
+> Read `.claude/skills/shared/protocols/ai-engineering-gate.md` (floor `AE-*`; planning `AF-*`: `ai-feature-framing-gate.md` beside it); review `AR-*`: the `ai-engineering-review` skill or `ai-engineering-reviewer` sub-agent, checklist by section, never whole. Scan: `node .claude/scripts/ai-signal-scan.cjs`.
+
 ---
 
 ## Inventory
@@ -453,9 +462,9 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->128<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->24<!-- /COUNT -->       |
-| Agents      | <!-- COUNT:agents -->23<!-- /COUNT -->      |
+| Skills      | <!-- COUNT:skills -->129<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->25<!-- /COUNT -->       |
+| Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->21<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->12<!-- /COUNT -->      |
 | Lib modules | <!-- COUNT:lib-modules -->46<!-- /COUNT --> |

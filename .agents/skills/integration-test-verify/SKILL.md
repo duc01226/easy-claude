@@ -419,7 +419,7 @@ A test that fails on one required run and passes another has NOT identified the 
 - **MUST ATTENTION Gates:** use config/reference evidence and valid project data setup; require the configured fresh-run/reset policy (default: two no-reset green runs for persistent/shared-state scopes), real runner output, no executed-test shrink, no skipped-count growth, fixed scope, and a bounded cap (default 3). Intermittent failures use the three-way flake adjudication before any change. Non-progress, regression, blocked environment, ambiguity, or open review findings escalate.
 - **MUST ATTENTION Terminal/mode:** the protocol loop is primary; `/goal` is optional. Converged standalone runs do `$spec [mode=sync]` → `$docs-update`; parent workflows own declared `$spec [mode=sync]` + `$scan --target=integration-tests` + `$docs-update`. NEVER force green.
 
-**Why this mode exists (READ FIRST):** the default pass says _"After any fix → rerun the full 2-run sequence"_ (Step 5 → On failure) and `SYNC:integration-test-execution-discipline` §5 says _"Loop until the whole suite is green"_, but neither adds a round cap, Goal Contract, shrinking-failure gate, or escalation path — and the default pass only REPORTS service faults. The fix half is also triple-owned: `$integration-test-review` fixes/re-reviews (P5–P8), `$fix --target=test` has its own unbounded repeat (`fix/SKILL.md:218`), and the default pass says fix-and-rerun (Step 5 → On failure); overlapping loops can double-fix or stop after a subset.
+**Why this mode exists (READ FIRST):** the default pass says _"After any fix → rerun the full 2-run sequence"_ (Step 5 → On failure) and `SYNC:integration-test-execution-discipline` §5 says _"Loop until the whole suite is green"_, but neither adds a round cap, Goal Contract, shrinking-failure gate, or escalation path — and the default pass only REPORTS service faults. This mode gives the fix path one owner: `$integration-test-review` supplies one read-only adjudication pass, `$fix --target=test` applies the caller-owned repair, and this outer loop re-runs the fixed scope.
 
 This mode gives the loop one bounded, evidence-gated owner: the default verify pass FINDS, `$debug-investigate` + `$integration-test-review` ADJUDICATE, `$fix` RESOLVES, and a fresh full default pass RE-PROVES. Round Integrity rejects lost tests, so "something fixed it" cannot ship on one hand-picked green run.
 
@@ -499,7 +499,7 @@ The `/goal` Stop hook blocks stopping until the condition holds and auto-clears 
 
 **If `/goal` is unavailable, unregistered, or not permitted** (e.g. Codex/Copilot or a Claude run without it): DO NOT error, block, or invent a stand-in gate. Record ONE Goal Contract line — `/goal accelerator unavailable — loop bound by protocol (FL-1–FL-2) + this Goal Contract` — and proceed. The protocol loop plus Goal Contract remain the gate.
 
-> **Nested gates (by design):** `$debug-investigate` self-binds `$why-review`; `$integration-test-review` is REPORT-ONLY, deferring P5 fix/P6 re-review to this caller. No inner fix gate is installed. THIS outer loop owns the single convergence gate; all gates self-clear on satisfaction. Do NOT tell the user to clear them.
+> **Nested gates (by design):** `$debug-investigate` self-binds `$why-review`; `$integration-test-review` is a one-pass REPORT-ONLY adjudicator and installs no inner fix or re-review gate. THIS outer loop owns repair and execution convergence; all gates self-clear on satisfaction. Do NOT tell the user to clear them.
 
 ### FL-1 — Round Loop (verify → adjudicate → fix → review → integrity-check → log)
 
@@ -513,7 +513,7 @@ Each round has four halves — **verify finds, adjudication diagnoses, fix resol
 
    **(a) `$debug-investigate`** — trace end-to-start to the owning layer; produce a confidence-scored `file:line` root cause validated by `$why-review`. Investigation ONLY; never patch (`debug-investigate/SKILL.md:22`).
 
-   **(b) `$integration-test-review` — REPORT-ONLY** — review failing tests **and exercised production code**. Its 8 gates supply the test-side verdict: G1 assertion value/mutation probe, G2 data state, G3 repeatability, G4 domain logic, G5 spec traceability, G6 three-way sync, G7 change coverage, G8 scenario fidelity. **STOP after findings** — no P5 fix, P6 re-review, or P7 build/run; this loop owns fixing and re-running.
+   **(b) `$integration-test-review` — REPORT-ONLY** — review failing tests **and exercised production code**. Its 8 gates supply the test-side verdict: G1 assertion value/mutation probe, G2 data state, G3 repeatability, G4 domain logic, G5 spec traceability, G6 three-way sync, G7 change coverage, G8 scenario fidelity. **STOP after the one-pass findings report**; this loop owns fixing and re-running.
 
    **Combine (a) + (b) into ONE written Fault Verdict per failure, BEFORE any edit:**
 
@@ -529,7 +529,7 @@ Each round has four halves — **verify finds, adjudication diagnoses, fix resol
 
 6. **Run `$fix` on adjudicated verdicts** (failures > 0 only). Resolve at the owning layer: `SOURCE-WRONG` → `$fix` (`--target` routing) or lowest invariant-owning layer; `TEST-WRONG`/`TEST-NOT-OPTIMAL` → repair test/scenario at root; missing §8 TC from G5/G7 → `$spec [mode=tests]`; spec divergence → `SYNC:spec-drift-adjudication` (`$spec [update]` for SPEC-STALE, BLOCKING fix for CODE-WRONG). Fix ONLY adjudicated verdicts.
 
-   > **If `$integration-test-review` could not be constrained to report-only and already applied its P5 fixes**, treat those as this round's fix half (detect fixes-applied against the FL-1.1 snapshot) and SKIP this step for that round — never double-fix the same failure.
+   > **Contract guard:** if `$integration-test-review` changed source or tests, stop with a reviewer-boundary violation. Do not absorb the edit as this round's fix; restore authority by adjudicating the changed candidate before continuing.
 
 7. **CONDITIONAL — run `$changes-review` on the round's fix diff only when ANY fix landed.** Compare the tree with the FL-1.1 snapshot: unchanged → record `No fix applied this round — $changes-review skipped`; changed → run it on every round's fixes.
 

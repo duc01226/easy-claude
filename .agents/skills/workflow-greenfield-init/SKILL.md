@@ -62,11 +62,14 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 **Use when** no codebase exists yet (planning artifacts may). Existing codebase with a large or ambiguous feature → `workflow-big-feature`. Backlog or spec only, no build → `workflow-idea-to-pbi` / `workflow-idea-to-spec`.
 
+**Confirmation gate:** `activation: confirm`. When the AI routes here on its own, it MUST first compare this workflow's current step count with the lean custom initialization route that would otherwise satisfy the request, present both, and ask the user once which route to run. An explicit user request for this workflow needs no second confirmation.
+
 **Workflow:** triage → discover & model (idea, triaged research, domain, stack, architecture + gates) → plan & backlog (PLAN₁, releasable PBIs, stories, test specs, `$plan-validate`, PLAN₂) → foundation (scaffold, linters, harness, foundation review, reference docs) → build & prove (implementation, integration tests, spec sync, `$test`, inline review, near-end E2E, final `$test`, `$workflow-end`).
 
 **Key Rules:**
 
 - MUST ATTENTION triage FIRST and record it in the run report; escalate depth on risk and ambiguity, not file count.
+- MUST ATTENTION self-routing stops at the confirmation gate: show the full workflow's step count and the lighter custom route before activation — why: greenfield inception is intentionally comprehensive and may be unnecessary for a bounded project setup.
 - MUST ATTENTION business and domain before technology — never ask for the tech stack upfront.
 - MUST ATTENTION the foundation matrix, the AI-agent-access decision and the Test Architecture & Execution Contract block implementation until complete.
 - NEVER skip mandatory workflow or skill gates; cite evidence for every claim, confidence >80% to act.

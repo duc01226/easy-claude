@@ -94,6 +94,7 @@ Pure docs-only changes skip this gate except for executable examples.
 | Domain entity / value-object / aggregate files | invariants, encapsulation (`SYNC:domain-entity-change-gate`) | `/domain-entities-review --report-only` (Phase 3.8) |
 | Deployable service, API, job, migration, config, operational surface | rollback, idempotency, config in every environment, fail-fast | `/production-readiness-review --report-only` |
 | Frontend/UI files (project frontend patterns) | this skill owns the UI dimension | `/ui-review --report-only` |
+| AI surface? Only if `node .claude/scripts/ai-signal-scan.cjs --json` (`--base <review base>` for a branch/PR) has `status: surface` (`clean` → record `No AI-feature surface`, stop; `unknown` → §0.1 grep once) | small diff: read `.claude/skills/shared/protocols/ai-engineering-gate.md` and apply it | `/ai-engineering-review --report-only`, spawned only when the scan lists a surface |
 | DB migration · dependency upgrade · bus/event · API contract · config/env · infra | rollback + volume · semver + advisories · idempotency + retry + poison message · additive vs breaking · all environments · env parity | the matching specialist when material |
 | Specs, feature docs, PBIs, test specs in the diff | M1–M7 code-to-spec drift gate (`shared/sdd-artifact-contract.md`), M7 demo test on every added business case | `/spec` audit when broad |
 | Bugfix / regression / stale output | End→Start debugger trace gate (`SYNC:end-to-start-debugger-trace`) | `/debug-investigate` when untraced |
@@ -172,7 +173,7 @@ The report (`tmp/reports/changes-review-{date}-{slug}.md`) holds, in order: Revi
 | Skill | When | Why |
 | --- | --- | --- |
 | `/graph-blast-radius`, `/graph-trace` | `.code-graph/graph.db` exists | impact and risk order |
-| `/security-audit`, `/performance-review`, `/architecture-review`, `/domain-entities-review`, `/production-readiness-review`, `/ui-review` — all `--report-only` | triggered dimension with material risk | specialist depth without a second fixer |
+| `/security-audit`, `/performance-review`, `/architecture-review`, `/domain-entities-review`, `/production-readiness-review`, `/ui-review`, `/ai-engineering-review` — all `--report-only` | triggered dimension with material risk | specialist depth without a second fixer |
 | `/integration-test-review --report-only` | behavior-bearing code | coverage map + assertion quality |
 | `/code-simplifier --report-only` | code changed | clarity/maintainability opportunities |
 | `/e2e-test-verify` (report-only) | positive E2E trigger | E2E quality gate |

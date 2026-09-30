@@ -58,10 +58,10 @@ test('TC-CONVLOOP-042: all real review-family skills pass both rules', () => {
     assert.deepEqual(failures, [], `real review-family skills must have zero gaps:\n${failures.join('\n')}`);
 });
 
-// TC-CONVLOOP-043 — the allow-list is exactly the 13 SC3 review skills; no non-review skill leaks in
+// TC-CONVLOOP-043 — the allow-list is exactly the 14 SC3 review skills; no non-review skill leaks in
 // (so a skill merely using the word "finding"/"Severity" is never scanned = no false positive).
-test('TC-CONVLOOP-043: allow-list is the 13 review-family skills, no non-review skill included', () => {
-    assert.equal(REVIEW_FAMILY_SKILLS.length, 13);
+test('TC-CONVLOOP-043: allow-list is the 14 review-family skills, no non-review skill included', () => {
+    assert.equal(REVIEW_FAMILY_SKILLS.length, 14);
     for (const nonReview of ['plan', 'investigate', 'fix', 'plan-execute', 'why-review']) {
         assert.ok(!REVIEW_FAMILY_SKILLS.includes(nonReview), `non-review skill must NOT be scanned: ${nonReview}`);
     }
@@ -135,7 +135,7 @@ const ROUTE_MENTIONERS_NOT_SCANNED = new Set([
     'sync-codex',              // documents the route inside the verify-coverage sensor description
     'workflow-review-changes', // orchestrator: wires review skills, references the route in prose
     'workflow-idea-to-pbi',    // workflow orchestrator: references the route in a gate step
-    'plan-review',             // reviews plans with a parallel full-mode why-review sub-agent + the validate route on merged findings (not an SC grader)
+    'plan-review',             // one-pass plan reviewer; references the terminal validate route but owns no fix/re-review loop
     'spec-clarify',            // clarification gate: references the route, not a findings grader
     'fix',                     // its --target=review branch CONSUMES findings already validated by the route; it fixes, it does not grade
     'integration-test-verify' // its optional --fix-loop mode is a convergence-loop orchestrator: runs the default verify pass + /integration-test-review report-only + /changes-review + /why-review --validate-findings + /fix; delegates finding-production to those reviewers, not itself an SC grader

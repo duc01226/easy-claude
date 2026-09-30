@@ -9,7 +9,7 @@ Tags propagated (each with its `:reminder` sibling):
   - SYNC:double-round-trip-review       -> 13 finding-PRODUCER review skills
         (review->validate->fix->full-re-review loop; graders + loop-orchestrators
         excluded — see DOUBLE_ROUND_TRIP comment)
-  - SYNC:goal-contract-satisfaction-loop -> ALL_REVIEW_SKILLS (all 17)
+  - SYNC:goal-contract-satisfaction-loop -> converging review skills
         (save-goal-before-loop + check-goal-each-cycle; additive-safe)
   - SYNC:design-distinctiveness-gate    -> 13 visual-surface skills across FOUR roles
         (review / design-author / plan / build). Superset of the ui-ux-design-principles
@@ -22,12 +22,17 @@ Tags propagated (each with its `:reminder` sibling):
   - SYNC:design-review-checklist        -> 15 skills that review, author, plan or build a
         front-end surface. The executable review PROCEDURE (CL-1..CL-6) routing to the
         ~130-check catalog in .claude/docs/design-review-checklist.md. Superset of
-        design-distinctiveness-gate by changes-review + plan-review -- see the
-        DESIGN_REVIEW_CHECKLIST comment for why those two grade-anything skills carry a
+        design-distinctiveness-gate by changes-review -- see the
+        DESIGN_REVIEW_CHECKLIST comment for why this grade-anything skill carries a
         procedure but not the taste clauses. Every body is self-gating on "has a UI surface".
   - SYNC:e2e-visual-design-contract    -> the E2E/visual-review skill carriers
         (design authority + component/reuse + runtime/source ownership + baseline gates).
-  - SYNC:trade-off-interrogation-gate    -> ALL_REVIEW_SKILLS (all 17)
+  - SYNC:ai-feature-framing-gate        -> ai-engineering-review ONLY
+  - SYNC:ai-engineering-gate            -> ai-engineering-review ONLY
+  - SYNC:ai-review-checklist            -> ai-engineering-review ONLY
+        (every other skill holds one conditional pointer line, bar the floor guide line kept by
+         hand in plan-review and integration-test-review; see the AI_* comment)
+  - SYNC:trade-off-interrogation-gate    -> converging review skills
         (trade-off? worth it? material -> confirm with user; additive-safe,
          graders and loop-orchestrators included — see ALL_REVIEW_SKILLS comment)
 
@@ -63,15 +68,16 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 BATCHING = [
     "changes-review", "code-quality-review", "architecture-review", "domain-entities-review",
-    "ui-review", "integration-test-review", "security-audit",
+    "ui-review", "security-audit", "ai-engineering-review",
     "performance-review", "production-readiness-review", "architecture-review-full",
 ]
 SEVERITY = [
     "code-quality-review", "changes-review", "architecture-review",
-    "domain-entities-review", "ui-review", "integration-test-review", "security-audit",
+    "domain-entities-review", "ui-review", "security-audit",
+    "ai-engineering-review",
     "performance-review", "production-readiness-review", "knowledge-review", "artifact-review",
     "spec-clarify",
-    "plan-review", "why-review", "code-simplifier", "architecture-review-full",
+    "why-review", "code-simplifier", "architecture-review-full",
     "architecture-scalability-review", "feature-implement", "plan-execute", "fix",
     # The main review workflow also emits and routes findings (and, in its optional `--fix-loop`
     # mode, classifies the findings its outer loop decides whether to fix); keep its local
@@ -89,19 +95,17 @@ CATEGORY = list(BATCHING)  # co-paired with batching
 # (a grader emits a grade, not a review->fix loop). EXCLUDES the loop-orchestrators
 # (workflow-review-changes, incl. its `--fix-loop` mode) — they own the
 # OUTER fix loop and each inner /why-review round self-binds this block already.
-# EXCLUDES plan-review: it carries an OVERRIDE:double-round-trip-review block instead,
-# because its loop is capped at 2 rounds HARD with no extension round, while the canonical
-# body grants one conditional extension. An OVERRIDE carrier is not a SYNC carrier, so
-# listing it here would fail verify-sync-adoption-parity.mjs as a MISSING CARRIER; the
-# trade-off accepted with that narrowing is that canonical edits to this protocol no longer
-# reach plan-review and must be re-applied to its OVERRIDE body by hand.
+# EXCLUDES plan-review and integration-test-review: both are one-pass, read-only reviews with
+# protocol guides and no validate/fix/re-review loop.
 DOUBLE_ROUND_TRIP = [
     "changes-review", "code-quality-review", "architecture-review", "architecture-review-full",
-    "domain-entities-review", "ui-review", "integration-test-review",
-    "security-audit", "performance-review", "production-readiness-review",
+    "domain-entities-review", "ui-review",
+    "security-audit", "ai-engineering-review", "performance-review", "production-readiness-review",
     "knowledge-review", "artifact-review", "why-review",
 ]
-# EVERY review skill — finding-producers, graders, AND loop-orchestrators. Declared ONCE
+# Review skills that own convergence, grading, or a fix-loop. The single-pass plan-review and
+# integration-test-review skills deliberately stay outside this full-body population and use only
+# the targeted guides their one-pass contracts need. Declared ONCE
 # because two tags below adopt this exact population, and maintaining the roster twice is
 # how it drifts: GOAL_CONTRACT once fell a skill behind TRADE_OFF (missing
 # a loop-orchestrator skill) and nothing detected it — verify-sync-adoption-parity.mjs compares
@@ -113,15 +117,14 @@ ALL_REVIEW_SKILLS = [
     "changes-review", "code-quality-review", "architecture-review",
     "architecture-review-full",
     "architecture-scalability-review", "domain-entities-review", "ui-review",
-    "integration-test-review",
     # Loop-orchestrator via its optional `--fix-loop` mode (Goal Contract + trade-off gated fixes).
     "integration-test-verify",
-    "security-audit", "performance-review",
+    "security-audit", "ai-engineering-review", "performance-review",
     "production-readiness-review", "knowledge-review",
-    "artifact-review", "plan-review", "why-review",
+    "artifact-review", "why-review",
     "workflow-review-changes",
 ]
-# Save-goal-before-loop + read-goal-each-cycle + Goal-Satisfaction-matrix: every review skill
+# Save-goal-before-loop + read-goal-each-cycle + Goal-Satisfaction-matrix: every converging review skill
 # anchors its loop to a persisted Goal Contract. verify-workflow-cycle-compliance.mjs is
 # positive-only (no forbid rule for extra carriers), so this is additive-safe.
 GOAL_CONTRACT = list(ALL_REVIEW_SKILLS)
@@ -137,7 +140,7 @@ TRADE_OFF = list(ALL_REVIEW_SKILLS)
 # The UX-1..UX-11 journey-first gate (catalog: .claude/docs/ux-journey-process.md). It fixes the
 # ORDER every design output follows -- report the main user journeys, read the project's design
 # authority, only then generate -- so it binds the skills that GENERATE or COMMIT a user-facing
-# surface (design, design-spec, pbi-mockup, plan) and the two that REVIEW such an artifact against
+# surface (design, design-spec, pbi-mockup) and the two that REVIEW such an artifact against
 # its journeys (ui-review walks the journeys on the built surface; artifact-review --type=design
 # checks the spec carries the Journey Report). Deliberately NARROWER than DESIGN_DISTINCTIVENESS:
 # the build spine (plan-execute, feature-implement, fix) implements a design already derived from
@@ -146,8 +149,6 @@ TRADE_OFF = list(ALL_REVIEW_SKILLS)
 UX_JOURNEY = [
     # design/author role — the Journey Report is the first deliverable
     "ui-design", "design-spec", "pbi-mockup",
-    # plan role — UI phases derive views and priority from the journeys
-    "plan",
     # review role — walkthrough + traceability against the journeys
     "ui-review", "artifact-review",
 ]
@@ -173,10 +174,11 @@ UI_DESIGN_PRINCIPLES = [
 # the 40 UI-* clauses are a usability/accessibility FLOOR whose implementer gate already
 # lives on the frontend agents plan-execute routes UI work to, while DD-* asks whether the
 # surface is THIS product's or any generator's -- a question that is decided upstream, in the
-# plan and the scaffold, long before an agent renders a component. So the extra carriers over
+# scaffold and implementation planning, long before an agent renders a component. The lean
+# `plan` skill references configured UI authority in its scope gate instead of loading three
+# full visual protocols on every plan. So the extra carriers over
 # UI_DESIGN_PRINCIPLES are the ones that COMMIT a visual direction without necessarily
-# rendering it: `plan` (its `## UI Layout` section is where a UI-bearing phase's design plan
-# is fixed), `scaffold` (its golden-path frontend example sets the token and component
+# rendering it: `scaffold` (its golden-path frontend example sets the token and component
 # defaults every later feature copies -- a generic example propagates further than a generic
 # screen), `plan-execute` + `feature-implement` + `fix` (the build spine; `fix --target=ui`
 # edits real surfaces), and `feature-presentation` (emits a standalone stakeholder deck, which
@@ -187,8 +189,8 @@ DESIGN_DISTINCTIVENESS = [
     "ui-review", "web-design-guidelines", "artifact-review",
     # design/author role — the gate shapes the artifact the skill authors
     "ui-design", "design-spec", "feature-presentation", "presentation-builder",
-    # plan role — the design plan + generic test are decided here, before any code exists
-    "plan", "scaffold",
+    # foundation role — the golden-path frontend commits the initial visual direction
+    "scaffold",
     # build role — emits real markup/styles, so the clauses are build constraints
     "pbi-mockup", "plan-execute", "feature-implement", "fix",
 ]
@@ -206,23 +208,20 @@ UI_COPYWRITING = [
 ]
 
 # The CL-1..CL-6 front-end review checklist gate (catalog: .claude/docs/design-review-checklist.md).
-# WIDER than DESIGN_DISTINCTIVENESS by exactly two review carriers -- `changes-review` and
-# `plan-review` -- because this tag is the review PROCEDURE, not a taste rule: the two skills that
-# grade an arbitrary diff or an arbitrary plan must be told to run a UI pass WHEN (and only when)
-# the thing under review happens to contain front-end work. DD-* deliberately omits them: asking a
-# general diff reviewer to adjudicate visual identity produces noise, whereas asking it to check
-# the eight screen states and the a11y floor produces defects. Every carrier's body is
+# WIDER than DESIGN_DISTINCTIVENESS by the general `changes-review` carrier because this tag is
+# the review PROCEDURE, not a taste rule. Single-pass `plan-review` loads the checklist through
+# its guide only when the plan contains UI work. Every full-body carrier is
 # self-gating -- "N/A unless a user-facing front-end surface is present" -- so a backend-only
 # review costs one skipped line, not a spurious section.
 DESIGN_REVIEW_CHECKLIST = [
     # review role — the checklist IS the review protocol for any diff/artifact with a UI surface
     "ui-review", "web-design-guidelines", "artifact-review",
-    "changes-review", "plan-review",
+    "changes-review",
     # design/author role — author against the checklist so the review finds nothing
     "ui-design", "design-spec",
     "pbi-mockup", "feature-presentation", "presentation-builder",
-    # plan role — a plan containing front-end work binds the checklist into its acceptance criteria
-    "plan", "scaffold",
+    # foundation role — scaffold authors the reusable front-end example against the checklist
+    "scaffold",
     # build role — emits real markup/styles, so the checks are build constraints
     "plan-execute", "feature-implement", "fix",
 ]
@@ -239,11 +238,24 @@ E2E_VISUAL_DESIGN = [
 TEST_ARCHITECTURE_CONTRACT = [
     "architecture-design", "architecture-scalability-review", "architecture-review-full",
     "scaffold", "harness-setup", "workflow-greenfield-init",
-    "integration-test", "integration-test-review", "integration-test-verify",
+    "integration-test", "integration-test-verify",
     "e2e-test", "workflow-e2e",
     "workflow-write-integration-test", "workflow-integration-test-green", "test",
     "seed-test-data",
 ]
+
+# The AI-feature gate family (catalog: .claude/docs/ai-engineering-review-checklist.md). Three
+# tags carry the AI-engineering clauses, and this injector adds them ONLY to the dedicated reviewer
+# skill: a guide line makes the protocol hook deliver the full body on every load of the carrier, so a
+# skill that plans, builds or reviews non-AI work would pay for a protocol it never applies. Every other
+# skill holds ONE hand-written conditional pointer line at its routing point instead (see
+# `ai-gate-zero-cost.test.cjs`). Owner decision (2026-09-30): plan-review and integration-test-review
+# ALSO keep a guide line for the engineering floor (`ai-engineering-gate`) and nothing else; that line
+# is kept by hand / guide conversion and allow-listed in the test (GUIDE_LINE_ALLOWED), so this injector
+# must not add a body or a reminder there. Do NOT add any other skill to these lists.
+AI_FEATURE_FRAMING = ["ai-engineering-review"]
+AI_ENGINEERING_FLOOR = ["ai-engineering-review"]
+AI_REVIEW_PROCEDURE = ["ai-engineering-review"]
 
 # Canonical apply order per skill (stable, cosmetic only).
 MATRIX = [
@@ -260,6 +272,9 @@ MATRIX = [
     ("SYNC:design-review-checklist", DESIGN_REVIEW_CHECKLIST),
     ("SYNC:e2e-visual-design-contract", E2E_VISUAL_DESIGN),
     ("SYNC:test-architecture-execution-contract", TEST_ARCHITECTURE_CONTRACT),
+    ("SYNC:ai-feature-framing-gate", AI_FEATURE_FRAMING),
+    ("SYNC:ai-engineering-gate", AI_ENGINEERING_FLOOR),
+    ("SYNC:ai-review-checklist", AI_REVIEW_PROCEDURE),
 ]
 
 CLOSING_RE = re.compile(r"^## Closing Reminders\b.*$", re.MULTILINE)

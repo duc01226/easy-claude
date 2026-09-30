@@ -367,7 +367,7 @@ ORCHESTRATOR_SKILLS = {
     "production-readiness-review", "project-init", "scan",
     "scan-codebase-health", "security-audit", "seed-test-data",
     "spec-clarify", "spec-discovery", "spec-index", "start-workflow",
-    "tech-spec", "test", "ui-review", "understand", "why-review",
+    "tech-spec", "test", "ui-review", "ai-engineering-review", "understand", "why-review",
     "workflow-code-to-spec", "workflow-idea-to-pbi", "workflow-idea-to-spec",
     "workflow-spec-to-mockup",
     "workflow-review-changes",
@@ -417,7 +417,7 @@ READONLY_CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + [
 # Mirrors the regression test's completeness assertion so tooling + test enforce
 # one invariant.
 CODE_AGENTS = {
-    "architect", "backend-developer", "code-reviewer", "code-simplifier",
+    "ai-engineering-reviewer", "architect", "backend-developer", "code-reviewer", "code-simplifier",
     "database-admin", "debugger", "e2e-runner", "framework-maintainer", "frontend-developer",
     "fullstack-developer", "integration-tester", "performance-optimizer",
     "planner", "security-auditor",
@@ -441,7 +441,7 @@ CORE_ONLY_AGENTS = {
 # Membership is NOT validated against the disk set the way CODE/CORE_ONLY are — it is
 # a pure inclusion list; absence simply means "no code-standards block".
 CODE_STANDARDS_AGENTS = {
-    "architect", "backend-developer", "code-reviewer", "code-simplifier",
+    "ai-engineering-reviewer", "architect", "backend-developer", "code-reviewer", "code-simplifier",
     "database-admin", "debugger", "e2e-runner", "framework-maintainer",
     "frontend-developer", "fullstack-developer", "integration-tester",
     "performance-optimizer", "planner", "security-auditor", "solution-architect",

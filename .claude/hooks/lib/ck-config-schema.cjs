@@ -80,6 +80,14 @@ const CK_SCHEMA = {
       enabled: { type: "boolean", required: false },
     },
   },
+  // AI-feature router (ai-feature-route.cjs). On by default; `enabled: false` or CK_AI_FEATURE_ROUTE=0 switches it off.
+  aiFeatureRoute: {
+    type: "object",
+    required: false,
+    properties: {
+      enabled: { type: "boolean", required: false },
+    },
+  },
   // Core engineering principles reminder (core-principles-inject.cjs). On by default;
   // `enabled: false` or CK_CORE_PRINCIPLES_INJECT=0 switches it off.
   corePrinciplesInject: {

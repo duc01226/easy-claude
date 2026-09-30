@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-29'
-  total_skills: 128
+  last_updated: '2026-09-30'
+  total_skills: 129
   total_by_status:
-    active: 128
+    active: 129
     deprecated: 0
     experimental: 0
 categories:
@@ -34,6 +34,18 @@ skills:
       category: ai-ml
       has_scripts: true
       has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: ai-engineering-review
+      path: ai-engineering-review/SKILL.md
+      description: '[Code Quality] Use when a workflow step or the user asks for an
+        AI-feature review: LLM calls, prompts, agents, RAG, tool use, evals, guardrails,
+        cost and safety. Flags: --mode={code|plan} (default code), --report-only.'
+      category: ai-ml
+      has_scripts: false
+      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -307,9 +319,9 @@ skills:
     - name: e2e-test-verify
       path: e2e-test-verify/SKILL.md
       description: '[Testing] Use when a workflow step or the user asks for E2E verification
-        with exact runner output and evidence. Flags: --fix-loop drives a suite or
-        human-QC journey to green; --visual-review={true|false} follows the request
-        or project contract.'
+        with runner evidence. --fix-loop owns execution/fix/retest; --visual-review={true|false}
+        follows request or project contract. Quality and visual review run once per
+        attempt.'
       category: other
       has_scripts: false
       has_references: false
@@ -512,8 +524,8 @@ skills:
     - name: integration-test-review
       path: integration-test-review/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for an
-        integration test review. Checks assertion quality, bug protection, repeatability,
-        and spec-traceable coverage of changed code.'
+        integration-test review. Performs one evidence-backed review pass over tests,
+        source, and governing specs; maximum one review round per invocation.'
       category: other
       has_scripts: false
       has_references: false
@@ -1385,9 +1397,10 @@ skills:
       removal_after: null
     - name: plan
       path: plan/SKILL.md
-      description: '[Planning] Use when a workflow step or the user asks for an implementation
-        plan. Flag: --mode={ci|cro} (default standard); ci plans a fix from a CI run,
-        cro plans conversion-rate optimization.'
+      description: '[Planning] Use when a workflow step or the user asks for a concise
+        implementation plan. Captures technical decisions, affected areas, execution-time
+        discovery, risks, and final quality gates without pre-implementing the change.
+        Flag: --mode={ci|cro}.'
       category: utilities
       has_scripts: false
       has_references: true
@@ -1410,8 +1423,8 @@ skills:
     - name: plan-review
       path: plan-review/SKILL.md
       description: '[Planning] Use when a workflow step or the user asks for a plan
-        review. Auto-reviews validity, correctness and best practices — bounded at
-        2 rounds MAX, no extension.'
+        review. Performs one evidence-backed review pass and returns a verdict; maximum
+        one review round per invocation.'
       category: utilities
       has_scripts: false
       has_references: false

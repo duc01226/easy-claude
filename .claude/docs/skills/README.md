@@ -1,6 +1,6 @@
 # Skills Reference
 
-> <!-- COUNT:skills -->128<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->129<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -22,13 +22,13 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->128<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->129<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
 | [Development - Backend](#development---backend)   | 0      | Project-specific backend patterns              |
 | [Development - Frontend](#development---frontend) | 2      | Components, forms, state, styling, design      |
-| [Architecture](#architecture)                     | 2      | Architecture, performance, security            |
+| [Architecture](#architecture)                     | 3      | Architecture, performance, security            |
 | [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                    |
 | [Documentation](#documentation)                   | 3      | Docs, feature docs, release notes              |
 | [Git/Workflow](#gitworkflow)                      | 5      | Commits, pull requests, code review, gates     |
@@ -67,6 +67,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | -------------------- | ------------------------------------- | ------------------------------------------------- |
 | `performance-review` | performance, optimization, bottleneck | Performance tuning + architecture-altitude review |
 | `security-audit`    | security, vulnerabilities             | Security analysis                                 |
+| `ai-engineering-review` | AI feature review, LLM review, prompt review, agent review, RAG review | Review a plan or change that calls a model against the AI-engineering protocol (`--mode=code\|plan`, `--report-only`) |
 
 ---
 
@@ -180,7 +181,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 ## Shared Protocols (SYNC bodies and guides)
 
-Shared protocols follow the hybrid policy (`SYNC:shared-protocol-duplication-policy`). A converted skill carries one guide line per protocol in its `PROTOCOL-GUIDES` block, and a hook delivers the full text from the generated projection `.claude/skills/shared/protocols/` (the guide path is the fallback). The five review-family skills (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`), SYNC bodies in `references/*.md` and agents keep full `<!-- SYNC:tag -->` bodies. The canonical source for all SYNC content is `.claude/skills/shared/sync-inline-versions.md`.
+Shared protocols follow the hybrid policy (`SYNC:shared-protocol-duplication-policy`). A converted skill carries one guide line per protocol in its `PROTOCOL-GUIDES` block, and a hook delivers the full text from the generated projection `.claude/skills/shared/protocols/` (the guide path is the fallback). The four converging review-family skills (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`), SYNC bodies in `references/*.md` and agents keep full `<!-- SYNC:tag -->` bodies. Single-pass `plan-review` uses guides. The canonical source for all SYNC content is `.claude/skills/shared/sync-inline-versions.md`.
 
 **Why hybrid?** A rule in context is followed more reliably than one the model must choose to read, so hooks put the full text in context when the skill loads; full bodies stay only where hook delivery cannot reach the reader or carry the text.
 
@@ -261,7 +262,7 @@ Skills are often activated alongside commands:
 | -------------------- | -------------------------------------- |
 | `/feature-implement` | `feature`, `plan`, `spec [mode=tests]` |
 | `/fix`               | `debug-investigate`                    |
-| `/plan`              | `plan`, `plan-review`                  |
+| `/plan`              | `plan` (`plan-review` is explicit opt-in) |
 | `/review`            | `code-quality-review`                          |
 | `/test`              | `spec [mode=tests]`, `e2e-test`        |
 | `/idea`              | `idea`                                 |
@@ -298,4 +299,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->128<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->129<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_

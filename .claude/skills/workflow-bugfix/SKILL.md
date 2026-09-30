@@ -30,7 +30,7 @@ Classify the defect before choosing steps and record the result in the workflow 
 | --- | --- |
 | XS/S, one owning layer, Code Bug, no contract/data/security | investigate → regression test + fix → review → verify (mutation check = RED proof) → close; `/fix` plans inline; spec steps only when a canonical spec covers the area |
 | M, or a Spec Bug, or several TCs | add `/plan`; add the spec-tests review when the TC change is more than one regression case |
-| L/XL, cross-module, contract/data/security, or ambiguous cause | full sequence; add an ad hoc `/plan-review` when the fix set is large or ambiguous; partition verification and review per module |
+| L/XL, cross-module, contract/data/security, or ambiguous cause | full sequence; make `/plan` capture the decisions, owners, risks and final gates; partition verification and review per module |
 
 ## Required Quality Gates
 
@@ -83,7 +83,7 @@ Outcome gates: root cause traced · tests pass · spec synced (when a canonical 
 
 A recommended step the triage shows would do no real work is not run; record it through the Step Execution Protocol with its evidence.
 
-**Ad hoc skills (not registry steps):** `/performance-review` for a performance bug (below) · `/investigate` for an "unused code" removal decision (grep evidence, confidence ≥80%, cross-module check) · `/plan-review` for a large or ambiguous fix set · `/spec` (ui-intent) beside the spec sync when user-facing behavior changed — refresh the Feature Spec §6 interaction surface (View Inventory, Key UI States, the click-path the bug touched) and link the governing design spec; state the skip reason for a backend-only fix.
+**Ad hoc skills (not registry steps):** `/performance-review` for a performance bug (below) · `/investigate` for an "unused code" removal decision (grep evidence, confidence ≥80%, cross-module check) · `/spec` (ui-intent) beside the spec sync when user-facing behavior changed — refresh the Feature Spec §6 interaction surface (View Inventory, Key UI States, the click-path the bug touched) and link the governing design spec; state the skip reason for a backend-only fix.
 
 > **[PERFORMANCE-SDD ROUTE]** A performance bug (latency, throughput, memory, query speed, load behavior) runs `/performance-review` with SLA/benchmark evidence: target metric, baseline, measurement command and acceptable regression budget. Performance scope never bypasses functional no-regression checks — run them when behavior can change — and a changed SLA, performance constraint or behavior boundary updates specs and docs.
 

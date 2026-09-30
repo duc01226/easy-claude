@@ -220,6 +220,7 @@ Before any review — classify the changeset and route sub-agents:
 | Query files, caching, batch processing   | `performance-optimizer`                                 |
 | Source code (logic, handlers, services)  | `code-reviewer`                                         |
 | Frontend/UI files (components, templates, `.html`/`.scss`/`.css`, design-system) | `$ui-review` skill (see Phase 0.7b) |
+| AI surface? Only if the change creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`) | read `.claude/skills/shared/protocols/ai-engineering-gate.md`; `$ai-engineering-review --report-only`, fold its findings in; otherwise skip this row |
 | Docs, plans, specs, markdown             | `general-purpose`                                       |
 | Mixed changeset with security/perf files | Spawn specialized sub-agent first, then `code-reviewer` |
 

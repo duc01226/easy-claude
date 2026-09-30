@@ -162,6 +162,8 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 
 **Gate verdict:** `{n}/8 pass`, with each non-applicable item justified separately. Any failed or unresolved binary gate, unresolved evidence, or finding blocking the current round ⇒ overall verdict cannot be PASS even at a 19-24 score. Use `review-policy.cjs` with the persisted round/minimum; never relabel a binary failure as LOW.
 
+**AI surface?** Only if the change creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md` and route depth to `/ai-engineering-review` (not a gate item; `{n}/8` unchanged); otherwise skip this line.
+
 ## Technique Applicability (advisory — NON-SCORING, NON-GATING)
 
 Invoke `SYNC:scale-technique-gate`: derive the system's scale tier from evidence (users/RPS, SLO, data volume, tenancy, topology — cite `file:line`/config/infra + confidence), then emit the **Technique Applicability Matrix** (`technique | tier-warranted? | present? | verdict | advice | evidence`) across the 10 concern groups. Surface warranted-but-missing reliability/scale techniques (rate limiting, backups, DR, failover, graceful degradation) as **advice**; flag `OVER-ENGINEERED` techniques the tier does not warrant.

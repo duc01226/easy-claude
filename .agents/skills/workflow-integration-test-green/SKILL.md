@@ -116,7 +116,7 @@ Inside each round the loop also drives report-only `$integration-test-review` (t
 
 You choose inline vs sub-agent, batching, clustering and ordering to minimise wall-clock and token cost at equal quality. The fixed constraints are data dependencies and in-session gates:
 
-- **Inline, never a sub-agent:** the fix-loop and the skills it drives — the default verify pass, `$debug-investigate`, `$integration-test-review`, `$changes-review`. `$debug-investigate` needs its `$why-review` gate in the same session and `$integration-test-review` self-binds its fix and re-review obligations; a sub-agent cannot carry either back. Their own internal fan-outs (per-project verify agents, review phases) stay sub-agents, so context stays bounded.
+- **Inline, never a sub-agent:** the fix-loop and the skills it drives — the default verify pass, `$debug-investigate`, one-pass report-only `$integration-test-review`, `$changes-review`. `$debug-investigate` needs its `$why-review` gate in the same session, and the outer loop must consume the review verdict before any caller-owned fix. Their own internal fan-outs (per-project verify agents, review phases) stay sub-agents, so context stays bounded.
 - A fix lands only after its Fault Verdict; a fixed state is re-verified by a fresh full run over the same scope.
 - Sync steps run after convergence, so they sync the final tests rather than intermediate ones. `$workflow-end` runs last. Gates awaiting user approval never run in parallel.
 - Recommended: after convergence `$spec [mode=sync]` and `$scan --target=integration-tests` write disjoint files and may run as one wave, with `$docs-update` after both.

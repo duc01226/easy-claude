@@ -72,7 +72,7 @@ Classify before choosing steps; write the result as the first section of the run
 | Triage result                      | Typical route (recommended skills below decide the rest)                                                                                                                                                   |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Single-PBI, XS/S, clear            | idea → refine → why-review → draft spec → test specs → spec-tests review → spec-clarify → PBI review → story → story review → pbi-challenge → dor-gate → UI mockup/design-spec if UI → docs-update → close |
-| Single-PBI, M+ / risky / ambiguous | adds domain-analysis + domain why-review, scenario, plan → plan-review → plan-validate, prioritize against the backlog, presentation deck                                                                  |
+| Single-PBI, M+ / risky / ambiguous | adds domain-analysis + domain why-review, scenario, one lean plan → plan-validate, prioritize against the backlog, presentation deck                                                                  |
 | Multi-Opportunity                  | optional research → brainstorm → opportunity-map why-review → domain-analysis once → per-opportunity loop → cross-PBI prioritize → docs-update → deck → close                                              |
 
 ## Required Quality Gates (non-negotiable)
@@ -108,14 +108,14 @@ Skipping a step whose applicability is false, or that triage shows does no real 
 | `$spec [mode=draft]`, `$spec [mode=tests]`, `$artifact-review --type=spec-tests`, `$spec-clarify`       | Single-PBI track                                                                                                         | spec clarity                  |
 | `$scenario`                                                                                             | the slice needs adversarial replay, state, ownership, recovery or evidence analysis before planning                      | risk coverage                 |
 | `$domain-analysis`                                                                                      | the idea adds or changes domain entities (Multi-Opportunity: once, up front)                                             | domain impact                 |
-| `$plan` → `$plan-review` → `$plan-validate`                                                             | Single-PBI track and M+, cross-module, risky or ambiguous                                                                | story slicing, estimates, DoR |
+| `$plan` → `$plan-validate`                                                                              | Single-PBI track and M+, cross-module, risky or ambiguous                                                                | story slicing, estimates, DoR |
 | `$artifact-review --type=pbi`, `$story`, `$artifact-review --type=story`, `$pbi-challenge`, `$dor-gate` | always, per PBI                                                                                                          | review, challenge, DoR        |
 | `$pbi-mockup --explore` → `$design-spec`                                                                | the PBI has a user-facing UI surface; journey-first (see UI Mockup below) and gated by `SYNC:existing-ui-research` so both match the current UI system | UI evidence                   |
 | `$prioritize`                                                                                           | more than one PBI, or the PBI must be ranked against an existing backlog; otherwise refine's frontmatter priority stands | priority                      |
 | `$docs-update`                                                                                          | always, after prioritize                                                                                                 | docs synced                   |
 | `$feature-presentation`                                                                                 | several PBIs, M+ scope, or stakeholders asked for a deck                                                                 | stakeholder handoff           |
 
-The standalone why-review is deliberately absent before the spec-tests and story reviews, after the PBI review and after plan-validate: `artifact-review` and every `plan-review` round already run the adversarial rationale pass and `$why-review --validate-findings` on that artifact.
+The standalone why-review is deliberately absent before the spec-tests and story reviews and after plan-validate: each artifact review owns its own rationale and finding-validation pass.
 
 ## UI Mockup — Journey-First Explore (UI PBIs)
 
@@ -163,7 +163,7 @@ Each PBI carries: title, problem statement, hypothesis, GIVEN/WHEN/THEN acceptan
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $web-research -> $source-deep-dive -> $brainstorm -> $idea -> $spec-discovery -> $artifact-review -> $refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec-clarify -> $scenario -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $artifact-review --type=pbi -> $story -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup --explore -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $web-research -> $source-deep-dive -> $brainstorm -> $idea -> $spec-discovery -> $artifact-review -> $refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec-clarify -> $scenario -> $domain-analysis -> $why-review -> $plan -> $plan-validate -> $artifact-review --type=pbi -> $story -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup --explore -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
 
 **Step contract:** the list above is the recommended default order from `.claude/workflows.json`; steps follow `$start-workflow` → Step Execution Protocol — `gate` steps (`artifact-review --type=pbi`, `dor-gate`, `workflow-end`) always run, `optional` steps run when their `applicability.when` holds, and every skip, merge, simplification or reorder is logged with evidence. NEVER batch-complete validation gates.
 

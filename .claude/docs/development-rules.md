@@ -68,7 +68,7 @@
 > - **Skills keep guides.** A converted skill's `SKILL.md` carries one guide line per protocol in its `PROTOCOL-GUIDES` block (tag, summary, when it applies, path of the published text) instead of the full `<!-- SYNC:tag -->` body.
 > - **Hooks deliver the full text** where the host runs hooks, from the generated projection `.claude/skills/shared/protocols/`. The guide path is the fallback: when a protocol's text is not in your context, read its file before you act on it.
 > - **`:reminder` digests stay** in every carrier for must-never-miss rules.
-> - **The five review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `plan-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry.
+> - **The four converging review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry. Single-pass `plan-review` uses protocol guides and loads only triggered depth.
 > - **Agents keep full protocol text.** `.claude/agents/*.md` are never converted to guides.
 > - **Reviewer prompts carry protocol bodies inline.** The orchestrator copies ONE template (`SYNC:review-protocol-injection`) wholesale into each fresh reviewer prompt; a reviewer is never handed a path to go read.
 > - **`references/`:** a mode-only section of a skill may live in `references/*.md`, read at the point of use as that mode's first action; a SYNC body inside `references/*.md` stays inline.
@@ -118,11 +118,10 @@ Use formatters, linters, and style rules selected by project config and referenc
 
 ## Task Decomposition & Iterative Quality
 
-> **Iterative Phase Quality** — Score complexity before planning. Score >=6 → MUST ATTENTION decompose into phases.
-> Each phase: <=5 files, <=3h effort, plan → implement → review → fix → verify. No skipping.
+> **Iterative Phase Quality** — Split work only at a real dependency boundary, independently verifiable outcome, or disjoint write owner. Plan at decision-and-boundary altitude; execution discovers local mechanics.
 
-- **Principle:** Break large tasks into small phases. Each phase: plan → implement → review → fix → verify
-- **Rule:** No phase >5 files or >3h effort. No monolithic plans for complex tasks.
+- **Principle:** Use the fewest outcome phases that make ownership and dependency order clear. Do not force file-count, hour, or method-level slices.
+- **Verification order:** write tests with implementation, use only static/type/compile checks between phases, review the settled whole change, then run the affected tests once at the final verify gate.
 
 ---
 

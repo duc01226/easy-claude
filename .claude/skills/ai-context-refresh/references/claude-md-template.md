@@ -90,6 +90,10 @@ For user-facing UI creation/reshaping apply, in order, journey-first `UX-1`–`U
 
 UI planning/review/building also applies checklist `CL-1`–`CL-6`: establish platform/context, cite findings, never invent measurements (`NOT VERIFIABLE` when unavailable), rank P0–P4, sweep A–N with F/G/H/L conditional, report in O shape (P triage when constrained). Plans carry platform applicability, eight screen states and accessibility acceptance criteria. Report each defect once across UX/UI/DD/CL.
 
+## AI-Engineering Gate
+
+Binds every host, with or without hooks. Applies only when a task creates, changes, plans or reviews an AI feature (model calls, prompts, agents, tools/MCP, retrieval, evals, guardrails); otherwise it costs nothing. Read one file, `.claude/skills/shared/protocols/ai-engineering-gate.md` (the floor `AE-1.1`–`AE-9.4`; planning `AF-1`–`AF-6`: `.claude/skills/shared/protocols/ai-feature-framing-gate.md`). Review `AR-1`–`AR-6` runs through `/ai-engineering-review` (`$ai-engineering-review` on Codex) or the `ai-engineering-reviewer` sub-agent, which read the checklist and knowledge docs by section, never whole; `node .claude/scripts/ai-signal-scan.cjs` lists AI surfaces. Verify provider facts against current provider docs, never memory. Explicit brief wins, then project decisions/ADRs, then these clauses; carry the protocol path into AI-bearing sub-agent briefs.
+
 ## Continuous Improvement — Lesson Extraction Gate
 
 Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the root reasoning failure, generalize to at least three contexts, remove incident specifics and consolidate duplicates. Recommend only a project convention or a universal best-practice protocol worth reading on everyday work — skip rare AI-agent quirks, one-off incidents and details of the current task. Skip nonrecurring lessons; improve the review skill when mechanical review can catch the failure. If valuable, recurring and not mechanically catchable, ask the user to run `/learn`; never silently self-edit instructions.

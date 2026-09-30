@@ -77,16 +77,17 @@ test("shared-protocol maintenance documents both skill tiers without fixed inven
   assert.doesNotMatch(skill, /all 163 skills|all 29 agents|183 updated/);
 });
 
-test("plan metadata is coherent and reference preflight precedes dispatch (CR-092, CR-093)", async () => {
-  const [plan, organization, review] = await Promise.all([
+test("plan and plan-review keep decision-boundary altitude and verify-last order (CR-092, CR-093)", async () => {
+  const [plan, review] = await Promise.all([
     read(".claude/skills/plan/SKILL.md"),
-    read(".claude/skills/plan/references/engine-plan-organization.md"),
     read(".claude/skills/plan-review/SKILL.md"),
   ]);
-  assert.ok(plan.indexOf("Project-reference preflight — BEFORE dispatch") < plan.indexOf("Research wave — ONE message"));
-  for (const content of [plan, organization, review]) {
-    assert.match(content, /Mode, Wave, write set, and SEQ dependency/i);
-  }
+  assert.match(plan, /Important technical decisions/);
+  assert.match(plan, /Areas and owners to touch/);
+  assert.match(plan, /Discovery before edit/);
+  assert.match(plan, /After all implementation: run one whole-change static review/);
+  assert.match(review, /Plan altitude/);
+  assert.match(review, /Verify-last/);
 });
 
 test("docs-update reserves spec and generated-doc paths to canonical child skills (CR-096)", async () => {
@@ -264,10 +265,8 @@ test("review convergence uses one blocking predicate and byte-identical low-only
     ".claude/skills/changes-review/SKILL.md",
     ".claude/skills/code-quality-review/SKILL.md",
     ".claude/skills/domain-entities-review/SKILL.md",
-    ".claude/skills/integration-test-review/SKILL.md",
     ".claude/skills/knowledge-review/SKILL.md",
     ".claude/skills/performance-review/SKILL.md",
-    ".claude/skills/plan-review/SKILL.md",
     ".claude/skills/production-readiness-review/SKILL.md",
     ".claude/skills/security-audit/SKILL.md",
     ".claude/skills/ui-review/SKILL.md",
@@ -350,47 +349,15 @@ test("mutating workflow closures refresh domain-entity references before docs-up
   }
 });
 
-test("plan-review runs an unconditional why-review sub-agent in every review wave, primacy and recency", async () => {
-  const [review, whyReview, plan] = await Promise.all([
-    read(".claude/skills/plan-review/SKILL.md"),
-    readSkillContract("why-review"),
-    read(".claude/skills/plan/SKILL.md"),
-  ]);
-  const text = review.replace(/\r\n/g, "\n");
-  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## Impact-Aware Quality Review"));
-  const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
-  const wave = text.slice(text.indexOf("## Parallel Review Wave"), text.indexOf("## Conditional Project Pattern Alignment"));
-  // Primacy + recency: the always-in-the-wave rule must survive at both ends of the long skill.
-  for (const [where, section] of [["Quick Summary", summary], ["Closing Reminders", closing]]) {
-    assert.match(section, /UNCONDITIONAL full-mode `\/why-review` rationale sub-agent/, `${where} must state the unconditional why-review member`);
-  }
-  // Wave contract: one message, all-return barrier, merge before verdict, never N/A, every round.
-  assert.ok(wave.length > 0, "plan-review must carry the Parallel Review Wave section");
-  assert.match(wave, /round 1 AND every round N≥2/);
-  assert.match(wave, /Spawn every sub-agent member in ONE message/);
-  assert.match(wave, /All-return barrier/);
-  assert.match(wave, /never a silent PASS/);
-  assert.match(wave, /UNANSWERED/);
-  assert.match(wave, /host\/sub-agent fan-out unavailable → inline fallback/);
-  assert.match(wave, /tmp\/reports\/plan-review-why-review-round\{N\}-\{date\}\.md/);
-  // Round N≥2 re-review dispatches a NEW why-review member beside the fresh core sub-agent.
-  assert.match(text, /In the SAME message\*\*, spawn a NEW `\/why-review` rationale sub-agent/);
-  // Validate-findings stays the separate post-merge gate.
-  assert.match(text, /`\/why-review --validate-findings` over the MERGED report/);
-  assert.doesNotMatch(text, /rationale\* lens applied DURING the review pass/);
-  // Callers and the plan skill agree: no duplicate standalone why-review task after plan-review.
-  assert.match(whyReview, /`\/plan-review`'s Parallel Review Wave spawns it on EVERY review round/);
-  assert.doesNotMatch(plan, /Run \/why-review \(standalone only\)|`\/plan-review` → standalone `\/why-review`/);
+test("plan never invokes plan-review and only offers it after a standalone plan", async () => {
+  const plan = await read(".claude/skills/plan/SKILL.md");
+  assert.match(plan, /Never invoke `plan-review` or another review skill/);
+  assert.match(plan, /Standalone invocation:\*{0,2}[\s\S]*(?:ask|asking) exactly one optional question: `Run plan-review on this plan\?`/);
+  assert.match(plan, /Workflow invocation:\*{0,2}[\s\S]*Do not ask about review, execution, or other next steps/);
+  assert.doesNotMatch(plan, /invoke `plan-review` automatically|then run `plan-review`/i);
 });
 
-// plan-review's review→fix→re-review loop is capped at 2 rounds HARD: round 1 is the initial review,
-// round 2 is the single re-review after fixes, and round 2 still blocking escalates to the owner.
-// plan-review states this in an OVERRIDE:double-round-trip-review block (the sanctioned carrier-local
-// pattern ui-review/architecture-review use for fresh-context-review) rather than the shared SYNC
-// body, whose canonical text grants one conditional extension round for the carriers that DO grant
-// it. An OVERRIDE carrier is deliberately NOT a SYNC carrier, so this test pins both halves: the
-// SYNC fence must be gone, the OVERRIDE fence must own the text, and nothing may re-grant a round 3.
-test("plan-review caps its review loop at 2 rounds with no extension round", async () => {
+test("plan-review performs exactly one read-only review round", async () => {
   const [review, planSkill, planner] = await Promise.all([
     read(".claude/skills/plan-review/SKILL.md"),
     read(".claude/skills/plan/SKILL.md"),
@@ -398,88 +365,22 @@ test("plan-review caps its review loop at 2 rounds with no extension round", asy
   ]);
   const text = review.replace(/\r\n/g, "\n");
   const frontmatter = text.slice(0, text.indexOf("\n---", 4));
-  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## Impact-Aware Quality Review"));
+  const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## One-Round Contract"));
   const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
-  // Strip every SYNC body: the shared protocols still describe the extension for their other
-  // carriers, so only plan-review's own prose — its OVERRIDE blocks included — counts as its budget.
-  const localText = text.replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, "");
-
-  // The catalog line callers read before loading the skill states the bound.
-  assert.match(frontmatter, /bounded at 2 rounds MAX, no extension/);
-  assert.doesNotMatch(frontmatter, /recursive until the severity exit bar clears/);
-
-  // Primacy + recency: the hard cap must survive at both ends of the long skill.
+  assert.match(frontmatter, /maximum one review round per invocation/);
   for (const [where, section] of [["Quick Summary", summary], ["Closing Reminders", closing]]) {
-    assert.match(section, /NEVER a round 3/i, `${where} must rule out a third round`);
-    assert.match(section, /NO extension/i, `${where} must state the cap has no extension`);
-    assert.match(section, /AskUserQuestion/, `${where} must route a still-blocked round 2 to the user`);
+    assert.match(section, /one review round|ONE ROUND MAXIMUM/i, `${where} must state the single-pass cap`);
+    assert.match(section, /never (?:fix the plan|edit the plan)|never edit the plan/i, `${where} must preserve the read-only boundary`);
   }
-
-  // The loop protocol is carrier-local: the SYNC fence is gone and the OVERRIDE fence owns the text.
-  // Both blocks convert together — leaving the `:reminder` on canonical would restore the extension
-  // in the recency position, which is exactly where a long skill is most likely to be obeyed.
-  for (const tag of ["double-round-trip-review", "double-round-trip-review:reminder"]) {
-    assert.doesNotMatch(text, new RegExp(`<!-- SYNC:${tag} -->`), `plan-review must not carry SYNC:${tag}`);
-    assert.match(text, new RegExp(`<!-- OVERRIDE:${tag} -->`), `plan-review must carry OVERRIDE:${tag}`);
-    assert.match(text, new RegExp(`<!-- /OVERRIDE:${tag} -->`), `plan-review must close OVERRIDE:${tag}`);
-  }
-  const override = text.slice(
-    text.indexOf("<!-- OVERRIDE:double-round-trip-review -->"),
-    text.indexOf("<!-- /OVERRIDE:double-round-trip-review -->"),
-  );
-  assert.match(override, /Round cap — 2 rounds MAX, HARD, NO extension/);
-  assert.match(override, /round 2 is the LAST review round/);
-  assert.match(override, /for review blockers there is NEVER a round 3/);
-  // The cap must never force green: a failing test gate stays outside the budget.
-  assert.match(override, /A failing TEST gate → NO round cap, at any round/);
-  assert.match(override, /NEVER weaken an assertion, add a skip, or relax a timeout to force green/);
-
-  // Nothing in plan-review's own prose may re-grant a third review round.
-  const GRANTING = [
-    /grants exactly one extra round/i,
-    /\+1 extension round/i,
-    /2-round ceiling/i,
-    /extendable ONCE to round 3/i,
-    /extension round is granted/i,
-  ];
-  // ONE oracle, applied to the real source AND to every mutant below. Routing mutants through THIS
-  // function is what makes the guard non-vacuous: drop a pattern from GRANTING and the mutant it
-  // existed to catch survives, failing the matching `assert.throws`. The earlier form asserted a
-  // single bare regex against a string built by inserting that regex's own text, so it could not go
-  // red and proved nothing about the loop it claimed to exercise.
-  const assertNoExtensionGrant = (text) => {
-    for (const granting of GRANTING) {
-      assert.doesNotMatch(text, granting, `plan-review local prose must not grant an extension: ${granting}`);
-    }
-  };
-
-  assertNoExtensionGrant(localText);
-
-  // Every granting clause is probed, not just the one that happened to be written here — so the
-  // guard covers the whole list rather than a single representative of it.
-  for (const clause of ["grants exactly one extra round", "+1 extension round", "extendable ONCE to round 3", "extension round is granted"]) {
-    const mutant = localText.replace("HARD, NO extension", clause);
-    assert.notEqual(mutant, localText, `mutation anchor exists for: ${clause}`);
-    assert.throws(() => assertNoExtensionGrant(mutant), { code: "ERR_ASSERTION" });
-  }
-
-  // The siblings that DO grant the extension keep it — this narrowing is plan-review-only.
-  const siblings = await Promise.all(
-    ["why-review", "changes-review", "workflow-review-changes"].map(n => readSkillContract(n)),
-  );
-  for (const sibling of siblings) {
-    assert.match(sibling, /extendable ONCE to round 3/, "sibling loop skills keep the canonical extension");
-  }
-
-  // Callers describing plan-review's budget agree with it. Strip their SYNC bodies too: the shared
-  // convergence-loop block legitimately describes the extension for the carriers that DO grant it,
-  // so only a caller's OWN prose counts as a claim about plan-review.
-  for (const [name, source] of [["plan", planSkill], ["planner", planner]]) {
-    const callerLocal = source.replace(/\r\n/g, "\n").replace(/<!-- SYNC:([^\s>]+) -->[\s\S]*?<!-- \/SYNC:\1 -->/g, "");
-    assert.doesNotMatch(callerLocal, /\+1 extension round|2-round ceiling/, `${name} must not promise plan-review an extension round`);
-  }
-  assert.match(planSkill, /HARD 2-round cap/);
-  assert.match(planner, /HARD cap 2 rounds with NO extension/);
+  assert.match(text, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
+  assert.match(text, /Stop\. Do not apply fixes or re-review/);
+  assert.match(text, /another review requires a new explicit invocation/i);
+  assert.doesNotMatch(text, /OVERRIDE:double-round-trip-review|SYNC:double-round-trip-review|extendable ONCE|fresh full re-review/i);
+  assert.match(planSkill, /Never invoke `plan-review`/);
+  assert.match(planner, /never invoke `\/plan-review` automatically/);
+  const connections = planner.slice(planner.indexOf("<!-- AGENT-SKILL-CONNECTIONS:START -->"), planner.indexOf("<!-- AGENT-SKILL-CONNECTIONS:END -->"));
+  assert.match(connections, /- `plan`/);
+  assert.doesNotMatch(connections, /plan-review/, "planner must not preload the optional review contract");
 });
 
 // The retired standalone loop skill now lives as `changes-review --fix-loop`: the mode must keep every

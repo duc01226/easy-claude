@@ -6,18 +6,17 @@
  * Business intent: `watzup` hands the developer a summary of the whole session (uncommitted
  * working-tree changes plus the session's commits) that says what was done, the key changes, why
  * each was made and how the result works, before any detail or gate. When no code changed, the
- * code-only gates record a skip with evidence and the `/understand` handoff scales down to the
- * summary. The rules live only in prompt text, so an edit that drops one silently brings back a
+ * code-only gates record a skip with evidence and the report remains the sole comprehension handoff.
+ * The rules live only in prompt text, so an edit that drops one silently brings back a
  * commit-only recap or a code review run over a research session.
  * Invariants guarded:
  *   - scope: uncommitted changes plus this session's commits, read from git status/diff;
  *   - Session summary: always runs, four labelled parts in order, summary before detail;
  *   - proportion: doc-staleness and spec-health record `skipped — no code changed` with evidence,
- *     `/understand` scales down to the summary, and the read-only contract stays;
+ *     and the read-only contract stays;
  *   - Quick Summary, Workflow list and Key Rules all state the scope and the summary;
  *   - HTML report: git-ignored path, shipped self-contained template, auto-open via open-report.cjs,
- *     and the /understand HTML option for a large code change;
- *   - /understand is optional: it runs for a defined large code change or on request, never blocks;
+ *     with no automatic comprehension-skill handoff;
  *   - the auto-opened report escapes every value, allows only safe href schemes and carries a CSP;
  *   - the open step states the helper's tmp/ or temp/ bound.
  *
@@ -32,8 +31,8 @@ const path = require('node:path');
 
 const CLAUDE_DIR = path.resolve(__dirname, '..', '..', '..');
 const SKILL_FILE = path.join(CLAUDE_DIR, 'skills', 'watzup', 'SKILL.md');
-const TEMPLATE_FILE = path.join(CLAUDE_DIR, 'skills', 'watzup', 'references', 'session-report-template.html');
 const UNDERSTAND_FILE = path.join(CLAUDE_DIR, 'skills', 'understand', 'SKILL.md');
+const TEMPLATE_FILE = path.join(CLAUDE_DIR, 'skills', 'watzup', 'references', 'session-report-template.html');
 const OPEN_HELPER = path.join(CLAUDE_DIR, 'scripts', 'open-report.cjs');
 
 const readSkill = () => fs.readFileSync(SKILL_FILE, 'utf8').replace(/\r\n/g, '\n');
@@ -99,22 +98,14 @@ const tests = [
         }
     },
     {
-        name: 'TC-WSS-003 no code changed: code gates record a skip with evidence and /understand scales down',
+        name: 'TC-WSS-003 no code changed: code gates record evidence-backed skips and the report still owns handoff',
         fn: () => {
-            // Given the skill
             const text = readSkill();
-            // When the doc-staleness gate runs on a no-code session
-            // Then it records a skip with evidence instead of flags
             assert.match(section(text, 'Doc Staleness Check (REQUIRED)'), /`Doc staleness: skipped — no code changed` — plus the evidence/);
-            // And the spec-health gate does the same
             assert.match(section(text, 'Spec-Driven Development Health Check (REQUIRED when business code changed)'), /`Spec health: skipped — no code changed` with the evidence/);
-            // And "no code changed" is defined with cited evidence
             assert.match(section(text, 'Session Summary (ALWAYS runs)'), /\*\*No code changed\*\* means[^\n]*Cite the path list \(or a clean `git status`\) as the evidence/);
-            // And the /understand handoff scales down to the summary, in the Workflow and Next Steps
-            assert.match(block(section(text, 'Quick Summary'), 'Workflow'), /Otherwise the handoff scales down to the session summary: record `Understand handoff: scaled down to the session summary — no code changed`/);
-            assert.match(section(text, 'Next Steps'), /If no code changed, the handoff scales down to the session summary/);
-            // And the read-only contract is kept
             assert.match(text, /\*\*READ-ONLY contract\*\* — review, summarize and FLAG only; NEVER edit/);
+            assert.doesNotMatch(text, /`\/understand`|Understand handoff/);
         }
     },
     {
@@ -127,10 +118,10 @@ const tests = [
             const rules = block(quick, 'Key Rules');
             // Then the Summary states session scope and the proportion rule
             assert.match(summary, /\*\*Scope is the session\*\*/);
-            assert.match(summary, /\*\*Proportion rule:\*\* the session summary and the lesson gate always run/);
+            assert.match(summary, /(?:^|\n)-?\s*\*\*Proportion rule:\*\* the session summary and (?:the )?lesson gate always run/);
             assert.match(summary, SKIP_NO_CODE);
-            // And the Workflow list orders Scope → Session summary → gates → handoff → Next Steps
-            const steps = ['1. **Scope**', '2. **Session summary**', '3. **Doc Check**', '4. **Spec Health**', '5. **Lesson Learned**', '6. **Understand Handoff**', '7. **Session Report**', '8. **Next Steps**'];
+            // And the Workflow list orders Scope → Session summary → gates → report → Next Steps
+            const steps = ['1. **Scope**', '2. **Session summary**', '3. **Doc Check**', '4. **Spec Health**', '5. **Lesson Learned**', '6. **Session Report**', '7. **Next Steps**'];
             steps.forEach(s => assert.ok(workflow.includes(s), `Workflow must list ${s}`));
             // And the Key Rules carry scope, the four-part summary and the skip rule
             assert.match(rules, /Scope covers the whole session: uncommitted changes plus this session's commits/);
@@ -147,8 +138,8 @@ const tests = [
             const text = readSkill();
             const body = section(text, 'Session Report (HTML)');
             const html = fs.readFileSync(TEMPLATE_FILE, 'utf8');
-            // Then the report goes to a git-ignored directory resolved like understand Step 3
-            assert.match(body, /the way `understand\/SKILL\.md` Step 3 does[^\n]*then `tmp\/reports\/`[^\n]*`git check-ignore`/);
+            // Then the report goes to a configured or default git-ignored reports directory
+            assert.match(body, /reports directory named by `docs\/project-config\.json` when present, otherwise `tmp\/reports\/`[^\n]*`git check-ignore`/);
             assert.match(body, /If none is ignored, write no file: deliver the report content in chat/);
             // And it is written from the template with the declared section order
             assert.match(body, /\*\*Write\*\* `watzup-\{YYMMDD\}-\{HHmm\}-\{slug\}\.html` from `references\/session-report-template\.html`/);
@@ -181,40 +172,29 @@ const tests = [
         }
     },
     {
-        name: 'TC-WSS-007 a large code change may route through /understand HTML output',
+        name: 'TC-WSS-007 watzup never invokes another comprehension skill',
         fn: () => {
-            // Given watzup's handoff step and understand's HTML note
-            const workflow = block(section(readSkill(), 'Quick Summary'), 'Workflow');
+            const text = readSkill();
             const understand = fs.readFileSync(UNDERSTAND_FILE, 'utf8').replace(/\r\n/g, '\n');
-            // Then watzup asks /understand for HTML on a large code change, beside or instead of its report
-            assert.match(workflow, /For a large code change, ask `\/understand` for HTML output so its full review route opens beside the session report, or instead of it/);
-            // And understand writes the same report as HTML next to the .md, styled by watzup's template, opened by the helper
-            const note = understand.match(/\*\*HTML output \(on request\)\.\*\*[^\n]*/);
-            assert.ok(note, 'understand/SKILL.md must carry the HTML output note');
-            assert.match(note[0], /self-contained HTML next to the `\.md`/);
-            assert.match(note[0], /watzup\/references\/session-report-template\.html/);
-            assert.match(note[0], /node \.claude\/scripts\/open-report\.cjs <path>/);
+            const workflow = block(section(text, 'Quick Summary'), 'Workflow');
+            assert.match(workflow, /6\. \*\*Session Report\*\*/);
+            assert.match(workflow, /7\. \*\*Next Steps\*\*/);
+            assert.match(text, /never invoke another comprehension skill from this workflow/);
+            assert.doesNotMatch(text, /`\/understand`|Understand Handoff/);
+            assert.match(understand, /workflows and wrap-up skills do not invoke `\/understand`/);
+            assert.doesNotMatch(understand, /`\/watzup` invokes `\/understand`/);
         }
     },
     {
-        name: 'TC-WSS-008 /understand is optional: large code change or on request, never a blocker',
+        name: 'TC-WSS-008 the report and next-step prompt are the complete handoff',
         fn: () => {
-            // Given the skill
             const text = readSkill();
             const quick = section(text, 'Quick Summary');
             const workflow = block(quick, 'Workflow');
-            // Then "large code change" has a concrete, checkable definition
-            assert.match(section(text, 'Session Summary (ALWAYS runs)'), /\*\*Large code change\*\*[^\n]*more than 10 changed code files[^\n]*new module, service, skill, hook or script[^\n]*changed public contract[^\n]*Cite the count or the path/);
-            // And the handoff runs /understand only for a large code change or a user request
-            assert.match(workflow, /6\. \*\*Understand Handoff\*\* — For a \*\*large code change\*\*[^\n]*or when the user asks for the review guide, invoke `\/understand`/);
-            assert.match(block(quick, 'Key Rules'), /only for a large code change or when the user asks; otherwise the handoff scales down to the session summary/);
-            // And an unavailable /understand is noted and the wrap-up continues
-            assert.match(workflow, /If `\/understand` is unavailable, record[^\n]*and continue; it never blocks the wrap-up/);
-            assert.match(section(text, 'Next Steps'), /If `\/understand` is unavailable, note it in the report's Flags and continue; it is never a blocker/);
-            // And the old mandatory/blocker wording is gone
-            assert.doesNotMatch(text, /stop and report that blocker|STOP and report the blocker|With code changed, invoke `\/understand`/);
-            // And the declared cost applies only when the full handoff runs
-            assert.match(block(quick, 'Summary'), /\*\*Cost, declared:\*\* for a large code change \(or on request\)[^\n]*A smaller change does not pay it/);
+            assert.match(workflow, /6\. \*\*Session Report\*\*[\s\S]*7\. \*\*Next Steps\*\*/);
+            assert.match(block(quick, 'Summary'), /\*\*Main steps in order:\*\*[\s\S]*\(7\) \*\*`AskUserQuestion` Next Steps\*\*/);
+            assert.match(section(text, 'Session Report (HTML)'), /Post in chat[\s\S]*Session report → <path>/);
+            assert.doesNotMatch(text, /large code change[^\n]*review guide|handoff scales down/i);
         }
     },
     {

@@ -89,8 +89,15 @@ test('TC-CONV-CONFIG-002: enabled convention settings resolve as written and eve
         for (const field of ['pathGlobs', 'excludePathGlobs']) {
             for (const glob of group[field] || []) assert.ok(conventions.globToRegExp(glob), `${name}.${field} invalid: ${glob}`);
         }
-        const includes = ['pathRegexes', 'pathGlobs', 'fileNameRegexes'].some(f => (group[f] || []).length > 0);
+        // A content signal (regexes AND the extensions to scan) is an include matcher too, exactly as the runtime and the validator define it.
+        const hasContentInclude = (group.contentRegexes || []).length > 0 && (group.contentExtensions || []).length > 0;
+        const includes = ['pathRegexes', 'pathGlobs', 'fileNameRegexes'].some(f => (group[f] || []).length > 0) || hasContentInclude;
         assert.ok(includes, `${name} has no include matcher and can never match`);
+        // Content regexes run over file text on every read of a matching file: each must compile and pass the shared safety lint.
+        for (const source of group.contentRegexes || []) {
+            assert.doesNotThrow(() => new RegExp(source, 'i'), `${name}.contentRegexes does not compile: ${source}`);
+            assert.ok(conventions.isSafeContentRegex(source), `${name}.contentRegexes is unsafe (${conventions.contentRegexLintReason(source)}): ${source.slice(0, 60)}`);
+        }
         for (const doc of docs) assert.ok(fs.existsSync(path.join(repoRoot, doc)), `${name} references a missing doc: ${doc}`);
         for (const skill of skills) {
             assert.ok(fs.existsSync(path.join(repoRoot, conventions.skillPath(skill))), `${name} references a missing skill: ${skill}`);
@@ -103,8 +110,12 @@ test('TC-CONV-CONFIG-003: every class matches at least one tracked file and rend
     if (!files) return t.skip('git unavailable');
     const settings = conventions.resolveSettings(realConfig);
     for (const entry of conventions.injectableEntries(realConfig)) {
-        const sample = files.find(rel => conventions.groupMatches(entry.group, rel));
+        // The framework's AI-feature gate guards CONSUMER AI code; this repository tracks none (its own agent folders are
+        // excluded by design), so that one class is proven on a representative AI-surface path instead of a tracked file.
+        const representative = entry.name === conventions.AI_FEATURE_GATE.name ? 'src/prompts/sample.txt' : null;
+        const sample = files.find(rel => conventions.groupMatches(entry.group, rel)) || representative;
         assert.ok(sample, `${entry.name} matches no tracked file (dead class)`);
+        assert.ok(conventions.groupMatches(entry.group, sample), `${entry.name} does not match its sample ${sample}`);
         const matched = conventions.matchGroups(realConfig, [sample], settings);
         assert.ok(matched.length <= settings.maxClassesPerEdit);
         const { text, forms } = conventions.buildDigest(matched, [sample], settings, { projectDir: repoRoot });

@@ -25,7 +25,14 @@ function linkDir(target, link) {
 
 // Mirrors the macOS layout: a symlinked ANCESTOR above a real leaf, with a trailing separator.
 function symlinkedTmp(t) {
-  const base = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "symlinked-tmpdir-contract-")));
+  // Windows' native directory alias is a junction. Node can stall before the first assertion when
+  // `mkdtemp` traverses a junction beneath the OS temp tree (notably its 8.3 user path), so keep the
+  // disposable Windows fixture under the repository's ignored tmp/ owner. The alias itself and all
+  // redirected temp variables remain unchanged. POSIX/macOS retain the native /var -> /private/var
+  // shape this contract was created to exercise.
+  const fixtureParent = process.platform === "win32" ? path.join(repoRoot, "tmp") : os.tmpdir();
+  fs.mkdirSync(fixtureParent, { recursive: true });
+  const base = fs.realpathSync.native(fs.mkdtempSync(path.join(fixtureParent, "symlinked-tmpdir-contract-")));
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   const real = path.join(base, "real");
   fs.mkdirSync(path.join(real, "T"), { recursive: true });
@@ -49,11 +56,23 @@ const TEMP_SENSITIVE_SUITES = [
   ".claude/scripts/tests/install-bootstrap.test.cjs",
 ];
 
+// Keep the declared Node 18.0+ floor: this flag exists only in the listed backports and newer.
+const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
+const supportsTestConcurrencyFlag = nodeMajor >= 21
+  || (nodeMajor === 20 && nodeMinor >= 10)
+  || (nodeMajor === 18 && nodeMinor >= 19);
+const nestedTestConcurrencyArgs = supportsTestConcurrencyFlag ? ["--test-concurrency=1"] : [];
+
 test("TC-SYMTMP-004: temp-dir-sensitive suites pass when the temp dir sits behind a symlinked ancestor", { timeout: 300000 }, (t) => {
+  // Given redirected temp variables whose ancestor is a symlink/junction.
   const fx = symlinkedTmp(t);
+
+  // When every temp-sensitive suite runs through Node's real test-process boundary.
   const result = spawnSync(process.execPath,
-    ["--test", "--test-reporter=tap", ...TEMP_SENSITIVE_SUITES.map((name) => path.join(repoRoot, name))],
+    ["--test", "--test-reporter=tap", ...nestedTestConcurrencyArgs, ...TEMP_SENSITIVE_SUITES.map((name) => path.join(repoRoot, name))],
     { cwd: repoRoot, env: fx.env, encoding: "utf8", timeout: 240000, windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+
+  // Then the nested runner completes and every suite preserves the symlinked-temp contract.
   assert.equal(result.error, undefined);
   const failures = result.stdout.split(/\r?\n/).filter((line) => /^\s*not ok /.test(line)).join("\n");
   const total = (name) => {
@@ -78,8 +97,11 @@ test("TC-SYMTMP-009: temp-dir-sensitive hook suites pass when the temp dir sits 
   const runner = path.join(claudeDir, "hooks", "tests", "run-all-tests.cjs");
   const failures = [];
   for (const suite of TEMP_SENSITIVE_HOOK_SUITES) {
+    // Receipt/candidate tests create many real Git repositories and can exceed two minutes on
+    // Windows under load. Keep the allowance bounded below the parent test's five-minute cap.
+    const timeout = suite === "review-commit-gate" ? 240000 : 120000;
     const result = spawnSync(process.execPath, [runner, `--filter=${suite}`],
-      { cwd: repoRoot, env: fx.env, encoding: "utf8", timeout: 120000, windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+      { cwd: repoRoot, env: fx.env, encoding: "utf8", timeout, windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
     assert.equal(result.error, undefined, suite);
     const output = stripAnsi(`${result.stdout}\n${result.stderr}`);
     const passed = output.match(/All (\d+) tests passed/);

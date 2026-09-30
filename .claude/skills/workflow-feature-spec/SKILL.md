@@ -11,7 +11,7 @@ disable-model-invocation: false
 
 **Use it when** the user asks to write or revise the business spec for a capability. **Use a sibling instead when:** only a raw idea exists → `workflow-idea-to-spec`; the spec must be derived from or re-synced with existing code across capabilities → `workflow-code-to-spec`; code changes are the goal → `workflow-feature` / `workflow-implement-spec`.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-review -> /plan-validate -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /plan -> /plan-validate -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged to the run's deviation log. The list above is the recommended default order; the triage below decides which recommendations earn their cost.
 
@@ -23,7 +23,7 @@ Classify the change from the request plus the investigate evidence, and record i
 | -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | **XS**   | one rule, one case, or wording in an existing spec      | short plan inside the task list; plan-validate confirms the one decision           |
 | **S**    | a few sections/cases of one existing spec, clear intent | written plan; plan-validate confirms the non-obvious decisions                     |
-| **M**    | new spec, restructure, UI intent, or many rules/states  | full plan + `/plan-review` + `/artifact-review` on the result                      |
+| **M**    | new spec, restructure, UI intent, or many rules/states  | one lean plan + `/plan-validate` + `/artifact-review` on the result                 |
 | **L/XL** | several capabilities or buckets                         | split: one spec per capability; route whole-bucket work to `workflow-code-to-spec` |
 
 **Kinds:** behavior change (cases/evidence must be reconciled) · public contract · UI surface (interaction-intent role) · parent/child features (cross-references) · docs-only wording. Escalate depth on ambiguity and risk, not length.
@@ -46,7 +46,6 @@ Classify the change from the request plus the investigate evidence, and record i
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
 | `/investigate`                           | always — existing spec, related code and test evidence for the capability                                                      | scope + evidence for the plan |
 | `/plan`                                  | always; a few task lines for XS, a written plan for S+                                                                         | section/case change list      |
-| `/plan-review`                           | M+ bands, restructuring, several capabilities, or an ambiguous plan                                                            | plan quality before authoring |
 | `/plan-validate`                         | always — the user confirms scope and non-obvious decisions                                                                     | decisions-confirmed gate      |
 | `/docs-update`                           | always — it routes the spec chain that writes the artifact                                                                     | spec-synced gate              |
 | `/artifact-review` (on the changed spec) | M+ bands, new or restructured specs, or any doubt about M1-M7 — run after the docs-update spec chain, before the change review; not a registry step, so create its own task when the triage selects it | independent M1-M7 verdict     |
@@ -113,7 +112,7 @@ You choose inline vs sub-agent, batching and ordering — optimize wall-clock an
 
 **IMPORTANT MUST ATTENTION Goal:** one canonical feature/spec artifact in the configured native format — planned to the depth the triage needs, cases reconciled, reviewed and docs-synced.
 
-- **MUST ATTENTION** triage FIRST; it sets plan depth and whether `/plan-review` and `/artifact-review` earn their cost.
+- **MUST ATTENTION** triage FIRST; it sets plan depth and whether `/artifact-review` earns its cost.
 - **MUST ATTENTION** resolve the artifact profile before writing; the portable eight-section/`TC-{FEATURE}-{NNN}` form applies only when no native profile or local contract exists; unknown mappings stay BLOCKED.
 - **MUST ATTENTION** the gates always hold: user-confirmed decisions, spec chain synced with applicable M1-M7, `/workflow-review-changes` converged inline in the main session, `/workflow-end` closed.
 - **MUST ATTENTION** every case names the business intent or invariant it guards and would fail if that intent broke.

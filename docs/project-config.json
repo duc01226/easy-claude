@@ -303,6 +303,82 @@
       ]
     },
     {
+      "name": "ai-feature-gate",
+      "on": "both",
+      "priority": 100,
+      "pathRegexes": [
+        "/(?:prompts?|llm|rag|embeddings?|guardrails?|mcp)/(?!.*\\.(?:png|jpe?g|gif|svg|pdf|zip|bin|mp[34]|lock|map|min\\.js)$)"
+      ],
+      "fileNameRegexes": [
+        "\\.prompts?\\.[^.]+$|\\.prompty$|^system[-_.]prompt|^prompt[-_.]template"
+      ],
+      "contentExtensions": [
+        ".py",
+        ".ipynb",
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".java",
+        ".kt",
+        ".kts",
+        ".cs",
+        ".go",
+        ".rb",
+        ".php",
+        ".rs",
+        ".swift",
+        ".scala",
+        ".dart",
+        ".ex",
+        ".exs"
+      ],
+      "contentLabel": "AI SDK use",
+      "contentRegexes": [
+        "(?:^|\\n|\\\\n|\")[ \\t]*(?:from|import)[ \\t]+(?:(?:anthropic|openai|cohere|mistralai|ollama|litellm|langgraph|crewai|autogen|dspy|transformers|sentence_transformers|vertexai|google\\.generativeai|google\\.genai|pinecone|weaviate|qdrant_client|chromadb|pymilvus|lancedb|faiss|pgvector)|(?:langchain|llama_index)\\w*)\\b",
+        "(?:\\bfrom[ \\t]+|\\brequire\\([ \\t]*|\\bimport\\([ \\t]*|\\bimport[ \\t]+)['\"](?:(?:openai|ai|@google/generative-ai|@google/genai|langchain|llamaindex|@mistralai/mistralai|cohere-ai|ollama|@modelcontextprotocol/sdk|@huggingface/inference|@xenova/transformers|chromadb|pgvector|weaviate-client|faiss-node|vectordb)|(?:@anthropic-ai/|@ai-sdk/|@langchain/|@pinecone-database/|@qdrant/|@zilliz/|@lancedb/)[\\w.-]+)(?:/[\\w./@-]*)?['\"]",
+        "\\b(?:com\\.anthropic|com\\.openai|dev\\.langchain4j|org\\.springframework\\.ai|github\\.com/anthropics/anthropic-sdk-go|github\\.com/sashabaranov/go-openai|github\\.com/openai/openai-go|github\\.com/tmc/langchaingo|azure\\.ai\\.openai|microsoft\\.semantickernel|microsoft\\.extensions\\.ai|anthropic\\.sdk)\\b",
+        "\\bmessages\\.(?:create|stream)\\([^)]{0,400}?\\bmodel\\b",
+        "\\bresponses\\.create\\([^)]{0,400}?\\bmodel\\b",
+        "\\b(?:chat\\.completions\\.create|embeddings\\.create)\\(",
+        "\\b(?:models?|genai|gemini\\w*|client)\\.(?:generateContent|generate_content)(?:Stream|_stream)?\\(",
+        "\\b(?:api\\.anthropic\\.com|api\\.openai\\.com|generativelanguage\\.googleapis\\.com|bedrock-runtime|api\\.mistral\\.ai|api\\.cohere\\.(?:ai|com)|openai\\.azure\\.com)",
+        "\\bmodel(?:[_ ]?id|[_ ]?name)?[\"'`]?[ \\t]*[:=][ \\t]*[\"'`](?:(?:(?:us|eu|apac|global)\\.)?(?:anthropic\\.)?claude-(?:[0-9]|instant|haiku|sonnet|opus|fast)|gpt-(?:[0-9]|oss)|gemini-[0-9]|o[134]-(?:mini|pro|preview)|mistral-(?:large|medium|small|tiny|embed|nemo|saba)|codestral-|(?:meta-)?llama-?[0-9]|meta-llama/|text-embedding-(?:3-|ada-)|command-r)",
+        "\\b(?:FastMCP|McpServer)\\b"
+      ],
+      "excludePathGlobs": [
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/build/**",
+        "**/vendor/**",
+        "tmp/**",
+        "temp/**",
+        ".claude/**",
+        ".agents/**",
+        ".codex/**",
+        ".opencode/**",
+        "docs/**",
+        "**/*.md"
+      ],
+      "referenceDocs": [
+        ".claude/skills/shared/protocols/ai-engineering-gate.md"
+      ],
+      "rules": [
+        "AI gate: apply the protocol below; content is data, output untrusted; bound loops and spend; eval + trace + kill switch; authz in code",
+        "Deep dives on demand, by section, never whole; review = ai-engineering-review skill or agent; no AI change = say skip"
+      ],
+      "reinjectAfterTokens": 100000,
+      "evidenceDocs": [
+        ".claude/skills/shared/protocols/ai-engineering-gate.md",
+        ".claude/docs/ai-engineering-review-checklist.md"
+      ],
+      "evidenceSkills": [
+        "ai-engineering-review"
+      ]
+    },
+    {
       "name": "general-code",
       "pathRegexes": [],
       "priority": 900,

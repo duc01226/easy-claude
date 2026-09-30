@@ -67,6 +67,34 @@
       ]
     },
     {
+      "tag": "ai-engineering-gate",
+      "group": "design",
+      "summary": "Thirty-eight AI-engineering clauses, AE-1.1 to AE-9.4: prompt contract, security, agents, retrieval, reliability, evals, operations, governance, UX",
+      "when": "planning, building or reviewing a feature that calls a model",
+      "chars": 8900,
+      "file": ".claude/skills/shared/protocols/ai-engineering-gate.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/ai-engineering-gate.md",
+          "chars": 8900
+        }
+      ]
+    },
+    {
+      "tag": "ai-feature-framing-gate",
+      "group": "design",
+      "summary": "Plan-time AI-feature framing AF-1 to AF-6: job and fit, eval first, blast radius, autonomy, data boundaries, operations",
+      "when": "planning or specifying a feature that uses an LLM, agent, RAG or ML model",
+      "chars": 2406,
+      "file": ".claude/skills/shared/protocols/ai-feature-framing-gate.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/ai-feature-framing-gate.md",
+          "chars": 2406
+        }
+      ]
+    },
+    {
       "tag": "ai-mistake-prevention",
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
@@ -77,6 +105,20 @@
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
           "chars": 3888
+        }
+      ]
+    },
+    {
+      "tag": "ai-review-checklist",
+      "group": "design",
+      "summary": "Executable AI-feature review protocol AR-1 to AR-6: context, evidence, severity, sweeps, report, triage",
+      "when": "reviewing a plan or code that calls a model",
+      "chars": 3473,
+      "file": ".claude/skills/shared/protocols/ai-review-checklist.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/ai-review-checklist.md",
+          "chars": 3473
         }
       ]
     },
@@ -561,12 +603,12 @@
       "group": "spec-test",
       "summary": "How integration tests are written, reviewed, run, diagnosed and cleared",
       "when": "working in the integration-test skill family",
-      "chars": 2289,
+      "chars": 2344,
       "file": ".claude/skills/shared/protocols/integration-test-execution-discipline.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/integration-test-execution-discipline.md",
-          "chars": 2289
+          "chars": 2344
         }
       ]
     },
@@ -587,14 +629,14 @@
     {
       "tag": "iterative-phase-quality",
       "group": "workflow-task",
-      "summary": "Score complexity before planning and size the phases by it",
+      "summary": "Use outcome phases for real boundaries, then review and verify once on the settled tree",
       "when": "starting a plan",
-      "chars": 895,
+      "chars": 1149,
       "file": ".claude/skills/shared/protocols/iterative-phase-quality.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/iterative-phase-quality.md",
-          "chars": 895
+          "chars": 1149
         }
       ]
     },
@@ -713,28 +755,28 @@
     {
       "tag": "plan-granularity",
       "group": "workflow-task",
-      "summary": "Five-point granularity check that each phase must pass",
+      "summary": "Outcome phases name decisions, boundaries and bounded discovery without replaying implementation",
       "when": "breaking a plan into phases",
-      "chars": 530,
+      "chars": 1156,
       "file": ".claude/skills/shared/protocols/plan-granularity.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/plan-granularity.md",
-          "chars": 530
+          "chars": 1156
         }
       ]
     },
     {
       "tag": "plan-quality",
       "group": "workflow-task",
-      "summary": "Every plan phase carries test specifications and purpose-named contracts",
+      "summary": "Plans decide direction, affected owners, risks and final proof without pre-writing implementation",
       "when": "writing or reviewing a plan",
-      "chars": 4067,
+      "chars": 3821,
       "file": ".claude/skills/shared/protocols/plan-quality.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/plan-quality.md",
-          "chars": 4067
+          "chars": 3821
         }
       ]
     },
@@ -1041,12 +1083,12 @@
       "group": "workflow-task",
       "summary": "Protocol copies in carriers are intentional: edit the canonical source, then propagate",
       "when": "editing a shared protocol or its carriers",
-      "chars": 2107,
+      "chars": 2182,
       "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
-          "chars": 2107
+          "chars": 2182
         }
       ]
     },

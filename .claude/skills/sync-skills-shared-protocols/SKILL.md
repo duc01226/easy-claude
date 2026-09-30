@@ -321,7 +321,7 @@ Check a representative file of each affected tier manually to confirm placement 
 
 <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 
-**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the five review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
+**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
 
 <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
 

@@ -156,6 +156,8 @@ Write reports under `tmp/reports/` using the `{date}-{slug}` naming convention (
 >
 > **Skip ONLY** when the phase or task has no user-facing surface (backend-only, tooling, docs) — state that explicitly in the Phase Implementation Report so the skip is auditable, not an omission.
 
+**AI surface?** Only if the phase creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md` and apply it; otherwise skip this line.
+
 ## Parallel Execution Safety
 
 - Work independently without checking other phases' progress

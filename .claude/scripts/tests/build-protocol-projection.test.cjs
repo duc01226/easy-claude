@@ -442,12 +442,12 @@ test('TC-PDL-080: an inlineSkills entry that is not a skill name or has no skill
     }
 });
 
-test('TC-PDL-080: the shipped groups file keeps the four universal tags and the five review-family inline skills', { skip: LIVE_SKIP }, () => {
+test('TC-PDL-080: the shipped groups file keeps the four universal tags and the four fix-loop review-family inline skills', { skip: LIVE_SKIP }, () => {
     // Given the framework repo's groups file
     const groups = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...SHARED, 'protocol-groups.json'), 'utf8'));
     // When it is read, Then universal is the root-carried set and inlineSkills is the owner's list (BR-PDL-11)
     assert.deepEqual(Object.keys(groups.groups.universal.tags).sort(), [...projection.ROOT_CARRIED_TAGS].sort());
-    assert.deepEqual(groups.inlineSkills, ['changes-review', 'code-quality-review', 'plan-review', 'why-review', 'workflow-review-changes']);
+    assert.deepEqual(groups.inlineSkills, ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']);
 });
 
 /** Compression ceiling for one canonical body (F3): every tag fits one bin with headroom. */

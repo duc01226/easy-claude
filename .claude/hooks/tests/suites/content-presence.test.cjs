@@ -1007,25 +1007,26 @@ module.exports = {
         },
         {
             // Guards BR-GWF-05: spec-supplied work does not grow beyond the spec it was given.
-            name: '[content-presence] TC-GWF-020 workflow-implement-spec: plan scope is anchored to the supplied spec baseline',
+            name: '[content-presence] TC-GWF-020 workflow-implement-spec: workflow-owned baseline keeps the lean plan in supplied scope',
             fn: () => {
-                // Given the lean route wrapper and the plan skill that records the baseline
+                // Given the lean route wrapper and the compact plan scope gate
                 const [anchor] = paragraphsMentioning(readSkill('workflow-implement-spec'), /\[PLAN SCOPE ANCHOR\]/);
-                // When the plan-scope paragraph is read
+                const plan = readSkill('plan');
+                // When the workflow-owned anchor and plan's supplied-spec gate are read
                 const required = [
-                    'Plan scope is anchored to the supplied spec baseline',
-                    '`spec_baseline` at plan start',
-                    'every plan task traces to that baseline',
-                    '`## Proposed additions (need approval)`',
-                    'never a planned task',
+                    'workflow report records the supplied spec path and revision as `spec_baseline`',
+                    '`/plan` names it as governing intent',
+                    'keeps every phase and acceptance gate within that baseline',
+                    '`Proposed additions — owner approval required`',
+                    'never an accepted plan phase',
                 ];
-                // Then the anchor, the trace and the approval route for additions are stated
+                // Then the workflow owns the baseline while plan keeps the outcome-level guard
                 assertTrue(Boolean(anchor), 'workflow-implement-spec lost its plan-scope anchor paragraph');
                 const missing = required.filter(p => !anchor.includes(p));
                 assertTrue(missing.length === 0, `workflow-implement-spec plan-scope anchor lost:\n  ${missing.join('\n  ')}`);
-                // And the plan section it points to still exists under that name
-                assertTrue(anchor.includes('Supplied-Spec Scope Baseline') && readSkill('plan').includes('## Supplied-Spec Scope Baseline'),
-                    'the anchor must point at the plan skill section that records spec_baseline');
+                assertTrue(plan.includes('**Supplied spec:** preserve the supplied baseline') &&
+                    plan.includes('`Proposed additions — owner approval required`'),
+                    'plan must preserve supplied scope without reintroducing a heavyweight baseline section');
             },
         },
         {
@@ -1670,11 +1671,10 @@ module.exports = {
                         '/surfaces/{surface}.md',
                     ]],
                     ['skills/plan-review/SKILL.md', readSkill('plan-review'), [
-                        '## UI Plan Checklist Gate',
-                        '**UI Plan Checklist lens**',
+                        '**User-facing UI:** apply journey, design-system, accessibility, state, and container-fit plan checks.',
                     ]],
                     ['skills/plan/SKILL.md', readSkill('plan'), [
-                        '**UI Surface Contract (MANDATORY',
+                        '**User-facing UI:** apply the configured UX/design authority and bind relevant states/accessibility criteria to acceptance evidence',
                     ]],
                     ['skills/design-spec/SKILL.md', readSkill('design-spec'), [
                         '## 1b. Information Priority & Container',

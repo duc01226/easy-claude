@@ -79,6 +79,7 @@ Connected contracts:
 - **Convention Check** — Grep 3+ existing codebase patterns before flagging violations — why: codebase convention wins over textbook rules
 - **DRY Check** — Grep for similar/duplicate code before accepting new code
 - **Doc Staleness** — Cross-reference changed files against related docs; flag stale docs in report
+- **AI surface?** Only if the diff creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`, apply it and route the AI lens to `ai-engineering-review`; otherwise skip this line.
 - **Fix-Triggered Re-Review** — a post-fix brief is Phase 4: re-read the whole target from scratch, never just the fixes; the orchestrator owns the round loop and decides when it ends
 
 ## Review Checklist (Priority Order)

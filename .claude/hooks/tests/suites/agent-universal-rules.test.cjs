@@ -109,7 +109,7 @@ const MUTATION_CODE_TAGS = [
 ];
 const CODE_TAGS = [...READONLY_CODE_TAGS, ...MUTATION_CODE_TAGS];
 const CODE_AGENTS = new Set([
-    'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
+    'ai-engineering-reviewer', 'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
     'database-admin', 'debugger', 'e2e-runner', 'framework-maintainer', 'frontend-developer',
     'fullstack-developer', 'integration-tester', 'performance-optimizer',
     'planner', 'security-auditor',
@@ -169,7 +169,7 @@ const TEST_ARCHITECTURE_SKILLS = [
 // agent-code-standards audience — SEPARATE axis (mirror sync-hooks-to-skills.py
 // CODE_STANDARDS_AGENTS verbatim). NOT the same set as CODE_AGENTS.
 const CODE_STANDARDS_AGENTS = new Set([
-    'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
+    'ai-engineering-reviewer', 'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
     'database-admin', 'debugger', 'e2e-runner', 'framework-maintainer',
     'frontend-developer', 'fullstack-developer', 'integration-tester',
     'performance-optimizer', 'planner', 'security-auditor', 'solution-architect',

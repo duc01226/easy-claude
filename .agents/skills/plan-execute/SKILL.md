@@ -68,7 +68,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **Step 2 is SEQUENTIAL by default; wave fan-out is OPT-IN.** `--parallel` / `--parallel=on` dispatches disjoint-write-set phases as one wave of `fullstack-developer` subagents in ONE message, barrier, then recomputes the next wave against the updated repo. `--parallel=auto` fans out ONLY when every in-scope phase carries the `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `$plan` — no block, no fan-out.
 - **Verify-last order (`SYNC:verify-last-order`):** tests run ONCE, in Step 4, after the static Step 3 review — never per phase, per wave or inside the review. **Workflow-nested** (a parent `[Workflow]` row exists): run Steps 0–2 and 6 only; the parent's review and verify steps are Steps 3–4 (see [Workflow-Nested Mode](#workflow-nested-mode)).
 - **Mode flags** add/remove ONE step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop over every incomplete phase), `--tests=off` (skip Step 4), `--parallel={auto|on|off}` (`off` default = sequential; bare `--parallel`/`on` opts in to wave dispatch; `auto` fans out only on plan-declared `PAR`/`SEQ` metadata). No flags = full 7-step spine, run sequentially.
-- **Standalone** (no parent `[Workflow]` row via the current task list) → wrap the spine in plan → plan-review → Steps 0-3 → `$changes-review` → `$why-review` (static, run BEFORE the Step 4 verify) → Steps 4-6.
+- **Standalone** (no parent `[Workflow]` row via the current task list) → ensure a plan exists → Steps 0-3 → `$changes-review` → `$why-review` (static, run BEFORE the Step 4 verify) → Steps 4-6. Plan review is never automatic; the user may request it separately.
 
 > **Slash-command routing:** `/code`, `/code-auto`, `/code-no-test`, `/code-parallel` no longer resolve — use `$plan-execute` with the matching flag: `/code-auto` → `--approval=off`, `/code-no-test` → `--tests=off`, `/code-parallel` → `--parallel`.
 
@@ -108,12 +108,11 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 >
 > Create these as task tracking tasks up front, in order, then execute them:
 >
-> 1. **`$plan`** — if Step 0 finds no plan for the request, author one first. If a plan already exists, record that and skip to step 2.
-> 2. **`$plan-review`** — recursively review/validate the plan; fix validated findings that block the current severity bar before proceeding.
-> 3. **Proceed to Step 3** — run Steps 0-3 (implement code + tests, static code review) against the approved plan.
-> 4. **`$changes-review`** — review the diff before commit, static (the post-gate; runs BEFORE Step 4 so its fixes are covered by the one verify).
-> 5. **`$why-review`** — review rationale and change quality of the implementation, static.
-> 6. **Steps 4-6** — verify once (tests + mutation check), approval, finalize; a fix made after the reviews re-runs them (Step 4 rule).
+> 1. **`$plan`** — if Step 0 finds no plan for the request, author one first. If a plan already exists, record that and proceed.
+> 2. **Proceed to Step 3** — run Steps 0-3 (implement code + tests, static code review) against the plan.
+> 3. **`$changes-review`** — review the diff before commit, static (the post-gate; runs BEFORE Step 4 so its fixes are covered by the one verify).
+> 4. **`$why-review`** — review rationale and change quality of the implementation, static.
+> 5. **Steps 4-6** — verify once (tests + mutation check), approval, finalize; a fix made after the reviews re-runs them (Step 4 rule).
 >
 > This is the single pre+post quality loop for standalone runs.
 
@@ -205,6 +204,8 @@ Read plan file completely. Map dependencies. List ambiguities. Identify required
 Implement selected plan phase step-by-step following extracted tasks. Mark tasks complete as done. Write each phase's tests in the same pass as its code (`SYNC:verify-last-order` step 1) — the test files belong to the phase's write set. UI work → call `ui-ux-designer` subagent. Run type check + compile only: NEVER a test suite, a mutation run or a review per phase. A plan's ONE final gate phase (`$plan`) holds docs/mirror tasks plus the static review and the single verify: Step 2 performs only its docs/mirror tasks; its review and verify tasks ARE Steps 3-4 (standalone) or are satisfied by the parent workflow's steps (nested), never a second run inside Step 2.
 
 **UI phases carry the design brief (`DD-1`–`DD-3`).** Before implementing — or briefing a sub-agent for — any phase that creates or reshapes a user-facing surface, read the phase file's `## UI Layout` → `### Design Plan` and the project's design-system / SCSS / token docs, and construct the surface to that plan: its palette, families, scale, alignment, and named memorable element. Pass the plan verbatim into any sub-agent brief (per `.claude/skills/shared/sub-agent-selection-guide.md`) — a leaf agent inherits nothing from this conversation. **If the phase has no Design Plan and the surface is new, do NOT improvise one silently:** state that the plan is missing, propose the four parts, and confirm before proceeding. Values land as tokens, never raw hex or magic numbers.
+
+**AI surface?** Only if a phase creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`, apply it and pass it verbatim into sub-agent briefs; otherwise skip this line.
 
 ### Step 2 Wave Dispatch (opt-in — `--parallel=on`)
 
@@ -343,7 +344,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ## Standalone Review Gate (Non-Workflow Only)
 
-> **Post-gate of the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-if-invoked-inside-a-workflow).** Full standalone loop: plan → plan-review → Steps 0-3 → `$changes-review` → `$why-review` → Steps 4-6; the two review steps below run after Step 3 and BEFORE the single Step 4 verify, so its one test run covers their fixes.
+> **Post-gate of the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-if-invoked-inside-a-workflow).** Full standalone loop: ensure a plan exists → Steps 0-3 → `$changes-review` → `$why-review` → Steps 4-6; the two review steps below run after Step 3 and BEFORE the single Step 4 verify, so its one test run covers their fixes.
 >
 > **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `$plan-execute`), you MUST ATTENTION create task tracking todo tasks for `$changes-review` then `$why-review` between the Step 3 and Step 4 tasks (the last reviews before the verify). This ensures all changes are reviewed before commit even without a workflow enforcing it.
 >
@@ -374,7 +375,7 @@ Execute every step in declared order; proceed only when validation passes and th
 - `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `plan-granularity` — Five-point granularity check that each phase must pass; breaking a plan into phases → .claude/skills/shared/protocols/plan-granularity.md
+- `plan-granularity` — Outcome phases name decisions, boundaries and bounded discovery without replaying implementation; breaking a plan into phases → .claude/skills/shared/protocols/plan-granularity.md
 - `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
@@ -526,7 +527,7 @@ Execute every step in declared order; proceed only when validation passes and th
 **IMPORTANT MUST ATTENTION** Step 2 is SEQUENTIAL by default — fan out only on the explicit `--parallel`/`--parallel=on` opt-in, or under `--parallel=auto` when EVERY in-scope phase carries a plan-declared `## Parallel Execution` block; `auto` with no such block falls back to sequential and NEVER derives write sets optimistically — why: a derived write set cannot see cascade/generated writes, so two "disjoint" phases silently collide on the same generated artifact.
 **IMPORTANT MUST ATTENTION** when a wave does run — NEVER co-schedule two writers of the same file, declare the wave plan, spawn every member in ONE message, then hold the barrier until EVERY member is accounted for by name; a failed, timed-out, or partial member blocks the barrier, is never assumed successful, and its phase is re-implemented sequentially before the next wave — why: an advanced barrier on an incomplete wave ships half a phase as if it were whole.
 **IMPORTANT MUST ATTENTION** gates are SEQ boundaries — Step 3 Code Review, Step 4 Verify, and the Step 5 approval gate run after the barrier on the merged result; a subagent's self-report NEVER substitutes for a host gate — why: parallelism may shorten the run, never the gate.
-**IMPORTANT MUST ATTENTION** standalone (no parent `[Workflow]` row via the current task list) → wrap Steps 0-6 in plan → plan-review → Steps 0-3 → `$changes-review` → `$why-review` (static, BEFORE the Step 4 verify) → Steps 4-6, with a parent `[Workflow]` row instead running Steps 0-2 and 6 only (`SYNC:verify-last-order`); validate decisions with the user by asking the user directly — never auto-decide — why: standalone runs have no workflow enforcing review before commit.
+**IMPORTANT MUST ATTENTION** standalone (no parent `[Workflow]` row via the current task list) → ensure a plan exists → Steps 0-3 → `$changes-review` → `$why-review` (static, BEFORE the Step 4 verify) → Steps 4-6, with a parent `[Workflow]` row instead running Steps 0-2 and 6 only (`SYNC:verify-last-order`); plan review remains user-selected, and material decisions still go to the user by asking the user directly — why: standalone runs need implementation review without silently adding plan-review work.
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` and the path-matched project-reference docs (frontend/scss/design-system for UI, domain-entities for models) before starting.
 **IMPORTANT MUST ATTENTION** Easy to Change is the success metric — every finding, test, refactor, abstraction must make the NEXT change cheaper; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent) and reject anything that raises change cost.
 

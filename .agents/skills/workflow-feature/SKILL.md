@@ -66,9 +66,9 @@ Classify the target before choosing steps and record the result in the run repor
 
 Escalate depth on risk and ambiguity, not file count alone:
 
-- **XS/S, one module, clear intent** — light investigation; update only the affected spec sections; one plan with one lean plan review; no re-plan. Test specs and their review still precede the build. Work inline — sub-agents rarely pay off.
+- **XS/S, one module, clear intent** — light investigation; update only the affected spec sections; one lean plan; no re-plan. Test specs receive one quality review before the build. Work inline — sub-agents rarely pay off.
 - **M, or any public-contract, data/schema, security or cross-module kind** — every core step at full depth plus each optional step whose condition holds (`$scenario`, `$domain-analysis`, `$plan-validate`, ...).
-- **L/XL, or `isLargeIdea` true** — everything M runs, plus the embedded decomposition, the re-plan after test specs, and bounded batches per module or slice for the build, the test specs and the review (one report per batch). A research-heavy scope that cannot be cut into slices → recommend `workflow-big-feature` to the user.
+- **L/XL, or `isLargeIdea` true** — everything M runs, plus the embedded decomposition and bounded batches per module or slice for the build, test specs and review (one report per batch). A research-heavy scope that cannot be cut into slices → recommend `workflow-big-feature` to the user.
 
 ## Required Quality Gates
 
@@ -102,19 +102,14 @@ The run is not done until each applicable gate holds with its evidence:
 | `$spec-clarify`                      | optional | the authored spec leaves open or non-obvious decisions                                                                                                           | user-confirmed decisions                  |
 | `$scenario`                          | optional | replay, state, ownership or recovery risks need analysis                                                                                                         | plan risk coverage                        |
 | `$pbi-mockup --explore`              | optional | the requirement or spec adds completely NEW UI — a new page/view, component or dialog — see New-UI Explore Mockup below | selected mockup before planning           |
-| `$plan`                              | core     | always; XS/S keeps it short                                                                                                                                      | the plan, Plan Gate                       |
-| `$plan-review`                       | core     | always; XS/S runs one lean round                                                                                                                                 | plan quality                              |
-| `$plan-validate`                     | optional | the plan has decisions to confirm or lacks Plan Gate approval                                                                                                    | human plan approval                       |
 | `$spec [mode=tests]`                 | core     | always — every invariant mapped to TC IDs in §8                                                                                                                  | test-first gate                           |
 | `$artifact-review --type=spec-tests` | core     | always                                                                                                                                                           | test-spec quality                         |
-| `$plan`                              | optional | the reviewed test specs change the plan                                                                                                                          | re-plan                                   |
-| `$plan-review`                       | optional | the re-plan ran                                                                                                                                                  | re-plan quality                           |
+| `$plan`                              | core     | always; one lean plan over the reviewed intent and cases                                                                                                         | decisions, areas, discovery, gates        |
+| `$plan-validate`                     | optional | the plan has decisions to confirm or lacks Plan Gate approval                                                                                                    | human plan approval                       |
 | `$plan-execute`                      | core     | always, the performance route included                                                                                                                           | the change                                |
 | `$seed-test-data`                    | optional | new entities or flows need development data                                                                                                                      | QC data                                   |
-| `$spec [mode=tests]`                 | optional | the build surfaced TC gaps or spec drift                                                                                                                         | TC completeness                           |
-| `$artifact-review --type=spec-tests` | optional | the post-build test-spec update ran                                                                                                                              | test-spec quality                         |
-| `$spec [mode=sync]`                  | core     | always — spec re-verify, §8 ↔ test code, §6 when user-facing                                                                                                     | spec-synced                               |
 | `$integration-test`                  | core     | always — tests from the TCs                                                                                                                                      | tests-pass                                |
+| `$spec [mode=sync]`                  | core     | always after executing tests exist — reconcile spec, cases and actual test evidence                                                                              | spec-synced                               |
 | `$workflow-review-changes --tests=defer`           | gate     | always                                                                                                                                                           | review-converged                          |
 | `$integration-test-verify`           | core     | always — the one verify, after the review; runs the mutation check                                                                                                                                                      | tests-pass                                |
 | `$workflow-e2e --source=context`     | optional | the user explicitly asks for E2E work                                                                                                                            | E2E evidence                              |
@@ -127,7 +122,7 @@ The run is not done until each applicable gate holds with its evidence:
 
 The registry's default order, parsed by the workflow verifier — keep it equal to `workflows.json`; the roles above decide what may flex:
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $spec-discovery -> $domain-analysis -> $why-review -> $spec -> $spec-clarify -> $scenario -> $pbi-mockup --explore -> $plan -> $plan-review -> $plan-validate -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $plan -> $plan-review -> $plan-execute -> $seed-test-data -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $workflow-review-changes --tests=defer -> $integration-test-verify -> $workflow-e2e --source=context -> $test -> $demo-guide -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $spec-discovery -> $domain-analysis -> $why-review -> $spec -> $spec-clarify -> $scenario -> $pbi-mockup --explore -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $plan -> $plan-validate -> $plan-execute -> $seed-test-data -> $integration-test -> $spec [mode=sync] -> $workflow-review-changes --tests=defer -> $integration-test-verify -> $workflow-e2e --source=context -> $test -> $demo-guide -> $workflow-end -> $watzup
 
 **On-demand skills (not registry steps):**
 
@@ -143,7 +138,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 
 - a change exists before it is reviewed or tested; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `$workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`);
 - the Feature Spec precedes the first `$plan`, and test specs are reviewed before `$plan-execute`;
-- `$spec [mode=sync]` runs before the review that checks it;
+- `$integration-test` authors the executing evidence before one `$spec [mode=sync]` reconciliation; the sync runs before the review that checks it;
 - the nested `$workflow-review-changes` runs inline in the main session — it owns the session's review→fix→re-review loop, and its own reviewers run as sub-agents;
 - gates awaiting user approval (`$spec-clarify`, `$plan-validate`, Plan Gate approval) are never parallelized;
 - `$workflow-end` runs last, then `$watzup`.
@@ -161,7 +156,7 @@ Recommended: independent read-only work (for example `$spec-discovery` beside a 
 
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green.
-- Plan ceremony (`$plan` → `$plan-review`) for a fix set only when it is large, cross-module or ambiguous; a handful of validated local fixes are fixed directly.
+- Replanning is exceptional: only a material scope/contract decision invalidating the saved plan returns to `$plan`; ordinary implementation discovery stays with the executor.
 - Review loops (each `$artifact-review` occurrence, the nested review): round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 2 rounds, +1 when a CRITICAL/HIGH stays open; failing tests are uncapped; escalate with ask the user directly on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
 - Spec-loop discipline: §8 derives invariant/property TCs for every hard rule and invariant, not only example scenarios; every behavior-changing finding updates BOTH the spec and the tests, never code alone.
 

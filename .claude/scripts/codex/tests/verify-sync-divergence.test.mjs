@@ -340,6 +340,8 @@ const EXPECTED_RENDERED_GROUPS = [
     ['UserPromptSubmit', null, 1],
     // judgement-integrity-route (2026-09-24): anti-confirmation-bias answer why-review on verdict prompts.
     ['UserPromptSubmit', null, 1],
+    // ai-feature-route (2026-09-30): AI-engineering gate reminder and review routing on prompts about AI features.
+    ['UserPromptSubmit', null, 1],
     // core-principles-inject (2026-09-29): the same gate on prompts, sharing the step group's ledger record.
     ['UserPromptSubmit', null, 1],
     // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.

@@ -29,8 +29,7 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 SKILL_NAMES = [
     # Plan family
-    "plan",
-    "plan-review", "plan-validate",
+    "plan-validate",
     # Cook family
     "feature-implement",
     # Code family
@@ -44,7 +43,7 @@ SKILL_NAMES = [
     # Refactor / migration / scaffold
     "db-migrate", "scaffold",
     # Review family
-    "security-audit", "code-quality-review", "integration-test-review",
+    "security-audit", "code-quality-review",
     "knowledge-review", "architecture-review",
     "artifact-review", "changes-review", "domain-entities-review",
     "production-readiness-review", "architecture-review-full",
@@ -63,7 +62,7 @@ SKILL_NAMES = [
     "seed-test-data", "spec-index", "harness-setup", "linter-setup",
     "brainstorm", "idea", "refine", "story", "prioritize", "dor-gate",
     "pbi-challenge", "pbi-mockup", "design-spec", "demo-guide",
-    "feature-presentation", "excalidraw-diagram", "ui-review", "workflow-end",
+    "feature-presentation", "excalidraw-diagram", "ui-review", "ai-engineering-review", "workflow-end",
     # Non-workflow skills that edit or explain project code/UI
     "ui-design", "understand", "tech-spec", "package-upgrade",
     "git-conflict-resolve", "web-design-guidelines",
@@ -73,6 +72,9 @@ SKILL_NAMES = [
 # .claude/workflows.json must be in SKILL_NAMES or here (enforced by
 # tests/suites/project-reference-gate-coverage.test.cjs). Reason required.
 EXEMPT_WORKFLOW_STEPS = {
+    "plan": "carries the compact project-reference protocol guide and authored JIT resolution; copied top/reminder blocks are intentionally omitted",
+    "plan-review": "carries the compact project-reference protocol guide and authored JIT resolution; copied top/reminder blocks are intentionally omitted",
+    "integration-test-review": "carries the compact project-reference protocol guide and authored JIT resolution; copied top/reminder blocks are intentionally omitted",
     "spec": "own [BLOCKING] read gate for project-config, docs index, lessons and the spec doc set",
     "scan": "generator of the reference docs; validates project-config itself before scanning",
     "web-research": "external-source research; no project target files",

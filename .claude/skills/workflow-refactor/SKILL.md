@@ -29,7 +29,7 @@ Classify the refactor before choosing steps and record the result in the workflo
 | Triage result | Typical route through the recommended skills |
 | --- | --- |
 | XS/S, one module, no contract/data surface | investigate → baseline test → short plan → execute → review → test → close |
-| M, or cross-module | add `/plan-review`; add characterization tests where the baseline shows a coverage gap |
+| M, or cross-module | keep one lean plan; add characterization tests where the baseline shows a coverage gap |
 | L/XL, public contract/data/security, or ambiguous target structure | add `/plan-validate`; execute in bounded batches per module with one report per batch, baseline and final test per batch plus a full-scope final run |
 
 ## Required Quality Gates
@@ -53,7 +53,6 @@ Specs normally do not change in a refactor; the spec steps below run only when c
 | `/investigate` | core | always in practice — scope, callers, 3+ local pattern examples | scope and target pattern |
 | `/test` | gate | always — BEFORE any change, on the affected scope | baseline green |
 | `/plan` | core | always in practice; XS/S keeps it to files, steps, rollback | refactor plan |
-| `/plan-review` | optional | size M+, cross-module, contract/data/security, or a design choice | plan quality |
 | `/plan-validate` | optional | size L+, or an ambiguous target structure or scope | plan confirmed |
 | `/integration-test` | optional | touched behavior has no test that would fail if it changed | characterization tests |
 | `/plan-execute` | core | always in practice — small verifiable increments | the change |
@@ -98,7 +97,7 @@ Activate the `workflow-refactor` workflow: run `/start-workflow workflow-refacto
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /test -> /plan -> /plan-review -> /plan-validate -> /integration-test -> /plan-execute -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /test -> /plan -> /plan-validate -> /integration-test -> /plan-execute -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 

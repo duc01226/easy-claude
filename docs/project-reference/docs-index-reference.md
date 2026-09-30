@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-09-27 -->
+<!-- Last scanned: 2026-09-30 -->
 
 # Documentation Index Reference
 
@@ -13,7 +13,7 @@
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 424 unique authored Markdown files across 11 categories; `docs/` contains 40 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 433 unique authored Markdown files across 11 categories; `docs/` contains 40 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Workflow
 
@@ -29,7 +29,7 @@
 
 ## Documentation System
 
-424 unique authored markdown files across 11 indexed categories. Last scanned: 2026-09-27.
+433 unique authored markdown files across 11 indexed categories. Last scanned: 2026-09-30.
 
 **Relocatable roots.** Four of the categories below are anchored on a configurable root. Resolve each one before running its glob:
 
@@ -51,8 +51,8 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Architecture Decisions |              4 | `**/*.md` under the ADR root                                                          |
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
-| Framework Docs         |             38 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            343 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Framework Docs         |             41 | `.claude/docs/**/*.md`                                                                |
+| Skill Markdown         |            349 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -113,14 +113,14 @@ easy-claude/
 │   │       ├── INDEX.md
 │   │       └── README.GuidedWorkflow.md
 │   └── templates/                                 # 1 Feature Spec template
-├── .claude/docs/                                  # 38 framework docs
-│   ├── 21 direct framework guides
+├── .claude/docs/                                  # 41 framework docs
+│   ├── 24 direct framework guides
 │   ├── agents/                                    # 2
 │   ├── configuration/                             # 4
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 343 authored/tracked markdown assets
+└── .claude/skills/                                # 349 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -145,6 +145,8 @@ CLAUDE.md
 ├── docs/project-reference/workflow-spec-test-code-cycle-reference.md
 ├── docs/project-reference/integration-test-reference.md
 ├── .claude/docs/{hooks,skills,agents}/README.md
+├── .claude/skills/shared/protocols/ai-engineering-gate.md   # AI surface only
+│   └── .claude/docs/ai-engineering-{review-checklist,knowledge,calibration}.md   # by section, on demand
 └── docs/adr/0002-canonical-count-metrics.md
 
 .claude/docs/README.md
@@ -176,7 +178,7 @@ docs/specs/WorkflowExecution/INDEX.md
 └── README.GuidedWorkflow.md
 ```
 
-Evidence: `README.md:386-396` (Further Reading); `CLAUDE.md:201-208,229-242` (hook, skill, agent, test, and feature-spec lookup rows), `:245` (backend, frontend, SCSS, and E2E references are not applicable), `:320` (active integration-test reference), `:417-418` (spec/test auto-context relationships), and `:450` (ADR-0002 pointer); `.claude/docs/README.md:9-18,88-98,146-150`; `Adoption/INDEX.md:7-11`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-11`; `Presentation/INDEX.md:7-11`; and `WorkflowExecution/INDEX.md:7-11`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
+Evidence: `README.md:386-396` (Further Reading); `CLAUDE.md:206-213,231-248` (hook, skill, agent, test, and feature-spec lookup rows), `:250` (backend, frontend, SCSS, and E2E references are not applicable), `:325` (active integration-test reference), `:423-424` (spec/test auto-context relationships), and `:461` (ADR-0002 pointer); `.claude/docs/README.md:9-18,88-98,146-150`; `Adoption/INDEX.md:7-11`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-11`; `Presentation/INDEX.md:7-11`; and `WorkflowExecution/INDEX.md:7-11`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
 
 ## Doc Lookup Guide
 
@@ -184,46 +186,50 @@ Filenames are immutable; only the containing root is configurable. Rows in the *
 
 Read `docs/project-config.json` first for any project question or task — paths, commands, modules, conventions — then route with the rows below (most-needed first).
 
-| Category               | Read when…                                                                                                                                                | Unique path (relative to its category root) or status                                                  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Root-Level Docs        | starting any task in Claude — project rules, routing, gates                                                                                               | `CLAUDE.md`                                                                                            |
-| Project Reference      | starting any non-trivial task — learned guardrails                                                                                                        | `lessons.md`                                                                                           |
-| Project Reference      | planning or investigating — where code lives, modules, stack                                                                                              | `project-structure-reference.md`                                                                       |
-| Project Reference      | editing or reviewing code — rules, anti-patterns, checklists                                                                                              | `code-review-rules.md`                                                                                 |
-| Root-Level Docs        | running as Codex or another agent harness                                                                                                                 | `AGENTS.md`                                                                                            |
-| Root-Level Docs        | adopting or installing the framework, or needing a project overview                                                                                       | `README.md`                                                                                            |
-| Project Reference      | locating the doc for a topic — tree, counts, lookup                                                                                                       | `docs-index-reference.md`                                                                              |
-| Project Reference      | planning or designing — domain concepts, entities, ownership                                                                                              | `domain-entities-reference.md`                                                                         |
-| Project Reference      | writing, fixing, or reviewing integration tests                                                                                                           | `integration-test-reference.md`                                                                        |
-| Project Reference      | seeding or reviewing development/test data                                                                                                                | `seed-test-data-reference.md`                                                                          |
-| Project Reference      | authoring or reviewing a Feature Spec or its TC format                                                                                                    | `feature-spec-reference.md`                                                                            |
-| Project Reference      | resolving spec paths or canonical vs derived spec artifacts                                                                                               | `spec-system-reference.md`                                                                             |
-| Project Reference      | judging spec quality or local SDD rules                                                                                                                   | `spec-principles.md`                                                                                   |
-| Project Reference      | changing behavior or a public contract — keep specs, tests, code in sync                                                                                  | `workflow-spec-test-code-cycle-reference.md`                                                           |
-| Project Reference      | a saved project prompt, playbook, or runbook may apply                                                                                                    | `custom-prompts-reference.md`                                                                          |
-| Project Reference      | about to run any skill — check project overlays                                                                                                           | `skill-protocols-reference.md`                                                                         |
-| Design System          | touching UI design — tokens, components, app-to-doc map                                                                                                   | `design-system/README.md`                                                                              |
-| Framework Docs         | generating, planning, or reviewing any user-facing surface — journey-first UX process (`UX-1`–`UX-11`), read before `design-knowledge.md`                 | `.claude/docs/ux-journey-process.md`                                                                   |
-| Operations             | looking for getting-started, deployment, or runbook docs                                                                                                  | No authored Operations file                                                                            |
-| Feature Specs          | changing per-file convention injection (PFCI)                                                                                                             | `ContextDelivery/README.PerFileConventionInjection.md`                                                 |
-| Feature Specs          | changing the session prompt ledger (SPL)                                                                                                                  | `ContextDelivery/README.SessionPromptLedger.md`                                                        |
-| Feature Specs          | changing workflow routing, the route payload, or activation tiers (WFR)                                                                                   | `ContextDelivery/README.WorkflowRouting.md`                                                            |
-| Feature Specs          | changing how shared protocols reach the assistant: guide lines, delivery hooks, host mapping (PDL)                                                        | `ContextDelivery/README.ProtocolDelivery.md`                                                           |
-| Feature Specs          | changing how a chosen workflow runs: step roles, outcome gates, deviation log, the spec-supplied route, scope guard, usage report, token checkpoint (GWF) | `WorkflowExecution/README.GuidedWorkflow.md`                                                           |
-| Feature Specs          | changing adoption switches: code graph, commit trailer, command-only skills, compaction (ADS)                                                             | `Adoption/README.AdoptionSwitches.md` (release-D cases in `Adoption/README.AdoptionSwitches-Part2.md`) |
-| Feature Specs          | changing assistant session notifications (NT)                                                                                                             | `Notifications/README.AssistantSessionNotifications.md`                                                |
-| Feature Specs          | changing slide decks: the shared deck standard, conformance profiles, the feature review deck, slide-direction hand-off (PD)                              | `Presentation/README.PresentationDecks.md`                                                             |
-| Spec Catalogs          | browsing ContextDelivery specs                                                                                                                            | `ContextDelivery/INDEX.md`                                                                             |
-| Spec Catalogs          | browsing Notifications specs                                                                                                                              | `Notifications/INDEX.md`                                                                               |
-| Spec Catalogs          | browsing Presentation specs                                                                                                                               | `Presentation/INDEX.md`                                                                                |
-| Spec Catalogs          | browsing Adoption specs                                                                                                                                   | `Adoption/INDEX.md`                                                                                    |
-| Spec Catalogs          | browsing WorkflowExecution specs                                                                                                                          | `WorkflowExecution/INDEX.md`                                                                           |
-| Architecture Decisions | asking why an architecture choice or convention exists                                                                                                    | the ADR root itself                                                                                    |
-| Architecture Decisions | asking why protocols are delivered by hooks with guide-line fallback instead of inline copies                                                             | `0004-protocol-delivery-hybrid.md`                                                                     |
-| Templates              | writing a new detailed Feature Spec                                                                                                                       | `detailed-feature-spec-template.md`                                                                    |
-| Release Notes          | checking release history                                                                                                                                  | `docs/release/`, `docs/release-notes/`                                                                 |
-| Framework Docs         | asking how hooks, skills, agents, workflows, or configuration work                                                                                        | `.claude/docs/README.md`                                                                               |
-| Skill Markdown         | editing or reading an authored skill, its references, or templates                                                                                        | `.claude/skills/`                                                                                      |
+| Category               | Read when…                                                                                                                                                                         | Unique path (relative to its category root) or status                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Root-Level Docs        | starting any task in Claude — project rules, routing, gates                                                                                                                        | `CLAUDE.md`                                                                                                 |
+| Project Reference      | starting any non-trivial task — learned guardrails                                                                                                                                 | `lessons.md`                                                                                                |
+| Project Reference      | planning or investigating — where code lives, modules, stack                                                                                                                       | `project-structure-reference.md`                                                                            |
+| Project Reference      | editing or reviewing code — rules, anti-patterns, checklists                                                                                                                       | `code-review-rules.md`                                                                                      |
+| Root-Level Docs        | running as Codex or another agent harness                                                                                                                                          | `AGENTS.md`                                                                                                 |
+| Root-Level Docs        | adopting or installing the framework, or needing a project overview                                                                                                                | `README.md`                                                                                                 |
+| Project Reference      | locating the doc for a topic — tree, counts, lookup                                                                                                                                | `docs-index-reference.md`                                                                                   |
+| Project Reference      | planning or designing — domain concepts, entities, ownership                                                                                                                       | `domain-entities-reference.md`                                                                              |
+| Project Reference      | writing, fixing, or reviewing integration tests                                                                                                                                    | `integration-test-reference.md`                                                                             |
+| Project Reference      | seeding or reviewing development/test data                                                                                                                                         | `seed-test-data-reference.md`                                                                               |
+| Project Reference      | authoring or reviewing a Feature Spec or its TC format                                                                                                                             | `feature-spec-reference.md`                                                                                 |
+| Project Reference      | resolving spec paths or canonical vs derived spec artifacts                                                                                                                        | `spec-system-reference.md`                                                                                  |
+| Project Reference      | judging spec quality or local SDD rules                                                                                                                                            | `spec-principles.md`                                                                                        |
+| Project Reference      | changing behavior or a public contract — keep specs, tests, code in sync                                                                                                           | `workflow-spec-test-code-cycle-reference.md`                                                                |
+| Project Reference      | a saved project prompt, playbook, or runbook may apply                                                                                                                             | `custom-prompts-reference.md`                                                                               |
+| Project Reference      | about to run any skill — check project overlays                                                                                                                                    | `skill-protocols-reference.md`                                                                              |
+| Design System          | touching UI design — tokens, components, app-to-doc map                                                                                                                            | `design-system/README.md`                                                                                   |
+| Framework Docs         | generating, planning, or reviewing any user-facing surface — journey-first UX process (`UX-1`–`UX-11`), read before `design-knowledge.md`                                          | `.claude/docs/ux-journey-process.md`                                                                        |
+| Skill Markdown         | planning, building, changing or reviewing an AI feature (model calls, prompts, agents, tools, retrieval, evals) — only when the change has an AI surface; read this ONE file first | `.claude/skills/shared/protocols/ai-engineering-gate.md` (planning: `ai-feature-framing-gate.md` beside it) |
+| Framework Docs         | reviewing an AI feature or plan — read the section for the touched surface only, never whole unless running the AI review                                                          | `.claude/docs/ai-engineering-review-checklist.md`                                                           |
+| Framework Docs         | needing the rationale or a clause of AI-engineering practice (RAG, tool use, agents, evals, safety, cost) — read by clause                                                         | `.claude/docs/ai-engineering-knowledge.md`                                                                  |
+| Framework Docs         | calibrating the severity of an AI-feature finding — read by section                                                                                                                | `.claude/docs/ai-engineering-calibration.md`                                                                |
+| Operations             | looking for getting-started, deployment, or runbook docs                                                                                                                           | No authored Operations file                                                                                 |
+| Feature Specs          | changing per-file convention injection (PFCI), its content signals, the AI-feature prompt route or the change-set AI scan (`status`)                                               | `ContextDelivery/README.PerFileConventionInjection.md`                                                      |
+| Feature Specs          | changing the session prompt ledger (SPL)                                                                                                                                           | `ContextDelivery/README.SessionPromptLedger.md`                                                             |
+| Feature Specs          | changing workflow routing, the route payload, or activation tiers (WFR)                                                                                                            | `ContextDelivery/README.WorkflowRouting.md`                                                                 |
+| Feature Specs          | changing how shared protocols reach the assistant: guide lines, delivery hooks, host mapping (PDL)                                                                                 | `ContextDelivery/README.ProtocolDelivery.md`                                                                |
+| Feature Specs          | changing how a chosen workflow runs: step roles, outcome gates, deviation log, the spec-supplied route, scope guard, usage report, token checkpoint (GWF)                          | `WorkflowExecution/README.GuidedWorkflow.md`                                                                |
+| Feature Specs          | changing adoption switches: code graph, commit trailer, command-only skills, compaction (ADS)                                                                                      | `Adoption/README.AdoptionSwitches.md` (release-D cases in `Adoption/README.AdoptionSwitches-Part2.md`)      |
+| Feature Specs          | changing assistant session notifications (NT)                                                                                                                                      | `Notifications/README.AssistantSessionNotifications.md`                                                     |
+| Feature Specs          | changing slide decks: the shared deck standard, conformance profiles, the feature review deck, slide-direction hand-off (PD)                                                       | `Presentation/README.PresentationDecks.md`                                                                  |
+| Spec Catalogs          | browsing ContextDelivery specs                                                                                                                                                     | `ContextDelivery/INDEX.md`                                                                                  |
+| Spec Catalogs          | browsing Notifications specs                                                                                                                                                       | `Notifications/INDEX.md`                                                                                    |
+| Spec Catalogs          | browsing Presentation specs                                                                                                                                                        | `Presentation/INDEX.md`                                                                                     |
+| Spec Catalogs          | browsing Adoption specs                                                                                                                                                            | `Adoption/INDEX.md`                                                                                         |
+| Spec Catalogs          | browsing WorkflowExecution specs                                                                                                                                                   | `WorkflowExecution/INDEX.md`                                                                                |
+| Architecture Decisions | asking why an architecture choice or convention exists                                                                                                                             | the ADR root itself                                                                                         |
+| Architecture Decisions | asking why protocols are delivered by hooks with guide-line fallback instead of inline copies                                                                                      | `0004-protocol-delivery-hybrid.md`                                                                          |
+| Templates              | writing a new detailed Feature Spec                                                                                                                                                | `detailed-feature-spec-template.md`                                                                         |
+| Release Notes          | checking release history                                                                                                                                                           | `docs/release/`, `docs/release-notes/`                                                                      |
+| Framework Docs         | asking how hooks, skills, agents, workflows, or configuration work                                                                                                                 | `.claude/docs/README.md`                                                                                    |
+| Skill Markdown         | editing or reading an authored skill, its references, or templates                                                                                                                 | `.claude/skills/`                                                                                           |
 
 **Not applicable — skip, never route:** `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `scss-styling-guide.md`, `e2e-test-reference.md` exist on disk but are declared N/A in the `referenceDocs` purposes of `docs/project-config.json`.
 

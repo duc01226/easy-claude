@@ -144,7 +144,7 @@ Otherwise mark `BLOCKED`, name the missing decision/evidence, and stop before `$
 
 ## Phase 6: Handoff
 
-Pass the scenario artifact path and scenario IDs to `$plan`. The implementation plan must map phases to the selected slice, explicit milestone, framework boundary, or EXEMPT scope, plus non-goals, scenario IDs, TC IDs, commands, and evidence. `$plan-review` checks the chain and `$plan-validate` asks the owner to confirm remaining material choices.
+Pass the scenario artifact path and scenario IDs to `$plan`. The implementation plan must map phases to the selected slice, explicit milestone, framework boundary, or EXEMPT scope, plus non-goals, scenario IDs, TC IDs, commands, and evidence. `$plan-validate` asks the owner to confirm remaining material choices when that gate is selected.
 
 ## Output
 

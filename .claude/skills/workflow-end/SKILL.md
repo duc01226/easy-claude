@@ -22,7 +22,7 @@ description: '[Process] Use when ending the active workflow and clearing its sta
 - **Purpose:** Penultimate closure step before `/watzup`: close workflow evidence, trigger fresh detection next prompt, and explain changes without a diff reread.
 - **Main steps (ordered):** (0) outcome-gate evidence check — block on missing evidence; (1) integration-test coverage check; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync graph if `.code-graph/` exists; (4) verify owned baseline and classify unowned/ambiguous changes; (5) verify preceding tasks; (6) print diff-gated recap (what / purpose / how / why); (7) close only exact owned baseline and verify `closed`/`deletionFailures`; (8) announce `Workflow [name] completed`; (9) confirm state retained until explicit `/clear`.
 - **Blocking gates:** missing evidence for any outcome gate (step 0) → refuse to close and name the gap; coverage gap OR unadjudicated spec-vs-code drift → MUST surface via `AskUserQuestion`; NEVER silent-skip or report `completed` while drift is unadjudicated. Baseline closure requires qualified, user-accepted ambiguity, or explicit N/A.
-- **Modes and terminal behavior:** recap only with a diff; recap one-way/no quiz/no block; deeper explanation → `/understand`. Completion is model-driven only after all tasks, sync recorded synced-or-accepted-as-is, and baseline closure qualified, user-accepted, or N/A; per-session state is retained until explicit `/clear` (which alone deletes it); no hook clears `CK_TMP_DIR/workflow/{sessionId}.json` except `session-init` on explicit `/clear`.
+- **Modes and terminal behavior:** recap only with a diff; recap one-way/no quiz/no block. Completion is model-driven only after all tasks, sync recorded synced-or-accepted-as-is, and baseline closure qualified, user-accepted, or N/A; per-session state is retained until explicit `/clear` (which alone deletes it); no hook clears `CK_TMP_DIR/workflow/{sessionId}.json` except `session-init` on explicit `/clear`.
 
 **Workflow:**
 
@@ -35,7 +35,7 @@ description: '[Process] Use when ending the active workflow and clearing its sta
 
 - MUST ATTENTION first check evidence for every outcome gate (step 0); `review-converged` runs `review-receipt.cjs check` and reads its JSON, or accepts a cited review report logged as a `review-report` deviation-log line. Missing evidence blocks the close.
 - MUST ATTENTION when the workflow produced a diff, print the comprehension recap (what changed / purpose / how it works / why) — NEVER fully skip when changes exist.
-- MUST ATTENTION the recap is one-way — NO quiz, NO teach-back, NEVER blocks. Deeper comprehension is handled by the standalone `/understand` skill, which `/watzup` invokes for a large code change or on request, and which the developer can also invoke directly for any target.
+- MUST ATTENTION the recap is one-way — NO quiz, NO teach-back, NEVER blocks. Keep it concise and complete enough to explain the workflow result without routing to another skill.
 - MUST ATTENTION run the spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification when behavior-changing files are in the diff — the workflow MUST NOT report completed while a behavior-vs-spec divergence is unadjudicated; surface unsynced drift via `AskUserQuestion`, never silent-close.
 - MUST ATTENTION close the workflow-owned baseline before announcing completion: run the bounded `workflow-baseline.cjs report` for the recorded run ID, classify owned versus unowned changes, and report `AMBIGUOUS` for unowned paths, endpoint-only ownership, or intermediate commits. Persist the final report and print the recap before running `workflow-baseline.cjs close` for that exact run; verify `closed` and `deletionFailures`, preserve any parent run, and never use broad cleanup. Never replace this with `git diff` attribution, claim every dirty file, restore user work, or read expired/sensitive snapshots.
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
@@ -46,7 +46,7 @@ description: '[Process] Use when ending the active workflow and clearing its sta
 
 ## When This Runs
 
-This skill closes workflow state. In workflows with `/watzup`, it runs after final verification/docs and before `/watzup`: print a one-way recap, then retain per-session tracking until explicit `/clear`. Use `/understand` for deep standalone explanation.
+This skill closes workflow state. In workflows with `/watzup`, it runs after final verification/docs and before `/watzup`: print a one-way recap, then retain per-session tracking until explicit `/clear`.
 
 **NOT for:** manual mid-workflow invocation; switch via `/start-workflow`.
 
@@ -59,7 +59,7 @@ This skill closes workflow state. In workflows with `/watzup`, it runs after fin
     - `tests-pass`: cite the test command and its output; those tests cover every behaviour the run changed and ran green in this run (BR-GWF-15). Unrelated green tests are not evidence. The green run must be on the final tree: an edit to any source or test file after the cited run invalidates it, so re-run the verify (`SYNC:verify-last-order`) before closing. Also cite the mutation-check result (`mutants killed n/n`, or `N/A — reason`); a code-changing run with neither is missing evidence.
     - `spec-synced`: cite the spec-sync diff, or a "no behavior change" statement with the diff stat.
     - `root-cause-traced`: cite the root-cause trace (`file:line`) from the investigation report.
-    - `plan-approved`: cite the plan-review verdict or the user's approval.
+    - `plan-approved`: cite the workflow's declared plan approval evidence, such as `/plan-validate`, an explicit user decision, or another registry-declared approval gate.
     - `run-closed`: proved by steps 4–7 of this skill; confirm at step 9.
 
 1. **Integration test coverage check** (skip if workflow is docs/design/investigation/e2e-only, or project has no test suite):
@@ -106,7 +106,7 @@ This skill closes workflow state. In workflows with `/watzup`, it runs after fin
     ```
 
     - **No diff** (pure investigation/research/docs-only workflow with nothing built) → skip with reason `"no changes to explain"`.
-    - **Diff present** → ALWAYS print a one-way teaching recap so the developer understands the work **without re-reading the diff**. This is one-way — NO quiz, NO teach-back, NEVER blocks. For a deeper explanation of any target (a plan, subsystem, decision, concept, or bug), use `/understand`; `/watzup` invokes it for a large code change or on request.
+    - **Diff present** → ALWAYS print a one-way teaching recap so the developer understands the work **without re-reading the diff**. This is one-way — NO quiz, NO teach-back, NEVER blocks.
 
     Always print at least the short recap when a diff exists — NEVER fully skip.
 
@@ -216,7 +216,7 @@ Finalize and close the active workflow while retaining per-session recovery stat
 **IMPORTANT MUST ATTENTION** when the workflow changed code (diff present), print the comprehension recap — what changed / purpose / how it works / why — grouped by behaviour not file, optimized for easiest learning, NEVER fully skip when changes exist — why: the developer must understand the work without re-reading the diff
 **IMPORTANT MUST ATTENTION** the spec ↔ TDD-test sync gate runs BEFORE task-completion verification — NEVER report the workflow `completed` while a behavior-vs-spec divergence is unadjudicated; reconcile via `/spec [mode=sync]` or capture an explicit accept-as-is reason — why: green tests do not normalize spec drift; the feedback half of the loop closes here
 **IMPORTANT MUST ATTENTION** run the integration-test coverage check on changed business-logic files (handlers/commands/queries/services/controllers/resolvers/event processors) — if ANY lacks a matching test, surface via `AskUserQuestion`; NEVER silent-skip — why: business-logic change without coverage ships an unguarded regression path
-**IMPORTANT MUST ATTENTION** the recap is one-way and NEVER blocks — no quiz, no teach-back; route deeper comprehension to the standalone `/understand` skill — why: blocking on a teaching step would stall workflow closure
+**IMPORTANT MUST ATTENTION** the recap is one-way and NEVER blocks — no quiz, no teach-back, no handoff to another explanation skill — why: workflow closure must not grow a redundant comprehension step
 **IMPORTANT MUST ATTENTION** workflow end is model-driven — close ONLY once every TaskList item is done AND the sync gate recorded synced-or-accepted-as-is; NEVER wait for a hook to clear state — why: no hook clears `CK_TMP_DIR/workflow/{sessionId}.json` on completion (only `session-init` cleans it on explicit `/clear`)
 **IMPORTANT MUST ATTENTION** break work into small todo tasks with `TaskCreate` BEFORE starting; mark one `in_progress`, complete it immediately after its evidence lands; add a final review todo — why: untracked steps get silently skipped under long context
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code, and verify pattern FIT (same abstraction, owner, scope, lifetime, and preconditions) before copying the nearest example — why: closest example ≠ matching constraints

@@ -416,6 +416,7 @@ docker ps -a; docker images                     # unknown containers/images, pri
 - [ ] AI-generated code reviewed before execution — especially shell commands, install commands, and anything touching credentials
 - [ ] Agent-run install commands go through the D4 vetting gate first — automation does NOT bypass vetting
 - [ ] LLM outputs never piped to shell/eval unsanitized
+- [ ] **AI surface?** Only if the audit scope contains a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md`, apply its security clauses and route depth to `$ai-engineering-review`; otherwise skip this line.
 
 ---
 

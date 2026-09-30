@@ -75,6 +75,8 @@ Connected contracts:
 | **Pattern search** | Search 3+ relevant examples before writing new code and verify that their scope and constraints match. |
 | **No guessing** | Do not fabricate file paths, function names, or behavior. Investigate first. |
 
+**AI surface?** Only if the task creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md` and apply it; otherwise skip this line.
+
 ## Output
 
 - Changed files follow the project's documented paths, ownership, and boundaries

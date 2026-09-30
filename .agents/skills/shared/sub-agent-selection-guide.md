@@ -13,6 +13,7 @@
 | Code review (general quality) | `code-reviewer`            | Patterns, conventions, code smells, SOLID                     |
 | Architecture review           | `architect`                | Cross-service, ADR creation, system-level security/perf       |
 | Security audit                | `security-auditor`         | OWASP, auth flows, injection, CVE, microservices boundaries   |
+| AI-feature review (plan or code) | `ai-engineering-reviewer` | LLM calls, prompts, agents, RAG, tool use / MCP, evals, guardrails, cost, safety — spawn ONLY when `node .claude/scripts/ai-signal-scan.cjs --base <review base>` reports `status: surface` (`clean` skips; `unknown` → fallback search or run) or the plan adds one |
 | Performance analysis          | `performance-optimizer`    | N+1, query plans, bundle size, memory, RxJS, change detection |
 | Database / migrations         | `database-admin`           | Schema, index impact, locking, replication, backup/restore    |
 | E2E tests                     | `e2e-runner`               | Test generation, visual baselines, TC spec traceability       |
@@ -49,6 +50,7 @@
 | Migration review spawning `code-reviewer`         | Switch to `database-admin`                              |
 | E2E test generation delegating to `code-reviewer` | Switch to `e2e-runner`                                  |
 | Integration test audit spawning `code-reviewer`   | Switch to `integration-tester`                          |
+| AI-feature plan or diff (model calls, prompts, agents, RAG, tools) reviewed by `code-reviewer` | Switch to `ai-engineering-reviewer` |
 | Performance Round 1 running in main context only  | Spawn `performance-optimizer` as Round 1 proactive lead |
 
 ---
@@ -74,7 +76,7 @@
 
 `workflow-review-changes` is the canonical wave partition in this repo: it declares its waves as `parallelGroups` in `.claude/workflows.json:454-475`, and fixes the member → `agent_type` mapping in that workflow's `preActions.injectContext` (`.claude/workflows.json:478`).
 
-Wave 1 (`initial-reviews`, `barrier: true`) — `changes-review` plus `why-review --target=whole-review-target`, which consumes no step-1 output. Wave 2 (`reviewers`, `barrier: true`) is the fan-out: the seven specialist review steps across six specialist agent types, spawned together, never serialized — no separate findings-validation member.
+Wave 1 (`initial-reviews`, `barrier: true`) — `changes-review` plus `why-review --target=whole-review-target`, which consumes no step-1 output. Wave 2 (`reviewers`, `barrier: true`) is the fan-out: the eight specialist review steps across seven specialist agent types, spawned together, never serialized — no separate findings-validation member.
 
 | Wave-2 member                 | Sub-agent type          | Dispatch condition                                        |
 | ----------------------------- | ----------------------- | --------------------------------------------------------- |
@@ -85,8 +87,9 @@ Wave 1 (`initial-reviews`, `barrier: true`) — `changes-review` plus `why-revie
 | `production-readiness-review` | `code-reviewer`         | Always — read-only findings/score mode in the batch       |
 | `domain-entities-review`      | `code-reviewer`         | **Conditional** — only when domain entity files changed   |
 | `ui-review`                   | `ui-ux-designer`        | **Conditional** — only when frontend/UI files are in diff |
+| `ai-engineering-review`       | `ai-engineering-reviewer` | **Conditional** — only when the diff has AI-feature surfaces (`node .claude/scripts/ai-signal-scan.cjs --base <review base> --json`; `status` `surface` runs, `clean` skips, `unknown` → fallback search or run) |
 
-Why one wave: all seven are read-only, share no mutable state, and none consumes another's output — so the only cost of serializing them is context burned absorbing each inline report.
+Why one wave: all eight are read-only, share no mutable state, and none consumes another's output — so the only cost of serializing them is context burned absorbing each inline report.
 
 **Conditional members** listed in `conditionalMembers` (`.claude/workflows.json:472`) are **skipped entirely — not spawned** when their trigger files are absent, and a skipped member **counts as "returned"** for the barrier. The barrier is not "all spawned agents returned"; it is "every member is either returned or skipped".
 

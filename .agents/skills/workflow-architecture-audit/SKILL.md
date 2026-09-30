@@ -115,7 +115,7 @@ Recommended: on XS/S targets, run `$investigate` inline or let the engine's scop
 ## Findings & Fix Path
 
 - No source fixes happen in this workflow. The only artifact that gets fixed is the report itself: the engine's own merged review of all faces, then the workflow-level `$why-review` at report level.
-- A finding counts as validated only when it survived `$why-review` with evidence. Route each one to its owner in the handoff, with severity and confidence: `$plan` (then `$plan-review`) when the fix set is large, cross-module or ambiguous, a feature or refactor workflow for a bounded fix.
+- A finding counts as validated only when it survived `$why-review` with evidence. Route each one to its owner in the handoff, with severity and confidence: `$plan` when the fix set is large, cross-module or ambiguous, a feature or refactor workflow for a bounded fix.
 - Loop bounds for the report-level `$why-review`: round 1 exits on zero open findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 2 rounds (+1 when a validated CRITICAL/HIGH is still open); escalate by asking the user directly when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->

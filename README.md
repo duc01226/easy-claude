@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->24<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->128<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->21<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->23<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **<!-- COUNT:hooks -->25<!-- /COUNT --> top-level hook files**, **<!-- COUNT:skills -->129<!-- /COUNT --> skills**, **<!-- COUNT:workflows -->21<!-- /COUNT --> workflows**, and **<!-- COUNT:agents -->24<!-- /COUNT --> specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -134,18 +134,18 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex s
 
 ## What's Inside
 
-### Hooks (<!-- COUNT:hooks -->24<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->46<!-- /COUNT --> lib modules)
+### Hooks (<!-- COUNT:hooks -->25<!-- /COUNT --> top-level `.cjs` files, <!-- COUNT:lib-modules -->46<!-- /COUNT --> lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
-| Category               | Hooks                                                                                                                                | Purpose                                                                                                                                                                                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Safety**             | `review-commit-gate`                                                                                                                 | Block an agent `git commit` with no review fix-loop receipt or user-approved skip; other git and GitHub writes are model-behavioral                                                                                                                               |
-| **Quality**            | `doc-sync-gate`                                                                                                                      | Warn on doc⇄code drift                                                                                                                                                                                                                                            |
-| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                           | Initialize state, load config, seed the graph                                                                                                                                                                                                                     |
-| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route`, `core-principles-inject` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, and remind the judgement-integrity check on verdict requests |
-| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`, `token-budget-checkpoint`                                       | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits, emit an advisory token checkpoint at task steps                                                                                                        |
-| **Protocol delivery**  | `protocol-inject-review`, `-evidence-trace`, `-workflow-task`, `-spec-test`, `-design`, `-universal`                                 | Deliver the full shared-protocol texts a skill declares, once per session, on a skill load, a typed `/command`, or a skill-preloading sub-agent start                                                                                                             |
+| Category               | Hooks                                                                                                                                                                              | Purpose                                                                                                                                                                                                                                                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Safety**             | `review-commit-gate`                                                                                                                                                               | Block an agent `git commit` with no review fix-loop receipt or user-approved skip; other git and GitHub writes are model-behavioral                                                                                                                                                                                      |
+| **Quality**            | `doc-sync-gate`                                                                                                                                                                    | Warn on doc⇄code drift                                                                                                                                                                                                                                                                                                   |
+| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `graph-session-init`                                                                                         | Initialize state, load config, seed the graph                                                                                                                                                                                                                                                                            |
+| **Routing**            | `init-prompt-gate`, `workflow-route-inject`, `graph-prompt-sync`, `prompt-ledger`, `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `core-principles-inject` | Gate prompts until project config is ready, inject the route gate and live catalog, re-sync the graph when HEAD moved, keep the prompt ledger anchored, route commit requests to the `commit` skill, remind the judgement-integrity check on verdict requests, and remind the AI-engineering gate on AI-feature requests |
+| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`, `file-convention-inject`, `token-budget-checkpoint`                                                                                     | Format after edits, keep the code graph current, remind the opt-in per-file conventions after reads/edits, emit an advisory token checkpoint at task steps                                                                                                                                                               |
+| **Protocol delivery**  | `protocol-inject-review`, `-evidence-trace`, `-workflow-task`, `-spec-test`, `-design`, `-universal`                                                                               | Deliver the full shared-protocol texts a skill declares, once per session, on a skill load, a typed `/command`, or a skill-preloading sub-agent start                                                                                                                                                                    |
 
 > **De-hooked enforcement & context injection.** Earlier versions ran runtime
 > enforcement/lifecycle hooks — per-edit/per-prompt inject dispatchers plus task/skill/edit
@@ -163,7 +163,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 (and the `AGENTS.md` mirror). Re-reading these static files restores rules and lessons after
 compaction. This stateless-per-turn design prevents context drift over long sessions.
 
-### Skills (128 definitions)
+### Skills (129 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -186,21 +186,21 @@ End-to-end process orchestration with step enforcement. The table below shows th
 
 **Pick a workflow by use case:**
 
-| I want to…                                      | Workflow                          |
-| ----------------------------------------------- | --------------------------------- |
-| Implement a well-defined feature                | `workflow-feature`                |
-| Fix a bug without losing invariants             | `workflow-bugfix`                 |
-| Build a large/ambiguous feature (needs R&D)     | `workflow-big-feature`            |
-| Refactor without changing behavior              | `workflow-refactor`               |
-| Start a brand-new project from scratch          | `workflow-greenfield-init`        |
-| Turn a raw idea into a Feature Spec             | `workflow-idea-to-spec`           |
-| Take one idea to a groomed PBI                  | `workflow-idea-to-pbi`            |
+| I want to…                                        | Workflow                          |
+| ------------------------------------------------- | --------------------------------- |
+| Implement a well-defined feature                  | `workflow-feature`                |
+| Fix a bug without losing invariants               | `workflow-bugfix`                 |
+| Build a large/ambiguous feature (needs R&D)       | `workflow-big-feature`            |
+| Refactor without changing behavior                | `workflow-refactor`               |
+| Start a brand-new project from scratch            | `workflow-greenfield-init`        |
+| Turn a raw idea into a Feature Spec               | `workflow-idea-to-spec`           |
+| Take one idea to a groomed PBI                    | `workflow-idea-to-pbi`            |
 | Turn a spec into a clickable mockup (1–3 designs) | `workflow-spec-to-mockup`         |
-| Author/maintain Feature Specs from code         | `workflow-code-to-spec`           |
-| Add or update integration tests                 | `workflow-write-integration-test` |
-| Write, update, verify, and fix E2E (Playwright) | `workflow-e2e`                    |
-| Research a topic into a cited report            | `workflow-research`               |
-| **Review uncommitted changes before commit**    | `workflow-review-changes`         |
+| Author/maintain Feature Specs from code           | `workflow-code-to-spec`           |
+| Add or update integration tests                   | `workflow-write-integration-test` |
+| Write, update, verify, and fix E2E (Playwright)   | `workflow-e2e`                    |
+| Research a topic into a cited report              | `workflow-research`               |
+| **Review uncommitted changes before commit**      | `workflow-review-changes`         |
 
 **How to run one:** just describe your task — the `WORKFLOW-GATE` auto-classifies and routes it (no menu, no confirmation). To force a specific one, run `/start-workflow <id>`; it loads that workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` you type is always honored as-is.
 
@@ -220,12 +220,12 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | `/integration-test-review`     | Assertion quality, bug protection, repeatability, test↔spec traceability |
 | `/production-readiness-review` | Production readiness of service-layer and API changes                    |
 | `/ui-review`                   | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
-| `/plan-review`                 | Plan validity, correctness, and best-practice gaps (recursive)           |
+| `/plan-review`                 | One-pass, read-only plan validity and execution-risk review              |
 | `/artifact-review`             | PBI / story / test-spec / design artifact quality before handoff         |
 
-### Agents (<!-- COUNT:agents -->23<!-- /COUNT --> specialists)
+### Agents (<!-- COUNT:agents -->24<!-- /COUNT --> specialists)
 
-Subagent definitions for parallelized, specialized work. The table below shows 9 of the <!-- COUNT:agents -->23<!-- /COUNT --> — see `.claude/docs/agents/README.md` for the full roster.
+Subagent definitions for parallelized, specialized work. The table below shows 9 of the <!-- COUNT:agents -->24<!-- /COUNT --> — see `.claude/docs/agents/README.md` for the full roster.
 
 | Agent                   | Role                                           |
 | ----------------------- | ---------------------------------------------- |
@@ -246,12 +246,12 @@ easy-claude/
 ├── .agents/                  # Codex skill mirror generated from .claude/skills
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
-│   ├── agents/               # 23 specialized agent definitions
-│   ├── hooks/                # 24 top-level hook files + lib/ utilities
+│   ├── agents/               # 24 specialized agent definitions
+│   ├── hooks/                # 25 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 128 skill definitions
+│   ├── skills/               # 129 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -261,7 +261,6 @@ easy-claude/
 │   ├── docs/                 # Framework documentation
 │   ├── scripts/              # Utility scripts (catalogs, audit, Codex sync)
 │   │   └── codex/            # Codex sync, migration, and verification tooling
-│   ├── output-styles/        # Coding level output styles (ELI5→God)
 │   ├── config/               # Templates for agents/skills
 │   ├── settings.json         # Hook registration & features
 │   └── workflows.json        # Workflow catalog definitions
@@ -283,7 +282,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 24 Hook Files + 128 Skills + 21 Flows │
+│ 25 Hook Files + 129 Skills + 21 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

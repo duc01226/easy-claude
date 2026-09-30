@@ -2516,7 +2516,8 @@ const tests = [
                 const ctx = contextOf(result.stdout);
                 assert.ok(ctx.includes('ui-ux-gate') && ctx.includes('design-knowledge.md'), `${rel}: gate delivered. Got: ${result.stdout}`);
             }
-            // And a non-front-end or excluded file receives nothing (no other class exists in the fallback)
+            // And a non-front-end or excluded file receives nothing (the fallback's other class, the AI-feature gate, matches only
+            // AI-surface paths or files whose content shows a model SDK: these fixtures are empty and sit on no AI path)
             for (const rel of ['.claude/hooks/a.cjs', 'web/a.ts', 'node_modules/x/a.css']) {
                 assert.equal((await spawnHook(fx, post(fx, 'Edit', rel, { session_id: `other-${rel}` }))).stdout, '', rel);
             }
@@ -2527,6 +2528,8 @@ const tests = [
             const lookup = await spawnNode([path.join(HOOKS_DIR, 'lib', 'file-conventions.cjs'), '--lookup', 'web/a.tsx', '--json'], { cwd: fx.project, env: { CLAUDE_PROJECT_DIR: fx.project } });
             const shown = JSON.parse(lookup.stdout);
             assert.deepEqual([shown.enabled, shown.classes.map(c => c.name)], [true, ['ui-ux-gate']]);
+            // The fallback carries both framework gates; the AI-feature gate is inactive on these files (no AI path, no SDK content)
+            assert.deepEqual(conventions.builtinFallbackConfig().contextGroups.map(g => g.name), ['ui-ux-gate', 'ai-feature-gate']);
 
             // Counter-cases: an existing config never falls back — without the switch, or malformed
             const store = path.join(fx.root, 'counter-store');

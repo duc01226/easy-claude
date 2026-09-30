@@ -176,7 +176,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 2. Identify which protocols apply. Common: `understand-code-first` (reads/modifies code), `evidence-based-reasoning` (investigation/review/planning), `output-quality-principles` (produces reports/docs), `graph-assisted-investigation` (analyzes code relationships).
 3. Copy the checklist between `<!-- SYNC:tag -->` open/close tags at the TOP (after frontmatter).
 4. Add 1-line `:reminder` versions at the BOTTOM inside Closing Reminders.
-5. NEVER hand-write a `MUST ATTENTION READ .claude/skills/shared/` reference. Outside the five review-family skills, convert a body to its guide line with `py -3 .claude/scripts/sync-update-blocks.py --mode=guide --tags <tag>` (`python3` on macOS/Linux); a hook delivers the full text and the guide path is the fallback.
+5. NEVER hand-write a `MUST ATTENTION READ .claude/skills/shared/` reference. Outside the four converging review-family skills, convert a body to its guide line with `py -3 .claude/scripts/sync-update-blocks.py --mode=guide --tags <tag>` (`python3` on macOS/Linux); a hook delivers the full text and the guide path is the fallback. Single-pass `plan-review` uses guides.
 
 ## Scripts
 
@@ -211,7 +211,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 
-**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the five review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
+**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
 
 <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
 

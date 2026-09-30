@@ -38,7 +38,7 @@ const rootResolution = resolveProjectRoot({
 });
 const rootDir = rootResolution.rootDir;
 
-// SC3 review-family allow-list — the 13 finding-producing review skills. The scan is scoped to
+// SC3 review-family allow-list — the 14 finding-producing review skills. The scan is scoped to
 // these names ONLY (never a repo-wide glob) so a non-review skill using "finding"/"Severity" is
 // never flagged (TC-CONVLOOP-043).
 export const REVIEW_FAMILY_SKILLS = [
@@ -54,7 +54,8 @@ export const REVIEW_FAMILY_SKILLS = [
     'production-readiness-review',
     'artifact-review',
     'ui-review',
-    'knowledge-review'
+    'knowledge-review',
+    'ai-engineering-review'
 ];
 
 // SC7 grader allow-list — validate-only graders that emit a JUDGMENT (a scorecard; a

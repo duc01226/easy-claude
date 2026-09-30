@@ -11,6 +11,8 @@ disable-model-invocation: false
 
 **Use when** scope or value is unclear, several outcomes or modules are involved, or research must precede the build decision. A clear, bounded change across modules → `workflow-feature`. An existing spec that only needs building → `workflow-implement-spec`. Greenfield → `workflow-greenfield-init`.
 
+**Confirmation gate:** `activation: confirm`. When the AI routes here on its own, it MUST first compare this workflow's current step count with the lean custom route that would otherwise satisfy the request, present both, and ask the user once which route to run. An explicit user request for this workflow needs no second confirmation.
+
 **Workflow:**
 
 1. **Triage** — size, kind, risk and `isLargeIdea`; select the research/design depth (below).
@@ -21,6 +23,7 @@ disable-model-invocation: false
 **Key Rules:**
 
 - MUST ATTENTION triage FIRST and record it in the run report; escalate depth on risk and ambiguity, not file count alone.
+- MUST ATTENTION self-routing stops at the confirmation gate: show the big-workflow step count and the lighter custom route before activation — why: this workflow intentionally spends much more time and context than a bounded feature route.
 - MUST ATTENTION gate steps always run; `core`/`optional` steps follow the Step Execution Protocol and every deviation is logged with evidence.
 - MUST ATTENTION every research stage that runs is validated with the user before the next stage; every claim cites evidence, confidence >80% to act.
 - NEVER skip mandatory workflow or skill gates.

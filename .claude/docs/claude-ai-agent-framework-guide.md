@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->24<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->46<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->128<!-- /COUNT --> skills · <!-- COUNT:workflows -->21<!-- /COUNT --> workflows · <!-- COUNT:agents -->23<!-- /COUNT --> agents · <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->25<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->46<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->129<!-- /COUNT --> skills · <!-- COUNT:workflows -->21<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual version:** `.claude/docs/claude-ai-agent-framework-guide.html` (same content, one standalone page).
 
@@ -17,7 +17,7 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **24 top-level hook files**, **128 skills**, **21 registered workflows**, and **23 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **25 top-level hook files**, **129 skills**, **21 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
@@ -157,7 +157,7 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 
 ### Key sequences (`gate` in bold)
 
-- **Feature:** investigate → spec (+ optional discovery, domain, scenario, mockup) → plan → plan-review → test specs → implement → spec sync → integration tests → **review changes** → **test** → **close**.
+- **Feature:** investigate → spec (+ optional discovery, domain, scenario, mockup) → test specs → plan → implement + integration tests → one spec sync → **review changes** → **verify once** → **close**.
 - **Bug fix:** **root-cause investigation** → optional spec amend / plan → **regression test written** → fix → **review changes** (static) → **verify** (tests + mutation check: the test fails without the fix, passes with it) → **close**.
 - **Refactor:** investigate → **run tests (green baseline)** → plan → optional safety-net tests → execute → **review changes** → **test** → **close**.
 - **Implement spec:** investigate → spec-clarify → plan → execute → integration tests → **review changes** (static) → **verify** → **test** → **close**.
@@ -225,7 +225,7 @@ Everything else is advisory or silent.
 | Event                           | Hooks (purpose)                                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | SessionStart                    | `verify-install` (partial-install check, safe dependency install), `session-init` (session/plan state), `session-init-docs` (reference-doc status), `graph-session-init`, `file-convention-inject` and `prompt-ledger` (re-arm after compaction) |
-| UserPromptSubmit                | `init-prompt-gate`, `graph-prompt-sync`, `workflow-route-inject` (routing catalog), `commit-skill-route`, `judgement-integrity-route`, `prompt-ledger` |
+| UserPromptSubmit                | `init-prompt-gate`, `graph-prompt-sync`, `workflow-route-inject` (routing catalog), `commit-skill-route`, `judgement-integrity-route`, `ai-feature-route`, `prompt-ledger` |
 | UserPromptExpansion · PostToolUse `Skill`/`Read(SKILL.md)` · SubagentStart | six `protocol-inject-<group>` hooks (review, evidence-trace, workflow-task, spec-test, design, universal) |
 | PreToolUse                      | `doc-sync-gate` (spec-drift warning), `review-commit-gate`, notifications on `AskUserQuestion`           |
 | PostToolUse                     | `post-edit-prettier` (formatter), `graph-auto-update`, `file-convention-inject`, `prompt-ledger`, `token-budget-checkpoint` |
@@ -322,7 +322,7 @@ Read `spec-system-reference.md` in the project-reference docs root (default `doc
 - **Lessons** — `lessons.md` holds learned guardrails. At the end of non-trivial work Claude names the root-cause failure mode, checks it is general, recurring and not mechanically catchable, and then asks you to run `/learn`.
 - **Project overlays** — `/project-skill-protocol` adds project rules on top of a framework skill. Overlays are additive only and can never waive a routing, git, review or confirmation gate.
 - **Saved prompts** — `/custom-prompt` stores project playbooks.
-- **Developer settings** — `.claude/.ck.json` (team) and the git-ignored `.claude/.ck.local.json` (personal) hold hook switches such as `promptLedger`, `commitSkillRoute` and `judgementIntegrityRoute`.
+- **Developer settings** — `.claude/.ck.json` (team) and the git-ignored `.claude/.ck.local.json` (personal) hold hook switches such as `promptLedger`, `commitSkillRoute`, `judgementIntegrityRoute` and `aiFeatureRoute`.
 
 Read `.claude/docs/configuration/README.md` for every key and its default.
 
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **137** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1065** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `run-all-tests.cjs` (full aggregate) | **1127** | Primary plus every `tests/suites/*.test.cjs` suite                     |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 137; `run-all-tests.cjs` = 1065 discovered. Both runners fail when these numbers drift from the docs.
+> Live-verified: `test-all-hooks.cjs` = 137; `run-all-tests.cjs` = 1127 discovered. Both runners fail when these numbers drift from the docs.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 
@@ -387,7 +387,7 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | PR target branch                | `pullRequest.targetBranch`                        | `main`           |
 | Skill visibility                | `skillProfile.preset`                             | `full`           |
 | Prompt ledger                   | `.ck.json` `promptLedger.enabled`                 | on               |
-| Commit / judgement routers      | `.ck.json` `commitSkillRoute`, `judgementIntegrityRoute` | on        |
+| Commit / judgement / AI-feature routers | `.ck.json` `commitSkillRoute`, `judgementIntegrityRoute`, `aiFeatureRoute` | on |
 | Desktop notifications           | env `ENABLE_DESKTOP_NOTIFICATIONS`                | on               |
 | Framework off for one session   | `claude --settings .claude/config/vanilla-settings.json --disable-slash-commands` | — |
 

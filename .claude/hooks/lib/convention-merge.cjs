@@ -17,7 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { isInjectable, skillPath, UI_UX_GATE, CLASS_TRIGGERS, TRIGGER_EDIT } = require('./file-conventions.cjs');
+const { isInjectable, skillPath, readBoundedContent, UI_UX_GATE, AI_FEATURE_GATE, AI_SDK, CLASS_TRIGGERS, TRIGGER_EDIT } = require('./file-conventions.cjs');
 const { getDocsRoot } = require('./project-config-loader.cjs');
 
 // The three spec-authoring reference docs. Only the FILENAMES are fixed; the root resolves from
@@ -58,6 +58,70 @@ const META_FIELDS = new Set(['origin', 'detectedFingerprint']);
 
 // The UI/UX gate class lives in file-conventions.cjs (it is also the built-in fallback when no
 // project config exists); detection proposes it only for a project with recorded front-end evidence.
+
+// The AI-feature gate class lives in file-conventions.cjs beside its SDK list (also the built-in
+// fallback); detection proposes it only for a project whose dependency manifests name an AI SDK.
+const MANIFEST_LIMITS = Object.freeze({ maxDepth: 2, maxDirs: 60, maxManifests: 30, maxBytes: 262144 });
+const MANIFEST_SKIP_DIRS = new Set(['node_modules', 'vendor', 'dist', 'build', 'tmp', 'temp', 'target', 'bin', 'obj', 'venv', 'env', '__pycache__']);
+const MANIFEST_NAME = /^(?:package\.json|requirements[^/\\]*\.txt|pyproject\.toml|go\.mod|pom\.xml|build\.gradle(?:\.kts)?|[^/\\]+\.csproj)$/i;
+// `-`, `_` and `.` are interchangeable in package spellings (import name vs manifest name).
+const foldPackage = name => String(name).toLowerCase().replace(/[-_.]/g, '-');
+const AI_SDK_EXACT = new Set(AI_SDK.python.map(foldPackage));
+const AI_SDK_PREFIXES = AI_SDK.pythonPrefixes.concat(AI_SDK.other, AI_SDK.manifestOnly).map(foldPackage);
+
+/** Manifest files at the project root and up to MANIFEST_LIMITS.maxDepth levels below it (dot and build folders skipped). */
+function findManifests(projectDir) {
+    const found = [];
+    const queue = [[projectDir, 0]];
+    let dirs = 0;
+    while (queue.length && dirs < MANIFEST_LIMITS.maxDirs && found.length < MANIFEST_LIMITS.maxManifests) {
+        const [dir, depth] = queue.shift();
+        dirs += 1;
+        let entries;
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch {
+            continue;
+        }
+        for (const entry of entries) {
+            if (entry.isFile() && MANIFEST_NAME.test(entry.name)) {
+                found.push(path.join(dir, entry.name));
+            } else if (entry.isDirectory() && depth < MANIFEST_LIMITS.maxDepth && !entry.name.startsWith('.') && !MANIFEST_SKIP_DIRS.has(entry.name.toLowerCase())) {
+                queue.push([path.join(dir, entry.name), depth + 1]);
+            }
+        }
+    }
+    return found.slice(0, MANIFEST_LIMITS.maxManifests);
+}
+
+/** Whether one manifest's text names an AI SDK (package.json by dependency key, other manifests by package token). */
+function manifestNamesAiSdk(fileName, text) {
+    if (/^package\.json$/i.test(fileName)) {
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        } catch {
+            return false;
+        }
+        const names = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
+            .flatMap(section => (isPlainObject(parsed) && isPlainObject(parsed[section]) ? Object.keys(parsed[section]) : []));
+        return names.some(name => AI_SDK.js.includes(name) || AI_SDK.jsScopes.some(scope => name.startsWith(scope)));
+    }
+    const tokens = text.toLowerCase().match(/[a-z0-9@_./-]+/g) || [];
+    return tokens.some(token => {
+        const folded = foldPackage(token);
+        return AI_SDK_EXACT.has(folded) || AI_SDK_PREFIXES.some(prefix => folded.startsWith(prefix));
+    });
+}
+
+/** AI evidence recorded in the repository's dependency manifests (bounded reads; unreadable files are skipped). */
+function hasAiSdkEvidence(projectDir) {
+    for (const file of findManifests(projectDir)) {
+        const text = readBoundedContent(file, MANIFEST_LIMITS.maxBytes);
+        if (text && manifestNamesAiSdk(path.basename(file), text)) return true;
+    }
+    return false;
+}
 
 function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -103,10 +167,11 @@ function candidate(fields, exists) {
         pathRegexes: unique(strings(fields.pathRegexes)),
         priority: fields.priority
     };
-    for (const key of ['pathGlobs', 'fileNameRegexes', 'excludePathGlobs', 'fileExtensions']) {
+    for (const key of ['pathGlobs', 'fileNameRegexes', 'excludePathGlobs', 'fileExtensions', 'contentRegexes', 'contentExtensions']) {
         const list = unique(strings(fields[key]));
         if (list.length) group[key] = list;
     }
+    if (typeof fields.contentLabel === 'string' && fields.contentLabel.trim()) group.contentLabel = fields.contentLabel.trim();
     const docs = unique(strings(fields.referenceDocs).map(trimSlashes)).filter(doc => exists(doc));
     if (docs.length) group.referenceDocs = docs;
     const skills = unique(strings(fields.skills)).filter(name => exists(skillPath(name)));
@@ -124,7 +189,8 @@ function candidate(fields, exists) {
     // class it may not refresh, so a maintainer's trigger is never changed (BR-PFCI-12).
     if (CLASS_TRIGGERS.includes(fields.on)) group.on = fields.on;
     else if (group.referenceDocs || group.skills) group.on = TRIGGER_EDIT;
-    const hasInclude = group.pathRegexes.length || (group.pathGlobs || []).length || (group.fileNameRegexes || []).length;
+    const hasContentInclude = (group.contentRegexes || []).length && (group.contentExtensions || []).length;
+    const hasInclude = group.pathRegexes.length || (group.pathGlobs || []).length || (group.fileNameRegexes || []).length || hasContentInclude;
     return hasInclude && isInjectable(group) ? group : null;
 }
 
@@ -208,6 +274,8 @@ function detectGroups(config, opts = {}) {
     const hasFrontEnd = modules.some(m => typeof m.kind === 'string' && m.kind.toLowerCase().startsWith('frontend')) ||
         strings(styling.fileExtensions).length > 0;
     if (hasFrontEnd) push(candidate({ ...UI_UX_GATE, excludePathGlobs: GENERAL_EXCLUDES.slice() }, exists));
+    // AI evidence: an AI SDK named in a dependency manifest (same SDK list the class's content signals use).
+    if (hasAiSdkEvidence(opts.projectDir || process.cwd())) push(candidate({ ...AI_FEATURE_GATE }, exists));
 
     push(candidate({
         name: 'backend',
@@ -386,7 +454,7 @@ function runCli(argv) {
     return 0;
 }
 
-module.exports = { detectGroups, fingerprintGroup, mergeDetected, LANGUAGE_EXTENSIONS, UI_UX_GATE };
+module.exports = { detectGroups, fingerprintGroup, mergeDetected, hasAiSdkEvidence, LANGUAGE_EXTENSIONS, UI_UX_GATE, AI_FEATURE_GATE };
 
 // Launcher-aware entry: Codex runs hooks via `node -e … require()`, where require.main is undefined.
 // hook-runner.cjs isHookEntryPoint (twin of scripts/lib/project-root.cjs isInvokedAsScript)

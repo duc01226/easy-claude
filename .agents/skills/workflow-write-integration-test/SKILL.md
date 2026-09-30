@@ -58,7 +58,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 ## Quick Summary
 
-**Goal:** Write or update integration tests traced to the project's canonical case owner, prove each one asserts the intent it protects, review them to convergence, and verify them green under the project's configured repeat policy.
+**Goal:** Write or update integration tests traced to the project's canonical case owner, prove each one asserts the intent it protects, complete one bounded quality review, and verify them green under the project's configured repeat policy.
 
 **Use when:** covering untested or changed behavior with integration tests, converting existing cases into test code, or auditing and stabilising an existing suite. To drive an already-red suite to green, use `$workflow-integration-test-green`; to reconcile specs and tests after a code change, use `$workflow-spec-sync`; for case authoring with no test code, run `$spec [mode=tests]` directly.
 
@@ -86,7 +86,7 @@ Each gate names the evidence `$workflow-end` checks. None of them flexes.
 
 1. **Behavior understood before any assertion** — `$investigate` traces the real entry point, the invariant or data owner, the observable outcome and any downstream effects the architecture actually has; production and test source are read before the first assertion is written. Evidence: `file:line` trace in the report.
 2. **Tests verify intent** — every test names the business rule, invariant or technical contract it protects, asserts an outcome the system owns, and would fail if that intent broke; no smoke-only tests. It exercises the production entry path when that path is the behavior under test and uses valid project fixtures for unrelated preconditions; it waits only on a real observable signal. Evidence: the case-to-test map with the guarded intent per test.
-3. **Review converged** (`review-converged`, gate `$integration-test-review`) — its seven gates (assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage — every behavior-changing production file in the change set maps to a covering test, integration-first with a justified unit fallback, and to a case). Evidence: final review report.
+3. **Review gate cleared once** (`review-converged`, gate `$integration-test-review`) — one evidence-backed pass covers its eight gates: assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage, and real-world fidelity. Every behavior-changing production file maps to a covering test, integration-first with a justified unit fallback, and to a case. Here `review-converged` means the one-pass report completed; it never authorizes an internal fix/re-review loop. Fixing findings or requesting another pass is a separate caller-owned action. Evidence: the one-pass review report.
 4. **Tests green** (`tests-pass`, gate `$integration-test-verify`) — the configured relevant suites run under `integrationTestVerify.guidance`; absent guidance, two fresh green runs without a destructive reset for persistent or shared-state suites. Evidence: command, exact counts, exit status per run — never a claim without runner output.
 5. **Cases synced** (`spec-synced`, gate `$spec [mode=sync]`) — the configured case owner and coverage carrier match the executing tests. Strict default: Feature Spec Section 8 `TC-{FEATURE}-{NNN}` cases and `CoveredBy` links; a native profile keeps its declared identities, fields and cardinality and never gets a Section 8 shadow.
 6. **Every failure adjudicated before an edit** — a five-way Fault Verdict (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`) from `$debug-investigate`; never force green by deleting or skipping tests, weakening assertions, widening assertion timeouts, retrying assertions or narrowing scope.
@@ -101,18 +101,18 @@ Each gate names the evidence `$workflow-end` checks. None of them flexes.
 | `$spec [mode=tests]`                 | optional | When: A target behavior has no current case in the configured case owner (new or changed behavior, or a missing or stale case). · Skip reason: Every target behavior already has a current case in the configured case owner; the spec sync gate still reconciles case-to-test links.    | Canonical cases for the tests to implement.                     |
 | `$artifact-review --type=spec-tests` | optional | When: The spec [mode=tests] step added or changed at least one case in this run. · Skip reason: No case was added or changed in this run, so there is no case to review.                                                                                                                 | Clear setup/action/outcome, boundaries, no identity collision.  |
 | `$integration-test`                  | core     | Usually.                                                                                                                                                                                                                                                                                 | Test code through the project's supported integration boundary. |
-| `$integration-test-review`           | gate     | Always.                                                                                                                                                                                                                                                                                  | `review-converged`                                              |
+| `$integration-test-review`           | gate     | Always; exactly one review pass in this workflow run.                                                                                                                                                                                                                                    | `review-converged` (one completed pass; no internal loop)       |
 | `$integration-test-verify`           | gate     | Always.                                                                                                                                                                                                                                                                                  | `tests-pass`                                                    |
 | `$spec [mode=sync]`                  | gate     | Always.                                                                                                                                                                                                                                                                                  | `spec-synced`                                                   |
 | `$docs-update`                       | optional | When: Test coverage changed materially, or a doc records evidence, coverage or test counts this run changed. · Skip reason: Coverage did not change materially and no doc records evidence, coverage or test counts this run changed; the spec sync gate already updated the case links. | Feature-doc evidence and version history.                       |
 | `$workflow-end`                      | gate     | Always, last.                                                                                                                                                                                                                                                                            | `run-closed`                                                    |
-| `$watzup`                            | core     | Always; hands off to `$understand` only for a large change or on request.                                                                                                                                                                                                                | Recap.                                                          |
+| `$watzup`                            | core     | Always; produces the session recap and next-step prompt.                                                                                                                                                                                                                                  | Recap.                                                          |
 
 ## Orchestration Freedom
 
 You choose inline vs sub-agent, batching and ordering to minimise wall-clock and token cost at equal quality. Fixed constraints only:
 
-- Cases exist before the tests that implement them; test code exists before it is reviewed; review fixes are re-reviewed; `$integration-test-verify` runs on the reviewed code; `$spec [mode=sync]` sees the final tests; `$workflow-end` runs last; gates awaiting user approval never run in parallel.
+- Cases exist before the tests that implement them; test code exists before its single review pass; `$integration-test-verify` runs on the reviewed code; `$spec [mode=sync]` sees the final tests; `$workflow-end` runs last; gates awaiting user approval never run in parallel.
 - Parallel test writers only with disjoint write sets and isolated test data; XS/S work stays inline.
 
 ## Test Architecture Contract Handoff
@@ -127,8 +127,8 @@ Before `$integration-test`, `$investigate` emits one evidence-backed record and 
 
 ## Fix Path & Loop Bounds
 
-- Validate a review finding (evidence-backed, reproducible) before fixing it; fix at the component that owns the violated contract, then restart the full integration-test review. A red test is adjudicated first (gate 6) and fixed on the side the verdict names.
-- Round 1 blocks on every open validated severity (Round-1 LOW closure); from round 2 onward CRITICAL/HIGH/MEDIUM remain blocking and LOW-only findings are recorded/deferred without another fix/review round. Cap 2 rounds, +1 when a CRITICAL/HIGH stays open; never relabel a material finding LOW to exit.
+- `$integration-test-review` performs exactly one read-only review round and returns every validated finding. It does not fix, loop, or re-review itself. If the caller fixes a finding, any later review is a new explicit invocation with a fresh report.
+- The one pass applies the canonical consequence-based severity rubric without re-tiering findings to obtain a pass. An open blocking finding prevents a clean review verdict; the caller decides whether to fix, defer where policy permits, or request a new invocation.
 - Failing tests are not capped by rounds — they loop until green; escalate by asking the user directly on no progress or an `ENVIRONMENT-BLOCKED`/`AMBIGUOUS` verdict.
 
 ---
@@ -227,7 +227,7 @@ Before `$integration-test`, `$investigate` emits one evidence-backed record and 
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** write or update integration tests traced to canonical cases, review them to convergence, and prove them green under the configured repeat policy.
+**IMPORTANT MUST ATTENTION Goal:** write or update integration tests traced to canonical cases, complete one bounded review pass, and prove them green under the configured repeat policy.
 
 - **MUST ATTENTION** triage FIRST (size, kind, case state): XS work stays inline and current cases are mapped, not re-authored — but review, verify and sync always run.
 - **MUST ATTENTION** read the production and test source BEFORE writing any assertion; every test names the invariant it protects and asserts an outcome the system owns — NEVER smoke-only.

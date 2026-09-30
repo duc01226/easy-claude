@@ -51,12 +51,12 @@ Delivery stack: **undetermined (no CI/IaC config found)**. Root commands cover l
 
 ## Environment Configuration
 
-| Setting group                 | Surface                                                     | Purpose                                                                                                                |
-| ----------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Framework runtime             | `.claude/settings.json:24-30`                               | Context/auto-memory/todo controls, stop-hook cap, MCP timeout                                                          |
-| MCP authentication references | `.claude/.mcp.json:6-7`                                     | `GITHUB_PERSONAL_ACCESS_TOKEN` <!-- path-role: user-local -->                                                          |
-| Notification references       | `.claude/hooks/notifications/.env.example:8-21`             | Telegram, Discord, and Slack reference names                                                                           |
-| Optional skill credentials    | `.claude/.env.example:34-50`                                | Shared AI/ML API key reference names with per-skill override precedence                                                |
+| Setting group                 | Surface                                                                        | Purpose                                                                                                                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework runtime             | `.claude/settings.json:24-30`                                                  | Context/auto-memory/todo controls, stop-hook cap, MCP timeout                                                                                                                                                         |
+| MCP authentication references | `.claude/.mcp.json:6-7`                                                        | `GITHUB_PERSONAL_ACCESS_TOKEN` <!-- path-role: user-local -->                                                                                                                                                         |
+| Notification references       | `.claude/hooks/notifications/.env.example:8-21`                                | Telegram, Discord, and Slack reference names                                                                                                                                                                          |
+| Optional skill credentials    | `.claude/.env.example:34-50`                                                   | Shared AI/ML API key reference names with per-skill override precedence                                                                                                                                               |
 | Optional skill tool paths     | `.claude/skills/html-export/scripts/lib/ffmpeg.cjs:114-127` (`overrideBinary`) | `HTML_EXPORT_FFMPEG` / `HTML_EXPORT_FFPROBE`: absolute ffmpeg/ffprobe override for video export; on Windows it must name an `.exe` or `.com` file (never a `.bat`/`.cmd` wrapper), else exit 3; unset → `PATH` lookup |
 
 MUST ATTENTION record setting keys/reference names only; keep credential values in environment or secret stores.
@@ -81,16 +81,15 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 
 | Component      | Count                                                                                         | Location                      | Format                                                                              |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->24<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
+| Hooks          | <!-- COUNT:hooks -->25<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
 | Hook Libraries | <!-- COUNT:lib-modules -->46<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
-| Skills         | <!-- COUNT:skills -->128<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
-| Agents         | <!-- COUNT:agents -->23<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
+| Skills         | <!-- COUNT:skills -->129<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
+| Agents         | <!-- COUNT:agents -->24<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->21<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
-| Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                     |
-| Scripts        | 34                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
+| Scripts        | 42                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
 | Codex Scripts  | 16                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, and verification tools                               |
-| Hook Tests     | 68 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
-| Codex Mirrors  | <!-- COUNT:skills -->128<!-- /COUNT --> skills, <!-- COUNT:agents -->23<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
+| Hook Tests     | 74 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Codex Mirrors  | <!-- COUNT:skills -->129<!-- /COUNT --> skills, <!-- COUNT:agents -->24<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 ## Project Directory Tree
 
@@ -133,19 +132,18 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                               |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->24<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->25<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->46<!-- /COUNT --> shared utility modules for hooks                                              |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->128<!-- /COUNT --> task automation skill definitions                                                 |
-| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->23<!-- /COUNT --> specialized subagent role definitions                                              |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->129<!-- /COUNT --> task automation skill definitions                                                 |
+| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->24<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->21<!-- /COUNT --> end-to-end process orchestrations                                               |
-| SC   | Scripts        | `.claude/scripts/`             | 34 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                        |
-| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 17 top-level ESM sync, migration, notification, and verification scripts                                                  |
+| SC   | Scripts        | `.claude/scripts/`             | 42 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                        |
+| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 16 top-level ESM sync, migration, notification, and verification scripts                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
-| OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                    |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 63 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 74 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
-## Hooks (<!-- COUNT:hooks -->24<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->25<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
@@ -166,12 +164,12 @@ easy-claude/
 
 > Backend/frontend/SCSS/design/lessons/mindset/role guidance lives in `CLAUDE.md`, the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), and relevant skills. Read it through the project-reference docs gate; the static copy is authoritative. The opt-in `file-convention-inject` hook only re-reminds per-file convention classes (`contextGroups[]`) that are missing from the current context.
 
-| Hook                                                                                                           | Event                                                                             | Purpose                                                                                                                                                               |
-| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `file-convention-inject`                                                                                       | PostToolUse, SessionStart (compact)                                               | Per-file convention reminder; records condensation, no output                                                                                                         |
-| `prompt-ledger`                                                                                                | UserPromptSubmit, PostToolUse, SessionStart (compact/resume/clear)                | Record each user prompt; re-anchor the original request after condensation and at task checkpoints                                                                    |
-| `token-budget-checkpoint`                                                                                      | PostToolUse (task/plan steps)                                                     | Advisory note each time the session's non-cached tokens cross the next `hooks.tokenBudget.checkpointTokens` multiple                                                  |
-| `protocol-inject-<group>` (6: `review`, `evidence-trace`, `workflow-task`, `spec-test`, `design`, `universal`) | PostToolUse (`Skill`, `Read` of a `SKILL.md`), UserPromptExpansion, SubagentStart | Deliver a converted skill's shared protocols once per session (lib `protocol-delivery.cjs`); read `.claude/docs/hooks/README.md#protocol-delivery` when changing them |
+| Hook                                                                                                           | Event                                                                             | Purpose                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `file-convention-inject`                                                                                       | PostToolUse, SessionStart (compact)                                               | Per-file convention reminder (content signals read a bounded sample and never follow a link out of the project; registered with a 10 s limit); records condensation, no output |
+| `prompt-ledger`                                                                                                | UserPromptSubmit, PostToolUse, SessionStart (compact/resume/clear)                | Record each user prompt; re-anchor the original request after condensation and at task checkpoints                                                                             |
+| `token-budget-checkpoint`                                                                                      | PostToolUse (task/plan steps)                                                     | Advisory note each time the session's non-cached tokens cross the next `hooks.tokenBudget.checkpointTokens` multiple                                                           |
+| `protocol-inject-<group>` (6: `review`, `evidence-trace`, `workflow-task`, `spec-test`, `design`, `universal`) | PostToolUse (`Skill`, `Read` of a `SKILL.md`), UserPromptExpansion, SubagentStart | Deliver a converted skill's shared protocols once per session (lib `protocol-delivery.cjs`); read `.claude/docs/hooks/README.md#protocol-delivery` when changing them          |
 
 ### Graph Hooks
 
@@ -194,12 +192,13 @@ easy-claude/
 
 ### Workflow Hooks
 
-| Hook                        | Event            | Purpose                                                                                        |
-| --------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
-| `workflow-route-inject`     | UserPromptSubmit | Inject the canonical workflow routing gate from `.claude/skills/shared/workflow-first-gate.md` |
-| `commit-skill-route`        | UserPromptSubmit | Remind the agent to run the `commit` skill when the prompt asks to commit                      |
-| `judgement-integrity-route` | UserPromptSubmit | Inject the anti-confirmation-bias answer why-review when the prompt asks for a verdict         |
-| `core-principles-inject`    | UserPromptSubmit, PostToolUse (task/plan steps) | Re-deliver the Easy to change · scale · maintain gate, deduplicated to about once per 100k tokens |
+| Hook                        | Event                                           | Purpose                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `workflow-route-inject`     | UserPromptSubmit                                | Inject the canonical workflow routing gate from `.claude/skills/shared/workflow-first-gate.md`                                                                                                                                                                                                                                                                                            |
+| `commit-skill-route`        | UserPromptSubmit                                | Remind the agent to run the `commit` skill when the prompt asks to commit                                                                                                                                                                                                                                                                                                                 |
+| `judgement-integrity-route` | UserPromptSubmit                                | Inject the anti-confirmation-bias answer why-review when the prompt asks for a verdict                                                                                                                                                                                                                                                                                                    |
+| `ai-feature-route`          | UserPromptSubmit                                | Inject one short conditional directive (at most 700 characters by construction, one read pointer, review route) once per re-arm window when the prompt names an AI technique AND asks to act on it (the Claude API or SDK counts, "Claude Code" does not); silent on questions, framework-machinery prompts (two framework cues, or one without a concrete product technique) and repeats |
+| `core-principles-inject`    | UserPromptSubmit, PostToolUse (task/plan steps) | Re-deliver the Easy to change · scale · maintain gate, deduplicated to about once per 100k tokens                                                                                                                                                                                                                                                                                         |
 
 > **Workflow tracking:** progression is model-driven against `CLAUDE.md` and persisted task tracking; no workflow-step hook advances tasks.
 
@@ -226,10 +225,11 @@ easy-claude/
 
 > **Also available as a workflow skill** (invokeable via `/workflow-<name>` but not registered in `workflows.json`): `workflow-end` — the lifecycle terminator. It is the only one of the 22 `.claude/skills/workflow-*` skills without a `workflows.json` entry; the other 21 map 1:1 to the registered workflows above.
 
-## Agents (<!-- COUNT:agents -->23<!-- /COUNT -->)
+## Agents (<!-- COUNT:agents -->24<!-- /COUNT -->)
 
 | Agent                      | Specialization                                                            |
 | -------------------------- | ------------------------------------------------------------------------- |
+| `ai-engineering-reviewer`  | AI-feature review: checklist read whole, knowledge/calibration by section |
 | `architect`                | System design, ADRs, cross-service analysis                               |
 | `backend-developer`        | Backend implementation with project patterns                              |
 | `code-reviewer`            | File-by-file code review with reports                                     |
@@ -256,15 +256,17 @@ easy-claude/
 
 ## Key Entry Points
 
-| Entry Point                              | Purpose                                                              |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| `.claude/settings.json`                  | Hook registration, permissions, features                             |
-| `.claude/hooks/session-init.cjs`         | Session startup — loads config, sets state                           |
-| `CLAUDE.md` / `SKILL.md`                 | Static rules/lessons re-anchored after compaction (no recovery hook) |
-| `.claude/workflows.json`                 | All <!-- COUNT:workflows -->21<!-- /COUNT --> workflow definitions   |
-| `docs/project-config.json`               | Project-specific runtime configuration                               |
-| `.claude/hooks/tests/test-all-hooks.cjs` | Main test runner                                                     |
-| `CLAUDE.md`                              | Project instructions for Claude                                      |
+| Entry Point                                              | Purpose                                                                                                                                                                                          |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.claude/settings.json`                                  | Hook registration, permissions, features                                                                                                                                                         |
+| `.claude/hooks/session-init.cjs`                         | Session startup — loads config, sets state                                                                                                                                                       |
+| `CLAUDE.md` / `SKILL.md`                                 | Static rules/lessons re-anchored after compaction (no recovery hook)                                                                                                                             |
+| `.claude/workflows.json`                                 | All <!-- COUNT:workflows -->21<!-- /COUNT --> workflow definitions                                                                                                                               |
+| `docs/project-config.json`                               | Project-specific runtime configuration                                                                                                                                                           |
+| `.claude/hooks/tests/test-all-hooks.cjs`                 | Main test runner                                                                                                                                                                                 |
+| `.claude/scripts/ai-signal-scan.cjs`                     | Lists the AI-feature surfaces of a change set (`--base <ref>` = merge-base range plus local changes); the JSON `status` is `surface`, `clean` or `unknown`, and only `clean` means no AI surface |
+| `.claude/skills/shared/protocols/ai-engineering-gate.md` | The one document AI-feature work reads; the `.claude/docs/ai-engineering-*` checklist, knowledge and calibration docs are read by section on demand                                              |
+| `CLAUDE.md`                                              | Project instructions for Claude                                                                                                                                                                  |
 
 ## Scan Targets (13)
 

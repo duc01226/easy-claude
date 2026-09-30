@@ -132,15 +132,52 @@ test("TC-OPENCODE-AGENTS-006: check passes on a fresh mirror, and fails on a sta
   });
 });
 
-test("TC-OPENCODE-AGENTS-007: an orphan file is reported but does not fail the check", async () => {
+test("TC-OPENCODE-AGENTS-007: an unmarked custom agent is reported but preserved", async () => {
   await withTempRoot("opencode-agents-orphan-", async (root) => {
+    // Given a fresh generated mirror plus a custom file that only mentions the marker in prose.
     await seedSource(root, "architect.md", SOURCE);
     await materializeOpencodeAgents({ rootDir: root });
-    await fs.writeFile(path.join(resolveOpencodeAgentsDir(root), "handwritten.md"), "---\n---\n", "utf8");
+    await fs.writeFile(
+      path.join(resolveOpencodeAgentsDir(root), "handwritten.md"),
+      "---\n---\nNotes: <!-- GENERATED MIRROR of .claude/agents/example.md -->\n",
+      "utf8",
+    );
 
+    // When the mirror is checked and synchronized again.
     const result = await checkOpencodeAgents({ rootDir: root });
     assert.equal(result.ok, true);
     assert.deepEqual(result.orphans, ["handwritten.md"]);
+
+    const second = await materializeOpencodeAgents({ rootDir: root });
+
+    // Then the unowned custom file remains byte-for-byte intact.
+    assert.deepEqual(second.deleted, []);
+    assert.equal(
+      await fs.readFile(path.join(resolveOpencodeAgentsDir(root), "handwritten.md"), "utf8"),
+      "---\n---\nNotes: <!-- GENERATED MIRROR of .claude/agents/example.md -->\n",
+    );
+  });
+});
+
+test("TC-OPENCODE-AGENTS-010: a generated agent whose canonical source was deleted fails check and is removed by sync", async () => {
+  await withTempRoot("opencode-agents-stale-generated-", async (root) => {
+    // Given two canonical agents mirrored into OpenCode and one canonical source removed later.
+    await seedSource(root, "architect.md", SOURCE);
+    await seedSource(root, "tester.md", ["---", "description: Tests things.", "---", "", "Body."].join("\n"));
+    await materializeOpencodeAgents({ rootDir: root });
+    await fs.rm(path.join(resolveClaudeAgentsDir(root), "architect.md"));
+
+    // When check observes the marker-owned stale output and sync reconciles it.
+    const stale = await checkOpencodeAgents({ rootDir: root });
+    assert.equal(stale.ok, false);
+    assert.match(stale.reason, /stale generated agent without canonical counterpart: architect\.md/);
+
+    const repaired = await materializeOpencodeAgents({ rootDir: root });
+
+    // Then only the stale generated file is deleted and the mirror becomes clean.
+    assert.deepEqual(repaired.deleted, ["architect.md"]);
+    await assert.rejects(() => fs.access(path.join(resolveOpencodeAgentsDir(root), "architect.md")), /ENOENT/);
+    assert.equal((await checkOpencodeAgents({ rootDir: root })).ok, true);
   });
 });
 

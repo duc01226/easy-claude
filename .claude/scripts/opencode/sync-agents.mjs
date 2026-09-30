@@ -42,6 +42,13 @@ const defaultRootDir = rootResolution.rootDir;
 
 export const CLAUDE_AGENTS_RELATIVE = path.join(".claude", "agents");
 export const OPENCODE_AGENTS_RELATIVE = path.join(".opencode", "agent");
+/** Ownership marker shared by the renderer and stale-output reconciliation. */
+export const AGENT_MARKER = "<!-- GENERATED MIRROR of .claude/agents/";
+
+/** True only when the ownership marker starts its own line in a generated document. */
+export function hasAgentMarker(text) {
+  return typeof text === "string" && text.split(/\r?\n/).some((line) => line.startsWith(AGENT_MARKER));
+}
 
 export function resolveClaudeAgentsDir(rootDir) {
   return path.join(rootDir, CLAUDE_AGENTS_RELATIVE);
@@ -88,7 +95,7 @@ export function renderAgentDocument(fileName, sourceText) {
     "mode: subagent",
     "---",
     "",
-    `<!-- GENERATED MIRROR of .claude/agents/${fileName} — do not hand-edit; edit the canonical`,
+    `${AGENT_MARKER}${fileName} — do not hand-edit; edit the canonical`,
     "     source and re-run: node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs -->",
     "",
     `Source: .claude/agents/${fileName}`,
@@ -113,6 +120,27 @@ async function listSourceAgents(claudeAgentsDir) {
     .sort((a, b) => a.localeCompare(b));
 }
 
+/** Classify unexpected Markdown files without claiming user-authored agents. */
+async function listUnexpectedAgents(agentsDir, expected) {
+  let entries;
+  try {
+    entries = await fs.readdir(agentsDir, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") return { generated: [], custom: [] };
+    throw error;
+  }
+
+  const generated = [];
+  const custom = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".md") || expected.has(entry.name)) continue;
+    const text = await fs.readFile(path.join(agentsDir, entry.name), "utf8");
+    (hasAgentMarker(text) ? generated : custom).push(entry.name);
+  }
+  const byName = (a, b) => a.localeCompare(b);
+  return { generated: generated.sort(byName), custom: custom.sort(byName) };
+}
+
 function resolvePaths(options = {}) {
   const rootDir = options.rootDir ?? defaultRootDir;
   return {
@@ -129,7 +157,7 @@ function resolvePaths(options = {}) {
  * @param {string} [options.rootDir] project root (defaults to the resolved mutation root)
  * @param {string} [options.claudeAgentsDir] override for `.claude/agents`
  * @param {string} [options.agentsDir] override for `.opencode/agent`
- * @returns {Promise<{agentsDir: string, count: number, written: string[], unchanged: string[]}>}
+ * @returns {Promise<{agentsDir: string, count: number, written: string[], unchanged: string[], deleted: string[]}>}
  */
 export async function materializeOpencodeAgents(options = {}) {
   const { claudeAgentsDir, agentsDir } = resolvePaths(options);
@@ -139,6 +167,13 @@ export async function materializeOpencodeAgents(options = {}) {
   }
 
   await fs.mkdir(agentsDir, { recursive: true });
+  const expected = new Set(fileNames);
+  const unexpected = await listUnexpectedAgents(agentsDir, expected);
+  const deleted = [];
+  for (const fileName of unexpected.generated) {
+    await fs.rm(path.join(agentsDir, fileName));
+    deleted.push(fileName);
+  }
 
   const written = [];
   const unchanged = [];
@@ -156,15 +191,14 @@ export async function materializeOpencodeAgents(options = {}) {
     written.push(fileName);
   }
 
-  return { agentsDir, count: fileNames.length, written, unchanged };
+  return { agentsDir, count: fileNames.length, written, unchanged, deleted };
 }
 
 /**
  * Verify the opencode agent mirror matches a fresh render of the canonical agents. Read-only.
  *
- * Fails on a missing or stale mirror file. Orphan `.md` files in the generated directory (no
- * canonical counterpart) are REPORTED but do not fail the check: this writer never deletes, and a
- * stray hand-written agent should be surfaced rather than silently destroyed.
+ * Fails on a missing, changed, or marker-owned stale mirror file. An unexpected unmarked `.md`
+ * file is reported without failing so a hand-written OpenCode agent is never claimed or deleted.
  *
  * @param {object} [options] same as `materializeOpencodeAgents`
  * @returns {Promise<{ok: boolean, agentsDir: string, reason: string|null, orphans: string[]}>}
@@ -190,12 +224,17 @@ export async function checkOpencodeAgents(options = {}) {
     }
   }
 
-  const orphans = (await fs.readdir(agentsDir, { withFileTypes: true }))
-    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".md") && !expected.has(entry.name))
-    .map((entry) => entry.name)
-    .sort((a, b) => a.localeCompare(b));
+  const unexpected = await listUnexpectedAgents(agentsDir, expected);
+  if (unexpected.generated.length > 0) {
+    return {
+      ok: false,
+      agentsDir,
+      reason: `stale generated agent without canonical counterpart: ${unexpected.generated.join(", ")}`,
+      orphans: unexpected.custom,
+    };
+  }
 
-  return { ok: true, agentsDir, reason: null, orphans };
+  return { ok: true, agentsDir, reason: null, orphans: unexpected.custom };
 }
 
 function parseArgs(args) {
@@ -222,10 +261,10 @@ async function main() {
   }
 
   const result = await materializeOpencodeAgents();
-  if (result.written.length === 0) {
+  if (result.written.length === 0 && result.deleted.length === 0) {
     console.log(`[opencode-agents-sync] ${agentsRel} already matches ${result.count} canonical agent(s)`);
   } else {
-    console.log(`[opencode-agents-sync] wrote ${result.written.length} of ${result.count} agent(s) into ${agentsRel}`);
+    console.log(`[opencode-agents-sync] wrote ${result.written.length} of ${result.count} agent(s) and removed ${result.deleted.length} stale generated agent(s) in ${agentsRel}`);
   }
 }
 

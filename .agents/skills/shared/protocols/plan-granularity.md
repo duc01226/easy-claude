@@ -1,10 +1,9 @@
-> **Plan Granularity** — Every phase must pass 5-point check before implementation:
+> **Plan Granularity** — Plan at decision-and-boundary altitude; execution discovers mechanics.
 >
-> 1. Lists exact file paths to modify (not generic "implement X")
-> 2. No planning verbs (research, investigate, analyze, determine, figure out)
-> 3. Steps ≤30min each, phase total ≤3h
-> 4. ≤5 files per phase
-> 5. No open decisions or TBDs in approach
+> 1. Use a few outcome-oriented phases with clear ownership and dependency order; do not decompose into method edits, line changes, 30-minute tasks, or recursive sub-plans.
+> 2. Name known modules, contracts, data, tests, docs, and representative paths with evidence. Require exact file paths only when the repository already proves them.
+> 3. Each phase states: objective, boundaries/non-goals, important decisions, affected owners/areas, executor discovery obligations, implementation output, and acceptance/quality gate.
+> 4. Open product or irreversible technical decisions block the plan and go to the user. Bounded implementation discovery is allowed when its source, owner, and stop condition are explicit.
+> 5. Split a phase only when it has a real dependency boundary, independently verifiable outcome, or disjoint write ownership. A plan that reads like implementation replay is too detailed.
 >
-> **Failing phases →** create sub-plan. Repeat until ALL leaf phases pass (max depth: 3).
-> **Self-question:** "Can I start coding RIGHT NOW? If any step needs 'figuring out' → sub-plan it."
+> **Self-question:** "Does this tell the executor what must be true, where to investigate, and how completion is proved—without telling them every edit?"

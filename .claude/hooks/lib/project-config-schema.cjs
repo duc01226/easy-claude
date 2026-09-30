@@ -305,7 +305,7 @@ const SCHEMA = {
     contextGroups: {
         type: 'arrayOf',
         required: false,
-        describe: 'Per-file convention classes: member = fileExtensions ok AND any include (pathRegexes|pathGlobs|fileNameRegexes) AND no exclude; priority 100/500/900.\n' +
+        describe: 'Per-file convention classes: member = fileExtensions ok AND any include (pathRegexes|pathGlobs|fileNameRegexes, or a contentRegexes match in a contentExtensions file) AND no exclude; priority 100/500/900.\n' +
             'Groups with rules|skills|referenceDocs|guideDoc|patternsDoc are rendered in CLAUDE.md and delivered by the hook; detect: node .claude/hooks/lib/convention-merge.cjs --detect\n' +
             'Per-group trigger `on`: read | edit | both (default both); `edit` delivers the group on edits only, never on plain reads.',
         itemSchema: {
@@ -316,6 +316,9 @@ const SCHEMA = {
             excludePathRegexes: { type: 'array', required: false, itemsAreRegex: true, describe: 'Regexes (same path form as pathRegexes) that remove a file from this group.' },
             excludePathGlobs: { type: 'array', required: false, describe: 'Globs that remove a file from this group.' },
             fileExtensions: { type: 'array', required: false },
+            contentRegexes: { type: 'array', required: false, itemsAreRegex: true, describe: 'Content signals: case-insensitive regexes tested against the first 64 KiB of a file (files over 2 MiB, binary or unreadable files never match). A file matches when its extension is in contentExtensions and any regex matches, as an alternative to a path include. At most 64 regexes of up to 500 characters; needs contentExtensions. A best-effort lint rejects well-known slow shapes: back-references, a repeated group containing an open-ended repetition, an alternation with overlapping starts under repetition, back-to-back open-ended repetitions, or more than 10 optional elements. Regexes other than the framework built-ins see only the first 16 KiB and run under a hard time budget (a timeout counts as no match).' },
+            contentExtensions: { type: 'array', required: false, describe: 'Extensions (leading dot optional, case-insensitive) of the text/code files that are content-scanned for contentRegexes; at most 64. Files of other extensions match by path and name only.' },
+            contentLabel: { type: 'string', required: false, describe: 'Short human label for the content signals (up to 80 characters), shown in the generated Automatic Skill Activation table, e.g. "AI SDK use".' },
             priority: { type: 'number', required: false, describe: 'Precedence rank, lower first and wins on conflict. Bands: 100 specific, 500 default, 900 general.' },
             guideDoc: { type: 'string', required: false },
             patternsDoc: { type: 'string', required: false },
@@ -1387,9 +1390,195 @@ const CONTEXT_GROUP_FIELDS = new Set(Object.keys(SCHEMA.contextGroups.itemSchema
 const CONTEXT_GROUP_ORIGINS = new Set(['detected', 'user']);
 // Mirrors file-conventions.cjs CLASS_REINJECT_TOKENS_RANGE (parity asserted by the ui-ux-gate suite).
 const CONTEXT_GROUP_REINJECT_TOKENS_RANGE = [20000, 2000000];
+// Mirrors file-conventions.cjs CONTENT_LIMITS count/length caps (parity asserted by the ai-feature-gate suite).
+const CONTEXT_GROUP_CONTENT_LIMITS = { maxRegexes: 64, maxRegexLength: 500, maxExtensions: 64, maxLabelLength: 80 };
+const CONTENT_EXTENSION_SHAPE = /^\.?[A-Za-z0-9][A-Za-z0-9_+-]{0,15}$/;
 
 function nonEmptyArray(value) {
     return Array.isArray(value) && value.length > 0;
+}
+
+/**
+ * Why a content regex is unsafe to run over a file sample, or null when it is acceptable (static lint on
+ * the pattern text; it never executes the pattern). Rejects: a blank, over-long (500 characters) or
+ * non-compiling pattern; a back-reference; a repeated group that itself contains a large repetition
+ * (`(x+)+`, `(x*)*`, `(.*x){2}`); a large repetition over a group whose alternatives can start with the
+ * same character (`(a|aa)+`); and two large repetitions in a row over the same or a wildcard-like atom
+ * (`a*a*`, `.*.*`); and more than 10 loop-free optional elements in total (`?`, counted ranges of at most 3,
+ * empty alternatives), whose compilation V8 cannot interrupt. A "large" repetition is unbounded or has an
+ * upper bound over 100. A best-effort pre-filter, not a proof of speed: the vm time budget is the guarantee. Self-contained
+ * (no outer constants): file-conventions.cjs carries the identical text and a test compares them.
+ */
+function contentRegexLintReason(source) {
+    if (typeof source !== 'string' || source.trim().length === 0) return 'blank pattern';
+    if (source.length > 500) return 'longer than 500 characters';
+    try {
+        new RegExp(source, 'i');
+    } catch {
+        return 'does not compile';
+    }
+    const stack = [];
+    let frame = { big: false, hasAlt: false, altStart: true, firsts: [] };
+    let last = null;
+    let tail = null;
+    let optional = 0;
+    const addAtom = (text, literal, wild) => {
+        if (frame.altStart) {
+            frame.firsts.push(literal);
+            frame.altStart = false;
+        }
+        last = { text, group: null, wild, prevTail: tail };
+        tail = null;
+    };
+    let i = 0;
+    while (i < source.length) {
+        const c = source[i];
+        if (c === '\\') {
+            const n = source[i + 1] || '';
+            if (/[1-9]/.test(n) || (n === 'k' && source[i + 2] === '<')) return 'back-reference';
+            addAtom(c + n, null, /[sdwSDW]/.test(n));
+            i += 2;
+        } else if (c === '[') {
+            let j = i + 1;
+            if (source[j] === '^') j += 1;
+            while (j < source.length && source[j] !== ']') j += source[j] === '\\' ? 2 : 1;
+            const text = source.slice(i, j + 1);
+            addAtom(text, null, text.startsWith('[^'));
+            i = j + 1;
+        } else if (c === '(') {
+            const prefix = /^\(\?(?:[:=!]|<[=!]|<[A-Za-z_$][\w$]*>)/.exec(source.slice(i));
+            if (frame.altStart) {
+                frame.firsts.push(null);
+                frame.altStart = false;
+            }
+            stack.push({ frame, last, tail });
+            frame = { big: false, hasAlt: false, altStart: true, firsts: [] };
+            last = null;
+            tail = null;
+            i += prefix ? prefix[0].length : 1;
+        } else if (c === ')') {
+            if (frame.altStart) {
+                frame.firsts.push(null);
+                optional += 1;
+            }
+            const closed = frame;
+            const parent = stack.pop();
+            if (!parent) return 'does not compile';
+            frame = parent.frame;
+            if (closed.big) frame.big = true;
+            last = { text: '(group)', group: closed, wild: false, prevTail: parent.tail };
+            tail = null;
+            i += 1;
+        } else if (c === '|') {
+            if (frame.altStart) {
+                frame.firsts.push(null);
+                optional += 1;
+            }
+            frame.hasAlt = true;
+            frame.altStart = true;
+            last = null;
+            tail = null;
+            i += 1;
+        } else if (c === '*' || c === '+' || c === '?' || c === '{') {
+            const counted = c === '{' ? /^\{(\d+)(?:(,)(\d*))?\}/.exec(source.slice(i)) : null;
+            if (c === '{' && !counted) {
+                addAtom(c, c, false);
+                i += 1;
+                continue;
+            }
+            let min = 0;
+            let max = 1;
+            let length = 1;
+            if (c === '*') max = Infinity;
+            else if (c === '+') {
+                min = 1;
+                max = Infinity;
+            } else if (counted) {
+                min = Number(counted[1]);
+                max = counted[2] ? (counted[3] === '' ? Infinity : Number(counted[3])) : min;
+                length = counted[0].length;
+            }
+            i += length;
+            if (source[i] === '?') i += 1;
+            if (!last) continue;
+            if (max <= 3 && min < max) {
+                optional += max - min;
+                if (optional > 10) return 'too many optional elements';
+            }
+            const big = max === Infinity || max > 100;
+            if (last.group) {
+                if (max > 1 && last.group.big) return 'repeated group containing a large repetition';
+                if (big && last.group.hasAlt) {
+                    const firsts = last.group.firsts.map(first => (first === null ? null : first.toLowerCase()));
+                    if (firsts.includes(null) || new Set(firsts).size !== firsts.length) return 'repeated alternation with overlapping alternatives';
+                }
+            }
+            if (big) {
+                const previous = last.prevTail;
+                if (previous && (previous.text === last.text || previous.wild || last.wild)) return 'adjacent overlapping repetitions';
+                frame.big = true;
+                tail = { text: last.text, wild: last.wild };
+            } else {
+                tail = null;
+            }
+            if (min > max) return 'does not compile';
+        } else if (c === '.') {
+            addAtom(c, null, true);
+            i += 1;
+        } else {
+            addAtom(c, c, false);
+            i += 1;
+        }
+    }
+    if (stack.length) return 'does not compile';
+    return optional > 10 ? 'too many optional elements' : null;
+}
+
+/**
+ * Content-signal bounds (contentRegexes / contentExtensions / contentLabel): caps on count and length
+ * bound a list, and the lint above is a best-effort pre-filter that rejects the well-known slow shapes
+ * (the runtime enforces the time budget by running non-built-in regexes under a vm timeout); content
+ * regexes without extensions can never match, so that pair is an error. Malformed types are reported
+ * by the structural pass.
+ */
+function validateContentSignals(group, path, label, errors, warnings) {
+    const limits = CONTEXT_GROUP_CONTENT_LIMITS;
+    if (Array.isArray(group.contentRegexes)) {
+        if (group.contentRegexes.length > limits.maxRegexes) {
+            errors.push(`${path}${label}.contentRegexes: at most ${limits.maxRegexes} regexes, got ${group.contentRegexes.length}`);
+        }
+        group.contentRegexes.forEach((source, index) => {
+            if (typeof source !== 'string') return;
+            if (source.trim().length === 0) errors.push(`${path}${label}.contentRegexes[${index}]: must not be blank`);
+            else if (source.length > limits.maxRegexLength) errors.push(`${path}${label}.contentRegexes[${index}]: at most ${limits.maxRegexLength} characters, got ${source.length}`);
+            else {
+                // An uncompilable source is reported by the structural pass; only a compilable one can be unsafe.
+                const unsafe = validateRegex(source, path) === null ? contentRegexLintReason(source) : null;
+                if (unsafe) {
+                    errors.push(`${path}${label}.contentRegexes[${index}]: unsafe content regex (${unsafe}); use a bounded repetition such as {0,80} and no nested or back-to-back open-ended repetition, or the pattern can stall every read of a matching file`);
+                }
+            }
+        });
+        if (group.contentRegexes.length > 0 && !nonEmptyArray(group.contentExtensions)) {
+            errors.push(`${path}${label}.contentRegexes: needs contentExtensions (the text/code file types to scan); without them no file is ever content-matched`);
+        }
+    }
+    if (Array.isArray(group.contentExtensions)) {
+        if (group.contentExtensions.length > limits.maxExtensions) {
+            errors.push(`${path}${label}.contentExtensions: at most ${limits.maxExtensions} extensions, got ${group.contentExtensions.length}`);
+        }
+        group.contentExtensions.forEach((ext, index) => {
+            if (typeof ext === 'string' && !CONTENT_EXTENSION_SHAPE.test(ext.trim())) {
+                errors.push(`${path}${label}.contentExtensions[${index}]: expected a file extension such as ".py" or "ts", got ${JSON.stringify(ext)}`);
+            }
+        });
+        if (group.contentExtensions.length > 0 && !nonEmptyArray(group.contentRegexes)) {
+            warnings.push(`${path}${label}.contentExtensions: has no effect without contentRegexes`);
+        }
+    }
+    if (typeof group.contentLabel === 'string' && group.contentLabel.length > limits.maxLabelLength) {
+        errors.push(`${path}${label}.contentLabel: at most ${limits.maxLabelLength} characters, got ${group.contentLabel.length}`);
+    }
 }
 
 /**
@@ -1422,9 +1611,11 @@ function validateContextGroupSemantics(config, errors, warnings) {
                 }
             }
         }
-        if (!nonEmptyArray(group.pathRegexes) && !nonEmptyArray(group.pathGlobs) && !nonEmptyArray(group.fileNameRegexes)) {
-            errors.push(`${path}${label}: needs at least one include matcher (pathRegexes, pathGlobs or fileNameRegexes)`);
+        const hasContentInclude = nonEmptyArray(group.contentRegexes) && nonEmptyArray(group.contentExtensions);
+        if (!nonEmptyArray(group.pathRegexes) && !nonEmptyArray(group.pathGlobs) && !nonEmptyArray(group.fileNameRegexes) && !hasContentInclude) {
+            errors.push(`${path}${label}: needs at least one include matcher (pathRegexes, pathGlobs, fileNameRegexes, or contentRegexes with contentExtensions)`);
         }
+        validateContentSignals(group, path, label, errors, warnings);
         for (const key of Object.keys(group)) {
             if (!CONTEXT_GROUP_FIELDS.has(key)) {
                 warnings.push(`${path}.${key}: unknown context group field (not in schema)`);
@@ -1921,6 +2112,7 @@ module.exports = {
     getRequiredSections,
     formatResult,
     validateRegex,
+    contentRegexLintReason,
     describeSchema,
     WORKFLOW_ACTIVATION_TIERS,
     TOKEN_BUDGET_CHECKPOINT_RANGE,

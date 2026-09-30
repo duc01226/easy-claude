@@ -1,25 +1,21 @@
 'use strict';
 
 /**
- * Plan-speed contract — plans are shaped and executed for the shortest wall time.
+ * Plan-speed contract — plans stay concise, executable and verify on the settled tree.
  *
- * Business intent: a plan carries no per-phase or per-release test/review/close phases and no per-phase
- * test RUN; each implementation phase ends with type-check/compile only and writes its tests with its code,
- * and the plan ends with ONE final gate: static review fix-loop, then ONE verify (full suite + mutation
- * check), fix-and-re-run to green, re-review only if that edited anything (`SYNC:verify-last-order`).
- * Big plans run as critical-path waves, and a multi-phase `plan-execute` run batches its reviewer and
- * tester once after the last wave, review first. The rules live only in prompt text, so an edit that drops
- * one silently brings back the slow, repeatedly-gated plan shape.
+ * Business intent: a plan records decisions, affected owners, bounded execution-time discovery, risks and
+ * final gates without replaying implementation. It carries no per-phase test/review/close phases or test
+ * run; tests are written with implementation, static review runs after all implementation, and verification
+ * runs once on the settled tree (`SYNC:verify-last-order`).
  * Invariants guarded:
- *   - plan/SKILL.md § Plan Parallelism Metadata: verify-last final gate, critical-path waves, serial chains,
- *     releases only on request;
- *   - plan/references/engine-plan-organization.md: agrees (no test phase in its examples);
+ *   - plan/SKILL.md § Plan Artifact Contract: decision/boundary altitude, bounded discovery, one artifact,
+ *     metadata-gated waves and verify-last final gates;
  *   - plan-execute/SKILL.md: Step 3 = static review, Step 4 = the one verify, both once over the whole
  *     changeset; workflow-nested runs stop after implementation;
- *   - plan-review/SKILL.md: flags test/review sub-phases, per-phase test runs and unjustified SEQ tags;
+ *   - plan-review/SKILL.md: checks verify-last order and real dependency boundaries in one pass;
  *   - the verify-last protocol reaches every owner skill and the review workflow defers its tests.
  *
- * Portability: reads only skill files that ship inside `.claude/`, resolved from this file's own
+ * Portability: reads only files that ship inside `.claude/`, resolved from this file's own
  * location. It spawns no process and reads no environment, home-dir, project config or git state,
  * so it holds unchanged in any adopting project on Windows, macOS and Linux.
  */
@@ -29,8 +25,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const SKILLS_DIR = path.resolve(__dirname, '..', '..', '..', 'skills');
+const CLAUDE_DIR = path.dirname(SKILLS_DIR);
 
 const read = rel => fs.readFileSync(path.join(SKILLS_DIR, ...rel.split('/')), 'utf8').replace(/\r\n/g, '\n');
+const readClaude = rel => fs.readFileSync(path.join(CLAUDE_DIR, ...rel.split('/')), 'utf8').replace(/\r\n/g, '\n');
 
 /** Body of the `## {heading}` section, up to the next level-2 heading. */
 function section(text, heading) {
@@ -40,55 +38,43 @@ function section(text, heading) {
     return text.slice(start, next < 0 ? text.length : next);
 }
 
-const PLAN_SECTION = 'Plan Parallelism Metadata';
+const PLAN_SECTION = 'Plan Artifact Contract';
 
 const tests = [
     {
-        name: 'TC-PSC-001 plan skill requires ONE final gate phase and no test/review sub-phases',
+        name: 'TC-PSC-001 plan skill keeps decision-and-boundary altitude with bounded discovery',
         fn: () => {
-            // Given the plan skill's parallelism-metadata section
+            // Given the plan artifact contract
             const body = section(read('plan/SKILL.md'), PLAN_SECTION);
-            // When its phase-structure rules are read
-            // Then per-phase and per-release test/review/close phases are ruled out
-            assert.match(body, /no per-phase or per-release test, review, or "close" phase/);
-            assert.match(body, /and no per-phase test RUN/);
-            // And each implementation phase ends with compile/type-check only and writes its tests with its code
-            assert.match(body, /type-check or compile only: its tests are WRITTEN with its code/);
-            // And the plan ends with one final gate: docs and mirrors, static review, the single verify, re-review only if it edited
-            assert.match(body, /ONE `SEQ` final gate phase, in this order: docs and counts, generated mirrors → one static review fix-loop over the whole changeset \(no test run\) → the single verify/);
-            assert.match(body, /re-review only if that fixed anything/);
+            // Then each phase carries decisions, owners, bounded discovery and an observable gate
+            assert.match(body, /Decisions already fixed/);
+            assert.match(body, /Areas\/owners/);
+            assert.match(body, /Discovery before edit[\s\S]*bounded source questions[\s\S]*stop condition/);
+            assert.match(body, /Acceptance\/quality gate[\s\S]*observable evidence/);
+            // And method-level implementation replay is explicitly rejected
+            assert.match(body, /Do not decompose into line edits, symbol-by-symbol instructions[\s\S]*per-file pseudo-implementation/);
         }
     },
     {
-        name: 'TC-PSC-002 plan skill lays big plans out as critical-path waves with serial chains',
+        name: 'TC-PSC-002 plan skill uses few real phases and metadata-gated parallelism',
         fn: () => {
-            // Given the same section
             const body = section(read('plan/SKILL.md'), PLAN_SECTION);
-            // Then SEQ is reserved for real dependencies and the rest goes into PAR waves
-            assert.match(body, /compute the critical path/);
-            assert.match(body, /`SEQ` only where a real data or write-set dependency forces it/);
-            // And a dependent phase starts when ITS dependencies return, not the whole wave
-            assert.match(body, /starts as soon as THOSE return, not when its whole wave does/);
-            // And wall time is the critical-path length, not the hour sum
-            assert.match(body, /critical-path length, not the sum of phase hours/);
-            // And phases sharing a file form one serial chain; releases only on request
-            assert.match(body, /share a file form one serial chain owned by one executor/);
-            assert.match(body, /releases only when the owner asks/);
+            assert.match(body, /Use the fewest phases that express real dependency or ownership boundaries/);
+            assert.match(body, /`PAR` with a disjoint write set, or `SEQ` with the exact dependency/);
+            assert.match(body, /Split only for a real dependency, independently verifiable outcome, or disjoint write ownership/);
+            assert.match(body, /List phase waves only when `PAR` phases have proven disjoint write sets/);
         }
     },
     {
-        name: 'TC-PSC-003 plan-organization engine agrees: final gate example, no test phase',
+        name: 'TC-PSC-003 plan skill has one compact artifact and verify-last gates',
         fn: () => {
-            // Given the engine reference the planner follows
-            const engine = read('plan/references/engine-plan-organization.md');
-            // Then it states the no-test/review-phase rule and shows a final gate phase
-            assert.match(engine, /No test, review, or "close" phase per phase or per release/);
-            assert.match(engine, /phase-07-final-gate\.md/);
-            // And the final gate is ordered review-first, verify once
-            assert.match(engine, /one static review fix-loop → the single verify: full suite \+ mutation check → fix and re-run to green → re-review only if that fixed anything/);
-            // And no example re-introduces a standalone test phase or per-wave review boundary
-            assert.doesNotMatch(engine, /phase-\d+-write-tests\.md|\|\s*Testing\s*\|/);
-            assert.doesNotMatch(engine, /approval, review, and migration phases are always/);
+            const plan = read('plan/SKILL.md');
+            assert.match(plan, /Write `plan\.md` under the configured plans root\. Use this compact shape/);
+            assert.match(plan, /After every implementation phase: run static\/type\/compile checks only when useful; no test suite, mutation run, or review/);
+            assert.match(plan, /After all implementation: run one whole-change static review with tests deferred/);
+            assert.match(plan, /Then run the full affected test suite once plus required mutation\/red proof/);
+            assert.equal(fs.existsSync(path.join(SKILLS_DIR, 'plan', 'references', 'engine-plan-organization.md')), false,
+                'the removed implementation-heavy plan engine must not return');
         }
     },
     {
@@ -120,12 +106,14 @@ const tests = [
         }
     },
     {
-        name: 'TC-PSC-005 plan-review flags test/review sub-phases and unjustified SEQ tags',
+        name: 'TC-PSC-005 plan-review checks verify-last order and dependency-shaped phases',
         fn: () => {
-            // Given plan-review's checklist
+            // Given plan-review's one-pass core review
             const text = read('plan-review/SKILL.md');
-            // Then one checklist line flags both plan-speed defects as findings
-            assert.match(text, /- \[ \] \*\*Plan speed\*\* — flag as a finding any per-phase or per-release test, review, or "close" sub-phase[^\n]*any per-phase test RUN or mutation run[^\n]*any `SEQ` tag without a real data or write-set dependency/);
+            // Then it guards both the final verification order and phase/dependency ceremony
+            assert.match(text, /Verify-last \| Are tests authored with implementation and executed only after all implementation and static review\?/);
+            assert.match(text, /Dependency order \| Do phases reflect real dependencies or disjoint ownership rather than ceremony\?/);
+            assert.match(text, /maximum one review round per invocation/i);
         }
     },
     {
@@ -189,6 +177,17 @@ const tests = [
             assert.doesNotMatch(read('shared/workflow-first-gate.md'), /investigate → fix → test → changes-review/);
             // And plan-execute maps the plan's final gate phase onto Steps 3-4 instead of running a second review/verify in Step 2
             assert.match(read('plan-execute/SKILL.md'), /ONE final gate phase[^\n]*never a second run inside Step 2/);
+        }
+    },
+    {
+        name: 'TC-PSC-008 development guidance cannot reintroduce micro-phases or per-phase verification',
+        fn: () => {
+            const rules = readClaude('docs/development-rules.md');
+            const body = section(rules, 'Task Decomposition & Iterative Quality');
+            assert.match(body, /fewest outcome phases/);
+            assert.match(body, /Do not force file-count, hour, or method-level slices/);
+            assert.match(body, /review the settled whole change, then run the affected tests once at the final verify gate/);
+            assert.doesNotMatch(body, /<=5 files|<=3h|No phase >5 files|plan → implement → review → fix → verify/);
         }
     }
 ];

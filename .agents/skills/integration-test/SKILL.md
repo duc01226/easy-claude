@@ -477,14 +477,13 @@ Mode = REVIEW: audit existing integration tests for quality, flaky patterns, bes
 > **MANDATORY:** Integration test REVIEW mode spawns `integration-tester` sub-agent (`agent_type: "integration-tester"`), NOT `code-reviewer`.
 > **Rationale:** `integration-tester` specializes in test spec generation, TC traceability, CQRS test patterns, async-polling / eventual-consistency assertion correctness, and cross-service integration context — areas `code-reviewer` does not cover at depth.
 
-**Fresh Eyes Protocol:** Run Round 1 inline. If findings are LOW confidence or contradictory → spawn fresh `integration-tester` sub-agent (zero memory of Round 1) for Round 2. Main agent reads report, NEVER filters findings. Max 2 rounds, then escalate.
+**One-pass review protocol:** Run one review pass inline. If evidence is low-confidence or contradictory, return `NOT VERIFIABLE` with the missing evidence or owner question; never start a second review round. A later review requires a new explicit invocation after the target or evidence changes.
 
 ## Review Workflow
 
 1. **Find test files** — Glob `{Service}.IntegrationTests/{Domain}/**/*IntegrationTests.*`
 2. **Read each test file** — analyze for quality issues (persist findings after each file per SYNC:incremental-persistence)
 3. **Generate quality report** — categorized findings with severity
-4. **Round 2 (if low confidence):** Spawn fresh sub-agent with report path — NEVER re-examine with main context
 
 ## Review Dimensions
 
@@ -776,7 +775,7 @@ MUST ATTENTION verify ALL of the following:
 | `$spec [mode=sync]` | **Sync** — reconciles §8 TCs ↔ executing test code after tests are linked          | Run after integration-test to update the §8 `CoveredBy:` fields with the covering test links         |
 | `$spec`              | **TC host** — Section 8 of feature doc is where TCs live                             | If feature doc is missing or Section 8 is empty → run $spec first                                  |
 | `$spec-index`                | **Derived index** — regenerable navigation catalog over the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts                          |
-| `$integration-test-review`   | **Reviewer** — 7-gate quality audit of generated tests + change coverage             | Always call after generating integration tests                                                             |
+| `$integration-test-review`   | **Reviewer** — one-pass 8-gate audit, including change coverage and real-world fidelity | Call once after generating integration tests                                                              |
 | `$integration-test-verify`   | **Runner** — executes tests and reports pass/fail                                    | Always call after integration-test-review clears                                                           |
 | `$docs-update`               | **Orchestrator** — calls spec [mode=sync] (Phase 4) with test traceability              | Run for full doc sync after integration test files updated                                                 |
 
@@ -794,7 +793,7 @@ integration-test (you are here)
   │    If empty → run $spec [mode=tests] [CREATE mode] first
   │
   ├─ [REQUIRED] → $integration-test-review
-  │     7-gate quality audit: assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage.
+  │     One-pass 8-gate audit: assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage, real-world fidelity.
   │     Never skip — Gate 6 (three-way sync) is the only place where spec/code/test conflicts surface,
   │     and Gate 7 (change coverage) is the only place where untested changed behavior surfaces.
   │
@@ -1013,7 +1012,7 @@ integration-test (you are here)
 | "It shares an existing entity, that's fine" | Shared mutable state is the single point another test corrupts. Own fresh per-test data; only immutable lookup data may be shared. |
 | "My path doesn't mutate that parent" | A cross-cutting consumer can wipe the shared parent without you touching it. Sharing it is unsafe even without direct mutation. |
 | "The path under test is correct, so the test is right" | Provably-innocent path + wrong state = suspect cross-test interference FIRST. Grep other tests + cross-cutting consumers before blaming the code. |
-| "REVIEW: one pass is enough"       | Low confidence → spawn fresh sub-agent. Never declare PASS after Round 1.                            |
+| "A second review will settle uncertainty" | One pass only. Return `NOT VERIFIABLE` with the missing evidence; a later pass requires a new explicit invocation. |
 | "Skip task creation, it's obvious" | task tracking is non-negotiable. Tracking prevents context loss.                                        |
 | "Split this TC so tests map 1:1"   | Preserve the selected profile's declared case-to-test cardinality; strict default allows one business TC to cover multiple tests. |
 | "Example tests cover the rule"     | Use property/metamorphic tests when a rule must hold across a broad input domain; retain focused examples for concrete scenarios. |

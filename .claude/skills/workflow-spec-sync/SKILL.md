@@ -80,7 +80,7 @@ You choose inline vs sub-agent, batching and ordering to minimise wall-clock and
 
 ## Fix Path & Loop Bounds
 
-- Validate a finding (evidence-backed, reproducible) before fixing it; fix at the component that owns the violated contract, then re-run the reviewer or test that raised it — plus a holistic pass when fixes were non-trivial. Plan ceremony (`/plan` → `/plan-review`) only for a large, cross-module or ambiguous fix set.
+- Validate a finding (evidence-backed, reproducible) before fixing it; fix at the component that owns the violated contract, then re-run the reviewer or test that raised it — plus a holistic pass when fixes were non-trivial. Use `/plan` only for a large, cross-module or ambiguous fix set.
 - Review loops keep the framework bar: round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW; cap 2 rounds (+1 when a CRITICAL/HIGH stays open). Failing tests are not capped by rounds — they loop until green or escalate via `AskUserQuestion` on no progress.
 
 ---

@@ -16,12 +16,16 @@
  * load of any listed skill, count as the class being present (convention-ledger scanEvidence).
  * Per-class trigger `on` (read | edit | both, default both; BR-PFCI-19) filters matching by operation,
  * and a digest delivered on a read uses the conditional opening wording (BR-PFCI-20).
+ * Content signals: a class may also match a file by what it contains (`contentRegexes`, scanned only in
+ * files whose extension is in `contentExtensions`). The read is bounded and fail-open (CONTENT_LIMITS)
+ * and happens only for classes that declare content signals, after path exclusions.
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const vm = require('vm');
 
 // pfci-2: the content version also covers membership (includes, excludes, extension filter).
 const RENDERER_VERSION = 'pfci-2';
@@ -76,6 +80,181 @@ const BYTES_PER_TOKEN = 22;
 // class from re-injecting every few turns. The config validator mirrors this range.
 const CLASS_REINJECT_TOKENS_RANGE = Object.freeze([20000, 2000000]);
 
+// Content-signal bounds (a class's `contentRegexes` / `contentExtensions`). Reads are capped so a class
+// with content signals never costs more than one small read per candidate file. Count and length caps
+// bound the work of a list; they do NOT bound the time of one pattern. Three layers deal with that:
+// (1) `isSafeContentRegex` is a cheap best-effort PRE-FILTER (a static lint: a blacklist of the known
+// nested/overlapping repetition shapes, plus a cap on loop-free optional elements, whose compilation V8
+// cannot interrupt; other slow patterns can pass it); (2) THE TIME BUDGET: every source that is not
+// byte-identical to a framework built-in runs inside `vm` with a timeout (see `contentSignalOf`), which
+// interrupts matching (backtracking); a timeout is "no match", and a source that timed out is skipped for
+// the rest of the process; (3) the built-in sources run directly and are vetted by the perf and lint tests. A config-supplied regex also sees a smaller sample (`maxConfigBytes`) than the
+// built-ins (`maxBytes`). The validator (project-config-schema.cjs, dependency-free) mirrors the caps and
+// the lint by value; the ai-feature-gate suite fails on any drift, so a value the validator accepts is
+// never dropped here.
+const CONTENT_LIMITS = Object.freeze({
+    maxBytes: 65536,
+    maxConfigBytes: 16384,
+    maxFileBytes: 2 * 1024 * 1024,
+    maxRegexes: 64,
+    maxRegexLength: 500,
+    maxExtensions: 64,
+    maxLabelLength: 80
+});
+
+// Total wall-clock budget, per file and class, for the config-supplied content regexes (milliseconds).
+const CONTENT_REGEX_BUDGET_MS = 100;
+// Sources that ran out of budget stay skipped for the process; the set is capped so it cannot grow without bound.
+const MAX_TIMED_OUT_SOURCES = 1024;
+
+/**
+ * Why a content regex is unsafe to run over a file sample, or null when it is acceptable (static lint on
+ * the pattern text; it never executes the pattern). Rejects: a blank, over-long (500 characters) or
+ * non-compiling pattern; a back-reference; a repeated group that itself contains a large repetition
+ * (`(x+)+`, `(x*)*`, `(.*x){2}`); a large repetition over a group whose alternatives can start with the
+ * same character (`(a|aa)+`); and two large repetitions in a row over the same or a wildcard-like atom
+ * (`a*a*`, `.*.*`); and more than 10 loop-free optional elements in total (`?`, counted ranges of at most 3,
+ * empty alternatives), whose compilation V8 cannot interrupt. A "large" repetition is unbounded or has an
+ * upper bound over 100. A best-effort pre-filter, not a proof of speed: the vm time budget is the guarantee. Self-contained
+ * (no outer constants): project-config-schema.cjs carries the identical text and a test compares them.
+ */
+function contentRegexLintReason(source) {
+    if (typeof source !== 'string' || source.trim().length === 0) return 'blank pattern';
+    if (source.length > 500) return 'longer than 500 characters';
+    try {
+        new RegExp(source, 'i');
+    } catch {
+        return 'does not compile';
+    }
+    const stack = [];
+    let frame = { big: false, hasAlt: false, altStart: true, firsts: [] };
+    let last = null;
+    let tail = null;
+    let optional = 0;
+    const addAtom = (text, literal, wild) => {
+        if (frame.altStart) {
+            frame.firsts.push(literal);
+            frame.altStart = false;
+        }
+        last = { text, group: null, wild, prevTail: tail };
+        tail = null;
+    };
+    let i = 0;
+    while (i < source.length) {
+        const c = source[i];
+        if (c === '\\') {
+            const n = source[i + 1] || '';
+            if (/[1-9]/.test(n) || (n === 'k' && source[i + 2] === '<')) return 'back-reference';
+            addAtom(c + n, null, /[sdwSDW]/.test(n));
+            i += 2;
+        } else if (c === '[') {
+            let j = i + 1;
+            if (source[j] === '^') j += 1;
+            while (j < source.length && source[j] !== ']') j += source[j] === '\\' ? 2 : 1;
+            const text = source.slice(i, j + 1);
+            addAtom(text, null, text.startsWith('[^'));
+            i = j + 1;
+        } else if (c === '(') {
+            const prefix = /^\(\?(?:[:=!]|<[=!]|<[A-Za-z_$][\w$]*>)/.exec(source.slice(i));
+            if (frame.altStart) {
+                frame.firsts.push(null);
+                frame.altStart = false;
+            }
+            stack.push({ frame, last, tail });
+            frame = { big: false, hasAlt: false, altStart: true, firsts: [] };
+            last = null;
+            tail = null;
+            i += prefix ? prefix[0].length : 1;
+        } else if (c === ')') {
+            if (frame.altStart) {
+                frame.firsts.push(null);
+                optional += 1;
+            }
+            const closed = frame;
+            const parent = stack.pop();
+            if (!parent) return 'does not compile';
+            frame = parent.frame;
+            if (closed.big) frame.big = true;
+            last = { text: '(group)', group: closed, wild: false, prevTail: parent.tail };
+            tail = null;
+            i += 1;
+        } else if (c === '|') {
+            if (frame.altStart) {
+                frame.firsts.push(null);
+                optional += 1;
+            }
+            frame.hasAlt = true;
+            frame.altStart = true;
+            last = null;
+            tail = null;
+            i += 1;
+        } else if (c === '*' || c === '+' || c === '?' || c === '{') {
+            const counted = c === '{' ? /^\{(\d+)(?:(,)(\d*))?\}/.exec(source.slice(i)) : null;
+            if (c === '{' && !counted) {
+                addAtom(c, c, false);
+                i += 1;
+                continue;
+            }
+            let min = 0;
+            let max = 1;
+            let length = 1;
+            if (c === '*') max = Infinity;
+            else if (c === '+') {
+                min = 1;
+                max = Infinity;
+            } else if (counted) {
+                min = Number(counted[1]);
+                max = counted[2] ? (counted[3] === '' ? Infinity : Number(counted[3])) : min;
+                length = counted[0].length;
+            }
+            i += length;
+            if (source[i] === '?') i += 1;
+            if (!last) continue;
+            if (max <= 3 && min < max) {
+                optional += max - min;
+                if (optional > 10) return 'too many optional elements';
+            }
+            const big = max === Infinity || max > 100;
+            if (last.group) {
+                if (max > 1 && last.group.big) return 'repeated group containing a large repetition';
+                if (big && last.group.hasAlt) {
+                    const firsts = last.group.firsts.map(first => (first === null ? null : first.toLowerCase()));
+                    if (firsts.includes(null) || new Set(firsts).size !== firsts.length) return 'repeated alternation with overlapping alternatives';
+                }
+            }
+            if (big) {
+                const previous = last.prevTail;
+                if (previous && (previous.text === last.text || previous.wild || last.wild)) return 'adjacent overlapping repetitions';
+                frame.big = true;
+                tail = { text: last.text, wild: last.wild };
+            } else {
+                tail = null;
+            }
+            if (min > max) return 'does not compile';
+        } else if (c === '.') {
+            addAtom(c, null, true);
+            i += 1;
+        } else {
+            addAtom(c, c, false);
+            i += 1;
+        }
+    }
+    if (stack.length) return 'does not compile';
+    return optional > 10 ? 'too many optional elements' : null;
+}
+
+const contentRegexSafety = new Map();
+
+/**
+ * Cheap best-effort pre-filter: whether a content regex passes the static lint (see contentRegexLintReason);
+ * memoized per source. Passing does NOT mean the pattern is fast: the time guarantee is the vm timeout.
+ */
+function isSafeContentRegex(source) {
+    if (typeof source !== 'string') return false;
+    if (!contentRegexSafety.has(source)) contentRegexSafety.set(source, contentRegexLintReason(source) === null);
+    return contentRegexSafety.get(source);
+}
+
 /**
  * The framework's UI/UX gate class: any file that renders a user-facing surface receives a compact
  * digest of the three binding rule sets and their docs before it is edited. Setup detection
@@ -120,13 +299,108 @@ const UI_UX_GATE = Object.freeze({
 });
 
 /**
+ * AI SDK packages, one owner. The `ai-feature-gate` content signals are built from these lists, and
+ * setup detection (convention-merge.cjs) matches the same names against dependency manifests, so a
+ * package is added in exactly one place. Import/module spelling: a manifest spelling differs only in
+ * `-` / `_` / `.` separators, which manifest matching folds together.
+ */
+const AI_SDK = Object.freeze({
+    // Import names that mean a model, embedding or vector-store client. Names shared with unrelated
+    // libraries (a Django search package, an e-learning "instructor" module) are left out: a missed
+    // import is cheaper than a protocol reminder on a non-AI file.
+    python: Object.freeze(['anthropic', 'openai', 'cohere', 'mistralai', 'ollama', 'litellm', 'langgraph', 'crewai', 'autogen',
+        'dspy', 'transformers', 'sentence_transformers', 'vertexai', 'google.generativeai', 'google.genai',
+        'pinecone', 'weaviate', 'qdrant_client', 'chromadb', 'pymilvus', 'lancedb', 'faiss', 'pgvector']),
+    pythonPrefixes: Object.freeze(['langchain', 'llama_index']),
+    js: Object.freeze(['openai', 'ai', '@google/generative-ai', '@google/genai', 'langchain', 'llamaindex', '@mistralai/mistralai',
+        'cohere-ai', 'ollama', '@modelcontextprotocol/sdk', '@huggingface/inference', '@xenova/transformers',
+        'chromadb', 'pgvector', 'weaviate-client', 'faiss-node', 'vectordb']),
+    jsScopes: Object.freeze(['@anthropic-ai/', '@ai-sdk/', '@langchain/', '@pinecone-database/', '@qdrant/', '@zilliz/', '@lancedb/']),
+    other: Object.freeze(['com.anthropic', 'com.openai', 'dev.langchain4j', 'org.springframework.ai', 'github.com/anthropics/anthropic-sdk-go',
+        'github.com/sashabaranov/go-openai', 'github.com/openai/openai-go', 'github.com/tmc/langchaingo', 'azure.ai.openai',
+        'microsoft.semantickernel', 'microsoft.extensions.ai', 'anthropic.sdk']),
+    // Package names whose manifest spelling has no import-name twin above.
+    manifestOnly: Object.freeze(['google-cloud-aiplatform', 'pyautogen', 'haystack-ai', 'farm-haystack', 'dspy-ai', 'spring-ai'])
+});
+
+const escapeRegex = text => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const alternation = names => names.map(escapeRegex).join('|');
+
+// Known model-id literals: the value half of the AI-feature gate's `model: '<id>'` content signal.
+const MODEL_ID_LITERAL = '(?:(?:(?:us|eu|apac|global)\\.)?(?:anthropic\\.)?claude-(?:[0-9]|instant|haiku|sonnet|opus|fast)|gpt-(?:[0-9]|oss)|gemini-[0-9]|o[134]-(?:mini|pro|preview)|mistral-(?:large|medium|small|tiny|embed|nemo|saba)|codestral-|(?:meta-)?llama-?[0-9]|meta-llama/|text-embedding-(?:3-|ada-)|command-r)';
+
+/**
+ * The AI-feature gate class: a file that calls a model SDK, holds prompts, retrieval, agents, tools or
+ * evals receives the AI-engineering protocol before it is edited. Membership is by AI-surface path
+ * segment or file name, OR by content signals in code files (SDK import, provider API call, provider
+ * host, a `model` argument naming a model id, MCP server class), so a file whose path says nothing
+ * about AI still counts. Signals are kept precise — a missed file is cheaper than a reminder on
+ * unrelated code, and the class costs nothing on a file with no AI surface. Bare tokens that also occur
+ * in non-AI code (`tool_use`, `tool_calls`, `system_prompt`, a vendor or model name in a comment or
+ * string, a directory named `agents`) are NOT signals. The framework's own agent folders and prose are
+ * excluded — they hold prompts for the coding assistant, not product AI features. The delivered digest
+ * names ONE doc to read, the protocol file; the deep docs are read by section on demand. Setup detection
+ * proposes it for a project whose dependency manifests show an AI SDK; a project with NO project config
+ * gets it in the built-in fallback.
+ */
+const AI_FEATURE_GATE = Object.freeze({
+    name: 'ai-feature-gate',
+    priority: 100,
+    // A directory name is a signal for text files only: media, archives, model weights, fonts, locks, source maps and
+    // minified bundles under `prompts/` or `rag/` are not AI surfaces.
+    pathRegexes: Object.freeze(['/(?:prompts?|llm|rag|embeddings?|guardrails?|mcp)/(?!.*\\.(?:png|jpe?g|gif|svg|pdf|zip|bin|mp[34]|lock|map|min\\.js)$)']),
+    fileNameRegexes: Object.freeze(['\\.prompts?\\.[^.]+$|\\.prompty$|^system[-_.]prompt|^prompt[-_.]template']),
+    contentExtensions: Object.freeze(['.py', '.ipynb', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.java', '.kt', '.kts', '.cs', '.go',
+        '.rb', '.php', '.rs', '.swift', '.scala', '.dart', '.ex', '.exs']),
+    contentLabel: 'AI SDK use',
+    contentRegexes: Object.freeze([
+        // Python imports (line-anchored: no multiline flag is used). A notebook stores each source line as a JSON
+        // string, so a line also starts after a double quote or after an escaped newline (backslash + n).
+        `(?:^|\\n|\\\\n|")[ \\t]*(?:from|import)[ \\t]+(?:(?:${alternation(AI_SDK.python)})|(?:${alternation(AI_SDK.pythonPrefixes)})\\w*)\\b`,
+        // JS/TS module specifiers: import ... from, require(), import()
+        `(?:\\bfrom[ \\t]+|\\brequire\\([ \\t]*|\\bimport\\([ \\t]*|\\bimport[ \\t]+)['"](?:(?:${alternation(AI_SDK.js)})|(?:${alternation(AI_SDK.jsScopes)})[\\w.-]+)(?:/[\\w./@-]*)?['"]`,
+        // Go, JVM and .NET SDK namespaces
+        `\\b(?:${alternation(AI_SDK.other)})\\b`,
+        // Provider API call shapes (a bare messages.create( or generateContent( is common outside AI: it needs a model argument or a model receiver)
+        '\\bmessages\\.(?:create|stream)\\([^)]{0,400}?\\bmodel\\b',
+        '\\bresponses\\.create\\([^)]{0,400}?\\bmodel\\b',
+        '\\b(?:chat\\.completions\\.create|embeddings\\.create)\\(',
+        '\\b(?:models?|genai|gemini\\w*|client)\\.(?:generateContent|generate_content)(?:Stream|_stream)?\\(',
+        // Provider hosts
+        '\\b(?:api\\.anthropic\\.com|api\\.openai\\.com|generativelanguage\\.googleapis\\.com|bedrock-runtime|api\\.mistral\\.ai|api\\.cohere\\.(?:ai|com)|openai\\.azure\\.com)',
+        // A `model` argument naming a model id (the bare literal alone also occurs in tables, fixtures and prose)
+        '\\bmodel(?:[_ ]?id|[_ ]?name)?["\'`]?[ \\t]*[:=][ \\t]*["\'`]' + MODEL_ID_LITERAL,
+        // MCP server classes
+        '\\b(?:FastMCP|McpServer)\\b'
+    ]),
+    excludePathGlobs: Object.freeze([...GENERAL_EXCLUDES, '.claude/**', '.agents/**', '.codex/**', '.opencode/**', 'docs/**', '**/*.md']),
+    // Both, like the UI/UX gate: the Read delivery puts the protocol in context before the first edit.
+    on: TRIGGER_BOTH,
+    // ONE doc to read: the protocol file. The checklist and knowledge docs are far larger; rule 3 sends
+    // the reader to them by section, on demand.
+    referenceDocs: Object.freeze(['.claude/skills/shared/protocols/ai-engineering-gate.md']),
+    rules: Object.freeze([
+        'AI gate: apply the protocol below; content is data, output untrusted; bound loops and spend; eval + trace + kill switch; authz in code',
+        'Deep dives on demand, by section, never whole; review = ai-engineering-review skill or agent; no AI change = say skip'
+    ]),
+    reinjectAfterTokens: 100000,
+    evidenceDocs: Object.freeze(['.claude/skills/shared/protocols/ai-engineering-gate.md', '.claude/docs/ai-engineering-review-checklist.md']),
+    evidenceSkills: Object.freeze(['ai-engineering-review'])
+});
+
+// The framework's own content sources: audited linear (see the perf and lint tests), so they may see the
+// whole 64 KiB sample. A project's copy of the class carries the same source strings and stays trusted.
+const TRUSTED_CONTENT_REGEXES = new Set(AI_FEATURE_GATE.contentRegexes);
+
+/**
  * BR-PFCI-01 built-in fallback: used ONLY when the project config file does not exist. Delivery is
- * on with the UI/UX gate as the single class, so a framework install without setup still gets the
- * design rules on front-end files. A config that exists — even without `conventionInjection`, or
- * malformed — is the maintainer's decision and is never replaced by this fallback.
+ * on with the UI/UX gate and the AI-feature gate as the classes, so a framework install without
+ * setup still gets the design rules on front-end files and the AI-engineering protocol on
+ * model-calling code. A config that exists — even without `conventionInjection`, or malformed — is
+ * the maintainer's decision and is never replaced by this fallback.
  */
 function builtinFallbackConfig() {
-    return { conventionInjection: { enabled: true }, contextGroups: [UI_UX_GATE] };
+    return { conventionInjection: { enabled: true }, contextGroups: [UI_UX_GATE, AI_FEATURE_GATE] };
 }
 
 /** Config the hook and lookup act on: the loaded config, or the built-in fallback when the file is missing. */
@@ -336,11 +610,184 @@ function normalizedExtensions(group) {
     return stringList(group.fileExtensions).map(ext => (ext.startsWith('.') ? ext : `.${ext}`).toLowerCase());
 }
 
-/** BR-PFCI-02 membership: extension filter AND any include AND no exclude. */
-function groupMatches(group, rel) {
-    if (!isPlainObject(group) || !nonBlankString(rel)) return false;
+function normalizeExtensionList(list) {
+    return stringList(list).map(ext => (ext.startsWith('.') ? ext : `.${ext}`).toLowerCase());
+}
+
+/** The short human label a static table shows for a class's content signals ('' when unset or over the cap). */
+function contentLabelOf(group) {
+    const label = isPlainObject(group) && nonBlankString(group.contentLabel) ? group.contentLabel.trim() : '';
+    return label.length <= CONTENT_LIMITS.maxLabelLength ? label : '';
+}
+
+/**
+ * Extensions whose files a class content-scans (`contentExtensions`). A list over the cap is truncated to
+ * it, not ignored whole: the work per file stays bounded, and the validator rejects such a config anyway.
+ */
+function normalizedContentExtensions(group) {
+    return normalizeExtensionList(group.contentExtensions).slice(0, CONTENT_LIMITS.maxExtensions);
+}
+
+/**
+ * Content-signal regex sources a class declares that may run: within the length cap and passing the
+ * `isSafeContentRegex` pre-filter. A source the lint rejects is IGNORED (a config that bypassed the
+ * validator never runs a well-known slow shape); a list over the count cap is truncated to it (bounded
+ * work; the validator rejects such a config anyway). Running time is bounded by `contentSignalOf`, not here.
+ */
+function contentRegexSources(group) {
+    return stringList(group.contentRegexes)
+        .filter(source => source.length <= CONTENT_LIMITS.maxRegexLength && isSafeContentRegex(source))
+        .slice(0, CONTENT_LIMITS.maxRegexes);
+}
+
+/**
+ * First bytes of a project file as text, or null. Bounded and fail-open: a missing, unreadable,
+ * non-regular, oversized (over CONTENT_LIMITS.maxFileBytes) or binary (NUL in the sample) file yields
+ * null and never throws. Reads at most `maxBytes` (default CONTENT_LIMITS.maxBytes).
+ */
+function readBoundedContent(absolutePath, maxBytes = CONTENT_LIMITS.maxBytes) {
+    let fd = null;
+    try {
+        const stat = fs.statSync(absolutePath);
+        if (!stat.isFile() || stat.size > CONTENT_LIMITS.maxFileBytes) return null;
+        const length = Math.min(stat.size, maxBytes);
+        if (length === 0) return null;
+        const buffer = Buffer.alloc(length);
+        fd = fs.openSync(absolutePath, 'r');
+        const read = fs.readSync(fd, buffer, 0, length, 0);
+        const sample = buffer.subarray(0, read);
+        return sample.includes(0) ? null : sample.toString('utf8');
+    } catch {
+        return null;
+    } finally {
+        if (fd !== null) {
+            try {
+                fs.closeSync(fd);
+            } catch {
+                /* nothing left to release */
+            }
+        }
+    }
+}
+
+/**
+ * Reader for `ctx.readContent(rel)`: the bounded on-disk content of a repo-relative path inside
+ * `projectDir` (PostToolUse runs after the edit, so disk holds the file as changed). Memoized per
+ * reader, so a path is read once however many classes ask. A path outside the project yields null, by
+ * identity and not by spelling: a symlink or junction that resolves outside the project root is not read
+ * (any resolution error is no content). `deps.realpath` replaces `fs.realpathSync` (test seam).
+ */
+function createContentReader(projectDir, deps = {}) {
+    const realpath = typeof deps.realpath === 'function' ? deps.realpath : fs.realpathSync;
+    const cache = new Map();
+    let physicalRoot;
+    const insideProject = absolute => {
+        try {
+            if (physicalRoot === undefined) physicalRoot = realpath(path.resolve(projectDir));
+            return insideRelative(physicalRoot, realpath(absolute)) !== null;
+        } catch {
+            return false;
+        }
+    };
+    return rel => {
+        if (!nonBlankString(projectDir) || !nonBlankString(rel)) return null;
+        if (cache.has(rel)) return cache.get(rel);
+        const segments = rel.split('/');
+        const absolute = path.join(projectDir, ...segments);
+        const text = segments.some(segment => segment === '..') || !insideProject(absolute) ? null : readBoundedContent(absolute);
+        cache.set(rel, text);
+        return text;
+    };
+}
+
+const contentGuard = { directRuns: 0, vmRuns: 0, timeouts: 0, skipped: 0 };
+const timedOutSources = new Set();
+let guardScript = null;
+let guardContext = null;
+
+/** Counters of the content-regex guard (test seam): built-in runs, vm runs, timeouts, skipped sources. */
+function contentGuardStats() {
+    return { ...contentGuard, timedOutSources: timedOutSources.size };
+}
+
+/** Forget every timed-out source and zero the counters (test seam; a fresh process starts clean anyway). */
+function resetContentGuard() {
+    timedOutSources.clear();
+    for (const key of Object.keys(contentGuard)) contentGuard[key] = 0;
+}
+
+/**
+ * `re.exec(text)` inside a `vm` context under a hard timeout; the matched text, or null for no match. Throws
+ * `ERR_SCRIPT_EXECUTION_TIMEOUT` when the budget runs out (V8 interrupts even a backtracking regex).
+ */
+function execWithTimeout(re, text, timeoutMs) {
+    if (guardScript === null) {
+        guardScript = new vm.Script('(function () { var m = re.exec(text); return m ? m[0] : null; })()');
+        guardContext = vm.createContext({ re: null, text: '' });
+    }
+    guardContext.re = re;
+    guardContext.text = text;
+    try {
+        return guardScript.runInContext(guardContext, { timeout: Math.max(1, timeoutMs) });
+    } finally {
+        guardContext.re = null;
+        guardContext.text = '';
+    }
+}
+
+/**
+ * Text of a content sample matched by `source`, trimmed for display; null when it does not match.
+ * A framework built-in source (byte-identical to a shipped signal; trust is by source text, never by class
+ * name) runs directly. Any other source is config-supplied and runs under a hard time budget: `budget`
+ * (`{ remainingMs }`, shared by the sources of one file and class) is spent as the vm runs take time, a
+ * timeout counts as no match, and a source that timed out with the full budget is skipped from then on in
+ * this process, so a scan that walks many files stalls at most once per hostile source.
+ */
+function contentSignalOf(source, text, budget = { remainingMs: CONTENT_REGEX_BUDGET_MS }) {
+    const re = safeRegExp(source);
+    if (!re) return null;
+    let matched = null;
+    if (TRUSTED_CONTENT_REGEXES.has(source)) {
+        contentGuard.directRuns += 1;
+        const match = re.exec(text);
+        matched = match ? match[0] : null;
+    } else if (timedOutSources.has(source) || budget.remainingMs <= 0) {
+        contentGuard.skipped += 1;
+    } else {
+        const allowed = budget.remainingMs;
+        const started = Date.now();
+        contentGuard.vmRuns += 1;
+        try {
+            matched = execWithTimeout(re, text, allowed);
+        } catch (err) {
+            matched = null; // fail-open: a timeout (or any guard failure) is no content signal
+            if (err && err.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
+                contentGuard.timeouts += 1;
+                if (allowed >= CONTENT_REGEX_BUDGET_MS) {
+                    if (timedOutSources.size >= MAX_TIMED_OUT_SOURCES) timedOutSources.clear();
+                    timedOutSources.add(source);
+                }
+            }
+        }
+        budget.remainingMs -= Math.max(0, Date.now() - started);
+    }
+    return typeof matched === 'string' ? matched.replace(/\s+/g, ' ').trim().slice(0, 60) : null;
+}
+
+/**
+ * Why a file is (not) a member of a class, by BR-PFCI-02: extension filter AND (any path/name include OR,
+ * for a file whose extension is in `contentExtensions`, a `contentRegexes` match on bounded content) AND
+ * no exclude. `ctx.readContent(rel)` supplies content; without it a class matches by path and name only.
+ * Exclusions are decided first, so an excluded file is never read. `collectAll` keeps evaluating after
+ * the first hit to report every signal (review-time scans); membership never needs it.
+ * @returns {{ member: boolean, pathSignals: string[], contentSignals: string[] }}
+ */
+function explainGroupMatch(group, rel, ctx, collectAll = false) {
+    const result = { member: false, pathSignals: [], contentSignals: [] };
+    if (!isPlainObject(group) || !nonBlankString(rel)) return result;
     const extensions = normalizedExtensions(group);
-    if (extensions.length > 0 && !extensions.includes(path.posix.extname(rel).toLowerCase())) return false;
+    const extension = path.posix.extname(rel).toLowerCase();
+    if (extensions.length > 0 && !extensions.includes(extension)) return result;
     const slashPath = `/${rel}`;
     const baseName = path.posix.basename(rel);
     const testRegexes = (list, subject) => stringList(list).some(source => {
@@ -351,11 +798,42 @@ function groupMatches(group, rel) {
         const re = globToRegExp(glob);
         return re ? re.test(rel) : false;
     });
-    const included = testRegexes(group.pathRegexes, slashPath) || testGlobs(group.pathGlobs) ||
-        testRegexes(group.fileNameRegexes, baseName);
-    if (!included) return false;
-    const excluded = testRegexes(group.excludePathRegexes, slashPath) || testGlobs(group.excludePathGlobs);
-    return !excluded;
+    if (testRegexes(group.excludePathRegexes, slashPath) || testGlobs(group.excludePathGlobs)) return result;
+    if (testRegexes(group.pathRegexes, slashPath)) result.pathSignals.push('pathRegexes');
+    if ((collectAll || !result.pathSignals.length) && testGlobs(group.pathGlobs)) result.pathSignals.push('pathGlobs');
+    if ((collectAll || !result.pathSignals.length) && testRegexes(group.fileNameRegexes, baseName)) result.pathSignals.push('fileNameRegexes');
+    if (result.pathSignals.length && !collectAll) {
+        result.member = true;
+        return result;
+    }
+    const sources = contentRegexSources(group);
+    const readContent = isPlainObject(ctx) && typeof ctx.readContent === 'function' ? ctx.readContent : null;
+    if (sources.length && readContent && normalizedContentExtensions(group).includes(extension)) {
+        let text = null;
+        try {
+            text = readContent(rel);
+        } catch {
+            text = null; // fail-open: an unreadable file has no content signal
+        }
+        if (typeof text === 'string' && text) {
+            const budget = { remainingMs: CONTENT_REGEX_BUDGET_MS };
+            for (const source of sources) {
+                // The framework's audited sources see the whole sample; any other source a smaller one.
+                const bound = TRUSTED_CONTENT_REGEXES.has(source) ? CONTENT_LIMITS.maxBytes : CONTENT_LIMITS.maxConfigBytes;
+                const signal = contentSignalOf(source, text.length > bound ? text.slice(0, bound) : text, budget);
+                if (signal === null) continue;
+                if (!result.contentSignals.includes(signal)) result.contentSignals.push(signal);
+                if (!collectAll) break;
+            }
+        }
+    }
+    result.member = result.pathSignals.length > 0 || result.contentSignals.length > 0;
+    return result;
+}
+
+/** BR-PFCI-02 membership: extension filter AND any include (path, name or content signal) AND no exclude. */
+function groupMatches(group, rel, ctx) {
+    return explainGroupMatch(group, rel, ctx).member;
 }
 
 function docsOf(group) {
@@ -446,13 +924,15 @@ function sortEntries(entries) {
  * declaration index, capped to maxClassesPerEdit (cap applies before presence).
  * BR-PFCI-19: only classes whose trigger accepts the operation are matched, before the cap.
  * `trigger` is `read` or `edit`; absent → `edit` (the lookup answers "before editing this file").
+ * `ctx.readContent(rel)` (see createContentReader) lets classes with content signals match on content;
+ * omitted, every class matches by path and name only.
  */
-function matchGroups(config, rels, settings, trigger = TRIGGER_EDIT) {
+function matchGroups(config, rels, settings, trigger = TRIGGER_EDIT, ctx) {
     const resolved = settings || resolveSettings(config);
     const targets = Array.isArray(rels) ? rels : [rels];
     const matched = injectableEntries(config)
         .filter(entry => acceptsTrigger(entry.on, trigger))
-        .filter(entry => targets.some(rel => groupMatches(entry.group, rel)));
+        .filter(entry => targets.some(rel => groupMatches(entry.group, rel, ctx)));
     return sortEntries(matched).slice(0, resolved.maxClassesPerEdit);
 }
 
@@ -500,7 +980,14 @@ function groupHash(entry) {
         excludePathRegexes: stringList(group.excludePathRegexes),
         excludePathGlobs: stringList(group.excludePathGlobs),
         fileExtensions: normalizedExtensions(group),
-        ...(on !== TRIGGER_BOTH ? { on } : {})
+        ...(on !== TRIGGER_BOTH ? { on } : {}),
+        // Content signals join the version only when a class declares them, so every class written
+        // before they existed keeps its version (and its static tags).
+        ...(contentRegexSources(group).length ? {
+            contentRegexes: contentRegexSources(group),
+            contentExtensions: normalizedContentExtensions(group),
+            ...(contentLabelOf(group) ? { contentLabel: contentLabelOf(group) } : {})
+        } : {})
     });
     return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 8);
 }
@@ -621,7 +1108,8 @@ function lookup(config, filePath, opts = {}) {
     const rel = toRepoRelative(filePath, projectDir, opts.cwd || projectDir);
     if (!rel) return { rel: null, entries: [], text: '', forms: {} };
     const settings = resolveSettings(config);
-    const entries = matchGroups(config, [rel], settings, TRIGGER_EDIT);
+    const ctx = { readContent: typeof opts.readContent === 'function' ? opts.readContent : createContentReader(projectDir) };
+    const entries = matchGroups(config, [rel], settings, TRIGGER_EDIT, ctx);
     const { text, forms } = buildDigest(entries, [rel], settings, { ...opts, projectDir, trigger: TRIGGER_EDIT });
     return { rel, entries, text, forms };
 }
@@ -632,6 +1120,7 @@ module.exports = {
     RANGES,
     BYTES_PER_TOKEN,
     CLASS_REINJECT_TOKENS_RANGE,
+    CONTENT_LIMITS,
     PATH_CAP,
     LOOKUP_COMMAND,
     TRIGGER_READ,
@@ -639,6 +1128,8 @@ module.exports = {
     TRIGGER_BOTH,
     CLASS_TRIGGERS,
     UI_UX_GATE,
+    AI_SDK,
+    AI_FEATURE_GATE,
     builtinFallbackConfig,
     effectiveConfig,
     resolveSettings,
@@ -647,6 +1138,18 @@ module.exports = {
     toRepoRelative,
     globToRegExp,
     normalizedExtensions,
+    normalizedContentExtensions,
+    contentRegexSources,
+    contentSignalOf,
+    contentGuardStats,
+    resetContentGuard,
+    CONTENT_REGEX_BUDGET_MS,
+    contentRegexLintReason,
+    isSafeContentRegex,
+    contentLabelOf,
+    readBoundedContent,
+    createContentReader,
+    explainGroupMatch,
     groupMatches,
     isInjectable,
     injectableEntries,

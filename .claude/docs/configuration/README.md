@@ -153,9 +153,11 @@ The `codeReview` section records which project-specific review-rule doc the revi
 
 Each group may also set `on` — which file operation delivers it: `read`, `edit`, or `both` (default `both`, so an omitted `on` keeps delivery on reads and edits). `edit` keeps a group's read-first docs and skill pointers off plain reads; `conventionInjection.onRead: false` still turns read delivery off for every group. Any other value is a validation error naming the group and `read|edit|both`.
 
-Class fields deciding membership (`pathRegexes`, `pathGlobs`, `fileNameRegexes`, `excludePathRegexes`, `excludePathGlobs`, `fileExtensions`) are part of the class's content version, so editing one re-delivers the class and changes its `[[convention:name@hash8]]` tag — regenerate CLAUDE.md/AGENTS.md afterwards. `guideDoc`/`patternsDoc` are the only fields used for documentation-impact routing (`.claude/scripts/doc-impact-map.cjs`); the delivery matchers are not.
+A class may also match a file by what it contains: `contentRegexes` (case-insensitive regexes tested against the first 16 KiB of the file; the framework's own `ai-feature-gate` patterns see the first 64 KiB) plus `contentExtensions` (the text/code extensions that are scanned), with an optional short `contentLabel` shown in the generated activation table. Files over 2 MiB, binary, missing or unreadable never match, a path that resolves outside the project (a link out) is never read, an excluded path is never read, and only classes that declare content signals cause a read. Limits the validator enforces: at most 64 regexes of up to 500 characters, at most 64 extensions, a label of up to 80 characters; `contentRegexes` without `contentExtensions` is an error. A regex whose running time cannot be bounded — a repeated group that repeats (`(x+)+`), alternatives that can start alike under a repetition (`(a|aa)+`), back-to-back open-ended repetitions (`a*a*`, `.*.*`) or a back-reference — is an error (`unsafe content regex`), and the runtime ignores such a regex if it reaches it; use bounded repetitions such as `{0,80}`. A list over its cap is an error for the validator; the runtime keeps only the first 64 usable entries. The framework's `ai-feature-gate` class uses this to deliver the AI-engineering protocol on files that call a model SDK.
 
-Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json`. Typical errors: `contextGroups[1] ("general-code"): needs at least one include matcher (pathRegexes, pathGlobs or fileNameRegexes)`, a duplicate or blank `name`, a malformed regex (the error names the class), or an out-of-range `conventionInjection.<field>`. Unknown group fields and a non-whole `priority` are warnings. Check what a file receives: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`. Details: [../hooks/README.md § Per-File Convention Injection](../hooks/README.md#per-file-convention-injection).
+Class fields deciding membership (`pathRegexes`, `pathGlobs`, `fileNameRegexes`, `excludePathRegexes`, `excludePathGlobs`, `fileExtensions`, and the content signals below) are part of the class's content version, so editing one re-delivers the class and changes its `[[convention:name@hash8]]` tag — regenerate CLAUDE.md/AGENTS.md afterwards. `guideDoc`/`patternsDoc` are the only fields used for documentation-impact routing (`.claude/scripts/doc-impact-map.cjs`); the delivery matchers are not.
+
+Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json`. Typical errors: `contextGroups[1] ("general-code"): needs at least one include matcher (pathRegexes, pathGlobs, fileNameRegexes, or contentRegexes with contentExtensions)`, a duplicate or blank `name`, a malformed regex (the error names the class), or an out-of-range `conventionInjection.<field>`. Unknown group fields and a non-whole `priority` are warnings. Check what a file receives: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`. Details: [../hooks/README.md § Per-File Convention Injection](../hooks/README.md#per-file-convention-injection).
 
 ### Session prompt ledger
 
@@ -177,13 +179,14 @@ Records live in `tmp/prompt-ledger/<session>/` (override `CK_PROMPT_LEDGER_DIR`)
 
 ### Advisory prompt routers
 
-Three UserPromptSubmit accelerators are ON by default and inject a short directive; the static `CLAUDE.md` / `AGENTS.md` rules bind every host without them, so turning one off loses only the reminder. `.claude/.ck.local.json` overrides `.ck.json` per key (local wins), and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
+Four UserPromptSubmit accelerators are ON by default and inject a short directive; the static `CLAUDE.md` / `AGENTS.md` rules bind every host without them, so turning one off loses only the reminder. `.claude/.ck.local.json` overrides `.ck.json` per key (local wins), and the switch accepts `false` or the strings `"0"`, `"off"`, `"false"`, `"no"`, `"disabled"`.
 
 | Hook                            | Injects when                                                                                                                                 | Opt-out (`.claude/.ck.json`)                          | Env opt-out                      |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------- |
 | `commit-skill-route.cjs`        | the prompt asks for a commit — run the `commit` skill, never a raw `git commit` (`review-commit-gate.cjs` still blocks an unreviewed commit) | `{ "commitSkillRoute": { "enabled": false } }`        | `CK_COMMIT_SKILL_ROUTE=0`        |
 | `judgement-integrity-route.cjs` | the prompt asks for a verdict, root cause, evaluation, or gap hunt — the `SYNC:judgement-integrity:reminder` directive                       | `{ "judgementIntegrityRoute": { "enabled": false } }` | `CK_JUDGEMENT_INTEGRITY_ROUTE=0` |
 | `core-principles-inject.cjs`    | first prompt or task step of a session scope, then again after ~`reinjectAfterTokens` (default 100000) of transcript growth or a compaction — the `SYNC:core-engineering-principles` gate | `{ "corePrinciplesInject": { "enabled": false } }`  | `CK_CORE_PRINCIPLES_INJECT=0`    |
+| `ai-feature-route.cjs`          | the prompt asks to build, plan, change or review an AI feature (an AI technique such as LLM calls, RAG, embeddings, tool/function calling or the Claude API/SDK — not "Claude Code" — AND an action on it) and is not about the framework's own machinery — one short directive (one protocol pointer, the `ai-engineering-review` skill / reviewer sub-agent route) once per session window; questions and framework-meta prompts stay silent | `{ "aiFeatureRoute": { "enabled": false } }`        | `CK_AI_FEATURE_ROUTE=0`          |
 
 ### Default-on workflow routing
 
@@ -417,7 +420,7 @@ Apply it with `node .claude/scripts/sync-skill-profile.cjs` (`--check` is read-o
 
 | Workflow                  | Sequence (abridged, from `workflows.json`)                                                                                                                                          | whenToUse (abridged)                              |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `workflow-feature`        | investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end                                                                                   | Well-defined feature; no canonical spec has the behavior yet |
+| `workflow-feature`        | investigate → … → spec + test specs → plan → plan-execute → integration-test → spec sync → review → verify → workflow-end                                                            | Well-defined feature; no canonical spec has the behavior yet |
 | `workflow-implement-spec` | investigate → spec-clarify → plan → plan-execute → spec [mode=sync] (when behavior differs) → integration-test → workflow-review-changes `--tests=defer` → integration-test-verify → test → workflow-end → watzup | Behavior already written in a canonical spec or TC set |
 | `workflow-bugfix`         | investigate → debug-investigate → … → fix → … → workflow-end                                                                                                                        | Bug, error, crash, regression; end-to-start trace |
 | `workflow-refactor`       | investigate → plan → … → plan-execute → … → workflow-end                                                                                                                            | Restructure code without behavior change          |
@@ -500,7 +503,8 @@ opencode has no absolute compaction threshold — it compacts relative to the mo
 {
   "promptLedger": { "enabled": false },      // Disable prompt-ledger recording
   "commitSkillRoute": { "enabled": false },        // Disable the commit-skill prompt router
-  "judgementIntegrityRoute": { "enabled": false }  // Disable the judgement-integrity prompt router
+  "judgementIntegrityRoute": { "enabled": false }, // Disable the judgement-integrity prompt router
+  "aiFeatureRoute": { "enabled": false }           // Disable the AI-feature prompt router
 }
 
 // settings.json
@@ -573,6 +577,7 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `CK_PROMPT_LEDGER_DIR`                  | Directory for prompt-ledger records instead of `<project>/tmp/prompt-ledger`                                                         |
 | `CK_COMMIT_SKILL_ROUTE`                 | `0`: stops the reminder to commit through the `commit` skill, like `commitSkillRoute.enabled: false`                                 |
 | `CK_JUDGEMENT_INTEGRITY_ROUTE`          | `0`: stops the judgement-integrity reminder, like `judgementIntegrityRoute.enabled: false`                                           |
+| `CK_AI_FEATURE_ROUTE`                   | `0`: stops the AI-feature (AI-engineering gate) reminder, like `aiFeatureRoute.enabled: false`                                       |
 | `DOC_SYNC_OVERRIDE`                     | `1`: silences the doc-sync commit warning (the gate only warns, never blocks); each use is appended to the gate's audit log            |
 | `ENABLE_DESKTOP_NOTIFICATIONS`          | `false`: turns off desktop turn-complete alerts (on by default)                                                                     |
 | `DISCORD_WEBHOOK_URL` / `SLACK_WEBHOOK_URL` / `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | Setting one turns on turn-complete alerts in that chat channel; setup: `.claude/hooks/notifications/docs/` |

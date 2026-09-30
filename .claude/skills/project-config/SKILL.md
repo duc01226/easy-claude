@@ -16,9 +16,9 @@ disable-model-invocation: false
 - Omitted properties use documented defaults or evidence-backed skips. A declared but incomplete or unsupported section must be repaired or removed explicitly; never treat it as absent.
 - Merge and validate selected changes; report omitted capabilities and follow-up work without inventing architecture or test cases.
 
-**IMPORTANT MUST ATTENTION** follow Plan → Review → Execute workflow. **IMPORTANT MUST ATTENTION** use exact schema field names (`--describe`). **IMPORTANT MUST ATTENTION** validate after each phase. **NEVER** use `classPattern`/`keyExtractor` — correct fields: `contentPattern`/`keyGroup`.
+**IMPORTANT MUST ATTENTION** follow Recon → Plan → Execute → Validate. **IMPORTANT MUST ATTENTION** use exact schema field names (`--describe`). **IMPORTANT MUST ATTENTION** validate after each phase. **NEVER** use `classPattern`/`keyExtractor` — correct fields: `contentPattern`/`keyGroup`.
 
-**Workflow:** Recon → identify supported capabilities → `/plan` → `/plan-review` → Execute selected phases (scan → merge → validate → fix) → applicable follow-up scans → self-review
+**Workflow:** Recon → identify supported capabilities → `/plan` → Execute selected phases (scan → merge → validate → fix) → applicable follow-up scans → self-review
 
 **Key Rules:**
 
@@ -108,11 +108,7 @@ Phase D: Follow-Up — queue only reference scans or config work for selected/ev
 Phase E: Self-Review — confirm the required identity, declared capability evidence, and omissions
 ```
 
-### Step 3: Review Plan (`/plan-review`)
-
-Run `/plan-review` on the generated scan plan; resolve blocking findings before executing any phase.
-
-### Step 4: Execute
+### Step 3: Execute
 
 Per selected phase: TaskCreate → inspect evidence → merge → validate → spot-check → fix → next phase. Record a capability as skipped when evidence shows it does not apply; do not create placeholder sections to make a phase appear complete.
 
@@ -654,7 +650,7 @@ node .claude/hooks/lib/file-conventions.cjs --lookup <sample-path>      # verify
 - Detection is stack-agnostic: it derives classes (`feature-spec`, `integration-test`, `e2e-test`, `test`, `backend`, `frontend`, `styling`, `general-code`) only from existing config keys and keeps only docs/skills that exist on disk.
 - Merge is additive: a new class is ADDED with `origin: "detected"` + `detectedFingerprint`; a maintainer class (no/other origin) or an edited detected class (fingerprint no longer matches) is KEPT byte-identical; only an unedited detected class is REFRESHED. Nothing is ever removed.
 - `--write` replaces the config atomically (temp + rename) and re-serializes it as 2-space JSON, so formatting may change even when no class did; content is unchanged unless the summary reports `added`, `refreshed` or a switch flip. Precedence: `priority` ascending (100 specific · 500 default · 900 general), ties by declaration order; earlier section wins on conflict.
-- Opt-in only: `--enable` belongs to this explicit setup run; upgrades and hooks never flip it (in an existing config, absent `conventionInjection` ⇒ disabled, silent; only a project with NO config file gets the built-in `ui-ux-gate` fallback), and it never overrides a maintainer's explicit `enabled: false` (reported as `enableSkipped`).
+- Opt-in only: `--enable` belongs to this explicit setup run; upgrades and hooks never flip it (in an existing config, absent `conventionInjection` ⇒ disabled, silent; only a project with NO config file gets the built-in `ui-ux-gate` and `ai-feature-gate` fallback), and it never overrides a maintainer's explicit `enabled: false` (reported as `enableSkipped`).
 
 ---
 
@@ -729,7 +725,7 @@ Report: required config path and project identity; optional sections updated; ev
 
 **IMPORTANT MUST ATTENTION** read the configured project-config file, docs index, `lessons.md`, task-required references, and exact schema before scanning; bootstrap missing config with a derived project name.
 **IMPORTANT MUST ATTENTION** select scans from requested or evidenced capabilities; scale controls grouping only and never forces optional sections.
-**IMPORTANT MUST ATTENTION** plan first — recon → `/plan` → `/plan-review` → execute. NEVER jump to scanning.
+**IMPORTANT MUST ATTENTION** plan first — recon → `/plan` → execute. Plan review is explicit user opt-in, never automatic. NEVER jump to scanning.
 **IMPORTANT MUST ATTENTION** config file and non-empty `project.name` are required; optional properties are omitted when unsupported or unevidenced.
 **IMPORTANT MUST ATTENTION** break into phases with review cycles — scan → merge → validate → spot-check → fix per phase.
 **IMPORTANT MUST ATTENTION** use exact schema field names — run `--describe`, copy verbatim. NEVER guess.

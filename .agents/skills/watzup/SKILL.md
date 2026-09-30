@@ -57,16 +57,15 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 ## Quick Summary
 
-**Goal:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags, root-cause lessons and, for a large code change, a `$understand` review guide — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
+**Goal:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags and root-cause lessons — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
 
 **Summary:**
 
 - **READ-ONLY contract** — review, summarize and FLAG only; NEVER edit, fix, implement, or update the docs or specs you flag. The only write is the git-ignored session report — why: watzup is a handoff, not an edit pass.
 - **Scope is the session**, not only recent commits: uncommitted working-tree changes plus the commits made in this session, bounded by the session's task list, plan and prompt ledger when present — why: most session work is still uncommitted at wrap-up.
-- **Main steps in order:** (1) **Scope** the session's work; (2) **Session summary** — Done, Key changes, Why, How it works, then the detail; (3) **Doc-staleness gate**; (4) **Spec-driven health check** (business code only); (5) **Root-cause lesson extraction**; (6) **`$understand` handoff** (large code change or on request, otherwise the summary alone); (7) **HTML session report**, auto-opened; (8) **ask the user directly Next Steps**.
+- **Main steps in order:** (1) **Scope** the session's work; (2) **Session summary** — Done, Key changes, Why, How it works, then the detail; (3) **Doc-staleness gate**; (4) **Spec-driven health check** (business code only); (5) **Root-cause lesson extraction**; (6) **HTML session report**, auto-opened; (7) **ask the user directly Next Steps**.
 - **HTML report:** the four parts plus Flags and Next steps go into `tmp/reports/watzup-{YYMMDD}-{HHmm}-{slug}.html`, built from `references/session-report-template.html` and opened with `node .claude/scripts/open-report.cjs <path>`; chat gets a short summary plus the path — why: the reader should come away understanding what was done, why and how it works, not skimming a chat scroll.
-- **Proportion rule:** the session summary and the lesson gate always run. When no code changed (research, diagram or docs-only runs), the doc-staleness and spec-health gates record `skipped — no code changed` with the evidence. The `$understand` handoff is optional: it runs for a **large code change** (defined under [Session Summary](#session-summary-always-runs)) or when the user asks, and otherwise scales down to the session summary — why: a review route needs enough code to route through, and the four-part summary already explains a small change.
-- **Cost, declared:** for a large code change (or on request), the `$understand` handoff derives diagrams, resolves real test-case IDs and builds an ordered review route, so it reads more of the repo and writes a longer report — the deliberate price of ending with a route into the work rather than a recap of it. A smaller change does not pay it: the session summary completes the wrap-up.
+- **Proportion rule:** the session summary and lesson gate always run. When no code changed (research, diagram or docs-only runs), the doc-staleness and spec-health gates record `skipped — no code changed` with evidence. The wrap-up never adds a second comprehension workflow — why: the four-part summary and report already own the handoff.
 - Lessons go to `$learn` ONLY after user confirmation; surface-level "always check file X" notes are noise, not lessons.
 
 **Workflow:**
@@ -76,9 +75,8 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 3. **Doc Check** — Cross-reference changed paths against docs for staleness, or record `skipped — no code changed` with evidence.
 4. **Spec Health** — Run when business code changed; otherwise record `skipped — no code changed` (or `no business code changed`) with evidence.
 5. **Lesson Learned** — Analyze AI mistakes/issues during the session and capture lessons.
-6. **Understand Handoff** — For a **large code change** (see [Session Summary](#session-summary-always-runs)) or when the user asks for the review guide, invoke `$understand` so the developer gets the full review guide on the session's work, high level first then detail, in four parts: **Orient → Route → Depth → Prove & Push Back**. The section contract lives in `understand/SKILL.md` Step 4 and is never re-listed here — a copy would go stale silently. Written to `tmp/reports/understand-*.md` — or delivered in full in chat when no git-ignored directory is available — and summarized in chat. For a large code change, ask `$understand` for HTML output so its full review route opens beside the session report, or instead of it when the user wants one report. Otherwise the handoff scales down to the session summary: record `Understand handoff: scaled down to the session summary — no code changed` (or `— below the large-change threshold`, with the changed-code count). If `$understand` is unavailable, record `Understand handoff: $understand unavailable — session summary only` in the report's Flags and continue; it never blocks the wrap-up.
-7. **Session Report** — Write the HTML report and open it (see [Session Report (HTML)](#session-report-html)); post a short chat summary plus the report path.
-8. **Next Steps** — ask the user directly (see [Next Steps](#next-steps)).
+6. **Session Report** — Write the HTML report and open it (see [Session Report (HTML)](#session-report-html)); post a short chat summary plus the report path.
+7. **Next Steps** — ask the user directly (see [Next Steps](#next-steps)).
 
 **Key Rules:**
 
@@ -87,7 +85,6 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - The Session summary always runs and comes first, with all four parts: Done, Key changes, Why, How it works.
 - Doc-staleness and spec-health gates are REQUIRED when code changed; with no code changed each records `skipped — no code changed` with evidence.
 - Lesson-learned analysis is REQUIRED on every run.
-- Call `$understand` after the summary, gates and lesson analysis and before Next Steps only for a large code change or when the user asks; otherwise the handoff scales down to the session summary. An unavailable `$understand` is noted, never a blocker.
 - Write the HTML session report on every run, open it with `open-report.cjs`, and post a short chat summary plus its path.
 - The report must be beautiful, easy to read and easy to understand: one-line outcome, text status per request, changes grouped by area, before → after or flow for changed behaviour, plain short sentences — checked before it is opened.
 
@@ -113,8 +110,6 @@ Runs on every invocation, code or no code. Output it before any gate, as four la
 Then the detail: per-file changes, impact and quality assessment. For a research, diagram or docs-only session, **Key changes** lists the artifacts produced and **How it works** explains the finding or the flow they describe.
 
 **No code changed** means the session's changed paths (working tree plus session commits) are empty or contain only docs, diagrams, reports and other non-executable artifacts — no source, script, test, hook, skill or config file. Cite the path list (or a clean `git status`) as the evidence.
-
-**Large code change** — the trigger for the full `$understand` handoff — means any one of: more than 10 changed code files (the same path list, minus docs, diagrams and reports); a new module, service, skill, hook or script; or a changed public contract (an API, CLI, config schema, hook input/output or exported interface). Cite the count or the path that met the rule. A smaller code change ends with the session summary unless the user asks for the review guide.
 
 ---
 
@@ -256,7 +251,7 @@ Wait for user confirmation before invoking `$learn`.
 
 ## Session Report (HTML)
 
-Runs on every invocation, after the lesson analysis and the `$understand` handoff. It is the detailed, readable form of the session summary.
+Runs on every invocation after the lesson analysis. It is the detailed, readable form of the session summary.
 
 **Quality goal — beautiful, easy to read, easy to understand.** A developer who reads the title, the one-line outcome and Start here knows what the session achieved and where to look first; each later section is understood by skimming its first column and its visual. A correct report that is hard to scan fails this goal. Within the template's restraint (Start here is the only emphasised element; no hero, stat cards or gradients):
 
@@ -268,8 +263,8 @@ Runs on every invocation, after the lesson analysis and the `$understand` handof
 - **Plain writing:** short sentences, active voice, one idea per cell, every number with its unit, no unexplained jargon or internal ids.
 - **Flags:** most severe first, each naming what to do next.
 
-1. **Resolve the directory** the way `understand/SKILL.md` Step 3 does: the reports directory `docs/project-config.json` names, if it names one, then `tmp/reports/`; take the first that `git check-ignore` confirms is ignored, creating it if absent. If none is ignored, write no file: deliver the report content in chat and name the directory to ignore.
-2. **Write** `watzup-{YYMMDD}-{HHmm}-{slug}.html` from `references/session-report-template.html`: fill every placeholder, keep its inline CSS, structure and `Content-Security-Policy` meta, and add no script or external asset. **Encode every value:** HTML-escape each placeholder value — `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;` — including text inside `<code>` and `<title>`, because session text routinely carries markup and comment markers that would otherwise hide or rewrite the rest of the report. Every `href` value (e.g. `{{START_FILE_LINK}}`) is a relative path or a `file:` / `vscode:` link — never `javascript:`, `data:` or any other scheme. Order: Start here, Done, Key changes, Why, How it works, Flags (doc staleness, spec health, risks, lessons — a skipped gate with its evidence), Next steps. Every claim carries its `file:line`. When `$understand` also wrote HTML, link it from Next steps.
+1. **Resolve the directory:** use the reports directory named by `docs/project-config.json` when present, otherwise `tmp/reports/`; take the first path that `git check-ignore` confirms is ignored, creating it if absent. If none is ignored, write no file: deliver the report content in chat and name the directory to ignore.
+2. **Write** `watzup-{YYMMDD}-{HHmm}-{slug}.html` from `references/session-report-template.html`: fill every placeholder, keep its inline CSS, structure and `Content-Security-Policy` meta, and add no script or external asset. **Encode every value:** HTML-escape each placeholder value — `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;`, `'` → `&#39;` — including text inside `<code>` and `<title>`, because session text routinely carries markup and comment markers that would otherwise hide or rewrite the rest of the report. Every `href` value (e.g. `{{START_FILE_LINK}}`) is a relative path or a `file:` / `vscode:` link — never `javascript:`, `data:` or any other scheme. Order: Start here, Done, Key changes, Why, How it works, Flags (doc staleness, spec health, risks, lessons — a skipped gate with its evidence), Next steps. Every claim carries its `file:line`.
 3. **Check readability** before opening: re-read the filled report against the quality goal above — outcome line present, every Done row has a text status, no placeholder or empty optional block left, no cell longer than two sentences. When a browser or screenshot tool is available, look at the rendered page at a wide and a narrow width; fix any clipped text or overlap in the report file (never in the repository).
 4. **Open** it: `node .claude/scripts/open-report.cjs <path>`. The helper opens nothing in CI, with `CK_NO_AUTO_OPEN=1`, or on a Linux session without a display, and always exits 0, so a failed open never blocks the wrap-up. It opens only a report inside the project's `tmp/` or `temp/` directory; a report written to a configured reports directory elsewhere is not opened — the helper prints its path, and the chat summary gives that path to the user.
 5. **Post in chat** a short summary — Done in two or three lines, the start-here file, the flag count — plus `Session report → <path>`.
@@ -278,7 +273,7 @@ Runs on every invocation, after the lesson analysis and the `$understand` handof
 
 ## Next Steps
 
-**MANDATORY** before presenting these options, complete the handoff step (Workflow step 6) — a full `$understand` run scoped to the session's change set for a large code change or on request, otherwise the session summary alone — then write and open the session report ([Session Report (HTML)](#session-report-html)). If `$understand` is unavailable, note it in the report's Flags and continue; it is never a blocker. If no code changed, the handoff scales down to the session summary (Workflow step 6) and these options follow.
+**MANDATORY** before presenting these options, write and open the session report ([Session Report (HTML)](#session-report-html)). The report and chat summary are the complete handoff; do not invoke another comprehension skill.
 
 After the report is written, MUST ATTENTION use ask the user directly to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
 
@@ -366,7 +361,7 @@ After the report is written, MUST ATTENTION use ask the user directly to present
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags, root-cause lessons and, for a large code change, a `$understand` review guide — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
+**IMPORTANT MUST ATTENTION Goal:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags and root-cause lessons — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -379,7 +374,7 @@ After the report is written, MUST ATTENTION use ask the user directly to present
 
 **IMPORTANT MUST ATTENTION** stay READ-ONLY — only FLAG findings; NEVER edit, fix, implement, or update the docs or specs you flag — why: watzup is a review/handoff, not an edit pass; flagging-then-fixing silently breaks the read-only contract.
 **IMPORTANT MUST ATTENTION** scope the whole session (uncommitted changes plus this session's commits) and write the Session summary first — Done, Key changes, Why, How it works — then run the gates: doc-staleness, spec health (business code only), lesson extraction. Never skip a gate because the change "looks small"; with no code changed, doc-staleness and spec health record `skipped — no code changed` with evidence — why: stale docs and missed lessons compound silently, while a code gate on a no-code session is noise.
-**IMPORTANT MUST ATTENTION** complete the handoff step — `$understand` for a large code change or on request, otherwise the session summary alone — then write and open the HTML session report, BEFORE the ask the user directly Next Steps prompt; an unavailable `$understand` is noted in Flags, never a blocker — why: the developer's exit context is the explanation, not the raw diff, and the four-part summary already explains a small change.
+**IMPORTANT MUST ATTENTION** write and open the HTML session report BEFORE the ask the user directly Next Steps prompt; never invoke another comprehension skill from this workflow — why: the four-part summary and report already own the developer handoff.
 **IMPORTANT MUST ATTENTION** make the HTML report beautiful, easy to read and easy to understand — one-line outcome, text status per request, changes grouped by area, a before → after or flow for changed behaviour, plain short sentences, no empty optional block — and check it before opening — why: a correct report nobody can scan hands over no understanding.
 **IMPORTANT MUST ATTENTION** HTML-escape every placeholder value in the report and keep every `href` a relative, `file:` or `vscode:` link — why: the report is auto-opened in a browser, and unescaped session text can hide report content or run as markup.
 
@@ -399,11 +394,11 @@ After the report is written, MUST ATTENTION use ask the user directly to present
 | "No real mistakes this session, skip lessons"    | Still run the gate — output `No AI mistakes identified` only after honest self-review.         |
 | "It's obvious next they want a commit, just do it" | NEVER auto-decide — present the ask the user directly options; the user owns the route.           |
 | "I can just fix this stale doc while I'm here"    | READ-ONLY — flag only. Fixing here breaks the contract; the user decides.                      |
-| "Big change, but skip `$understand` to save time" | A large code change (Session Summary definition) runs `$understand`; only a smaller or no-code change scales down to the summary, with the count or path list as evidence. |
+| "Big change needs another explanation workflow"  | Keep one owner: make the session summary and HTML report complete instead of invoking another skill. |
 | "Nothing was coded, skip the summary"            | The Session summary always runs — research and docs sessions still have Done, Why and How.     |
 | "Only recent commits matter"                     | Scope is the session: uncommitted working-tree changes plus this session's commits.            |
 
-**IMPORTANT MUST ATTENTION Goal echo:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags, root-cause lessons and, for a large code change, a `$understand` review guide — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
+**IMPORTANT MUST ATTENTION Goal echo:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags and root-cause lessons — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Static Prompt Protocol Mirror (Auto-Synced)

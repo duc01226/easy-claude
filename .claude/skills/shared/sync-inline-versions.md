@@ -343,28 +343,28 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:plan-quality
 
-> **Plan Quality** — Every plan phase MUST ATTENTION include test specifications.
+> **Plan Quality** — A plan decides direction and proof without pre-writing the implementation.
 >
-> 1. Keep a `## Test Specifications` section in every phase; resolve and validate `docs/project-config.json → specArtifacts` before choosing requirement, case, or evidence shape. A malformed or unsupported declaration blocks; it is never treated as absent.
-> 2. With a valid native profile, use its configured `sections.intent/contracts/evidence`, canonical owner path, identifier grammar, and test-carrier dialect. Keep owner + case/scenario ID + optional variant identity and the actual executing test; preserve configured many-to-many cardinality.
-> 3. Map every functional requirement or invariant to ≥1 native case/executor (or explicit `TBD` with rationale). Cite the assertion that proves the outcome at `file:line`; a case-ID match, grep, or aggregate result without inspecting the assertion path is not proof.
-> 4. Only when `specArtifacts` is absent, use the strict default: `TC-{FEATURE}-{NNN}` in the phase Test Specifications section and the legacy business-spec `§3 AC / §4 BR / §5 invariants / §8 TC` shape. TDD-first references existing TCs with `Evidence: TBD`; implement-first keeps `TBD` until the configured spec/test workflow fills it.
-> 5. Before any new workflow step: call `TaskList` and re-read the phase file.
-> 6. On context compaction: call `TaskList` FIRST — never create duplicate tasks.
-> 7. Verify every native case and its assertion, or every strict-default TC, before marking a phase complete; final evidence must be `file:line`, not TBD.
+> 1. State outcome, non-goals, governing intent/spec, important technical decisions, affected owners/areas, dependency order, risks, and final quality gates.
+> 2. Resolve `docs/project-config.json → specArtifacts` before naming requirement/case/evidence carriers. A malformed or unsupported declaration blocks; it is never treated as absent.
+> 3. Map each changed behavior or invariant to the canonical case/executor that should prove it. During planning, cite existing assertions when known; otherwise state the planned test obligation and evidence owner. Do not fabricate future `file:line` locations.
+> 4. Only when `specArtifacts` is absent, use the strict-default `TC-{FEATURE}-{NNN}` and legacy §3/§4/§5/§8 roles. A declared native profile never falls back silently.
+> 5. Put exact implementation discovery where it belongs: each phase names bounded questions the executor must resolve from source before editing, the evidence to inspect, and the stop/escalation condition.
+> 6. Keep one plan artifact by default. Add phase files only when independent execution, context isolation, or parallel ownership genuinely needs them.
+> 7. Author tests with the implementation, then run the affected test suites once at the final verify gate after all implementation and static review. No per-phase test or review runs.
 > 8. **Purpose-oriented naming:** For every planned public or cross-layer contract, port, interface, module, or adapter, name the consumer-visible capability or domain purpose; keep provider, framework, and transport names in concrete implementations (`IStorage`/`Storage` → `AzureBlobStorage`). — why: a contract name should survive an implementation swap.
 > 9. **Contract-fit gate:** Check the proposed name against its callers and all implementations; use a narrower purpose name when a broad name overpromises (`IObjectStore` or `DocumentStore` instead of `IStorage` when the behavior is narrower). — why: abstraction names must describe the actual contract, not hide a mismatch.
 > 10. **No speculative abstraction:** Plan an interface or port only when a real boundary, substitution need, or multiple meaningful implementations justifies it; keep a concrete type when it is the honest contract. — why: an unnecessary abstraction adds indirection and a second name without reducing change cost.
 > 11. **Language convention:** Preserve the repository's naming syntax (`I` prefix where the language/project uses it); never force `I` or `Interface` markers across languages. — why: semantic purpose is portable, syntax is not.
 > 12. **Foundation obligations — when the plan CREATES or CHANGES how the project is built, run, tested, or checked** (build or CI configuration, test harness, containerization, toolchain/dependency management, module boundaries, quality tooling): run `SYNC:engineering-foundation-gate` — its seven dimensions F1-F7, the four profile axes and the warranting matrix are in `.claude/docs/engineering-foundation-catalog.md`, which the plan reads directly when no carrier of that gate ran upstream — and carry every dimension it marks warranted into the plan as an **explicit phase with acceptance criteria** — never as an assumption that someone handles it later. Record each dimension deliberately skipped, with the reason. — why: a plan that stands up a foundation and silently omits a warranted dimension makes that omission permanent and invisible; foundations cost near nothing at creation and a great deal to retrofit.
 >
-> **Mode:** TDD-first → reference existing native cases (strict-default TCs only when `specArtifacts` is absent) with `Evidence: TBD`. Implement-first → use TBD until the project's configured spec/test workflow fills it; absent a profile, `/spec [mode=tests]` is the strict-default route. A declared invalid profile blocks instead of selecting this fallback.
+> **Mode:** State the intended test owner and case identity during planning. Existing assertions may be cited; future assertions remain an execution obligation, never fabricated evidence. A declared invalid profile blocks instead of selecting a fallback.
 
 ---
 
 ## SYNC:plan-quality:reminder
 
-**MUST ATTENTION** Resolve `specArtifacts` first: use its identity and carrier only when valid, use strict-default `TC-{FEATURE}-{NNN}` and legacy TestSpec shape only when absent, and block a malformed declaration. Every plan phase maps its cases to an inspected assertion-bearing executor. Before each workflow step and after compaction, call `TaskList` and re-read the phase file; verify `file:line` evidence before completion.
+**MUST ATTENTION** Plan at decision-and-boundary altitude: resolve `specArtifacts`; map behavior to existing or planned test owners without fabricating future evidence; name bounded executor discovery; author tests with implementation; run suites only at the final verify gate after all implementation and static review.
 
 ---
 
@@ -835,7 +835,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 >
 > 1. **Verify the configured relevant suite, not a convenient sample.** Resolve test projects/suites from project config and the requested scope. A focused run is diagnostic unless the task explicitly asks for that scope; report actual runner output and do not claim broader coverage than it proves.
 > 2. **Set up valid state without bypassing the contract under test.** Exercise the production entry path when that path is being tested. For unrelated preconditions, use the project's builders, factories, fixtures, seeders, APIs, or persistence setup when they preserve invariants. Never use a shortcut that skips the behavior the assertion is meant to protect.
-> 3. **On ANY failure → `/debug-investigate` the root cause BEFORE any fix.** Do not guess, do not patch the symptom site. Trace the failure end-to-start and classify whose fault it is: test code (wrong assertion/setup), source/production code (real defect), or environment/infrastructure/data. Then route: test-code fault → `/integration-test-review` to fix the test at the root (never weaken assertions or add skips); source-code fault → fix the production defect at the owning layer and report it; environment fault → mark BLOCKED and point at the startup script. NEVER change a test to match broken code.
+> 3. **On ANY failure → `/debug-investigate` the root cause BEFORE any fix.** Do not guess, do not patch the symptom site. Trace the failure end-to-start and classify whose fault it is: test code (wrong assertion/setup), source/production code (real defect), or environment/infrastructure/data. Then route: test-code fault → `/integration-test-review` performs one read-only adjudication pass and the caller fixes the test at the root (never weaken assertions or add skips); source-code fault → fix the production defect at the owning layer and report it; environment fault → mark BLOCKED and point at the startup script. NEVER change a test to match broken code.
 > 4. **Use project timeouts as budgets, not as fixes.** Investigate a timeout or slow test for deadlock, unbounded work, missing synchronization, or an unavailable dependency. Do not widen an assertion timeout or retry a failing assertion to hide a defect; adjust execution budgets only when evidence shows the configured budget is inappropriate for this environment.
 > 5. **Follow the configured repeat policy.** Read `integrationTestVerify.guidance` and report its required fresh runs, state-reset policy, concurrency, and scope. When no policy is declared, use two fresh green runs for suites with persistent/shared state; use the runner's normal clean/isolated setup and never reset data owned by another run. Preserve executed coverage and disclose what each run proves.
 
@@ -843,17 +843,14 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:iterative-phase-quality
 
-> **Iterative Phase Quality** — Score complexity BEFORE planning.
+> **Iterative Phase Quality** — Scale planning depth to real boundaries while keeping verification on the settled tree.
 >
-> **Complexity signals:** >5 files +2, cross-service +3, new pattern +2, DB migration +2
-> **Score >=6 →** MUST ATTENTION decompose into phases. Each phase:
+> 1. Use a few outcome phases when the work has dependency, ownership, or independently verifiable boundaries. File count is a risk signal, not a reason to manufacture phases.
+> 2. Each phase states its objective, affected owners/areas, dependency, bounded executor discovery, output, and acceptance condition. Avoid method-level mechanics, fixed-hour microtasks, and recursive sub-plans.
+> 3. Implement phases in dependency order and write each behavior's tests with its implementation. Between phases use only static/type/compile checks when useful; do not run test suites or review loops.
+> 4. After all implementation completes, run one whole-change static review/fix pass, then the final affected verification. A verify-time fix follows fault adjudication and the bounded verify/re-review recovery contract.
 >
-> - ≤5 files modified
-> - ≤3h effort
-> - Follows cycle: plan → implement → review → fix → verify
-> - Start Phase N+1 only after Phase N passes VERIFY — why: building on an unverified phase compounds errors downstream
->
-> **Phase success = all TCs pass + code-reviewer agent approves + no blocking findings under the current review bar.** Round 1 requires zero validated findings at any severity (a LOW closes by a local fix plus scoped check, or by deferral — `SYNC:double-round-trip-review`); from round 2 onward a phase requires zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded as deferred. Failed binary gates remain blocking at every round.
+> **Plan success:** the executor knows what must be true, which owners and risks matter, what source questions remain bounded, and which final gates prove completion without the plan replaying the implementation.
 
 ---
 
@@ -928,16 +925,15 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:plan-granularity
 
-> **Plan Granularity** — Every phase must pass 5-point check before implementation:
+> **Plan Granularity** — Plan at decision-and-boundary altitude; execution discovers mechanics.
 >
-> 1. Lists exact file paths to modify (not generic "implement X")
-> 2. No planning verbs (research, investigate, analyze, determine, figure out)
-> 3. Steps ≤30min each, phase total ≤3h
-> 4. ≤5 files per phase
-> 5. No open decisions or TBDs in approach
+> 1. Use a few outcome-oriented phases with clear ownership and dependency order; do not decompose into method edits, line changes, 30-minute tasks, or recursive sub-plans.
+> 2. Name known modules, contracts, data, tests, docs, and representative paths with evidence. Require exact file paths only when the repository already proves them.
+> 3. Each phase states: objective, boundaries/non-goals, important decisions, affected owners/areas, executor discovery obligations, implementation output, and acceptance/quality gate.
+> 4. Open product or irreversible technical decisions block the plan and go to the user. Bounded implementation discovery is allowed when its source, owner, and stop condition are explicit.
+> 5. Split a phase only when it has a real dependency boundary, independently verifiable outcome, or disjoint write ownership. A plan that reads like implementation replay is too detailed.
 >
-> **Failing phases →** create sub-plan. Repeat until ALL leaf phases pass (max depth: 3).
-> **Self-question:** "Can I start coding RIGHT NOW? If any step needs 'figuring out' → sub-plan it."
+> **Self-question:** "Does this tell the executor what must be true, where to investigate, and how completion is proved—without telling them every edit?"
 
 ---
 
@@ -1350,7 +1346,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 > - **Skills keep guides.** A converted skill's `SKILL.md` carries one guide line per protocol in its `PROTOCOL-GUIDES` block (tag, summary, when it applies, path of the published text) instead of the full `<!-- SYNC:tag -->` body.
 > - **Hooks deliver the full text** where the host runs hooks, from the generated projection `.claude/skills/shared/protocols/`. The guide path is the fallback: when a protocol's text is not in your context, read its file before you act on it.
 > - **`:reminder` digests stay** in every carrier for must-never-miss rules.
-> - **The five review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `plan-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry.
+> - **The four converging review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry. Single-pass `plan-review` uses protocol guides and loads only triggered depth.
 > - **Agents keep full protocol text.** `.claude/agents/*.md` are never converted to guides.
 > - **Reviewer prompts carry protocol bodies inline.** The orchestrator copies ONE template (`SYNC:review-protocol-injection`) wholesale into each fresh reviewer prompt; a reviewer is never handed a path to go read.
 > - **`references/`:** a mode-only section of a skill may live in `references/*.md`, read at the point of use as that mode's first action; a SYNC body inside `references/*.md` stays inline.
@@ -1361,7 +1357,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:shared-protocol-duplication-policy:reminder
 
-**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the five review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
+**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
 
 ---
 
@@ -2658,5 +2654,137 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## SYNC:ux-journey-gate:reminder
 
 - **MUST ATTENTION** journey-first, BLOCKING order: REPORT the main user journeys (`UX-1`, evidence-tagged; confirm an inferred actor/job/outcome, or with no question tool record it `INFERRED — unconfirmed` and continue) → READ project design principles, design system, existing UI (`UX-2`) → generate → CHECK all gates. Checks: views = journey steps (`UX-3`) · important information first — one focal point, one primary action = next step, first viewport holds the primary tier (`UX-4`) · rules become prevention, states, recovery (`UX-5`) · the user's mental model (`UX-6`) · low-fi first (`UX-7`) · walkthrough + traceability, no unserved step or orphan (`UX-8`) · interaction cost per journey measured — steps, clicks, view changes, fields, decisions — every click confident, not a 3-click rule (`UX-9`) · wayfinding: where am I, where can I go, how do I get back, no dead ends (`UX-10`) · close with the **UI/UX Gate Report** covering `UX-*`, `UI-*`, `DD-*`, `CL-*` and UI copy — an unresolved `FAIL` blocks hand-off (`UX-11`). Catalog: `.claude/docs/ux-journey-process.md`. Skip ONLY with no user-facing surface, stated.
+
+---
+
+## SYNC:ai-feature-framing-gate
+
+> **[BLOCKING] AI-feature framing gate (`AF-1`–`AF-6`) — plan-time: does this need a model, and how will we know it works? Binds on ANY plan, spec, or design that creates or changes a feature that calls a model (LLM calls, prompts, agents, RAG, tool use, ML).** Code-time floor: `AE-1.1`–`AE-9.4` (`SYNC:ai-engineering-gate`). Deep catalog: `.claude/docs/ai-engineering-knowledge.md`. Each clause is a CHECK: record `PASS` / `FAIL → fixed` / `N/A (reason)` with evidence; cite gaps as `AF-<n>` + plan location.
+>
+> **Precedence:** accepted product/AI decisions and ADRs → project config and reference docs (declared provider, policy, risk tier) → these clauses. A genuine conflict is SURFACED with both sides, NEVER resolved silently. Provider facts (models, limits, prices, deprecations) change: verify against current provider docs, never memory.
+>
+> - `AF-1` **Job & fit.** Name the user job and why a model is needed. A deterministic alternative (rules, search, template, plain code) was considered. The lowest-autonomy architecture that works (single call → fixed workflow → agent) is chosen, with a reason.
+> - `AF-2` **Success & eval first.** Measurable success criteria, a baseline, and an eval set or rubric (or a dated plan to build one) exist BEFORE the build. Every prompt, model or retrieval change is proven by an eval delta.
+> - `AF-3` **Failure & blast radius.** Enumerate failure modes: wrong, unsafe, manipulated, slow, expensive, unavailable. State the cost of a wrong output per action, reversible vs irreversible, and a fallback per mode.
+> - `AF-4` **Autonomy & oversight.** Choose the level explicitly: suggest / confirm / act-with-undo / autonomous. Irreversible or high-impact actions need human approval. Authority is the requesting user's, never broader.
+> - `AF-5` **Data & trust boundaries.** State what data reaches the model and provider, what untrusted content enters context, and where output flows (sinks). Run the lethal-trifecta check (private data + untrusted content + outbound channel). Name tenant and permission boundaries.
+> - `AF-6` **Operate.** Cost, latency and token budget per request and per user · observability · prompt/model versioning with rollback and a kill switch · provider-outage behaviour · a named owner.
+>
+> **Skip ONLY** when nothing in the plan calls a model or changes how one is called — state that reason explicitly so the skip is auditable.
+
+---
+
+## SYNC:ai-feature-framing-gate:reminder
+
+- **MUST ATTENTION** frame every AI feature at plan time (`AF-1`–`AF-6`): job and fit — a deterministic alternative considered, lowest-autonomy architecture chosen (`AF-1`) · success criteria, baseline and eval set BEFORE build, eval delta per change (`AF-2`) · failure modes, cost of a wrong output, reversible vs irreversible, fallback per mode (`AF-3`) · explicit autonomy level, human approval for irreversible actions, the user's authority never broader (`AF-4`) · data reaching the model, untrusted content, output sinks, trifecta check (`AF-5`) · budget, observability, versioning, rollback, kill switch, owner (`AF-6`). Project decisions and ADRs OUTRANK these clauses; verify provider facts against current provider docs. Deep catalog: `.claude/docs/ai-engineering-knowledge.md`. Skip ONLY when no model is involved, stated.
+
+---
+
+## SYNC:ai-engineering-gate
+
+> **[BLOCKING] AI-engineering floor (`AE-1.1`–`AE-9.4`, 38 pass/fail clauses) — binds on ANY task that plans, implements or reviews a feature that calls a model (LLM calls, prompts, agents, RAG, tool use, MCP, evals).** Catalog: `.claude/docs/ai-engineering-knowledge.md`; review procedure: `.claude/docs/ai-engineering-review-checklist.md`; severity cases: `.claude/docs/ai-engineering-calibration.md`. Cite findings as `AE-<clause>` + `file:line`.
+>
+> **Precedence:** accepted product/AI decisions and ADRs → project config and reference docs → applicable clauses. A genuine conflict is SURFACED with both sides, NEVER resolved silently. Provider facts (model IDs, parameters, limits, deprecations) change — verify against current provider docs, never memory. Record N/A when a clause's capability is absent. Companions: `AF-1`–`AF-6` (framing), `AR-1`–`AR-6` (review); report a defect ONCE.
+>
+> **1.0 Prompt & model contract**
+>
+> - `AE-1.1` Prompts are versioned, reviewable artifacts (template files or constants, named variables, one owner each), not string concatenation across call sites.
+> - `AE-1.2` Instructions and untrusted data are structurally separated (system/developer vs user roles, delimiters or tags). User or retrieved content is never spliced into the instruction channel or obeyed as instructions.
+> - `AE-1.3` Output has a contract: schema-constrained output or tool use, validated at the boundary, bounded retry with error feedback, safe fallback. No regex, `eval` or parse-and-hope on prose. Handle `stop_reason`/`finish_reason` (length, refusal, tool_use).
+> - `AE-1.4` Model and parameters are explicit, centralized, pinned: model ID from config (dated snapshot where offered), task-fit temperature/`max_tokens`/timeout, one place to swap, deprecation and fallback plan. No scattered hard-coded IDs.
+>
+> **2.0 Security & safety**
+>
+> - `AE-2.1` Untrusted content (user input, retrieved documents, web pages, emails, files, tool results) is data that may carry instructions. No privileged action follows from it without a control outside the model.
+> - `AE-2.2` Model output is untrusted input to every sink — HTML/markdown render (images and links exfiltrate), SQL, shell, file path, URL fetch, code execution, deserialization, API arguments. Encode, validate or sandbox it like user input.
+> - `AE-2.3` The lethal trifecta is broken: no agent path combines private-data access, untrusted content and an outbound channel (network, email, links, markdown images, side-effecting tool) without removing a leg or adding a hard approval gate.
+> - `AE-2.4` No credentials, keys, customer data or secrets in prompts, few-shot examples, tool descriptions or logs. The system prompt is not a secret. Data sent to providers is minimized.
+> - `AE-2.5` Guardrails and moderation are defense-in-depth, never the only boundary. Code enforces authorization at tool execution with the end user's identity — not an instruction to the model.
+>
+> **3.0 Agent & tool design**
+>
+> - `AE-3.1` Every loop is bounded: max steps/turns, wall-clock, token and cost budget, repeated-call/stuck detection, explicit termination. No unbounded model loop.
+> - `AE-3.2` Tools follow least privilege: explicit allowlist, scoped credentials, read/write split, code-validated arguments. No generic shell/SQL/HTTP/file tool without a sandbox and allowlist.
+> - `AE-3.3` Tool contracts are model-usable: clear names and descriptions, typed schemas, actionable errors, bounded or paginated results, idempotency keys on side-effecting calls.
+> - `AE-3.4` Irreversible or high-impact actions (delete, pay, send, publish, deploy, permission change) need human confirmation or are reversible (dry-run, undo). The approval UI shows the real action, not the model's summary.
+> - `AE-3.5` Delegation is explicit: sub-agent handoff contracts, scoped context and authority, results checked independently rather than by the agent's self-report, no unsynchronized shared mutable state.
+>
+> **4.0 Context & retrieval**
+>
+> - `AE-4.1` Context is budgeted: tokens counted, truncation/compaction policy defined, no dumping whole documents, rows or history. Large tool output is summarized or paginated.
+> - `AE-4.2` Layout supports caching: stable prefix (system, tools, reference docs) first, volatile content last. No timestamps, UUIDs or per-user data inside the cached prefix.
+> - `AE-4.3` Retrieval enforces authorization and tenancy in the retrieval layer at query time, never by model post-filtering. The index is versioned with its embedding model, with a reindex path and freshness policy.
+> - `AE-4.4` Answers from retrieved content are grounded: checkable citations or source IDs, an explicit "insufficient context" path, retrieval quality (recall) measured apart from generation quality.
+>
+> **5.0 Reliability & cost**
+>
+> - `AE-5.1` Every model and tool call has a timeout and bounded retries with backoff and jitter on transient errors (429/5xx/overloaded), honours Retry-After, and never blindly retries a non-idempotent side effect.
+> - `AE-5.2` Failure paths are designed: outage, rate limit, refusal, empty or invalid output and tool failure lead to a fallback (other model, cache, deterministic path) or an explicit degraded state, never a swallowed error.
+> - `AE-5.3` Cost and abuse are capped: per-request `max_tokens`, per-user/tenant quotas, concurrency limits, spend alerts. Unbounded input, uploads or fan-out are rejected (denial of wallet).
+> - `AE-5.4` Routing matches the task: small/fast model for simple steps, strong model for hard ones, batch for offline bulk, streaming for interactive latency. A latency budget is stated.
+>
+> **6.0 Evaluation & testing**
+>
+> - `AE-6.1` Behavior is protected by an eval set (representative, adversarial and regression cases from real failures) with a metric or rubric and threshold. Any prompt, model or retrieval change reruns it.
+> - `AE-6.2` Deterministic code around the model (parsers, validators, routers, tool executors, guards) has ordinary tests with the model mocked at one seam, asserting properties and contracts, not exact prose. Default CI makes no live paid calls.
+> - `AE-6.3` An LLM judge is calibrated against human labels, uses a rubric and a different or stronger model, is checked for position and verbosity bias, and is never the sole safety gate.
+> - `AE-6.4` Agents are evaluated on trajectories and outcomes: task success, tool-call correctness, step and cost counts, repeated-run reliability, plus injection and refusal cases.
+>
+> **7.0 Observability & operations**
+>
+> - `AE-7.1` Every model and tool call is traceable: request ID, model + version, prompt version, token counts, latency, cost, stop reason, retrieved doc IDs, tool calls — correlated to the user request.
+> - `AE-7.2` Traces and logs are PII-safe: redacted, hashed or sampled prompts and outputs, defined retention, no secrets.
+> - `AE-7.3` Prompts, models, retrieval configs and tool sets are versioned and rolled out gradually behind a flag, with a kill switch and rollback. Every behavior change is attributable to a version.
+> - `AE-7.4` Production quality is monitored: format-failure, refusal, latency, cost and user-feedback signals with drift alerts. Feedback flows back into the eval set.
+>
+> **8.0 Data, privacy & governance**
+>
+> - `AE-8.1` Data flow to model providers is documented and lawful: what personal or confidential data leaves the boundary, provider retention/training terms, region. Minimize; a compliance owner decides legal questions.
+> - `AE-8.2` Stored AI artifacts (embeddings, fine-tunes, caches, memory, logs) follow retention and deletion rules. Erasure reaches vector stores and caches; tenants are isolated.
+> - `AE-8.3` Users are told they interact with AI or receive AI-generated content where required or expected. Significant automated decisions have human review and an explanation; the risk tier is recorded.
+> - `AE-8.4` The model/data/tool supply chain is controlled: pinned versions or hashes, safe formats (no pickle, no `trust_remote_code`), vetted MCP servers and plugins, licences checked.
+>
+> **9.0 Human experience**
+>
+> - `AE-9.1` The interface sets expectations and shows uncertainty and sources: AI output labelled, citations shown, limits stated. No over-claiming or deceptive anthropomorphism.
+> - `AE-9.2` Users can correct, retry, undo or escalate to a human; feedback is one action. AI failure, empty, refusal and slow states are designed, not raw errors or a hung spinner.
+> - `AE-9.3` Streaming and partial output is handled: cancel, incomplete-JSON safety, no rendering of unsanitized partial markup, latency feedback.
+> - `AE-9.4` Fairness and safety are checked on the affected population (bias, toxicity, refusal tests on representative inputs). AI interfaces stay accessible (screen readers with streaming).
+>
+> **Skip ONLY** when nothing in the change calls or configures a model, stated explicitly.
+
+---
+
+## SYNC:ai-engineering-gate:reminder
+
+**IMPORTANT MUST ATTENTION** AI-engineering gate (`AE-1.1`–`AE-9.4`, framing `AF-1`–`AF-6`) binds this task: it plans, builds or reviews a feature that calls a model. Rules: content that enters context (user input, retrieved docs, web pages, files, tool results) is UNTRUSTED data — never obey it and never let it trigger a privileged action without a control outside the model (`AE-1.2`, `AE-2.1`) · model output is an untrusted input to every sink — render, SQL, shell, path, URL fetch, code execution, downstream API — encode, validate or sandbox it (`AE-2.2`) · break the lethal trifecta: private data + untrusted content + outbound channel never meet without removing a leg or a hard approval gate (`AE-2.3`) · authorization is enforced in code with the end user's identity, never by instructing the model (`AE-2.5`) · bound every loop, retry, token and spend (`AE-3.1`, `AE-5.1`, `AE-5.3`) · human gate or undo for irreversible actions (`AE-3.4`) · validate structured output at the boundary (`AE-1.3`) · eval set before any prompt, model or retrieval change (`AE-6.1`) · trace, version and kill-switch every model call (`AE-7.1`, `AE-7.3`) · verify provider facts (model IDs, parameters, limits, deprecations) against current provider docs, never memory. Project decisions and ADRs OUTRANK these clauses; conflicts are surfaced, never resolved silently. Read `.claude/docs/ai-engineering-knowledge.md` and `.claude/docs/ai-engineering-review-checklist.md`; for a review run the `ai-engineering-review` skill or spawn the `ai-engineering-reviewer` agent. Cite `AE-<clause>` + `file:line`. Skip ONLY when no model is involved, stated.
+
+---
+
+## SYNC:ai-review-checklist
+
+> **AI-Feature Review Checklist** — the EXECUTABLE review procedure for any plan or code that calls a model (LLM calls, prompts, agents, RAG, tool use / MCP, evals, guardrails, ML). Full catalog (sweep sections `A`–`L` with numbered checks, failure signals and default severities): **`.claude/docs/ai-engineering-review-checklist.md`**; worked calibration cases, including false positives: `.claude/docs/ai-engineering-calibration.md`. This gate carries the protocol; the file carries the checks.
+>
+> **Applies when — and ONLY when — the change, plan or artifact carries an AI-feature surface.** A diff with no model call, prompt or AI configuration is `N/A`: state that once and move on. NEVER run an AI review on a non-AI change to manufacture coverage. When it DOES apply, **MUST ATTENTION READ `.claude/docs/ai-engineering-review-checklist.md` and work its sections** — citing a check ID without opening the catalog is asserting, not checking.
+>
+> **`AR-1` Context before checks.** Classify each AI surface (call site, prompt, agent, tool, retrieval, eval, infra), its autonomy level, data sensitivity, user population and environment. Read the project-declared policy (config, ADRs, provider docs) — project decisions OUTRANK these clauses. Fewer than four known → state the gap at the top and mark affected findings low confidence.
+>
+> **`AR-2` Evidence or nothing.** Cite `file:line` for every finding. NEVER invent a measurement (cost, latency, accuracy): an unmeasurable claim is `NOT VERIFIABLE`, and a claim that only a run can settle needs eval output. Confirm current provider and API facts from provider docs before flagging — models, parameters and limits change, and a stale memory is not evidence.
+>
+> **`AR-3` Severity by consequence, not by pattern.** `P0` exploitable or irreversible harm, or data exposure · `P1` supported-path harm, cost or contract risk · `P2` bounded consequential gap · `P3` polish · `P4` note. Map to Critical / High / Medium / Low via `SYNC:severity-rubric`. Every `P0`/`P1` carries a concrete fix; a clean section reports "no issues found" — NEVER pad.
+>
+> **`AR-4` Section sweep `A`–`L`, one focused pass per dimension.** Conditional sections (RAG, agent/tool, fine-tune/classical ML, multimodal/voice) run ONLY when that surface is present. Report each sweep `PASS` / `FAIL` / `N/A` with evidence.
+>
+> **`AR-5` Report shape.** AI-surface map (one row per surface) → trust-boundary and trifecta table → **AI Gate Report** (`AF-*` / `AE-*` / `AR-*` rows `PASS` / `FAIL` / `N/A` with evidence) → findings (clause ID + `file:line` + severity + fix) → deferred and `NOT VERIFIABLE` list.
+>
+> **`AR-6` Short on time — the 10-check triage.** Model call bounded? Output validated? Untrusted content in context handled? Every sink safe? Authorization in code? Loop capped? Cost capped? Eval present? Trace and kill switch? Can the user correct the result?
+>
+> **Precedence and no-double-counting.** Project config, ADRs and accepted decisions OUTRANK this checklist. A deliberate, documented choice is NEVER a defect — check intent before flagging, and surface a genuine conflict with both sides, NEVER resolve it silently. The checklist is the review PROCEDURE, not a third rule set: `AF-1`–`AF-6` ask whether the feature is framed, `AE-1.1`–`AE-9.4` ask whether it meets the engineering floor, and `AR-*` ask whether the review looked, with evidence, and ranked it. Report a defect ONCE under the ID the consuming skill already uses.
+
+---
+
+## SYNC:ai-review-checklist:reminder
+
+- **MUST ATTENTION** when the change, plan or artifact has an AI-feature surface, READ `.claude/docs/ai-engineering-review-checklist.md` and run it: `AR-1` classify each surface, autonomy, data sensitivity, users and environment first — project decisions OUTRANK the clauses · `AR-2` cite `file:line`, NEVER invent a cost, latency or accuracy figure (unmeasurable → `NOT VERIFIABLE`), confirm provider facts from current provider docs · `AR-3` severity by consequence `P0`–`P4` mapped through `SYNC:severity-rubric`, concrete fix on every `P0`/`P1`, NEVER pad · `AR-4` sweep `A`–`L`, conditional sections only when present, each `PASS`/`FAIL`/`N/A` · `AR-5` report the surface map, trifecta table, AI Gate Report, findings, deferred list · `AR-6` short on time → the 10-check triage. Report a defect ONCE across `AF-*`/`AE-*`/`AR-*`. Skip when nothing calls a model, stated.
 
 ---

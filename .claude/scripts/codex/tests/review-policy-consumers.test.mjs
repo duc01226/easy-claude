@@ -17,14 +17,9 @@ const reviewReceipt = createRequire(import.meta.url)('../../../hooks/lib/review-
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', '..', '..', '..');
 const canonicalPath = path.join(root, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
-// Carriers that embed the canonical `SYNC:review-policy` body byte-exact.
-// `plan-review` is deliberately NOT here: it carries `OVERRIDE:review-policy` instead, because its
-// round budget is a HARD 2 with no extension while canonical mandates `HARD_MAX_ROUNDS` of 3 and the
-// conditional round-3 grant. The helper exposes no caller-declarable maximum — the only caller-settable
-// value is `minRounds`, which may not exceed 2 — so the cap is not expressible through the mandated
-// executable and the divergence is declared rather than hidden. The OVERRIDE is pinned from both
-// directions by `TC-HARNESS-006: plan-review declares its review-policy divergence` below; dropping it
-// from this array therefore removes a byte-parity check it cannot satisfy, not a guard.
+// Carriers that embed the canonical multi-round `SYNC:review-policy` body byte-exact.
+// `plan-review` and `integration-test-review` are bounded read-only specialists instead: each owns a
+// one-pass contract and deliberately carries no multi-round review-policy body or override.
 const consumers = [
     '.claude/skills/changes-review/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md'
@@ -180,130 +175,15 @@ test('TC-HARNESS-006: all canonical review consumers use exact policy body and r
     }
 });
 
-// Splits a review-policy body into its four blockquote paragraphs. Both the canonical block and the
-// plan-review override are structured the same way, so the two can be compared paragraph by
-// paragraph — which is what lets an OVERRIDE be pinned as tightly as a SYNC everywhere it did not
-// declare a divergence.
-function policyParagraphs(blockBody) {
-    return blockBody.slice(blockBody.indexOf('> **Executable')).split(/\n>\s*\n/);
-}
-
-test('TC-HARNESS-006: plan-review declares its review-policy divergence', async () => {
+test('TC-HARNESS-006: plan-review is a one-round read-only reviewer', async () => {
     const text = await fs.readFile(path.join(root, planReviewPath), 'utf8');
-
-    // Bidirectional: the SYNC fence must be GONE, not merely accompanied by an OVERRIDE. A file
-    // carrying both would satisfy a one-sided check while leaving the byte-parity claim live.
-    assert.doesNotMatch(text, /<!-- SYNC:review-policy -->/, 'plan-review must not carry SYNC:review-policy');
-    assert.match(text, /<!-- OVERRIDE:review-policy -->/, 'plan-review must carry OVERRIDE:review-policy');
-    assert.match(text, /<!-- \/OVERRIDE:review-policy -->/, 'plan-review must close OVERRIDE:review-policy');
-
-    const override = normalizeEol(text)
-        .match(/<!-- OVERRIDE:review-policy -->\s*([\s\S]*?)\s*<!-- \/OVERRIDE:review-policy -->/)[1];
-    // plan-review's own convention — NOT a repo-wide contract. The OVERRIDE contract
-    // (`sync-skills-shared-protocols/SKILL.md:101-112`) lists four bullets and a declaration comment
-    // is not among them; the other six OVERRIDE carriers legitimately carry none. This pins the
-    // convention where it exists, so a reader of THIS carrier alone learns what moved and why.
-    assert.match(override, /Diverges from canonical `SYNC:review-policy`/);
-
-    const canonical = await fs.readFile(canonicalPath, 'utf8');
-    const expected = policyParagraphs(canonicalBody(canonical, 'review-policy'));
-    const actual = policyParagraphs(override.trim());
-    assert.equal(actual.length, 4, 'override keeps the canonical four-paragraph shape');
-    assert.equal(expected.length, 4, 'canonical is still four paragraphs');
-
-    // The declared divergence is the ROUND BUDGET and nothing else. Paragraphs 1, 3 and 4 stay
-    // byte-exact, so this guard is no weaker than the SYNC parity it replaced outside that one point
-    // — an undeclared edit hiding inside a declared override is precisely what OVERRIDE must not buy.
-    for (const i of [0, 2, 3]) {
-        assert.equal(actual[i], expected[i], `override paragraph ${i + 1} must stay byte-exact with canonical`);
-    }
-    assert.notEqual(actual[1], expected[1], 'paragraph 2 is the declared divergence');
-
-    // The divergence must say what it actually is. Presence checks alone cannot see text that is
-    // ADDED: a mutant keeping all four phrases and appending "…the conditional extension ARE
-    // honored" reads as the opposite policy while satisfying every positive check. So ¶2 — the ONE
-    // paragraph allowed to diverge, and therefore the one carrying the actual budget — is pinned in
-    // BOTH directions.
-    const REQUIRED = [
-        /HARD 2 with NO extension/,
-        /round 2 is the LAST review round/,
-        /STOPS and escalates via `AskUserQuestion`/,
-        // The cap must never be a force-green lever: failing test gates stay outside the budget.
-        /Failing test gates stay outside the budget/
-    ];
-    const FORBIDDEN = [
-        /\bextendable\b/i,
-        /\bare honored\b/i,
-        /\bround 3\b/i,
-        /minRounds[^.]{0,40}\b(?:3|three)\b/i
-    ];
-    // ONE oracle, used on the real source AND on every mutant below. Routing the mutants through
-    // THIS function is what makes the mutation guard non-vacuous: delete a pattern from either list
-    // and the mutant it existed to catch now survives, so the matching `assert.throws` fails. The
-    // earlier form asserted a bare regex against a string built by inserting that very regex's own
-    // text — a guard that could not go red, and so proved nothing about the assertions above.
-    const assertParagraph2Policy = paragraph => {
-        for (const required of REQUIRED) {
-            assert.match(paragraph, required, `paragraph 2 must state the budget (${required})`);
-        }
-        for (const forbidden of FORBIDDEN) {
-            assert.doesNotMatch(paragraph, forbidden, `paragraph 2 must not re-admit an extension (${forbidden})`);
-        }
-    };
-
-    assertParagraph2Policy(actual[1]);
-
-    // Mutation guard. Every pattern gets its OWN discriminating mutant, and each mutant is designed
-    // so that exactly ONE pattern can catch it — asserted below. That per-pattern isolation is the
-    // whole point: a single mutant tripping several patterns at once keeps passing after any one of
-    // them is deleted, so the list as a whole looks guarded while individual patterns rot unnoticed.
-    // With one mutant per pattern, deleting a pattern strands its mutant and turns this test red.
-    const FORBIDDEN_PROBES = [
-        [/\bextendable\b/i, ' The budget is extendable by agreement.'],
-        [/\bare honored\b/i, ' The cap and its conditions are honored.'],
-        [/\bround 3\b/i, ' A validated HIGH takes round 3.'],
-        [/minRounds[^.]{0,40}\b(?:3|three)\b/i, ' Set minRounds to 3 for deep reviews.']
-    ];
-    assert.equal(FORBIDDEN_PROBES.length, FORBIDDEN.length, 'every forbidden pattern carries its own mutant');
-
-    for (const [pattern, suffix] of FORBIDDEN_PROBES) {
-        const added = `${actual[1]}${suffix}`;
-        // The additive mutant keeps every required phrase — so REQUIRED cannot be what catches it.
-        for (const required of REQUIRED) assert.match(added, required, `additive mutant keeps: ${required}`);
-        // …and exactly one FORBIDDEN pattern fires, so this mutant tests THAT pattern alone.
-        const firing = FORBIDDEN.filter(f => f.test(added));
-        assert.equal(firing.length, 1, `mutant must isolate a single pattern, fired ${firing.length}: ${suffix}`);
-        assert.ok(pattern.test(added), `the firing pattern is the intended one: ${pattern}`);
-        assert.throws(() => assertParagraph2Policy(added), { code: 'ERR_ASSERTION' });
-    }
-
-    // The same discipline for the positive list: each required phrase is removed on its own, with
-    // replacement text that trips no forbidden pattern, so only REQUIRED can catch the result.
-    const REMOVAL_PROBES = [
-        ['HARD 2 with NO extension', 'a negotiable budget'],
-        ['round 2 is the LAST review round', 'rounds continue as needed'],
-        ['STOPS and escalates via `AskUserQuestion`', 'continues quietly'],
-        ['Failing test gates stay outside the budget', 'everything counts toward the budget']
-    ];
-    assert.equal(REMOVAL_PROBES.length, REQUIRED.length, 'every required pattern carries its own mutant');
-
-    for (const [phrase, replacement] of REMOVAL_PROBES) {
-        const removed = actual[1].replace(phrase, replacement);
-        assert.notEqual(removed, actual[1], `removal mutant anchor exists: ${phrase}`);
-        for (const forbidden of FORBIDDEN) {
-            assert.doesNotMatch(removed, forbidden, `removal mutant must not trip a forbidden pattern: ${forbidden}`);
-        }
-        const missing = REQUIRED.filter(r => !r.test(removed));
-        assert.equal(missing.length, 1, `removal must isolate a single pattern, broke ${missing.length}: ${phrase}`);
-        assert.throws(() => assertParagraph2Policy(removed), { code: 'ERR_ASSERTION' });
-    }
-
-    // Anchors the SYNC loop enforced on every carrier still bind here.
-    assert.match(text, /review-policy\.cjs/);
-    assert.match(text, /target fingerprint/);
-    assert.match(text, /deferred LOW/i);
+    assert.match(text, /maximum one review round per invocation/i);
+    assert.match(text, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
+    assert.match(text, /Review once, report once, stop/);
+    assert.match(text, /Do not apply fixes or re-review/);
+    assert.match(text, /Another review requires a new explicit invocation/i);
+    assert.doesNotMatch(text, /OVERRIDE:review-policy|SYNC:review-policy|double-round-trip-review|extendable ONCE|fresh full re-review/i);
 });
-
 test('TC-HARNESS-006: shared severity rubric normalizes domain vocabularies', async () => {
     const canonical = await fs.readFile(canonicalPath, 'utf8');
     const expected = canonicalBody(canonical, 'severity-rubric');
@@ -342,16 +222,13 @@ test('TC-PDL-065: a severity consumer passes with a guide entry backed by a cano
     assert.equal(carriesSeverityRubric('<!-- SYNC:severity-rubric -->\n\n> Edited.\n\n<!-- /SYNC:severity-rubric -->', `${expected}\n`, expected), false);
 });
 
-test('TC-HARNESS-006: consumer-specific anchors preserve loop ownership and independent-pass semantics', async () => {
-    // plan-review is read by explicit path, not from `consumers` — it is an OVERRIDE carrier, so it is
-    // absent from that array, but its anchor obligation is unchanged by the fence it uses.
-    // Each skill is read as its contract (SKILL.md + references): the `--fix-loop` modes live in references/fix-loop.md.
+test('TC-HARNESS-006: consumer-specific anchors preserve loop ownership', async () => {
     const [changes, workflow, plan] = [...consumers, planReviewPath].map(relative => readSkillContract(relative));
     assert.match(changes, /Phase 6.*Why-Review Findings Validation/s);
     assert.match(workflow, /all-return barrier/i);
-    // The outer zero-fix loop is workflow-review-changes' optional `--fix-loop` mode.
     assert.match(workflow, /--fix-loop[\s\S]*zero fixes/i);
-    assert.match(plan, /explicitly.*minRounds|independent second pass/i);
+    assert.match(plan, /one review round per invocation/i);
+    assert.match(plan, /another review requires a new explicit invocation/i);
 });
 
 test('TC-HARNESS-006: changes-review fix prose cannot reopen a round for LOW-only findings', async () => {
@@ -394,20 +271,30 @@ test('TC-HARNESS-006: plan-execute does not collapse review acceptance to critic
     assert.doesNotMatch(planExecute, /tests 100% · 0 critical · explicit approval/);
 });
 
-test('TC-HARNESS-006: integration-test review and workflow handoff use the same round floor', async () => {
+test('TC-HARNESS-006: integration-test review is capped at one review round', async () => {
     const review = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test-review', 'SKILL.md'), 'utf8');
-    const workflow = await fs.readFile(path.join(root, '.claude', 'skills', 'workflow-write-integration-test', 'SKILL.md'), 'utf8');
-    for (const [relative, text] of [
-        ['.claude/skills/integration-test-review/SKILL.md', review],
-        ['.claude/skills/workflow-write-integration-test/SKILL.md', workflow]
-    ]) {
-        assert.match(text, /round 1[^\n]*every open validated (?:finding|severity)[^\n]*Round-1 LOW closure/i, `${relative} must keep round-1 strictness with the Round-1 LOW closure`);
-        assert.match(text, /round 2[^\n]*CRITICAL\/HIGH\/MEDIUM/i, `${relative} must keep C/H/M blocking from round 2`);
-        assert.match(text, /LOW-only[^\n]*(?:deferred|recorded)/i, `${relative} must defer LOW-only round-2 results`);
-        assert.doesNotMatch(text, /NEVER proceed with CRITICAL\/HIGH issues outstanding/i, `${relative} must not omit MEDIUM`);
-    }
-    assert.match(review, /MEDIUM cannot be silently converted to tech debt/i);
-    assert.match(review, /blocking_findings\(round, findings\)/);
+    const discipline = await fs.readFile(path.join(root, '.claude', 'skills', 'shared', 'protocols', 'integration-test-execution-discipline.md'), 'utf8');
+    const verify = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test-verify', 'SKILL.md'), 'utf8');
+    assert.match(review, /ONE ROUND MAXIMUM per invocation/);
+    assert.match(review, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
+    assert.match(review, /Review once, validate\/deduplicate findings, report, stop/);
+    assert.match(review, /another pass requires a new explicit invocation/i);
+    assert.match(review, /Test reruns used to diagnose a failure are verification\/recovery, not review rounds/);
+    assert.doesNotMatch(review, /double-round-trip-review|extendable ONCE|fresh full re-review/i);
+    assert.match(discipline, /performs one read-only adjudication pass and the caller fixes the test at the root/);
+    assert.doesNotMatch(discipline, /integration-test-review` to fix the test/);
+    assert.doesNotMatch(verify, /fixes\/re-reviews|P5 fix|P6 re-review|already applied its P5 fixes/);
+});
+
+test('TC-HARNESS-006: write-integration-test workflow invokes one review pass without an internal review loop', async () => {
+    const workflows = JSON.parse(await fs.readFile(path.join(root, '.claude', 'workflows.json'), 'utf8'));
+    const workflow = workflows.workflows['workflow-write-integration-test'];
+    const context = workflow.preActions.injectContext;
+    const reviewGate = workflow.outcomeGates.find(gate => gate.satisfiedBy.includes('integration-test-review'));
+    assert.equal(reviewGate.id, 'review-converged');
+    assert.match(context, /performs one evidence-backed review pass over all eight gates/);
+    assert.match(context, /later review.*new explicit invocation/i);
+    assert.doesNotMatch(context, /round 2\+|review converges/i);
 });
 
 test('TC-HARNESS-006: implementation surfaces use normalized severity terms', async () => {
@@ -534,8 +421,8 @@ test('TC-PDL-065 visual-consumer check (R3-PROMPT-031) accepts a guide entry bac
     assert.equal(carriesCanonicalProtocol(`${guided}\n<!-- SYNC:${tag} -->\n\n> Old.\n\n<!-- /SYNC:${tag} -->`, tag, expected, expected), false);
 });
 
-test('R3-PROMPT-023: specialist overrides preserve role and durable budget', async () => {
-    for (const [name, role] of [['architecture-review', /`architect` subagent_type/], ['integration-test-review', /`integration-tester` subagent_type/], ['ui-review', /UI\/UX-specialized subagent_type/]]) {
+test('R3-PROMPT-023: multi-round specialist overrides preserve role and durable budget', async () => {
+    for (const [name, role] of [['architecture-review', /`architect` subagent_type/], ['ui-review', /UI\/UX-specialized subagent_type/]]) {
         const source = await fs.readFile(path.join(root, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
         const override = source.match(/<!-- OVERRIDE:fresh-context-review -->([\s\S]*?)<!-- \/OVERRIDE:fresh-context-review -->/);
         assert.ok(override, `${name} keeps specialist override`);
@@ -545,14 +432,14 @@ test('R3-PROMPT-023: specialist overrides preserve role and durable budget', asy
         const mutant = override[1].replace(/> - Persist completed rounds[^\n]+/, '> - Track iteration count in conversation context (session-scoped, no persistent files)');
         assert.throws(() => assertDurableReview(mutant), { code: 'ERR_ASSERTION' });
     }
-    const planner = await fs.readFile(path.join(root, '.claude', 'agents', 'planner.md'), 'utf8');
-    assert.doesNotMatch(planner, /repeats 3 times/);
-    assert.match(planner, /Resume the owning durable review record; never reset completed rounds/);
+    const singlePass = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test-review', 'SKILL.md'), 'utf8');
+    assert.doesNotMatch(singlePass, /OVERRIDE:fresh-context-review|persisted `minRounds`|completed rounds/,
+        'single-pass integration review must not inherit a multi-round durable budget');
 });
 
 test('R3-PROMPT-023: local clean-pass summaries cannot override an explicit minimum', async () => {
     const files = [
-        ...['code-quality-review', 'domain-entities-review', 'knowledge-review', 'plan', 'plan-review', 'production-readiness-review', 'security-audit', 'seed-test-data']
+        ...['code-quality-review', 'domain-entities-review', 'knowledge-review', 'production-readiness-review', 'security-audit', 'seed-test-data']
             .map(name => `.claude/skills/${name}/SKILL.md`),
         // Leaf reviewer agents (code-reviewer) are not listed: they no longer carry the round loop,
         // so they state no clean-pass termination of their own; the orchestrating skills above own it.

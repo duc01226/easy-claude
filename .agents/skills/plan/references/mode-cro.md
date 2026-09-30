@@ -1,6 +1,6 @@
 # `$plan --mode=cro` — Conversion-Rate-Optimization reference
 
-> Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `$plan --mode=cro <content/issues-to-optimize>`. Adds the CRO domain framework + multimodal intake on top of the standard plan engine + `$plan-review` gate + `planner` agent — it does NOT replace them. (Migrated verbatim from the former `plan-cro` skill, consolidation M22.)
+> Loaded by `plan/SKILL.md`'s Mode Dispatch when invoked as `$plan --mode=cro <content/issues-to-optimize>`. Adds the CRO domain framework and multimodal intake to the standard concise planning contract; it does not add an automatic review step.
 
 ## Goal
 
@@ -55,5 +55,5 @@ tags: [cro, conversion]
 
 - PLANNING-ONLY: do not implement, only create the CRO plan.
 - Focus on user behavior, conversion funnels, and measurable outcomes.
-- Always offer `$plan-review` after plan creation (standard `plan` gate — unchanged).
+- Preserve standard handoff: standalone asks once whether the user wants `$plan-review`; workflow invocation returns directly to its parent.
 - Be skeptical; every claim needs traced proof, confidence >80% to act.

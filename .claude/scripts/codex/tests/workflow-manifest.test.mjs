@@ -234,7 +234,7 @@ test("variants: shipped research/spec/visualize workflows resolve every complete
       course: ["web-research", "source-deep-dive", "course-builder", "knowledge-review", "workflow-end", "watzup"]
     },
     "workflow-code-to-spec": {
-      "init-full": ["investigate", "plan", "plan-review", "plan-validate", "spec [mode=init]", "spec [mode=tests]", "artifact-review --type=spec-tests", "artifact-review", "docs-update", "workflow-end", "watzup"],
+      "init-full": ["investigate", "plan", "plan-validate", "spec [mode=init]", "spec [mode=tests]", "artifact-review --type=spec-tests", "artifact-review", "docs-update", "workflow-end", "watzup"],
       update: ["workflow-review-changes", "spec [mode=update]", "spec [mode=tests]", "artifact-review --type=spec-tests", "spec [mode=sync]", "docs-update", "workflow-end", "watzup"],
       audit: ["investigate", "spec [mode=audit]", "artifact-review", "docs-update", "workflow-end", "watzup"]
     },
@@ -247,6 +247,27 @@ test("variants: shipped research/spec/visualize workflows resolve every complete
     const manifests = resolveAll(registry, workflowId, { rootDir: root });
     assert.deepEqual(Object.fromEntries(manifests.map(manifest => [manifest.mode, manifest.sequence])), modes);
     assert.ok(manifests.every(manifest => manifest.fingerprint && manifest.occurrences.every(item => item.id)));
+  }
+});
+
+test("plan-review is confined to confirmed large/init workflows and no workflow invokes understand", () => {
+  const registry = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.json"), "utf8"));
+  const withPlanReview = [];
+  const withUnderstand = [];
+  for (const [workflowId, entry] of Object.entries(registry.workflows)) {
+    const skills = (entry.sequence ?? []).map(step => typeof step === "string" ? step : step.skill);
+    if (skills.includes("plan-review")) withPlanReview.push(workflowId);
+    if (skills.includes("understand")) withUnderstand.push(workflowId);
+  }
+  assert.deepEqual(withPlanReview.sort(), ["workflow-big-feature", "workflow-greenfield-init"]);
+  assert.deepEqual(withUnderstand, []);
+  assert.equal(registry.workflows["workflow-big-feature"].activation, "confirm");
+  assert.equal(registry.workflows["workflow-greenfield-init"].activation, "confirm");
+  for (const workflowId of ["workflow-big-feature", "workflow-greenfield-init"]) {
+    const skill = fs.readFileSync(path.join(root, ".claude", "skills", workflowId, "SKILL.md"), "utf8");
+    assert.match(skill, /When the AI routes here on its own[\s\S]*compare this workflow's current step count with the lean custom/);
+    assert.match(skill, /present both, and ask the user once which route to run/);
+    assert.match(skill, /An explicit user request for this workflow needs no second confirmation/);
   }
 });
 

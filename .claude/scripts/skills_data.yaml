@@ -9,6 +9,18 @@
   path: ai-context-refresh/SKILL.md
   removal_after: null
   status: active
+- category: ai-ml
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Code Quality] Use when a workflow step or the user asks for an AI-feature
+    review: LLM calls, prompts, agents, RAG, tool use, evals, guardrails, cost and
+    safety. Flags: --mode={code|plan} (default code), --report-only.'
+  has_references: false
+  has_scripts: false
+  name: ai-engineering-review
+  path: ai-engineering-review/SKILL.md
+  removal_after: null
+  status: active
 - category: other
   deprecated_by: null
   deprecated_since: null
@@ -312,9 +324,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Testing] Use when a workflow step or the user asks for E2E verification
-    with exact runner output and evidence. Flags: --fix-loop drives a suite or human-QC
-    journey to green; --visual-review={true|false} follows the request or project
-    contract.'
+    with exact runner output and evidence. The E2E quality/visual review is one pass
+    maximum per verification attempt; --fix-loop separately drives execution/fix/retest
+    convergence.'
   has_references: false
   has_scripts: false
   name: e2e-test-verify
@@ -515,9 +527,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when a workflow step or the user asks for an integration
-    test review. Checks assertion quality, bug protection, repeatability, and spec-traceable
-    coverage of changed code.'
+  description: '[Code Quality] Use when a workflow step or the user asks for an integration-test
+    review. Performs one evidence-backed review pass over tests, source, and governing
+    specs; maximum one review round per invocation.'
   has_references: false
   has_scripts: false
   name: integration-test-review
@@ -678,9 +690,10 @@
 - category: utilities
   deprecated_by: null
   deprecated_since: null
-  description: '[Planning] Use when a workflow step or the user asks for an implementation
-    plan. Flag: --mode={ci|cro} (default standard); ci plans a fix from a CI run,
-    cro plans conversion-rate optimization.'
+  description: '[Planning] Use when a workflow step or the user asks for a concise
+    implementation plan. Captures technical decisions, affected areas, execution-time
+    discovery, risks, and final quality gates without pre-implementing the change.
+    Flag: --mode={ci|cro}.'
   has_references: true
   has_scripts: false
   name: plan
@@ -702,9 +715,9 @@
 - category: utilities
   deprecated_by: null
   deprecated_since: null
-  description: '[Planning] Use when a workflow step or the user asks for a plan review.
-    Auto-reviews validity, correctness and best practices — bounded at 2 rounds MAX,
-    no extension.'
+  description: '[Planning] Use when a workflow step or the user explicitly asks for
+    a plan review. Performs one evidence-backed review pass and returns a verdict;
+    maximum one review round per invocation.'
   has_references: false
   has_scripts: false
   name: plan-review
@@ -843,8 +856,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Git] Use when asked to create, open, finish, update or mark ready
-    a pull request. Runs in the main session without asking: branch, commit, /workflow-review-changes
-    --fix-loop over the whole branch, open the PR, drive CI to green.'
+    a pull request. Runs in the main session without asking: branch fresh from the
+    latest target, commit, /workflow-review-changes --fix-loop over the whole branch,
+    open the PR, drive CI to green.'
   has_references: false
   has_scripts: false
   name: pull-request
@@ -1077,7 +1091,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Codex] Use when running the full Codex mirror sync and verify pipeline
-    (migrate, hooks, context, verify).'
+    (migrate, hooks, context, verify), or when `.claude/**` source edits leave `.agents/`,
+    `.codex/` or `AGENTS.md` stale.'
   has_references: false
   has_scripts: true
   name: sync-codex

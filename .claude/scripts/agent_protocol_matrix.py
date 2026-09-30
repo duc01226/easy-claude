@@ -261,6 +261,21 @@ AGENT_QUALITY_BLOCKS = {
         "test-failure-fault-adjudication",
         "review-principle-awareness",
     ],
+    # Expert AI-feature reviewer: plans and code that call models (twin: ai-engineering-review).
+    # Read-only like security-auditor: it carries the three AI protocols in full (agents keep full
+    # protocol text) plus the review-quality set its twin skill carries. It is the ONLY agent that
+    # carries them: every other agent holds one conditional pointer line instead, so a task with no
+    # AI surface pays nothing (guarded by the ai-gate-zero-cost suite).
+    "ai-engineering-reviewer": [
+        "core-engineering-principles",
+        "severity-rubric", "category-review-thinking",
+        "graph-assisted-investigation", "incremental-persistence",
+        "source-test-drift-check",
+        "trade-off-interrogation-gate",
+        "review-principle-awareness",
+        # twin: ai-engineering-review -- framing (AF), floor (AE) and procedure (AR)
+        "ai-feature-framing-gate", "ai-engineering-gate", "ai-review-checklist",
+    ],
     "security-auditor": [
         "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation", "incremental-persistence",
@@ -317,9 +332,9 @@ AGENT_QUALITY_BLOCKS = {
         "iterative-phase-quality", "preservation-inventory", "behavioral-delta-matrix",
         "severity-rubric",
         "graph-assisted-investigation",
-        # wave 2 (twin: plan-review)
+        # decision-quality lens used by planning and explicit plan review
         "trade-off-interrogation-gate",
-        # wave 3 (twin: plan Domain Entity Gate / plan-review Dimension 8)
+        # shared Domain Entity Gate for planning and explicit plan review
         "domain-entity-change-gate",
         # Leaf rules the reviewer template delivered before it left agent files: this agent is
         # dispatched directly too, and no rule may depend on a Claude-only skill preload.
@@ -520,6 +535,7 @@ AGENT_QUALITY_BLOCKS = {
 # AGENT_QUALITY_BLOCKS. The connection block is rendered into every canonical
 # agent prompt and therefore remains visible in Claude and Codex mirrors.
 AGENT_SKILL_CONNECTIONS = {
+    "ai-engineering-reviewer": ["ai-engineering-review"],
     "architect": [
         "architecture-design", "architecture-review", "architecture-scalability-review",
         "architecture-review-full", "security-audit", "performance-review",
@@ -545,7 +561,7 @@ AGENT_SKILL_CONNECTIONS = {
     "journal-writer": ["learn"],
     "knowledge-worker": ["knowledge-review", "knowledge-synthesis"],
     "performance-optimizer": ["performance-review"],
-    "planner": ["plan", "plan-review"],
+    "planner": ["plan"],
     "researcher": ["web-research"],
     "security-auditor": ["security-audit"],
     "solution-architect": [
@@ -579,7 +595,7 @@ TEST_ARCHITECTURE_AGENTS = {
 # ---------------------------------------------------------------------------
 FAMILIES = {
     "review": [
-        "code-reviewer", "security-auditor", "performance-optimizer",
+        "code-reviewer", "ai-engineering-reviewer", "security-auditor", "performance-optimizer",
         "spec-compliance-reviewer",
     ],
     "investigation": [

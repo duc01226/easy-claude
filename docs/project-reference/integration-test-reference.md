@@ -12,7 +12,7 @@
 
 ## Workflow
 
-1. Read `docs/project-config.json:120-130` and select the configured command.
+1. Read `docs/project-config.json:428-439` and select the configured command.
 2. Build a lifecycle payload, execute the real hook, and assert the externally visible contract.
 3. Clean up temp files/environment in `finally`, then run the full command twice without an intervening reset.
 
@@ -26,25 +26,25 @@
 
 ## Test Architecture
 
-The project uses a dependency-free CommonJS harness (`package.json:3-11`, `docs/project-config.json:120-130`). `.claude/hooks/tests/test-all-hooks.cjs` exercises hook behavior directly; `.claude/hooks/tests/run-all-tests.cjs` discovers suite files by the .test.cjs suffix and executes exported test objects (`.claude/hooks/tests/run-all-tests.cjs:87-99`, `.claude/hooks/tests/run-all-tests.cjs:298-325`).
+The project uses a dependency-free CommonJS harness (`package.json:3-11`, `docs/project-config.json:428-439`). `.claude/hooks/tests/test-all-hooks.cjs` exercises hook behavior directly; `.claude/hooks/tests/run-all-tests.cjs` discovers suite files by the .test.cjs suffix and executes exported test objects (`.claude/hooks/tests/run-all-tests.cjs:100-110`, `.claude/hooks/tests/run-all-tests.cjs:298-325`).
 
-Integration is process/filesystem based: `runHook` spawns `node`, merges test environment overrides, writes JSON to stdin, captures stdout/stderr, and kills timed-out children (`.claude/hooks/tests/lib/hook-runner.cjs:35-108`). No container, web server, database, broker, or service startup is configured (`docs/project-config.json:120-152`).
+Integration is process/filesystem based: `runHook` spawns `node`, merges test environment overrides, writes JSON to stdin, captures stdout/stderr, and kills timed-out children (`.claude/hooks/tests/lib/hook-runner.cjs:37-119`). No container, web server, database, broker, or service startup is configured (`docs/project-config.json:428-476`).
 
 ## Test Base Classes
 
-There is no integration-test inheritance hierarchy. Suite files export `{ name, tests }`; each test is `{ name, fn, skip? }`, and the runner executes synchronous or async functions (`.claude/hooks/tests/run-all-tests.cjs:108-164`, `.claude/hooks/tests/suites/integration.test.cjs:72-77`). Both `runTest` and `TestGroup.run` await whatever `fn` returns, so a plain function returning a promise (`fn: () => withFixture(...)`) is settled before it counts as passed (`.claude/hooks/tests/suites/runner-await-contract.test.cjs`).
+There is no integration-test inheritance hierarchy. Suite files export `{ name, tests }`; each test is `{ name, fn, skip? }`, and the runner executes synchronous or async functions (`.claude/hooks/tests/run-all-tests.cjs:120-180`, `.claude/hooks/tests/suites/integration.test.cjs:72-77`). Both `runTest` and `TestGroup.run` await whatever `fn` returns, so a plain function returning a promise (`fn: () => withFixture(...)`) is settled before it counts as passed (`.claude/hooks/tests/suites/runner-await-contract.test.cjs`).
 
-Standalone tests may use `TestGroup` and `TestSuite` from `.claude/hooks/tests/helpers/test-utils.cjs:361-444`. `TestGroup.afterEach` is skipped when a test throws because teardown is on the success path (`.claude/hooks/tests/helpers/test-utils.cjs:383-399`); use per-test `try/finally` for required cleanup.
+Standalone tests may use `TestGroup` and `TestSuite` from `.claude/hooks/tests/helpers/test-utils.cjs:355-444`. `TestGroup.afterEach` is skipped when a test throws because teardown is on the success path (`.claude/hooks/tests/helpers/test-utils.cjs:383-399`); use per-test `try/finally` for required cleanup.
 
 ## Fixtures & Factories
 
-- `loadFixture` reads committed inputs from `.claude/hooks/tests/fixtures/`; `setupFixtures` materializes a fixture map beneath the test temp directory (`.claude/hooks/tests/helpers/test-utils.cjs:284-303`).
+- `loadFixture` reads committed inputs from `.claude/hooks/tests/fixtures/`; `setupFixtures` materializes a fixture map beneath the test temp directory (`.claude/hooks/tests/helpers/test-utils.cjs:282-303`).
 - `setupMockConfig`, state setup helpers, and `createMockFile` create isolated filesystem state rather than seeding a live datastore (`.claude/hooks/tests/lib/test-utils.cjs:29-115`).
 - `.claude/hooks/lib/test-fixture-generator.cjs` derives sample paths from project config and exposes cache reset for test isolation (`.claude/hooks/lib/test-fixture-generator.cjs:3-10`, `.claude/hooks/lib/test-fixture-generator.cjs:200-205`).
 
 ## Test Helpers
 
-Use `.claude/hooks/tests/lib/assertions.cjs:12-223` for equality, content/regex, throws, nullability, and hook exit-code assertions. `runHook`, `runHookSequence`, and `runHooksParallel` execute real hook boundaries (`.claude/hooks/tests/lib/hook-runner.cjs:35-182`). `runCodexLauncher(hookFile, stdin, { cwd, env, timeout })` runs a hook through the exact `node -e` command the generated `.codex/hooks.json` wires (where `require.main` is undefined) and returns `{ code, stdout, stderr, command }` without asserting, so a blocking gate's exit `2` stays assertable (`.claude/hooks/tests/lib/hook-runner.cjs:297-328`; `.claude/hooks/tests/suites/codex-launcher.test.cjs`).
+Use `.claude/hooks/tests/lib/assertions.cjs:12-223` for equality, content/regex, throws, nullability, and hook exit-code assertions. `runHook`, `runHookSequence`, and `runHooksParallel` execute real hook boundaries (`.claude/hooks/tests/lib/hook-runner.cjs:37-206`). `runCodexLauncher(hookFile, stdin, { cwd, env, timeout })` runs a hook through the exact `node -e` command the generated `.codex/hooks.json` wires (where `require.main` is undefined) and returns `{ code, stdout, stderr, command }` without asserting, so a blocking gate's exit `2` stays assertable (`.claude/hooks/tests/lib/hook-runner.cjs:316-338`; `.claude/hooks/tests/suites/codex-launcher.test.cjs`).
 
 ```js
 const results = await runHooksParallel(hooks, { cwd: tmpDir, timeout: SPAWN_TIMEOUT_MS });
@@ -57,31 +57,31 @@ for (const { result } of results) {
 
 Source: `.claude/hooks/tests/suites/integration.test.cjs:55-61`.
 
-`waitFor(condition, timeout, interval)` returns `true` on success and `false` on timeout (`.claude/hooks/tests/lib/test-utils.cjs:227-235`). No suite call site is currently verified; if adopted, assert its returned boolean rather than treating elapsed time as success.
+`waitFor(condition, timeout, interval)` returns `true` on success and `false` on timeout (`.claude/hooks/tests/lib/test-utils.cjs:199-207`). No suite call site is currently verified; if adopted, assert its returned boolean rather than treating elapsed time as success.
 
 ## Configuration
 
-Canonical commands live in `docs/project-config.json:158-169` (`testing.commands`). There is no host `package.json` script — the framework is self-running by design. No `integrationTestVerify` override, database connection, or startup/system-check command is configured.
+Canonical commands live in `docs/project-config.json:428-439` (`testing.commands`). There is no host `package.json` script — the framework is self-running by design. No `integrationTestVerify` override, database connection, or startup/system-check command is configured.
 
-The suite runner sets `CLAUDE_PROJECT_DIR` before loading suites (`.claude/hooks/tests/run-all-tests.cjs:16-24`). Child-process helpers merge per-call `env`; parent-process mutations must use `createEnvSaver`/`setupClaudeEnvFile` and restore in `finally` (`.claude/hooks/tests/lib/test-utils.cjs:141-195`).
+The suite runner sets `CLAUDE_PROJECT_DIR` before loading suites (`.claude/hooks/tests/run-all-tests.cjs:16-24`). Child-process helpers merge per-call `env`; parent-process mutations must use `createEnvSaver`/`setupClaudeEnvFile` and restore in `finally` (`.claude/hooks/tests/lib/test-utils.cjs:117-195`).
 
-Targeted suites may require host executables: count-drift resolves `python` then Windows `py -3` (`.claude/hooks/tests/suites/count-drift.test.cjs:38-59`), and doc-sync tests probe/use Git in isolated temporary repositories (`.claude/hooks/tests/test-doc-sync-gate.cjs:65-76`). No real hardcoded test credential was verified; notification literals are synthetic enablement sentinels (`.claude/hooks/tests/suites/notification.test.cjs:145-159`).
+Targeted suites may require host executables: count-drift resolves `python` then Windows `py -3` (`.claude/hooks/tests/suites/count-drift.test.cjs:39-63`), and doc-sync tests probe/use Git in isolated temporary repositories (`.claude/hooks/tests/test-doc-sync-gate.cjs:69-82`). No real hardcoded test credential was verified; notification literals are synthetic enablement sentinels (`.claude/hooks/tests/suites/notification.test.cjs:137-175`).
 
 ## Service-Specific Setup
 
-Traditional service-specific setup is **N/A** because the repository has no configured services or application infrastructure (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`). Hook-specific setup belongs in focused temp-state helpers and lifecycle payload builders. Concurrent hook behavior is represented in `.claude/hooks/tests/suites/integration.test.cjs:41-69`.
+Traditional service-specific setup is **N/A** because the repository has no configured services or application infrastructure (`docs/project-config.json:473-476`). Hook-specific setup belongs in focused temp-state helpers and lifecycle payload builders. Concurrent hook behavior is represented in `.claude/hooks/tests/suites/integration.test.cjs:41-69`.
 
 ## Test Data Patterns
 
 Create one OS-temp directory per mutable test and remove it in `finally`. `createTempDir` uses `mkdtempSync`; cleanup refuses paths outside the OS temp root (`.claude/hooks/tests/lib/test-utils.cjs:15-27`). Representative suites follow `try/finally` cleanup (`.claude/hooks/tests/suites/integration.test.cjs:45-66`, `.claude/hooks/tests/suites/agent-files-gate.test.cjs:348-354`).
 
-Use payload builders for valid lifecycle inputs and assert the observable contract. There is no production repository/database setup path (`docs/project-config.json:149-152`); direct datastore writes remain unsupported unless a future idempotent, service-owned fixture seeder is verified.
+Use payload builders for valid lifecycle inputs and assert the observable contract. There is no production repository/database setup path (`docs/project-config.json:473-476`); direct datastore writes remain unsupported unless a future idempotent, service-owned fixture seeder is verified.
 
 ## New Test Quickstart
 
-1. Copy the structure of `.claude/hooks/tests/suites/integration.test.cjs` into a topic-named file beneath `.claude/hooks/tests/suites/`; the runner discovers the .test.cjs suffix automatically (`.claude/hooks/tests/run-all-tests.cjs:87-99`).
+1. Copy the structure of `.claude/hooks/tests/suites/integration.test.cjs` into a topic-named file beneath `.claude/hooks/tests/suites/`; the runner discovers the .test.cjs suffix automatically (`.claude/hooks/tests/run-all-tests.cjs:100-110`).
 2. Import the real hook runner, payload builder, and focused assertion helpers.
-3. Name tests with a behavioral bracket prefix such as `[concurrent]`; include the governing `TC-*` ID when a canonical spec supplies one (`.claude/hooks/tests/suites/integration.test.cjs:43`, `.claude/hooks/tests/suites/workflow.test.cjs:197-198`).
+3. Name tests with a behavioral bracket prefix such as `[concurrent]`; include the governing `TC-*` ID when a canonical spec supplies one (`.claude/hooks/tests/suites/integration.test.cjs:43`, `.claude/hooks/tests/suites/workflow.test.cjs:240-241`).
 4. Label explicit Given/When/Then phases (comments or named helpers are valid), name the guarded business intent/invariant or technical contract, arrange isolated input, act through the real process boundary, assert the owned output/state, and clean up in `finally`.
 5. Run a matching suite filter, then the full repeatability gate.
 
@@ -89,7 +89,7 @@ Use payload builders for valid lifecycle inputs and assert the observable contra
 
 Every suite under `.claude/` ships with the bundle: it must pass in an adopter project of any layout, on any developer machine, on Windows, macOS and Linux. A test leaning on its authoring repo or workstation passes here and fails — or reaches real endpoints — only at the consumer.
 
-- **Own fixture project:** build config, docs and layout in a temp dir (`makeHookTreeProject`, `.claude/hooks/tests/lib/hook-runner.cjs:359`); never read this repo's `docs/`, specs, config or git state outside a guarded self-check. Guard a self-check truly about the authoring repo with `isFrameworkRepo`: a CJS suite (`*.test.cjs`) uses the synchronous `.claude/hooks/tests/lib/framework-repo-guard.cjs:53`, because its `skip:` is computed while the test list is built and an async guard there reports a false pass; an ESM suite (`*.mjs`) uses `.claude/scripts/codex/tests/framework-repo.helper.mjs:97`. Keep a tripwire proving the guard resolves active here — PORT-011 for the ESM helper, and the content-presence parity tripwire (`.claude/hooks/tests/suites/content-presence.test.cjs:1017`) proving the CJS guard agrees with it.
+- **Own fixture project:** build config, docs and layout in a temp dir (`makeHookTreeProject`, `.claude/hooks/tests/lib/hook-runner.cjs:359`); never read this repo's `docs/`, specs, config or git state outside a guarded self-check. Guard a self-check truly about the authoring repo with `isFrameworkRepo`: a CJS suite (`*.test.cjs`) uses the synchronous `.claude/hooks/tests/lib/framework-repo-guard.cjs:53`, because its `skip:` is computed while the test list is built and an async guard there reports a false pass; an ESM suite (`*.mjs`) uses `.claude/scripts/codex/tests/framework-repo.helper.mjs:97`. Keep a tripwire proving the guard resolves active here — PORT-011 for the ESM helper, and the content-presence parity tripwire (`.claude/hooks/tests/suites/content-presence.test.cjs:2710-2762`) proving the CJS guard agrees with it.
 - **Clean machine:** blank or delete every inherited feature switch and provider key (blank when an env file could refill it), and point `HOME`/`USERPROFILE` plus `TMPDIR`/`TEMP`/`TMP` at the temp dir — Node reads `TEMP` first on Windows and `TMPDIR` first on POSIX (`isolatedRouterEnv`, `.claude/hooks/tests/suites/notification.test.cjs:219-231`; `childEnv`, `.claude/hooks/tests/lib/hook-runner.cjs:340`).
 - **Explicit OS behavior:** state Windows vs POSIX expectations for separators, case, symlink/junction (`EPERM` → logged skip only where the OS forbids it), executable lookup (`py -3` vs `python3`) and line endings; read `CLAUDE.md` → "Cross-platform execution is a required contract" when a behavior differs by OS.
 - **Gate before commit:** `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only` (residue stage, root-literal via `TC-DOCROOT-038`, `PORT-*` suite) AND `node .claude/hooks/tests/run-all-tests.cjs` on a machine that has those switches set, proving the scrub — verify-only skips hook-behaviour suites (`.claude/skills/sync-codex/scripts/run-codex-sync.mjs:175-179`), so it cannot prove machine isolation.
@@ -107,7 +107,7 @@ node .claude/hooks/tests/test-all-hooks.cjs
 node .claude/hooks/tests/run-all-tests.cjs --filter=integration --verbose
 ```
 
-The filter selects suite names and runs every test in each selected suite; a non-matching explicit filter exits `1` to prevent a vacuous green (`.claude/hooks/tests/run-all-tests.cjs:158-164`, `.claude/hooks/tests/run-all-tests.cjs:275-286`). A complete, clean run exits `1` for a second, non-test reason: a post-summary count guard compares the tests it discovered against the aggregate count documented in `.claude/docs/hooks/README.md` and fails the process on drift, so the summary can read `All N tests passed` while the exit code is still `1` (`.claude/hooks/tests/run-all-tests.cjs:333-400`). It keys on the DISCOVERED total (passed + failed + skipped) rather than the pass count, because host-gated tests move the passed/skipped split per machine, and it stays silent under `--filter` or after any failure — neither total is the canonical figure. Although `--parallel` is parsed and advertised, the runner currently awaits suites in a sequential loop (`.claude/hooks/tests/run-all-tests.cjs:51-75`, `.claude/hooks/tests/run-all-tests.cjs:295-304`).
+The filter selects suite names and runs every test in each selected suite; a non-matching explicit filter exits `1` to prevent a vacuous green (`.claude/hooks/tests/run-all-tests.cjs:168-174`, `.claude/hooks/tests/run-all-tests.cjs:271-296`). A complete, clean run exits `1` for a second, non-test reason: a post-summary count guard compares the tests it discovered against the aggregate count documented in `.claude/docs/hooks/README.md` and fails the process on drift, so the summary can read `All N tests passed` while the exit code is still `1` (`.claude/hooks/tests/run-all-tests.cjs:421-501`). It keys on the DISCOVERED total (passed + failed + skipped) rather than the pass count, because host-gated tests move the passed/skipped split per machine, and it stays silent under `--filter` or after any failure — neither total is the canonical figure. Although `--parallel` is parsed and advertised, the runner currently awaits suites in a sequential loop (`.claude/hooks/tests/run-all-tests.cjs:51-75`, `.claude/hooks/tests/run-all-tests.cjs:309-318`).
 
 **Repeatability gate:** run `node .claude/hooks/tests/run-all-tests.cjs`, then run it again without deleting temp/global state or resetting the repository. Both consecutive runs **MUST** pass.
 

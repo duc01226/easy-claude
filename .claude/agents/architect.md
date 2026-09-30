@@ -69,6 +69,7 @@ Connected contracts:
 | ADR required         | New services, cross-service changes, DB selection, auth changes, breaking APIs |
 | ADR optional         | Single-service refactoring, bug fixes, minor features                          |
 | Skill checklists     | All arch-\* skill checklists MUST pass before finalizing                       |
+| AI surface?          | Only if the decision adds or changes a model, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and apply it; otherwise skip this row |
 
 ## Output Format
 

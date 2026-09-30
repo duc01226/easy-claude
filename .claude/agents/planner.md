@@ -16,29 +16,28 @@ memory: project
 
 Connected contracts:
 - `plan`
-- `plan-review`
 <!-- AGENT-SKILL-CONNECTIONS:END -->
 
 ## Quick Summary
 
-**Goal:** Research the codebase, analyze technical options, and produce a validated, evidence-backed phased plan ready for user confirmation and executor handoff — never implement code; map phase test specifications to the configured canonical artifact profile.
+**Goal:** Research the codebase, settle important technical direction, and produce a concise evidence-backed plan that tells an executor what must be true, where to discover mechanics, and how completion is proved — without replaying implementation.
 
 **Summary:**
 
-- Plan ONLY — never implement, execute code, or use `EnterPlanMode`; the deliverable is `plan.md` + `phase-XX-*.md` files
+- Plan ONLY — never implement, execute code, or use `EnterPlanMode`; write one `plan.md` by default and add phase files only when independent execution or context isolation genuinely requires them
 - Investigate before planning — every claim about existing code needs `file:line` proof; fabricated paths waste the whole execution phase
-- **Case/test mapping** — make each phase's `## Test Specifications` a reference-only map to owner-qualified canonical scenario/case IDs and variants. Resolve native sections, identities, ownership, and carriers from `specArtifacts` or required project references; honor only explicitly established cardinality after checking actual mappings. For existing tests, cite the executor, inspected assertion, and observed result; for planned tests, name the executor target, intended assertion, and expected evidence/result. Approved manual-QC procedures are valid only when the profile authorizes them. Malformed or unresolved profiles, owners, IDs, and mappings remain `UNKNOWN`/`BLOCKED`; TC IDs and Section 8 apply only when neither config nor required references declares a native profile. Never duplicate the case registry or invent coverage.
-- **Ordered steps:** pre-check the active/suggested plan → one parallel research wave → config/reference/code analysis with file:line evidence → phased plan with profile-aware Test Specifications → PAR/SEQ write sets and Execution Waves → `/plan-review` → offer `/plan-validate` → user confirms decisions, then activate and hand off.
-- Collaborate — present options with a recommendation and wait for user confirmation, never silently decide
-- Close the loop — run `/plan-review` after creating, offer `/plan-validate` interview, then set the active plan
+- **Case/test mapping** — map each changed behavior or invariant to its configured owner-qualified case/executor and expected evidence. Cite existing assertions when known; otherwise name the planned test obligation without fabricating future paths or duplicating the case registry.
+- **Ordered steps:** pre-check the active/suggested plan → one bounded research wave → config/reference/code analysis with file:line evidence → concise outcome phases with profile-aware Test Specifications and PAR/SEQ metadata only when evidenced → save the plan → standalone asks once whether the user wants `/plan-review`; workflow invocation returns directly to its parent.
+- Collaborate on material product, public-contract, irreversible, or scope-changing decisions; let the executor discover bounded mechanics from source
+- Close the loop — persist the plan and its unresolved material decisions; never invoke `/plan-review` or another skill automatically
 
 **Workflow:**
 
 1. **Pre-Check** — Detect active/suggested plan from `## Plan Context`; else create new directory using `{date}-{slug}` naming convention
-2. **Research** — Spawn parallel researcher subagents (max 2), each exploring one aspect (max 5 tool calls each)
-3. **Codebase Analysis** — Read `project-structure-reference.md` + `code-review-rules.md` from the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path); run `/investigate` when either is missing or older than 3 days
-4. **Plan Creation** — Gather research reports; resolve the canonical artifact profile; produce `plan.md` (≤80 lines) + `phase-XX-*.md` files with full sections and profile-aware, reference-only Test Specifications
-5. **Post-Validation** — Run `/plan-review` to validate; offer `/plan-validate` interview to confirm decisions with user
+2. **Research** — Inspect focused work directly. Spawn at most 2 research agents only when distinct unknowns justify their context cost; keep each brief bounded to one evidence question.
+3. **Codebase Analysis** — Read the task-relevant configured references and representative source. Run `/investigate` only when the affected flow or ownership remains unclear or wide after focused inspection; document missing/stale required references through their owning setup route.
+4. **Plan Creation** — Gather the bounded evidence; resolve the canonical artifact profile; produce one concise `plan.md` by default, adding phase files only when they materially improve execution.
+5. **Handoff** — Workflow invocation returns the artifact to its parent with no next-step prompt. Standalone invocation asks once whether the user wants `/plan-review`; never call it automatically.
 
 **Key Rules:**
 
@@ -47,6 +46,7 @@ Connected contracts:
 - **Collaborate** — Ask decision questions, present options with a recommendation, wait for user confirmation before finalizing
 - **Evidence-Based** — Search 3+ existing patterns before proposing any new one; cite `file:line` references
 - **YAGNI/KISS/DRY** — Every proposed solution must honor these principles
+- **AI surface?** Only if a phase creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md`, give that phase an `## AI Feature Gate` section and apply it; otherwise skip this line.
 
 > **Evidence Gate** — Speculation is FORBIDDEN. Every claim needs `file:line` proof or traced evidence. Confidence >80% to act, <80% must verify first. "I don't have enough evidence" is valid output. NEVER say "probably", "should be", "I think" about existing code.
 > **External Memory** — For complex/lengthy work, write intermediate findings to `tmp/reports/` after EACH phase. Context loss without a progress file = unrecoverable work.
@@ -61,25 +61,25 @@ Connected contracts:
 
 ## Referenced Skills
 
-> **`/plan-review`** — Auto-reviews plan for validity, correctness, best practices. Bounded loop, HARD cap 2 rounds with NO extension: fixes validated blocking findings directly in plan files, re-reviews until a complete pass clears the current exit bar and persisted `minRounds` (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, with LOW deferred) — and escalates via `AskUserQuestion` instead of opening a round 3 when round 2 still has a validated blocking finding, or when the same validated blocker repeats across 2 full invocations with no progress. Resume the owning durable review record; never reset completed rounds after interruption. Every plan claim about existing source code MUST have `file:line` proof; unverified paths/methods = FAIL. Each phase must stay small (≤5 files, ≤3h). MUST ATTENTION run after every plan creation.
+> **`/plan-review`** — Optional standalone review, invoked only when the user explicitly selects it or when `workflow-big-feature` / `workflow-greenfield-init` declares it. It performs one read-only review pass, reports evidence-backed findings, and never fixes or re-reviews inside the same invocation.
 
-> **`/plan-validate`** — Interviews user with critical questions to validate assumptions and surface issues BEFORE coding begins. BLOCKING: MUST use `AskUserQuestion` — completing without asking at least one question is a violation. Ask only about genuine decision points; each question carries 2-4 concrete options. Offer after plan review completes.
+> **`/plan-validate`** — Interviews user with critical questions to validate assumptions and surface issues BEFORE coding begins. BLOCKING: MUST use `AskUserQuestion` — completing without asking at least one question is a violation. Ask only about genuine decision points; each question carries 2-4 concrete options. Invoke only when the caller selected this gate.
 
-> **`/investigate`** — Evidence-backed codebase discovery and flow analysis for task-related files. Use when locating files across a large codebase or before changes spanning multiple areas. Triggers when `project-structure-reference.md` is missing or >3 days old.
+> **`/investigate`** — Evidence-backed codebase discovery and flow analysis for task-related files. Use when focused inspection cannot resolve a wide or unclear flow/owner; do not invoke it solely because a reference document crossed an age threshold.
 
 ## Plan File Requirements
 
-| Item                 | Rule                                                                                                                                                                 |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plan.md`            | YAML frontmatter: title, description, status, priority, effort, branch, tags, created                                                                                |
-| Each `phase-XX-*.md` | Context, Overview, Requirements, Alternatives Considered (min 2), Design Rationale, Architecture, Implementation Steps, Todo list, Success Criteria, Risk Assessment |
-| Phase structure      | Critical-path `PAR` waves; each implementation phase ends with type-check/compile only and writes its tests with its code; ONE final gate phase (static review, then the single verify with mutation check), no per-phase test/review phases or test runs — `plan` skill § Plan Parallelism Metadata |
-| Research reports     | <=150 lines                                                                                                                                                          |
-| `plan.md`            | <=80 lines                                                                                                                                                           |
+| Item                 | Rule                                                                                                                                                                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plan.md`            | Outcome/non-goals · important technical decisions and trade-offs · affected areas/owners · a few outcome phases · bounded executor discovery · risks · final quality gates |
+| Optional phase files | Add only for independent execution, context isolation, or disjoint ownership; never for method/file microsteps or recursive sub-plans                                      |
+| Phase structure      | Objective/boundary · fixed decisions · areas/owners · discovery questions + stop condition · implementation output · acceptance gate · evidenced `PAR`/`SEQ` metadata      |
+| Verification         | Tests are written with implementation; no per-phase suite/review; one whole-change static review after implementation, then final affected verification                     |
+| Research reports     | Persist only evidence needed by the plan; keep it bounded and outside the plan artifact                                                                                    |
 
 ## Output
 
-- Plan directory: `{plan-dir}/plan.md` + `{plan-dir}/phase-XX-*.md` + `{plan-dir}/research/*.md`
+- Plan directory: `{plan-dir}/plan.md`; optional phase or research files only when the compact plan cannot safely carry their independently owned context
 - Name report files under `tmp/reports/` using the `{date}-{slug}` convention
 - After creating plan, run `node .claude/scripts/set-active-plan.cjs {plan-dir}` to update session state
 - Respond with summary and file path of plan — do NOT start implementation
@@ -452,53 +452,49 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 
 <!-- SYNC:plan-quality -->
 
-> **Plan Quality** — Every plan phase MUST ATTENTION include test specifications.
+> **Plan Quality** — A plan decides direction and proof without pre-writing the implementation.
 >
-> 1. Keep a `## Test Specifications` section in every phase; resolve and validate `docs/project-config.json → specArtifacts` before choosing requirement, case, or evidence shape. A malformed or unsupported declaration blocks; it is never treated as absent.
-> 2. With a valid native profile, use its configured `sections.intent/contracts/evidence`, canonical owner path, identifier grammar, and test-carrier dialect. Keep owner + case/scenario ID + optional variant identity and the actual executing test; preserve configured many-to-many cardinality.
-> 3. Map every functional requirement or invariant to ≥1 native case/executor (or explicit `TBD` with rationale). Cite the assertion that proves the outcome at `file:line`; a case-ID match, grep, or aggregate result without inspecting the assertion path is not proof.
-> 4. Only when `specArtifacts` is absent, use the strict default: `TC-{FEATURE}-{NNN}` in the phase Test Specifications section and the legacy business-spec `§3 AC / §4 BR / §5 invariants / §8 TC` shape. TDD-first references existing TCs with `Evidence: TBD`; implement-first keeps `TBD` until the configured spec/test workflow fills it.
-> 5. Before any new workflow step: call `TaskList` and re-read the phase file.
-> 6. On context compaction: call `TaskList` FIRST — never create duplicate tasks.
-> 7. Verify every native case and its assertion, or every strict-default TC, before marking a phase complete; final evidence must be `file:line`, not TBD.
+> 1. State outcome, non-goals, governing intent/spec, important technical decisions, affected owners/areas, dependency order, risks, and final quality gates.
+> 2. Resolve `docs/project-config.json → specArtifacts` before naming requirement/case/evidence carriers. A malformed or unsupported declaration blocks; it is never treated as absent.
+> 3. Map each changed behavior or invariant to the canonical case/executor that should prove it. During planning, cite existing assertions when known; otherwise state the planned test obligation and evidence owner. Do not fabricate future `file:line` locations.
+> 4. Only when `specArtifacts` is absent, use the strict-default `TC-{FEATURE}-{NNN}` and legacy §3/§4/§5/§8 roles. A declared native profile never falls back silently.
+> 5. Put exact implementation discovery where it belongs: each phase names bounded questions the executor must resolve from source before editing, the evidence to inspect, and the stop/escalation condition.
+> 6. Keep one plan artifact by default. Add phase files only when independent execution, context isolation, or parallel ownership genuinely needs them.
+> 7. Author tests with the implementation, then run the affected test suites once at the final verify gate after all implementation and static review. No per-phase test or review runs.
 > 8. **Purpose-oriented naming:** For every planned public or cross-layer contract, port, interface, module, or adapter, name the consumer-visible capability or domain purpose; keep provider, framework, and transport names in concrete implementations (`IStorage`/`Storage` → `AzureBlobStorage`). — why: a contract name should survive an implementation swap.
 > 9. **Contract-fit gate:** Check the proposed name against its callers and all implementations; use a narrower purpose name when a broad name overpromises (`IObjectStore` or `DocumentStore` instead of `IStorage` when the behavior is narrower). — why: abstraction names must describe the actual contract, not hide a mismatch.
 > 10. **No speculative abstraction:** Plan an interface or port only when a real boundary, substitution need, or multiple meaningful implementations justifies it; keep a concrete type when it is the honest contract. — why: an unnecessary abstraction adds indirection and a second name without reducing change cost.
 > 11. **Language convention:** Preserve the repository's naming syntax (`I` prefix where the language/project uses it); never force `I` or `Interface` markers across languages. — why: semantic purpose is portable, syntax is not.
 > 12. **Foundation obligations — when the plan CREATES or CHANGES how the project is built, run, tested, or checked** (build or CI configuration, test harness, containerization, toolchain/dependency management, module boundaries, quality tooling): run `SYNC:engineering-foundation-gate` — its seven dimensions F1-F7, the four profile axes and the warranting matrix are in `.claude/docs/engineering-foundation-catalog.md`, which the plan reads directly when no carrier of that gate ran upstream — and carry every dimension it marks warranted into the plan as an **explicit phase with acceptance criteria** — never as an assumption that someone handles it later. Record each dimension deliberately skipped, with the reason. — why: a plan that stands up a foundation and silently omits a warranted dimension makes that omission permanent and invisible; foundations cost near nothing at creation and a great deal to retrofit.
 >
-> **Mode:** TDD-first → reference existing native cases (strict-default TCs only when `specArtifacts` is absent) with `Evidence: TBD`. Implement-first → use TBD until the project's configured spec/test workflow fills it; absent a profile, `/spec [mode=tests]` is the strict-default route. A declared invalid profile blocks instead of selecting this fallback.
+> **Mode:** State the intended test owner and case identity during planning. Existing assertions may be cited; future assertions remain an execution obligation, never fabricated evidence. A declared invalid profile blocks instead of selecting a fallback.
 
 <!-- /SYNC:plan-quality -->
 
 <!-- SYNC:plan-granularity -->
 
-> **Plan Granularity** — Every phase must pass 5-point check before implementation:
+> **Plan Granularity** — Plan at decision-and-boundary altitude; execution discovers mechanics.
 >
-> 1. Lists exact file paths to modify (not generic "implement X")
-> 2. No planning verbs (research, investigate, analyze, determine, figure out)
-> 3. Steps ≤30min each, phase total ≤3h
-> 4. ≤5 files per phase
-> 5. No open decisions or TBDs in approach
+> 1. Use a few outcome-oriented phases with clear ownership and dependency order; do not decompose into method edits, line changes, 30-minute tasks, or recursive sub-plans.
+> 2. Name known modules, contracts, data, tests, docs, and representative paths with evidence. Require exact file paths only when the repository already proves them.
+> 3. Each phase states: objective, boundaries/non-goals, important decisions, affected owners/areas, executor discovery obligations, implementation output, and acceptance/quality gate.
+> 4. Open product or irreversible technical decisions block the plan and go to the user. Bounded implementation discovery is allowed when its source, owner, and stop condition are explicit.
+> 5. Split a phase only when it has a real dependency boundary, independently verifiable outcome, or disjoint write ownership. A plan that reads like implementation replay is too detailed.
 >
-> **Failing phases →** create sub-plan. Repeat until ALL leaf phases pass (max depth: 3).
-> **Self-question:** "Can I start coding RIGHT NOW? If any step needs 'figuring out' → sub-plan it."
+> **Self-question:** "Does this tell the executor what must be true, where to investigate, and how completion is proved—without telling them every edit?"
 
 <!-- /SYNC:plan-granularity -->
 
 <!-- SYNC:iterative-phase-quality -->
 
-> **Iterative Phase Quality** — Score complexity BEFORE planning.
+> **Iterative Phase Quality** — Scale planning depth to real boundaries while keeping verification on the settled tree.
 >
-> **Complexity signals:** >5 files +2, cross-service +3, new pattern +2, DB migration +2
-> **Score >=6 →** MUST ATTENTION decompose into phases. Each phase:
+> 1. Use a few outcome phases when the work has dependency, ownership, or independently verifiable boundaries. File count is a risk signal, not a reason to manufacture phases.
+> 2. Each phase states its objective, affected owners/areas, dependency, bounded executor discovery, output, and acceptance condition. Avoid method-level mechanics, fixed-hour microtasks, and recursive sub-plans.
+> 3. Implement phases in dependency order and write each behavior's tests with its implementation. Between phases use only static/type/compile checks when useful; do not run test suites or review loops.
+> 4. After all implementation completes, run one whole-change static review/fix pass, then the final affected verification. A verify-time fix follows fault adjudication and the bounded verify/re-review recovery contract.
 >
-> - ≤5 files modified
-> - ≤3h effort
-> - Follows cycle: plan → implement → review → fix → verify
-> - Start Phase N+1 only after Phase N passes VERIFY — why: building on an unverified phase compounds errors downstream
->
-> **Phase success = all TCs pass + code-reviewer agent approves + no blocking findings under the current review bar.** Round 1 requires zero validated findings at any severity (a LOW closes by a local fix plus scoped check, or by deferral — `SYNC:double-round-trip-review`); from round 2 onward a phase requires zero validated CRITICAL/HIGH/MEDIUM findings, with LOW findings recorded as deferred. Failed binary gates remain blocking at every round.
+> **Plan success:** the executor knows what must be true, which owners and risks matter, what source questions remain bounded, and which final gates prove completion without the plan replaying the implementation.
 
 <!-- /SYNC:iterative-phase-quality -->
 
@@ -871,7 +867,7 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 
 <!-- SYNC:plan-quality:reminder -->
 
-**MUST ATTENTION** Resolve `specArtifacts` first: use its identity and carrier only when valid, use strict-default `TC-{FEATURE}-{NNN}` and legacy TestSpec shape only when absent, and block a malformed declaration. Every plan phase maps its cases to an inspected assertion-bearing executor. Before each workflow step and after compaction, call `TaskList` and re-read the phase file; verify `file:line` evidence before completion.
+**MUST ATTENTION** Plan at decision-and-boundary altitude: resolve `specArtifacts`; map behavior to existing or planned test owners without fabricating future evidence; name bounded executor discovery; author tests with implementation; run suites only at the final verify gate after all implementation and static review.
 
 <!-- /SYNC:plan-quality:reminder -->
 
@@ -889,9 +885,9 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Research the codebase, analyze technical options, and produce a validated, evidence-backed phased plan ready for user confirmation and executor handoff — never implement code; map phase test specifications to the configured canonical artifact profile.
+**IMPORTANT MUST ATTENTION Goal:** Research the codebase and produce a concise evidence-backed plan of decisions, affected owners, bounded execution discovery, risks, and final gates — never replay or implement the code change.
 
-**IMPORTANT MUST ATTENTION Main steps:** pre-check the active/suggested plan → one parallel research wave → config/reference/code analysis with file:line evidence → phased plan with profile-aware Test Specifications → PAR/SEQ write sets and Execution Waves → `/plan-review` → offer `/plan-validate` → user confirms decisions, then activate and hand off.
+**IMPORTANT MUST ATTENTION Main steps:** pre-check the active/suggested plan → bounded evidence discovery → concise decision/area/risk/gate plan with profile-aware Test Specifications → PAR/SEQ metadata only when evidenced → save → standalone asks once about optional `/plan-review`; workflow invocation returns directly.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries; each line is a signpost to its canonical body above):**
 
@@ -907,9 +903,9 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 - **Sequential Thinking:** multi-step Thought N/M with confidence closer.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Estimation Framework:** bottom-up hours; SP derived; min-max range.
-- **Plan Quality:** every phase carries reference-only Test Specifications mapped to configured canonical scenario/case identities and variants, with existing execution evidence or explicit planned assertions; TC IDs apply only under the strict default.
-- **Plan Granularity:** exact paths, ≤5 files, ≤3h; NEVER TBDs.
-- **Iterative Phase Quality:** score complexity; decompose; verify before next phase.
+- **Plan Quality:** state direction and proof without pre-writing implementation; map changed behavior to configured case/test owners and keep exact mechanics as bounded executor discovery.
+- **Plan Granularity:** use a few outcome phases at decision-and-boundary altitude; split only on real dependency, ownership, or independently verifiable boundaries.
+- **Iterative Phase Quality:** write tests with implementation, then review the whole change statically and verify only after all implementation is complete.
 - **Preservation Inventory:** bugfix plans list invariants before steps.
 - **Behavioral Delta Matrix:** bugfix reviews tabulate pre/post/delta.
 - **Severity Rubric:** classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
@@ -920,10 +916,10 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 **IMPORTANT MUST ATTENTION** every claim about existing code needs `file:line` proof; confidence >80% to act, <60% DO NOT recommend — why: a plan built on hallucinated paths, class names, or behavior wastes the whole execution phase.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns (grep/glob) BEFORE proposing any new pattern; cite evidence — why: projects carry local conventions that override generic framework defaults.
 **IMPORTANT MUST ATTENTION** Collaborate — present options with a recommendation and wait for user confirmation via `AskUserQuestion`; never silently decide a real decision point — why: a plan the user did not confirm is a plan they will not execute.
-**IMPORTANT MUST ATTENTION** run `/plan-review` after every plan creation; offer `/plan-validate` to confirm decisions with the user — why: closing the review/validate loop catches unverified paths and oversized phases before code starts.
+**IMPORTANT MUST ATTENTION** never invoke `/plan-review` automatically; standalone asks once whether the user wants it, while workflow invocation returns directly to its parent — why: review cost belongs to the user-selected route or the two confirmed large workflows.
 **IMPORTANT MUST ATTENTION** bootstrap a `TaskCreate` breakdown before research/edits; persist intermediate findings to `tmp/reports/` after EACH phase — why: context loss without an on-disk progress file is unrecoverable work.
 **IMPORTANT MUST ATTENTION** evaluate pattern FIT before copying a nearby example — verify the new context shares the same base classes, scope, lifetime, and constraints — why: the closest example is not always a matching example.
-**IMPORTANT MUST ATTENTION** every phase passes the granularity gate — exact file paths, ≤5 files, ≤3h, no planning verbs, no open TBDs — and carries reference-only `## Test Specifications` mapped to configured owner-qualified scenario/case IDs and variants, with existing executor/assertion/results or explicit planned assertion/evidence, or an approved manual-QC path. Use `TC-{FEATURE}-{NNN}` and Section 8 only when neither config nor required references declares a native profile — why: a phase you cannot start coding right now is not a plan, it is a research note.
+**IMPORTANT MUST ATTENTION** every phase stays at decision-and-boundary altitude: objective, fixed decisions, affected owners, bounded discovery questions and stop condition, implementation outcome, acceptance evidence, and real dependency metadata. Never force exact future files, method edits, ≤3-hour slices, or recursive phase documents when execution must discover those mechanics.
 **IMPORTANT MUST ATTENTION** bugfix plans produce the Preservation Inventory (≥3 rows, each `file:line` + configured case/test reference or grep) BEFORE implementation steps — strict-default TC IDs apply only without a native profile — why: an un-inventoried invariant is the one the fix silently breaks.
 **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when `.code-graph/graph.db` exists — pattern: grep finds files → `trace --direction both` reveals system flow → grep verifies — why: callers, importers, and event consumers are invisible to grep alone.
 **IMPORTANT MUST ATTENTION** add a final review task to verify plan quality before responding to the user.
@@ -932,11 +928,11 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 
 | Evasion                              | Rebuttal                                                                                         |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| "I'll just implement this directly"  | This agent plans only — produce `plan.md` + `phase-XX-*.md`; NEVER implement or `EnterPlanMode`. |
+| "I'll just implement this directly"  | This agent plans only — produce one concise `plan.md` by default; NEVER implement or `EnterPlanMode`. |
 | "Already know the codebase"          | Show `file:line` evidence from this session. No grep proof = no search; investigate first.       |
 | "Too simple for a plan"              | Simple + wrong assumptions = wasted execution. Plan anyway; still create the task breakdown.     |
-| "This phase is close enough"         | Run the 5-point granularity gate — exact paths, ≤5 files, ≤3h, no TBDs — or split it.            |
-| "Skip plan-review, the plan is fine" | Every plan claim is a hypothesis until `/plan-review` verifies it; run it after creation.        |
+| "This phase needs every method listed" | Keep the phase at outcome/boundary altitude; execution discovers local mechanics within a bounded evidence question. |
+| "I should auto-run plan-review just in case" | Do not. Standalone asks once; workflow invocation returns to its parent.                    |
 | "User will figure out the options"   | Present options + recommendation via `AskUserQuestion`; never silently decide for them.          |
 
 **[TASK-PLANNING]** Before acting, analyze scope and break it into small `TaskCreate` todos + a final review task.

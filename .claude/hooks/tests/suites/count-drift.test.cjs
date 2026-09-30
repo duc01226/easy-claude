@@ -12,6 +12,7 @@
 const path = require('path');
 const fs = require('fs');
 const { spawnSync } = require('child_process');
+const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const SCRIPT = path.join(REPO_ROOT, '.claude', 'scripts', 'generate_catalogs.py');
@@ -114,9 +115,68 @@ function countLibModules() {
         .length;
 }
 
+function listFilesRecursive(root, predicate) {
+    const out = [];
+    if (!fs.existsSync(root)) return out;
+    (function walk(dir) {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) walk(full);
+            else if (entry.isFile() && predicate(full, entry.name)) out.push(full);
+        }
+    })(root);
+    return out;
+}
+
+function countHookSuiteFiles() {
+    return listFilesRecursive(
+        path.join(REPO_ROOT, '.claude', 'hooks', 'tests', 'suites'),
+        (_full, name) => /\.test\.(?:cjs|mjs)$/.test(name)
+    ).length;
+}
+
+function countTopLevelHookTestFiles() {
+    const testsDir = path.join(REPO_ROOT, '.claude', 'hooks', 'tests');
+    return fs.readdirSync(testsDir, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && /^test-[^/]+/.test(entry.name))
+        .length;
+}
+
+function listAuthoredMarkdownPaths() {
+    const result = spawnSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+        timeout: 10000
+    });
+    if (result.error || result.status !== 0) {
+        throw new Error(`Unable to enumerate authored Markdown through git: ${(result.error || result.stderr || '').toString().trim()}`);
+    }
+    return result.stdout
+        .split('\0')
+        .filter(Boolean)
+        .map((file) => file.split(path.sep).join('/'))
+        .filter((file) => file.toLowerCase().endsWith('.md'));
+}
+
+function listAuthoredMarkdownUnion() {
+    return new Set(listAuthoredMarkdownPaths().filter((file) =>
+        !file.includes('/')
+        || file.startsWith('docs/')
+        || file.startsWith('.claude/docs/')
+        || file.startsWith('.claude/skills/')
+    ));
+}
+
+function countSkillMarkdownFiles() {
+    return listAuthoredMarkdownPaths().filter((file) => file.startsWith('.claude/skills/')).length;
+}
+
 const PROJECT_REFERENCE_DIR = path.join(REPO_ROOT, 'docs', 'project-reference');
 const DOCS_INDEX_PATH = path.join(PROJECT_REFERENCE_DIR, 'docs-index-reference.md');
 const HAS_PROJECT_REFERENCE_INDEX = fs.existsSync(DOCS_INDEX_PATH);
+const PROJECT_STRUCTURE_PATH = path.join(PROJECT_REFERENCE_DIR, 'project-structure-reference.md');
+const HAS_PROJECT_STRUCTURE = fs.existsSync(PROJECT_STRUCTURE_PATH);
+const IS_FRAMEWORK_REPO = isFrameworkRepo(REPO_ROOT);
 
 function countWorkflows() {
     const workflowsFile = path.join(REPO_ROOT, '.claude', 'workflows.json');
@@ -190,6 +250,8 @@ const tests = [
             const hookCount = countTopLevelHooks();
             const workflowCount = countWorkflows();
             const libCount = countLibModules();
+            const hookSuiteCount = countHookSuiteFiles();
+            const topLevelHookTestCount = countTopLevelHookTestFiles();
             const docsReadme = fs.readFileSync(
                 path.join(REPO_ROOT, '.claude', 'docs', 'README.md'),
                 'utf8'
@@ -231,6 +293,21 @@ const tests = [
                 new RegExp(`${workflowCount}\\s+registered workflows`),
                 'workflow'
             );
+            if (HAS_PROJECT_STRUCTURE) {
+                const projectStructure = fs.readFileSync(PROJECT_STRUCTURE_PATH, 'utf8');
+                assertMatches(
+                    'docs/project-reference/project-structure-reference.md',
+                    projectStructure,
+                    new RegExp('\\|\\s*Hook Tests\\s*\\|\\s*' + hookSuiteCount + ' suites \\+ ' + topLevelHookTestCount + ' `test-\\*` files'),
+                    'hook test inventory'
+                );
+                assertMatches(
+                    'docs/project-reference/project-structure-reference.md',
+                    projectStructure,
+                    new RegExp('\\|\\s*HT\\s*\\|\\s*Hook Tests\\s*\\|[^\\n]*\\|\\s*' + hookSuiteCount + ' suite files \\+ ' + topLevelHookTestCount + ' top-level `test-\\*` files'),
+                    'hook test module inventory'
+                );
+            }
 
             // --- Inventory-count surfaces gated against filesystem truth ---
             // quick-start.md directory tree: "<skills> skills", "<hooks> top-level hook files + <lib> lib modules"
@@ -347,6 +424,40 @@ const tests = [
                 throw new Error(
                     `docs-index-reference.md "Project reference" count is ${actual} but docs/project-reference/ holds ${expected} docs.\n` +
                     `Fix: regenerate via \`scan --target=docs-index\`.`
+                );
+            }
+        }
+    },
+    {
+        name: '[count-drift] docs-index skill and unique authored Markdown totals match filesystem truth',
+        skip: !HAS_PROJECT_REFERENCE_INDEX || !IS_FRAMEWORK_REPO,
+        fn: () => {
+            // Given the framework repository's generated docs index and Git-authored file inventory.
+            const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
+            const skillCount = countSkillMarkdownFiles();
+            const totalCount = listAuthoredMarkdownUnion().size;
+
+            // When each repeated count surface is compared with the normalized authored union.
+            assertMatches(
+                'docs-index-reference.md',
+                docsIndex,
+                new RegExp(`\\|\\s*Skill Markdown\\s*\\|\\s*${skillCount}\\s*\\|`),
+                'Skill Markdown category'
+            );
+            assertMatches(
+                'docs-index-reference.md',
+                docsIndex,
+                new RegExp(`\\.claude/skills/\\s*# ${skillCount} authored/tracked markdown assets`),
+                'Skill Markdown tree'
+            );
+            const totals = [...docsIndex.matchAll(/(?:Index\s+)?(\d+) unique authored [Mm]arkdown files/g)]
+                .map((match) => Number(match[1]));
+
+            // Then both prose totals must agree with the same source of truth.
+            if (totals.length !== 2 || totals.some((count) => count !== totalCount)) {
+                throw new Error(
+                    `docs-index-reference.md authored Markdown totals are ${JSON.stringify(totals)} but the normalized filesystem union has ${totalCount}.\n` +
+                    'Fix: regenerate via `scan --target=docs-index`.'
                 );
             }
         }

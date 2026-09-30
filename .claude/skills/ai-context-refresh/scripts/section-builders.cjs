@@ -298,6 +298,9 @@ function digestUpperBound(conventions, ordered, cap) {
     return frame + ruleLengths.reduce((sum, length) => sum + length, 0);
 }
 
+// How many scanned content extensions the inline rule text names before it counts the rest.
+const CONTENT_EXTENSIONS_NAMED = 6;
+
 function buildGoldenRules(config, projectDir) {
     const groups = ruleBearingGroups(config);
     if (groups.length === 0) return null;
@@ -319,10 +322,17 @@ function buildGoldenRules(config, projectDir) {
         ? `${label}: ${values.map(literal).join(', ')}`
         : null;
     const renderedGroups = groups.map(group => {
+        const contentExtensions = Array.isArray(group.contentExtensions) ? group.contentExtensions.filter(nonBlank) : [];
         const includes = [
             ...(group.pathRegexes || []).map(value => `path regex ${literal(value)}`),
             ...(group.pathGlobs || []).map(value => `path glob ${literal(value)}`),
-            ...(group.fileNameRegexes || []).map(value => `filename regex ${literal(value)}`)
+            ...(group.fileNameRegexes || []).map(value => `filename regex ${literal(value)}`),
+            // Content signals are an include matcher too: name them, or the rule text would claim fewer files than the hook matches.
+            // The first few scanned types are named and the rest counted (the lookup command answers for a concrete file), so a long
+            // extension list does not weigh on every session.
+            ...(Array.isArray(group.contentRegexes) && group.contentRegexes.some(nonBlank) && contentExtensions.length
+                ? [`content signals (${nonBlank(group.contentLabel) ? group.contentLabel.trim() : 'file content'}) in ${contentExtensions.slice(0, CONTENT_EXTENSIONS_NAMED).map(literal).join(', ')}${contentExtensions.length > CONTENT_EXTENSIONS_NAMED ? ` +${contentExtensions.length - CONTENT_EXTENSIONS_NAMED} more` : ''} files`]
+                : [])
         ];
         const scope = [
             includes.length ? `include any of: ${includes.join(', ')}` : 'no valid include matcher configured',
@@ -613,6 +623,20 @@ function tableCell(text) {
     return String(text).replace(/[|\r\n]/g, char => char === '|' ? '\\|' : ' ');
 }
 
+/**
+ * Static wording for a class's content signals, or '' when it has none (or the shared lib predates
+ * them, so an older mirrored copy renders the path-only row it always did). Names the label and the
+ * scanned file types; the lookup CLI answers for a concrete file.
+ */
+function contentSignalSummary(conventions, group) {
+    if (!conventions || typeof conventions.contentRegexSources !== 'function' || typeof conventions.normalizedContentExtensions !== 'function') return '';
+    if (!conventions.contentRegexSources(group).length) return '';
+    const extensions = conventions.normalizedContentExtensions(group);
+    if (!extensions.length) return '';
+    const label = typeof conventions.contentLabelOf === 'function' ? conventions.contentLabelOf(group) : '';
+    return `${label || 'file content'} in ${extensions.length} code file types`;
+}
+
 const SKILL_ACTIVATION_INTRO = 'When editing files matching these path patterns, pre-read the listed context first:';
 
 function buildSkillActivation(config, projectDir) {
@@ -647,6 +671,9 @@ function buildSkillActivation(config, projectDir) {
         // omitted the filter or the exclusions would claim files the hook never matches.
         let patternCell = patterns.length ? patterns.map(p => `\`${tableCell(p)}\``).join(', ') : tableCell(entry.name);
         if (extensions.length) patternCell += ` ext ${extensions.map(e => `\`${tableCell(e)}\``).join(', ')}`;
+        // A class that also matches by file content (BR-PFCI-13 static parity): name the signal and the file types scanned.
+        const contentSignals = contentSignalSummary(conventions, group);
+        if (contentSignals) patternCell += ` · content signals: ${tableCell(contentSignals)}`;
         if (excludes.length) patternCell += ` · not ${excludes.map(p => `\`${tableCell(p)}\``).join(', ')}`;
         const skillCell = entry.skills.length ? entry.skills.map(s => `\`${tableCell(s)}\``).join(', ') : '_(auto-context)_';
         const docCell = entry.docs.map(d => `\`${tableCell(d)}\``).concat(`\`${conventions.conventionTag(entry)}\``).join(', ');

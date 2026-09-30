@@ -22,7 +22,7 @@ Classify the target before choosing depth and record the result in the run repor
 Depth by band:
 
 - **XS/S** — a short investigation and a light plan (a few tasks, each traced to the spec baseline; log it as a `simplified` deviation); work inline.
-- **M, or any public-contract, data/schema or security kind** — full investigation and plan; add `/plan-review` on demand when the plan crosses modules or its risk warrants a second look.
+- **M, or any public-contract, data/schema or security kind** — full investigation and one lean plan; user-owned decisions go through `/plan-validate`.
 - **L/XL** — partition the build, the integration tests and the review into bounded batches per module or TC group, one report per batch; the plan names the batches.
 
 The gap review never shrinks: at every size `/spec-clarify` checks the supplied spec against the request before `/plan`.
@@ -33,14 +33,14 @@ The gap review never shrinks: at every size `/spec-clarify` checks the supplied 
 | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Tests pass** (`tests-pass`)                                                                 | `/integration-test-verify` (incl. the mutation check) and `/test` ran green in THIS run, once, after the static review; every implemented TC has a test that names its `Business Intent / Invariant Guarded` and would fail if that intent broke |
 | **Review converged** (`review-converged`)                                                     | nested `/workflow-review-changes` ran inline in the main session and converged — validated blocking findings fixed and the fixed state re-reviewed                                     |
-| **Spec synced** (`spec-synced`, when the implemented behavior differs from the supplied spec) | `/spec [mode=sync]` recorded the difference before `/integration-test` and the review                                                                                                  |
+| **Spec synced** (`spec-synced`, when behavior or evidence mappings changed) | `/spec [mode=sync]` reconciled the supplied spec with implemented behavior and actual case-to-test evidence after test authoring and before review |
 | **Run closed** (`run-closed`)                                                                 | `/workflow-end` checked every gate                                                                                                                                                     |
 | **No guessed behavior**                                                                       | the gap review passed, or the route stopped per the escalation rule below                                                                                                              |
-| **Scope held**                                                                                | every plan task traces to the recorded `spec_baseline`, per the plan scope anchor below                                                                                                |
+| **Scope held**                                                                                | the workflow records the supplied `spec_baseline`; plan phases and acceptance evidence stay within it                                                                                  |
 
 > **[ESCALATION — BLOCKING]** `/spec-clarify` runs as a gap review of the supplied spec against the request. When the spec is vague or contradictory, or the requested behavior is not in the supplied spec, STOP before `/plan` and ask the user to clarify the spec or switch to `workflow-feature`, which updates the spec first. Never guess the missing behavior and never drop it silently. A spec with one open question is clarified before planning.
 
-> **[PLAN SCOPE ANCHOR]** Plan scope is anchored to the supplied spec baseline: `/plan` records the supplied spec as `spec_baseline` at plan start (`/plan` → Supplied-Spec Scope Baseline), and every plan task traces to that baseline. A requirement the baseline lacks goes to `## Proposed additions (need approval)` and becomes a question, never a planned task.
+> **[PLAN SCOPE ANCHOR]** Before `/plan`, the workflow report records the supplied spec path and revision as `spec_baseline`. `/plan` names it as governing intent and keeps every phase and acceptance gate within that baseline. A requirement the baseline lacks is recorded as `Proposed additions — owner approval required` and becomes a question, never an accepted plan phase.
 
 ## Gates and Optional Steps
 
@@ -52,28 +52,28 @@ The gap review never shrinks: at every size `/spec-clarify` checks the supplied 
 | `/spec-clarify`            | core     | always — the gap review                                                       | no guessed behavior           |
 | `/plan`                    | core     | always; XS/S keeps it light                                                   | `spec_baseline`, traced tasks |
 | `/plan-execute`            | core     | always                                                                        | the change                    |
-| `/spec [mode=sync]`        | optional | the implemented behavior differs from the supplied spec                       | spec-synced                   |
 | `/integration-test`        | core     | always — tests from the spec's TCs                                            | tests-pass                    |
+| `/spec [mode=sync]`        | optional | behavior or canonical case-to-test evidence/mappings changed                  | spec-synced                   |
 | `/workflow-review-changes --tests=defer` | gate     | always                                                                        | review-converged              |
 | `/integration-test-verify` | gate     | always                                                                        | tests-pass                    |
 | `/test`                    | gate     | always                                                                        | tests-pass                    |
 | `/workflow-end`            | gate     | always                                                                        | run-closed                    |
 | `/watzup`                  | core     | always                                                                        | handoff summary               |
 
-> **Conditional step:** `/spec [mode=sync]` runs when the implemented behavior differs from the supplied spec, and always before `/integration-test` and the nested `/workflow-review-changes`, so the review sees the synced spec. Skip reason: "The implementation matches the supplied spec, so there is nothing to sync."
+> **Conditional step:** `/spec [mode=sync]` runs after integration-test authoring when behavior differs or canonical case-to-test evidence/mappings changed, and before the nested review. Skip reason: "Behavior and canonical case-to-test evidence still match the supplied spec, so no reconciliation is needed."
 
 The registry's default order, parsed by the workflow verifier — keep it equal to `workflows.json`; the roles above decide what may flex:
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec-clarify -> /plan -> /plan-execute -> /spec [mode=sync] -> /integration-test -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec-clarify -> /plan -> /plan-execute -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-end -> /watzup
 
-**On-demand skills (not registry steps):** `/plan-review` — an M+ plan that crosses modules or touches a public contract, data/schema or security; `/debug-investigate` — a test fails and its cause is unknown.
+**On-demand skill (not a registry step):** `/debug-investigate` — a test fails and its cause is unknown.
 
 ## Orchestration Freedom
 
 You choose inline vs sub-agent, parallel waves vs sequential, batching and ordering — optimize wall-clock and token cost at equal quality. Only these data dependencies are fixed:
 
 - the gap review precedes `/plan`; a change exists before it is reviewed or tested; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `/workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`);
-- `/spec [mode=sync]`, when it runs, precedes `/integration-test` and the review;
+- `/integration-test` writes the executing evidence before the single conditional `/spec [mode=sync]` reconciliation; the sync precedes review;
 - the nested `/workflow-review-changes` runs inline in the main session — it owns the session's review→fix→re-review loop, and its own reviewers run as sub-agents;
 - a gap-review question to the user is never parallelized with later work;
 - `/workflow-end` runs last, then `/watzup`.
@@ -90,7 +90,7 @@ Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module 
 
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green. A test that contradicts the supplied spec is adjudicated against the spec, never silently rewritten.
-- Plan ceremony (`/plan` → `/plan-review`) for a fix set only when it is large, cross-module or ambiguous; a handful of validated local fixes are fixed directly.
+- Re-run `/plan` only when a material scope or contract decision invalidates the saved plan; ordinary implementation discovery stays with the executor.
 - The nested review keeps the framework loop bounds: round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 2 rounds, +1 when a CRITICAL/HIGH stays open; failing tests are uncapped; escalate with `AskUserQuestion` on no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
@@ -132,6 +132,6 @@ Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** a vague, contradictory or incomplete spec stops the route before `/plan` — the user clarifies the spec or switches to `workflow-feature`.
-**IMPORTANT MUST ATTENTION** every plan task traces to the recorded spec baseline; anything beyond it is a proposed addition that needs approval.
+**IMPORTANT MUST ATTENTION** the workflow records the supplied baseline before planning; every plan phase and acceptance gate stays within it, and anything beyond it needs owner approval.
 **IMPORTANT MUST ATTENTION** gates never flex: tests green in THIS run · nested `/workflow-review-changes` converged inline · spec synced before the review when behavior differs · `/workflow-end` last.
 **IMPORTANT MUST ATTENTION** triage size, kind and risk first; depth follows risk, and every deviation is logged with evidence.

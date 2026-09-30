@@ -46,9 +46,8 @@ context-budget: high
 >
 > 1. **`/spec` — spec-driven, BEFORE any plan or code.** Create or update the tech-free 8-section Feature Spec under the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) so the plan and implementation satisfy an agreed contract, not chat memory. Decide the case from evidence: net-new capability with no code yet → `/spec [mode=draft]` (provisional, `Evidence: TBD`); enhancement to an already-documented feature → `/spec [mode=update]`; behavior/contract change to existing spec → `/spec [mode=amend]`; buggy/undocumented area that now warrants a spec → `/spec [mode=init]`. If a governing spec already exists and fully covers this change, record `Spec verified current — no change` with `file:line` evidence and proceed. **Skip ONLY in fast mode** (ALL Default Mode Policy trivial-task conditions met — no behavior/contract change); record the skip reason. Decide the case explicitly — skip only the authoring, never the decision.
 > 2. **`/plan`** — author the implementation plan from the spec. feature-implement's Comprehensive Planning phase (Step 2) satisfies this; emit a reviewable plan artifact under the plans root (default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides). Map each plan phase's `## Test Specifications` to the spec's §8 `TC-{FEATURE}-{NNN}` IDs.
-> 3. **`/plan-review`** — recursively review/validate the plan; fix validated findings that block the current severity bar before implementing.
-> 4. **Proceed** — execute the core implementation spine up to the static code review (research already done → implement every phase with its tests → Step 4 review); the single Step 5 verify runs LAST, after every review below.
-> 5. **`/spec [mode=sync]`** — *spec-driven closure.* Reconcile the spec's §8 `TC-{FEATURE}-{NNN}` ↔ integration tests and refresh `Evidence: TBD` markers to real `file:line` now that code exists. Run `/spec [mode=tests]` first if the implementation introduced behavior not yet captured as a test case. Skip only when step 1 was skipped (fast-mode trivial, no spec touched).
+> 3. **Proceed** — execute the core implementation spine up to the static code review (research already done → implement every phase with its tests → Step 4 review); the single Step 5 verify runs LAST, after every review below.
+> 4. **`/spec [mode=sync]`** — *spec-driven closure.* Reconcile the spec's §8 `TC-{FEATURE}-{NNN}` ↔ integration tests and refresh `Evidence: TBD` markers to real `file:line` now that code exists. Run `/spec [mode=tests]` first if the implementation introduced behavior not yet captured as a test case. Skip only when step 1 was skipped (fast-mode trivial, no spec touched).
 > 6. **`/changes-review`** — review the diff before commit.
 > 7. **`/why-review`** — review rationale and change quality of the implementation.
 > 8. **Verify once (Step 5)** — full tests + mutation check on the settled tree, then the documentation update and final report; a fix made here re-runs items 6-7 before the task is done (`SYNC:verify-last-order`).
@@ -94,6 +93,8 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 - Component patterns: `frontend-patterns-reference.md`
 - Styling reference: `configured styling reference`
 - Design system tokens: `design-system/README.md`
+
+**AI surface?** Only if the task creates or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md` and apply it; otherwise skip this line.
 
 **Ultrathink** plan and implement these tasks with maximum verification:
 
@@ -249,7 +250,7 @@ mistakes compound through later tasks.
 - `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `graph-assisted-investigation` — Run a code-graph command on the key files before concluding; investigating code while the code graph exists → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `plan-quality` — Every plan phase carries test specifications and purpose-named contracts; writing or reviewing a plan → .claude/skills/shared/protocols/plan-quality.md
+- `plan-quality` — Plans decide direction, affected owners, risks and final proof without pre-writing implementation; writing or reviewing a plan → .claude/skills/shared/protocols/plan-quality.md
 - `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
@@ -285,7 +286,7 @@ mistakes compound through later tasks.
 
 <!-- SYNC:plan-quality:reminder -->
 
-**MUST ATTENTION** Resolve `specArtifacts` first: use its identity and carrier only when valid, use strict-default `TC-{FEATURE}-{NNN}` and legacy TestSpec shape only when absent, and block a malformed declaration. Every plan phase maps its cases to an inspected assertion-bearing executor. Before each workflow step and after compaction, call `TaskList` and re-read the phase file; verify `file:line` evidence before completion.
+**MUST ATTENTION** Plan at decision-and-boundary altitude: resolve `specArtifacts`; map behavior to existing or planned test owners without fabricating future evidence; name bounded executor discovery; author tests with implementation; run suites only at the final verify gate after all implementation and static review.
 
 <!-- /SYNC:plan-quality:reminder -->
 

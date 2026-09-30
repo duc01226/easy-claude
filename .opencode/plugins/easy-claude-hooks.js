@@ -317,6 +317,14 @@ const HOOKS = {
       "hooks": [
         {
           "type": "command",
+          "command": ".claude/hooks/ai-feature-route.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
           "command": ".claude/hooks/core-principles-inject.cjs"
         }
       ]

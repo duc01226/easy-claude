@@ -7,10 +7,10 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->128<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->129<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->24<!-- /COUNT --> top-level hook files deep-dive                                                           |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->25<!-- /COUNT --> top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->21<!-- /COUNT --> workflows                                             |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
@@ -26,11 +26,11 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   128 skills across 15+ domains
+|-- skills/                   129 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    24 top-level hook files, 46 lib modules
+|-- hooks/                    25 top-level hook files, 46 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -78,6 +78,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | Build code graph           | `/graph-build`                       | `graph-build`                 |
 | Review integration tests   | `/integration-test-review`           | `integration-test-review`     |
 | Verify test traceability   | `/integration-test-verify`           | `integration-test-verify`     |
+| Review an AI feature       | `/ai-engineering-review`             | `ai-engineering-review`       |
 | Enhance AI prompts         | `/prompt-enhance`                    | `prompt-enhance`              |
 | Create PBI visual mockup   | `/pbi-mockup`                        | `pbi-mockup`                  |
 
@@ -153,11 +154,11 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 128   |
-| Hook files (top-level) | 24    |
+| Skills                 | 129   |
+| Hook files (top-level) | 25    |
 | Lib Modules            | <!-- COUNT:lib-modules -->46<!-- /COUNT --> |
 | Hook Events            | 9     |
-| Agents                 | <!-- COUNT:agents -->23<!-- /COUNT --> |
+| Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | 21    |
 | Hook Tests             | 137   |
 | Documentation Files    | 28    |

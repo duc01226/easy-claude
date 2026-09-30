@@ -551,7 +551,7 @@
           "role": "optional",
           "applicability": {
             "when": "The investigation or spec draft holds a design choice between real alternatives.",
-            "skipReason": "No design choice between alternatives exists yet; every plan-review round still reviews the plan rationale."
+            "skipReason": "No design choice between alternatives exists yet; the plan records straightforward decisions directly."
           }
         },
         "spec",
@@ -583,8 +583,9 @@
             "skipReason": "The feature adds no new UI surface: it is backend-only or only adjusts existing views, so there is no new direction to choose."
           }
         },
+        "spec [mode=tests]",
+        "artifact-review --type=spec-tests",
         "plan",
-        "plan-review",
         {
           "id": "feature-plan-validate",
           "skill": "plan-validate",
@@ -592,26 +593,6 @@
           "applicability": {
             "when": "The reviewed plan carries decisions, assumptions or risks the user should confirm, or its Plan Gate still lacks human approval — typically M+ size, a public contract, data/schema, security or cross-module work.",
             "skipReason": "The plan is small and unambiguous: every decision traces to the reviewed spec and its Plan Gate already records human approval."
-          }
-        },
-        "spec [mode=tests]",
-        "artifact-review --type=spec-tests",
-        {
-          "id": "feature-replan",
-          "skill": "plan",
-          "role": "optional",
-          "applicability": {
-            "when": "The reviewed pre-implementation test specs change the plan's scope, test infrastructure, test data setup or phase order.",
-            "skipReason": "The reviewed test specs fit the plan unchanged; its test strategy already covers them."
-          }
-        },
-        {
-          "id": "feature-replan-review",
-          "skill": "plan-review",
-          "role": "optional",
-          "applicability": {
-            "when": "The plan was re-cut after the test specs (the re-plan ran).",
-            "skipReason": "No re-plan ran, so the reviewed plan stands."
           }
         },
         "plan-execute",
@@ -624,28 +605,8 @@
             "skipReason": "The feature adds no entity or flow that needs new development data."
           }
         },
-        {
-          "id": "feature-test-spec-update",
-          "skill": "spec",
-          "args": "[mode=tests]",
-          "role": "optional",
-          "applicability": {
-            "when": "The build surfaced behavior, edge cases or TC gaps the pre-implementation test specs miss, or the post-implementation spec re-verify found SPEC-STALE drift.",
-            "skipReason": "The built behavior matches the pre-implementation test specs; no TC needs adding or changing."
-          }
-        },
-        {
-          "id": "feature-test-spec-update-review",
-          "skill": "artifact-review",
-          "args": "--type=spec-tests",
-          "role": "optional",
-          "applicability": {
-            "when": "The post-implementation test-spec update ran.",
-            "skipReason": "No post-implementation test-spec update ran, so there is nothing new to review."
-          }
-        },
-        "spec [mode=sync]",
         "integration-test",
+        "spec [mode=sync]",
         {
           "id": "feature-review",
           "skill": "workflow-review-changes",
@@ -711,7 +672,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "LEAN SPEC-SUPPLIED ROUTE: the requested behavior is already written in a canonical spec or TC set, so this route implements it without re-authoring the spec. Read .claude/skills/workflow-implement-spec/SKILL.md. FIRST ACTION: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md Size & Kind Triage; depth follows risk and ambiguity, and the gap review plus every gate hold at every size. ESCALATION (BR-GWF-04): /investigate reads the supplied spec and the affected code, then /spec-clarify runs as a gap review of that spec against the request; when the spec is vague or contradictory, or the requested behavior is not in it, STOP before /plan and ask the user to clarify the spec or switch to workflow-feature, which updates the spec first. Never guess the missing behavior and never drop it silently. SPEC-BASELINE ANCHOR (BR-GWF-05): /plan records the supplied spec as its spec_baseline (plan skill, Supplied-Spec Scope Baseline) and every plan task traces to that baseline; a requirement the baseline lacks goes to \"Proposed additions (need approval)\" and becomes a question, never a planned task. /spec [mode=sync] runs only when the implemented behavior differs from the supplied spec, and always before /integration-test and the nested /workflow-review-changes (run inline in the main session), so the review sees the synced spec.",
+        "injectContext": "LEAN SPEC-SUPPLIED ROUTE: the requested behavior is already written in a canonical spec or TC set, so this route implements it without re-authoring the spec. Read .claude/skills/workflow-implement-spec/SKILL.md. FIRST ACTION: triage size (XS/S/M/L/XL), kind and risk per the SKILL.md Size & Kind Triage; depth follows risk and ambiguity, and the gap review plus every gate hold at every size. ESCALATION (BR-GWF-04): /investigate reads the supplied spec and affected code, then /spec-clarify gap-reviews that spec against the request; vague, contradictory, or missing behavior stops before /plan and routes to user clarification or workflow-feature. SPEC-BASELINE ANCHOR (BR-GWF-05): before /plan, the workflow report records the supplied spec path and revision as spec_baseline; /plan keeps every phase and acceptance gate within it, and unowned additions require approval. Author integration tests after implementation, then run one /spec [mode=sync] reconciliation when behavior or case-to-test evidence changed, before the nested /workflow-review-changes. If review fixes invalidate that reconciliation, repeat only the scoped sync before final verification. Tests run only in the final verification gates.",
         "readFiles": [".claude/skills/workflow-implement-spec/SKILL.md"]
       },
       "sequence": [
@@ -719,17 +680,17 @@
         "spec-clarify",
         "plan",
         "plan-execute",
+        "integration-test",
         {
           "id": "implement-spec-sync",
           "skill": "spec",
           "args": "[mode=sync]",
           "role": "optional",
           "applicability": {
-            "when": "The implemented behavior differs from the supplied spec.",
-            "skipReason": "The implementation matches the supplied spec, so there is nothing to sync."
+            "when": "The implemented behavior differs from the supplied spec, or implementation/test authoring changed canonical case-to-test evidence or mappings.",
+            "skipReason": "Behavior and canonical case-to-test evidence still match the supplied spec, so no reconciliation is needed."
           }
         },
-        "integration-test",
         {
           "id": "implement-spec-review",
           "skill": "workflow-review-changes",
@@ -774,21 +735,12 @@
         }
       ],
       "preActions": {
-        "injectContext": "FEATURE-SPEC: create or update ONE canonical feature/spec artifact for one capability at its configured path, planned to the depth the change needs, cases reconciled, reviewed and docs-synced.\nTRIAGE FIRST (SKILL.md section 1): XS/S edits to one existing spec take a short plan and plan-validate; M+ (new or restructured spec, UI intent, ambiguity) adds plan-review and an /artifact-review of the result; several capabilities split into one spec each or route to workflow-code-to-spec.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. The portable eight-section README + Section 8 TC-{FEATURE}-{NNN} form applies only when neither exists (details: SKILL.md). Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks. Cross-reference parent/child artifacts as the contract defines (portable: each sub-feature references its parent).\nGATES: plan-validate confirms scope and non-obvious decisions with the user; docs-update routes the spec chain (/spec -> /spec [mode=tests] -> test-spec review -> /spec [mode=sync]) satisfying applicable M1-M7; workflow-review-changes converges inline in the main session; workflow-end closes.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke. Goal-Driven Execution: define success criteria first; loop until observable checks pass.",
+        "injectContext": "FEATURE-SPEC: create or update ONE canonical feature/spec artifact for one capability at its configured path, planned to the depth the change needs, cases reconciled, reviewed and docs-synced.\nTRIAGE FIRST (SKILL.md section 1): use one lean plan and plan-validate; several capabilities split into one spec each or route to workflow-code-to-spec.\nPROFILE FIRST: read docs/project-config.json (specRoots.business.path, workflowPatterns.featureDocTemplate, specArtifacts), the configured template, spec-system-reference.md and spec-principles.md. The native profile or local contract owns paths, section roles, IDs and test/evidence carriers; intent roles stay tech-agnostic. Unknown mapping = BLOCKED/UNKNOWN, never PASS; a malformed contract blocks.\nGATES: plan-validate confirms scope and non-obvious decisions with the user; docs-update routes the spec chain (/spec -> /spec [mode=tests] -> test-spec review -> /spec [mode=sync]); workflow-review-changes converges inline; workflow-end closes.\nTests Verify Intent: every case names the business intent or invariant it guards and would fail if that intent broke.",
         "readFiles": [".claude/skills/workflow-feature-spec/SKILL.md"]
       },
       "sequence": [
         "investigate",
         "plan",
-        {
-          "id": "feature-spec-plan-review",
-          "skill": "plan-review",
-          "role": "optional",
-          "applicability": {
-            "when": "The change is M or larger: a new or restructured spec, UI intent, several capabilities, or an ambiguous plan.",
-            "skipReason": "An XS/S change to one existing spec with a clear plan the user validates directly."
-          }
-        },
         {
           "id": "feature-spec-plan-validate",
           "skill": "plan-validate",
@@ -1349,15 +1301,6 @@
           }
         },
         {
-          "id": "idea-to-pbi-plan-review",
-          "skill": "plan-review",
-          "role": "optional",
-          "applicability": {
-            "when": "The plan step ran in this run.",
-            "skipReason": "The plan step was skipped, so there is no plan to review."
-          }
-        },
-        {
           "id": "idea-to-pbi-plan-validate",
           "skill": "plan-validate",
           "role": "optional",
@@ -1571,7 +1514,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "REFACTOR (lean, behavior-preserving). Intent: restructure code without changing observable behavior, proven by the same test scope green before and after plus a converged change review.\nFIRST: triage size (XS/S/M/L/XL), kind and risk per .claude/skills/workflow-refactor/SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- Search before planning: find the target pattern in 3+ local examples (file:line) and follow docs/project-config.json workflowPatterns (architecture, code hierarchy, naming), not generic framework docs.\n- BASELINE: run /test on the affected scope BEFORE any change; it must be green. A red baseline stops the refactor: report it or route the failure to workflow-bugfix. When no existing test would fail if the touched behavior changed, write characterization tests first (/integration-test) and prove them green on the unrefactored code.\n- Refactor in small verifiable increments. Observable behavior (outputs, persisted state, public contracts, errors, state transitions, timing boundaries) must not change; a change the user explicitly approves turns the work into a feature or bugfix.\n- Test code may change only mechanically (imports, renamed symbols, moved paths); an edited assertion or expected value is a behavior change and needs the user's approval.\n- Removing 'unused' code needs /investigate evidence: grep results, confidence >=80%, cross-module/service check.\n- For lifecycle/state logic, tests assert persisted transitions and invalid-transition rejection.\n- /plan-review and /plan-validate earn their cost for size M+/L+, cross-module, public-contract/data/security or ambiguous refactors. Spec steps run only when canonical specs or TCs reference moved code or tests, or a preserved invariant lacks a TC.\n- /workflow-review-changes runs INLINE in the main session; the final /test gate re-runs the baseline scope and must be green.\nPERFORMANCE-SDD ROUTE: a performance-driven refactor runs /performance-review for benchmark evidence (SLA, baseline, measurement command) while preserving observable behavior and functional no-regression; a changed SLA, public contract or docs/spec boundary still requires spec/test/docs sync.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root and docs/project-config.json.",
+        "injectContext": "REFACTOR (lean, behavior-preserving). Intent: restructure code without changing observable behavior, proven by the same test scope green before and after plus a converged change review.\nFIRST: triage size (XS/S/M/L/XL), kind and risk per .claude/skills/workflow-refactor/SKILL.md; the triage selects which optional steps run. Gate steps always run; core and optional steps follow the /start-workflow Step Execution Protocol, one deviation-log line each.\nNON-NEGOTIABLE:\n- Search before planning: find the target pattern in 3+ local examples (file:line) and follow docs/project-config.json workflowPatterns (architecture, code hierarchy, naming), not generic framework docs.\n- BASELINE: run /test on the affected scope BEFORE any change; it must be green. A red baseline stops the refactor: report it or route the failure to workflow-bugfix. When no existing test would fail if the touched behavior changed, write characterization tests first (/integration-test) and prove them green on the unrefactored code.\n- Refactor in small verifiable increments. Observable behavior (outputs, persisted state, public contracts, errors, state transitions, timing boundaries) must not change; a change the user explicitly approves turns the work into a feature or bugfix.\n- Test code may change only mechanically (imports, renamed symbols, moved paths); an edited assertion or expected value is a behavior change and needs the user's approval.\n- Removing 'unused' code needs /investigate evidence: grep results, confidence >=80%, cross-module/service check.\n- For lifecycle/state logic, tests assert persisted transitions and invalid-transition rejection.\n- /plan-validate earns its cost for L+, public-contract/data/security or ambiguous refactors. Spec steps run only when canonical specs or cases reference moved code or tests, or a preserved invariant lacks a case.\n- /workflow-review-changes runs INLINE in the main session; the final /test gate re-runs the baseline scope and must be green.\nPERFORMANCE-SDD ROUTE: a performance-driven refactor runs /performance-review for benchmark evidence (SLA, baseline, measurement command) while preserving observable behavior and functional no-regression; a changed SLA, public contract or docs/spec boundary still requires spec/test/docs sync.\nCONTEXT: shared/sdd-artifact-contract.md in the active skills root and docs/project-config.json.",
         "readFiles": [".claude/skills/workflow-refactor/SKILL.md"]
       },
       "sequence": [
@@ -1582,15 +1525,6 @@
           "role": "gate"
         },
         "plan",
-        {
-          "id": "refactor-plan-review",
-          "skill": "plan-review",
-          "role": "optional",
-          "applicability": {
-            "when": "Triage is size M or larger, or the refactor crosses modules, touches a public contract, data/schema or security-sensitive code, or the plan holds a real design choice.",
-            "skipReason": "Small local refactor (XS/S) inside one module with no contract, data or security surface; the nested change review covers the result."
-          }
-        },
         {
           "id": "refactor-plan-validate",
           "skill": "plan-validate",
@@ -1861,7 +1795,8 @@
             "integration-test-review",
             "security-audit",
             "production-readiness-review",
-            "ui-review"
+            "ui-review",
+            "ai-engineering-review"
           ],
           "conditionalMembers": [
             "architecture-review",
@@ -1869,14 +1804,15 @@
             "performance-review",
             "security-audit",
             "production-readiness-review",
-            "ui-review"
+            "ui-review",
+            "ai-engineering-review"
           ],
           "barrier": true
         }
       ],
       "preActions": {
         "domainEntityReferenceRefresh": "Immediately before docs-update, run scan --target=domain-entities when the final diff changes entity/model, DTO/contract, persistence schema/migration, or documented entity-sync evidence; otherwise record a cited skip reason.",
-        "injectContext": "REVIEW CURRENT CHANGES — intent: review the current changes, validate every finding, fix the validated blocking ones at their owning layer, and re-review the fixed state until the round bar clears. The SKILL.md (`.claude/skills/workflow-review-changes/SKILL.md`) owns the procedure; you choose the orchestration.\n\nTRIAGE FIRST: classify the target by size band (XS 1-3 files … XL 300+ files) and change kinds (docs-only, tooling/config, test-only, behavior, public contract, data/schema, security-sensitive, UI, infra/CI, cross-module). The triage selects which optional specialist reviewers run (each occurrence carries its applicability) and how deep; record the review plan in the report before reviewing.\n\nSEVERITY + ROUND-BAR POLICY (MANDATORY):\n- Classify each validated finding by shipped consequence, not effort: CRITICAL = immediate material risk (security/authority bypass, secrets or PII exposure, irreversible destructive action, data loss/corruption, silent critical-path failure, or failed binary gate); HIGH = material supported-path correctness, contract, invariant, privacy, authority, compatibility, or likely-harm risk; MEDIUM = bounded consequential edge/resilience/observability/testability/maintainability or local architecture gap; LOW = polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact.\n- Round 1 blocks on every validated severity, but a LOW never buys a full round: a local LOW fix closes by a scoped check, and a LOW needing new code or tests is deferred. Rounds 2-3 block only on validated CRITICAL/HIGH/MEDIUM; LOW-only rounds end immediately and list LOWs as deferred. Never re-tier a finding to obtain a pass. Binary gates (tests, security must-fix, required artifacts, generated parity, policy compliance) block at every round. `NOT VERIFIABLE` is pending evidence, never a LOW escape hatch.\n\nREVIEWERS: `changes-review` runs INLINE in the main session (report-only inside this workflow) in parallel with the whole-target `why-review` sub-agent; a behavior-changing diff is read whole once — the whole-diff correctness lane — by changes-review when it fits its context, otherwise by the whole-target sub-agent with the lane protocol in its brief, never by both; advance only after BOTH return. The selected specialists — `architecture-review`, `domain-entities-review`, `performance-review`, `integration-test-review`, `security-audit`, `production-readiness-review`, `ui-review` — run with `--report-only` as read-only leaves (no fixes, no user prompts, report under tmp/reports/), dispatched together in one message (specialists whose lenses read the same files share one agent when the combined context fits; a small-surface, low-risk optional specialist is folded into an existing reviewer as lens questions and logged `merged`); advance only after every spawned reviewer returns. `integration-test-review` always runs (coverage map + relevant test results).\n\nFIX PATH (no plan ceremony): consolidate every report into the living changes-review report and deduplicate by root cause → one main-session `why-review --validate-findings` pass over findings no reviewer validated plus the independent check set (every CRITICAL/HIGH, reviewer conflicts, a MEDIUM sample; batch reviewers and report-only specialists validate their own findings) → `fix --target=review` on validated blocking findings → `code-simplifier` when code changed → post-fix `why-review` INLINE over the settled whole target → loop within the round budget. Use `/plan` only when the validated fix set is large, cross-module or ambiguous.\n\nMANDATORY GATES:\n- SPEC DRIFT ADJUDICATION: every behavior-changing file is adjudicated CODE-WRONG / SPEC-STALE / SPEC-SILENT / AMBIGUOUS (AskUserQuestion) — never normalized because tests are green. Every behavior-changing finding feeds BOTH the spec and the tests (Dual-Feedback Ledger).\n- INTEGRATION TEST SYNC: changed business-logic files need a covering test; a gap is surfaced via AskUserQuestion — mandatory, not advisory.\n- MULTILINGUAL UI SYNC CHECK: If UI-facing files changed and project localization is multilingual (`localization.enabled` + `supportedLocales.length > 1`), verify translation file updates. If missing, surface via AskUserQuestion — mandatory, not advisory.\n- STATE MACHINE DATA ASSERT: lifecycle/state-transition changes need persisted-state assertions and invalid-transition rejection tests.\n- DOMAIN-ENTITY REFRESH: `scan --target=domain-entities` runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration or entity-sync evidence; otherwise skip it as a pre-action deviation with the cited reason.\n- DOC SYNC: review steps flag spec/doc gaps read-only; `docs-update` applies them. Every behavior change ends with its configured canonical owner, profile-declared scenario/case and mapped test assertions in sync.\n\nUNIVERSAL RULES: define success criteria first and loop until observable checks pass; every finding cites file:line evidence and confidence; tests verify the protected intent, not just current behavior.",
+        "injectContext": "REVIEW CURRENT CHANGES — intent: review the current changes, validate every finding, fix the validated blocking ones at their owning layer, and re-review the fixed state until the round bar clears. The SKILL.md (`.claude/skills/workflow-review-changes/SKILL.md`) owns the procedure; you choose the orchestration.\n\nTRIAGE FIRST: classify the target by size band (XS 1-3 files … XL 300+ files) and change kinds (docs-only, tooling/config, test-only, behavior, public contract, data/schema, security-sensitive, UI, AI feature — decided by running node .claude/scripts/ai-signal-scan.cjs --base <review base> --json first —, infra/CI, cross-module). The triage selects which optional specialist reviewers run (each occurrence carries its applicability) and how deep; record the review plan in the report before reviewing.\n\nSEVERITY + ROUND-BAR POLICY (MANDATORY):\n- Classify each validated finding by shipped consequence, not effort: CRITICAL = immediate material risk (security/authority bypass, secrets or PII exposure, irreversible destructive action, data loss/corruption, silent critical-path failure, or failed binary gate); HIGH = material supported-path correctness, contract, invariant, privacy, authority, compatibility, or likely-harm risk; MEDIUM = bounded consequential edge/resilience/observability/testability/maintainability or local architecture gap; LOW = polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact.\n- Round 1 blocks on every validated severity, but a LOW never buys a full round: a local LOW fix closes by a scoped check, and a LOW needing new code or tests is deferred. Rounds 2-3 block only on validated CRITICAL/HIGH/MEDIUM; LOW-only rounds end immediately and list LOWs as deferred. Never re-tier a finding to obtain a pass. Binary gates (tests, security must-fix, required artifacts, generated parity, policy compliance) block at every round. `NOT VERIFIABLE` is pending evidence, never a LOW escape hatch.\n\nREVIEWERS: `changes-review` runs INLINE in the main session (report-only inside this workflow) in parallel with the whole-target `why-review` sub-agent; a behavior-changing diff is read whole once — the whole-diff correctness lane — by changes-review when it fits its context, otherwise by the whole-target sub-agent with the lane protocol in its brief, never by both; advance only after BOTH return. The selected specialists — `architecture-review`, `domain-entities-review`, `performance-review`, `integration-test-review`, `security-audit`, `production-readiness-review`, `ui-review`, `ai-engineering-review` — run with `--report-only` as read-only leaves (no fixes, no user prompts, report under tmp/reports/), dispatched together in one message (specialists whose lenses read the same files share one agent when the combined context fits; a small-surface, low-risk optional specialist is folded into an existing reviewer as lens questions and logged `merged`); advance only after every spawned reviewer returns. `integration-test-review` always runs (coverage map + relevant test results).\n\nFIX PATH (no plan ceremony): consolidate every report into the living changes-review report and deduplicate by root cause → one main-session `why-review --validate-findings` pass over findings no reviewer validated plus the independent check set (every CRITICAL/HIGH, reviewer conflicts, a MEDIUM sample; batch reviewers and report-only specialists validate their own findings) → `fix --target=review` on validated blocking findings → `code-simplifier` when code changed → post-fix `why-review` INLINE over the settled whole target → loop within the round budget. Use `/plan` only when the validated fix set is large, cross-module or ambiguous.\n\nMANDATORY GATES:\n- SPEC DRIFT ADJUDICATION: every behavior-changing file is adjudicated CODE-WRONG / SPEC-STALE / SPEC-SILENT / AMBIGUOUS (AskUserQuestion) — never normalized because tests are green. Every behavior-changing finding feeds BOTH the spec and the tests (Dual-Feedback Ledger).\n- INTEGRATION TEST SYNC: changed business-logic files need a covering test; a gap is surfaced via AskUserQuestion — mandatory, not advisory.\n- MULTILINGUAL UI SYNC CHECK: If UI-facing files changed and project localization is multilingual (`localization.enabled` + `supportedLocales.length > 1`), verify translation file updates. If missing, surface via AskUserQuestion — mandatory, not advisory.\n- STATE MACHINE DATA ASSERT: lifecycle/state-transition changes need persisted-state assertions and invalid-transition rejection tests.\n- DOMAIN-ENTITY REFRESH: `scan --target=domain-entities` runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration or entity-sync evidence; otherwise skip it as a pre-action deviation with the cited reason.\n- DOC SYNC: review steps flag spec/doc gaps read-only; `docs-update` applies them. Every behavior change ends with its configured canonical owner, profile-declared scenario/case and mapped test assertions in sync.\n\nUNIVERSAL RULES: define success criteria first and loop until observable checks pass; every finding cites file:line evidence and confidence; tests verify the protected intent, not just current behavior.",
         "readFiles": [".claude/skills/workflow-review-changes/SKILL.md"]
       },
       "sequence": [
@@ -1953,6 +1889,16 @@
           }
         },
         {
+          "id": "ai-engineering-review",
+          "skill": "ai-engineering-review",
+          "args": "--report-only",
+          "role": "optional",
+          "applicability": {
+            "when": "The diff contains AI-feature surfaces — files that call a model SDK or provider API, hold prompts, agents, tools, retrieval, evals or guardrails — as reported by node .claude/scripts/ai-signal-scan.cjs --base <review base> --json (drop --base only when no review base exists), which runs FIRST; run this step when its status is surface, or when the status is unknown and the checklist §0.1 signal grep, run once, is also inconclusive.",
+            "skipReason": "The scan reports status clean; record `No AI-feature surface` once and read or spawn nothing for this step."
+          }
+        },
+        {
           "id": "validate-findings",
           "skill": "why-review",
           "args": "--validate-findings",
@@ -2016,7 +1962,7 @@
           "role": "optional",
           "applicability": {
             "when": "This workflow is the TOP-LEVEL invocation — the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly — and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
-            "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-update instead of announcing workflow completion or running the /understand + Next-Steps handoff."
+            "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-update instead of announcing workflow completion."
           }
         },
         {
@@ -2025,7 +1971,7 @@
           "role": "optional",
           "applicability": {
             "when": "This workflow is the TOP-LEVEL invocation — the user ran /start-workflow workflow-review-changes, or /changes-review routed here directly — and this run is neither an inner round of its own --fix-loop nor invoked by another skill (e.g. /pull-request, /commit).",
-            "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-update instead of announcing workflow completion or running the /understand + Next-Steps handoff."
+            "skipReason": "Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-refactor, workflow-big-feature, workflow-greenfield-init, workflow-spec-sync, workflow-code-to-spec [update]), running as an inner round of --fix-loop, or invoked by another skill (e.g. /pull-request, /commit); the caller owns /workflow-end and the terminal wrap-up. Return control after docs-update instead of announcing workflow completion."
           }
         }
       ],
@@ -2065,6 +2011,10 @@
           "contextBudget": "high"
         },
         "ui-review": {
+          "executionMode": "subagent",
+          "contextBudget": "high"
+        },
+        "ai-engineering-review": {
           "executionMode": "subagent",
           "contextBudget": "high"
         },
@@ -2202,15 +2152,6 @@
               "skill": "plan"
             },
             {
-              "id": "init-plan-review",
-              "skill": "plan-review",
-              "role": "optional",
-              "applicability": {
-                "when": "Four or more capabilities, multi-bucket or whole-project scope, or an ambiguous split strategy.",
-                "skipReason": "Three or fewer capabilities in one bucket with a clear capability-per-task plan."
-              }
-            },
-            {
               "id": "init-plan-validate",
               "skill": "plan-validate",
               "role": "optional",
@@ -2342,7 +2283,6 @@
       "sequence": [
         "investigate",
         "plan",
-        "plan-review",
         "plan-validate",
         "spec",
         "spec [mode=tests]",
@@ -2420,15 +2360,6 @@
           "applicability": {
             "when": "The spec is large (isLargeIdea true), spans four or more capabilities, or has cross-capability dependencies, so a decomposition plan drives PBI slicing and order.",
             "skipReason": "The spec covers one to three capabilities with no cross-capability dependency, so the coverage matrix decomposes it without a separate plan."
-          }
-        },
-        {
-          "id": "spec-to-pbi-plan-review",
-          "skill": "plan-review",
-          "role": "optional",
-          "applicability": {
-            "when": "The plan step ran in this run.",
-            "skipReason": "The plan step was skipped, so there is no plan to review."
           }
         },
         {
@@ -2777,7 +2708,7 @@
       "whenToUse": "User wants to seed test data, implement data seeders, generate realistic development environment data, add happy-path scenarios for a feature, create dummy data for manual QC testing, fill dev database with realistic test cases"
     },
     "workflow-write-integration-test": {
-      "description": "Write or update integration tests for existing code — spec-first: investigate domain logic → write/update specs → generate test code → 7-gate review (incl. change coverage) → run and verify",
+      "description": "Write or update integration tests for existing code — spec-first: investigate domain logic → write/update specs → generate test code → one-pass 8-gate review → run and verify",
       "intent": "Write or update spec-traced integration tests for existing code and prove they pass with real assertion value.",
       "name": "Write Integration Tests",
       "outcomeGates": [
@@ -2799,7 +2730,7 @@
         }
       ],
       "preActions": {
-        "injectContext": "WRITE INTEGRATION TESTS: write or update integration tests traced to the project's canonical case owner and prove they pass with real assertion value.\nPROJECT CONTEXT: read docs/project-config.json -> integrationTestVerify (guidance, commands, test roots) and framework.integrationTestDoc, the selected referenceDocs, and same-area tests; they choose runner, layout, fixtures, waits, annotations and repeat policy. Never assume a language, database, layer layout or helper.\nCASE OWNER: resolve specArtifacts and specRoots; use the configured carrier and identifiers, else the strict-default Feature Spec Section 8 TC contract when that is the selected contract. Never invent sections, TC IDs, CoveredBy fields or annotations for a custom carrier.\nTRIAGE FIRST (record it): size band (XS 1-3 cases in one suite ... XL whole-suite audit), kind (new coverage, converting existing cases, stabilising a suite, persistent/shared state, UI, security) and case state (missing, stale, current). Optional steps run only when their registry `when` holds; log every other deviation per /start-workflow.\nGATES: /integration-test-review converges (7 gates incl. change coverage; round 1 every validated severity, round 2+ CRITICAL/HIGH/MEDIUM, LOW-only deferred); /integration-test-verify is green over the configured suites under integrationTestVerify.guidance (absent: two fresh green runs without destructive reset for persistent/shared-state suites) with real runner output; /spec [mode=sync] reconciles cases with executing tests; /workflow-end closes after the Goal Satisfaction matrix.\nGUARDRAILS: read the production and test source before writing any assertion; every test names the invariant it protects and asserts an outcome the system owns; exercise the production entry path when it is the behavior under test and valid fixtures for unrelated preconditions; wait only on a real observable signal. On any failure record a five-way Fault Verdict via /debug-investigate before editing; never force green by deleting or skipping tests, weakening assertions, widening assertion timeouts, retrying assertions or narrowing scope.\nTriage table, gates and recommended skills: .claude/skills/workflow-write-integration-test/SKILL.md.",
+        "injectContext": "WRITE INTEGRATION TESTS: write or update integration tests traced to the project's canonical case owner and prove they pass with real assertion value.\nPROJECT CONTEXT: read docs/project-config.json -> integrationTestVerify (guidance, commands, test roots) and framework.integrationTestDoc, the selected referenceDocs, and same-area tests; they choose runner, layout, fixtures, waits, annotations and repeat policy. Never assume a language, database, layer layout or helper.\nCASE OWNER: resolve specArtifacts and specRoots; use the configured carrier and identifiers, else the strict-default Feature Spec Section 8 TC contract when that is the selected contract. Never invent sections, TC IDs, CoveredBy fields or annotations for a custom carrier.\nTRIAGE FIRST (record it): size band (XS 1-3 cases in one suite ... XL whole-suite audit), kind (new coverage, converting existing cases, stabilising a suite, persistent/shared state, UI, security) and case state (missing, stale, current). Optional steps run only when their registry `when` holds; log every other deviation per /start-workflow.\nGATES: /integration-test-review performs one evidence-backed review pass over all eight gates, including change coverage and real-world fidelity, then reports and stops; fixes and any later review are caller-owned and require a new explicit invocation. /integration-test-verify is green over the configured suites under integrationTestVerify.guidance (absent: two fresh green runs without destructive reset for persistent/shared-state suites) with real runner output; /spec [mode=sync] reconciles cases with executing tests; /workflow-end closes after the Goal Satisfaction matrix.\nGUARDRAILS: read the production and test source before writing any assertion; every test names the invariant it protects and asserts an outcome the system owns; exercise the production entry path when it is the behavior under test and valid fixtures for unrelated preconditions; wait only on a real observable signal. On any failure record a five-way Fault Verdict via /debug-investigate before editing; never force green by deleting or skipping tests, weakening assertions, widening assertion timeouts, retrying assertions or narrowing scope.\nTriage table, gates and recommended skills: .claude/skills/workflow-write-integration-test/SKILL.md.",
         "readFiles": [".claude/skills/workflow-write-integration-test/SKILL.md"]
       },
       "sequence": [

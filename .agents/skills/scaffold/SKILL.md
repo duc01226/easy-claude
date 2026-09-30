@@ -103,6 +103,8 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 5. **Scaffold** — Create only the abstractions, infrastructure, and examples selected by the plan and supported by project conventions.
 6. **Verify** — Build; validate the selected architecture, testability, and the Verification Gate; then invoke `$linter-setup` → `$harness-setup` and present the ask the user directly handoff.
 
+**AI surface?** Only if the plan scaffolds or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and apply it; otherwise skip this line.
+
 ## Backend Scaffolding Categories
 
 AI must self-investigate chosen tech stack, produce a checklist covering these categories. Names below are illustrative — adapt to the project's language, framework conventions, and actual needs.
