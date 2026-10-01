@@ -80,13 +80,13 @@ Wave 1 (`initial-reviews`, `barrier: true`) — `changes-review` plus `why-revie
 
 | Wave-2 member                 | Sub-agent type          | Dispatch condition                                        |
 | ----------------------------- | ----------------------- | --------------------------------------------------------- |
-| `architecture-review`         | `architect`             | Always                                                    |
+| `architecture --mode=review`         | `architect`             | Always                                                    |
 | `security-audit`             | `security-auditor`      | Always                                                    |
 | `performance-review`          | `performance-optimizer` | Always                                                    |
-| `integration-test-review`     | `integration-tester`    | Always                                                    |
+| `integration-test --mode=review`     | `integration-tester`    | Always                                                    |
 | `production-readiness-review` | `code-reviewer`         | Always — read-only findings/score mode in the batch       |
-| `domain-entities-review`      | `code-reviewer`         | **Conditional** — only when domain entity files changed   |
-| `ui-review`                   | `ui-ux-designer`        | **Conditional** — only when frontend/UI files are in diff |
+| `domain-analysis --mode=review`      | `code-reviewer`         | **Conditional** — only when domain entity files changed   |
+| `ui-design --mode=review`     | `ui-ux-designer`        | **Conditional** — only when frontend/UI files are in diff |
 | `ai-engineering-review`       | `ai-engineering-reviewer` | **Conditional** — only when the diff has AI-feature surfaces (`node .claude/scripts/ai-signal-scan.cjs --base <review base> --json`; `status` `surface` runs, `clean` skips, `unknown` → fallback search or run) |
 
 Why one wave: all eight are read-only, share no mutable state, and none consumes another's output — so the only cost of serializing them is context burned absorbing each inline report.

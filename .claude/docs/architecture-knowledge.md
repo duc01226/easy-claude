@@ -2,7 +2,7 @@
 
 > **Role:** the **authoritative knowledge body** architecture skills reason FROM. Owns the LAWS, TRADE-OFF TABLES, QUALITY-ATTRIBUTE TACTICS, STYLE-SELECTION rules, MODULE-DESIGN principles, PATTERN and ANTI-PATTERN catalogs, the SYMPTOM→CAUSE triage matrix, and the JUDGMENT CHECKLISTS (§20). Owns NO procedure — procedure lives in the consuming skills.
 >
-> **Consumed by:** `architecture-design` (Steps 2, 3A, 3C, 3D, 7, 11) · `architecture-review` (Phase 0 + Categories 0, 1, 2, 7, 9, 11, 12) · `architecture-scalability-review` · `architecture-review-full`. This list is the drift-guard's scope below — a skill belongs here ONLY if it carries an inline `architecture-knowledge.md` pointer, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.
+> **Consumed by:** `architecture` — mode `--mode=design` (Steps 2, 3A, 3C, 3D, 7, 11) · mode `--mode=review` (Phase 0 + Categories 0, 1, 2, 7, 9, 11, 12) · modes `--mode=scalability` and `--mode=full`. This list is the drift-guard's scope below — a skill belongs here ONLY if it carries an inline `architecture-knowledge.md` pointer, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.
 >
 > **Drift-guard:** this file is AUTHORITATIVE for architecture laws, coupling taxonomy, style-selection triggers, and the anti-pattern catalog. Scale tiers stay single-sourced in `scale-technique-catalog.md`; failure scenarios in `scenario-stress-catalog.md`; performance constants in `.claude/skills/performance-review/references/performance-knowledge.md`. On any change here, grep `architecture-knowledge.md` and update every consuming skill's inline pointer.
 >
@@ -924,7 +924,7 @@ Also: a **tech radar** (adopt/trial/assess/hold) · lightweight RFC flow · an *
 
 ### 20.5 The seven questions any system design must answer
 
-> **MUST ATTENTION** this is a COMPLETENESS checklist, not a workflow. Like §20.1–§20.4 it owns no procedure and implies no ordering: it tells you WHAT must be answered, never in WHAT ORDER to answer it. **Where a consuming skill declares its own step sequence, that sequence wins** — `architecture-design`, for one, deliberately settles Data & Consistency (Step 3C) BEFORE Integration & API (Step 3D), and NOTHING here overrides it. Treat an unanswered item as a gap to close, not a stage to run.
+> **MUST ATTENTION** this is a COMPLETENESS checklist, not a workflow. Like §20.1–§20.4 it owns no procedure and implies no ordering: it tells you WHAT must be answered, never in WHAT ORDER to answer it. **Where a consuming skill declares its own step sequence, that sequence wins** — `architecture --mode=design`, for one, deliberately settles Data & Consistency (Step 3C) BEFORE Integration & API (Step 3D), and NOTHING here overrides it. Treat an unanswered item as a gap to close, not a stage to run.
 
 - **Scope clarified?** — functional scope, then the quantified quality attributes, with every assumption stated explicitly.
 - **Sized?** — traffic, data volume, read:write ratio, peak-to-average multiple, growth horizon.

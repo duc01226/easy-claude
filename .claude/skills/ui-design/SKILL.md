@@ -1,26 +1,30 @@
 ---
 name: ui-design
-version: 1.1.0
-description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|explore|describe|screenshot|video} (default fast), --lane={product|marketing} (default product).'
+version: 1.2.0
+description: '[Design] Use when a workflow step or the user asks for a UI design (create, describe) or a UI review: content fit, layouts, styling conventions, accessibility, async states. --mode={fast|good|explore|describe|screenshot|video|review}.'
 disable-model-invocation: false
 ---
 
+> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=review` selects the UI review (read-only findings over existing interfaces); explicit `--mode={fast|good|explore|describe|screenshot|video}` selects that design mode; no `--mode` is the default `fast` design (everything below, unchanged). An explicit mode always wins. `/ui-design --mode=review` is the former `/ui-review`: that slash command no longer exists, and the mode works called directly with no workflow. `--mode=review` REPLACES the design spine for the invocation — read `references/mode-review.md` in full before anything else (see [Mode Dispatch](#arguments--mode-dispatch)); the shared steps, design-intelligence search, lane and mode branches below do not run for it.
+
 ## Quick Summary
 
-**Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane).
+**Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane); `--mode=review` instead reviews existing UI for content fit, supported-size layout, styling conventions, layering, accessibility and async states.
 
 **Summary:**
 
-- **Route:** parse `--mode={fast|good|explore|describe|screenshot|video}` and `--lane={product|marketing}`; default to `fast` × `product`.
-- **Spine (BLOCKING order, every mode):** Journey Report (`UX-1`) → design authority read — principles, design system, existing UI (`UX-2`) → design-intelligence search (candidates only) → ingest visual evidence when applicable → low-fi structure walked against the journeys (`UX-7`) → design with `ui-ux-designer` (`DD-3` plan + `UI-*`/`DD-*`) → implement unless `describe` → validate by walking the journeys + traceability (`UX-8`) → report and seek approval.
+- **Route:** parse `--mode={fast|good|explore|describe|screenshot|video|review}` and `--lane={product|marketing}`; default to `fast` × `product`. `review` replaces the design spine with `references/mode-review.md` (`--lane` does not apply).
+- **Spine (BLOCKING order, every design mode — not `review`):** Journey Report (`UX-1`) → design authority read — principles, design system, existing UI (`UX-2`) → design-intelligence search (candidates only) → ingest visual evidence when applicable → low-fi structure walked against the journeys (`UX-7`) → design with `ui-ux-designer` (`DD-3` plan + `UI-*`/`DD-*`) → implement unless `describe` → validate by walking the journeys + traceability (`UX-8`) → report and seek approval.
 - **Quality floor:** apply project tokens/components plus `UI-*`/`DD-*`/`CL-*`; design states, interaction feedback, declared scales, measured contrast, touch targets, responsive reflow, and subject-grounded copy before the happy path.
-- **Ownership:** `/ui-design` authors the visual direction and implementation contract; `/ui-review` owns source findings and review evidence; the local index supplies candidates only.
+- **Ownership:** the design modes author the visual direction and implementation contract; `--mode=review` owns source findings and review evidence; the local index supplies candidates only.
 
 > **Renamed:** folds the former `/design-fast`, `/design-good`, `/design-describe`, `/design-screenshot`, `/design-video` skills into the same-named value of `--mode={fast|good|explore|describe|screenshot|video}` — those names no longer resolve as slash commands; use `/ui-design --mode=…`.
 >
+> **Folded review:** the former `/ui-review` is `--mode=review` — that name no longer resolves as a slash command; use `/ui-design --mode=review [scope] [--report-only]`. Its full body lives in `references/mode-review.md`.
+>
 > **Absorbed lanes:** the former `frontend-design` (marketing/creative) and `interface-design` (product-UI) skills now fold into `--lane={marketing|product}` — those names no longer resolve as slash commands; use `/ui-design --lane=…`. Each lane's full body lives under `references/lane-{marketing,product}/lane-guide.md`.
 
-**Mode dispatch:** `--mode={fast|good|explore|describe|screenshot|video}` — default `fast` when omitted.
+**Mode dispatch:** `--mode={fast|good|explore|describe|screenshot|video|review}` — default `fast` when omitted.
 **Lane dispatch:** `--lane={product|marketing}` — default `product` when omitted. Lane (the design tradition) is orthogonal to mode (the input carrier); any mode combines with any lane.
 
 | Lane                  | Use for                                                                 | Full body |
@@ -36,8 +40,9 @@ disable-model-invocation: false
 | `describe`            | screenshot / video          | super-detailed written description + implementation plan (NO code) |
 | `screenshot`          | screenshot                  | design recreated from the image as functional code          |
 | `video`               | video                       | design + interactions recreated from the video as functional code |
+| `review`              | changed UI files / surfaces | read-only review report (findings, severity, fix guidance; fixes only via the validated fix loop, none under `--report-only`) — formerly `/ui-review` |
 
-**Shared workflow (journey-first spine — BLOCKING order, every mode):**
+**Shared workflow (journey-first spine — BLOCKING order, every design mode; `review` runs its own reference instead):**
 
 1. **Journey Report (`UX-1`)** — Analyze and REPORT the main user journeys BEFORE any other output (template: `.claude/docs/ux-journey-process.md` §4, depth per §10). Confirm an inferred primary actor, main job or success outcome with the user before generating.
 2. **Design authority read (`UX-2`)** — Read the project's design principles/guidelines, the design system resolved from `docs/project-config.json` (`designSystem.canonicalDoc`, `tokenFiles`, `appMappings[]`) and the existing related UI (`SYNC:existing-ui-research`); record `Design authority read: <paths>` or `N/A — none configured (checked: <paths>)`.
@@ -60,12 +65,13 @@ disable-model-invocation: false
 
 ## Arguments & Mode Dispatch
 
-`/ui-design --mode={fast|good|explore|describe|screenshot|video} --lane={product|marketing} <brief | screenshot | video>`
+`/ui-design --mode={fast|good|explore|describe|screenshot|video|review} --lane={product|marketing} <brief | screenshot | video | review scope>`
 
 - When `--mode` is omitted, default to `--mode=fast`.
+- An explicit `--mode` always wins; `--mode=review` is never inferred from the brief and is never the default.
 - When `--lane` is omitted, default to `--lane=product` (the dominant PBI/app use). Pick `marketing` for landing pages, campaigns, and distinctive creative pieces.
 - `--mode` (input carrier) and `--lane` (design tradition) are orthogonal — e.g. `--mode=screenshot --lane=product` recreates a dashboard screenshot in the product-UI craft tradition.
-- `$ARGUMENTS` carries the full input after the command. Interpret it per mode: `fast`/`good`/`explore` → a text design brief; `describe`/`screenshot` → a screenshot reference (path/URL/attachment); `video` → a video reference.
+- `$ARGUMENTS` carries the full input after the command. Interpret it per mode: `fast`/`good`/`explore` → a text design brief; `describe`/`screenshot` → a screenshot reference (path/URL/attachment); `video` → a video reference; `review` → the review scope (files, directories or surfaces; empty = all uncommitted UI changes) plus the optional `--report-only` flag.
 
 ### Lane selection (apply the chosen lane's craft body at stages 6-7)
 
@@ -79,10 +85,11 @@ Do NOT inline the lane bodies here — read the matching `lane-guide.md` when th
 1. **In-skill design-intelligence search/data** — Query `scripts/search.py` after the Journey Report (`UX-1`) and the design-authority/existing-UI read (`UX-2`); results are candidate input, not project authority.
 2. **In-skill lane references** — `references/lane-{product|marketing}/lane-guide.md` (+ their reference files) own implementation, screenshot/video analysis, and design replication for the selected lane.
 3. **In-skill explore references** — `references/explore/workflow.md` (+ `gate-files.md`, `brand-asset-protocol.md`) own the `--mode=explore` flow; read them only when that mode is selected.
+4. **In-skill review reference** — `references/mode-review.md` owns `--mode=review`; read it only when that mode is selected.
 
 **Ensure token efficiency while maintaining high quality.**
 
-## Shared First Step (ALL modes)
+## Shared First Step (ALL design modes)
 
 > **[BLOCKING] Step 0 — Journey Report (`UX-1`).** Before any wireframe, mockup, design plan, token table, search result or code, analyze and PRESENT the main user journeys, per `SYNC:ux-journey-gate` and the template in `.claude/docs/ux-journey-process.md` §4: frame · actors + job statements · 3–5 ranked main journeys with step tables (intent · decision/action · information needed · business rule · system response · failure → recovery) · derived design requirements · assumptions and open questions, each claim tagged `SOURCED (location)` or `INFERRED`. Depth scales with scope (§10), never to zero for a new or reshaped view. **Confirm an inferred primary actor, main job or success outcome with the user before generating.**
 >
@@ -111,11 +118,11 @@ The local index is a research aid owned by this skill. It supplies structured ca
 5. **Design state coverage before the happy path.** Specify `Default`, `Loading`, `Disabled`, `Error`, `Empty`, and `Success` where applicable. Errors need human-readable recovery, empty states need a meaningful next action, in-flight actions must prevent duplicate submission, and successful actions need acknowledgment.
 6. **Design for reachable reflow.** Use the project's content breakpoints. If none are declared, smoke-check 320, 768, 1024, and 1440 widths: rows reflow, grids collapse, non-reflow content has an intentional reachable scroll fallback, and nothing is clipped or unreachable. Surface any large refactor or new breakpoint as an explicit decision.
 
-`ui-review` remains the owner of source-level findings, evidence, severity, component ownership, and review procedure. This contract makes the same quality floor explicit while authoring a design; it does not duplicate or replace the review skill.
+`--mode=review` remains the owner of source-level findings, evidence, severity, component ownership, and review procedure. This contract makes the same quality floor explicit while authoring a design; it does not duplicate or replace the review mode.
 
-## UX Journey Contract (all modes)
+## UX Journey Contract (all design modes)
 
-The journey-first gate (`UX-1`–`UX-11`, `SYNC:ux-journey-gate`; deep catalog `.claude/docs/ux-journey-process.md`) binds EVERY mode and runs BEFORE `UI-*`/`DD-*`/`CL-*`, because those judge a surface whose purpose it defines. Steps 0 and 0b above deliver `UX-1` and `UX-2`.
+The journey-first gate (`UX-1`–`UX-11`, `SYNC:ux-journey-gate`; deep catalog `.claude/docs/ux-journey-process.md`) binds EVERY design mode (`--mode=review` applies it through its own reference) and runs BEFORE `UI-*`/`DD-*`/`CL-*`, because those judge a surface whose purpose it defines. Steps 0 and 0b above deliver `UX-1` and `UX-2`.
 
 **Generative modes (`fast`, `good`, `explore`) — DERIVE the design from the journeys:**
 
@@ -129,9 +136,9 @@ The journey-first gate (`UX-1`–`UX-11`, `SYNC:ux-journey-gate`; deep catalog `
 
 **Recreation modes (`describe`, `screenshot`, `video`) — INFER and REPORT:** the Journey Report names the journeys the observed UI serves (tagged `INFERRED` unless a spec or the user sources them); the walk RECORDS every violation it exposes (`UX-3`/`UX-4`/`UX-5`) — `describe` carries it into the implementation plan as a correction, `screenshot`/`video` fix it in the recreation and confirm with the user any fix that changes the visual match.
 
-## Design Principles Contract (all modes)
+## Design Principles Contract (all design modes)
 
-The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) carried as the `SYNC:ui-ux-design-principles` block below bind EVERY mode of this skill. Project design-system docs OUTRANK them — surface a genuine conflict to the user with both sides, NEVER resolve it silently.
+The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) carried as the `SYNC:ui-ux-design-principles` block below bind EVERY mode of this skill; `--mode=review` applies them as fail-conditions through its own reference. Project design-system docs OUTRANK them — surface a genuine conflict to the user with both sides, NEVER resolve it silently.
 
 **Generative modes (`fast`, `good`, `explore`) — APPLY the clauses as an output contract on the design you produce:**
 
@@ -144,6 +151,10 @@ The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) carried as the `SYNC:ui-ux-
 **Reporting modes (`describe`, and the analysis pass of `screenshot` / `video`) — REPORT against the clauses:** the super-detailed description MUST name which clauses the OBSERVED design SATISFIES and which it VIOLATES, cited by ID — e.g. type-scale drift (`UI-2.5`), contrast failure with the measured ratio (`UI-3.1`), undersized touch targets (`UI-8.1`), missing empty/loading/error states (`UI-1.5`), a removed focus ring (`UI-5.5`). A violation is RECORDED, never silently reproduced: `describe` carries it into the implementation plan as a correction; `screenshot` / `video` then apply the five generative obligations above so the recreation FIXES the violation rather than inheriting it — flag any correction that changes the visual match and confirm it with the user before shipping it.
 
 ## Mode Branches
+
+### `--mode=review` — UI review (read-only; replaces the design spine)
+
+**[BLOCKING] When `--mode=review`, read `references/mode-review.md` in full FIRST** and follow it as the whole invocation: Phase 0 load UI rules → scope and surfaces → blast radius → surface composition → surface UX pass → six UI categories plus the UI/UX principles and design-distinctiveness passes → report → why-review validation → validated fix loop (none under `--report-only`). It carries its own protocols inline; do not run the design-spine steps, the design-intelligence search or a lane for it. Workflow invocation (`--mode=review --report-only`) and standalone both run it.
 
 ### `--mode=fast` (default) — quick design
 
@@ -233,7 +244,7 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 - **ALWAYS REMEMBER you have the skills of a top-tier UI/UX Designer who won many awards on Dribbble, Behance, Awwwards, Mobbin, TheFWA.**
 - Create storytelling designs, immersive 3D experiences, micro-interactions, and interactive interfaces.
 
-## Notes (all modes)
+## Notes (all design modes)
 
 - **Design system (canonical):** When implementing UI — HTML, CSS, or SCSS — read `docs/project-config.json` first, then resolve `designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`. Read every configured authority before choosing tokens, component patterns, breakpoints, or BEM conventions. If the project has no configured authority, record `N/A` and follow the selected lane plus the shared UI/DD/CL contracts; never invent a canonical path or token vocabulary.
 - Remember you have the capability to generate images, videos, edit images, etc. with `visual analysis tooling` skills. Use them to create the design and real assets.
@@ -245,50 +256,28 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
-Think hard to plan & start working on these tasks follow the Orchestration Protocol, Core Responsibilities, Subagents Team and Development Rules. Parse `--mode` from the input (default `fast`) and route to the matching branch above:
+Think hard to plan & start working on these tasks follow the Orchestration Protocol, Core Responsibilities, Subagents Team and Development Rules. Parse `--mode` from the input (default `fast`; an explicit mode wins) and route to the matching branch above:
 <tasks>$ARGUMENTS</tasks>
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `existing-ui-research` — Study the existing UI before designing or specifying a screen; designing or specifying a new or updated screen → .claude/skills/shared/protocols/existing-ui-research.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-ux-design-principles` — Forty usability and accessibility clauses, UI-1.1 to UI-9.4; designing, building or reviewing a user-facing interface → .claude/skills/shared/protocols/ui-ux-design-principles.md
 - `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
 <!-- SYNC:ui-ux-design-principles:reminder -->
 
 Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platform and project conventions first. Use WCAG 2.2 AA as the web accessibility baseline plus any stricter applicable legal/project requirement; non-web surfaces use the documented platform standard. Other web/mobile metrics and component tiers are defaults/examples only for matching surfaces. Skip N/A clauses and non-UI work explicitly. Project config, references, and accepted decisions govern; cite applicable findings by `UI-<clause>` + `file:line`.
 
 <!-- /SYNC:ui-ux-design-principles:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:design-distinctiveness-gate:reminder -->
 
@@ -308,20 +297,9 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
-
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
@@ -333,16 +311,14 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane).
+**IMPORTANT MUST ATTENTION Goal:** Create (or describe) a UI design using design-intelligence databases and subagents, dispatched by `--mode` (input carrier) × `--lane` (design lane); `--mode=review` reviews existing UI through `references/mode-review.md`.
 
-**IMPORTANT MUST ATTENTION** route `--mode={fast|good|explore|describe|screenshot|video}` × `--lane={product|marketing}` → Journey Report (`UX-1`) → design authority/existing UI (`UX-2`) → query local design intelligence → ingest visual evidence when applicable → low-fi walked against journeys (`UX-7`) → design → implement unless `describe` → walk journeys + traceability (`UX-8`) → report and seek approval; project authority outranks candidates, `/ui-review` owns source review evidence.
+**IMPORTANT MUST ATTENTION** route `--mode={fast|good|explore|describe|screenshot|video}` × `--lane={product|marketing}` (`--mode=review` → read `references/mode-review.md` in full first and follow it instead) → Journey Report (`UX-1`) → design authority/existing UI (`UX-2`) → query local design intelligence → ingest visual evidence when applicable → low-fi walked against journeys (`UX-7`) → design → implement unless `describe` → walk journeys + traceability (`UX-8`) → report and seek approval; project authority outranks candidates, `--mode=review` owns source review evidence.
 
-**IMPORTANT MUST ATTENTION** journey-first order is BLOCKING in EVERY mode: (1) present the Journey Report (`UX-1`) and confirm an inferred primary actor/job/outcome (no question tool → record it `INFERRED — unconfirmed` and continue) → (2) read and record the project's design principles, design system and existing UI, or `N/A` with the paths checked (`UX-2`) → (3) only then search, sketch, design or build; walk every main journey (`UX-8`), measure interaction cost and wayfinding (`UX-9`, `UX-10`) and close with the UI/UX Gate Report covering `UX-*`/`UI-*`/`DD-*`/`CL-*`/copy (`UX-11`) before reporting — why: a screen designed before its journey is known answers the brief's layout, not the user's job.
+**IMPORTANT MUST ATTENTION** journey-first order is BLOCKING in EVERY design mode: (1) present the Journey Report (`UX-1`) and confirm an inferred primary actor/job/outcome (no question tool → record it `INFERRED — unconfirmed` and continue) → (2) read and record the project's design principles, design system and existing UI, or `N/A` with the paths checked (`UX-2`) → (3) only then search, sketch, design or build; walk every main journey (`UX-8`), measure interaction cost and wayfinding (`UX-9`, `UX-10`) and close with the UI/UX Gate Report covering `UX-*`/`UI-*`/`DD-*`/`CL-*`/copy (`UX-11`) before reporting — why: a screen designed before its journey is known answers the brief's layout, not the user's job.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** traced `file:line` proof, confidence >80%; NEVER present a guess as fact.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code

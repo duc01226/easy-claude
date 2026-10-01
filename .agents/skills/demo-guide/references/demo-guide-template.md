@@ -14,7 +14,7 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
   it in one go and pastes it into the tracker. Its content is COPIED from the governing spec/PBI where one
   exists, else derived from the traced demo cases and LABELLED as derived — never invented. The estimate is
   produced with the shared `SYNC:estimation-framework` protocol (bottom-up hours → man-days → derived story
-  points), the same one `$plan`, `$refine`, `$story`, and `$dor-gate` use, so the two artifacts cannot drift.
+  points), the same one `$plan`, `$pbi --mode=refine`, `$pbi --mode=story`, and `$pbi --mode=dor` use, so the two artifacts cannot drift.
   It sizes ONLY the estimate target — the current changes by default, the target the user names for
   estimation, or (no change set in scope) the labelled demo scope — never silently the entire feature.
 - **Show, then explain the data.** A demo is credible when the presenter shows the behaviour AND can point
@@ -264,8 +264,8 @@ _Generated: {DATE} · Scope source: {source} · Evidence: {spec/test/migration p
   coverage verdict. NEVER invent an ID or treat a test name as the canonical case.
 - **Authorization is read from code, not assumed.** Cite the guard, policy, attribute, or scoping filter at
   `file:line`, or state there is none. A guessed permission ships as a requirement.
-- **Estimation follows `SYNC:estimation-framework` and nothing else** — the same protocol `$plan`, `$refine`,
-  `$story`, and `$dor-gate` apply: bottom-up hours → `likely_days` → risk margin → min–max range when
+- **Estimation follows `SYNC:estimation-framework` and nothing else** — the same protocol `$plan`, `$pbi --mode=refine`,
+  `$pbi --mode=story`, and `$pbi --mode=dor` apply: bottom-up hours → `likely_days` → risk margin → min–max range when
   `likely_days ≥ 3`; **story points are DERIVED from days**, never chosen first; the full frontmatter goes in
   a fenced `yaml` block so it survives the paste. Size the TARGET WORK, never the writing of this guide.
 - **Estimate the change, not the feature.** The estimate target is exactly what `--estimate` or an explicit

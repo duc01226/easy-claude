@@ -15,7 +15,7 @@
 >
 > ```
 > > **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim requires `file:line` proof.
-> > Confidence: >95% recommend freely, 80-94% with caveats, <80% DO NOT recommend.
+> > Confidence: >95% recommend freely, 80-94% with caveats, 60-79% cautiously, <60% DO NOT recommend.
 >
 > MUST ATTENTION READ .claude/protocols/evidence.md for full details.
 > ```

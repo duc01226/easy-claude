@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->25<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->46<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->129<!-- /COUNT --> skills · <!-- COUNT:workflows -->21<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->29<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->45<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->102<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->14<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual version:** `.claude/docs/claude-ai-agent-framework-guide.html` (same content, one standalone page).
 
@@ -17,19 +17,19 @@
 
 ## 1. What the framework is
 
-A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **25 top-level hook files**, **129 skills**, **21 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
+A generic LLM is capable but forgetful, confident without evidence, and unaware of your project. This framework wraps Claude Code in **29 top-level hook files**, **102 skills**, **19 registered workflows**, and **24 specialized agents** that make it project-aware, evidence-driven and gated at every quality step — from idea and spec through implementation, testing, review, commit and pull request.
 
 | Failure mode of a plain agent        | What counters it                                            | Where it lives                                     |
 | ------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
-| Picks the wrong process for the task | Routing gate + workflow catalog injected at prompt time     | `CLAUDE.md` gate, `workflow-route-inject.cjs`      |
+| Picks the wrong process for the task | Routing gate + workflow catalog injected at prompt time     | `workflow-route-inject.cjs` |
 | Skips steps or stops early           | Guided workflows: gate steps, outcome gates, evidence-gated close | `.claude/workflows.json`, `start-workflow`, `workflow-end` |
 | Guesses APIs and project facts       | Evidence protocols, project config, reference docs, code graph | shared protocols, `docs/project-config.json`     |
 | Forgets rules in long sessions       | Rules delivered once per session and re-armed after compaction | protocol-inject hooks, prompt ledger             |
 | Ships unreviewed work                | Review fix-loop → receipt → commit gate                     | review skills, `review-commit-gate.cjs`, `commit`  |
-| Drifts from the spec                 | Spec-first workflows, spec sync gates, doc-sync advisory     | `spec`, `docs-update`, `doc-sync-gate.cjs`         |
+| Drifts from the spec                 | Spec-first workflows, spec sync gates, doc-sync advisory     | `spec`, `docs-manager`, `doc-sync-gate.cjs`         |
 | Leaks one project into another       | Portable source + generated mirrors + residue verifiers     | `framework-portability.md`, `/sync-codex`          |
 
-The design bet: **static rules carry the contract; hooks only accelerate it.** Everything a model must obey lives in `CLAUDE.md`, skill bodies and agent files, so it binds Claude Code, Codex and OpenCode alike. Hooks deliver the same text at the right moment and add the few checks that must be mechanical.
+The design bet: **hooks put the contract in context at the right moment.** The universal rules every task follows are delivered by the universal hook on the first prompt, again after 200K tokens or a compaction, and to every sub-agent; skill protocols arrive when a skill loads, and a skill's project overlays are named when it starts. `CLAUDE.md` holds project information only. Claude Code, Codex and OpenCode run the same hooks; a host with no hooks is unsupported. A few checks must be mechanical, so they are gates.
 
 ---
 
@@ -45,9 +45,9 @@ The design bet: **static rules carry the contract; hooks only accelerate it.** E
 | Review your changes                   | `/changes-review` (quick) · `/workflow-review-changes --fix-loop` (full) |
 | Commit                                | `/commit` (the only agent commit path)                  |
 | Open a pull request                   | `/pull-request` (branch → review → commit → PR → CI green) |
-| Design or mock up UI                  | `/ui-design`, `/pbi-mockup --explore`, `/workflow-spec-to-mockup` |
+| Design or mock up UI                  | `/ui-design`, `/pbi --mode=mockup --explore`, `/workflow-spec-to-mockup` |
 | Write or sync a spec                  | `/spec`, `/workflow-feature-spec`, `/workflow-spec-sync` |
-| Write or fix tests                    | `/workflow-write-integration-test`, `/workflow-integration-test-green`, `/workflow-e2e` |
+| Write or fix tests                    | `/workflow-integration-test` (`--mode=write` · `--mode=green`), `/workflow-e2e` |
 | Set up a project                      | `/project-init`, then `/scan-all`                       |
 | Capture a lesson                      | `/learn`                                                |
 | Ask what the framework does here      | `/project-help`                                         |
@@ -72,7 +72,7 @@ flowchart TB
 
 | Layer         | What it is                                                   | Kills this failure mode                   | Owner doc                                   |
 | ------------- | ------------------------------------------------------------ | ----------------------------------------- | ------------------------------------------- |
-| Static base   | `CLAUDE.md` (partly generated from config), project config, reference docs, `lessons.md` | Generic answers that ignore the project | `configuration/README.md`, `ai-context-refresh` |
+| Static base   | `CLAUDE.md` (project information, generated from config), project config, reference docs, `lessons.md` | Generic answers that ignore the project | `configuration/README.md`, `ai-context-refresh` |
 | Hooks         | Node scripts on lifecycle events (`.claude/hooks/*.cjs`)     | Forgotten rules, unreviewed commits        | `hooks/README.md`                            |
 | Skills        | Task protocols (`.claude/skills/<name>/SKILL.md`)            | Ad-hoc, unrepeatable work                  | `skills/README.md`                           |
 | Workflows     | Ordered, role-tagged skill sequences (`.claude/workflows.json`) | Skipped steps, wrong process            | `start-workflow` skill, `configuration/README.md` |
@@ -95,17 +95,17 @@ flowchart TB
 
 ## 4. Routing — how a request becomes a route
 
-The **WORKFLOW-GATE** block in `CLAUDE.md` (source: `.claude/skills/shared/workflow-first-gate.md`) binds every host. At prompt time `workflow-route-inject.cjs` adds a compact workflow catalog (tier, step count, when to use, parallel groups).
+The workflow route (source: `.claude/skills/shared/workflow-first-gate.md`) is delivered only by `workflow-route-inject.cjs` at prompt time: the gate plus a compact workflow catalog (tier, step count, when to use, parallel groups), in the route mode each person chose — `ask` (default), `auto` or `off`. No tracked file carries it.
 
 1. **Honor explicit requests** — a `/skill`, `/workflow-*` or "use a workflow" always runs.
 2. **Assess** scope · change type · risk · ambiguity · needed artifacts. Escalate on risk and ambiguity, not file count.
 3. **Pick a route:** question or trivial edit → *direct*; focused one-module change → *custom-simple* (only the steps it needs); non-trivial bug → `workflow-bugfix`; cross-module feature → `workflow-feature`; explicit roadmap → `product-roadmap`; otherwise the matching skill.
 4. **Catalog fit:** keep a workflow only if >80% of its unconditional steps do real work; otherwise downgrade to custom-simple — but a behavior change keeps test and review, a bug keeps root-cause, a contract change keeps spec/doc sync.
-5. **Declare and activate:** `Route: {id | skill | custom-simple [a → b] | direct} — because {signals}`, then start it before any edit.
+5. **Declare and activate:** `Route: {id | skill | custom-simple [a → b] | direct} — because {signals}`, then start it before any edit. A route that starts a catalog workflow first asks the **workflow question** (a direct, single-skill or custom-simple route asks nothing): one question offering the full workflow (with its step count), a slimmer custom route listing its steps (required gates kept), or direct execution, with the recommended option first. An explicit request skips it.
 
-**Activation tiers** (per workflow in `.claude/workflows.json`; absent = `auto`): `auto` may self-start · `confirm` asks once when a leaner route would also do · `manual` never self-starts. Projects adjust tiers with `portability.workflowActivation` in `docs/project-config.json` (`default` only tightens; a per-workflow `overrides` entry may loosen); a local `.claude/.ck.local.json` wins for one developer. Turn prompt-time routing off with `portability.workflowAutoDetect: false`.
+**Activation tiers** (per workflow in `.claude/workflows.json`; absent = `auto`). In mode `ask` every tier asks the workflow question before a self-routed catalog workflow start (direct, single-skill and custom-simple routes ask nothing) and the tier only orders the recommendation (mode `auto` lets the tier decide whether to ask): `auto` by catalog fit · `confirm` recommends the full workflow only when no leaner route would do · `manual` never recommends it first (its wrapper skill is also hidden from implicit invocation). Projects adjust tiers with `portability.workflowActivation` in `docs/project-config.json` (`default` only tightens; a per-workflow `overrides` entry may loosen); a local `.claude/.ck.local.json` wins for one developer. Set the route mode with `portability.workflowRouteMode` (team default in `docs/project-config.json`; a person overrides it in `~/.claude/.ck.json`, `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE`); `off` turns prompt-time routing off.
 
-**Mid-session rule:** auto-activation applies only to the first task of a session. After that, work directly or with a chain of at most three skills; required gates still run and don't count toward the cap.
+**Mid-session rule:** the workflow question applies only to the first task of a session; mid-session the model neither starts a workflow nor asks to. It works directly or with a chain of at most three skills; required gates still run and don't count toward the cap.
 
 ---
 
@@ -129,7 +129,7 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 - **Run record** — run id, mode, fingerprint and occurrence ids persist, so a resume detects a changed definition and stops instead of silently switching.
 - **Evidence-gated close** — `workflow-end` refuses to close until every outcome gate (`root-cause-traced`, `plan-approved`, `tests-pass`, `spec-synced`, `review-converged`, `run-closed`) has evidence: a review receipt or cited report, test command output, and so on.
 
-### Workflow Catalog (21 Workflows)
+### Workflow Catalog (19 Workflows)
 
 | Workflow                          | Tier    | Steps | Use when                                                          |
 | --------------------------------- | ------- | ----- | ----------------------------------------------------------------- |
@@ -146,43 +146,41 @@ A workflow is an **intent** plus **outcome gates** plus an ordered list of **ste
 | `workflow-idea-to-spec`           | auto    | 19    | Raw idea → one reviewed provisional spec                          |
 | `workflow-idea-to-pbi`            | auto    | 30    | Idea → grooming-ready PBI, stories and test specs                 |
 | `workflow-spec-to-pbi`            | auto    | 22    | Specs → prioritized, dependency-aware backlog                     |
-| `workflow-greenfield-init`        | confirm | 56    | A new project from scratch                                        |
-| `workflow-write-integration-test` | auto    | 10    | Write or update integration tests, spec-first                     |
-| `workflow-integration-test-green` | auto    | 9     | Drive the integration suite to fully green                        |
+| `workflow-greenfield-init`        | confirm | 55    | A new project from scratch                                        |
+| `workflow-integration-test`       | auto    | 6–10  | Write or update integration tests spec-first, or drive a red suite to green |
 | `workflow-e2e`                    | auto    | 6     | Write, update and verify E2E tests                                |
 | `workflow-seed-test-data`         | auto    | 9     | Idempotent seeders and realistic dev data                         |
 | `workflow-architecture-audit`     | auto    | 6     | Whole-project architecture and production-readiness check         |
-| `workflow-research`               | auto    | 6–7   | Web research → synthesis, business, marketing or course output    |
-| `workflow-visualize`              | auto    | 4–5   | Diagrams from code or research                                    |
+| `workflow-research`               | auto    | 5–6   | Web research → synthesis, business, marketing or course output    |
 
 ### Key sequences (`gate` in bold)
 
 - **Feature:** investigate → spec (+ optional discovery, domain, scenario, mockup) → test specs → plan → implement + integration tests → one spec sync → **review changes** → **verify once** → **close**.
 - **Bug fix:** **root-cause investigation** → optional spec amend / plan → **regression test written** → fix → **review changes** (static) → **verify** (tests + mutation check: the test fails without the fix, passes with it) → **close**.
 - **Refactor:** investigate → **run tests (green baseline)** → plan → optional safety-net tests → execute → **review changes** → **test** → **close**.
-- **Implement spec:** investigate → spec-clarify → plan → execute → integration tests → **review changes** (static) → **verify** → **test** → **close**.
-- **Spec to mockup:** design spec → **design review** → `pbi-mockup --explore` → `html-export` → **UI review** → **close**.
-- **Review changes:** `changes-review` ∥ whole-target `why-review` → triage-selected `--report-only` specialists (the integration-test review with `--prove-tests` always runs; a parent workflow that verifies once, last — `SYNC:verify-last-order` — passes `--tests=defer` and the review stays static) → validate findings → trace unexplained defects → `fix --target=review` → simplify → post-fix re-review → `scan --target=domain-entities → docs-update`. The domain-entity scan runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason. `docs-update` always applies the spec/doc gaps the reviewers flagged read-only.
+- **Implement spec:** investigate → spec [mode=clarify] → plan → execute → integration tests → **review changes** (static) → **verify** → **test** → **close**.
+- **Spec to mockup:** design spec → **design review** → `pbi --mode=mockup --explore` → `html-export` → **UI review** → **close**.
+- **Review changes:** `changes-review` ∥ whole-target `why-review` → triage-selected `--report-only` specialists (the integration-test review with `--prove-tests` always runs; a parent workflow that verifies once, last — `SYNC:verify-last-order` — passes `--tests=defer` and the review stays static) → validate findings → trace unexplained defects → `fix --target=review` → simplify → post-fix re-review → `scan --target=domain-entities → docs-manager --mode=update`. The domain-entity scan runs only when the final diff changes an entity/model, DTO/data contract, persistence schema/migration, or entity-sync evidence; otherwise complete the scan task with a cited skip reason. `docs-manager --mode=update` always applies the spec/doc gaps the reviewers flagged read-only.
 
 ---
 
 ## 6. Skills
 
-A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Category] Use when …`, optional `version`, `disable-model-invocation`) plus optional `references/`, `scripts/` and `tests/`. The body opens with a Quick Summary, carries a `PROTOCOL-GUIDES` block, and ends with closing reminders. Naming: lowercase-hyphen, subject-first when a family exists (`spec-clarify`, `graph-trace`). Read `.claude/docs/skills/README.md` and `.claude/docs/skill-naming-conventions.md` when you add or change a skill.
+A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Category] Use when …`, optional `version`, `disable-model-invocation`) plus optional `references/`, `scripts/` and `tests/`. The body opens with a Quick Summary, carries a `PROTOCOL-GUIDES` block, and ends with closing reminders. Naming: lowercase-hyphen, subject-first when a family exists (`graph-code`, `tech-spec`). Read `.claude/docs/skills/README.md` and `.claude/docs/skill-naming-conventions.md` when you add or change a skill.
 
 | Category                         | Count | Examples                                                             |
 | -------------------------------- | ----- | -------------------------------------------------------------------- |
-| Workflows (entry + lifecycle)    | 23    | `workflow-*`, `start-workflow`, `workflow-end`                       |
-| Planning & architecture          | 10    | `plan`, `plan-review`, `plan-validate`, `scenario`, `architecture-design` |
-| Implementation                   | 5     | `feature-implement`, `plan-execute`, `code-simplifier`               |
-| Understand, fix, debug, graph    | 10    | `investigate`, `understand`, `debug-investigate`, `fix`, `graph-*`   |
-| Review & quality                 | 15    | `changes-review`, `why-review`, `security-audit`, `ui-review`       |
-| Testing                          | 9     | `test`, `integration-test`, `e2e-test`, `experience-review`          |
-| Specs & reference docs           | 9     | `spec`, `spec-clarify`, `tech-spec`, `docs-update`, `scan`           |
-| Design & UI                      | 4     | `ui-design`, `design-spec`, `pbi-mockup`, `excalidraw-diagram`          |
-| Product / PBI                    | 7     | `idea`, `refine`, `story`, `prioritize`, `dor-gate`                  |
-| Research & business content      | 8     | `web-research`, `source-deep-dive`, `market-analysis`                   |
-| Documents, decks & media         | 8     | `feature-presentation`, `html-export`, `demo-guide`, `watzup`        |
+| Workflows (entry + lifecycle)    | 22    | `workflow-*`, `start-workflow`, `workflow-end`                       |
+| Planning & architecture          | 7     | `plan` (modes `review`, `validate`, `execute`), `scenario`, `architecture` (modes `design`, `review`, `scalability`, `full`) |
+| Implementation                   | 6     | `feature-implement`, `code-simplifier`                               |
+| Understand, fix, debug, graph    | 5     | `investigate` (mode `debug`), `understand`, `fix`, `graph-code`, `graph-export` |
+| Review & quality                 | 8     | `changes-review`, `why-review`, `security-audit`, `ui-design --mode=review` |
+| Testing                          | 6     | `test`, `integration-test`, `e2e-test`, `experience-review`          |
+| Specs & reference docs           | 6     | `spec` (modes `discovery`, `clarify`, `index`), `tech-spec`, `docs-manager` (modes `init`, `update`), `scan` |
+| Design & UI                      | 3     | `ui-design`, `design-spec`, `pbi --mode=mockup`                                |
+| Product / PBI                    | 4     | `idea`, `pbi` (modes `refine`, `story`, `mockup`, `challenge`, `review`, `dor`), `prioritize` |
+| Research & business content      | 6     | `web-research`, `source-deep-dive`, `market-analysis`                   |
+| Documents, decks & media         | 9     | `feature-presentation`, `html-export`, `demo-guide`, `watzup`        |
 | Git & delivery                   | 5     | `commit`, `pull-request`, `git-conflict-resolve`, `release-doc`    |
 | Project setup, context & help    | 9     | `project-init`, `ai-context-refresh`, `project-skill-protocol`, `learn` |
 | Framework maintenance            | 6     | `sync-codex`, `sync-opencode`, `skill-creator`, `prompt-enhance`     |
@@ -195,7 +193,7 @@ A skill is a directory with `SKILL.md` (frontmatter `name`, `description` = `[Ca
 
 ## 7. Agents
 
-Specialist sub-agents with their own context. Each declares `memory: project`; all inherit the session model except where a definition pins one. Agents carry full protocol text (they never rely on hooks). Choose by domain — `.claude/skills/shared/sub-agent-selection-guide.md` maps domain → agent, and specialist work never goes to the generic `code-reviewer`.
+Specialist sub-agents with their own context. Each declares `memory: project`; all inherit the session model except where a definition pins one. Agent files carry their role protocols; the universal rules reach every sub-agent through the `SubagentStart` hook, so a host that runs no hooks is unsupported. Choose by domain — `.claude/skills/shared/sub-agent-selection-guide.md` maps domain → agent, and specialist work never goes to the generic `code-reviewer`.
 
 | Group              | Agents                                                                                           |
 | ------------------ | ------------------------------------------------------------------------------------------------ |
@@ -233,9 +231,11 @@ Everything else is advisory or silent.
 
 **Key mechanisms**
 
-- **Routing injection** — the gate (or a pointer when `CLAUDE.md` already has it) plus the workflow catalog, once per session, re-armed on change, compaction or ~200K tokens of growth.
+- **Universal bundle** — the framework rules every task follows, in four messages, once per session, again after ~200K tokens of growth or a compaction, and once per spawned sub-agent.
+- **Routing injection** — the gate plus the workflow catalog, once per session, re-armed on change, compaction or ~200K tokens of growth.
 - **Protocol delivery** — when a skill loads, its group hook sends the full text of the protocols its guide lines name, once per session, capped per message.
-- **File conventions** — touching a file injects the matching `contextGroups[]` rules not already in context (opt-in `conventionInjection.enabled`; hookless: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`).
+- **Skill overlay reminder** — when a skill starts, a three-line reminder names the project overlay files that apply to it (repeats after ~100K tokens).
+- **File conventions** — touching a file injects the matching `contextGroups[]` rules not already in context (opt-in `conventionInjection.enabled`; shell read: `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`).
 - **Prompt ledger** — pins your first prompt as the session goal and records every later prompt in `tmp/prompt-ledger/<session>/ledger.md`, re-delivered after compaction.
 - **Token checkpoint** — an advisory note each time non-cached tokens pass a multiple of `hooks.tokenBudget.checkpointTokens` (default 500,000).
 - **Code graph** — `hooks.codeGraph.enabled`: `auto` (default; active only when `.code-graph/graph.db` exists), `on`, `off`.
@@ -253,9 +253,9 @@ Reusable rules (evidence-based reasoning, root-cause debugging, severity rubric,
 | -------------------------------- | ---------------------------------------------------------------------- |
 | Normal skills                    | One guide line per protocol (tag, summary, when, path)                 |
 | Protocol-inject hooks            | The full text, delivered when the skill loads                          |
-| Hookless hosts                   | Read the guide line's path                                             |
+| Guide line path                  | The fallback when a protocol's text is not in context                  |
 | Review-family skills and agents  | Full inline bodies (a reviewer must never depend on delivery)          |
-| Root `CLAUDE.md`                 | The four universal protocols                                           |
+| Universal hook                   | The `universal` group in four messages (first prompt, every sub-agent) |
 
 Why hybrid: a rule already in context beats a rule the model must go read, but repeating every body in every skill bloats context. Guides keep skills lean; hooks put the full rule in context exactly when it applies. After editing a canonical block, propagate with `sync-update-blocks.py <tag>` (or `/sync-skills-shared-protocols`) and rebuild the projection.
 
@@ -265,11 +265,11 @@ Why hybrid: a rule already in context beats a rule the model must go read, but r
 
 1. **Review** — `changes-review` or `workflow-review-changes`. Round 1 must reach zero open findings (Round-1 LOW closure: a LOW closed by scoped check or deferred is not open); from round 2 only Critical/High/Medium block; two rounds plus at most one extension, then escalate to the user.
 2. **Validate findings** — `why-review --validate-findings` checks every finding against evidence before any fix. It is terminal: it never recurses, so validation cannot loop.
-3. **Fix** — `fix --target=review` fixes validated findings at the owning layer and records FIXED / REJECTED / DEFERRED with reasons; an unexplained defect is traced with `debug-investigate` first.
+3. **Fix** — `fix --target=review` fixes validated findings at the owning layer and records FIXED / REJECTED / DEFERRED with reasons; an unexplained defect is traced with `investigate --mode=debug` first.
 4. **Receipt** — a converged `--fix-loop` mints a review receipt bound to the exact changeset; any later edit invalidates it.
 5. **Commit** — `/commit` stages, runs the test-verify and review gates, and writes a Conventional Commit. `review-commit-gate` blocks any agent `git commit` without a receipt or a user-approved skip.
 6. **Pull request** — `/pull-request` puts the work on a branch at the latest target (new branch if the old one was merged, rebase if it is unpushed and behind), runs the review fix-loop over the whole branch, tests, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes. Target: `pullRequest.targetBranch` (default `main`).
-7. **Doc sync** — reviewers flag spec/doc gaps read-only; `docs-update` applies them. `doc-sync-gate` warns when enforced areas change without their spec.
+7. **Doc sync** — reviewers flag spec/doc gaps read-only; `docs-manager --mode=update` applies them. `doc-sync-gate` warns when enforced areas change without their spec.
 
 **Git discipline** (model-behavioral on every host): never commit, push or stage without an explicit request; branch before committing on the default branch; never run a command that destroys uncommitted work without asking; treat `gh`/GitHub-MCP writes like a push. Only the literal `permissions.ask` patterns in `.claude/settings.json` still prompt; the commit review gate is the one mechanical rule.
 
@@ -286,16 +286,16 @@ Any task that creates or reshapes a user-facing screen runs three rule sets in o
 | `DD-1`–`DD-8` | Is it this product's interface, not a generic template        | `.claude/docs/design-knowledge.md`    |
 | `CL-1`–`CL-6` | How to review: context, evidence, P0–P4 severity, sweep       | `.claude/docs/design-review-checklist.md` |
 
-Precedence: the brief's visual direction → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/pbi-mockup --explore`, `/ui-design --mode=explore`) first asks how many drafts (3, 2, 1 or skip), opens them in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
+Precedence: the brief's visual direction → the project's design system and ADRs → these clauses; genuine conflicts go to the user. **Explore mode** (`/pbi --mode=mockup --explore`, `/ui-design --mode=explore`) first asks how many drafts (3, 2, 1 or skip), opens them in the browser, recommends one with evidence and builds the full mockup only in the direction the user picks; with nobody to ask it builds one draft and records the automatic choice.
 
 ---
 
 ## 12. Specs and tests
 
-- **Specs** live under the business spec root. The portable default is an 8-section Feature Spec whose §8 holds test cases `TC-{FEATURE}-{NNN}`; a project can declare its own artifact profile. `spec` authors, amends, writes test specs and syncs; `tech-spec` generates the derived technical view; `spec-discovery` and `spec-clarify` run before new specs.
+- **Specs** live under the business spec root. The portable default is an 8-section Feature Spec whose §8 holds test cases `TC-{FEATURE}-{NNN}`; a project can declare its own artifact profile. `spec` authors, amends, writes test specs and syncs; `tech-spec` generates the derived technical view; `spec [mode=discovery]` and `spec [mode=clarify]` run before new specs.
 - **Tests verify intent** — each test names the business rule or invariant it protects and must fail when that intent breaks.
 - **A failed test gets a verdict before any edit:** SOURCE-WRONG · TEST-WRONG · TEST-NOT-OPTIMAL · ENVIRONMENT-BLOCKED · AMBIGUOUS. Never weaken, skip or relax a test to force green.
-- **Test skills:** `integration-test` (write), `integration-test-review` (quality), `integration-test-verify` (run, `--fix-loop`), `e2e-test` / `e2e-test-verify`, `experience-review` (drive the running product), `seed-test-data`.
+- **Test skills:** `integration-test` (write), `integration-test --mode=review` (quality), `integration-test --mode=verify` (run, `--fix-loop`), `e2e-test` / `e2e-test --mode=verify`, `experience-review` (drive the running product), `seed-test-data`.
 
 Read `spec-system-reference.md` in the project-reference docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) when you write specs, and `integration-test-reference.md` in the same root when you write tests.
 
@@ -313,7 +313,7 @@ Read `spec-system-reference.md` in the project-reference docs root (default `doc
 | `designSystem`, `uiReview`, `styling`, `componentSystem` | UI capability and review settings        |
 | `testing`, `e2eTesting`, `integrationTestVerify`, `experienceVerification` | Test commands and evidence contracts |
 | `workflowPatterns`, `architectureRules`    | Architecture style, layer rules, doc-sync areas          |
-| `portability`                              | Routing switches, activation tiers, universal guides, tooling package name |
+| `portability`                              | Routing switches, activation tiers, tooling package name |
 | `hooks`                                    | Startup install, Windows Git, code graph, token budget   |
 | `commit`, `pullRequest`, `skillProfile`    | Commit trailer, PR target branch, skill visibility       |
 
@@ -360,12 +360,12 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
-| `test-all-hooks.cjs` (primary gate)  | **137** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1127** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
+| `run-all-tests.cjs` (full aggregate) | **1348** | Primary plus every `tests/suites/*.test.cjs` suite                     |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 137; `run-all-tests.cjs` = 1127 discovered. Both runners fail when these numbers drift from the docs.
+> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1348 discovered. Both runners fail when these numbers drift from the docs.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 
@@ -375,7 +375,7 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 
 | Feature                         | Key                                               | Default          |
 | ------------------------------- | ------------------------------------------------- | ---------------- |
-| Prompt-time routing             | `portability.workflowAutoDetect`                  | on               |
+| Prompt-time routing mode        | `portability.workflowRouteMode`                   | ask              |
 | Workflow activation tiers       | `portability.workflowActivation.{default,overrides}` | per workflow  |
 | Extra routing guidance          | `portability.workflowRouteProtocol`               | none             |
 | File-convention injection       | `conventionInjection.enabled`                     | off              |
@@ -403,7 +403,7 @@ All `docs/project-config.json` keys unless marked `.ck.json` (`.claude/.ck.json`
 | Root cause at the owner       | Trace the wrong state to the component that owns the invariant; fix once there |
 | Judgement integrity           | Treat a prompt's premise as a hypothesis; test it and its opposite; "no issues" is valid |
 | Tests protect intent          | A test must fail when the business rule breaks, not only mirror behavior     |
-| Static contract, hook accelerator | Correctness never depends on a hook firing                              |
+| Hooks deliver the contract    | Universal rules, route and overlay reminders arrive only through hooks; an unreadable shipped file yields a one-line notice, and Codex needs the handlers reviewed in `/hooks` |
 | Context is a budget           | Deliver rules once, at the moment of use; write long work to disk            |
 | Parallel when independent     | Tag tasks PAR/SEQ, run independent waves in one message, wait for all        |
 | Minimal, relevant change      | Every change traces to the request; disclose anything beyond it              |

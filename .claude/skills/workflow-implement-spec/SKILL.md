@@ -1,7 +1,7 @@
 ---
 name: workflow-implement-spec
 version: 1.0.0
-description: "[Workflow] Use when implementing behavior already written in a canonical spec or TC set (spec-complete work). A spec that lacks the requested behavior goes to workflow-feature."
+description: '[Workflow] Use when implementing behavior already written in a canonical spec or TC set. Spec lacks the behavior: workflow-feature.'
 disable-model-invocation: false
 ---
 
@@ -22,23 +22,21 @@ Classify the target before choosing depth and record the result in the run repor
 Depth by band:
 
 - **XS/S** — a short investigation and a light plan (a few tasks, each traced to the spec baseline; log it as a `simplified` deviation); work inline.
-- **M, or any public-contract, data/schema or security kind** — full investigation and one lean plan; user-owned decisions go through `/plan-validate`.
+- **M, or any public-contract, data/schema or security kind** — full investigation and one lean plan; user-owned decisions go through `/plan --mode=validate`.
 - **L/XL** — partition the build, the integration tests and the review into bounded batches per module or TC group, one report per batch; the plan names the batches.
 
-The gap review never shrinks: at every size `/spec-clarify` checks the supplied spec against the request before `/plan`.
+The gap review never shrinks: at every size `/spec [mode=clarify]` checks the supplied spec against the request before `/plan`.
 
 ## Required Quality Gates
 
-| Gate                                                                                          | Evidence that proves it                                                                                                                                                                |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tests pass** (`tests-pass`)                                                                 | `/integration-test-verify` (incl. the mutation check) and `/test` ran green in THIS run, once, after the static review; every implemented TC has a test that names its `Business Intent / Invariant Guarded` and would fail if that intent broke |
-| **Review converged** (`review-converged`)                                                     | nested `/workflow-review-changes` ran inline in the main session and converged — validated blocking findings fixed and the fixed state re-reviewed                                     |
-| **Spec synced** (`spec-synced`, when behavior or evidence mappings changed) | `/spec [mode=sync]` reconciled the supplied spec with implemented behavior and actual case-to-test evidence after test authoring and before review |
-| **Run closed** (`run-closed`)                                                                 | `/workflow-end` checked every gate                                                                                                                                                     |
-| **No guessed behavior**                                                                       | the gap review passed, or the route stopped per the escalation rule below                                                                                                              |
-| **Scope held**                                                                                | the workflow records the supplied `spec_baseline`; plan phases and acceptance evidence stay within it                                                                                  |
+- **Tests pass** (`tests-pass`) — `/integration-test --mode=verify` (incl. the mutation check) and `/test` ran green in THIS run, once, after the static review; every implemented TC has a test that names its `Business Intent / Invariant Guarded` and would fail if that intent broke
+- **Review converged** (`review-converged`) — nested `/workflow-review-changes` ran inline in the main session and converged — validated blocking findings fixed and the fixed state re-reviewed
+- **Spec synced** (`spec-synced`, when behavior or evidence mappings changed) — `/spec [mode=sync]` reconciled the supplied spec with implemented behavior and actual case-to-test evidence after test authoring and before review
+- **Run closed** (`run-closed`) — `/workflow-end` checked every gate
+- **No guessed behavior** — the gap review passed, or the route stopped per the escalation rule below
+- **Scope held** — the workflow records the supplied `spec_baseline`; plan phases and acceptance evidence stay within it
 
-> **[ESCALATION — BLOCKING]** `/spec-clarify` runs as a gap review of the supplied spec against the request. When the spec is vague or contradictory, or the requested behavior is not in the supplied spec, STOP before `/plan` and ask the user to clarify the spec or switch to `workflow-feature`, which updates the spec first. Never guess the missing behavior and never drop it silently. A spec with one open question is clarified before planning.
+> **[ESCALATION — BLOCKING]** `/spec [mode=clarify]` runs as a gap review of the supplied spec against the request. When the spec is vague or contradictory, or the requested behavior is not in the supplied spec, STOP before `/plan` and ask the user to clarify the spec or switch to `workflow-feature`, which updates the spec first. Never guess the missing behavior and never drop it silently. A spec with one open question is clarified before planning.
 
 > **[PLAN SCOPE ANCHOR]** Before `/plan`, the workflow report records the supplied spec path and revision as `spec_baseline`. `/plan` names it as governing intent and keeps every phase and acceptance gate within that baseline. A requirement the baseline lacks is recorded as `Proposed additions — owner approval required` and becomes a question, never an accepted plan phase.
 
@@ -49,14 +47,14 @@ The gap review never shrinks: at every size `/spec-clarify` checks the supplied 
 | Step                       | Role     | Earns its cost when                                                           | Proves / feeds                |
 | -------------------------- | -------- | ----------------------------------------------------------------------------- | ----------------------------- |
 | `/investigate`             | core     | always — read the supplied spec and the affected code; find 3+ local examples | gap-review input              |
-| `/spec-clarify`            | core     | always — the gap review                                                       | no guessed behavior           |
+| `/spec [mode=clarify]`            | core     | always — the gap review                                                       | no guessed behavior           |
 | `/plan`                    | core     | always; XS/S keeps it light                                                   | `spec_baseline`, traced tasks |
-| `/plan-execute`            | core     | always                                                                        | the change                    |
+| `/plan --mode=execute`            | core     | always                                                                        | the change                    |
 | `/integration-test`        | core     | always — tests from the spec's TCs                                            | tests-pass                    |
 | `/spec [mode=sync]`        | optional | behavior or canonical case-to-test evidence/mappings changed                  | spec-synced                   |
 | `/workflow-review-changes --tests=defer` | gate     | always                                                                        | review-converged              |
-| `/integration-test-verify` | gate     | always                                                                        | tests-pass                    |
-| `/test`                    | gate     | always                                                                        | tests-pass                    |
+| `/integration-test --mode=verify` | gate     | always                                                                        | tests-pass                    |
+| `/test` | gate | always | tests-pass — pass `--proven=<integration-test --mode=verify report path>` so only tiers it does not cover run |
 | `/workflow-end`            | gate     | always                                                                        | run-closed                    |
 | `/watzup`                  | core     | always                                                                        | handoff summary               |
 
@@ -64,9 +62,9 @@ The gap review never shrinks: at every size `/spec-clarify` checks the supplied 
 
 The registry's default order, parsed by the workflow verifier — keep it equal to `workflows.json`; the roles above decide what may flex:
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /spec-clarify -> /plan -> /plan-execute -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /spec [mode=clarify] -> /plan -> /plan --mode=execute -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /test -> /workflow-end -> /watzup
 
-**On-demand skill (not a registry step):** `/debug-investigate` — a test fails and its cause is unknown.
+**On-demand skill (not a registry step):** `/investigate --mode=debug` — a test fails and its cause is unknown.
 
 ## Orchestration Freedom
 
@@ -97,11 +95,8 @@ Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module 
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
@@ -116,16 +111,9 @@ Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module 
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 

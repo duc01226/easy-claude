@@ -94,7 +94,7 @@ function resolveSteps(steps, config) {
  * object. The routed set is exactly: `description`, `intent`, `preActions.injectContext`,
  * `whenToUse`, `outcomeGates[].when`, `sequence[].applicability.when`,
  * `sequence[].applicability.skipReason` (including the `variants.*.sequence[]` and manifest
- * `occurrences[]` carriers of the same two fields). Every other field — `name`, occurrence `role`,
+ * `occurrences[]` carriers of the same two fields, and `variants.*.outcomeGates[].when`). Every other field — `name`, occurrence `role`,
  * `outcomeGates[].id`/`satisfiedBy`, `preActions.readFiles`, `stepMeta`, `parallelGroups`,
  * fingerprints — stays literal. Unknown braces (`{Bucket}`, `{FeatureName}`, `{plan-id}`, `{n}`)
  * survive verbatim.
@@ -133,6 +133,13 @@ export function resolveWorkflowStrings(entry, config) {
       if (!variant || typeof variant !== "object" || Array.isArray(variant)) continue;
       if (!Array.isArray(variant.sequence)) continue;
       out.variants[mode] = { ...variant, sequence: resolveSteps(variant.sequence, config) };
+      if (Array.isArray(variant.outcomeGates)) {
+        out.variants[mode].outcomeGates = variant.outcomeGates.map((gate) =>
+          gate && typeof gate === "object" && !Array.isArray(gate) && typeof gate.when === "string"
+            ? { ...gate, when: resolveString(gate.when, config) }
+            : gate
+        );
+      }
     }
   }
 

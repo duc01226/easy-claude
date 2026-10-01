@@ -1,7 +1,7 @@
 ---
 name: workflow-idea-to-pbi
 version: 3.0.0
-description: "[Workflow] Use when turning an idea or product vision into prioritized PBIs and stories (single-PBI deep mode or multi-opportunity discovery)."
+description: '[Workflow] Use when turning an idea or product vision into prioritized PBIs and stories (single-PBI deep mode or multi-opportunity discovery).'
 disable-model-invocation: false
 ---
 
@@ -29,9 +29,9 @@ Classify before choosing steps; write the result as the first section of the run
 
 | Triage result                      | Typical route (recommended skills below decide the rest)                                                                                                                                                   |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Single-PBI, XS/S, clear            | idea → refine → why-review → draft spec → test specs → spec-tests review → spec-clarify → PBI review → story → story review → pbi-challenge → dor-gate → UI mockup/design-spec if UI → docs-update → close |
-| Single-PBI, M+ / risky / ambiguous | adds domain-analysis + domain why-review, scenario, one lean plan → plan-validate, prioritize against the backlog, presentation deck                                                                  |
-| Multi-Opportunity                  | optional research → brainstorm → opportunity-map why-review → domain-analysis once → per-opportunity loop → cross-PBI prioritize → docs-update → deck → close                                              |
+| Single-PBI, XS/S, clear            | idea → pbi --mode=refine → why-review → draft spec → test specs → spec-tests review → spec [mode=clarify] → PBI review → pbi --mode=story → story review → pbi --mode=challenge → pbi --mode=dor → UI mockup/design-spec if UI → docs-manager --mode=update → close |
+| Single-PBI, M+ / risky / ambiguous | adds domain-analysis + domain why-review, scenario, one lean plan → plan --mode=validate, prioritize against the backlog, presentation deck                                                                  |
+| Multi-Opportunity                  | optional research → brainstorm → opportunity-map why-review → domain-analysis once → per-opportunity loop → cross-PBI prioritize → docs-manager --mode=update → deck → close                                              |
 
 ## Required Quality Gates (non-negotiable)
 
@@ -39,14 +39,14 @@ Classify before choosing steps; write the result as the first section of the run
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Triage recorded           | track, size, kinds, risk, `isLargeIdea` verdict in the run report                                                                                                                                                                                                                       |
 | Releasable outcome        | every PBI names one independently releasable actor-facing outcome with a complete entry-to-result journey; technical/foundation/setup work is attached enabling work, never a standalone PBI; `BLOCKED` never advances by assumption                                                    |
-| Rationale reviewed        | `/why-review` after refine (and on the opportunity map in the Multi-Opportunity track) is PASS, or WARN with user acknowledgment; FAIL returns to `/refine`                                                                                                                             |
-| Spec clarity (Single-PBI) | draft Feature Spec + TC IDs routed to Feature doc Section 8, reviewed by `/artifact-review --type=spec-tests`; `/spec-clarify` confirms every non-obvious, conflicting or high-impact decision with the user before the PBI is derived — never intent-skipped while a draft spec exists |
-| Artifact review converged | `/artifact-review --type=pbi` (gate) and the story review: validated blocking findings fixed and re-reviewed                                                                                                                                                                            |
-| Independent challenge     | `/pbi-challenge` run by a reviewer other than the drafter                                                                                                                                                                                                                               |
-| Definition of Ready       | `/dor-gate` PASS or WARN for every PBI before its mockup is finalized or it is handed off                                                                                                                                                                                               |
-| UI evidence               | UI PBIs: journey-first mockup (mockup scope gate: 3/2/1 drafts or skip → Journey Report `UX-1` → design-authority read `UX-2` → the chosen 1–3 rendered direction drafts → the user's recorded pick, or a recorded `Selection:` line when the user cannot be asked → full build → journey walkthrough `UX-8`; or `Mockup: SKIPPED by user`) — a navigable mock app with every required page/view, navigation edge, component, state and full-flow demo, plus `/design-spec`; one isolated screen fails. Backend-only: stated skip reason |
+| Rationale reviewed        | `/why-review` after `/pbi --mode=refine` (and on the opportunity map in the Multi-Opportunity track) is PASS, or WARN with user acknowledgment; FAIL returns to `/pbi --mode=refine`                                                                                                                             |
+| Spec clarity (Single-PBI) | draft Feature Spec + TC IDs routed to Feature doc Section 8, reviewed by `/pbi --mode=review --type=spec-tests`; `/spec [mode=clarify]` confirms every non-obvious, conflicting or high-impact decision with the user before the PBI is derived — never intent-skipped while a draft spec exists |
+| Artifact review converged | `/pbi --mode=review --type=pbi` (gate) and the story review: validated blocking findings fixed and re-reviewed                                                                                                                                                                            |
+| Independent challenge     | `/pbi --mode=challenge` run by a reviewer other than the drafter                                                                                                                                                                                                                               |
+| Definition of Ready       | `/pbi --mode=dor` PASS or WARN for every PBI before its mockup is finalized or it is handed off                                                                                                                                                                                               |
+| UI evidence               | UI PBIs: journey-first mockup via `/pbi --mode=mockup --explore` (it owns the scope gate, Journey Report `UX-1`, design-authority read `UX-2`, direction pick and walkthrough `UX-8`; or a recorded `Mockup: SKIPPED by user`) — a navigable mock app with every required page/view, navigation edge, component, state and full-flow demo, plus `/design-spec`; one isolated screen fails. Backend-only: stated skip reason |
 | Priority                  | every PBI carries `priority` (rank + RICE/MoSCoW) in frontmatter; mockup header and deck show the final value                                                                                                                                                                           |
-| Docs synced               | `/docs-update` report (`tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`) confirms feature docs, Feature doc Section 8 TC IDs and derived indexes, or records that none were impacted                                                                                                        |
+| Docs synced               | `/docs-manager --mode=update` report (`tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`) confirms feature docs, Feature doc Section 8 TC IDs and derived indexes, or records that none were impacted                                                                                                        |
 | Run closed                | `/workflow-end`, then `/watzup` handoff: PBIs created, DoR results, blocking items, recommended next workflow                                                                                                                                                                           |
 
 No code changes here: the test-green gate does not apply; TC drafts stay reference-only until the review and DoR gates accept them.
@@ -59,36 +59,36 @@ Skipping a step whose applicability is false, or that triage shows does no real 
 | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
 | `/web-research` → `/source-deep-dive`                                                                      | market, competitor or best-practice evidence would change the outcome; deep only after web research ran                  | brainstorm/refine evidence    |
 | `/brainstorm`                                                                                           | Multi-Opportunity track — 3–8 item RICE opportunity map                                                                  | opportunity selection         |
-| `/idea`, `/refine`                                                                                      | always (per opportunity in Multi-Opportunity) — refine owns hypothesis, AC, RICE and the Releasable Outcome Gate         | releasable outcome            |
-| `/spec-discovery`                                                                                       | specs or related code already exist for the area                                                                         | no duplicate capability       |
-| `/artifact-review` (no type)                                                                            | the PO supplied an existing artifact/ticket/brief                                                                        | input quality                 |
-| `/why-review`                                                                                           | after refine (always); after domain-analysis when it ran                                                                 | rationale gate                |
-| `/spec [mode=draft]`, `/spec [mode=tests]`, `/artifact-review --type=spec-tests`, `/spec-clarify`       | Single-PBI track                                                                                                         | spec clarity                  |
+| `/idea`, `/pbi --mode=refine`                                                                                      | always (per opportunity in Multi-Opportunity) — `pbi --mode=refine` owns hypothesis, AC, RICE and the Releasable Outcome Gate         | releasable outcome            |
+| `/spec [mode=discovery]`                                                                                       | specs or related code already exist for the area                                                                         | no duplicate capability       |
+| `/pbi --mode=review` (no type)                                                                            | the PO supplied an existing artifact/ticket/brief                                                                        | input quality                 |
+| `/why-review`                                                                                           | after `/pbi --mode=refine` (always); after domain-analysis when it ran                                                                 | rationale gate                |
+| `/spec [mode=draft]`, `/spec [mode=tests]`, `/pbi --mode=review --type=spec-tests`, `/spec [mode=clarify]`       | Single-PBI track                                                                                                         | spec clarity                  |
 | `/scenario`                                                                                             | the slice needs adversarial replay, state, ownership, recovery or evidence analysis before planning                      | risk coverage                 |
 | `/domain-analysis`                                                                                      | the idea adds or changes domain entities (Multi-Opportunity: once, up front)                                             | domain impact                 |
-| `/plan` → `/plan-validate`                                                                              | Single-PBI track and M+, cross-module, risky or ambiguous                                                                | story slicing, estimates, DoR |
-| `/artifact-review --type=pbi`, `/story`, `/artifact-review --type=story`, `/pbi-challenge`, `/dor-gate` | always, per PBI                                                                                                          | review, challenge, DoR        |
-| `/pbi-mockup --explore` → `/design-spec`                                                                | the PBI has a user-facing UI surface; journey-first (see UI Mockup below) and gated by `SYNC:existing-ui-research` so both match the current UI system | UI evidence                   |
-| `/prioritize`                                                                                           | more than one PBI, or the PBI must be ranked against an existing backlog; otherwise refine's frontmatter priority stands | priority                      |
-| `/docs-update`                                                                                          | always, after prioritize                                                                                                 | docs synced                   |
+| `/plan` → `/plan --mode=validate`                                                                              | Single-PBI track and M+, cross-module, risky or ambiguous                                                                | story slicing, estimates, DoR |
+| `/pbi --mode=review --type=pbi`, `/pbi --mode=story`, `/pbi --mode=review --type=story`, `/pbi --mode=challenge`, `/pbi --mode=dor` | always, per PBI                                                                                                          | review, challenge, DoR        |
+| `/pbi --mode=mockup --explore` → `/design-spec`                                                                | the PBI has a user-facing UI surface; journey-first (see UI Mockup below) and gated by `SYNC:existing-ui-research` so both match the current UI system | UI evidence                   |
+| `/prioritize`                                                                                           | more than one PBI, or the PBI must be ranked against an existing backlog; otherwise `pbi --mode=refine`'s frontmatter priority stands | priority                      |
+| `/docs-manager --mode=update`                                                                                          | always, after prioritize                                                                                                 | docs synced                   |
 | `/feature-presentation`                                                                                 | several PBIs, M+ scope, or stakeholders asked for a deck                                                                 | stakeholder handoff           |
 
-The standalone why-review is deliberately absent before the spec-tests and story reviews and after plan-validate: each artifact review owns its own rationale and finding-validation pass.
+The standalone why-review is deliberately absent before the spec-tests and story reviews and after plan --mode=validate: each artifact review owns its own rationale and finding-validation pass.
 
 ## UI Mockup — Journey-First Explore (UI PBIs)
 
-The `idea-to-pbi-mockup` step runs `/pbi-mockup --explore` after `/dor-gate`, per UI PBI, in this BLOCKING order (`SYNC:ux-journey-gate`; catalog `.claude/docs/ux-journey-process.md`):
+The `idea-to-pbi-mockup` step runs `/pbi --mode=mockup --explore` after `/pbi --mode=dor`, per UI PBI. `pbi --mode=mockup` owns the whole sequence (Step 0 scope gate → Journey Report `UX-1` → design-authority read `UX-2` → direction drafts → the user's recorded pick → full build → journey walkthrough `UX-8`); this workflow adds only orchestration rules:
 
-0. **Mockup scope gate first — BEFORE any analysis or drafting, so a skip saves tokens and time** (`pbi-mockup` Step 0): with `AskUserQuestion` available, ALWAYS ask 3 / 2 / 1 options or skip mockups (recommended option by scope); `Skip mockup` → record `Mockup: SKIPPED by user` and continue without a mockup. Without the tool, generate ONLY ONE mockup in the recommended direction, auto-select it and record `Selection: AUTO-SELECTED — no question tool (1 draft)` in the plan or run report.
-1. **Report the main user journeys (`UX-1`)** from the PBI, stories, acceptance criteria, draft spec and business rules — frame · actors with job statements · ranked main journeys with step tables · derived requirements · assumptions, each claim `SOURCED` or `INFERRED`. An inferred primary actor, job or success outcome is confirmed with the user first; with no question tool it is recorded `INFERRED — unconfirmed (no question tool)` and the run continues.
-2. **Read the design authority (`UX-2`)** — the project's design principles, design system, styling conventions, accepted design ADRs and the existing related UI; record `Design authority read: <paths>` or `N/A`.
-3. **Plan views and demo flows from the journeys**, then **the chosen 1–3 direction drafts** of the primary journey's key views: same journeys, views and information-priority tiers, divergent only on free visual axes (a brief or design system that pins every axis records the exemption instead), rendered with `html-export` under `tmp/design/<run>/`.
-4. **Open, recommend, ASK for the user's pick** — open each draft in the default browser (`node .claude/scripts/open-report.cjs <draft>`) and, with 2–3 drafts, ask with `AskUserQuestion` — one option per draft, your evidence-backed recommendation first labelled `(Recommended)`; never pick for the user while they can be asked; "continue" or silence is not a pick; record the verbatim reply in `tmp/design/<run>/direction-approved.md`. One draft → record `Selection: USER — 1 option` (or the Step 0 `AUTO-SELECTED` line). Drafts cannot be shown or the question tool errors after drafting → AUTO-SELECT the recommended draft (best journey fit + design-system fit) and record `Selection: AUTO-SELECTED — <reason>` in `direction-approved.md` and the run report.
-5. **Build the full multi-view mock app** in the chosen direction, applying `UI-1.1`–`UI-9.4`, `DD-1`–`DD-8` and `CL-1`–`CL-6` after `UX-*`, then **walk every main journey** with a traceability matrix (`UX-8`) and close with the gate's UI/UX Gate Report when the canonical gate defines one; an unserved step, orphan element or unresolved `FAIL` is fixed before hand-off.
-
-`/design-spec` then reuses the mockup's Journey Report and design-authority record. The pick is a user gate: in a sub-agent-per-opportunity run the orchestrator presents each PBI's rendered drafts and records its pick — never inside a sub-agent, never batched across PBIs.
+- **The scope gate and the pick are the user's, in the main session** — never inside a sub-agent and never batched across PBIs. In a sub-agent-per-opportunity run the orchestrator asks the Step 0 scope question and presents each PBI's rendered drafts itself; a scope answer recorded in the run report is reused, never asked twice.
+- **`/design-spec` follows the mockup** and takes its Journey Report and design-authority record as input (`design-spec` Step 0a reuse) instead of re-deriving them.
 
 **Spec-hub coupling (UI PBIs):** the mockup and design-spec are deep companions of the governing spec's interaction surface (views, navigation, key states, per-story click-paths); record their paths in the spec's `design_spec:` / `mockup:` frontmatter where the artifact profile supports it and keep visual fidelity out of the spec (`SYNC:ui-intent-layer`).
+
+## Reuse Handoffs (caller-passed; every skill still runs standalone with full checks)
+
+- `/idea` runs one Discovery Interview; `/pbi --mode=refine` receives the idea file and asks only the categories that interview left unanswered.
+- After `/pbi --mode=review --type=pbi`, record its report path and the PBI identity (SHA-256 of the file bytes; size + mtime is not accepted — see the `--reuse` rules in `.claude/skills/shared/m1-m7-gates.md`) in the run report. `/pbi --mode=challenge --reuse=pbi-review` and `/pbi --mode=dor --reuse=pbi-review` (workflow args) resolve to that report and reuse only the criteria that coverage map allows (DoR- and challenge-owned checks always run in full); when the PBI changed after that review (a fix, a story edit that touched the PBI), drop the flag so both run every check.
+- `/design-spec` reuses the mockup's Journey Report; `/prioritize` runs only when the step's applicability holds.
 
 ## Multi-Opportunity Loop
 
@@ -96,7 +96,7 @@ The `idea-to-pbi-mockup` step runs `/pbi-mockup --explore` after `/dor-gate`, pe
 2. `AskUserQuestion` with `multiSelect: true`: "Which opportunities should we develop into PBIs?"
 3. Opportunity-map why-review: are the top opportunities the right problems, are Reach/Impact founded, pre-mortem, systemic alternatives. FAIL on a high-ranked item → drop it or reframe; WARN → proceed with user acknowledgment.
 4. Create every loop task up front — one task per loop step per selected opportunity — before processing any opportunity.
-5. **Per-opportunity PBI loop:** `/idea` → `/refine` → `/artifact-review --type=pbi` → `/story` → `/artifact-review --type=story` → `/pbi-challenge` → `/dor-gate` → `/pbi-mockup --explore` → `/design-spec` (UI steps skip for backend-only PBIs; the scope gate and the explore pick are the user's, per PBI). When opportunities run as sub-agents, each sub-agent stops after `/dor-gate`; the main session then runs `/pbi-mockup --explore` (scope gate + pick) and `/design-spec` for each UI PBI, because a sub-agent cannot ask the user. Draft spec, test specs, spec-clarify, scenario and the plan cycle never run per opportunity.
+5. **Per-opportunity PBI loop:** `/idea` → `/pbi --mode=refine` → `/pbi --mode=review --type=pbi` → `/pbi --mode=story` → `/pbi --mode=review --type=story` → `/pbi --mode=challenge` → `/pbi --mode=dor` → `/pbi --mode=mockup --explore` → `/design-spec` (UI steps skip for backend-only PBIs; the scope gate and the explore pick are the user's, per PBI). When opportunities run as sub-agents, each sub-agent stops after `/pbi --mode=dor`; the main session then runs `/pbi --mode=mockup --explore` (scope gate + pick) and `/design-spec` for each UI PBI, because a sub-agent cannot ask the user. Draft spec, test specs, spec [mode=clarify], scenario and the plan cycle never run per opportunity.
 6. After all opportunities: cross-PBI `/prioritize` (RICE + dependency graph, Must/Should/Could per release scope) writes rank/priority back into EACH PBI's frontmatter, not only the backlog file.
 
 ## Artifacts
@@ -110,20 +110,20 @@ The `idea-to-pbi-mockup` step runs `/pbi-mockup --explore` after `/dor-gate`, pe
 | Backlog                     | `team-artifacts/backlog/{YYMMDD}-backlog-update.md` — default root; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides   |
 | Docs sync                   | `tmp/reports/docs-update-{YYMMDD}-{HHMM}.md`                                                                                                 |
 
-Each PBI carries: title, problem statement, hypothesis, GIVEN/WHEN/THEN acceptance criteria, RICE score and priority, user stories, TC IDs, DoR status, and mockup link when UI. Child skills (`idea`, `refine`, `story`, `pbi-mockup`, `prioritize`, `docs-update`) resolve the same roots; write each artifact immediately after its step.
+Each PBI carries: title, problem statement, hypothesis, GIVEN/WHEN/THEN acceptance criteria, RICE score and priority, user stories, TC IDs, DoR status, and mockup link when UI. Child skills (`idea`, `pbi --mode=refine`, `pbi --mode=story`, `pbi --mode=mockup`, `prioritize`, `docs-manager --mode=update`) resolve the same roots; write each artifact immediately after its step.
 
 ## Orchestration, Memory & Fix Path
 
-- **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality. XS/S work runs inline; with 6+ selected opportunities spawn one sub-agent per opportunity (brainstorm context + its task list) and keep `/prioritize` in the main context, updating a summary table every 3 opportunities. Fixed dependencies: an artifact exists before it is reviewed; the draft spec and its test specs are reviewed and clarified before the PBI is derived from them; DoR passes before the mockup is finalized; `/docs-update` follows `/prioritize`; gates awaiting user answers are never parallelized; `/workflow-end` runs last. When `/prioritize` changes a PBI's rank after its mockup was built, refresh the mockup's priority badge.
+- **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality. XS/S work runs inline; with 6+ selected opportunities spawn one sub-agent per opportunity (brainstorm context + its task list) and keep `/prioritize` in the main context, updating a summary table every 3 opportunities. Fixed dependencies: an artifact exists before it is reviewed; the draft spec and its test specs are reviewed and clarified before the PBI is derived from them; DoR passes before the mockup is finalized; `/docs-manager --mode=update` follows `/prioritize`; gates awaiting user answers are never parallelized; `/workflow-end` runs last. When `/prioritize` changes a PBI's rank after its mockup was built, refresh the mockup's priority badge.
 - **Memory:** one task per selected step (per opportunity in the loop). Create `tmp/reports/workflow-idea-to-pbi-{YYMMDD}-{HHmm}-{slug}.md` first, append after every step, and re-read it plus `TaskList` after compaction. Sub-agent briefs make report writing their first deliverable.
-- **Fix path:** findings are validated before fixing; fix in the owning artifact (`/refine` for the PBI, `/spec` for TCs, `/story` for stories) and re-run the reviewer that raised it.
+- **Fix path:** findings are validated before fixing; fix in the owning artifact (`/pbi --mode=refine` for the PBI, `/spec` for TCs, `/pbi --mode=story` for stories) and re-run the reviewer that raised it.
 - **Loop bounds:** round 1 zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 2 rounds (+1 while a CRITICAL/HIGH stays open); on no progress escalate via `AskUserQuestion`.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /web-research -> /source-deep-dive -> /brainstorm -> /idea -> /spec-discovery -> /artifact-review -> /refine -> /why-review -> /spec [mode=draft] -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec-clarify -> /scenario -> /domain-analysis -> /why-review -> /plan -> /plan-validate -> /artifact-review --type=pbi -> /story -> /artifact-review --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup --explore -> /design-spec -> /prioritize -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /web-research -> /source-deep-dive -> /brainstorm -> /idea -> /spec [mode=discovery] -> /pbi --mode=review -> /pbi --mode=refine -> /why-review -> /spec [mode=draft] -> /spec [mode=tests] -> /pbi --mode=review --type=spec-tests -> /spec [mode=clarify] -> /scenario -> /domain-analysis -> /why-review -> /plan -> /plan --mode=validate -> /pbi --mode=review --type=pbi -> /pbi --mode=story -> /pbi --mode=review --type=story -> /pbi --mode=challenge --reuse=pbi-review -> /pbi --mode=dor --reuse=pbi-review -> /pbi --mode=mockup --explore -> /design-spec -> /prioritize -> /docs-manager --mode=update -> /feature-presentation -> /workflow-end -> /watzup
 
-**Step contract:** the list above is the recommended default order from `.claude/workflows.json`; steps follow `/start-workflow` → Step Execution Protocol — `gate` steps (`artifact-review --type=pbi`, `dor-gate`, `workflow-end`) always run, `optional` steps run when their `applicability.when` holds, and every skip, merge, simplification or reorder is logged with evidence. NEVER batch-complete validation gates.
+**Step contract:** the list above is the recommended default order from `.claude/workflows.json`; steps follow `/start-workflow` → Step Execution Protocol — `gate` steps (`pbi --mode=review --type=pbi`, `pbi --mode=dor`, `workflow-end`) always run, `optional` steps run when their `applicability.when` holds, and every skip, merge, simplification or reorder is logged with evidence. NEVER batch-complete validation gates.
 
 Activate with `/start-workflow workflow-idea-to-pbi` and the user's prompt as context.
 
@@ -131,13 +131,10 @@ Activate with `/start-workflow workflow-idea-to-pbi` and the user's prompt as co
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `ui-intent-layer` — Tech-agnostic UI intent layer in every UI-bearing spec; writing a spec for a feature with a user interface → .claude/skills/shared/protocols/ui-intent-layer.md
@@ -146,18 +143,6 @@ Activate with `/start-workflow workflow-idea-to-pbi` and the user's prompt as co
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 
@@ -180,22 +165,13 @@ Activate with `/start-workflow workflow-idea-to-pbi` and the user's prompt as co
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 
@@ -204,8 +180,8 @@ Activate with `/start-workflow workflow-idea-to-pbi` and the user's prompt as co
 **IMPORTANT MUST ATTENTION Goal:** a reviewed, DoR-ready, prioritized PBI backlog where every PBI is an independently releasable actor-facing outcome — depth proportional to the idea, gates never skipped.
 
 - **MUST ATTENTION** triage first (track · size · kinds · risk · `isLargeIdea`) and record it; a small, clear idea skips research, brainstorm, plan cycle, cross-PBI prioritize and the deck — log each skip with evidence.
-- **MUST ATTENTION** keep every gate: rationale why-review, spec clarity (Single-PBI), `artifact-review --type=pbi`, independent `pbi-challenge`, `dor-gate` PASS/WARN, UI full-flow mock app (or a recorded `Mockup: SKIPPED by user`) + design-spec, frontmatter priority, `docs-update`, `workflow-end`.
-- **MUST ATTENTION** UI mockups are journey-first: Journey Report (`UX-1`) → design-authority read (`UX-2`) → the chosen 1–3 rendered direction drafts (Step 0 scope gate first: 3/2/1 or skip) opened in the default browser → `AskUserQuestion` with a recommended draft → the user's pick, recorded verbatim — never picked while the user can be asked; no question tool → one draft `AUTO-SELECTED`, drafts unshowable or tool error → `AUTO-SELECTED — <reason>` → full mock app → journey walkthrough (`UX-8`) — why: a direction chosen before the journeys, or for the user, styles the wrong surface.
+- **MUST ATTENTION** keep every gate: rationale why-review, spec clarity (Single-PBI), `pbi --mode=review --type=pbi`, independent `pbi --mode=challenge`, `pbi --mode=dor` PASS/WARN, UI full-flow mock app (or a recorded `Mockup: SKIPPED by user`) + design-spec, frontmatter priority, `docs-manager --mode=update`, `workflow-end`.
+- **MUST ATTENTION** UI mockups are journey-first and run through `/pbi --mode=mockup --explore` (scope gate first, Journey Report before any drafting, the user's recorded pick — never picked while the user can be asked; `Selection:` line when no question tool) — why: a direction chosen before the journeys, or for the user, styles the wrong surface.
 - **MUST ATTENTION** large ideas carry the complete `large_idea_decomposition` block (`outcome_slices` … `deferred_work_owner`); never create a roadmap artifact by default.
 - **MUST ATTENTION** one task per selected step, report file first and appended per step; artifacts are drafts until their gate accepts them.
 - **MUST ATTENTION** tech-agnostic prose; implementation names only in evidence fields, frontmatter and Mermaid.

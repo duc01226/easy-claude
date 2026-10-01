@@ -104,80 +104,56 @@ test('session recovery documentation and ignore rules match the OS-temp state ow
     assert.match(gitignore, /^\/temp\/$/m);
 });
 
-test('disposable generated-artifact policy reaches Claude and Codex source/mirror surfaces (TC-PROMPT-008)', async () => {
-    const [shared, template, claude, agents, context] = await Promise.all([
+// The universal protocols live once in the canonical file; the universal hook delivers their projection
+// files. The generated project root carries none of them, so the template must not regrow a copy.
+const UNIVERSAL_SECTION_HEADINGS = [
+    'Generated Artifact Storage',
+    'Task Planning Rules',
+    'Workflow Step Advancement & Parallel Phases',
+    'Evidence-Based Reasoning & Investigation',
+    'Git & Version-Control Discipline',
+];
+
+test('disposable generated-artifact policy is one universal protocol, delivered by the hook and absent from the root template (TC-PROMPT-008)', async () => {
+    const [shared, projection, template] = await Promise.all([
         read('.claude/skills/shared/sync-inline-versions.md'),
+        read('.claude/skills/shared/protocols/artifact-storage.md'),
         read('.claude/skills/ai-context-refresh/references/claude-md-template.md'),
-        read('CLAUDE.md'),
-        read('AGENTS.md'),
-        read('.codex/CODEX_CONTEXT.md'),
     ]);
 
-    assert.match(shared, /Store disposable generated output in the project workspace/);
-    assert.match(shared, /project-root `tmp\/` or `temp\/`/);
-    assert.match(shared, /integration\/E2E results/);
+    for (const [name, content] of [['canonical', shared], ['projection', projection]]) {
+        assert.match(content, /Store disposable generated output in the project workspace/, `${name} carries the universal rule`);
+        assert.match(content, /project-root \`tmp\/\` or \`temp\/\`/, `${name} carries the temp-path contract`);
+        assert.match(content, /integration\/E2E (test )?results/, `${name} names the artifact kinds`);
+    }
     assert.match(shared, /tmp\/reports/);
     assert.match(shared, /tmp\/analysis/);
-    assert.match(template, /^## Generated Artifact Storage$/m);
-    assert.match(template, /project-root `tmp\/` or `temp\/`/);
-    for (const [name, content] of [['CLAUDE.md', claude], ['AGENTS.md', agents], ['CODEX_CONTEXT.md', context]]) {
-        assert.match(content, /Store disposable generated output in the project workspace/, `${name} must carry the universal rule`);
-        assert.match(content, /project-root `tmp\/` or `temp\/`/, `${name} must carry the temp-path contract`);
+    for (const heading of UNIVERSAL_SECTION_HEADINGS) {
+        assert.doesNotMatch(template, new RegExp(`^## ${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm'), `the template must not regrow the universal section "${heading}"`);
     }
 });
 
-// Extracts one `## Heading` section up to the next `## ` heading.
-function headingSection(markdown, heading) {
-    const text = markdown.replace(/\r\n?/g, '\n');
-    const start = text.indexOf(`\n## ${heading}\n`);
-    if (start === -1) return null;
-    const next = text.indexOf('\n## ', start + heading.length + 5);
-    return next === -1 ? text.slice(start) : text.slice(start, next);
-}
-
-test('task-graph analysis precedes execution in every root and defers parallel limits to one rule (TC-PROMPT-009)', async () => {
-    const [template, claude, agents, context] = await Promise.all([
+test('task-graph analysis precedes execution in one universal protocol that defers parallel limits to the parallel protocol (TC-PROMPT-009)', async () => {
+    const [template, planning, parallel, shared] = await Promise.all([
         read('.claude/skills/ai-context-refresh/references/claude-md-template.md'),
-        read('CLAUDE.md'),
-        read('AGENTS.md'),
-        read('.codex/CODEX_CONTEXT.md'),
+        read('.claude/skills/shared/protocols/task-planning-rules.md'),
+        read('.claude/skills/shared/protocols/workflow-step-advancement.md'),
+        read('.claude/skills/shared/sync-inline-versions.md'),
     ]);
     const anchor = /Analyze the task graph BEFORE executing/g;
 
-    for (const [name, content] of [['CLAUDE.md', claude], ['AGENTS.md', agents], ['claude-md-template.md', template]]) {
-        assert.equal((content.match(anchor) || []).length, 1, `${name} carries the task-graph rule exactly once`);
-        const planning = headingSection(content, 'Task Planning Rules');
-        const parallel = headingSection(content, 'Workflow Step Advancement & Parallel Phases');
-        assert.ok(planning && parallel, `${name} keeps both task-planning and parallel-phase sections`);
-        assert.match(planning, anchor, `${name}: the rule lives in Task Planning Rules`);
-        assert.match(planning, /dependencies[\s\S]*write target[\s\S]*waves[\s\S]*`SEQ`/, `${name}: dependency → wave ordering`);
-        assert.match(planning, /re-run (this|the) analysis/i, `${name}: re-analysis when tasks are added`);
-        assert.match(planning, /Serial execution of independent tasks is a defect/, `${name}: serial default is a defect`);
-        // No second copy of the parallel-dispatch contract: its limits stay owned by the parallel section.
-        assert.doesNotMatch(planning, /Do NOT parallelize:|Never parallelize shared writers/, `${name}: exclusions are referenced, not restated`);
-        assert.match(parallel, /Do NOT parallelize:|Never parallelize shared writers/, `${name}: parallel section still owns the exclusions`);
-    }
-    // A root comes in two shapes, and BOTH must defer the parallel limits to the one owning section:
-    //   • the NUMBERED shape — an established root whose parallel section carries numbered rules, so
-    //     the deferral is the anchored "rule 5" link and the plan format lives in that rule;
-    //   • the COMPACT shape — the root `/project-init` writes from `claude-md-template.md` in a
-    //     freshly adopted project. `.claude` is portable, so this suite runs there too. Its parallel
-    //     section is unnumbered, so demanding an anchored "rule 5" would force a DANGLING reference
-    //     into every adopter's root — asserting a rule number that does not exist there.
-    // Each shape is graded against its own deferral and its own wave-declaration contract, so neither
-    // is weakened: a root that drops the deferral entirely still fails under both branches.
-    for (const [name, content] of [['CLAUDE.md', claude], ['AGENTS.md', agents]]) {
-        const planning = headingSection(content, 'Task Planning Rules');
-        const parallel = headingSection(content, 'Workflow Step Advancement & Parallel Phases');
-        const numberedShape = /\[Workflow Step Advancement\]\(#workflow-step-advancement--parallel-phases\) rule 5/.test(planning);
-        if (numberedShape) {
-            assert.match(parallel, /`Parallel plan: wave 1 = \[\.\.\.\]/, `${name}: the declared plan format stays in rule 5`);
-        } else {
-            assert.match(planning, /under the Workflow Step Advancement limits/, `${name}: rule defers to the Workflow Step Advancement section`);
-            assert.match(parallel, /Declare waves before work/, `${name}: the parallel section still owns the wave-declaration contract`);
-        }
-    }
-    assert.match(context, /\[TASK-PLANNING\] \[MANDATORY\][^\n]*parallel waves[^\n]*before starting any task/, 'Codex context one-liner carries the task-graph analysis');
+    assert.equal((planning.match(anchor) || []).length, 1, 'the task-planning protocol carries the task-graph rule exactly once');
+    assert.equal((template.match(anchor) || []).length, 0, 'the root template carries no copy of it');
+    assert.match(planning, /dependencies[\s\S]*write targets[\s\S]*waves[\s\S]*\`SEQ\`/, 'dependency to wave ordering');
+    assert.match(planning, /re-run the analysis/i, 're-analysis when tasks are added');
+    assert.match(planning, /Serial execution of independent tasks is a defect/, 'serial default is a defect');
+    // No second copy of the parallel-dispatch contract: its limits stay owned by the parallel protocol.
+    assert.doesNotMatch(planning, /Do NOT parallelize:|Never parallelize shared writers/, 'exclusions are referenced, not restated');
+    assert.match(planning, /under the Workflow Step Advancement & Parallel Phases limits/, 'the rule defers to the parallel protocol');
+    assert.match(parallel, /Declare waves before work/, 'the parallel protocol owns the wave-declaration contract');
+    assert.match(parallel, /Never parallelize shared writers/, 'the parallel protocol owns the exclusions');
+    // The projection files are projections: the canonical file holds the same rule text.
+    assert.match(shared, /Analyze the task graph BEFORE executing/);
 });
 
 test('active-plan and workflow-end prompts agree with live state ownership (TC-PROMPT-006)', async () => {

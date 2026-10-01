@@ -76,7 +76,7 @@ A kind of file can be recognised by where it lives or what it is called, and —
 | Content Sample      | The bounded opening part of a file that is examined for content signals                                                              | 64 KiB for the framework's own AI-feature class, 16 KiB for patterns a project supplies; files above 2 MiB are never examined (BR-PFCI-22) |
 | AI-Feature Class    | The framework's built-in class for files that call AI models or hold prompts, retrieval, agents, tools or evaluations                | Delivers one compact gate with a single document to read; carried by the built-in fallback (BR-PFCI-23)                                    |
 | Prompt Advisory     | A short directive shown at most once per reminder window when a user's prompt asks to build, plan or review an AI feature            | An accelerator of the AI-feature class, never the only carrier (BR-PFCI-24)                                                                |
-| Zero-Cost Rule      | The rule that AI-engineering guidance costs nothing where a task has no AI surface and grows only as far as the task needs           | Applies to file reminders, prompt advisories, skills, agents and static instructions (BR-PFCI-27)                                          |
+| Zero-Cost Rule      | The rule that AI-engineering guidance costs nothing where a task has no AI surface and grows only as far as the task needs           | Applies to file reminders, prompt advisories, skills, agents and root instruction files, which carry no AI block (BR-PFCI-27)                                          |
 | Change-Set Scan     | A review-time listing of the files of a change that belong to the AI-feature class, each with the signals that matched               | Uses the same class and membership decision as delivery (BR-PFCI-25)                                                                       |
 
 ---
@@ -249,7 +249,7 @@ A kind of file can be recognised by where it lives or what it is called, and —
 - **AC-PFCI-50** — **Given** a prompt **When** it names an AI technique **Then** the directive is shown only if the prompt also asks to act on it, and a prompt about the framework's own machinery (assistant folders, skills, helper agents, hooks, workflows, gates, protocols, mirrors, or the cost of running them) is silent when it carries two distinct framework cues, and is silent with one cue unless it also names a concrete product technique (a provider's API or library, retrieval over documents, embeddings, a vector store, prompt injection, function calling, fine-tuning, semantic search, model routing)
 - **AC-PFCI-51** — **Given** a directive was already delivered in a working context **When** another matching prompt arrives in the same reminder window **Then** nothing is shown, whatever its wording; after a condensation, a clear, or about 100,000 tokens of further conversation the next matching prompt delivers again; a prompt with no conversation identifier delivers nothing, because it could not be de-duplicated
 - **AC-PFCI-52** — **Given** a directive is shown **When** it is built **Then** it stays within 700 characters by construction — the named signals, at most three, are dropped from the end until the whole text fits, and the list is omitted when even one cannot fit — names one document to read (the framing questions when the prompt is about planning, otherwise the protocol), routes reviews to the AI review or its reviewer agent, and never points at the checklist or knowledge documents
-- **AC-PFCI-53** — **Given** the framework's skills, helper agents and always-loaded instructions **When** they are inspected **Then** only the AI review procedure and its reviewer agent carry the AI-engineering protocols, bar one guide line for the engineering floor (and nothing else) in each of the plan-review and integration-test-review skills; every other skill or agent holds at most one conditional pointer of at most 400 characters that names one existing protocol document or the AI review and says to skip it when the change has no AI surface, and the always-loaded AI block is at most four lines that name the one document, the planning document, the review route, the scan and the on-demand rule, and no second always-loaded routing row repeats it
+- **AC-PFCI-53** — **Given** the framework's skills, helper agents, root instruction files and the root-file template **When** they are inspected **Then** only the AI review procedure and its reviewer agent carry the AI-engineering protocols; every other skill or agent holds at most one conditional pointer of at most 400 characters that names one existing protocol document or the AI review and says to skip it when the change has no AI surface, and no root instruction file or template carries an AI-engineering block — the gate reaches the assistant by the path-scoped class, the prompt router and the trigger-gated protocol
 
 ---
 
@@ -510,7 +510,7 @@ The scan only reads. It never fails the review: version-control or configuration
 | Gate | An AI surface is detected by a file, a change-set scan or a prompt  | One compact digest or directive per reminder window (BR-PFCI-23, BR-PFCI-24): the protocol document is the only document it names to read                     |
 | Deep | The dedicated AI review, or its reviewer agent, is actually started | The checklist is read whole; the knowledge and calibration documents are read by section, only for the AI surfaces present                                    |
 
-Only the AI review procedure and its reviewer agent carry the AI protocols, bar one guide line for the engineering floor (and nothing else) that the plan-review and integration-test-review skills keep by owner decision; every other skill, helper agent and the always-loaded instructions hold only the tier-None pointer or, for the always-loaded AI block, at most four lines. Incidental mentions do not create a surface: prose, a vendor name inside a comment or string, and work on the framework's own assistant folders are not AI surfaces. The change-set scan (BR-PFCI-25) is the first step of a routing decision: an empty answer means no AI surface. Every read pointer that a digest, directive, skill, agent or always-loaded block gives names a document that exists.
+Only the AI review procedure and its reviewer agent carry the AI protocols; every other skill and helper agent hold only the tier-None pointer, and no root instruction file or template carries an AI block: the gate is delivered by the path-scoped class, the prompt router and the trigger-gated protocol. Incidental mentions do not create a surface: prose, a vendor name inside a comment or string, and work on the framework's own assistant folders are not AI surfaces. The change-set scan (BR-PFCI-25) is the first step of a routing decision: an empty answer means no AI surface. Every read pointer that a digest, directive, skill or agent gives names a document that exists.
 
 ### BR-PFCI-28: Bounded, fail-open location matching [HARD]
 
@@ -5622,7 +5622,7 @@ And when the conversation has grown by 100,000 tokens' worth of history the next
 
 #### TC-PFCI-114: Only the AI review carries the AI protocols; every other skill and agent keeps one short conditional pointer [P1]
 
-**Objective:** Prove that the check which finds carriers of the AI protocols flags every spelling of one (a body marker, a reminder variant, a guide line) in any skill or helper agent other than the AI review, its reviewer agent and the one allowed floor guide line in the plan-review and integration-test-review skills, and that the framework's own skills and agents pass it.
+**Objective:** Prove that the check which finds carriers of the AI protocols flags every spelling of one (a body marker, a reminder variant, a guide line) in any skill or helper agent other than the AI review and its reviewer agent, and that the framework's own skills and agents pass it.
 
 **Business Intent / Invariant Guarded:** A carrier makes the delivery hook send the full protocol on every load of that skill or agent, whether or not the task involves AI, so a stray carrier is a permanent tax (US-PFCI-12, BR-PFCI-27).
 
@@ -5638,8 +5638,8 @@ And when the conversation has grown by 100,000 tokens' worth of history the next
 **Demo Flow:** Run the carrier check on a clean fixture, then add each spelling of a carrier to a non-owner skill and agent; run the pointer check with a long pointer, two documents, a missing document and a pointer that names no route; run both checks on the framework repository.
 
 ```gherkin
-Given the AI review and its reviewer agent may carry the AI protocols, and the plan-review and integration-test-review skills may each hold one guide line for the engineering floor
-When any other skill or agent, or either of those two skills beyond that one line, carries a body marker, a reminder variant or a guide line for an AI protocol
+Given the AI review and its reviewer agent may carry the AI protocols
+When any other skill or agent carries a body marker, a reminder variant or a guide line for an AI protocol
 Then the carrier check names it
 And when a conditional pointer is longer than 400 characters, names two protocol documents, names a document that does not exist, or names neither a document nor the AI review
 Then the pointer check names it
@@ -5682,11 +5682,11 @@ And in the framework repository neither check finds anything, and more than twen
 
 ---
 
-#### TC-PFCI-115: Every read pointer and the always-loaded AI block name existing documents and stay short [P2]
+#### TC-PFCI-115: Every read pointer names an existing document and no root file carries an AI block [P2]
 
-**Objective:** Prove that every protocol document the digest, the directive, the always-loaded AI block and its template point at exists, that the always-loaded block is at most four lines and 700 characters, names the planning document and the scan, states the on-demand and zero-cost rules, and that no second always-loaded routing row repeats it.
+**Objective:** Prove that every protocol document the digest and the directive point at exists, and that neither the root-file template nor the framework's generated root file carries an AI-engineering block, while the carriers that deliver the gate (the path-scoped class, the prompt router, the floor and planning protocol documents) exist.
 
-**Business Intent / Invariant Guarded:** A dangling read pointer wastes a turn and a long always-loaded block is paid by every session, so both are bounded (US-PFCI-12, BR-PFCI-27).
+**Business Intent / Invariant Guarded:** A dangling read pointer wastes a turn and a static AI block in the root file would be paid by every session, so the first is checked and the second is absent (US-PFCI-12, BR-PFCI-27).
 
 **Traces:** AC-PFCI-53 / BR-PFCI-27
 
@@ -5694,41 +5694,38 @@ And in the framework repository neither check finds anything, and more than twen
 
 - The framework repository and the template every project starts its instructions from
 
-**Real-World Reachability:** A maintainer renames a protocol document or lengthens the always-loaded block.
+**Real-World Reachability:** A maintainer renames a protocol document or re-adds an AI block to the root file or its template.
 
-**Demo Flow:** List every protocol path the digest and both directive forms emit and check each exists; read the template and the generated instructions and measure the AI block.
+**Demo Flow:** List every protocol path the digest and both directive forms emit and check each exists; read the template and the generated root file and look for an AI block.
 
 ```gherkin
-Given the framework's digest, directive, template and generated always-loaded instructions
-When every protocol path they name is checked
+Given the framework's digest, directive, template and generated root file
+When every protocol path the digest and directive name is checked
 Then each names a document that exists
-And the always-loaded AI block is at most four lines and 700 characters and states that guidance is read by section, never whole, and costs nothing without an AI surface
-And the block introduces the protocol as the engineering floor before the planning document, routes review to the AI review skill or its reviewer agent, names the scan, and never claims that one file covers planning, floor and review
-And no second always-loaded routing row for AI code repeats the block
+And neither the template nor the generated root file carries an AI-engineering block or section
+And the path-scoped class, the floor protocol document and the planning protocol document that deliver the gate exist
 ```
 
 **Expected Result:**
 
 | Dimension               | Expectation                                                |
 | ----------------------- | ---------------------------------------------------------- |
-| **UI**                  | Not applicable — the observable surface is the static text |
+| **UI**                  | Not applicable — the observable surface is the emitted and static text |
 | **System behavior**     | Read-only checks over emitted and static text              |
 | **Business data state** | No change                                                  |
-| **Data shown on UI**    | Existing paths, a block of at most four lines              |
+| **Data shown on UI**    | Existing paths, no AI block in the root file               |
 
 **Acceptance Criteria:**
 
-- ✅ No dangling path; block within four lines and 700 characters; no duplicate routing row
-- ❌ A path to a missing document, an always-loaded block over four lines or 700 characters, or a second routing row that repeats it
+- ✅ No dangling path; no AI block in the root file or template
+- ❌ A path to a missing document, or an AI block or section in the root file or template
 
 **Test Data:**
 
 ```json
 {
-    "blockLines": 4,
     "paths": ["protocol document", "framing-questions document"],
-    "blockChars": 700,
-    "blockPhrases": ["never whole", "costs nothing"]
+    "absentFromRoot": ["AI-engineering gate block", "AI-engineering gate section"]
 }
 ```
 
@@ -5740,7 +5737,7 @@ And no second always-loaded routing row for AI code repeats the block
 
 > **Evidence:** `[Source: rule/hooks/ai-guidance-cost-ceiling]`
 > **Related Behaviors:** `rule/hooks/ai-guidance-cost-ceiling` · `constraint/hooks/static-parity` · `test/hooks/ai-gate-zero-cost`
-> **CoveredBy:** `.claude/hooks/tests/suites/ai-gate-zero-cost.test.cjs::TC-AIZ-009 every protocol path the digest and the route point at exists under the shipped protocol directory`, `.claude/hooks/tests/suites/ai-gate-zero-cost.test.cjs::TC-AIZ-010 the static AI block is short, names existing protocol paths, and sends nobody to a deep doc whole` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/ai-gate-zero-cost.test.cjs::TC-AIZ-009 every protocol path the digest and the route point at exists under the shipped protocol directory`, `.claude/hooks/tests/suites/ai-gate-zero-cost.test.cjs::TC-AIZ-010 no root file or template carries a static AI-engineering block; the class, the route and the protocol deliver it` · **Status:** Tested
 
 ---
 

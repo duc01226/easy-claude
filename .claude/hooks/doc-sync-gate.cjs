@@ -10,7 +10,7 @@
  *      Feature Spec under that area's bucket — `{SPEC_ROOT}/{Area}/`, where the spec root defaults
  *      to `docs/specs` and a `specRoots.business.path` entry in docs/project-config.json overrides
  *      it (resolved by `doc-sync-classify.featureSpecDirForArea`). The model should route to
- *      /spec, /spec [mode=tests], or /docs-update, but the hook must not stop
+ *      /spec, /spec [mode=tests], or /docs-manager --mode=update, but the hook must not stop
  *      the user's flow.
  *
  *   2. Write/Edit/MultiEdit (and Codex `apply_patch`) on `src/**` → per-edit
@@ -170,7 +170,7 @@ function handleCommit(cfg) {
   lines.push('Auto-route before or immediately after this commit when behavior changed:');
   lines.push('  1. Update the matching README.{Feature}.md — §3 Acceptance Criteria, §4 Business Rules,');
   lines.push('     and/or §8 Test Specifications — for the behavior you changed, then stage it.');
-  lines.push('  2. Run /spec [mode=amend], /spec [mode=tests], or /docs-update for the touched module.');
+  lines.push('  2. Run /spec [mode=amend], /spec [mode=tests], or /docs-manager --mode=update for the touched module.');
   lines.push('  3. If the change is doc-neutral, mention that in the final review evidence.');
   return { stderr: `${lines.join('\n')}\n`, decision: 'advisory-warning' };
 }

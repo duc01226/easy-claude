@@ -7,19 +7,19 @@ Inserts:
               the reminders region below the main authored content. When a host
               has NO SYNC region (find_sync_region_start returns EOF), the block
               appends at EOF, creating the host's first SYNC region (acceptable —
-              e.g. architecture-scalability-review, solution-architect).
+              e.g. a skill with no SYNC region, solution-architect).
   BOTTOM:     a SYNC:...:reminder block immediately BEFORE `## Closing Reminders`,
               or appended at EOF when no such heading exists.
 
 Host set is hand-picked — the top-down scenario-stress companion to the bottom-up
 SYNC:scale-technique-gate — so this uses explicit name lists rather than the
-inject_review_skill_blocks.py review-batch matrix. Seven hosts total:
+inject_review_skill_blocks.py review-batch matrix. Four hosts total:
 
-  6 skills  — architecture-design (design-time), architecture-review (Cat 11),
-              architecture-scalability-review (scorecard), production-readiness-review
-              (SRE), tech-stack-research (stack selection), performance-review
-              (data-volume + backpressure depth — a scenario host the technique gate
-              does NOT target, hence not in the sibling's SKILL_NAMES).
+  3 skills  — production-readiness-review (SRE), tech-stack-research (stack selection),
+              performance-review (data-volume + backpressure depth — a scenario host the
+              technique gate does NOT target, hence not in the sibling's SKILL_NAMES).
+              The `architecture` skill carries the gate inline in its mode references
+              (design, review, scalability), so it is not an injector target.
   1 agent   — solution-architect. Greenfield inception designs for scenarios up front;
               it authors resilience posture, so the scenario gate belongs in its context.
               The technique gate has no agent hosts; this one does, hence the extra loop.
@@ -42,9 +42,6 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 AGENTS_DIR = PROJECT_ROOT / ".claude" / "agents"
 
 SKILL_NAMES = [
-    "architecture-design",             # "do" — design-time scenario consideration
-    "architecture-review",             # review — Cat 11 scalability & coupling
-    "architecture-scalability-review", # review — scalability scorecard (no SYNC region → EOF append)
     "production-readiness-review",     # review — SRE readiness / resilience
     "tech-stack-research",             # research — scenario-aware stack selection
     "performance-review",              # review — data-volume growth + backpressure depth

@@ -44,7 +44,7 @@ roadmap_status: null
 | Primary assistant host | `.claude/settings.json`, skill frontmatter `disable-model-invocation`                                                                            | Skill visibility and command-only marks.                                                                         |
 | Second assistant host  | `.codex/`, `.agents/skills/<name>/agents/openai.yaml`                                                                                            | Generated copy and per-skill implicit-selection policy.                                                          |
 | Third assistant host   | `opencode.json` `permission.skill`, `.opencode/commands/`, `.opencode/skill-permissions.generated.json`                                          | Permission entries, generated commands and the ownership record.                                                 |
-| Graph tooling          | `.claude/hooks/lib/graph-utils.cjs`, `.claude/scripts/code_graph/`, `.claude/skills/graph-build/SKILL.md`                                        | Graph mode, lazy install and the graph command.                                                                  |
+| Graph tooling          | `.claude/hooks/lib/graph-utils.cjs`, `.claude/scripts/code_graph/`, `.claude/skills/graph-code/references/mode-build.md`                          | Graph mode, lazy install and the graph command.                                                                  |
 | Workflow routing       | `docs/specs/ContextDelivery/README.WorkflowRouting.md`                                                                                           | Effective activation tiers used by the third-host parity rules.                                                  |
 | Compaction settings    | `.claude/settings.json` `env`, `.codex/config.toml` `model_auto_compact_token_limit`, root `opencode.json` `provider.<id>.models.<model>.limit`  | Where each host would pin an auto-compaction budget; the bundle pins none and retires only its own former value. |
 
@@ -813,9 +813,9 @@ And the build stops with a clear message if the install fails
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: operation/skills/graph-build]`
-> **Related Behaviors:** `operation/skills/graph-build` · `test/hooks/content-presence`
-> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::[content-presence] TC-ADS-004 graph-build installs the graph tooling as its first step` · **Status:** Partial (text test only; the manual first-install check on a machine without the tooling is pending at the release-A close)
+> **Evidence:** `[Source: operation/skills/graph-code]`
+> **Related Behaviors:** `operation/skills/graph-code` · `test/hooks/content-presence`
+> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::[content-presence] TC-ADS-004 graph-code build mode installs the graph tooling as its first step` · **Status:** Partial (text test only; the manual first-install check on a machine without the tooling is pending at the release-A close)
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: git-developer-performance
 version: 1.0.0
-description: '[Git] Use when generating developer KPI, contribution, story point, man-day, or code-quality reports from git commit history.'
+description: '[Git] Use when generating developer KPI, contribution, story point, man-day or code-quality reports from git history.'
 disable-model-invocation: true
 ---
 
@@ -111,18 +111,9 @@ Before delivering a generated report:
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `estimation-framework` — Bottom-up estimation with derived story points and a min-max range; estimating effort → .claude/skills/shared/protocols/estimation-framework.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
@@ -130,20 +121,11 @@ Before delivering a generated report:
 
 **IMPORTANT MUST ATTENTION main steps — execute in order, the skill AI keeps forgetting:** (1) SET GOAL + trigger `/plan` + one todo task per contributor — NEVER analyze before planning; (2) COLLECT PACKETS via the script over the FULL merged history; (3) ANALYZE each contributor's direct authored patches + merge/admin commits, crediting shared branches to the direct author; (4) ESTIMATE every cluster via the carried `SYNC:estimation-framework` — bottom-up hours → `likely_days` → SP DERIVED — discounting generated/docs/lockfile churn first, and the carried block OUTRANKS the script's legacy size rubric; (5) SANITY-CHECK velocity, separate product / infra / docs / merge-admin signal, SYNTHESIZE `quality-work-summary.md` + `evidence-proof.md` outside `.claude`; (6) VERIFY — run tests, re-run the command, confirm the output path. — why: steps buried in the middle get skipped, and a report that skips step 3 or 4 reports churn as effort.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-- **Critical Thinking:** trace every KPI/value claim; confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-
 <!-- SYNC:estimation-framework:reminder -->
 
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
+
 <!-- /SYNC:estimation-framework:reminder -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
 
 **IMPORTANT MUST ATTENTION** use local git history ONLY — NEVER query an external service.
 **IMPORTANT MUST ATTENTION** trigger planning BEFORE qualitative analysis — this is a large task.
@@ -164,8 +146,3 @@ Before delivering a generated report:
 | "The script already gave SP numbers" | The script's rubric is a legacy size heuristic; the carried block WINS and SP stays DERIVED from `likely_days`. |
 | "The merge author owns the feature" | Credit follows the direct authored diff. Branch ownership is not authorship. |
 | "One MD number is simpler" | Ambiguous MD is unusable — no-AI and AI-assisted are different measurements. |
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->

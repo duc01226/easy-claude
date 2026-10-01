@@ -36,11 +36,11 @@ context-budget: high
 
 > **Renamed:** formerly `cook` — now `/feature-implement`. The old name no longer resolves as a slash command.
 
-> **feature-implement vs plan-execute:** `feature-implement` takes an idea/feature description and goes idea → research → **plan (created here)** → shipped. Use `/plan-execute` instead when a plan file already exists and you only need disciplined phase-by-phase execution + commit. feature-implement owns the front of the pipeline (research + planning); plan-execute owns the back (phase gates + auto-commit + `--parallel`/`--approval`/`--tests` flags).
+> **feature-implement vs plan --mode=execute:** `feature-implement` takes an idea/feature description and goes idea → research → **plan (created here)** → shipped. Use `/plan --mode=execute` instead when a plan file already exists and you only need disciplined phase-by-phase execution + commit. feature-implement owns the front of the pipeline (research + planning); plan --mode=execute owns the back (phase gates + auto-commit + `--parallel`/`--approval`/`--tests` flags).
 
-## Standalone Mode Pipeline (skip entirely if invoked inside a workflow)
+## Standalone Mode Pipeline (skip entirely only when `nested=true` — a `[Workflow]` row that merely exists in `TaskList` does not count)
 
-> **MANDATORY — standalone `/feature-implement` only.** When invoked OUTSIDE a workflow, wrap the core spine in this quality loop. Detect an active workflow via `TaskList` FIRST: if a parent `[Workflow]` row exists, SKIP this section — the surrounding workflow already sequences plan/review/why-review around this skill (e.g. `workflow-feature` wraps feature-implement with exactly these steps).
+> **MANDATORY — standalone `/feature-implement` only.** When invoked OUTSIDE a workflow, wrap the core spine in this quality loop. Detect nesting via `TaskList` FIRST: if THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation` — a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count), SKIP this section — the surrounding workflow already sequences plan/review/why-review around this skill (e.g. `workflow-feature` wraps feature-implement with exactly these steps).
 >
 > Create these as `TaskCreate` tasks up front, in order, then execute them:
 >
@@ -60,7 +60,7 @@ context-budget: high
 
 ## Default Mode Policy
 
-> **Default mode HARD (full rigor).** Every section below — deep research, mandatory `/plan`, full `code-reviewer` review, mandatory tests, mandatory `/docs-update` — applies by default.
+> **Default mode HARD (full rigor).** Every section below — deep research, mandatory `/plan`, full `code-reviewer` review, mandatory tests, mandatory `/docs-manager --mode=update` — applies by default.
 >
 > **Opt out to fast mode ONLY when ALL true** (task genuinely trivial):
 >
@@ -72,7 +72,7 @@ context-budget: high
 >
 > **Any condition fails → use full protocol below.** When in doubt, default hard. Skipping review/tests on non-trivial change ships bugs.
 >
-> **Fast mode skips (and only skips):** researcher subagent phase (direct grep instead), mandatory `code-reviewer` review (self-review only), separate test phase (verify inline). Does NOT skip `/plan` step, test execution, `/docs-update` triage.
+> **Fast mode skips (and only skips):** researcher subagent phase (direct grep instead), mandatory `code-reviewer` review (self-review only), separate test phase (verify inline). Does NOT skip `/plan` step, test execution, `/docs-manager --mode=update` triage.
 
 ### Backend Context (if applicable)
 
@@ -124,15 +124,15 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 - **External Memory:** Write all research to `tmp/analysis/{task-name}.analysis.md`. Re-read ENTIRE file before planning.
 - **Pre-Implementation Trace Gate:** For bugfix, failed verification, stale/incorrect final output, regression, or behavior-changing fix plans, MUST ATTENTION confirm the plan/referenced analysis includes `Debugger Trace: End -> Start`, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and produce the missing-trace list before editing.
 
-> After implementing, run `python .claude/scripts/code_graph connections <file> --json` on modified files; verify no related files need updates.
+> After implementing, verify by grep/read that no related files need updates (optionally `python .claude/scripts/code_graph connections <file> --json` on modified files as a stale-able hint).
 
-### Graph-Trace Before Implementation
+### Optional Graph Hint Before Implementation
 
-When graph DB available, BEFORE writing code, trace blast radius:
+Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes. When it applies, before writing code:
 
 - `python .claude/scripts/code_graph trace <file> --direction both --json` — what calls this code AND what it triggers
 - `python .claude/scripts/code_graph trace <file> --direction downstream --json` — all downstream consumers
-- Prevents breaking implicit dependencies (bus message consumers, event handlers)
+- May hint at implicit dependencies (bus message consumers, event handlers) — confirm by reading
 
 ### 2. Comprehensive Planning
 
@@ -222,7 +222,7 @@ mistakes compound through later tasks.
 
 ---
 
-## Next Steps (Standalone: MUST ATTENTION ask user via `AskUserQuestion`. Skip if inside workflow.)
+## Next Steps (Standalone: MUST ATTENTION ask user via `AskUserQuestion`. Skip only when `nested=true` — a `[Workflow]` row that merely exists in `TaskList` does not count.)
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If this skill was called **outside a workflow**, MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
 
@@ -231,7 +231,7 @@ mistakes compound through later tasks.
 - **"/workflow-review-changes"** — Review changes before commit
 - **"Skip, continue manually"** — user decides
 
-> If already inside a workflow, skip — workflow handles sequencing.
+> If THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row; a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count), skip — workflow handles sequencing.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
 
@@ -242,23 +242,20 @@ mistakes compound through later tasks.
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
-- `graph-assisted-investigation` — Run a code-graph command on the key files before concluding; investigating code while the code graph exists → .claude/skills/shared/protocols/graph-assisted-investigation.md
+- `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `plan-quality` — Plans decide direction, affected owners, risks and final proof without pre-writing implementation; writing or reviewing a plan → .claude/skills/shared/protocols/plan-quality.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
 - `ui-copywriting` — User-visible strings are design content; writing or reviewing UI text → .claude/skills/shared/protocols/ui-copywriting.md
 - `ui-system-context` — Resolve the project's UI conventions before a UI change; changing a user-interface surface → .claude/skills/shared/protocols/ui-system-context.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
+- `ux-journey-gate` — Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate; generating, specifying, planning, mocking up or reviewing a user-facing surface → .claude/skills/shared/protocols/ux-journey-gate.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -274,7 +271,7 @@ mistakes compound through later tasks.
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. Run graph trace when graph.db exists.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -286,32 +283,21 @@ mistakes compound through later tasks.
 
 <!-- SYNC:plan-quality:reminder -->
 
-**MUST ATTENTION** Plan at decision-and-boundary altitude: resolve `specArtifacts`; map behavior to existing or planned test owners without fabricating future evidence; name bounded executor discovery; author tests with implementation; run suites only at the final verify gate after all implementation and static review.
+**MUST ATTENTION** Plan at decision-and-boundary altitude: resolve `specArtifacts`; map behavior to existing or planned test owners without fabricating future evidence; name bounded executor discovery; author tests with implementation; run suites only at the final verify gate after all implementation and static review; list a task-specific quality-gates checklist (gate · applies · verification · evidence · owner phase) before the phases.
 
 <!-- /SYNC:plan-quality:reminder -->
 
 <!-- SYNC:ui-system-context:reminder -->
 
-- **MANDATORY IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
+**IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
+
 <!-- /SYNC:ui-system-context:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
-**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding when graph.db exists. Pattern: grep → graph trace → grep verify.
+**Optional advice:** the code graph (`.code-graph/graph.db`) can hint at a high-risk blast radius grep misses; it can be stale, so verify by reading files. Never required.
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
@@ -319,15 +305,6 @@ mistakes compound through later tasks.
 - **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -348,12 +325,6 @@ mistakes compound through later tasks.
 - **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:design-distinctiveness-gate:reminder -->
 
@@ -383,13 +354,10 @@ mistakes compound through later tasks.
 
 - **End-To-Start Debugger Trace:** Trace observed output backward through every feeder path before fixing.
 - **Source/Test Drift Check:** When source behavior changes, reconcile affected tests from evidence.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **UI System Context:** Read frontend, SCSS, and design-system docs before any UI change.
-- **Graph-Assisted Investigation:** Run a graph command on key files when graph.db exists.
+- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
 - **Nested Task Creation:** Expand child phase tasks and link the parent when nested.
-- **Project Reference Docs Guide:** Read required project-reference docs (always `lessons.md`) before target work.
 - **Task Tracking External Report:** Bootstrap task tracking; persist plan/review findings incrementally to disk.
-- **Critical Thinking Mindset:** Critical + sequential thinking; every claim needs traced proof, confidence >80%.
 - **Understand Code First:** Search 3+ patterns and read code before any modification.
 - **Plan Quality:** Add `## Test Specifications` with TC IDs to every plan phase.
 

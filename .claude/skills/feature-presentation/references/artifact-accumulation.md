@@ -66,8 +66,8 @@ Fill missing downstream artifacts so the deck is complete:
 | Gap                                              | Fill action                                                                                          |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | Targeted spec has NO PBIs                         | `manual`-tier: ask the user once; on a yes, invoke `workflow-spec-to-pbi` **AS A SUB-AGENT** (Agent tool) briefed to run `/start-workflow workflow-spec-to-pbi` with the user's yes as the explicit request — returns a summary, writes full findings to `tmp/reports/`; otherwise report the gap |
-| PBIs lack `-mockup.html` AND workflow is mockup-bearing (`idea-to-pbi`) | Invoke `pbi-mockup` per PBI to generate the missing mockup                       |
-| Spec-only `idea-to-spec` context                 | SKIP all mockup generation — never invoke `pbi-mockup` (deck uses design-spec visuals only)          |
+| PBIs lack `-mockup.html` AND workflow is mockup-bearing (`idea-to-pbi`) | Invoke `pbi --mode=mockup` per PBI to generate the missing mockup                       |
+| Spec-only `idea-to-spec` context                 | SKIP all mockup generation — never invoke `pbi --mode=mockup` (deck uses design-spec visuals only)          |
 
 **Sub-agent rule (why):** per CLAUDE.md "Workflow Step Advancement §3", a step that itself activates a multi-step workflow MUST run as a sub-agent — it returns only a summary and writes full findings to `tmp/reports/`. Running it inline would pollute the deck-build context with the entire workflow transcript and exhaust the budget before assembly.
 
@@ -79,8 +79,8 @@ Fill missing downstream artifacts so the deck is complete:
 
 | Context             | Visual source for the "UI / mockups" section                                              |
 | ------------------- | ----------------------------------------------------------------------------------------- |
-| `idea-to-pbi`       | Embedded `pbi-mockup` HTML via `<iframe srcdoc>` (full HTML mockups)                       |
-| `idea-to-spec`      | Design-spec ASCII wireframe + Component Inventory / States / Design-Tokens tables ONLY — NO HTML mockups, NO `pbi-mockup` invocation |
+| `idea-to-pbi`       | Embedded `pbi --mode=mockup` HTML via `<iframe srcdoc>` (full HTML mockups)                       |
+| `idea-to-spec`      | Design-spec ASCII wireframe + Component Inventory / States / Design-Tokens tables ONLY — NO HTML mockups, NO `pbi --mode=mockup` invocation |
 
 The spec-only branch preserves the `idea-to-spec` no-mockup / no-code contract: in that context the deck NEVER generates or embeds an HTML mockup, even if one could be produced.
 
@@ -88,8 +88,8 @@ The spec-only branch preserves the `idea-to-spec` no-mockup / no-code contract: 
 
 | Context        | Journey demo source                                                                                                   |
 | -------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `idea-to-pbi`  | Interactive `pbi-mockup` HTML scoped to the flow, embedded via `<iframe srcdoc>` + deck narration strip (`deck-template.md` §3b). |
-| `idea-to-spec` | **Narrated step-through of design-spec ASCII frames** — one wireframe-demo slide per ASCII frame (ids `demo-{journey-slug}`, `demo-{journey-slug}-2`, …), advanced by Next, each with its per-step explanation (`deck-template.md` §3b "Spec-only wireframe demo"). NO HTML mockup, NEVER invoke `pbi-mockup`. |
+| `idea-to-pbi`  | Interactive `pbi --mode=mockup` HTML scoped to the flow, embedded via `<iframe srcdoc>` + deck narration strip (`deck-template.md` §3b). |
+| `idea-to-spec` | **Narrated step-through of design-spec ASCII frames** — one wireframe-demo slide per ASCII frame (ids `demo-{journey-slug}`, `demo-{journey-slug}-2`, …), advanced by Next, each with its per-step explanation (`deck-template.md` §3b "Spec-only wireframe demo"). NO HTML mockup, NEVER invoke `pbi --mode=mockup`. |
 
 The spec-only narrated-ASCII journey honors the no-mockup / no-code contract while still giving stakeholders a sense of motion — it advances design-spec ASCII frames, it does not render or embed any HTML mockup.
 
@@ -126,6 +126,6 @@ Extract one **journey** per main user story (MVP happy path — not every edge c
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
 | PBI `## Acceptance Criteria` GIVEN / WHEN / THEN                    | The entry condition (GIVEN), the user action (WHEN), the observable result (THEN) for each step. |
 | User story `As a / I want / So that`                               | The persona + the journey's goal/title + the business "why" for the explanation. |
-| Mock-up flow-spec (`pbi-mockup/references/interactive-demo.md` §1) | The concrete ordered `steps[]` (`action` → `result` → `explain`) + `endState` — when a `-mockup.html` exists, reuse its flow-specs verbatim so the deck demo == the per-PBI prototype. |
+| Mock-up flow-spec (`pbi/references/mockup-interactive-demo.md` §1) | The concrete ordered `steps[]` (`action` → `result` → `explain`) + `endState` — when a `-mockup.html` exists, reuse its flow-specs verbatim so the deck demo == the per-PBI prototype. |
 
 One journey per main story. Keep journey `title`/explanation prose tech-agnostic (business/observable terms, not framework/CSS class names) per M1/M2. In spec-only `idea-to-spec` context, the journey's steps map to design-spec ASCII frames (narrated step-through, one slide per frame), never an HTML mockup. Artifact text and wireframes carry `<`, `>` and `&`: hand them to the render side as plain text — it escapes every inserted value (`deck-template.md` §1 "Escape every inserted value").

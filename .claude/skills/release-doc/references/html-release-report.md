@@ -65,8 +65,7 @@ For every highlight from R1.4:
 
 1. **Read the actual diff for its files** — `git show {hash}` per commit, or `git diff {base}..{head} -- {path}` per file. Read the *code*, never infer from the commit subject.
 2. **Trace the feature end to end, in both directions** — entry point (route · command · handler · UI action) → domain/business logic → persistence/state → the observable result the user sees. Then trace backward from that observable result to confirm the path is real.
-    - When `.code-graph/graph.db` exists this is a HARD-GATE: run `python .claude/scripts/code_graph trace <file> --direction both --json` on the highlight's key files, plus `connections` / `callers_of` to find consumers the diff did not touch.
-    - Otherwise grep the changed symbol names across the repo to find every consumer.
+    - Grep the changed symbol names across the repo to find every consumer. Optional: for a high-risk highlight and when `.code-graph/graph.db` exists, `python .claude/scripts/code_graph trace <file> --direction both --json` (plus `connections` / `callers_of`) can hint at consumers the diff did not touch — it may be stale; verify by reading.
 3. **Establish before → after** — state what the behavior was BEFORE and what it is AFTER, each with `file:line` evidence. "Before" usually lives on the diff's `-` side or in the parent commit; read it, do not assume it.
 4. **Find the blast radius** — downstream consumers, cross-tier seams (client↔server route/DTO/field/type/nullability), cross-service events, migrations, config/env additions. Classify each seam `NONE` / `ADDITIVE` / `BREAKING`.
 5. **Find the tests that prove it** — the integration/E2E/unit tests covering the highlight (`tests_for` on the graph, or grep). A highlight with no covering test is reported as such — never claimed as verified.
@@ -116,7 +115,7 @@ Detect by intersecting the changed-file list with the project's frontend roots a
 
 ### R4.2 Load the project's design context
 
-Same discovery ladder as `pbi-mockup` Step 3 / `feature-presentation` — do not invent a third one:
+Same discovery ladder as `pbi --mode=mockup` Step 3 / `feature-presentation` — do not invent a third one:
 
 Paths named below without a directory sit in the project-reference docs root — default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
 
@@ -134,7 +133,7 @@ Also read `configured styling reference` from that same project-reference docs r
 
 > **[BLOCKING] Understand the existing UI before you render anything** — canonical rule: `SYNC:existing-ui-research` (source of truth: `.claude/skills/shared/sync-inline-versions.md`). Inventory the existing related UI, map the connected flows in and out, reuse before you invent, and record what matched — so the render faithfully matches the current UI system rather than generic HTML. **Skip ONLY** when the release is backend-only (no UI) — state that explicitly.
 
-This is `pbi-mockup` Step 3b applied to a release scope. Concretely, for each `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight:
+This is `pbi --mode=mockup` Step 3b applied to a release scope. Concretely, for each `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight:
 
 1. Read `frontend-patterns-reference.md` from the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) (first ~200 lines) — base component classes, form/table/dialog/navigation patterns.
 2. **Open the actual component/template files the diff touched** and 2–3 sibling components of the same tier. Copy their real markup structure and real class names — the mock-up must be a faithful reproduction of the project's UI, not a generic card grid.
@@ -258,9 +257,9 @@ Every claim in sections 3–8 carries an **evidence chip** — a small inline `c
 
 For every `NEW-UI` / `CHANGED-UI` / `BEHIND-UI` highlight, render a **faithful HTML reproduction of the real screen** inside the doc.
 
-> **[BLOCKING] The mock-up procedure is the `pbi-mockup` protocol — do not invent a second one.** How a screen is reproduced is owned by `.claude/skills/pbi-mockup/SKILL.md`: its **Step 3** (load the design system — canonical doc + the per-app doc matched from `docs/project-config.json`), **Step 3b** (`[BLOCKING]` inventory the existing UI and map connected flows by reading the real shared/module component files), **Step 3c** (real domain entity fields, types, enum values), and its **Step 7 fidelity validation**. R4.2–R4.4 above ARE that contract applied to a release scope — they must never drift from it. Where the two ever read differently, **`pbi-mockup` governs HOW a screen is reproduced; this file governs WHAT gets rendered** (which highlights, before→after pairing, per-highlight scope, and the release document's own chrome).
+> **[BLOCKING] The mock-up procedure is the `pbi --mode=mockup` protocol — do not invent a second one.** How a screen is reproduced is owned by `.claude/skills/pbi/references/mode-mockup.md`: its **Step 3** (load the design system — canonical doc + the per-app doc matched from `docs/project-config.json`), **Step 3b** (`[BLOCKING]` inventory the existing UI and map connected flows by reading the real shared/module component files), **Step 3c** (real domain entity fields, types, enum values), and its **Step 7 fidelity validation**. R4.2–R4.4 above ARE that contract applied to a release scope — they must never drift from it. Where the two ever read differently, **`pbi --mode=mockup` governs HOW a screen is reproduced; this file governs WHAT gets rendered** (which highlights, before→after pairing, per-highlight scope, and the release document's own chrome).
 
-**Deliberate scope difference — do not import the whole PBI skill.** `pbi-mockup` builds a clickable multi-view prototype of an **unbuilt** PBI, with guided narration and scripted flows. A release mock-up reproduces a screen that has **already shipped**: static or lightly toggled is enough (rule 7 below), and the ▶ Play / ⏭ Next walkthrough machinery is not required. Borrow the fidelity contract, not the prototype machinery. Its `⚠ Simulated` banner does carry over, as the `⚠ Illustrative mock-up` label in rule 8.
+**Deliberate scope difference — do not import the whole PBI skill.** `pbi --mode=mockup` builds a clickable multi-view prototype of an **unbuilt** PBI, with guided narration and scripted flows. A release mock-up reproduces a screen that has **already shipped**: static or lightly toggled is enough (rule 7 below), and the ▶ Play / ⏭ Next walkthrough machinery is not required. Borrow the fidelity contract, not the prototype machinery. Its `⚠ Simulated` banner does carry over, as the `⚠ Illustrative mock-up` label in rule 8.
 
 **Fidelity rules — these are what separate a real release doc from a generic template:**
 
@@ -346,7 +345,7 @@ Record: `Release accuracy: PASS | FAIL`.
 - [ ] Responsive at 1440px and 375px; no horizontal body scroll; wide blocks scroll in their own container
 - [ ] Contrast 4.5:1, one `h1`, ordered headings, visible focus ring, reduced-motion honoured
 - [ ] `NO-UI` release: `UI surface: none` stated and no empty/broken mock-up frame rendered
-- [ ] Mock-ups satisfy the `pbi-mockup` fidelity contract (Steps 3 / 3b / 3c, Step 7) — a second, self-invented procedure was not used
+- [ ] Mock-ups satisfy the `pbi --mode=mockup` fidelity contract (Steps 3 / 3b / 3c, Step 7) — a second, self-invented procedure was not used
 
 Record: `Release fidelity: PASS | FAIL`.
 
@@ -449,7 +448,7 @@ Auto-open: opened | skipped ({reason})
 | Decorative icons or charts of estimated numbers            | Fails R8.4 / R8.1 — a visual must explain, and every value comes from the temp report     |
 | Judging layout from the source or one wide screenshot      | Fails R8.4 — view wide and verified-narrow renders (R6.5.8)                               |
 | Calling a change `NO-UI` because the diff was backend-only | Fails R4.1 — if its effect shows on an existing screen it is `BEHIND-UI` and gets a mock-up |
-| Inventing a mock-up procedure instead of `pbi-mockup`'s    | Fails R8.2 — R6.3 binds the reproduction contract to `pbi-mockup` Steps 3/3b/3c/7          |
+| Inventing a mock-up procedure instead of `pbi --mode=mockup`'s    | Fails R8.2 — R6.3 binds the reproduction contract to `pbi --mode=mockup` Steps 3/3b/3c/7          |
 | Claiming a behavior with no `file:line`                   | Fails R8.1 — every claim carries an evidence chip                                         |
 | Smoothing over a spec↔code conflict                       | R3.3 requires surfacing it; a release doc must not hide a contradiction                   |
 | Failing the run because the browser did not open          | R9 — auto-open is best-effort, never a blocker                                            |

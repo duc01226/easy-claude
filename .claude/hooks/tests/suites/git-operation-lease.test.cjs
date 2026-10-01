@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 const vm = require('node:vm');
+const { osEssentialsEnv } = require('../lib/os-essentials-env.cjs');
 const LIB = path.resolve(__dirname, '../../lib/git-operation-lease.cjs');
 const SESSION_END = path.resolve(__dirname, '../../session-end.cjs');
 const api = () => require(LIB);
@@ -40,7 +41,7 @@ function authorityDomain(leaseApi, o) {
 function childCall(command, input) {
     return new Promise((resolve, reject) => {
         const child = spawn(process.execPath, [LIB, command], { shell: false, windowsHide: true,
-            env: { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH }, stdio: ['pipe', 'pipe', 'pipe'] });
+            env: osEssentialsEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
         let out = ''; let err = '';
         child.stdout.on('data', chunk => { out += chunk; }); child.stderr.on('data', chunk => { err += chunk; });
         child.on('error', reject); child.on('close', code => resolve({ code, out, err }));
@@ -178,7 +179,7 @@ const tests = [
     }) },
     { name: 'TC-HARNESS-013 CLI requires explicit metadata and returns exact lifecycle outcomes', fn: async () => fixture(o => {
         const call = (command, input) => spawnSync(process.execPath, [LIB, command], { input: JSON.stringify(input), encoding: 'utf8',
-            shell: false, windowsHide: true, env: { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH } });
+            shell: false, windowsHide: true, env: osEssentialsEnv() });
         const { now, ...input } = o;
         assert.notEqual(call('issue', { ...input, sessionId: undefined }).status, 0);
         assert.notEqual(call('issue', { ...input, now }).status, 0);
@@ -198,7 +199,7 @@ const tests = [
         const call = spawnSync(process.execPath, [LIB, 'revoke-session'], {
             input: JSON.stringify({ projectDir: input.projectDir, sessionId: input.sessionId, storeDir: input.storeDir }),
             encoding: 'utf8', shell: false, windowsHide: true,
-            env: { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH }
+            env: osEssentialsEnv()
         });
         assert.equal(call.status, 0, call.stderr);
         assert.equal(JSON.parse(call.stdout), 2);

@@ -1,11 +1,14 @@
 ---
 name: workflow-architecture-audit
-description: '[Workflow] Use when auditing the whole project''s architecture, running an architecture health check, or checking production readiness — read-only, one consolidated health report.'
+description: '[Workflow] Use when auditing the whole project''s architecture or production readiness: read-only, one consolidated health report.'
 disable-model-invocation: false
 ---
 
 > Codex compatibility note:
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
+> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
+> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
+> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
@@ -14,46 +17,13 @@ disable-model-invocation: false
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (Hook-Independent)
-
-Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
-When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
-
-**Always read:**
-- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
-- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
-- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
-
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
-
-**Situation-based docs** (pick by the phase you are about to enter — plan/investigate, edit, test, spec/doc, review — and read only docs the project selects in `referenceDocs` that exist):
-- Planning, investigation, or design: `project-structure-reference.md`, `domain-entities-reference.md`, plus the docs below for every file type the plan touches
-- Editing or writing code: `code-review-rules.md` plus the backend or frontend docs below for the file type
-- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
-- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
-- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md` (or the configured styling reference), `design-system/README.md`
-- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
-- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
-- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
-- Integration test implementation/review: `integration-test-reference.md`
-- E2E test implementation/review: `e2e-test-reference.md`
-- Test-data seeders: `seed-test-data-reference.md`
-- Code review/audit work: `code-review-rules.md` plus the docs above for every file type under review
-- Per-file conventions (`contextGroups[]`): before editing an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`
-
-**Dedup:** a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens, and it has not changed since — cite it `(loaded)` instead of re-reading. A hook reminder, a summary, or a prior mention never counts; a delegated sub-agent starts empty, so name the resolved doc paths in its brief.
-
-Never read all docs blindly: route from `docs-index-reference.md` and open only what the task needs.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
-
 ## Quick Summary
 
 **Goal:** Audit a project's architecture, scalability and production readiness without changing code, and deliver ONE consolidated Architecture Health Report: three sub-scores, one worst-case combined verdict, and the merged advisory Technique Applicability and Scenario Stress matrices. Every validated finding is routed to a follow-up owner.
 
-**Use it when** someone asks for an architecture health check, a production-readiness verdict, or a scalability/coupling audit across a project or a named part of it. **Use a sibling instead** for a single-change compliance check (`$architecture-review`), a one-off consolidated report with no run closure (`$architecture-review-full` standalone), or a review of a change set (`workflow-review-changes`).
+**Use it when** someone asks for an architecture health check, a production-readiness verdict, or a scalability/coupling audit across a project or a named part of it. **Use a sibling instead** for a single-change compliance check (`$architecture --mode=review`), a one-off consolidated report with no run closure (`$architecture --mode=full` standalone), or a review of a change set (`workflow-review-changes`).
 
-**IMPORTANT MANDATORY Steps:** $investigate -> $architecture-review-full -> $why-review -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $investigate -> $architecture --mode=full -> $why-review -> $docs-manager --mode=update -> $workflow-end -> $watzup
 
 **Step contract:** steps follow `$start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its skill invocation, and every other deviation is logged. NEVER batch-complete validation gates.
 
@@ -65,7 +35,7 @@ Classify the target before choosing depth, and record the result at the top of t
 
 | Axis                  | Values                                                                             | Effect                                                                                                                                                                                                                                        |
 | --------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Scope                 | whole project · current diff · specific path · greenfield foundation (`mode=init`) | Passed to `architecture-review-full` scope resolution; ask only when the prompt names none.                                                                                                                                                   |
+| Scope                 | whole project · current diff · specific path · greenfield foundation (`mode=init`) | Passed to `architecture --mode=full` scope resolution; ask only when the prompt names none.                                                                                                                                                   |
 | Size (files in scope) | **XS** 1–3 · **S** ≤15 · **M** ≤60 · **L** ≤300 · **XL** >300                      | XS/S with a pinned scope: `$investigate` has no work to do, keep child briefs narrow. M: defaults. L/XL: `$investigate` maps modules and hotspots first; the reviewers batch per module (`systematic-review-batching`), one report per batch. |
 | Risk                  | production-critical path · data integrity · security/PII · multi-service seams     | Raise depth: full-scope reviewers, explicit cross-service seam checks, and name specialist follow-ups (`$security-audit`, `$performance-review`) in the handoff.                                                                             |
 
@@ -73,35 +43,31 @@ Classify the target before choosing depth, and record the result at the top of t
 
 Each gate must hold, with its evidence, before `$workflow-end` closes the run.
 
-| Gate                                              | Evidence that proves it                                                                                                                                                                                                                                                      |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Consolidated report finished (`review-converged`) | The `architecture-review-full` report at status `FINISHED`: `Faces merged: 3/3`, three sub-scores, the worst-case combined verdict, the merged advisory matrices, and its Why-Review Fix Notes or Validation section.                                                        |
-| Report validated at report level                  | The workflow-level `$why-review` record over the FINISHED report: scope (nothing in-scope missed, nothing out-of-scope pulled in), verdict rollup, dedup completeness, cross-face severity consistency. When it demotes or restores a finding, the report is fixed in place. |
-| Evidence bar                                      | Every finding carries `file:line` proof and a confidence; findings below 60% are flagged and never recommended.                                                                                                                                                              |
-| Read-only                                         | This workflow edits no source or config. Every validated finding names its follow-up owner: `$plan` for large or cross-module fixes, a feature or refactor workflow otherwise.                                                                                               |
-| Advisory stays advisory                           | The technique and scenario matrices and any coverage gaps never change a sub-score, the combined verdict, or a gate.                                                                                                                                                         |
-| Docs truthful (when applicable)                   | When the audit finds project docs contradicting the code, `$docs-update` ran and its non-trivial doc diff received its own `$why-review`.                                                                                                                                    |
-| Run closed (`run-closed`)                         | `$workflow-end` ran last.                                                                                                                                                                                                                                                    |
+- Consolidated report finished (`review-converged`) — The `architecture --mode=full` report at status `FINISHED`: `Faces merged: 3/3`, three sub-scores, the worst-case combined verdict, the merged advisory matrices, and its Why-Review Fix Notes or Validation section.
+- Report validated at report level — The workflow-level `$why-review` record over the FINISHED report: scope (nothing in-scope missed, nothing out-of-scope pulled in), verdict rollup, dedup completeness, cross-face severity consistency. When it demotes or restores a finding, the report is fixed in place.
+- Evidence bar — Every finding carries `file:line` proof and a confidence; findings below 60% are flagged and never recommended.
+- Read-only — This workflow edits no source or config. Every validated finding names its follow-up owner: `$plan` for large or cross-module fixes, a feature or refactor workflow otherwise.
+- Advisory stays advisory — The technique and scenario matrices and any coverage gaps never change a sub-score, the combined verdict, or a gate.
+- Docs truthful (when applicable) — When the audit finds project docs contradicting the code, `$docs-manager --mode=update` ran and its non-trivial doc diff received its own `$why-review`.
+- Run closed (`run-closed`) — `$workflow-end` ran last.
 
 ## Recommended Skills
 
-| Skill                       | Role     | When it earns its cost                                                                                                                                                                                                                                                                                                                                                                                | Proves / feeds                                                                                                                                                                                                          |
-| --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `$investigate`              | optional | The prompt does not pin the audit scope to an explicit path or the current diff, or the scope is medium or larger (more than about 15 files) so modules, boundaries and hotspots must be mapped before the reviewers fan out. Skip reason: The prompt pins a small audit scope to an explicit path or the current diff, so architecture-review-full resolves the scope itself without a separate map. | Scope map for the engine and for the final scope check.                                                                                                                                                                 |
-| `$architecture-review-full` | gate     | Always.                                                                                                                                                                                                                                                                                                                                                                                               | Three non-overlapping faces (`architecture-scalability-review`, `architecture-review`, `production-readiness-review`), progressive dedup synthesis, per-face `$why-review` fix, finalized verdict → `review-converged`. |
-| `$why-review`               | gate     | Always, after the report is `FINISHED`.                                                                                                                                                                                                                                                                                                                                                               | Report-level validation. The engine skips its own Step 5 on a zero-open-finding PASS (Round-1 LOW closure, `SYNC:double-round-trip-review`), so this step is the one validation every run gets.                                                                                     |
-| `$docs-update`              | optional | The validated audit found project documentation (reference docs, project config, README, ADR status) that contradicts the audited code. Skip reason: The validated audit found no project documentation contradicting the audited code, and a read-only audit leaves no diff for docs-update to sync.                                                                                                 | Docs truthful.                                                                                                                                                                                                          |
-| `$workflow-end`             | gate     | Always, last.                                                                                                                                                                                                                                                                                                                                                                                         | `run-closed`.                                                                                                                                                                                                           |
-| `$watzup`                   | core     | Always.                                                                                                                                                                                                                                                                                                                                                                                               | Handoff: verdict, sub-scores, follow-up owners per finding.                                                                                                                                                             |
+- `$investigate` (optional) — The prompt does not pin the audit scope to an explicit path or the current diff, or the scope is medium or larger (more than about 15 files) so modules, boundaries and hotspots must be mapped before the reviewers fan out. Skip reason: The prompt pins a small audit scope to an explicit path or the current diff, so `architecture --mode=full` resolves the scope itself without a separate map. · proves / feeds: Scope map for the engine and for the final scope check.
+- `$architecture --mode=full` (gate) — Always. · proves / feeds: Three non-overlapping faces (`architecture --mode=scalability`, `architecture --mode=review`, `production-readiness-review`), progressive dedup synthesis, per-face `$why-review` fix, finalized verdict → `review-converged`.
+- `$why-review` (gate) — Always, after the report is `FINISHED`. · proves / feeds: Report-level validation. The engine skips its own Step 5 on a zero-open-finding PASS (Round-1 LOW closure, `SYNC:double-round-trip-review`), so this step is the one validation every run gets.
+- `$docs-manager --mode=update` (optional) — The validated audit found project documentation (reference docs, project config, README, ADR status) that contradicts the audited code. Skip reason: The validated audit found no project documentation contradicting the audited code, and a read-only audit leaves no diff for docs-manager --mode=update to sync. · proves / feeds: Docs truthful.
+- `$workflow-end` (gate) — Always, last. · proves / feeds: `run-closed`.
+- `$watzup` (core) — Always. · proves / feeds: Handoff: verdict, sub-scores, follow-up owners per finding.
 
 ## Orchestration
 
-You choose inline vs sub-agent, batching and ordering to minimize wall-clock and tokens at equal quality. The registry `stepMeta` defaults (`$investigate` and `$docs-update` as sub-agents, the engine and `$why-review` inline) are starting points.
+You choose inline vs sub-agent, batching and ordering to minimize wall-clock and tokens at equal quality. The registry `stepMeta` defaults (`$investigate` and `$docs-manager --mode=update` as sub-agents, the engine and `$why-review` inline) are starting points.
 
 Fixed constraints:
 
-- `architecture-review-full` runs INLINE in the main session, because it spawns the three reviewers and a sub-agent cannot fan out further. Parallelism lives inside it (fan-out plus all-return barrier), so this workflow declares no workflow-level parallel groups.
-- `$why-review` runs only on the `FINISHED` report. `$docs-update` runs after `$why-review`. `$workflow-end` runs last.
+- `architecture --mode=full` runs INLINE in the main session, because it spawns the three reviewers and a sub-agent cannot fan out further. Parallelism lives inside it (fan-out plus all-return barrier), so this workflow declares no workflow-level parallel groups.
+- `$why-review` runs only on the `FINISHED` report. `$docs-manager --mode=update` runs after `$why-review`. `$workflow-end` runs last.
 
 Recommended: on XS/S targets, run `$investigate` inline or let the engine's scope step cover it. On L/XL targets, hand the engine a module partition so each reviewer works in bounded batches.
 
@@ -122,28 +88,13 @@ Recommended: on XS/S targets, run `$investigate` inline or let the engine's scop
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 
@@ -152,16 +103,9 @@ Recommended: on XS/S targets, run `$investigate` inline or let the engine's scop
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 
@@ -170,91 +114,8 @@ Recommended: on XS/S targets, run `$investigate` inline or let the engine's scop
 **IMPORTANT MUST ATTENTION Goal:** a read-only audit that ends with ONE `FINISHED` Architecture Health Report (three sub-scores, worst-case combined verdict, advisory matrices), validated at report level by `$why-review`, with every validated finding routed to a follow-up owner.
 
 - **MUST ATTENTION** triage scope, size and risk FIRST and record them. Depth follows the triage: a small pinned scope does not need a separate `$investigate` map, and L/XL targets batch per module.
-- **MUST ATTENTION** run `architecture-review-full` INLINE (it owns the fan-out and the all-return barrier), then the `$why-review` gate over the `FINISHED` report. Every finding carries `file:line` proof and a confidence.
+- **MUST ATTENTION** run `architecture --mode=full` INLINE (it owns the fan-out and the all-return barrier), then the `$why-review` gate over the `FINISHED` report. Every finding carries `file:line` proof and a confidence.
 - **NEVER** apply source fixes in this workflow. Route each validated finding to `$plan` or a feature/refactor workflow; the advisory matrices never move a score or the verdict.
 - **MUST ATTENTION** write the workflow report first, append per step, and re-read it with the current task list after compaction. `$workflow-end` runs last.
 
-**Protocols in force (digest; the guide entries above point to the full text):** Nested Task Creation · Critical Thinking · AI Mistake Prevention · Incremental Persistence · Sub-Agent Return Contract · Session Goal Ledger · Workflow Registry Binding.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Static Prompt Protocol Mirror (Auto-Synced)
-
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (static quality-protocol composer)
-
-## Shared AI-SDD Protocol Markers
-
-Source: `.claude/skills/shared/sync-inline-versions.md`
-
-## SYNC:ai-sdd-artifact-contract
-
-> **AI-SDD Artifact Contract** — Shared spec-driven development rules stay portable and source-owned.
->
-> 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
-> 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
-> 3. Resolve `specArtifacts` before selecting identity or carrier: use a valid profile, use strict-default TC/test identity only when the profile is absent, and block a malformed or unsupported declaration. Trace every requirement or invariant through decision, task, configured case/test identity and inspected assertion evidence, then carry it through source evidence and canonical docs/spec updates.
-> 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
-> 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
-> 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
-> 7. If `docs/project-config.json`, root instruction files, or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
->
-> **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
-
----
-
-## SYNC:ai-sdd-artifact-contract:reminder
-
-- **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
-- **MANDATORY** Resolve and validate `specArtifacts`: use valid native owner/case/variant identity and assertion-bearing evidence; use strict-default TC/TestSpec only when the profile is absent; block a malformed or unsupported declaration without fallback.
-- **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
-- **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
-- **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes. Preserve fixed ordering when a skill or workflow explicitly fixes it.
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
-## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
-
-Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
-
-**Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
-3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
-4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
-6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-8. ALL three gates pass → ask user to run `$learn`.
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
-**Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
-## Common AI Mistake Prevention (System Lessons)
-
-- **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
-- **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-- **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-- **Re-read and re-verify after context compaction or resume.** Compaction wipes read state and memory; summaries describe intent, not environment state. Re-read before editing, audit current state (git status, files) before creating anything new, grep-verify sub-agent output — every "completed" claim is a hypothesis until evidence confirms it.
-- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
-- **Trace every consumer before and after a change.** Map referencing files before deleting; after bulk replacements, renames, or extractions, grep ALL consumer file types (templates, configs, catalogs and generated files fail silently) for every old or removed name; trace the full dependency chain of an edited definition; update docs that embed canonical data alongside their source.
-- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
-- **Sub-agents: inherit, cover, persist.** Sub-agents know only their agent .md definition — use custom agent types, not built-in Explore. Reconcile the union of assignments against the full target list — category splits miss boundary items. Make the report write the first deliverable, appended per file/section with bounded scope; a truncated run with no report → spawn a narrower scope, never the same prompt.
-- **Ownership before action.** When investigating a failure, ask which part owns the behavior before changing anything. Trace the wrong state to the component responsible for its invariant, then make one authoritative correction there.
-- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec if one exists (the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
-- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting any constant/limit/flag/cutoff, read comments, git blame, the CALLER's ordering (the guarantee usually runs immediately BEFORE the cited line), and 2+ sibling call sites. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and an accurate `file:line` citation proves the transcription, never the defect.
-- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
-- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
-- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, state) and verify each against evidence. Ask "what would falsify this?" — if nothing, it is not a hypothesis.
-- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem: "Would this change exist if I were not addressing this request?" — if not, remove or disclose it; never silently expand scope.
-- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort ("(1) [N h], (2) [N h]. Which matters?"), list assumptions, name a simpler path when one exists.
-- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC: steel-man a rejected alternative, invert each reason ("what does it sacrifice?"), stress-test the top 2-3 assumptions, run a pre-mortem. Quality = causal reasoning + mitigations + evidence, not section presence.
-- **OOM/memory: check row count before row size.** An unbounded query (no DB filter for the trigger) → push the filter to the DB; then large rows → projection. Row reduction > projection in ROI.
-- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** For async work (queues, retries, background jobs, caches, replication) assert the final business/entity state — NEVER delivery bookkeeping (consume/send status, attempt counts, last-error, broker/scheduler/outbox rows) that ANY co-running process can write: green alone, flaky once anything shares that broker + database. Gate: "would this hold no matter WHICH process did the work?" Process-local fault injection is a stress amplifier (arm → bounded window → disarm → assert convergence), never a precondition.
-- **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before any verdict, sweep environment preconditions (toolchain/lockfile state, stale build/cache artifacts, env vars and config, service dependencies, ports/clock, OS path/locale, permissions, leftover processes/test data) AND transient resource pressure (RAM/OOM, CPU, disk/temp, handle and connection-pool limits, network, a timeout that is really slowness). Tell-tale: non-deterministic, fails only in parallel, on one machine or only on CI, or an error naming resources. Cite the discriminator you ran (clean environment? path changed? concurrency 1?) — a verdict without one is a guess. Fix an environment cause in the environment; NEVER edit product code or weaken/skip a test to absorb it; a failure that vanishes on retry stays unexplained until its mechanism is named.
-- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral APIs and literal argv vectors; never infer shell, temp-path, executable-extension, ACL, or symlink semantics from the current host. A documented command gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>`. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
-- **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer must reference NO consumer-specific domain concept (tenant/customer/product IDs, business entities, feature rules); such a leak compiles, runs, and passes review while coupling the layer to one consumer. Push domain fields/logic down into the consumer via subclass/composition.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->
+**Protocols in force (digest; the guide entries above point to the full text):** Nested Task Creation · Incremental Persistence · Sub-Agent Return Contract · Session Goal Ledger · Workflow Registry Binding.

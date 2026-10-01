@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 // TC-HARNESS-004: static prompt-contract regression tests, NOT a runtime permission
 // evaluator or a measurement of model compliance. No fixture executes Git.
-const skill = readFileSync(new URL('../../../skills/plan-execute/SKILL.md', import.meta.url), 'utf8');
+const skill = readFileSync(new URL('../../../skills/plan/references/mode-execute.md', import.meta.url), 'utf8');
 const agent = readFileSync(new URL('../../../agents/git-manager.md', import.meta.url), 'utf8');
 const commitSkill = readFileSync(new URL('../../../skills/commit/SKILL.md', import.meta.url), 'utf8');
 const section = (text, heading) => {

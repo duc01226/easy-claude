@@ -23,6 +23,8 @@ const {
 
 /** Workflow activation tiers, loosest first (auto < confirm < manual). */
 const WORKFLOW_ACTIVATION_TIERS = ['auto', 'confirm', 'manual'];
+/** Workflow route modes (ask = default). Lockstep with ROUTE_MODES in .claude/scripts/lib/workflow-routing-config.cjs. */
+const WORKFLOW_ROUTE_MODES = ['ask', 'auto', 'off'];
 /** hooks.tokenBudget.checkpointTokens inclusive range (non-cached tokens per advisory checkpoint). */
 const TOKEN_BUDGET_CHECKPOINT_RANGE = [50000, 20000000];
 /** skillProfile.preset values; the preset data lives in .claude/config/skill-profiles.json. */
@@ -780,12 +782,17 @@ const SCHEMA = {
         type: 'object',
         required: false,
         properties: {
-            // false = keep a project-only CLAUDE.md/AGENTS.md; the agent-files bootstrap
-            // gate then checks only existence, not universal-guides completeness. Default true.
-            requireUniversalGuides: { type: 'boolean', required: false },
-            // false opts the team out of the tracked workflow route gate. Default true.
-            // A developer may override runtime refresh in git-ignored `.claude/.ck.local.json`.
+            // Legacy on/off form of the workflow route mode: false means off, true means ask. Default true.
+            // The per-person `workflowRouteMode` (below) is the current form and wins when both are set.
             workflowAutoDetect: { type: 'boolean', required: false },
+            // The team default for the per-person workflow route mode: ask (default) | auto | off. A person
+            // overrides it in ~/.claude/.ck.json, git-ignored .claude/.ck.local.json or env CK_WORKFLOW_ROUTE_MODE.
+            workflowRouteMode: {
+                type: 'string',
+                required: false,
+                enumValues: WORKFLOW_ROUTE_MODES,
+                describe: 'Team default for the workflow route mode: ask (default; the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing) | auto (start it without asking, by its tier) | off (no workflow is started without an explicit request). A person overrides it in ~/.claude/.ck.json, .claude/.ck.local.json or env CK_WORKFLOW_ROUTE_MODE.'
+            },
             // false = the generated golden-rules section names each context group and points to the
             // file-conventions hook + `--lookup` CLI instead of inlining every rule (root byte budget).
             // Honored only with conventionInjection.enabled: true, the conventions lib available and every
@@ -2115,6 +2122,7 @@ module.exports = {
     contentRegexLintReason,
     describeSchema,
     WORKFLOW_ACTIVATION_TIERS,
+    WORKFLOW_ROUTE_MODES,
     TOKEN_BUDGET_CHECKPOINT_RANGE,
     SKILL_PROFILE_PRESETS,
     SKILL_PROFILE_LISTS

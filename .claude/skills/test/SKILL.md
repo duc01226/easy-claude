@@ -1,7 +1,7 @@
 ---
 name: test
 version: 1.0.0
-description: '[Testing] Use when a workflow step or the user asks for a local test run. Runs the tests and analyzes the summary report.'
+description: '[Testing] Use when a workflow step or the user asks for a local test run: runs tests and analyzes the summary report.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -27,7 +27,7 @@ description: '[Testing] Use when a workflow step or the user asks for a local te
 
 **Workflow:**
 
-1. **Delegate** — Launch `tester` subagent with test scope from arguments
+1. **Delegate** — Launch `tester` subagent with test scope from arguments; run every requested tier unless the caller passed `--proven` evidence (Proven-Tier Evidence below)
 2. **Analyze** — Review test results, identify failures and patterns
 3. **Report** — Summarize pass/fail counts, highlight failing tests
 
@@ -36,8 +36,10 @@ description: '[Testing] Use when a workflow step or the user asks for a local te
 - READ-ONLY: do not implement fixes, only report results
 - Activate relevant skills from catalog during process
 - Always use `tester` subagent, not direct test commands
-- **Single verify run (`SYNC:verify-last-order`):** in a code-changing task this is the ONE test run, made after the static review — never per phase, per wave or per fix. The mutation check is NOT done here (this skill is read-only): `/integration-test-verify` or the main session (`/plan-execute` Step 4) owns it.
-- An INTERMITTENT failure (red in one run, green in another) is NOT yet a product defect — route it through the same adjudication `/integration-test-verify` uses before reporting it as one: (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race. Report the verdict with its evidence, or report the failure as UNADJUDICATED — never as a product defect on the strength of one red run
+- **Single verify run (`SYNC:verify-last-order`):** in a code-changing task this is the ONE test run, made after the static review — never per phase, per wave or per fix. The mutation check is NOT done here (this skill is read-only): `/integration-test --mode=verify` or the main session (`/plan --mode=execute` Step 4) owns it.
+- An INTERMITTENT failure (red in one run, green in another) is NOT yet a product defect — route it through the same adjudication `/integration-test --mode=verify` uses before reporting it as one: (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race. Report the verdict with its evidence, or report the failure as UNADJUDICATED — never as a product defect on the strength of one red run
+
+- **Proven-tier evidence (caller-passed only):** `--proven=<report path>[,<report path>…]` names run reports that already show tiers green on the final tree; only then are those tiers not re-run (see Proven-Tier Evidence). Default and every standalone call: run every requested tier.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -47,6 +49,15 @@ Use the `tester` subagent to run tests locally and analyze the summary report.
 **IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
 
 **Goal Contract evidence (after test run):** Resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json`). When one exists, append the verification evidence to the goal file's Iteration Log — test command, exact pass/fail counts, report path — mapped to the saved success criteria the run verifies, and update the Goal Satisfaction matrix rows for those criteria (PASS/FAIL/BLOCKED). Record `No active goal — evidence reported inline only.` when none exists. Never copy raw sensitive fixture data into the goal file.
+
+## Proven-Tier Evidence (caller-passed)
+
+A workflow or caller that already holds a green run on the final tree passes it explicitly: `--proven=<report path>[,<report path>…]` (for example the `/integration-test --mode=verify` report). Only then:
+
+- Read each named report; a tier counts as covered only when the report shows its exact command, counts and exit status green for the same scope and no source or test file changed after it (`SYNC:verify-last-order` — an edit after the run invalidates it). A missing, unreadable, red or stale report covers nothing.
+- Run the `tester` only for the configured tiers the reports do not cover. Record each covered tier as `covered by <report path> — <command, exact counts>`; report the union of covered and freshly run results.
+- Every applicable tier covered → skip the `tester` launch, record `simplified: covered by <report path(s)>` as the evidence, and still complete the Goal Contract evidence step.
+- No `--proven` input (the default, and every standalone call) → run every requested tier as usual. Never infer that a tier is proven from context you were not handed.
 
 ## Exact-Result Reporting Contract (Read-Only)
 
@@ -65,20 +76,11 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 
 ---
 
-## Workflow Recommendation
-
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
->
-> 1. **Activate `testing` workflow** (Recommended) — test
-> 2. **Execute `/test` directly** — run this skill standalone
-
----
-
 ## Next Steps
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
-- **"/docs-update (Recommended)"** — Update documentation after tests pass
+- **"/docs-manager --mode=update (Recommended)"** — Update documentation after tests pass
 - **"/fix"** — If tests revealed failures that need fixing
 - **"/watzup"** — Wrap up session and review all changes
 - **"Skip, continue manually"** — user decides
@@ -95,14 +97,10 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `environment-fault-hypothesis` — Weigh the environment as a competing cause, with a named discriminator; judging a bug report, failing test, error or unexpected output → .claude/skills/shared/protocols/environment-fault-hypothesis.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
@@ -116,18 +114,6 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim; never speculate. Confidence >80% to act, <60% = do NOT recommend; "not enough evidence" is valid output.
 
 <!-- /SYNC:evidence-based-reasoning:reminder -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 
@@ -149,17 +135,9 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
@@ -175,15 +153,6 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 
 <!-- /SYNC:environment-fault-hypothesis:reminder -->
 
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
@@ -191,11 +160,9 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **Critical Thinking:** ALWAYS apply critical + sequential thinking; traced proof, confidence >80%.
 - **Evidence:** ALWAYS cite `file:line` per claim; NEVER speculate without proof.
 - **Source/Test Drift:** when source changes, decide from evidence whether test or source is wrong; NEVER assume.
 - **Real-World Fidelity:** a scenario production could never reach proves nothing green and blames the product red; distinguish harness-amplified from real before calling an intermittent failure a product defect.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **MANDATORY IMPORTANT MUST ATTENTION** READ-ONLY — run tests, report pass/fail counts + failing-test names + report path; NEVER implement fixes here, stop at reporting — why: fixing is `/fix`'s job; mixing the two hides the true test state.
 **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS run tests through the `tester` subagent; NEVER invoke test commands directly — why: the subagent isolates the run and produces the canonical summary report this skill analyzes.
@@ -204,7 +171,7 @@ The `tester` subagent receives the resolved contract matrix and executes only co
 **MANDATORY IMPORTANT MUST ATTENTION** an INTERMITTENT failure is UNADJUDICATED, not a product defect — classify it as (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race, with evidence, before reporting it as a defect; report it as UNADJUDICATED when the evidence is not there — why: a test-fidelity defect reported as a product defect sends the team to fix code that was never wrong.
 **MANDATORY IMPORTANT MUST ATTENTION** before asserting a test/source relationship, grep 3+ similar tests and match the local pattern; apply the source/test drift check — decide from evidence whether a failing test guards intended behavior or the source is the bug — why: a mismatched assumption mislabels a real bug as a flaky test.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, complete immediately after evidence; add a final review todo to verify work quality.
-**MANDATORY IMPORTANT MUST ATTENTION** validate route/decisions with the user via `AskUserQuestion` — NEVER auto-decide a workflow vs standalone run.
+**MANDATORY IMPORTANT MUST ATTENTION** present the Next Steps via `AskUserQuestion` after the report — NEVER pick the follow-up skill (`/fix`, `/docs-manager`, `/watzup`) for the user — why: the user owns the hand-off, and this skill only reports.
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting.
 
 **Anti-Rationalization:**

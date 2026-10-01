@@ -155,7 +155,9 @@ function listAuthoredMarkdownPaths() {
         .split('\0')
         .filter(Boolean)
         .map((file) => file.split(path.sep).join('/'))
-        .filter((file) => file.toLowerCase().endsWith('.md'));
+        .filter((file) => file.toLowerCase().endsWith('.md'))
+        // A tracked file deleted in the working tree is still listed by --cached; it is not authored content on disk.
+        .filter((file) => fs.existsSync(path.join(REPO_ROOT, file)));
 }
 
 function listAuthoredMarkdownUnion() {

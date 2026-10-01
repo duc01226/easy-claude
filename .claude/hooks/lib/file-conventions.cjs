@@ -5,7 +5,7 @@
  * One source of truth for three carriers (spec BR-PFCI-13 static parity):
  *   1. file-convention-inject.cjs hook (PostToolUse additionalContext accelerator)
  *   2. CLAUDE.md "Automatic Skill Activation" table (section-builders.cjs)
- *   3. `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` (hookless hosts)
+ *   3. `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` (shell read)
  *
  * Pure functions only (no delivery memory): target extraction, membership,
  * ordering, rendering, content hash and the size-capped digest.
@@ -289,17 +289,20 @@ const UI_UX_GATE = Object.freeze({
     // file (delivery is PostToolUse-only). `both` is the default content version, so the fallback and
     // the detected gate still share one version.
     on: TRIGGER_BOTH,
-    referenceDocs: Object.freeze(['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md', '.claude/docs/design-review-calibration.md']),
+    referenceDocs: Object.freeze(['.claude/docs/ux-journey-process.md', '.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md', '.claude/docs/design-review-calibration.md']),
     rules: Object.freeze([
-        'UI/UX gate: have UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
+        'UI/UX gate: have UX-*, UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded',
+        'UX-1–UX-11 journey-first (ux-journey-process.md, SYNC:ux-journey-gate): report the main user journeys (actors, jobs, ranked journeys, derived requirements) before designing, walk them on the result, close with the UI/UX Gate Report',
         'UI-1.1–UI-9.4 usability/a11y floor (pass/fail): SYNC:ui-ux-design-principles in .claude/skills/shared/sync-inline-versions.md',
         'DD-1–DD-8 identity (design-knowledge.md): name subject/audience/job, write the Design Plan, pass the generic test',
         'CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls',
         'Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip'
     ]),
     reinjectAfterTokens: 100000,
-    evidenceDocs: Object.freeze(['.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md']),
-    evidenceSkills: Object.freeze(['ui-review', 'ui-design', 'design-spec', 'web-design-guidelines', 'pbi-mockup', 'artifact-review'])
+    evidenceDocs: Object.freeze(['.claude/docs/ux-journey-process.md', '.claude/docs/design-review-checklist.md', '.claude/docs/design-knowledge.md']),
+    // Only skills that carry the WHOLE gate (UX + UI + DD + CL) may stand in for the digest: a skill
+    // that lacks the journey-first rule would suppress it for the window.
+    evidenceSkills: Object.freeze(['ui-design', 'design-spec'])
 });
 
 /**

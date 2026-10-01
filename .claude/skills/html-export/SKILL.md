@@ -1,7 +1,7 @@
 ---
 name: html-export
 version: 1.0.0
-description: '[Document Processing] Use when a workflow step or the user asks for an HTML page, deck, mockup or animation export or render check: PNG screenshots with a page-error and blank-capture check, a vector PDF, or MP4/GIF. Flag: --to={png|pdf|mp4|gif}.'
+description: '[Document Processing] Use when a workflow step or the user asks for an HTML page, deck, mockup or animation export: PNG, vector PDF, MP4/GIF. --to={png|pdf|mp4|gif}.'
 disable-model-invocation: false
 ---
 
@@ -128,7 +128,7 @@ Target flags: `--fps=<1-60>` (default 30 for mp4, 15 for gif), `--duration=<seco
 | -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
 | presentation-builder | `--slides` (default selector)                           | `--page=1920x1080` (print mode)                                    |
 | feature-presentation | `--slides=section.deck__slide`, or `--slides` (default) | `--page=1920x1080` (print mode), or `--slides=section.deck__slide` |
-| pbi-mockup           | `--slides='[data-state]'` (every screen)                | —                                                                  |
+| pbi (mockup mode)    | `--slides='[data-state]'` (every screen)            | —                                                                  |
 
 Any other page can mark its items with `data-export-slide`. feature-presentation slides carry both `slide` and `deck__slide` with a `data-slide-id`, so its existing `section.deck__slide` selector and the default selector find the same slides.
 
@@ -170,34 +170,6 @@ It does **not** prove the page looks right, that interaction works, anything bel
 - [`references/deck-export.md`](references/deck-export.md) — pdf print vs slides mode, page size, per-producer commands, ordering, merge, pdf `report.json`
 - [`references/animation-recording.md`](references/animation-recording.md) — the recording contract: time rule, `window.__ready` / `__seek` / `__duration` / `__recording`, `data-export-hide`, `frames.json`
 - Tests: `node .claude/skills/html-export/tests/run-tests.cjs` (browser cases report `ENVIRONMENT-BLOCKED` when Chromium or ffmpeg is absent)
-
-<!-- PROTOCOL-GUIDES:START -->
-
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-
-<!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 

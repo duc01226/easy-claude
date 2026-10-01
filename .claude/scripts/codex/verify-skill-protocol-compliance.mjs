@@ -2,7 +2,6 @@
 
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
-import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -19,38 +18,26 @@ const claudeSkillsRoot = path.join(rootDir, '.claude', 'skills');
 const skillsRoot = path.join(rootDir, '.agents', 'skills');
 const claudeAgentsRoot = path.join(rootDir, '.claude', 'agents');
 const agentsRoot = path.join(rootDir, '.codex', 'agents');
+// The retired Codex context file: the sync removes it, so its presence is a stale mirror.
 const contextPath = path.join(rootDir, '.codex', 'CODEX_CONTEXT.md');
 const projectAgentsPath = path.join(rootDir, 'AGENTS.md');
-const canonicalSyncPath = path.join(rootDir, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
-// Source of the AGENTS.md root projection — read only to decide whether a protocol block is
-// PRODUCIBLE for this project (see checkProtocolBodySignatureCounts), never to verify CLAUDE.md.
-const projectClaudePath = path.join(rootDir, 'CLAUDE.md');
-const SKILL_PROTOCOL_MARKER = 'CODEX:SYNC-PROMPT-PROTOCOLS:START';
-const SKILL_PROTOCOL_END_MARKER = 'CODEX:SYNC-PROMPT-PROTOCOLS:END';
-const CONTEXT_PROTOCOL_TOP_MARKER = 'PROMPT-PROTOCOLS:START';
-const CONTEXT_PROTOCOL_BOTTOM_MARKER = 'PROMPT-PROTOCOLS-BOTTOM:START';
-const WORKFLOWS_START_MARKER = 'WORKFLOWS:START';
-const WORKFLOWS_END_MARKER = 'WORKFLOWS:END';
-const AGENTS_CONTEXT_MIRROR_START = 'CODEX-CONTEXT-MIRROR:START';
-const AGENTS_CONTEXT_MIRROR_END = 'CODEX-CONTEXT-MIRROR:END';
+// Markers of the protocol blocks older syncs injected into mirrored skills and AGENTS.md. None may
+// come back: the universal hook delivers the shared protocols, no mirror carries them.
+const RETIRED_MIRROR_MARKERS = [
+    'CODEX:SYNC-PROMPT-PROTOCOLS:START',
+    'CODEX:PROJECT-REFERENCE-LOADING:START',
+    'PROMPT-PROTOCOLS:START',
+    'CODEX-CONTEXT-MIRROR:START'
+];
 const AGENTS_ROOT_PROJECTION_START = 'CK:CODEX-ROOT-PROJECTION';
 const AGENTS_ROOT_PROJECTION_END = '/CK:CODEX-ROOT-PROJECTION';
 // MUST equal AGENTS_ROOT_LIMIT_BYTES in `sync-context-workflows.mjs` — the generator that produces
-// the projection this gate measures. The two drifted once: the generator raised its budget to 49152
-// (it now projects the anti-hallucination protocol and System Lessons into the Codex root instead of
-// leaving Codex with zero copies) while this verifier kept 32768 and rejected the generator's own
-// valid output. Deliberately a LOCAL copy, NOT an import: this file is loaded from a `data:` URL and
-// copied into isolated roots without its siblings (`verifier-root-contract.test.mjs`), so a relative
-// import breaks it. `verify-skill-protocol-compliance.test.mjs` asserts the two constants match.
-// 2026-09-19: raised 53248 -> 61440 (52 -> 60 KiB) in lockstep with the generator. CLAUDE.md is
-// prettier-managed source; its table padding inflates the projected mirror, so the old ceiling was
-// set against an un-padded root and overflowed on the first ordinary edit. Kept equal to the
-// generator via `verify-skill-protocol-compliance.test.mjs`.
-// 2026-09-24: raised 61440 -> 69632 (60 -> 68 KiB) in lockstep with the generator for the Doc Lookup
-// discovery table; kept below the configured Codex host budget (`project_doc_max_bytes = 98304`).
-// 2026-09-24: raised 69632 -> 81920 (68 -> 80 KiB) in lockstep with the generator to restore
-// headroom; 80 KiB + 8 KiB context allowance still fits the 96 KiB Codex host budget.
-export const AGENTS_ROOT_LIMIT_BYTES = 81920;
+// the projection this gate measures. The budget is the Codex host default for `project_doc_max_bytes`:
+// the projection carries project information only, so it stays inside it. Deliberately a LOCAL copy,
+// NOT an import: this file is loaded from a `data:` URL and copied into isolated roots without its
+// siblings (`verifier-root-contract.test.mjs`), so a relative import breaks it.
+// `verify-skill-protocol-compliance.test.mjs` asserts the two constants match.
+export const AGENTS_ROOT_LIMIT_BYTES = 32768;
 // The Codex manual-only policy line (`agents/openai.yaml`). A LOCAL copy for the same reason as the budget
 // above; `verify-skill-protocol-compliance.test.mjs` asserts it equals the generator's shared constant.
 export const CODEX_IMPLICIT_OFF_RE = /^\s*allow_implicit_invocation:\s*false\s*$/m;
@@ -85,12 +72,11 @@ const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
 ];
 
 export const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
-    '.claude/skills/graph-trace/SKILL.md',
-    '.claude/skills/graph-query/SKILL.md',
+    '.claude/skills/graph-code/SKILL.md',
     '.claude/skills/investigate/SKILL.md',
-    '.claude/skills/debug-investigate/SKILL.md',
+    '.claude/skills/investigate/references/mode-debug.md',
     '.claude/skills/fix/SKILL.md',
-    '.claude/skills/plan-execute/SKILL.md',
+    '.claude/skills/plan/references/mode-execute.md',
     '.claude/skills/feature-implement/SKILL.md',
     '.claude/skills/changes-review/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md',
@@ -114,48 +100,16 @@ const REQUIRED_CONTRACT_SNIPPETS = [
     'If a required step/tool cannot run in this environment, stop and ask the user before adapting.'
 ];
 
-// P6 — canonical protocol-body parity across the TWO static carriers. The mirror term-rewrites tool
-// nouns (Agent->spawn_agent, "Skill tool"->lowercased, etc.), so byte-equality vs the raw canonical
-// :full block is INVALID and would false-fail. Instead anchor on each block's rewrite-invariant
-// signature and count occurrences per carrier — the two carriers have DIFFERENT contracts because
-// they have different sources:
-//   - `.codex/CODEX_CONTEXT.md` — ALWAYS exactly 1. Its copy is baked from the canonical shared
-//     source, so it is project-independent and always producible.
-//   - `AGENTS.md` — the bounded root projection, whose copy is CLAUDE.md-DERIVED through the
-//     projection whitelist (`sync-context-workflows.mjs:248-260`). Its expected count is therefore
-//     CONDITIONAL on the source: exactly 1 when CLAUDE.md carries that block's `claudeFence`, and
-//     exactly 0 when it does not, because a fence-less root gives the whitelist nothing to project.
-//     Either way >=2 is a de-duplication regression and fails.
-// NOTE: AGENTS.md is no longer a pointer-ONLY projection for these blocks — it carries one deduped
-// copy of each whenever CLAUDE.md can source it. Anything still describing it as a pure pointer is
-// stale; see the conditional rationale at checkProtocolBodySignatureCounts.
-// Hooks may accelerate loading on either host, but these static carriers remain authoritative.
-const PROTOCOL_BODY_SIGNATURES = [
-    {
-        tag: 'critical-thinking-mindset:full',
-        signature: '[CRITICAL-THINKING-MINDSET]',
-        claudeFence: /<!--\s*CK:CRITICAL-THINKING\s*-->/i
-    },
-    {
-        tag: 'ai-mistake-prevention:full',
-        signature: '## Common AI Mistake Prevention (System Lessons)',
-        claudeFence: /<!--\s*CK:AI-MISTAKE-PREVENTION\s*-->/i
-    }
-];
-
-const FORBIDDEN_SKILL_PROTOCOL_PATTERNS = [
-    {
-        pattern: /^## Learned Lessons\b/m,
-        reason: 'inline learned-lessons section'
-    },
-    {
-        pattern: /^# Lessons Learned\b/m,
-        reason: 'raw lessons.md heading'
-    },
-    {
-        pattern: /\[\d{4}-\d{2}-\d{2}\].*Holistic-first:/,
-        reason: 'dated lessons.md entry'
-    }
+// P6 — the universal protocol text is carried by no root file or mirror. The universal hook delivers it
+// (`protocol-groups.json` group `universal`), so the bounded AGENTS.md projection must hold none of it. Each
+// signature is the rewrite-invariant lead line of one universal protocol; a count above zero means a
+// static carrier of shared protocol text came back.
+const UNIVERSAL_TEXT_SIGNATURES = [
+    '[CRITICAL-THINKING-MINDSET]',
+    '## Common AI Mistake Prevention (System Lessons)',
+    'Create a small task per change before edits',
+    'Never commit, push, or stage (`git add`) unless the user explicitly asks',
+    'Add `Analyze AI mistakes & lessons learned` to non-trivial tasks'
 ];
 
 async function exists(targetPath) {
@@ -237,22 +191,12 @@ function missingSnippets(content) {
     return REQUIRED_CONTRACT_SNIPPETS.filter(snippet => !content.includes(snippet));
 }
 
-function normalizeForCompare(content) {
-    return content.replace(/\r\n/g, '\n').trim();
-}
-
 function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function hasStandaloneMarker(content, marker) {
     return new RegExp(`^\\s*<!-- ${escapeRegExp(marker)} -->\\s*$`, 'm').test(content);
-}
-
-function extractManagedBlock(content, startMarker, endMarker) {
-    const pattern = new RegExp(`^\\s*<!-- ${escapeRegExp(startMarker)} -->\\s*$[\\s\\S]*?^\\s*<!-- ${escapeRegExp(endMarker)} -->\\s*$`, 'm');
-    const match = content.match(pattern);
-    return match?.[0] ?? null;
 }
 
 // Layout rule (mirrors .claude/scripts/refactor_skill_layout.py contract).
@@ -568,16 +512,14 @@ export function countOccurrences(haystack, needle) {
     return count;
 }
 
-// Compact-root contract. `AGENTS.md` is intentionally a small, static projection that points to
-// the complete context file. Keep this predicate pure so both the verifier and focused tests can
-// prove the size, marker, target and fingerprint invariants without invoking a host runtime.
-export function checkCompactAgentsProjection(agentsText, contextText, {
-    limitBytes = AGENTS_ROOT_LIMIT_BYTES,
-    contextRelativePath = '.codex/CODEX_CONTEXT.md'
+// Compact-root contract. `AGENTS.md` is a small, static projection of the project root file
+// (CLAUDE.md): project information only. Keep this predicate pure so both the verifier and focused tests
+// can prove the size, marker and absence invariants without invoking a host runtime.
+export function checkCompactAgentsProjection(agentsText, {
+    limitBytes = AGENTS_ROOT_LIMIT_BYTES
 } = {}) {
     const failures = [];
     const agents = String(agentsText ?? '');
-    const context = String(contextText ?? '');
     const bytes = Buffer.byteLength(agents, 'utf8');
     if (bytes > limitBytes) {
         failures.push(`AGENTS.md is ${bytes} bytes, above the ${limitBytes}-byte bounded projection limit`);
@@ -586,108 +528,24 @@ export function checkCompactAgentsProjection(agentsText, contextText, {
         !hasStandaloneMarker(agents, AGENTS_ROOT_PROJECTION_END)) {
         failures.push(`AGENTS.md missing bounded root projection markers (${AGENTS_ROOT_PROJECTION_START}/${AGENTS_ROOT_PROJECTION_END})`);
     }
-    if (!hasStandaloneMarker(agents, AGENTS_CONTEXT_MIRROR_START) ||
-        !hasStandaloneMarker(agents, AGENTS_CONTEXT_MIRROR_END)) {
-        failures.push(`AGENTS.md missing managed context mirror markers (${AGENTS_CONTEXT_MIRROR_START}/${AGENTS_CONTEXT_MIRROR_END})`);
-        return failures;
+    for (const marker of RETIRED_MIRROR_MARKERS) {
+        if (agents.includes(marker)) failures.push(`AGENTS.md still carries the retired block ${marker}; the sync no longer writes protocol or context mirrors`);
     }
-    const mirroredBlock = extractManagedBlock(agents, AGENTS_CONTEXT_MIRROR_START, AGENTS_CONTEXT_MIRROR_END);
-    if (!mirroredBlock) {
-        failures.push('AGENTS.md managed context mirror markers must form an ordered pair');
-        return failures;
-    }
-    const normalizedMirrorBlock = mirroredBlock.replace(/\r\n/g, '\n');
-    if (!normalizedMirrorBlock.includes(contextRelativePath)) {
-        failures.push(`AGENTS.md context mirror does not point to ${contextRelativePath}`);
-    }
-    const fingerprint = normalizedMirrorBlock.match(/Context fingerprint \(SHA-256\):\s*([a-f0-9]{64})/i)?.[1]?.toLowerCase();
-    const expectedFingerprint = createHash('sha256')
-        .update(normalizeForCompare(context), 'utf8')
-        .digest('hex');
-    if (!fingerprint) {
-        failures.push('AGENTS.md context mirror is missing its SHA-256 fingerprint');
-    } else if (fingerprint !== expectedFingerprint) {
-        failures.push(`AGENTS.md context fingerprint does not match ${contextRelativePath}`);
-    }
+    failures.push(...checkNoUniversalProtocolText(agents, 'AGENTS.md'));
     return failures;
 }
 
-// P6 (CODEX_CONTEXT.md): each canonical :full block's rewrite-invariant signature must appear
-// EXACTLY ONCE in the full static context. Fail-closed at every gap — a missing canonical source,
-// missing context, stale signature, or wrong occurrence count is a FAILURE, never a skip.
-async function checkCanonicalProtocolBodySignatures(failures) {
-    if (!(await exists(canonicalSyncPath))) {
-        failures.push(`Missing canonical protocol source: ${path.relative(rootDir, canonicalSyncPath)} (cannot verify mirror protocol-body parity)`);
-        return;
-    }
-    const canonicalText = (await fs.readFile(canonicalSyncPath, 'utf8')).replace(/\r\n/g, '\n');
-
-    // Anchor: each signature MUST still live in the canonical :full block, else it is stale and the
-    // count check below would silently drift. This ties the check to canonical, not to a hardcoded string.
-    for (const { tag, signature } of PROTOCOL_BODY_SIGNATURES) {
-        if (!canonicalText.includes(signature)) {
-            failures.push(`Canonical SYNC:${tag} no longer contains body signature "${signature}" — update PROTOCOL_BODY_SIGNATURES in .claude/scripts/codex/verify-skill-protocol-compliance.mjs`);
-        }
-    }
-
-    if (!(await exists(contextPath))) {
-        failures.push(`Missing protocol mirror .codex/CODEX_CONTEXT.md: ${path.relative(rootDir, contextPath)} (fail-closed — protocol reachability unverifiable)`);
-        return;
-    }
-    const contextText = await fs.readFile(contextPath, 'utf8');
-    for (const { tag, signature } of PROTOCOL_BODY_SIGNATURES) {
-        const n = countOccurrences(contextText, signature);
-        if (n !== 1) {
-            failures.push(`.codex/CODEX_CONTEXT.md: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected exactly 1 — a single deduped copy of the :full block)`);
-        }
-    }
-
-    if (await exists(projectAgentsPath)) {
-        const agentsText = await fs.readFile(projectAgentsPath, 'utf8');
-        const claudeText = (await exists(projectClaudePath))
-            ? await fs.readFile(projectClaudePath, 'utf8')
-            : '';
-        failures.push(...checkProtocolBodySignatureCounts(agentsText, claudeText));
-    }
-}
-
-// Occurrence contract for the bounded root projection — the count is CONDITIONAL on what CLAUDE.md
-// can source.
-//
-// This asserted zero while the projection was a pure pointer. That contract changed deliberately
-// (`sync-context-workflows.mjs:248-260`): CLAUDE.md stamps both protocol blocks twice under its
-// primacy-recency rule, the projection whitelist now carries the FIRST fence pair of each, and the
-// pre-projection strip keeps one copy and drops the surplus. The reason was a real gap, not
-// convenience — a pointer-only root gave Codex ZERO copies of this repo's anti-hallucination
-// protocol and System Lessons while Claude got two.
-//
-// But unlike `.codex/CODEX_CONTEXT.md` — whose copy is baked from the canonical source and is
-// therefore project-independent — this carrier is CLAUDE.md-DERIVED. Requiring >=1 unconditionally
-// would hard-fail every adopter whose CLAUDE.md carries no CK fence, a supported shape this repo's
-// own PORT-013 fixture exercises (`tests/portability-no-package-json.test.mjs`), because the
-// whitelist simply has nothing to project. So the expectation follows the source: 1 when the fence
-// is present, 0 when it is not. Both directions stay guarded in each case — a fenced project that
-// drops to 0 means Codex lost the guardrail, and >=2 in either case means de-duplication regressed.
-//
-// A MISSING CLAUDE.md is treated as "cannot source" (expect 0). That file's absence is the
-// agent-files bootstrap gate's failure to report, not this gate's.
-//
-// Pure + exported so a focused test can drive every branch — and prove the guard is not silently
-// deletable — without a host runtime, the same convention `checkCompactAgentsProjection` follows.
-export function checkProtocolBodySignatureCounts(agentsText, claudeText, {
-    signatures = PROTOCOL_BODY_SIGNATURES
+// A root file or mirror must carry none of the universal protocol text. Pure + exported so a focused
+// test can drive every signature — and prove the guard is not silently deletable — without a host runtime.
+export function checkNoUniversalProtocolText(text, label, {
+    signatures = UNIVERSAL_TEXT_SIGNATURES
 } = {}) {
     const failures = [];
-    const agents = String(agentsText ?? '');
-    const claude = String(claudeText ?? '');
-    for (const { tag, signature, claudeFence } of signatures) {
-        const n = countOccurrences(agents, signature);
-        const sourceable = claudeFence ? claudeFence.test(claude) : true;
-        const expected = sourceable ? 1 : 0;
-        if (n === expected) continue;
-        failures.push(sourceable
-            ? `AGENTS.md: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected exactly 1 — CLAUDE.md carries ${claudeFence.source}, so the projection must carry one deduped copy; 0 means Codex lost the guardrail, >=2 means de-duplication regressed)`
-            : `AGENTS.md: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected 0 — CLAUDE.md carries no matching CK fence, so the projection whitelist cannot source this block; >=1 means the root gained an unsourced copy)`);
+    for (const signature of signatures) {
+        const n = countOccurrences(text, signature);
+        if (n > 0) {
+            failures.push(`${label}: universal protocol text "${signature}" found ${n}× (expected 0 — the universal hook delivers the shared protocols; no root file or mirror carries them)`);
+        }
     }
     return failures;
 }
@@ -797,18 +655,10 @@ async function main() {
                 failures.push(`${relativePath} missing contract snippet(s): ${missing.join(' | ')}`);
             }
 
-            if (!content.includes(SKILL_PROTOCOL_MARKER)) {
-                failures.push(`${relativePath} missing synced prompt-protocol marker (${SKILL_PROTOCOL_MARKER})`);
+            for (const marker of RETIRED_MIRROR_MARKERS) {
+                if (content.includes(marker)) failures.push(`${relativePath} carries the retired injected block ${marker}; mirrored skills carry exactly their source text, the universal hook delivers the shared protocols`);
             }
-
-            const protocolBlock = extractManagedBlock(content, SKILL_PROTOCOL_MARKER, SKILL_PROTOCOL_END_MARKER);
-            if (protocolBlock) {
-                for (const forbidden of FORBIDDEN_SKILL_PROTOCOL_PATTERNS) {
-                    if (forbidden.pattern.test(protocolBlock)) {
-                        failures.push(`${relativePath} synced prompt-protocol block contains ${forbidden.reason}; generated .agents skills must reference docs/project-reference/lessons.md instead of inlining learned lessons`);
-                    }
-                }
-            }
+            failures.push(...checkNoUniversalProtocolText(content, relativePath));
 
             if (/\bAgent\(/.test(content) || /\bsubagent_type[=:]/.test(content)) {
                 failures.push(`${relativePath} contains Claude Agent invocation syntax; Codex mirrors must use spawn_agent/agent_type examples`);
@@ -877,42 +727,17 @@ async function main() {
         }
     }
 
-    if (!(await exists(contextPath))) {
-        failures.push(`Missing Codex context file: ${path.relative(rootDir, contextPath)}`);
+    if (await exists(contextPath)) {
+        failures.push(`${path.relative(rootDir, contextPath)} is a retired mirror; the sync removes it (run node .claude/skills/sync-codex/scripts/run-codex-sync.mjs)`);
+    }
+    if (!(await exists(projectAgentsPath))) {
+        failures.push(`Missing AGENTS.md file: ${path.relative(rootDir, projectAgentsPath)}`);
     } else {
-        const contextText = await fs.readFile(contextPath, 'utf8');
-        const missing = missingSnippets(contextText);
-        if (missing.length > 0) {
-            failures.push(`${path.relative(rootDir, contextPath)} missing contract snippet(s): ${missing.join(' | ')}`);
-        }
-        if (!contextText.includes(CONTEXT_PROTOCOL_TOP_MARKER)) {
-            failures.push(`${path.relative(rootDir, contextPath)} missing top prompt protocol mirror marker (${CONTEXT_PROTOCOL_TOP_MARKER})`);
-        }
-        const topIndex = contextText.indexOf(CONTEXT_PROTOCOL_TOP_MARKER);
-        const bottomIndex = contextText.indexOf(CONTEXT_PROTOCOL_BOTTOM_MARKER);
-        const workflowsStartIndex = contextText.indexOf(WORKFLOWS_START_MARKER);
-        const workflowsEndIndex = contextText.indexOf(WORKFLOWS_END_MARKER);
-
-        if (workflowsStartIndex >= 0 && topIndex > workflowsStartIndex) {
-            failures.push(`${path.relative(rootDir, contextPath)} top prompt protocol marker must appear before workflows (${WORKFLOWS_START_MARKER})`);
-        }
-        // Bottom protocol mirror is optional; when present it must remain after workflows.
-        if (workflowsEndIndex >= 0 && bottomIndex >= 0 && bottomIndex < workflowsEndIndex) {
-            failures.push(`${path.relative(rootDir, contextPath)} bottom prompt protocol marker must appear after workflows (${WORKFLOWS_END_MARKER})`);
-        }
-
-        if (!(await exists(projectAgentsPath))) {
-            failures.push(`Missing AGENTS.md file: ${path.relative(rootDir, projectAgentsPath)}`);
-        } else {
-            const agentsText = await fs.readFile(projectAgentsPath, 'utf8');
-            failures.push(...checkCompactAgentsProjection(agentsText, contextText));
-        }
+        failures.push(...checkCompactAgentsProjection(await fs.readFile(projectAgentsPath, 'utf8')));
     }
 
     await checkRequiredDebuggerTraceFiles(DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS, failures);
     await checkRequiredDebuggerTraceFiles(DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS, failures);
-
-    await checkCanonicalProtocolBodySignatures(failures);
 
     if (failures.length > 0) {
         console.error('[codex-skill-compliance] FAIL');

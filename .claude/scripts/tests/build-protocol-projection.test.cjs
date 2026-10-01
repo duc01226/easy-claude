@@ -39,7 +39,9 @@ const LIVE_SKIP = IN_FRAMEWORK_REPO ? false : 'framework-repo self-check: reads 
 const BIN = 9500;
 const SHARED = ['.claude', 'skills', 'shared'];
 const OUT_REL = '.claude/skills/shared/protocols';
-const ROOT_CARRIED = ['critical-thinking-mindset', 'ai-mistake-prevention', 'project-reference-docs-guide', 'project-protocol-overlay'];
+// The fixture's universal group: four tags delivered by the universal hook in two authored bins.
+const UNIVERSAL_TAGS = ['critical-thinking-mindset', 'ai-mistake-prevention', 'project-reference-docs-guide', 'project-protocol-overlay'];
+const UNIVERSAL_BINS = [['critical-thinking-mindset', 'ai-mistake-prevention'], ['project-reference-docs-guide', 'project-protocol-overlay']];
 const INLINE_SKILLS = ['changes-review', 'code-quality-review'];
 /** A drive-letter path or a POSIX home/temp root: text that would pin the projection to one machine. */
 const ABSOLUTE_PATH = /(?:\b[A-Za-z]:[\\/])|(?:\/(?:Users|home|private|var\/folders)\/)/;
@@ -68,7 +70,7 @@ function baseBlocks() {
         'beta-trace': '> **Beta Trace** — walk backward from the end state.',
         'large-protocol': largeBody()
     };
-    for (const tag of ROOT_CARRIED) blocks[tag] = `> **${tag}** — root-carried fixture body.`;
+    for (const tag of UNIVERSAL_TAGS) blocks[tag] = `> **${tag}** — universal fixture body.`;
     return blocks;
 }
 
@@ -85,7 +87,7 @@ function canonicalText(blocks) {
 
 function baseGroups() {
     const entry = name => ({ summary: `Summary of ${name}`, when: `when ${name} applies` });
-    const universal = Object.fromEntries(ROOT_CARRIED.map(tag => [tag, entry(tag)]));
+    const universal = Object.fromEntries(UNIVERSAL_TAGS.map(tag => [tag, entry(tag)]));
     return {
         version: 1,
         binChars: BIN,
@@ -95,7 +97,7 @@ function baseGroups() {
             'workflow-task': { tags: {} },
             'spec-test': { tags: {} },
             design: { tags: {} },
-            universal: { tags: universal }
+            universal: { tags: universal, bins: UNIVERSAL_BINS }
         },
         inlineSkills: INLINE_SKILLS
     };
@@ -404,23 +406,36 @@ test('TC-PDL-008: the committed projection carries no project residue or absolut
     }
 });
 
-test('TC-PDL-080: universal must hold exactly the four root-carried tags', () => {
-    // Given a universal group missing one root-carried tag, and one holding an extra tag
-    const missing = baseGroups();
-    delete missing.groups.universal.tags['project-protocol-overlay'];
-    missing.groups.review.tags['project-protocol-overlay'] = { summary: 's', when: 'w' };
-    const extra = baseGroups();
-    delete extra.groups.review.tags['alpha-check'];
-    extra.groups.universal.tags['alpha-check'] = { summary: 's', when: 'w' };
+test('TC-PDL-080: the universal bins must cover every universal tag exactly once and each bin must fit', () => {
+    // Given universal groups whose bins omit a tag, name a foreign tag, repeat a tag, are missing, or overflow
+    const omitted = baseGroups();
+    omitted.groups.universal.bins = [UNIVERSAL_BINS[0], ['project-reference-docs-guide']];
+    const foreign = baseGroups();
+    foreign.groups.universal.bins = [...UNIVERSAL_BINS, ['alpha-check']];
+    const repeated = baseGroups();
+    repeated.groups.universal.bins = [...UNIVERSAL_BINS, ['ai-mistake-prevention']];
+    const absent = baseGroups();
+    delete absent.groups.universal.bins;
+    const oversizedBudget = baseGroups();
+    oversizedBudget.binChars = BIN + 1;
+    const overflow = baseGroups();
+    delete overflow.groups.review.tags['large-protocol'];
+    overflow.groups.universal.tags['large-protocol'] = { summary: 's', when: 'w' };
+    overflow.groups.universal.bins = [[...UNIVERSAL_BINS[0], 'large-protocol'], UNIVERSAL_BINS[1]];
     for (const [groups, pattern] of [
-        [missing, /universal" must hold exactly .*missing: project-protocol-overlay/],
-        [extra, /universal" must hold exactly .*not root-carried: alpha-check/]
+        [omitted, /universal tag "project-protocol-overlay" is in no bin/],
+        [foreign, /universal bins name tag "alpha-check", which is not in the universal group/],
+        [repeated, /universal bins list tag "ai-mistake-prevention" more than once/],
+        [absent, /group "universal" needs a non-empty "bins" array/],
+        [oversizedBudget, /binChars must be a positive integer no greater than 9500/],
+        [overflow, /universal bin 1 .* renders \d+ chars, over the 9500-char bin/]
     ]) {
         withProject({ groups }, (root, home) => {
-            // When built, Then the build fails naming the offending tag
+            // When built, Then the build fails naming the offending tag or bin
             const result = run(root, home);
             assert.equal(result.code, 1);
             assert.match(result.stderr, pattern);
+            assert.equal(fs.existsSync(path.join(root, OUT_REL, 'index.json')), false, 'invalid groups publish no projection');
         });
     }
 });
@@ -442,11 +457,11 @@ test('TC-PDL-080: an inlineSkills entry that is not a skill name or has no skill
     }
 });
 
-test('TC-PDL-080: the shipped groups file keeps the four universal tags and the four fix-loop review-family inline skills', { skip: LIVE_SKIP }, () => {
+test('TC-PDL-080: the shipped groups file bins every universal tag once and keeps the four fix-loop review-family inline skills', { skip: LIVE_SKIP }, () => {
     // Given the framework repo's groups file
     const groups = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ...SHARED, 'protocol-groups.json'), 'utf8'));
-    // When it is read, Then universal is the root-carried set and inlineSkills is the owner's list (BR-PDL-11)
-    assert.deepEqual(Object.keys(groups.groups.universal.tags).sort(), [...projection.ROOT_CARRIED_TAGS].sort());
+    // When it is read, Then the authored bins hold each universal tag exactly once and inlineSkills is the owner's list (BR-PDL-11)
+    assert.deepEqual(groups.groups.universal.bins.flat().sort(), Object.keys(groups.groups.universal.tags).sort());
     assert.deepEqual(groups.inlineSkills, ['changes-review', 'code-quality-review', 'why-review', 'workflow-review-changes']);
 });
 
@@ -475,7 +490,7 @@ test('TC-PDL-047: the size check flags a body one char over the limit and spares
 
 test('TC-PDL-047/TC-PDL-049: no shipped protocol body exceeds 9,000 chars except review-protocol-injection, and --check passes', { skip: LIVE_SKIP }, () => {
     const { extractSyncBody } = require(path.join(REPO_ROOT, '.claude', 'scripts', 'lib', 'extract-sync-block.cjs'));
-    // Given the committed projection index and the canonical file's `:full` variants (root-carried, never projected)
+    // Given the committed projection index and the canonical file's `:full` variants (never projected)
     const index = readIndex(REPO_ROOT);
     const canonical = fs.readFileSync(path.join(REPO_ROOT, ...SHARED, 'sync-inline-versions.md'), 'utf8');
     const fullRows = [...canonical.matchAll(/^## SYNC:(\S+:full)[ \t]*$/gm)].map(match => ({

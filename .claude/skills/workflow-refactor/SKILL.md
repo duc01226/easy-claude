@@ -30,7 +30,7 @@ Classify the refactor before choosing steps and record the result in the workflo
 | --- | --- |
 | XS/S, one module, no contract/data surface | investigate → baseline test → short plan → execute → review → test → close |
 | M, or cross-module | keep one lean plan; add characterization tests where the baseline shows a coverage gap |
-| L/XL, public contract/data/security, or ambiguous target structure | add `/plan-validate`; execute in bounded batches per module with one report per batch, baseline and final test per batch plus a full-scope final run |
+| L/XL, public contract/data/security, or ambiguous target structure | add `/plan --mode=validate`; execute in bounded batches per module with one report per batch, baseline and final test per batch plus a full-scope final run |
 
 ## Required Quality Gates
 
@@ -53,15 +53,15 @@ Specs normally do not change in a refactor; the spec steps below run only when c
 | `/investigate` | core | always in practice — scope, callers, 3+ local pattern examples | scope and target pattern |
 | `/test` | gate | always — BEFORE any change, on the affected scope | baseline green |
 | `/plan` | core | always in practice; XS/S keeps it to files, steps, rollback | refactor plan |
-| `/plan-validate` | optional | size L+, or an ambiguous target structure or scope | plan confirmed |
+| `/plan --mode=validate` | optional | size L+, or an ambiguous target structure or scope | plan confirmed |
 | `/integration-test` | optional | touched behavior has no test that would fail if it changed | characterization tests |
-| `/plan-execute` | core | always in practice — small verifiable increments | the change |
+| `/plan --mode=execute` | core | always in practice — small verifiable increments | the change |
 | `/spec [mode=tests]` | optional | TCs reference moved code/tests, or an invariant lacks a TC | TCs match |
-| `/artifact-review --type=spec-tests` | optional | TC content changed beyond evidence paths | TC quality |
+| `/pbi --mode=review --type=spec-tests` | optional | TC content changed beyond evidence paths | TC quality |
 | `/spec [mode=sync]` | optional | specs/TCs reference moved or renamed code/test paths | specs match |
 | `/workflow-review-changes --tests=defer` | gate | always — INLINE in the main session | review converged |
-| `/integration-test-verify` | optional | integration tests written or changed in this run — after the review | integration tests green |
-| `/test` | gate | always — after the change and review fixes, baseline scope | behavior preserved |
+| `/integration-test --mode=verify` | optional | integration tests written or changed in this run — after the review | integration tests green |
+| `/test` | gate | always — after the change and review fixes, baseline scope; when `/integration-test --mode=verify` ran, pass `--proven=<its report path>` so only tiers it did not cover run | behavior preserved |
 | `/workflow-end` | gate | always | run closed |
 | `/watzup` | core | wrap-up summary | handoff |
 
@@ -77,7 +77,7 @@ A recommended step the triage shows would do no real work is not run; record it 
 
 You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. Fixed constraints (data dependencies):
 
-- The baseline and any characterization tests run green on the unrefactored code before `/plan-execute` changes it.
+- The baseline and any characterization tests run green on the unrefactored code before `/plan --mode=execute` changes it.
 - A change exists before it is reviewed or tested; a spec sync runs before the review that checks it; the review is static (`--tests=defer`) and the verify runs after it; a fix made by the verify step re-runs `/workflow-review-changes --tests=defer` (`SYNC:verify-last-order`); `/workflow-end` runs last.
 - `/workflow-review-changes` runs INLINE in the main session — never as a sub-agent — and owns the test-quality review and the docs/domain-entity reference refresh; do not repeat them here.
 - Gates awaiting user approval (plan validation, a behavior-change decision) are never parallelized.
@@ -97,17 +97,14 @@ Activate the `workflow-refactor` workflow: run `/start-workflow workflow-refacto
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /test -> /plan -> /plan-validate -> /integration-test -> /plan-execute -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /test -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /test -> /plan -> /plan --mode=validate -> /integration-test -> /plan --mode=execute -> /spec [mode=tests] -> /pbi --mode=review --type=spec-tests -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /test -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
@@ -122,16 +119,9 @@ Recommended default order (roles in the table above):
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 

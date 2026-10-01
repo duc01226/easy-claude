@@ -388,12 +388,19 @@ const launcherTests = [
                 fs.cpSync(path.join(CLAUDE_DIR, 'scripts', 'lib'), path.join(root, '.claude', 'scripts', 'lib'), { recursive: true });
                 fs.copyFileSync(path.join(CLAUDE_DIR, 'workflows.json'), path.join(root, '.claude', 'workflows.json'));
                 writeFile(root, '.claude/skills/shared/workflow-first-gate.md', 'FIXTURE-WORKFLOW-GATE: route before acting.\n');
+                // A clean machine: the test asserts the default-mode (ask) route, so every inherited CK_* switch
+                // (a personal route mode included) is removed and home and temp point into the fixture
+                const env = { ...HOOK_ENV_RESET, HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root };
+                for (const key of Object.keys(process.env)) {
+                    if (/^CK_/i.test(key)) env[key] = undefined;
+                }
                 // When Codex launches the UserPromptSubmit hook on a prompt
                 const result = runCodexLauncher('workflow-route-inject.cjs',
                     JSON.stringify({ hook_event_name: 'UserPromptSubmit', session_id: sessionId, cwd: root, prompt: 'add a retry to the fetcher' }),
-                    { cwd: root, env: HOOK_ENV_RESET });
-                // Then it emits its own route block built from the FIXTURE project's gate text
+                    { cwd: root, env });
+                // Then it emits its own route block built from the FIXTURE project's gate text, in the default mode
                 assertEqual(result.code, 0, `stderr: ${result.stderr}`);
+                assertContains(result.stdout, 'Route mode: ask (default)');
                 assertContains(result.stdout, '<!-- CK:RUNTIME-WORKFLOW-ROUTE -->');
                 assertContains(result.stdout, 'FIXTURE-WORKFLOW-GATE: route before acting.');
                 assertContains(result.stdout, '<!-- /CK:RUNTIME-WORKFLOW-ROUTE -->');
@@ -430,8 +437,8 @@ const launcherTests = [
                 assertContains(result.stdout, 'FIXTURE-CORE-PRINCIPLES: Easy to change');
                 assertContains(result.stdout, '<!-- /CK:CORE-ENGINEERING-PRINCIPLES -->');
                 // And records the delivery in the fixture project's ledger
-                const record = conventionLedger.readRecord(path.join(root, 'tmp', 'core-principles'), sessionId, 'main', 'core-principles');
-                assertTrue(Boolean(record && record.hash), 'delivery must be recorded under <fixture>/tmp/core-principles');
+                const record = conventionLedger.readRecord(path.join(root, 'tmp', 'protocol-delivery'), sessionId, 'main', 'core-engineering-principles');
+                assertTrue(Boolean(record && record.hash), 'delivery must be recorded under <fixture>/tmp/protocol-delivery (the protocol-delivery record of the tag)');
             } finally {
                 removeTemp(root);
             }

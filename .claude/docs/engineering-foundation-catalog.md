@@ -137,7 +137,7 @@ a future maintainer, and that maintainer is usually the author, six months later
 graphs are warranted at `R2+`; requiring them of an `R0` script is `OVER-ENGINEERED`. A pinned
 toolchain plus a lockfile plus an honest README satisfies `R0`/`R1` completely.
 
-**Depth owner:** `scaffold` (greenfield), `architecture-scalability-review` (brownfield audit).
+**Depth owner:** `scaffold` (greenfield), `architecture --mode=scalability` (brownfield audit).
 
 ---
 
@@ -213,7 +213,7 @@ tool, and never recommend running mutating tests against production. "Runs in pr
 **safe, declared, non-mutating subset** unless the project explicitly has an isolated production-shaped
 staging environment.
 
-**Depth owner:** `test-architecture-execution-contract` (the tier matrix), `integration-test-review`.
+**Depth owner:** `test-architecture-execution-contract` (the tier matrix), `integration-test --mode=review`.
 
 ---
 
@@ -258,13 +258,13 @@ slow and mostly redundant. Scope the automated signal to **changed code**, and s
 **highest-value invariants**, not to every test.
 
 **Scope boundary — do NOT re-litigate a solved question.** Per-change enforcement of this is already
-owned by `integration-test-review` **Gate 1**, whose _Mutation Probe Ledger_ is required on both the
+owned by `integration-test --mode=review` **Gate 1**, whose _Mutation Probe Ledger_ is required on both the
 tool path and the manual-fallback path, with no PASS without the ledger. **This dimension asks a
 different question:** does the PROJECT HAVE a test-strength mechanism wired into its harness at all?
 A project can pass every diff-level review and still have no standing sensor, because each review only
 ever saw one change. Report the _setup_ gap here and the _assertion_ gap there — never both.
 
-**Depth owner:** `SYNC:harness-setup` (sensor design), `integration-test-review` (per-change
+**Depth owner:** `SYNC:harness-setup` (sensor design), `integration-test --mode=review` (per-change
 enforcement and assertion quality), `spec [mode=tests]` (which behaviors must be protected).
 
 ---
@@ -359,14 +359,14 @@ splitting a small system into many modules to look modular creates a distributed
 survives the split while the build cost doubles. The trigger is real module count and real team
 count, never aesthetics.
 
-**Scope boundary.** `architecture-scalability-review` already SCORES this: gate **G2 Build & CI
+**Scope boundary.** `architecture --mode=scalability` already SCORES this: gate **G2 Build & CI
 Scalability** ("incremental/affected-only/caching strategy exists or a clear N/A rationale is
 documented") and gate **G4 Boundary Enforcement** ("dependency direction and module boundaries are
 explicit and enforceable"). Where that review has run, **cite its verdict rather than re-scoring** —
 this dimension only confirms the question was examined and is not silently absent.
 
-**Depth owner:** `architecture-scalability-review` (G2/G4 — build/CI scalability, module isolation,
-distributed-monolith risk), `architecture-review` (diff-level boundary drift),
+**Depth owner:** `architecture --mode=scalability` (G2/G4 — build/CI scalability, module isolation,
+distributed-monolith risk), `architecture --mode=review` (diff-level boundary drift),
 `SYNC:complexity-prevention` (cost of change in the code itself).
 
 ---

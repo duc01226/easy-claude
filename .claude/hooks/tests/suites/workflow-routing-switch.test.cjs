@@ -43,7 +43,10 @@ const FULL_SIZE_GATE = FIXTURE_GATE.replace(
 const INDEX_POINTER = /Read `\.claude\/workflows\.json`[^\n]*`start-workflow <id>`/;
 const COMPACT_HEADER = '| Workflow | Activation | When to use | Parallel phases |';
 const GATE_FILE = '.claude/skills/shared/workflow-first-gate.md';
-const ROOT_WITH_GATE = `# Project\n\n${hook.GATE_MARKER}\n\n> gate\n\n<!-- /CK:WORKFLOW-GATE -->\n`;
+// A root file from a previous generation, still holding the retired route pointer block. The payload ignores root files.
+const ROOT_WITH_POINTER = '# Project\n\n<!-- CK:WORKFLOW-ROUTE-POINTER -->\n\n> pointer\n\n<!-- /CK:WORKFLOW-ROUTE-POINTER -->\n';
+// A root file from before the gate moved to the hook: it still holds the gate marker and body.
+const ROOT_WITH_LEGACY_GATE = `# Project\n\n${hook.GATE_MARKER}\n\n> legacy gate\n\n<!-- /CK:WORKFLOW-GATE -->\n`;
 const GROUPED_REGISTRY = JSON.stringify({
     version: '1.0.0',
     workflows: {
@@ -144,6 +147,10 @@ const input = (session, transcript) => ({
     hook_event_name: 'UserPromptSubmit', session_id: session, transcript_path: transcript, prompt: 'hello'
 });
 const writer = outputs => (text, done) => { outputs.push(text); done(true); };
+// A stubbed resolver: the hook reads the mode from `resolveWorkflowRouteMode` and nothing else.
+const stubMode = (mode, source = 'default') => ({ resolveWorkflowRouteMode: () => ({ mode, source }) });
+// The resolver reads the developer's own environment and home by default; fixtures pass neither.
+const hermetic = dir => ({ rootDir: dir, env: {}, homeDir: dir });
 
 async function enabledRun({ root, store, session = 's1', transcript, now = 1000, content = 'route-v1', outputs = [] }) {
     return hook.run(input(session, transcript), {
@@ -151,7 +158,7 @@ async function enabledRun({ root, store, session = 's1', transcript, now = 1000,
         storeRoot: store,
         now,
         content,
-        routing: { isWorkflowAutoDetectEnabled: () => true },
+        routing: stubMode('ask'),
         write: writer(outputs)
     });
 }
@@ -162,10 +169,10 @@ module.exports = {
         {
             name: '[workflow-routing-switch] TC-WRS-001 absent and malformed config default ON',
             fn: () => fixture({}, dir => {
-                assertTrue(routing.resolveWorkflowAutoDetect({ rootDir: dir }).enabled === true);
+                assertTrue(routing.resolveWorkflowAutoDetect(hermetic(dir)).enabled === true);
                 fs.mkdirSync(path.join(dir, 'docs'), { recursive: true });
                 fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), '{bad', 'utf8');
-                assertTrue(routing.resolveWorkflowAutoDetect({ rootDir: dir }).enabled === true);
+                assertTrue(routing.resolveWorkflowAutoDetect(hermetic(dir)).enabled === true);
                 assertTrue(routing.readWorkflowAutoDetect({}) === true);
                 assertTrue(routing.readWorkflowAutoDetect({ portability: { workflowAutoDetect: 'true' } }) === true);
             })
@@ -173,9 +180,9 @@ module.exports = {
         {
             name: '[workflow-routing-switch] TC-WRS-002 tracked team config opts in and out',
             fn: () => fixture({ 'docs/project-config.json': config(true) }, dir => {
-                assertTrue(routing.resolveWorkflowAutoDetect({ rootDir: dir }).enabled === true);
+                assertTrue(routing.resolveWorkflowAutoDetect(hermetic(dir)).enabled === true);
                 fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), config(false));
-                assertTrue(routing.resolveWorkflowAutoDetect({ rootDir: dir }).enabled === false);
+                assertTrue(routing.resolveWorkflowAutoDetect(hermetic(dir)).enabled === false);
             })
         },
         {
@@ -185,7 +192,7 @@ module.exports = {
                 'config/team.json': config(true),
                 'docs/project-config.json': config(false)
             }, dir => {
-                const resolved = routing.resolveWorkflowAutoDetect({ rootDir: dir });
+                const resolved = routing.resolveWorkflowAutoDetect(hermetic(dir));
                 assertTrue(resolved.configPath === path.join(dir, 'config', 'team.json'));
                 assertTrue(resolved.enabled === true);
             })
@@ -196,16 +203,16 @@ module.exports = {
                 'docs/project-config.json': config(true),
                 '.claude/.ck.local.json': config(false)
             }, dir => {
-                const tracked = routing.resolveWorkflowAutoDetect({ rootDir: dir, scope: routing.SCOPE_TEAM });
+                const tracked = routing.resolveWorkflowAutoDetect({ ...hermetic(dir), scope: routing.SCOPE_TEAM });
                 assertTrue(tracked.enabled === true);
                 assertTrue(tracked.source === routing.SOURCE_PROJECT_CONFIG);
-                let resolved = routing.resolveWorkflowAutoDetect({ rootDir: dir });
+                let resolved = routing.resolveWorkflowAutoDetect(hermetic(dir));
                 assertTrue(resolved.enabled === false);
                 assertTrue(resolved.source === routing.SOURCE_LOCAL_OVERRIDE);
                 assertTrue(resolved.localPath === path.join(dir, '.claude', '.ck.local.json'));
                 fs.writeFileSync(path.join(dir, 'docs', 'project-config.json'), config(false));
                 fs.writeFileSync(path.join(dir, '.claude', '.ck.local.json'), config(true));
-                resolved = routing.resolveWorkflowAutoDetect({ rootDir: dir });
+                resolved = routing.resolveWorkflowAutoDetect(hermetic(dir));
                 assertTrue(resolved.enabled === true);
             })
         },
@@ -213,7 +220,7 @@ module.exports = {
             name: '[workflow-routing-switch] TC-WRS-005 malformed local file falls through to team',
             fn: () => fixture({
                 'docs/project-config.json': config(true), '.claude/.ck.local.json': '{bad'
-            }, dir => assertTrue(routing.resolveWorkflowAutoDetect({ rootDir: dir }).enabled === true))
+            }, dir => assertTrue(routing.resolveWorkflowAutoDetect(hermetic(dir)).enabled === true))
         },
         {
             name: '[workflow-routing-switch] TC-WRS-006 both schemas declare a boolean switch',
@@ -236,7 +243,7 @@ module.exports = {
         },
         {
             // Intent: an opt-out must reach the model even though the tracked gate, skill descriptions and
-            // skill-level workflow recommendations still say "auto-select" — a silent hook let them win.
+            // skill-level next-step workflow suggestions still say "auto-select" — a silent hook let them win.
             // TC-WFR-005: the payload cap work leaves the OFF notice path unchanged.
             name: '[workflow-routing-switch] TC-WRS-008 TC-WFR-005 disabled hook delivers the OFF notice once, never the gate or catalog',
             fn: async () => fixture({}, async dir => {
@@ -245,7 +252,7 @@ module.exports = {
                 const outputs = [];
                 const offRun = now => hook.run(input('off'), {
                     projectDir: dir, storeRoot: store, now,
-                    routing: { isWorkflowAutoDetectEnabled: () => false },
+                    routing: stubMode('off', 'environment'),
                     write: writer(outputs)
                 });
                 // When the first prompt arrives
@@ -265,6 +272,28 @@ module.exports = {
             })
         },
         {
+            // Intent: the notice skips only a step that would START a workflow; a step that merely OFFERS one to the
+            // user stays as written, and nothing the assistant chooses for routing is started (BR-WFR-08).
+            name: '[workflow-routing-switch] TC-WRS-008 the OFF notice skips only workflow-starting steps and never lets a workflow or routing skill start',
+            fn: async () => fixture({}, async dir => {
+                const notice = await hook.run(input('off-wording'), {
+                    projectDir: dir, storeRoot: path.join(dir, 'state'), now: 1000,
+                    routing: stubMode('off', 'environment'), write: writer([])
+                });
+                // Every way the assistant could start a workflow by itself is forbidden
+                assertContains(notice, 'Do not choose or start a workflow yourself');
+                assertContains(notice, 'not through `start-workflow`, a `workflow-*` skill, or a skill step that would start a workflow');
+                // A step that only offers a workflow to the user is not skipped
+                assertContains(notice, 'A step that only offers a workflow to the user as an option stays as written');
+                assertNotContains(notice, 'recommends switching to a workflow', 'a recommending step is not skipped wholesale');
+                // The skill exception matches the documented wording: the one skill the user names
+                assertContains(notice, 'or the one skill the user names');
+                assertNotContains(notice, 'no skill you chose for routing');
+                // And the only `off` payload stays short
+                assertTrue(notice.length < 1500, `the OFF notice is ${notice.length} chars`);
+            })
+        },
+        {
             name: '[workflow-routing-switch] TC-WRS-024 flipping the switch re-delivers the other form in the same session',
             fn: async () => fixture({}, async dir => {
                 // Given one session and a switch the developer flips between prompts
@@ -272,7 +301,7 @@ module.exports = {
                 let enabled = true;
                 const runAt = now => hook.run(input('flip'), {
                     projectDir: dir, storeRoot: store, now, content: 'route-v1',
-                    routing: { isWorkflowAutoDetectEnabled: () => enabled },
+                    routing: stubMode(enabled ? 'ask' : 'off'),
                     write: writer([])
                 });
                 assertContains(await runAt(1000), 'route-v1');
@@ -296,7 +325,7 @@ module.exports = {
                 // Given the team keeps routing ON and this checkout's git-ignored override turns it OFF
                 const store = path.join(dir, 'state');
                 // When a prompt arrives and the hook resolves the switch itself (no stubbed resolver)
-                const out = await hook.run(input('local-off'), { projectDir: dir, storeRoot: store, write: writer([]) });
+                const out = await hook.run(input('local-off'), { projectDir: dir, storeRoot: store, env: {}, homeDir: dir, write: writer([]) });
                 // Then the model receives the OFF notice, not silence and not the route payload
                 assertContains(out, hook.OFF_START);
                 assertNotContains(out, '<!-- CK:RUNTIME-WORKFLOW-ROUTE -->');
@@ -357,7 +386,7 @@ module.exports = {
                     projectDir: dir,
                     storeRoot: store,
                     content: 'route-v1',
-                    routing: { isWorkflowAutoDetectEnabled: () => true },
+                    routing: stubMode('ask'),
                     write: () => { throw new Error('simulated output failure'); }
                 });
                 assertTrue(first === '');
@@ -365,27 +394,82 @@ module.exports = {
             })
         },
         {
-            name: '[workflow-routing-switch] TC-WRS-015 tracked outputs carry the route gate and runtime payload has the catalog',
+            // Intent (BR-WFR-03): the route text exists only in the hook payload. A root file that also carried
+            // it would contradict a person's `auto` or `off` mode, so the tracked files hold no route text at all.
+            name: '[workflow-routing-switch] TC-WRS-015 tracked outputs carry no route text and the runtime payload has the gate and catalog',
+            skip: FRAMEWORK_REPO_SKIP,
             fn: () => {
-                for (const relative of ['CLAUDE.md', 'AGENTS.md', '.codex/CODEX_CONTEXT.md']) {
+                for (const relative of ['CLAUDE.md', 'AGENTS.md']) {
                     const text = fs.readFileSync(path.join(PROJECT_DIR, relative), 'utf8');
-                    assertContains(text, '<!-- CK:WORKFLOW-GATE -->', `${relative} must carry the route gate`);
+                    assertNotContains(text, '<!-- CK:WORKFLOW-ROUTE-POINTER -->', `${relative} must carry no route pointer`);
+                    assertNotContains(text, '<!-- CK:WORKFLOW-GATE -->', `${relative} must not carry the route gate body`);
+                    assertNotContains(text, '**Workflow question**', `${relative} must not carry route rules`);
                     assertNotContains(text, '<!-- CK:WORKFLOW-SKILLS -->', `${relative} must not carry the route catalog`);
                     assertNotContains(text, '[MANDATORY FIRST ACTION]', `${relative} must not mandate route selection`);
                 }
+                assertTrue(!fs.existsSync(path.join(PROJECT_DIR, '.codex', 'CODEX_CONTEXT.md')), 'the retired Codex context file is gone');
                 const payload = hook.buildInjection(PROJECT_DIR);
                 assertContains(payload, '<!-- CK:WORKFLOW-GATE -->');
                 assertContains(payload, '## Workflow & Skills Catalog');
-                assertTrue(generator.stampHeader(fs.readFileSync(path.join(PROJECT_DIR, 'CLAUDE.md'), 'utf8'))
-                    .includes('<!-- CK:UNIVERSAL-GUIDES v7 -->'));
-                assertNotContains(
-                    generator.stampHeader(
-                        fs.readFileSync(path.join(PROJECT_DIR, 'CLAUDE.md'), 'utf8'),
-                        { portability: { workflowAutoDetect: false } }
-                    ),
-                    '<!-- CK:WORKFLOW-GATE -->',
-                    'tracked team opt-out must remove the route gate'
-                );
+                // A root from a previous generation loses its pointer and gate blocks on regeneration, whatever the team mode
+                for (const root of [ROOT_WITH_POINTER, ROOT_WITH_LEGACY_GATE]) {
+                    const cleaned = generator.cleanLegacyManagedBlocks(root);
+                    assertNotContains(cleaned, '<!-- CK:WORKFLOW-ROUTE-POINTER -->', 'a regenerated root holds no pointer');
+                    assertNotContains(cleaned, '<!-- CK:WORKFLOW-GATE -->', 'a regenerated root holds no gate');
+                    assertContains(cleaned, '# Project', 'project text survives');
+                }
+                assertTrue(typeof generator.stampHeader === 'undefined', 'the generator no longer stamps a route pointer');
+            }
+        },
+        {
+            // Intent (BR-WFR-06): the runtime payload a hook-running host adds before each prompt tells the
+            // model to ask the one workflow question before starting a self-matched workflow of ANY tier
+            // (the `auto` row included), and that an explicit request needs no question. With no root file
+            // the full shipped gate carries it; with a root file the gate collapses to a pointer and the
+            // catalog's tier legend still carries it, so no payload form lets a tier start on its own.
+            name: '[workflow-routing-switch] TC-WRS-026 TC-WFR-012 runtime payload asks the workflow question before any tier starts',
+            fn: () => {
+                const shippedGate = fs.readFileSync(path.join(PROJECT_DIR, GATE_FILE), 'utf8');
+                const STALE_SELF_START = /route gate may select and start it|never self-start a `manual`|ask once before self-starting/;
+                return isolatedFixture({ '.claude/workflows.json': GROUPED_REGISTRY, [GATE_FILE]: shippedGate }, async noRoot => {
+                    // Given an `auto` and a `confirm` workflow and no root instruction file
+                    // When the runtime payload is built in the default `ask` mode
+                    const full = hook.buildInjection(noRoot);
+                    // Then the full gate asks the three-option question for every tier and exempts explicit requests
+                    assertContains(full, '**Workflow question** (every tier)');
+                    assertContains(full, '(a) the full workflow `<id>`');
+                    assertContains(full, '(b) a slimmer custom route listing its steps, keeping every required gate');
+                    assertContains(full, '(c) execute directly, no workflow or skill');
+                    assertContains(full, 'runs any tier with no question');
+                    assertContains(full, 'before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing');
+                    assertContains(full, 'ask the workflow question (below) only when YOUR route is to start a catalog workflow');
+                    assertContains(full, 'a direct, single-skill or custom-simple route (a Catalog-fit downgrade included) proceeds without asking');
+                    assertNotContains(full, 'a route that matches a catalog workflow', 'a matched-but-downgraded route must not be told to ask');
+                    assertTrue(Boolean(workflowRow(full, 'workflow-plain')), 'the auto-tier row must be listed');
+                    assertTrue(!STALE_SELF_START.test(full), 'the payload must not let a tier start on its own');
+                    // And root files that carry only the pointer never shrink it: the gate is always in the payload
+                    await isolatedFixture({
+                        '.claude/workflows.json': GROUPED_REGISTRY,
+                        [GATE_FILE]: shippedGate,
+                        'CLAUDE.md': ROOT_WITH_POINTER,
+                        'AGENTS.md': ROOT_WITH_POINTER
+                    }, withRoot => {
+                        const withPointer = hook.buildInjection(withRoot);
+                        assertContains(withPointer, '**Workflow question** (every tier)');
+                        assertContains(withPointer, 'An explicit request runs every tier with no question');
+                        assertTrue(!STALE_SELF_START.test(withPointer), 'the payload must not let a tier start on its own');
+                    });
+                    // And in `auto` mode the question is gone: a matched workflow starts by its tier
+                    const auto = hook.buildInjection(noRoot, '', 'auto');
+                    assertNotContains(auto, '**Workflow question**', 'mode auto must not ask the workflow question');
+                    assertNotContains(auto, 'before you start a catalog workflow, in every tier', 'the tier legend must not say every tier asks');
+                    assertNotContains(auto, 'NEVER starts before the answer', 'mode auto must not forbid a matched workflow from starting');
+                    assertContains(auto, '**Workflow start** (mode auto)');
+                    assertContains(auto, '`manual` never starts on your own');
+                    assertContains(auto, '`manual` never starts on your own: name it in your route declaration and take (b) or (c)');
+                    assertContains(auto, 'Mid-session: never auto-activate a workflow.');
+                    assertContains(auto, 'An explicit request (as above; `$workflow-*` on Codex) runs any tier with no question');
+                });
             }
         },
         {
@@ -460,7 +544,7 @@ module.exports = {
                 try {
                     const runWith = (protocol, now) => hook.run(input('proto-session'), {
                         projectDir: PROJECT_DIR, storeRoot: store, now, protocol,
-                        routing: { isWorkflowAutoDetectEnabled: () => true },
+                        routing: stubMode('ask'),
                         write: writer([])
                     });
                     const first = await runWith('PROTOCOL ALPHA', 1000);
@@ -534,7 +618,7 @@ module.exports = {
             fn: () => isolatedFixture({
                 '.claude/workflows.json': JSON.stringify(syntheticRegistry(30)),
                 [GATE_FILE]: FIXTURE_GATE,
-                'CLAUDE.md': ROOT_WITH_GATE
+                'CLAUDE.md': ROOT_WITH_POINTER
             }, dir => {
                 // Given a registry larger than the framework's own, in a project whose root carries the gate
                 const registry = syntheticRegistry(30);
@@ -646,7 +730,7 @@ module.exports = {
             fn: () => isolatedFixture({
                 '.claude/workflows.json': GROUPED_REGISTRY,
                 [GATE_FILE]: FIXTURE_GATE,
-                'CLAUDE.md': ROOT_WITH_GATE
+                'CLAUDE.md': ROOT_WITH_POINTER
             }, dir => {
                 // Given a small registry and a project protocol longer than the cap on its own
                 const protocol = Array.from({ length: 400 }, (_, line) => `Project route rule ${line}: prefer the lean route.`).join('\n');
@@ -667,11 +751,11 @@ module.exports = {
         {
             // Intent: BR-WFR-01 says "at most 9,500": a payload of exactly the cap is kept, one more
             // character falls to the next form.
-            name: '[workflow-routing-switch] [cap] TC-WFR-001 a compact payload of exactly 9,500 chars is kept; 9,501 falls back',
+            name: '[workflow-routing-switch] [cap] TC-WFR-001 a compact payload of exactly 9,500 chars is kept; 9,501 falls back, first without the step-skill names, then to the index',
             fn: () => isolatedFixture({
                 '.claude/workflows.json': GROUPED_REGISTRY,
                 [GATE_FILE]: FIXTURE_GATE,
-                'CLAUDE.md': ROOT_WITH_GATE
+                'CLAUDE.md': ROOT_WITH_POINTER
             }, dir => {
                 // Given a protocol whose length is measured so the compact payload lands exactly on the cap
                 // (the payload grows one character per protocol character)
@@ -681,13 +765,19 @@ module.exports = {
                 // When the payload is built at the cap and one character over it
                 const atCap = hook.buildInjection(dir, exact);
                 const overCap = hook.buildInjection(dir, `${exact}x`);
-                // Then exactly 9,500 keeps the compact catalog
+                // Then exactly 9,500 keeps the compact catalog with its step-skill names
                 assertTrue(atCap.length === PAYLOAD_CAP, `payload is ${atCap.length} chars`);
                 assertContains(atCap, COMPACT_HEADER, 'a payload at the cap must keep the compact catalog');
-                // And 9,501 falls back to the index, still under the cap
-                assertNotContains(overCap, COMPACT_HEADER, 'a payload one over the cap must fall back');
-                assertTrue(INDEX_POINTER.test(overCap), 'the fallback is the index');
+                assertContains(atCap, 'Step skills:', 'a payload at the cap keeps the step-skill names');
+                // And 9,501 drops only the step-skill names: every workflow row stays, under the cap
+                assertContains(overCap, COMPACT_HEADER, 'one over the cap keeps the compact rows');
+                assertNotContains(overCap, 'Step skills:', 'one over the cap drops the step-skill names first');
+                assertTrue(Boolean(workflowRow(overCap, 'workflow-grouped')) && Boolean(workflowRow(overCap, 'workflow-plain')), 'every row stays');
                 assertTrue(overCap.length <= PAYLOAD_CAP, `fallback payload is ${overCap.length} chars`);
+                // And a protocol too large even for the compact rows falls to the index, still under the cap
+                const far = hook.buildInjection(dir, 'x'.repeat(PAYLOAD_CAP - base + 700));
+                assertNotContains(far, COMPACT_HEADER, 'a payload far over the cap must fall back to the index');
+                assertTrue(INDEX_POINTER.test(far), 'the fallback is the index');
             })
         },
         {
@@ -706,109 +796,58 @@ module.exports = {
             }
         },
         {
-            // Intent: the root file already puts the gate in front of the model; repeating ~3,900 chars
-            // of it every prompt is what pushed the payload past the cap.
-            name: '[workflow-routing-switch] [cap] TC-WFR-002 gate body omitted when root carries it',
-            fn: () => isolatedFixture({
-                '.claude/workflows.json': GROUPED_REGISTRY,
-                [GATE_FILE]: FIXTURE_GATE,
-                'CLAUDE.md': ROOT_WITH_GATE,
-                'AGENTS.md': ROOT_WITH_GATE
-            }, dir => {
-                // Given CLAUDE.md and AGENTS.md that both carry the gate marker
-                // When the runtime payload is built
-                const payload = hook.buildInjection(dir);
-                // Then the body is dropped, while the marker, the pointer and the barrier contract stay
-                assertTrue(hook.rootCarriesGate(dir) === true);
-                assertNotContains(payload, FIXTURE_GATE_BODY, 'the gate body must not repeat what the root file carries');
-                assertContains(payload, `${hook.GATE_MARKER}\n${hook.GATE_POINTER}`);
-                assertContains(payload, '[review-a ∥ review-b ∥ review-c*]');
-                assertTrue(ADVANCEMENT_CLAUSE.test(payload), 'the advancement clause must stay');
-            })
-        },
-        {
-            // Intent: BR-WFR-03. The body is omitted only when CLAUDE.md exists AND every root instruction
-            // file present carries the marker. Claude hosts without an AGENTS.md fallback would otherwise
-            // lose the gate, and a present file that cannot be read proves nothing, so it keeps the body.
-            name: '[workflow-routing-switch] [cap] TC-WFR-003 gate body omitted only when CLAUDE.md exists and every present root file carries the gate',
+            // Intent (BR-WFR-03): the gate is delivered in full with the guidance, whatever the root files hold,
+            // because the root files carry no route text any more; losing it would leave the route nowhere.
+            name: '[workflow-routing-switch] [cap] TC-WFR-002 gate delivered in full whatever the root files hold',
             fn: async () => {
                 // A directory at a root-file path is present but unreadable as a file on every OS
                 // (chmod cannot make a file unreadable on Windows).
                 const asDirectory = name => ({ [`${name}/.keep`]: '' });
-                const cases = [
-                    { label: 'no root file', files: {}, carried: false },
-                    { label: 'CLAUDE.md without the marker', files: { 'CLAUDE.md': '# Project\n' }, carried: false },
-                    {
-                        label: 'CLAUDE.md with the marker but AGENTS.md without',
-                        files: { 'CLAUDE.md': ROOT_WITH_GATE, 'AGENTS.md': '# Agents\n' },
-                        carried: false
-                    },
-                    { label: 'AGENTS.md alone with the marker (no CLAUDE.md)', files: { 'AGENTS.md': ROOT_WITH_GATE }, carried: false },
-                    {
-                        label: 'CLAUDE.md present but unreadable, AGENTS.md with the marker',
-                        files: { ...asDirectory('CLAUDE.md'), 'AGENTS.md': ROOT_WITH_GATE },
-                        carried: false
-                    },
-                    {
-                        label: 'CLAUDE.md with the marker, AGENTS.md present but unreadable',
-                        files: { 'CLAUDE.md': ROOT_WITH_GATE, ...asDirectory('AGENTS.md') },
-                        carried: false
-                    },
-                    { label: 'CLAUDE.md with the marker, no AGENTS.md', files: { 'CLAUDE.md': ROOT_WITH_GATE }, carried: true },
-                    {
-                        label: 'CLAUDE.md and AGENTS.md both with the marker',
-                        files: { 'CLAUDE.md': ROOT_WITH_GATE, 'AGENTS.md': ROOT_WITH_GATE },
-                        carried: true
-                    }
+                const layouts = [
+                    { label: 'no root file', files: {} },
+                    { label: 'CLAUDE.md without any route block', files: { 'CLAUDE.md': '# Project\n' } },
+                    { label: 'CLAUDE.md and AGENTS.md carrying the pointer', files: { 'CLAUDE.md': ROOT_WITH_POINTER, 'AGENTS.md': ROOT_WITH_POINTER } },
+                    { label: 'AGENTS.md alone carrying the pointer', files: { 'AGENTS.md': ROOT_WITH_POINTER } },
+                    { label: 'CLAUDE.md from before the gate moved (still carrying the gate)', files: { 'CLAUDE.md': ROOT_WITH_LEGACY_GATE, 'AGENTS.md': ROOT_WITH_LEGACY_GATE } },
+                    { label: 'CLAUDE.md present but unreadable', files: { ...asDirectory('CLAUDE.md'), 'AGENTS.md': ROOT_WITH_POINTER } }
                 ];
-                for (const { label, files, carried } of cases) {
+                for (const { label, files } of layouts) {
                     await isolatedFixture({ '.claude/workflows.json': GROUPED_REGISTRY, [GATE_FILE]: FIXTURE_GATE, ...files }, dir => {
                         // Given a project whose root instruction files are: <label>
                         // When the runtime payload is built
                         const payload = hook.buildInjection(dir);
-                        // Then the gate body is omitted only in the carried layouts
-                        assertTrue(hook.rootCarriesGate(dir) === carried, `${label}: rootCarriesGate must be ${carried}`);
-                        assertContains(payload, hook.GATE_MARKER, `${label}: the marker must always be present`);
-                        if (carried) {
-                            assertNotContains(payload, FIXTURE_GATE_BODY, `${label}: the body must be omitted`);
-                            assertContains(payload, `${hook.GATE_MARKER}\n${hook.GATE_POINTER}`, `${label}: the pointer replaces the body`);
-                        } else {
-                            assertContains(payload, FIXTURE_GATE_BODY, `${label}: the gate body must be delivered`);
-                            assertNotContains(payload, hook.GATE_POINTER, `${label}: no pointer to a gate the root lacks`);
-                        }
+                        // Then the gate body and its marker are always delivered, never a pointer to a root file
+                        assertContains(payload, hook.GATE_MARKER, `${label}: the gate marker must be delivered`);
+                        assertContains(payload, FIXTURE_GATE_BODY, `${label}: the gate body must be delivered`);
+                        assertNotContains(payload, 'The routing gate is in the root instruction file', `${label}: no pointer to a root-file gate`);
+                        // And the barrier contract stays
+                        assertContains(payload, '[review-a ∥ review-b ∥ review-c*]', `${label}: the parallel-phase marks stay`);
+                        assertTrue(ADVANCEMENT_CLAUSE.test(payload), `${label}: the advancement clause must stay`);
                     });
                 }
             }
         },
         {
-            // Intent: BR-WFR-03 "near its start". The hook reads only the first 64 KB of a root file
-            // (documented in .claude/docs/hooks/README.md), so every prompt costs a bounded read. A marker
-            // that ends exactly at the bound counts; one cut by the bound does not, and the body is delivered.
-            name: '[workflow-routing-switch] [cap] TC-WFR-003 the root-file marker counts only inside the first 64 KB',
-            fn: async () => {
-                // Pinned here, not read from the hook, so a changed read bound fails this test.
-                const ROOT_HEAD_BYTES = 64 * 1024;
-                const marker = hook.GATE_MARKER;
-                // ASCII padding: one byte per character, so the byte offsets below are exact on every OS.
-                const padding = length => `# ${'p'.repeat(length - 3)}\n`;
-                const rootWithMarkerAt = offset => `${padding(offset)}${marker}\n\n> gate\n\n<!-- /CK:WORKFLOW-GATE -->\n`;
-                const cases = [
-                    { label: 'marker ends exactly at 64 KB', offset: ROOT_HEAD_BYTES - marker.length, carried: true },
-                    { label: 'marker cut by the 64 KB bound by one byte', offset: ROOT_HEAD_BYTES - marker.length + 1, carried: false }
-                ];
-                for (const { label, offset, carried } of cases) {
-                    const root = rootWithMarkerAt(offset);
-                    assertTrue(Buffer.byteLength(root.slice(0, offset), 'utf8') === offset, `${label}: padding must be ${offset} bytes`);
-                    await isolatedFixture({ '.claude/workflows.json': GROUPED_REGISTRY, [GATE_FILE]: FIXTURE_GATE, 'CLAUDE.md': root }, dir => {
-                        // Given a CLAUDE.md whose only gate marker sits at: <label>
-                        // When the runtime payload is built
-                        const payload = hook.buildInjection(dir);
-                        // Then the body is omitted only when the whole marker lies inside the read bound
-                        assertTrue(hook.rootCarriesGate(dir) === carried, `${label}: rootCarriesGate must be ${carried}`);
-                        if (carried) assertNotContains(payload, FIXTURE_GATE_BODY, `${label}: the body must be omitted`);
-                        else assertContains(payload, FIXTURE_GATE_BODY, `${label}: the gate body must be delivered`);
-                    });
+            // Intent (BR-WFR-03): the gate file is the single home of the route rules; it holds no root pointer
+            // block (no root file carries routing text) and keeps an `ask` variant that renders for each mode.
+            name: '[workflow-routing-switch] [cap] TC-WFR-003 the gate file carries no root pointer block and keeps the ask lines',
+            fn: () => {
+                const gateFile = fs.readFileSync(path.join(PROJECT_DIR, GATE_FILE), 'utf8');
+                assertNotContains(gateFile, 'CK:WORKFLOW-ROUTE-POINTER', 'the gate file carries no root pointer block');
+                // The gate block keeps an ask variant and renders for each mode
+                const ask = hook.renderGateForMode(gateFile, 'ask');
+                const auto = hook.renderGateForMode(gateFile, 'auto');
+                assertContains(ask, '**Workflow question** (every tier)');
+                assertNotContains(ask, '**Workflow start** (mode auto)');
+                assertContains(auto, '**Workflow start** (mode auto)');
+                assertNotContains(auto, '**Workflow question**');
+                for (const text of [ask, auto]) {
+                    assertNotContains(text, 'CK:GATE-MODE', 'no fence line may reach the model');
+                    assertContains(text, 'An explicit workflow request always runs, mid-session included');
+                    assertContains(text, 'Mixed research and modification intent is a modification', 'the mixed-intent rule rides in the delivered gate');
                 }
+                // A gate text with no fences and no block (a project's own file) is returned whole
+                assertTrue(hook.renderGateForMode('plain gate text\n', 'auto') === 'plain gate text');
             }
         },
         {
@@ -818,7 +857,7 @@ module.exports = {
             fn: () => isolatedFixture({
                 '.claude/workflows.json': GROUPED_REGISTRY,
                 [GATE_FILE]: FIXTURE_GATE,
-                'CLAUDE.md': ROOT_WITH_GATE
+                'CLAUDE.md': ROOT_WITH_POINTER
             }, dir => {
                 // Given one workflow with one all-return barrier and one without
                 // When the compact payload is built

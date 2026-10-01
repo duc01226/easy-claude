@@ -50,7 +50,7 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review valida
                                 'why-review',
                                 'security-audit',
                                 'why-review',
-                                'docs-update'
+                                'docs-manager --mode=update'
                             ]
                         }
                     }
@@ -66,7 +66,7 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review valida
             [
                 '# Workflow Test',
                 '',
-                '**Steps:** /changes-review -> /why-review -> /security-audit -> /why-review -> /docs-update',
+                '**Steps:** /changes-review -> /why-review -> /security-audit -> /why-review -> /docs-manager --mode=update',
                 ''
             ].join('\n'),
             'utf8'
@@ -81,12 +81,12 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review valida
         );
         assert.deepEqual(
             workflowConfig.workflows['changes-review'].sequence,
-            ['changes-review', 'why-review', 'security-audit', 'docs-update'],
+            ['changes-review', 'why-review', 'security-audit', 'docs-manager --mode=update'],
             'sweep must preserve changes-review -> why-review while removing a redundant control pair'
         );
 
         const skillText = normalizeEol(await fs.readFile(path.join(tempSkillDir, 'SKILL.md'), 'utf8'));
-        assert.match(skillText, /\/changes-review -> \/why-review -> \/security-audit -> \/docs-update/);
+        assert.match(skillText, /\/changes-review -> \/why-review -> \/security-audit -> \/docs-manager --mode=update/);
         assert.doesNotMatch(skillText, /\/security-audit -> \/why-review/);
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
@@ -97,15 +97,14 @@ test('TC-WFPROTO-007: prompt surfaces do not retain stale review workflow guidan
     const promptSurfacePaths = [
         '.claude/workflows.json',
         '.claude/workflows/primary-workflow.md',
-        '.claude/skills/architecture-review/SKILL.md',
-        '.claude/skills/ui-review/SKILL.md',
-        '.agents/skills/architecture-review/SKILL.md',
-        '.agents/skills/ui-review/SKILL.md',
-        '.codex/CODEX_CONTEXT.md',
+        '.claude/skills/architecture/references/mode-review.md',
+        '.claude/skills/ui-design/references/mode-review.md',
+        '.agents/skills/architecture/references/mode-review.md',
+        '.agents/skills/ui-design/references/mode-review.md',
         'AGENTS.md'
     ];
-    const obsoleteWorkflowSummary = /code-simplifier\s*(?:->|→|\+)\s*changes-review\s*(?:->|→|\+)\s*architecture-review\s*(?:->|→|\+)\s*code-review\s*(?:->|→|\+)\s*performance/;
-    const obsoleteReviewUiSibling = /(?:ui-review[`$]?[^.\n]*parallel-batch sibling|Sibling of [`$]?architecture-review)/;
+    const obsoleteWorkflowSummary = /code-simplifier\s*(?:->|→|\+)\s*changes-review\s*(?:->|→|\+)\s*architecture(?:-review| --mode=review)\s*(?:->|→|\+)\s*code-review\s*(?:->|→|\+)\s*performance/;
+    const obsoleteReviewUiSibling = /(?:ui-design --mode=review[`$]?[^.\n]*parallel-batch sibling|Sibling of [`$]?architecture(?:-review| --mode=review))/;
 
     for (const promptSurfacePath of promptSurfacePaths) {
         const text = normalizeEol(await fs.readFile(path.join(repoRoot, promptSurfacePath), 'utf8'));
@@ -117,7 +116,7 @@ test('TC-WFPROTO-007: prompt surfaces do not retain stale review workflow guidan
         assert.doesNotMatch(
             text,
             obsoleteReviewUiSibling,
-            `${promptSurfacePath} must not describe ui-review as an external sibling reviewer`
+            `${promptSurfacePath} must not describe ui-design --mode=review as an external sibling reviewer`
         );
     }
 });
@@ -129,12 +128,12 @@ test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and 
     );
     const combined = `${workflowText}\n${skillText}`;
 
-    assert.doesNotMatch(combined, /`performance`, `integration-test-review`, `security`/);
+    assert.doesNotMatch(combined, /`performance`, `integration-test --mode=review`, `security`/);
     assert.doesNotMatch(combined, /Agent\(security,/);
     assert.doesNotMatch(combined, /subagent_type(?:`|":\s*)\s*`?code-reviewer`?[^.\n]*Steps 3[–-]7/);
-    assert.match(combined, /`performance-review`, `integration-test-review`, `security-audit`/);
+    assert.match(combined, /`performance-review`, `integration-test --mode=review`, `security-audit`/);
     assert.match(combined, /Agent\(security-audit, subagent_type="security-auditor"/);
-    assert.match(combined, /Agent\(architecture-review, subagent_type="architect"/);
+    assert.match(combined, /Agent\(architecture --mode=review, subagent_type="architect"/);
 });
 
 test('TC-WFADV-022: whole-target why-review starts in parallel with changes-review and preserves the final gate', async () => {
@@ -143,8 +142,8 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     ).workflows;
     const workflow = workflows['workflow-review-changes'];
     const skillText = normalizeEol(await readSkillContract('workflow-review-changes'));
-    const codexContextText = normalizeEol(
-        await fs.readFile(path.join(repoRoot, '.codex', 'CODEX_CONTEXT.md'), 'utf8')
+    const codexRootText = normalizeEol(
+        await fs.readFile(path.join(repoRoot, 'AGENTS.md'), 'utf8')
     );
     // The outer zero-fix loop lives in workflow-review-changes as its delimited optional `--fix-loop` mode.
     const loopSkillText = skillText.match(/<!-- FIX-LOOP-MODE:START -->[\s\S]*?<!-- FIX-LOOP-MODE:END -->/)?.[0] ?? '';
@@ -158,8 +157,8 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
                 ? occurrence
                 : `${occurrence.skill}${occurrence.args ? ` ${occurrence.args}` : ''}`
         ),
-        ['changes-review', 'why-review --target=whole-review-target'],
-        'initial whole-target review must be a distinct sequence occurrence before the specialist batch'
+        ['changes-review --report-only --defer=whole-target,specialists,tests,entities', 'why-review --target=whole-review-target'],
+        'initial whole-target review must be a distinct sequence occurrence before the specialist batch, carrying its caller-mode flags in the registry args'
     );
     assert.ok(
         !workflow.sequence.some((occurrence) =>
@@ -188,7 +187,7 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
                 ? occurrence
                 : `${occurrence.skill}${occurrence.args ? ` ${occurrence.args}` : ''}`
         ),
-        ['why-review', 'experience-review', 'scan --target=domain-entities', 'docs-update', 'workflow-end', 'watzup'],
+        ['why-review', 'experience-review', 'scan --target=domain-entities', 'docs-manager --mode=update', 'workflow-end', 'watzup'],
         'the conditional post-fix holistic why-review must precede optional experience evidence and terminal documentation sync'
     );
     const postFixWhyReview = workflow.sequence.find((occurrence) =>
@@ -208,8 +207,8 @@ test('TC-WFADV-022: whole-target why-review starts in parallel with changes-revi
     assert.match(skillText, /fresh `code-reviewer` sub-agent[^\n]*FULL mode/);
     assert.match(skillText, /Advance only after BOTH return/);
     assert.match(skillText, /post-fix[^\n]*settled[^\n]*whole target/i);
-    assert.doesNotMatch(codexContextText, /plan-execute -> why-review -> experience-review/,
-        'tracked Codex context must not carry the runtime workflow catalog');
+    assert.doesNotMatch(codexRootText, /plan --mode=execute -> why-review -> experience-review/,
+        'tracked Codex root must not carry the runtime workflow catalog');
     // The loop reference names the inner run and its fix cycle by purpose — a hard-coded step count or
     // step range drifts every time the triage-driven sequence changes.
     assert.match(loopSkillText, /full default sequence/);
@@ -235,7 +234,7 @@ const RETIRED_LOOP_SKILL = ['workflow-review-changes', 'loop'].join('-');
 function assertFixLoopMode(text) {
     const mode = text.match(/<!-- FIX-LOOP-MODE:START -->([\s\S]*?)<!-- FIX-LOOP-MODE:END -->/)?.[1] ?? '';
     assert.equal(text.split('<!-- FIX-LOOP-MODE:START -->').length - 1, 1, 'exactly one delimited --fix-loop mode section');
-    assert.match(text, /^description: '[^'\n]*Flag: --fix-loop[^'\n]*'$/m, 'frontmatter description advertises the flag');
+    assert.match(text, /^description: '[^'\n]*--fix-loop[^'\n]*'$/m, 'frontmatter description advertises the flag');
     const quickSummary = text.slice(text.indexOf('## Quick Summary'), text.indexOf('## First Principle'));
     assert.match(quickSummary, /\*\*`--fix-loop` \(OPTIONAL mode flag — absent by default, and absence changes nothing in this skill\):\*\*/);
     const closing = text.slice(text.lastIndexOf('## Closing Reminders'));

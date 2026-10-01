@@ -7,12 +7,14 @@ files using canonical content from .claude/skills/shared/sync-inline-versions.md
 Usage (Windows: `py -3`; macOS/Linux: `python3`):
     sync-update-blocks.py [--dry-run] <tag> [<tag> ...]
     sync-update-blocks.py [--dry-run] --mode=guide --tags <tag>[,<tag> ...]
+    sync-update-blocks.py [--dry-run] --mode=strip-root-pointer
 
 Default mode (`--mode=sync`) touches ONLY content between the exact requested fence pair:
     <!-- SYNC:tag --> ... <!-- /SYNC:tag -->
 or:
     <!-- SYNC:tag:reminder --> ... <!-- /SYNC:tag:reminder -->
-in every carrier of find_target_files(): skill SKILL.md, skill references/*.md AND agent .md.
+in every carrier of find_target_files(): skill SKILL.md (the `_templates/*/SKILL.md` skill template
+included), skill references/*.md AND agent .md.
 
 Guide mode (`--mode=guide`) converts a skill to the hybrid policy
 (`SYNC:shared-protocol-duplication-policy`): each requested `<!-- SYNC:tag -->` body block in a
@@ -22,7 +24,16 @@ never a `references/*.md` file, and never a skill listed in `inlineSkills` of
 `.claude/skills/shared/protocol-groups.json`. Guide text comes from the generated projection index
 (`.claude/skills/shared/protocols/index.json`; build it with
 `node .claude/scripts/build-protocol-projection.cjs`). Re-running is a no-op. `--dry-run` writes
-nothing and prints the byte delta per skill.
+nothing and prints the byte delta per skill. A universal tag (the hook-delivered `universal` group) is
+never converted to a guide line.
+
+Strip mode (`--mode=strip-root-pointer`) applies the universal-bundle contract of
+`SYNC:shared-protocol-duplication-policy` to every skill SKILL.md (inline skills included) and
+every agent .md: any body or `:reminder` of a universal tag and any retired `Root-carried protocols`
+pointer line is removed, and nothing is added (agents also drop the agent-folded tags,
+`sync_blocks.AGENT_FOLDED_TAGS`). The hooks deliver the bundle, so no carrier holds any part of it.
+It takes no tags, never touches `references/*.md`, and re-running is a no-op. `--dry-run` prints the
+byte delta per kind.
 """
 import argparse
 import glob
@@ -38,10 +49,14 @@ PROJECTION_INDEX = os.path.join(PROJECT_DIR, ".claude", "skills", "shared", "pro
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sync_blocks import (  # noqa: E402  (path set up above so the tool runs from any cwd)
+    AGENT_FOLDED_TAGS,
     GUIDE_BLOCK_END,
     GUIDE_BLOCK_START,
     format_guide_line,
     guide_entries,
+    remove_fenced_block,
+    strip_universal,
+    universal_tags,
 )
 # One owner for the keep-the-file's-own-newline rule (read_text / write_text).
 from line_endings import read_text, write_text  # noqa: E402
@@ -71,6 +86,10 @@ def read_canonical_block(tag):
 def find_target_files():
     patterns = [
         os.path.join(PROJECT_DIR, ".claude", "skills", "*", "SKILL.md"),
+        # The skill template is the file every new skill is cloned from: a stale SYNC block there
+        # ships to each skill created from it, so it is a carrier like any SKILL.md. It is not a
+        # guide-conversion target (find_guide_target_files keeps only direct skills/<name>/SKILL.md).
+        os.path.join(PROJECT_DIR, ".claude", "skills", "_templates", "*", "SKILL.md"),
         # A skill's reference bodies are loaded as procedure and duplicate across skills
         # exactly like SKILL.md does. Excluding them made a SYNC: block there inert —
         # written once, propagated never, and invisible to sync-carrier-parity, which
@@ -171,32 +190,9 @@ def find_guide_target_files(inline_skills):
     return out
 
 
-def _line_block_re(tag):
-    """Whole-line `<!-- SYNC:tag -->` … `<!-- /SYNC:tag -->` span. Line-anchored so a prose
-    MENTION of a marker never counts, and exact so `tag` never matches `tag:reminder`."""
-    t = re.escape(tag)
-    open_re = re.compile(rf"^[ \t]*<!--\s*SYNC:{t}\s*-->[ \t]*\n", re.MULTILINE)
-    close_re = re.compile(rf"^[ \t]*<!--\s*/SYNC:{t}\s*-->[ \t]*(?:\n|\Z)", re.MULTILINE)
-    return open_re, close_re
-
-
 def _remove_body_block(content, tag):
-    """Remove one tag's full body block. Returns (new_content, removed_at or None, error)."""
-    open_re, close_re = _line_block_re(tag)
-    opens = list(open_re.finditer(content))
-    closes = list(close_re.finditer(content))
-    if not opens and not closes:
-        return content, None, None
-    if len(opens) != 1 or len(closes) != 1:
-        return content, None, f"unbalanced SYNC:{tag} tags ({len(opens)} open / {len(closes)} close)"
-    start, end = opens[0].start(), closes[0].end()
-    if end <= opens[0].end():
-        return content, None, f"SYNC:{tag} close tag appears before open tag"
-    # Drop the blank line that separated the block from what follows, so repeated
-    # conversions do not accumulate blank lines.
-    while content.startswith("\n", end):
-        end += 1
-    return content[:start] + content[end:], start, None
+    """Remove one tag's full body block (the shared owner is `sync_blocks.remove_fenced_block`)."""
+    return remove_fenced_block(content, tag)
 
 
 def _render_guide_block(lines):
@@ -248,6 +244,14 @@ def run_guide_mode(tags, dry_run):
     if bad:
         print(f"ERROR: guide mode converts base tags only (no :reminder/:full variants): {', '.join(bad)}", file=sys.stderr)
         return 2
+    universal = [t for t in tags if t in set(universal_tags())]
+    if universal:
+        print(
+            f"ERROR: universal tags are never converted to guide lines: {', '.join(universal)} "
+            "(the universal hook delivers them; no skill or agent carries any part of them)",
+            file=sys.stderr,
+        )
+        return 2
     rows = load_guide_rows()
     unknown = [t for t in tags if t not in rows]
     if unknown:
@@ -287,6 +291,54 @@ def run_guide_mode(tags, dry_run):
         for rel, err in errors:
             print(f"  {rel}: {err}")
     print(f"\nTotal skills changed: {changed}, byte delta {total_delta:+d} (dry-run={dry_run})")
+    return 0 if not errors else 1
+
+
+# ─── Strip mode ─────────────────────────────────────────────────────────────
+
+
+def find_strip_target_files():
+    """[(path, kind)] for every skill SKILL.md (inline skills included) and every agent .md.
+    Derived from find_target_files(); skill references/*.md never carried the universal set."""
+    out = []
+    for path in find_target_files():
+        parent, name = os.path.split(path)
+        if name == "SKILL.md":
+            out.append((path, "skill"))
+        elif os.path.basename(parent) == "agents":
+            out.append((path, "agent"))
+    return out
+
+
+def run_strip_mode(dry_run):
+    files = find_strip_target_files()
+    print(f"Strip mode: {len(files)} files (skill SKILL.md + agent .md); universal tags: {', '.join(universal_tags())}")
+    changed, errors = 0, []
+    totals = {"skill": [0, 0], "agent": [0, 0]}
+    for path, kind in files:
+        content, newline = read_text(path)
+        strip = list(AGENT_FOLDED_TAGS) if kind == "agent" else None
+        new_content, removed, errs = strip_universal(content, strip)
+        rel = os.path.relpath(path, PROJECT_DIR).replace(os.sep, "/")
+        if errs:
+            errors.extend((rel, e) for e in errs)
+            continue
+        if new_content == content:
+            continue
+        delta = len(new_content.encode("utf-8")) - len(content.encode("utf-8"))
+        totals[kind][0] += 1
+        totals[kind][1] += delta
+        changed += 1
+        print(f"  {rel}: {delta:+d} bytes ({len(removed)} removed)")
+        if not dry_run:
+            write_text(path, new_content, newline)
+    if errors:
+        print("\nERRORS (file left unchanged):")
+        for rel, err in errors:
+            print(f"  {rel}: {err}")
+    for kind, (n, delta) in totals.items():
+        print(f"{kind}: {n} changed, byte delta {delta:+d}")
+    print(f"\nTotal files changed: {changed} (dry-run={dry_run})")
     return 0 if not errors else 1
 
 
@@ -331,19 +383,24 @@ def parse_args(argv):
         description="Propagate canonical SYNC bodies (default) or convert skills to guide lines (--mode=guide).",
     )
     parser.add_argument("--dry-run", action="store_true", help="write nothing; guide mode prints the byte delta per skill")
-    parser.add_argument("--mode", choices=("sync", "guide"), default="sync")
+    parser.add_argument("--mode", choices=("sync", "guide", "strip-root-pointer"), default="sync")
     parser.add_argument("--tags", default="", help="comma-separated tags (also accepted as positional arguments)")
     parser.add_argument("tag", nargs="*")
     args = parser.parse_args(argv)
     tags = [t for t in args.tag] + [t.strip() for t in args.tags.split(",") if t.strip()]
     args.tags = list(dict.fromkeys(tags))
-    if not args.tags:
+    if args.mode == "strip-root-pointer":
+        if args.tags:
+            parser.error("--mode=strip-root-pointer takes no tags (it strips the universal group)")
+    elif not args.tags:
         parser.error("name at least one tag (positional or --tags)")
     return args
 
 
 def main(argv):
     args = parse_args(argv[1:])
+    if args.mode == "strip-root-pointer":
+        return run_strip_mode(args.dry_run)
     if args.mode == "guide":
         return run_guide_mode(args.tags, args.dry_run)
     return run_sync_mode(args.tags, args.dry_run)

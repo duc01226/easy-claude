@@ -107,32 +107,40 @@ test('TC-SKILLFIX-024b: diff ordering is stable and sorted', () => {
 });
 
 // ── CONTEXT-mirror idempotency (folded into this gate) ─────────────────────────────────────────────
-// checkContextMirror() compares a fresh render of AGENTS.md + .codex/CODEX_CONTEXT.md (keyed by
-// repo-relative path) against the committed copies using the SAME diffTrees. These cases lock the
-// two-file context surface; the diffTrees verdicts themselves are already covered above.
+// checkContextMirror() compares a fresh render of AGENTS.md (keyed by repo-relative path) against the
+// committed copy using the SAME diffTrees. The retired .codex/CODEX_CONTEXT.md is never rendered, so a
+// committed one is an orphan the gate reports. These cases lock that surface; the diffTrees verdicts
+// themselves are already covered above.
 
-// TC-CTXMIRROR-001 — an in-sync context mirror (both files identical) yields no divergence.
-test('TC-CTXMIRROR-001: identical context maps (AGENTS.md + CODEX_CONTEXT.md) → no diffs', () => {
-    const fresh = new Map([['AGENTS.md', 'a\n'], ['.codex/CODEX_CONTEXT.md', 'c\n']]);
-    const committed = new Map([['AGENTS.md', 'a\n'], ['.codex/CODEX_CONTEXT.md', 'c\n']]);
+// TC-CTXMIRROR-001 — an in-sync context mirror (AGENTS.md identical, no context file) yields no divergence.
+test('TC-CTXMIRROR-001: identical AGENTS.md maps and no context file → no diffs', () => {
+    const fresh = new Map([['AGENTS.md', 'a\n']]);
+    const committed = new Map([['AGENTS.md', 'a\n']]);
     assert.deepEqual(diffTrees(fresh, committed), []);
 });
 
 // TC-CTXMIRROR-002 — a stale committed AGENTS.md (the Finding-1 failure mode) is flagged 'content'.
 test('TC-CTXMIRROR-002: a stale committed AGENTS.md is flagged as content drift', () => {
-    const fresh = new Map([['AGENTS.md', 'fresh\n'], ['.codex/CODEX_CONTEXT.md', 'c\n']]);
-    const committed = new Map([['AGENTS.md', 'stale\n'], ['.codex/CODEX_CONTEXT.md', 'c\n']]);
+    const fresh = new Map([['AGENTS.md', 'fresh\n']]);
+    const committed = new Map([['AGENTS.md', 'stale\n']]);
     assert.deepEqual(diffTrees(fresh, committed), [{ relPath: 'AGENTS.md', kind: 'content' }]);
 });
 
+// TC-CTXMIRROR-004 — a committed .codex/CODEX_CONTEXT.md no longer has a source: it is reported as an orphan.
+test('TC-CTXMIRROR-004: a leftover .codex/CODEX_CONTEXT.md is flagged as an orphan', () => {
+    const fresh = new Map([['AGENTS.md', 'a\n']]);
+    const committed = new Map([['AGENTS.md', 'a\n'], ['.codex/CODEX_CONTEXT.md', 'c\n']]);
+    assert.deepEqual(diffTrees(fresh, committed), [{ relPath: '.codex/CODEX_CONTEXT.md', kind: 'extra-in-mirror' }]);
+});
+
 // TC-CTXMIRROR-003 — committed == fresh, live against this repo. Spawns the gate as a SUBPROCESS
-// (non-destructive: renders into a tmp dir) and asserts BOTH surfaces are in sync. This is the
+// (non-destructive: renders into a tmp dir) and asserts both surfaces are in sync. This is the
 // idempotency assertion — if a context generator's text was edited without a full re-sync, the
-// committed AGENTS.md / CODEX_CONTEXT.md would diverge from a fresh render and this fails.
+// committed AGENTS.md would diverge from a fresh render and this fails.
 test('TC-CTXMIRROR-003: gate passes against the committed repo (skills + context both in sync)', async () => {
     const { stdout } = await execFileAsync(process.execPath, [gatePath], { cwd: repoRoot });
     assert.match(stdout, /skills: PASS/, 'committed .agents/skills mirror must equal a fresh render');
-    assert.match(stdout, /context: PASS/, 'committed AGENTS.md + CODEX_CONTEXT.md must equal a fresh render');
+    assert.match(stdout, /context: PASS/, 'committed AGENTS.md must equal a fresh render and no context file may remain');
 });
 
 // --- TC-HOOKMIRROR-001..003 — the FOURTH guarded surface: .codex/hooks.json ---
@@ -169,7 +177,6 @@ const SYNC_MODULES = ['sync-hooks.mjs', 'sync-context-workflows.mjs', 'migrate-c
 test('TC-HOOKMIRROR-001: importing a sync module in a fresh process does not write the committed mirrors', async () => {
     const MIRRORS = [
         path.join(repoRoot, '.codex', 'hooks.json'),
-        path.join(repoRoot, '.codex', 'CODEX_CONTEXT.md'),
         path.join(repoRoot, 'AGENTS.md'),
         path.join(repoRoot, '.agents', 'skills', 'why-review', 'SKILL.md')
     ];
@@ -295,8 +302,8 @@ const EXPECTED_RENDERED_GROUPS = [
     // (easy to change / scale / maintain) at task-step boundaries, ledger-deduplicated to about
     // once per 100k tokens. Its own group on the prompt-ledger matcher, like token-budget-checkpoint.
     ['PostToolUse', 'TodoWrite|TaskCreate|TaskUpdate|update_plan', 1],
-    // Protocol delivery (2026-09-25): the six protocol-inject-<group> entries. Their Claude
-    // `Skill` and `Read` groups are not mirrored — Codex has neither tool — and are reported
+    // Protocol delivery: the five protocol-inject-<group> entries plus skill-overlay-remind. Their
+    // Claude `Skill` and `Read` groups are not mirrored — Codex has neither tool — and are reported
     // as `matcher-names-no-codex-tool`. Codex reads a skill file implicitly through its shell,
     // so the Read group's entries render here, in that group's place, on `Bash`; their
     // in-process early exit ends every command that does not name SKILL.md.
@@ -317,21 +324,27 @@ const EXPECTED_RENDERED_GROUPS = [
     // exactly the hooks whose output a MIRRORED non-SessionStart hook consumes, because
     // dropping a producer while keeping its consumer leaves the consumer registered and
     // permanently unreachable. Everything off that allowlist is still skipped under the
-    // original static-startup-context rationale. Four rows, in settings.json order:
+    // original static-startup-context rationale. Five rows, in settings.json order:
     //   verify-install         — startup dependency-integrity check (2026-09-22)
     //   session-init-docs      — sole writer of .scan-stale, read by init-prompt-gate
     //   file-convention-inject — compaction re-arm for per-file convention delivery
     //   prompt-ledger          — goal/prompt re-anchor after compact or resume
+    //   protocol-inject-universal-1..4 — the universal bundle after a compaction or clear (compact|clear)
     ['SessionStart', 'startup|resume|clear|compact', 1],
     ['SessionStart', 'startup', 1],
     ['SessionStart', 'compact|clear', 1],
     ['SessionStart', 'compact|resume|clear', 1],
+    ['SessionStart', 'compact|clear', 4],
     ['Stop', null, 1],
-    // SubagentStart (2026-09-25): Codex supports it and it now mirrors — the six protocol
-    // entries, filtered to the skill-preloading agent types plus Explore and Plan. The list
-    // renders anchored because Codex matchers are unanchored regexes (Claude reads the same
-    // list as exact names), so `tester` does not also fire for `integration-tester`.
-    ['SubagentStart', '^(?:Explore|Plan|architect|code-reviewer|code-simplifier|docs-manager|fullstack-developer|git-manager|tester)$', 6],
+    // SubagentStart: Codex supports it and it mirrors — the five group entries and the four universal
+    // bins, registered without an agent-type matcher so every agent type (skill preloaders,
+    // general-purpose, custom agents) reaches the hooks; each hook decides per agent whether it
+    // delivers. A matcherless source group renders matcherless (an agent-name list would render
+    // anchored, because Codex matchers are unanchored regexes).
+    ['SubagentStart', null, 9],
+    // The universal bundle: one entry per bin, first on every prompt so its ledger records predate
+    // every other prompt hook.
+    ['UserPromptSubmit', null, 4],
     ['UserPromptSubmit', null, 1],
     ['UserPromptSubmit', null, 1],
     // workflow-route-inject: default-on, configurable runtime workflow router.
@@ -346,8 +359,8 @@ const EXPECTED_RENDERED_GROUPS = [
     ['UserPromptSubmit', null, 1],
     // prompt-ledger (2026-09-16): records every prompt and re-anchors the original goal.
     ['UserPromptSubmit', null, 1],
-    // Protocol delivery (2026-09-25): the six entries Claude registers on UserPromptExpansion,
-    // which Codex lacks. An explicit `$skill` on UserPromptSubmit is the Codex load path, so
+    // Protocol delivery: the five group entries and skill-overlay-remind, which Claude registers on
+    // UserPromptExpansion, which Codex lacks. An explicit `$skill` on UserPromptSubmit is the Codex load path, so
     // they render here, after every native UserPromptSubmit group (reported as
     // `remapped-to-user-prompt-submit`).
     ['UserPromptSubmit', null, 6]

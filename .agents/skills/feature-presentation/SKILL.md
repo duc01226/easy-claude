@@ -1,10 +1,13 @@
 ---
 name: feature-presentation
-description: '[Documentation] Use when a workflow step or the user asks for a stakeholder slide deck. Synthesizes specs, PBIs, ideas and mockups into one standalone HTML deck.'
+description: '[Documentation] Use when a workflow step or the user asks for a stakeholder slide deck: specs, PBIs, ideas and mockups in one standalone HTML deck.'
 ---
 
 > Codex compatibility note:
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
+> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
+> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
+> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
@@ -13,39 +16,6 @@ description: '[Documentation] Use when a workflow step or the user asks for a st
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (Hook-Independent)
-
-Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
-When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
-
-**Always read:**
-- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
-- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
-- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
-
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
-
-**Situation-based docs** (pick by the phase you are about to enter — plan/investigate, edit, test, spec/doc, review — and read only docs the project selects in `referenceDocs` that exist):
-- Planning, investigation, or design: `project-structure-reference.md`, `domain-entities-reference.md`, plus the docs below for every file type the plan touches
-- Editing or writing code: `code-review-rules.md` plus the backend or frontend docs below for the file type
-- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
-- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
-- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md` (or the configured styling reference), `design-system/README.md`
-- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
-- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
-- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
-- Integration test implementation/review: `integration-test-reference.md`
-- E2E test implementation/review: `e2e-test-reference.md`
-- Test-data seeders: `seed-test-data-reference.md`
-- Code review/audit work: `code-review-rules.md` plus the docs above for every file type under review
-- Per-file conventions (`contextGroups[]`): before editing an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`
-
-**Dedup:** a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens, and it has not changed since — cite it `(loaded)` instead of re-reading. A hook reminder, a summary, or a prior mention never counts; a delegated sub-agent starts empty, so name the resolved doc paths in its brief.
-
-Never read all docs blindly: route from `docs-index-reference.md` and open only what the task needs.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
-
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
@@ -61,15 +31,15 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 **Summary:**
 
-- **Purpose / altitude:** a SYNTHESIS deck at a higher altitude than `pbi-mockup` — accumulates many artifacts (ideas + specs + PBIs + stories + design-specs + mockups) into ONE stakeholder presentation, not one PBI's UI preview.
-- **Main steps (read-this-if-nothing-else):** (1) resolve `activePlan` scope across created→now → (2) gap-fill: missing PBIs → ask once (`manual` tier), on a yes run `workflow-spec-to-pbi` as a SUB-AGENT, else report the gap; missing mockups in `idea-to-pbi` use `pbi-mockup`, `idea-to-spec` skips mockups → (3) load design context → (4) [BLOCKING] inventory UI + flows → (5) extract journeys, one todo each → (6) assemble → (7) save → (8) [BLOCKING] `review`-profile conformance check, then fidelity/demo integrity → (8b) Demo-Quality → (9) report.
+- **Purpose / altitude:** a SYNTHESIS deck at a higher altitude than `pbi --mode=mockup` — accumulates many artifacts (ideas + specs + PBIs + stories + design-specs + mockups) into ONE stakeholder presentation, not one PBI's UI preview.
+- **Main steps (read-this-if-nothing-else):** (1) resolve `activePlan` scope across created→now → (2) gap-fill: missing PBIs → ask once (`manual` tier), on a yes run `workflow-spec-to-pbi` as a SUB-AGENT, else report the gap; missing mockups in `idea-to-pbi` use `pbi --mode=mockup`, `idea-to-spec` skips mockups → (3) load design context → (4) [BLOCKING] inventory UI + flows → (5) extract journeys, one todo each → (6) assemble → (7) save → (8) [BLOCKING] `review`-profile conformance check, then fidelity/demo integrity → (8b) Demo-Quality → (9) report.
 - **Output/demo contract:** exactly ONE HTML at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` defaults to `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) with inline CSS/JS, self-contained; outside assets only with the deck's declared asset policy (added automatically when an embedded prototype loads an outside asset); project or system type, no CDN/reveal.js, vanilla-JS navigation, speaker notes on every slide, a guide slide, and one interactive demo-flow slide per main journey; reuse existing `*-mockup.html` via escaped `<iframe srcdoc>` and accept only complete PBI full flows. The deck meets `presentation-builder`'s deck standard and passes its validator with `--profile=review` before it is reported ready.
 - **Branches and evidence:** evaluate shared `isLargeIdea`; true requires the complete `large_idea_decomposition` block, stable slice IDs, and Decomposition & boundaries beside the all-PBI backlog and all-PBI presentation; missing/conflicting fields block deck quality and the presentation never creates the product roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path). `idea-to-spec` uses only design-spec ASCII/tables + narrated frames; missing visuals render an empty state; use real domain data and keep prose tech-agnostic.
 
 **Workflow:**
 
 1. **Resolve scope** — anchor on `activePlan`, accumulate its full artifact set across the plan's created→now date range (every `{YYMMDD}` in range, NOT just today); custom prompt widens; standalone + no prompt → ask the user directly.
-2. **Gap-fill (smart routing — sub-agent)** — spec lacks PBIs → ask once (`manual` tier), on a yes `workflow-spec-to-pbi` AS A SUB-AGENT, else report the gap; PBIs lack mockups (mockup-bearing workflow) → `pbi-mockup`. Spec-only `idea-to-spec` → SKIP mockup generation.
+2. **Gap-fill (smart routing — sub-agent)** — spec lacks PBIs → ask once (`manual` tier), on a yes `workflow-spec-to-pbi` AS A SUB-AGENT, else report the gap; PBIs lack mockups (mockup-bearing workflow) → `pbi --mode=mockup`. Spec-only `idea-to-spec` → SKIP mockup generation.
 3. **Load project design context** — baseline + matched per-app design-system docs via `project-config.json`.
 4. **[BLOCKING] Inventory existing UI + map connected flows** — `SYNC:existing-ui-research`.
 5. **Accumulate + structure content (incl. journey extraction)** — parse each artifact into stakeholder sections; extract the main-story flows into an ordered journey list + task tracking one todo per journey; REAL domain data, never Lorem (`references/artifact-accumulation.md`).
@@ -85,7 +55,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - [BLOCKING] Never report the deck ready while `validate-presentation.cjs --profile=review` fails — fix the deck and re-check (Step 8); `presentation-builder` owns the deck standard and that validator.
 - Present every in-scope main user story as an interactive MVP demo slide (embedded interactive mockup + narration strip); plan journeys first (Step 5, one todo each), sign off with the Demo-Quality review (Step 8b).
 - Embed existing `-mockup.html` via `<iframe srcdoc>` — never regenerate a mockup that already exists; the mock-up is self-driving, the deck adds only narration.
-- Spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + narrated ASCII-frame step-through ONLY; never generate HTML mockups, never invoke `pbi-mockup`.
+- Spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + narrated ASCII-frame step-through ONLY; never generate HTML mockups, never invoke `pbi --mode=mockup`.
 - Use REAL domain entity field names + realistic sample data — never Lorem ipsum or "Item 1, Item 2".
 - Empty-state slide when an in-scope feature has no mockup AND no design-spec — never a broken/blank iframe.
 - Run gap-fill multi-step workflows as SUB-AGENTS (summary returned + findings written to `tmp/reports/`) per CLAUDE.md "Workflow Step Advancement §3".
@@ -104,7 +74,7 @@ Synthesize session specs, PBIs, ideas, and mockups into one standalone HTML deck
 - Near the end of `workflow-idea-to-pbi` or `workflow-idea-to-spec`, to present the feature set to stakeholders.
 - Standalone, when PO/BA/Dev/QC need one offline deck synthesizing a feature's ideas, specs, PBIs, stories, and mockups.
 
-**NOT for**: one PBI UI preview (`$pbi-mockup`), Feature Spec authoring (`$spec`), or design-spec production (`$design-spec`). General-subject decks go to `$presentation-builder` (user-run) — a talk, briefing, teaching or pitch deck that does not synthesize a feature's ideas/specs/PBIs/mockups.
+**NOT for**: one PBI UI preview (`$pbi --mode=mockup`), Feature Spec authoring (`$spec`), or design-spec production (`$design-spec`). General-subject decks go to `$presentation-builder` (user-run) — a talk, briefing, teaching or pitch deck that does not synthesize a feature's ideas/specs/PBIs/mockups.
 
 **Deck standard:** `presentation-builder` owns the deck standard (runtime contract `presentation-builder/references/web-runtime-contract.md`) and its validator `presentation-builder/scripts/validate-presentation.cjs`. This skill's review deck conforms to that standard under the `review` profile and passes it before hand-off (Step 8). For a read-only review deck that profile makes five checks advisory — in-place editing, editing state, local draft saving, draft reset and clean export — and keeps every other check at the same level as the `presenter` profile; the Presentation Decks spec rule BR-PD-03 owns that list, mirrored in the runtime contract's §9 "Conformance profiles" and the validator — change it there first.
 
@@ -140,7 +110,7 @@ Both placeholders stand for the RESOLVED value everywhere they appear in this sk
 
 ### Related
 
-- **Input from:** `$spec`, `$refine`, `$story`, `$pbi-mockup`, `$design-spec`
+- **Input from:** `$spec`, `$pbi --mode=refine`, `$pbi --mode=story`, `$pbi --mode=mockup`, `$design-spec`
 - **Deck standard + validator:** `presentation-builder` — owns the shared deck standard and `validate-presentation.cjs`; this skill passes it with `--profile=review`. General-subject decks go to `$presentation-builder` (user-run).
 - **Command:** `$feature-presentation`
 - **Detail:** `references/deck-template.md` (HTML scaffold + slide engine + iframe-srcdoc escaping + fidelity gate); `references/artifact-accumulation.md` (scope resolution + per-type parse map + gap-fill + branches)
@@ -163,12 +133,12 @@ Determine deck scope; full algorithm: `references/artifact-accumulation.md` → 
 Fill missing downstream artifacts; routing: `references/artifact-accumulation.md` → "Gap-Fill Routing".
 
 1. **Spec lacks PBIs:** `workflow-spec-to-pbi` is a `manual`-tier workflow — ask the user once whether to run it; only on a yes, invoke it **AS A SUB-AGENT** (`spawn_agent` tool), briefed to run `$start-workflow workflow-spec-to-pbi` and told the user explicitly said yes — that yes is the explicit request the tier needs, since a sub-agent's own `$start-workflow` call never counts as one; otherwise report the missing PBIs and continue. Per CLAUDE.md "Workflow Step Advancement §3", multi-step workflows run as sub-agents: return a summary and write full findings to `tmp/reports/` to bound deck-build context.
-2. **PBIs lack `-mockup.html` AND workflow is mockup-bearing (`idea-to-pbi`):** Invoke `pbi-mockup` per PBI; require its Releasable Full-Flow gate to PASS before embedding.
-3. **Spec-only `idea-to-spec` context:** SKIP mockup generation — never invoke `pbi-mockup`; use design-spec visuals only (Step 6 spec-only path), preserving the no-mockup contract.
+2. **PBIs lack `-mockup.html` AND workflow is mockup-bearing (`idea-to-pbi`):** Invoke `pbi --mode=mockup` per PBI; require its Releasable Full-Flow gate to PASS before embedding.
+3. **Spec-only `idea-to-spec` context:** SKIP mockup generation — never invoke `pbi --mode=mockup`; use design-spec visuals only (Step 6 spec-only path), preserving the no-mockup contract.
 
 ### Step 3: Load Project Design Context
 
-Deck CSS uses project design tokens (same discovery as `pbi-mockup`):
+Deck CSS uses project design tokens (same discovery as `pbi --mode=mockup`):
 
 0. **Design-explore hand-off (when supplied):** a `$ui-design --mode=explore` run whose deliverable was a Slide hands over `direction-approved.md` and `run-notes.md`. Read the Design Plan tokens from the `## Design Plan tokens` section of `direction-approved.md` and adopt the approved direction as the deck's look — its colours and type become the CSS variables; the steps below still fill any axis it leaves open. Read the journey fixes from the `## Journey fixes (UX-8)` section of `run-notes.md` and apply each to the slide map, recording each fix as applied or `N/A — <reason>` in the Step 9 hand-off line. A web font the picked draft loaded is kept only by packaging its font file inside the deck (an embedded font file — the deck still loads nothing from a network, Step 6); otherwise it is replaced by the project's type token, then the closest system stack, and the replacement is recorded as a departure in the Step 9 hand-off line.
 
@@ -205,10 +175,10 @@ Build the single self-contained HTML from `references/deck-template.md`:
 - Vanilla-JS slide engine from the §1 scaffold — Previous/Next buttons, arrow keys, PageUp/PageDown, Space (Shift+Space goes back), `Home`/`End`, All slides (overview), Notes, fullscreen, theme toggle, and a "Slide N of M" status; no nav dots, no CDN reveal.js. On a slide whose content overflows, the vertical keys scroll it first and change slide only at its edge; while Tab has put the focus in the notes they scroll only the notes, even at the notes' edge, and move neither the page nor the slide (runtime contract §3). Key presses inside an embedded demo stay in the demo; OPTIONAL `postMessage('play')` auto-starts a journey only when supported (`references/deck-template.md` §3b).
 - **"How to use this deck" guide slide** near the top — teach navigation (Previous/Next and the arrow, PageUp/PageDown, Space, `Home`/`End` keys), All slides (overview), Notes and Escape to close them, Tab into the notes to scroll them (there the scroll keys move only the notes; press Tab or click outside them to move the deck again), each mock-up's hotspots and ▶ Play / ⏮ ⏭ / ↺ Reset demo controls, leaving a demo (after clicking into one, click outside it, or press Tab until you leave it, to use the arrow keys for slides again), and Full screen and Dark theme (`references/deck-template.md` §3b).
 - **Outside-asset scan (before escaping each raw `-mockup.html`):** search the raw mockup, case-insensitively (flag `i`), with the regex `(?<![\w-])(?:src|poster|data)\s*=\s*["']?\s*(?:https?:)?//|(?<![\w-])srcset\s*=\s*["']?[^"'>]*//|<(?:link|image|use)\b[^>]*?(?<![\w-])(?:xlink:)?href\s*=\s*["']?\s*(?:https?:)?//|url\(\s*["']?\s*(?:https?:)?//|@import\s*["']?\s*(?:https?:)?//` — it uses look-behind, so run it as a JavaScript RegExp with the `i` flag (`new RegExp(pattern, 'i')` in node) or with `grep -Pi` / `rg --pcre2 -i`; never `grep -E` or plain `rg`, which miss every hit silently or refuse the pattern. It flags only what the mockup LOADS from a network address (protocol-relative `//` included): a `src`, `poster` or `data` (object) attribute, a network address anywhere in a `srcset`, a `<link>` (or SVG `<image>`/`<use>`) `href`, a `url(…)`, or an `@import` with or without a space. A plain link (`<a href="https://…">`), a `data-src`-style attribute and an address shown as text are not loads and are not flagged. Any hit in any mockup → add `<meta name="presentation-asset-policy" content="external-allowed">` to the deck's `<head>` and put the viewer notice "Demos load outside assets; open online to see them exactly." on the how-to slide — demos need a network to show them exactly. No hit in any mockup → no meta, no notice. Record `Outside assets: declared ({N} mockups) | none`. The deck's own markup never loads an outside asset either way.
-- **Demo-flow slides (one per Step 5 journey):** embed flow-scoped interactive `pbi-mockup` HTML via escaped `<iframe srcdoc="…escaped…">` with a text-only narration strip beside the embed (never over it) listing each step with a plain-language explanation and "⚠ Simulated". Controls stay inside the self-driving mock-up; the deck adds no duplicate interactivity (`references/deck-template.md` §3b).
+- **Demo-flow slides (one per Step 5 journey):** embed flow-scoped interactive `pbi --mode=mockup` HTML via escaped `<iframe srcdoc="…escaped…">` with a text-only narration strip beside the embed (never over it) listing each step with a plain-language explanation and "⚠ Simulated". Controls stay inside the self-driving mock-up; the deck adds no duplicate interactivity (`references/deck-template.md` §3b).
 - **Mockup-bearing path (`idea-to-pbi`):** embed each existing `-mockup.html` via `<iframe srcdoc="…escaped…">`; use `&`-first, escape-once-unconditionally from `references/deck-template.md`. Never regenerate an existing mockup.
 - **Decomposition integrity:** the deck aggregates; it must not split, merge, rename, or reinterpret slice IDs. Flag conflicts to the owning PBI/spec/refine step and stop fidelity validation until resolved.
-- **Spec-only path (`idea-to-spec`):** render design-spec ASCII wireframes plus Component Inventory / States / Design-Tokens tables; each journey is a narrated wireframe demo with ONE SLIDE PER ASCII FRAME, so Next advances the frames — ids `demo-{journey-slug}`, `demo-{journey-slug}-2`, `demo-{journey-slug}-3`, … — each slide an escaped `<pre class="deck__wireframe">` made a named, focusable region (`tabindex="0" role="region" aria-label`) with no iframe and no empty-state line, keeping its narration and "⚠ Simulated" note (`references/deck-template.md` §3b "Spec-only wireframe demo"). NO `<iframe srcdoc>` mockup, NEVER invoke `pbi-mockup`.
+- **Spec-only path (`idea-to-spec`):** render design-spec ASCII wireframes plus Component Inventory / States / Design-Tokens tables; each journey is a narrated wireframe demo with ONE SLIDE PER ASCII FRAME, so Next advances the frames — ids `demo-{journey-slug}`, `demo-{journey-slug}-2`, `demo-{journey-slug}-3`, … — each slide an escaped `<pre class="deck__wireframe">` made a named, focusable region (`tabindex="0" role="region" aria-label`) with no iframe and no empty-state line, keeping its narration and "⚠ Simulated" note (`references/deck-template.md` §3b "Spec-only wireframe demo"). NO `<iframe srcdoc>` mockup, NEVER invoke `pbi --mode=mockup`.
 - **Escape inserted text:** every value placed into a `{…}` placeholder (element text or attribute value) and every ASCII wireframe is HTML-escaped once before insertion, `&` first, then `<` `>` `"` `'` (`references/deck-template.md` §1 "Escape every inserted value"). An unescaped `</section>` in inserted text ends the slide early for the conformance check — a deck defect to fix.
 - **Continuation slides:** a job that needs more than one slide keeps its id and numbers each continuation from 2 (`rules`, `rules-2`) so every `data-slide-id` stays unique and job-named.
 - **Empty-state (F3):** when a feature has NO `-mockup.html` AND NO design-spec, render "No prototype or design available for {feature}" — never a broken/blank iframe; drop that slide's "⚠ Simulated" note and use the no-visual notes variant (`references/deck-template.md` §3b).
@@ -292,7 +262,7 @@ Every slide section must serve the four stakeholder audiences (PO/BA/Dev/QC):
 | **Scope & backlog**    | PO/BA/Dev | PBIs (in ranked order, each card showing its priority label + numeric rank from PBI frontmatter / backlog), user stories, acceptance criteria — priority is MANDATORY when PBIs are prioritized |
 | **Behavior & rules**   | Dev/QC    | Feature Spec §4 business rules / §5 invariants, §8 test cases                             |
 | **Demo flows / user journeys** | all | One interactive MVP demo slide per main user story: embedded interactive mockup scoped to the flow + a narration strip explaining each step ("click X → see Y → move to Z"); spec-only → narrated ASCII frames (`references/deck-template.md` §3b) |
-| **UI / mockups**       | all       | Embedded `pbi-mockup` HTML (idea-to-pbi) OR design-spec ASCII + tables (idea-to-spec) OR empty-state |
+| **UI / mockups**       | all       | Embedded `pbi --mode=mockup` HTML (idea-to-pbi) OR design-spec ASCII + tables (idea-to-spec) OR empty-state |
 | **QC view**            | QC/QA     | Test specifications, states matrix, edge cases                                           |
 | **Summary / next steps** | all     | Recap, decisions needed, next workflow steps                                             |
 
@@ -325,7 +295,7 @@ Component tiers: common (slide shell, controls, status, notes panel, overview) �
 | ---------------------------------------------- | ------------------------------------------------------------------------ |
 | Scope resolves to zero artifacts               | Emit an explicit empty-state slide rather than failing (Step 6 / TC-026) |
 | Spec without PBIs (mockup-bearing workflow)    | Ask once (`manual` tier); on a yes, `workflow-spec-to-pbi` sub-agent (Step 2) |
-| Spec-only `idea-to-spec`                       | Design-spec visuals only + narrated ASCII-frame step-through; never generate mockups, never invoke `pbi-mockup` (Step 2 / Step 6) |
+| Spec-only `idea-to-spec`                       | Design-spec visuals only + narrated ASCII-frame step-through; never generate mockups, never invoke `pbi --mode=mockup` (Step 2 / Step 6) |
 | Feature with no mockup AND no design-spec      | Empty-state slide ("No prototype or design available") — never blank iframe |
 | Demo iframe focused while navigating slides    | Keys inside a demo stay in the demo; click outside it, or press Tab until you leave it, to navigate — the how-to slide says so (Step 6 / `deck-template.md` §3b) |
 | Embedded mockup loads a web font or other outside asset | Declare the deck's asset policy + how-to viewer notice (Step 6 outside-asset scan); the deck's own markup still loads nothing |
@@ -353,8 +323,8 @@ Component tiers: common (slide shell, controls, status, notes panel, overview) �
 
 ## Alternatives Considered
 
-1. **Extend `pbi-mockup` with `--deck`** (rejected) — it serves one PBI; a synthesis deck has different inputs/audience. Separate ownership preserves single responsibility and the spec-only contract.
-2. **CDN reveal.js / impress.js** (rejected) — breaks offline/no-external-deps and adds supply-chain risk; the scaffold's vanilla-JS engine matches `pbi-mockup`'s zero-dependency posture.
+1. **Extend `pbi --mode=mockup` with `--deck`** (rejected) — it serves one PBI; a synthesis deck has different inputs/audience. Separate ownership preserves single responsibility and the spec-only contract.
+2. **CDN reveal.js / impress.js** (rejected) — breaks offline/no-external-deps and adds supply-chain risk; the scaffold's vanilla-JS engine matches `pbi --mode=mockup`'s zero-dependency posture.
 3. **Link mockup files** (rejected) — violates the ONE-file mandate; `<iframe srcdoc>` keeps the deck portable when files move.
 4. **Chosen:** standalone skill + inline single-file deck + iframe-srcdoc embeds. Larger HTML is acceptable because text gzips and offline portability wins.
 
@@ -367,16 +337,6 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 ## Security Considerations
 
 `<iframe srcdoc>` embeds first-party generated mockup HTML only — no remote content or user-supplied script. Entity-escape `srcdoc` (`&` first, once) to prevent `</iframe>`/`<script>` breakout. Demos run unsandboxed — the demo iframe has no `sandbox` attribute — so mockups keep their own scripts and storage; a mockup runs with the deck's origin, so only first-party mockups are embedded, and the outside assets it loads follow the asset policy (Step 6). The deck is self-contained; outside assets only with the deck's declared asset policy (added automatically when an embedded prototype loads an outside asset), and its own markup outside `srcdoc` loads nothing from a network; artifacts contain no secrets.
-
----
-
-## Workflow Recommendation
-
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** Outside a workflow, MUST ATTENTION use ask the user directly; the user chooses the route:
->
-> 1. **Activate `workflow-idea-to-pbi` workflow** via `$start-workflow workflow-idea-to-pbi` (Recommended) — includes the presentation deck as a late step.
-> 2. **Activate `workflow-idea-to-spec` workflow** — spec-only path; deck degrades to design-spec visuals.
-> 3. **Execute `$feature-presentation` directly** — run this skill standalone on existing artifacts.
 
 ---
 
@@ -397,28 +357,12 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `existing-ui-research` — Study the existing UI before designing or specifying a screen; designing or specifying a new or updated screen → .claude/skills/shared/protocols/existing-ui-research.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
@@ -433,17 +377,9 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:design-distinctiveness-gate:reminder -->
 
@@ -457,15 +393,6 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 <!-- /SYNC:design-review-checklist:reminder -->
 
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `$project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Synthesize every in-scope session idea, Feature Spec, PBI, user story, design-spec, and mockup into ONE project-faithful standalone HTML deck with a vanilla-JS engine and interactive MVP demos for every main journey, so PO/BA/Dev/QC review the feature from one offline file before build.
@@ -473,18 +400,16 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Existing-UI Research:** [BLOCKING] inventory existing UI + map connected flows before any visual.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** MUST ATTENTION traced proof per claim, confidence >80% to act, NEVER guess.
 
 **IMPORTANT MUST ATTENTION** emit exactly ONE self-contained HTML deck at `{artifacts-root}/presentations/{YYMMDD}-presentation-{slug}.html` (`{artifacts-root}` = default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) — inline CSS/JS, self-contained; outside assets only with the deck's declared asset policy (added automatically when an embedded prototype loads an outside asset); project or system type, NO CDN reveal.js, vanilla-JS slide engine — why: stakeholders open one offline file with no server, no build step.
 **IMPORTANT MUST ATTENTION** [BLOCKING] run `node .claude/skills/presentation-builder/scripts/validate-presentation.cjs <deck.html> --profile=review` before the fidelity gate; exit 0 required — NEVER report the deck ready while it fails; fix and re-check; record browser behaviors as browser-verified or `NOT VERIFIABLE` — why: `presentation-builder` owns the shared deck standard, and a static PASS is not browser proof.
 **IMPORTANT MUST ATTENTION** present every in-scope main user story as an interactive MVP demo slide ("click X → see Y → move to Z") — extract the journeys first (Step 5, one todo per journey), embed the self-driving interactive mockup + a deck narration strip + "⚠ Simulated" note, add a "How to use this deck" guide slide, and sign off with the final Demo-Quality review (Step 8b) — why: a narrated journey answers "how does it work", which is what the user asked for; the deck adds only narration, never a second interactivity engine.
 **IMPORTANT MUST ATTENTION** REUSE existing `-mockup.html` via `<iframe srcdoc="…escaped…">` — never regenerate a mockup that already exists; escaping rule (`&`-first, escape-once-unconditionally) lives in `references/deck-template.md` — why: re-rendering duplicates the mockup engine and risks divergence.
-**IMPORTANT MUST ATTENTION** accept a PBI mockup only when its Releasable Full-Flow gate passes: all required pages/views, navigation edges, common/domain/page components, applicable states, and the visible/persisted business result are demoable; one static/disconnected screen set is FAIL and routes back to `pbi-mockup`.
-**IMPORTANT MUST ATTENTION** spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + a narrated step-through of ASCII frames ONLY; NEVER generate HTML mockups, NEVER invoke `pbi-mockup` — why: full mockups break the spec-only no-code contract.
+**IMPORTANT MUST ATTENTION** accept a PBI mockup only when its Releasable Full-Flow gate passes: all required pages/views, navigation edges, common/domain/page components, applicable states, and the visible/persisted business result are demoable; one static/disconnected screen set is FAIL and routes back to `pbi --mode=mockup`.
+**IMPORTANT MUST ATTENTION** spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + a narrated step-through of ASCII frames ONLY; NEVER generate HTML mockups, NEVER invoke `pbi --mode=mockup` — why: full mockups break the spec-only no-code contract.
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo to verify quality.
-**MANDATORY IMPORTANT MUST ATTENTION** validate route/next-step decisions with the user by asking the user directly — standalone + no prompt → ask which specs/ideas to present, never silently guess scope.
+**MANDATORY IMPORTANT MUST ATTENTION** validate next-step decisions with the user by asking the user directly — standalone + no prompt → ask which specs/ideas to present, never silently guess scope.
 
 **Domain rules this skill must not skip:**
 
@@ -504,7 +429,7 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 | "reveal.js is easier than a vanilla engine"      | CDN violates the self-contained contract. Use the scaffold's engine; project or system type.  |
 | "The validator is advisory — the deck looks fine" | The `review` profile check is BLOCKING. Fix and re-run until exit 0; never report ready while it fails. |
 | "Regenerate the mockup, it's cleaner"            | Embed the existing `-mockup.html` via `<iframe srcdoc>`. Never duplicate the mockup engine.    |
-| "Add a quick HTML mockup to the idea-to-spec deck"| Spec-only contract — design-spec ASCII + tables + narrated ASCII frames ONLY. No mockups, no `pbi-mockup`. |
+| "Add a quick HTML mockup to the idea-to-spec deck"| Spec-only contract — design-spec ASCII + tables + narrated ASCII frames ONLY. No mockups, no `pbi --mode=mockup`. |
 | "A still screenshot of the mockup is enough"     | The user asked for an interactive MVP demo of each main journey — embed the self-driving mockup + a narration strip, don't flatten it to a still. |
 | "Re-implement the click-through in the deck"     | The deck adds only narration; the mockup is self-driving (one engine). Embed it, don't duplicate its interactivity. |
 | "Glob today's date, it's the same session"       | Multi-day workflows span midnight. Glob the plan's created→now range or day-1 artifacts vanish. |
@@ -515,89 +440,6 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 **IMPORTANT MUST ATTENTION Goal:** Synthesize every in-scope session idea, Feature Spec, PBI, user story, design-spec, and mockup into ONE project-faithful standalone HTML deck with a vanilla-JS engine and interactive MVP demos for every main journey, so PO/BA/Dev/QC review the feature from one offline file before build.
-**IMPORTANT MUST ATTENTION** ONE self-contained HTML (outside assets only with the deck's declared asset policy, added automatically when an embedded prototype loads an outside asset; vanilla-JS engine; speaker notes on every slide; passes `--profile=review` before it is reported ready), one interactive demo-flow slide per main journey (embedded self-driving mockup + narration strip + "⚠ Simulated" note) + a "How to use this deck" guide slide; spec-only → design-spec visuals + narrated ASCII frames (never invoke `pbi-mockup`), empty-state slide never blank iframe.
+**IMPORTANT MUST ATTENTION** ONE self-contained HTML (outside assets only with the deck's declared asset policy, added automatically when an embedded prototype loads an outside asset; vanilla-JS engine; speaker notes on every slide; passes `--profile=review` before it is reported ready), one interactive demo-flow slide per main journey (embedded self-driving mockup + narration strip + "⚠ Simulated" note) + a "How to use this deck" guide slide; spec-only → design-spec visuals + narrated ASCII frames (never invoke `pbi --mode=mockup`), empty-state slide never blank iframe.
 **IMPORTANT MUST ATTENTION** plan journeys first (Step 5, one todo each), default scope = active-plan created→now range (not just today), gap-fill via SUB-AGENT, [BLOCKING] existing-UI inventory + fidelity gate (incl. demo integrity) + final Demo-Quality review (Step 8b), real domain data, cite `file:line` (>80% confidence) — NEVER guess.
-**IMPORTANT MUST ATTENTION Main steps/modes (in order):** (1) resolve scope (`activePlan` created→now; custom prompt widens; standalone/no prompt asks) → (2) gap-fill (ask once, on a yes `workflow-spec-to-pbi` SUB-AGENT; `idea-to-pbi` missing mocks → `pbi-mockup`; `idea-to-spec` skips) → (3) design context → (4) [BLOCKING] UI/flow inventory → (5) artifacts + journeys/todos → (6) one deck, or spec-only ASCII/empty state → (7) save → (8) [BLOCKING] `review`-profile conformance, then fidelity + demo integrity → (8b) [BLOCKING] Demo-Quality → (9) report. NEVER skip blocking gates or journey extraction — why: forgotten branches or gates produce incomplete, ungated decks.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Static Prompt Protocol Mirror (Auto-Synced)
-
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (static quality-protocol composer)
-
-## Shared AI-SDD Protocol Markers
-
-Source: `.claude/skills/shared/sync-inline-versions.md`
-
-## SYNC:ai-sdd-artifact-contract
-
-> **AI-SDD Artifact Contract** — Shared spec-driven development rules stay portable and source-owned.
->
-> 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
-> 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
-> 3. Resolve `specArtifacts` before selecting identity or carrier: use a valid profile, use strict-default TC/test identity only when the profile is absent, and block a malformed or unsupported declaration. Trace every requirement or invariant through decision, task, configured case/test identity and inspected assertion evidence, then carry it through source evidence and canonical docs/spec updates.
-> 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
-> 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
-> 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
-> 7. If `docs/project-config.json`, root instruction files, or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
->
-> **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
-
----
-
-## SYNC:ai-sdd-artifact-contract:reminder
-
-- **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
-- **MANDATORY** Resolve and validate `specArtifacts`: use valid native owner/case/variant identity and assertion-bearing evidence; use strict-default TC/TestSpec only when the profile is absent; block a malformed or unsupported declaration without fallback.
-- **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
-- **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
-- **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes. Preserve fixed ordering when a skill or workflow explicitly fixes it.
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
-## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
-
-Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
-
-**Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
-3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
-4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
-6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-8. ALL three gates pass → ask user to run `$learn`.
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
-**Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
-## Common AI Mistake Prevention (System Lessons)
-
-- **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
-- **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-- **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-- **Re-read and re-verify after context compaction or resume.** Compaction wipes read state and memory; summaries describe intent, not environment state. Re-read before editing, audit current state (git status, files) before creating anything new, grep-verify sub-agent output — every "completed" claim is a hypothesis until evidence confirms it.
-- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
-- **Trace every consumer before and after a change.** Map referencing files before deleting; after bulk replacements, renames, or extractions, grep ALL consumer file types (templates, configs, catalogs and generated files fail silently) for every old or removed name; trace the full dependency chain of an edited definition; update docs that embed canonical data alongside their source.
-- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
-- **Sub-agents: inherit, cover, persist.** Sub-agents know only their agent .md definition — use custom agent types, not built-in Explore. Reconcile the union of assignments against the full target list — category splits miss boundary items. Make the report write the first deliverable, appended per file/section with bounded scope; a truncated run with no report → spawn a narrower scope, never the same prompt.
-- **Ownership before action.** When investigating a failure, ask which part owns the behavior before changing anything. Trace the wrong state to the component responsible for its invariant, then make one authoritative correction there.
-- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec if one exists (the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
-- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting any constant/limit/flag/cutoff, read comments, git blame, the CALLER's ordering (the guarantee usually runs immediately BEFORE the cited line), and 2+ sibling call sites. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and an accurate `file:line` citation proves the transcription, never the defect.
-- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
-- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
-- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, state) and verify each against evidence. Ask "what would falsify this?" — if nothing, it is not a hypothesis.
-- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem: "Would this change exist if I were not addressing this request?" — if not, remove or disclose it; never silently expand scope.
-- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort ("(1) [N h], (2) [N h]. Which matters?"), list assumptions, name a simpler path when one exists.
-- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC: steel-man a rejected alternative, invert each reason ("what does it sacrifice?"), stress-test the top 2-3 assumptions, run a pre-mortem. Quality = causal reasoning + mitigations + evidence, not section presence.
-- **OOM/memory: check row count before row size.** An unbounded query (no DB filter for the trigger) → push the filter to the DB; then large rows → projection. Row reduction > projection in ROI.
-- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** For async work (queues, retries, background jobs, caches, replication) assert the final business/entity state — NEVER delivery bookkeeping (consume/send status, attempt counts, last-error, broker/scheduler/outbox rows) that ANY co-running process can write: green alone, flaky once anything shares that broker + database. Gate: "would this hold no matter WHICH process did the work?" Process-local fault injection is a stress amplifier (arm → bounded window → disarm → assert convergence), never a precondition.
-- **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before any verdict, sweep environment preconditions (toolchain/lockfile state, stale build/cache artifacts, env vars and config, service dependencies, ports/clock, OS path/locale, permissions, leftover processes/test data) AND transient resource pressure (RAM/OOM, CPU, disk/temp, handle and connection-pool limits, network, a timeout that is really slowness). Tell-tale: non-deterministic, fails only in parallel, on one machine or only on CI, or an error naming resources. Cite the discriminator you ran (clean environment? path changed? concurrency 1?) — a verdict without one is a guess. Fix an environment cause in the environment; NEVER edit product code or weaken/skip a test to absorb it; a failure that vanishes on retry stays unexplained until its mechanism is named.
-- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral APIs and literal argv vectors; never infer shell, temp-path, executable-extension, ACL, or symlink semantics from the current host. A documented command gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>`. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
-- **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer must reference NO consumer-specific domain concept (tenant/customer/product IDs, business entities, feature rules); such a leak compiles, runs, and passes review while coupling the layer to one consumer. Push domain fields/logic down into the consumer via subclass/composition.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->
+**IMPORTANT MUST ATTENTION Main steps/modes (in order):** (1) resolve scope (`activePlan` created→now; custom prompt widens; standalone/no prompt asks) → (2) gap-fill (ask once, on a yes `workflow-spec-to-pbi` SUB-AGENT; `idea-to-pbi` missing mocks → `pbi --mode=mockup`; `idea-to-spec` skips) → (3) design context → (4) [BLOCKING] UI/flow inventory → (5) artifacts + journeys/todos → (6) one deck, or spec-only ASCII/empty state → (7) save → (8) [BLOCKING] `review`-profile conformance, then fidelity + demo integrity → (8b) [BLOCKING] Demo-Quality → (9) report. NEVER skip blocking gates or journey extraction — why: forgotten branches or gates produce incomplete, ungated decks.

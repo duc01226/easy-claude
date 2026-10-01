@@ -33,13 +33,13 @@ Everything from this point to the end describes the strict default TC/Section 8 
 
 > **[BLOCKING] One TC → many tests (business-oriented TCs):** Each §8 TC is a **business / user-story acceptance scenario**, not a code unit. It is covered by **one OR MANY** annotation-tagged tests (integration + unit, across components/services), joined by the test-spec annotation (key `TestSpec`, value `TC-...`) in the configured test framework's syntax. Write TCs at the business-behavior grain — NEVER split, narrow, or technicalize a TC so it maps 1:1 to a single test method or production class (that breaks the business/user-story orientation, M1/M5). Coverage = ≥1 annotation-tagged test. Many tests sharing one TC is correct, never a duplicate. Canonical contract: `.claude/skills/shared/tc-format.md` → TC ↔ Test Code Cardinality.
 
-> **Graph Context (MANDATORY when graph.db exists):** Before generating test specs for cross-service features, run:
+> **Optional graph hint (when graph.db exists):** Before generating test specs for cross-service features, find event consumers by grep/read; a graph trace can add hints (it may be stale — verify by reading):
 >
 > ```bash
 > python .claude/scripts/code_graph trace {configured-source-path}/{feature-entry-file} --direction both --json
 > ```
 >
-> Use output to identify: event consumers, message bus subscribers, background jobs triggered by this feature. These are cross-service TC candidates (category 041–049).
+> Use the findings to identify: event consumers, message bus subscribers, background jobs triggered by this feature. These are cross-service TC candidates (category 041–049).
 
 ## Reference Files (read BEFORE generating TCs)
 
@@ -113,7 +113,7 @@ Each reference doc below sits in the project-reference docs root — default `do
 | `spec [mode=sync]`          | **Native sync mode** — forward-syncs Section 8 TCs ↔ executing test code (see `sync.md`) |
 | `integration-test`          | Code generator → generates integration tests FROM TCs written by this mode          |
 | `/spec`                     | Feature doc creator → creates the Section 8 that this mode populates                 |
-| `/spec-index`               | **Derived index** — regenerable navigation catalog/ERD assembled FROM the Feature Specs (never a source of truth). After §8 changes, refresh the bucket `INDEX.md` TC counts via /spec-index |
+| `/spec [mode=index]`               | **Derived index** — regenerable navigation catalog/ERD assembled FROM the Feature Specs (never a source of truth). After §8 changes, refresh the bucket `INDEX.md` TC counts via /spec [mode=index] |
 
 ### Output Locations
 
@@ -121,7 +121,7 @@ Each reference doc below sits in the project-reference docs root — default `do
 | ---------------------------- | ------------------------------------------------------------------------ |
 | TCs (canonical)              | `docs/specs/{App}/README.{Feature}.md` Section 8 — the root is a default; a `specRoots.business.path` entry in `docs/project-config.json` overrides it |
 | Integration test code        | `{IntegrationTests}/` — §8 TCs forward-synced here via `[mode=sync]` |
-| Spec index (derived)         | `docs/specs/{App}/INDEX.md` — regenerable TC-count catalog (via /spec-index); the root is a default, overridden by `specRoots.business.path` in `docs/project-config.json` |
+| Spec index (derived)         | `docs/specs/{App}/INDEX.md` — regenerable TC-count catalog (via /spec [mode=index]); the root is a default, overridden by `specRoots.business.path` in `docs/project-config.json` |
 
 > **Phase-Mapped Coverage:** When a plan exists with multiple phases, generate test cases
 > PER PHASE — not just per feature. Each phase's success criteria must have ≥1 test case.
@@ -241,7 +241,7 @@ Build actor catalog into **§2**: `[Role1, Role2,...]`. Authorization TC minimum
 
 1. Grep commands/queries using project patterns from `docs/project-config.json` and the referenced architecture/test docs.
 2. Grep entities and domain events
-3. **Trace the full vertical chain, not just the backend slice:** UI view + action → API/route → command/query handler → entity + business rule → persistence → event → consumer/read model → UI observable outcome. Reuse the Full-Chain Trace Map authored by `spec [mode=init]` (`tmp/analysis/{Module}-chain-map.md`, Step 1-INIT.4.6) when it exists; otherwise build the chain with `graph-connect-api` (frontend→backend links) + `graph-trace` (backend→entity→event). A TC that asserts only a handler in isolation misses the seam behavior the chain reveals.
+3. **Trace the full vertical chain, not just the backend slice:** UI view + action → API/route → command/query handler → entity + business rule → persistence → event → consumer/read model → UI observable outcome. Reuse the Full-Chain Trace Map authored by `spec [mode=init]` (`tmp/analysis/{Module}-chain-map.md`, Step 1-INIT.4.6) when it exists; otherwise build the chain with `graph-code --mode=connect-api` (frontend→backend links) + `graph-code --mode=trace` (backend→entity→event). A TC that asserts only a handler in isolation misses the seam behavior the chain reveals.
 4. Identify testable behaviors from implementation — at least one **end-to-end chain TC** (decade 061–069, UI/User-journey) per `COMPLETE` chain that spans intent → outcome across the full slice, in addition to the per-operation TCs
 
 **Update mode (post-change / post-bugfix / post-PR):**
@@ -558,7 +558,7 @@ Based on mode, suggest via `AskUserQuestion`:
 **TDD-first:**
 
 ```
-1. "/artifact-review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
+1. "/pbi --mode=review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
 2. "/integration-test — Generate test stubs from these TCs (skip review)"
 3. "/plan — Plan the feature implementation"
 4. "Done for now — I'll implement later"
@@ -567,7 +567,7 @@ Based on mode, suggest via `AskUserQuestion`:
 **Implement-first:**
 
 ```
-1. "/artifact-review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
+1. "/pbi --mode=review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
 2. "/integration-test — Generate integration tests (skip review)"
 3. "/workflow-review-changes — Review all changes"
 4. "Done for now"
@@ -576,7 +576,7 @@ Based on mode, suggest via `AskUserQuestion`:
 **Update (post-change/PR):**
 
 ```
-1. "/artifact-review --type=spec-tests — Validate updated TCs before regenerating tests (Recommended)"
+1. "/pbi --mode=review --type=spec-tests — Validate updated TCs before regenerating tests (Recommended)"
 2. "/integration-test — Generate/update tests for changed TCs (skip review)"
 3. "/test — Run existing tests to verify coverage"
 4. "spec [mode=sync] — Sync §8 TCs ↔ executing test code"
@@ -660,11 +660,11 @@ When feature behavior removed or significantly changed:
 
 ## See Also
 
-- `artifact-review --type=spec-tests` — TC quality review (use AFTER this mode to validate TC coverage and correctness)
+- `pbi --mode=review --type=spec-tests` — TC quality review (use AFTER this mode to validate TC coverage and correctness)
 - `spec [mode=sync]` — Native sync mode (forward-syncs Section 8 TCs ↔ executing test code; see `sync.md`)
 - `integration-test` — Integration test code generator (use AFTER this mode to generate test stubs)
 - `/spec` — Feature doc creator (creates the Section 8 that this mode populates)
-- `refine` — PBI refinement (feeds acceptance criteria into this mode's TDD-first path)
+- `pbi --mode=refine` — PBI refinement (feeds acceptance criteria into this mode's TDD-first path)
 
 ---
 

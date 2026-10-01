@@ -9,7 +9,7 @@
  * - The graph-not-built note appears only in mode on without a built graph, at most once per
  *   session, never after a dismissal; auto and off never show it. Without a host session id the one
  *   shared marker expires after 24 h; writing a marker prunes this project's markers older than 24 h.
- *   Without the toolchain the note names Python 3.10+ and leaves the install to /graph-build.
+ *   Without the toolchain the note names Python 3.10+ and leaves the install to /graph-code --mode=build.
  * - Off means inert: no automatic step (session start, prompt, edit) produces graph output,
  *   refreshes the graph or starts a process, even when an old graph exists. Projects without a
  *   graph still leave the edit and prompt steps at their first cheap existence check.
@@ -37,7 +37,7 @@ const { createTempDir, cleanupTempDir } = require('../lib/test-utils.cjs');
 const HOOKS_DIR = path.resolve(__dirname, '..', '..');
 const GRAPH_UTILS = path.join(HOOKS_DIR, 'lib', 'graph-utils.cjs');
 const NOTE = 'Knowledge graph not built';
-const GRAPH_TEXTS = [NOTE, '/graph-build', 'Graph build skipped'];
+const GRAPH_TEXTS = [NOTE, '/graph-code --mode=build', 'Graph build skipped'];
 
 /**
  * Build a fixture project.
@@ -237,10 +237,10 @@ const tests = [
                 const second = runHookIn(dir, 'init-prompt-gate.cjs', prompt('now add tests'));
                 // Then only the first carries the note, and it routes to the graph build
                 assertEqual(count(first.stdout, NOTE), 1, 'the first prompt of the session carries exactly one note');
-                assertContains(first.stdout, '/graph-build', 'the note routes to the graph build');
+                assertContains(first.stdout, '/graph-code --mode=build', 'the note routes to the graph build');
                 // And without the toolchain (the spawn seam finds no Python) the note leaves the install to
-                // /graph-build, never to a system-wide pip install
-                assertContains(first.stdout, 'Python 3.10+ required; `/graph-build` installs the rest', 'the no-toolchain note names the prerequisite and the install route');
+                // /graph-code --mode=build, never to a system-wide pip install
+                assertContains(first.stdout, 'Python 3.10+ required; `/graph-code --mode=build` installs the rest', 'the no-toolchain note names the prerequisite and the install route');
                 assertFalse(first.stdout.includes('pip install'), 'the note must not tell the user to pip install into the system Python');
                 assertEqual(count(second.stdout, NOTE), 0, 'the second prompt of the same session carries no note');
                 // Edge: a new session may show it once again.

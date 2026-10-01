@@ -4,13 +4,8 @@
   "project": {
     "name": "easy-claude",
     "description": "Claude Code enhancement framework — hooks, skills, agents, and workflows that extend Claude Code capabilities",
-    "languages": [
-      "javascript",
-      "python"
-    ],
-    "packageManagers": [
-      "npm"
-    ]
+    "languages": ["javascript", "python"],
+    "packageManagers": ["npm"]
   },
   "framework": {
     "name": "claude-code-framework",
@@ -18,26 +13,10 @@
     "frontendPatternsDoc": "docs/project-reference/frontend-patterns-reference.md",
     "codeReviewDoc": "docs/project-reference/code-review-rules.md",
     "integrationTestDoc": "docs/project-reference/integration-test-reference.md",
-    "searchPatternKeywords": [
-      "hook",
-      "skill",
-      "agent",
-      "workflow",
-      "context",
-      "injector",
-      "session"
-    ]
+    "searchPatternKeywords": ["hook", "skill", "agent", "workflow", "context", "injector", "session"]
   },
   "skillConventions": {
-    "conventionFields": [
-      "version",
-      "activation",
-      "triggers",
-      "execution-mode",
-      "context-budget",
-      "tags",
-      "category"
-    ],
+    "conventionFields": ["version", "activation", "triggers", "execution-mode", "context-budget", "tags", "category"],
     "removableFields": [],
     "fieldFixes": {}
   },
@@ -47,81 +26,56 @@
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]",
       "description": "Runtime hooks for session initialization, safety gates, graph maintenance, and code formatting",
-      "tags": [
-        "core",
-        "cjs"
-      ]
+      "tags": ["core", "cjs"]
     },
     {
       "name": "hooks-lib",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]lib[\\\\/]",
       "description": "Shared utility modules consumed by hooks",
-      "tags": [
-        "core",
-        "cjs"
-      ]
+      "tags": ["core", "cjs"]
     },
     {
       "name": "skills",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]skills[\\\\/]",
       "description": "Skill definitions for task automation (SKILL.md + scripts)",
-      "tags": [
-        "core",
-        "markdown"
-      ]
+      "tags": ["core", "markdown"]
     },
     {
       "name": "agents",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]agents[\\\\/]",
       "description": "Agent definitions for specialized subagent roles",
-      "tags": [
-        "core",
-        "markdown"
-      ]
+      "tags": ["core", "markdown"]
     },
     {
       "name": "scripts",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]scripts[\\\\/]",
       "description": "Utility scripts for catalog generation, skill/agent management, shared-protocol sync, and code-graph tooling",
-      "tags": [
-        "tooling",
-        "cjs",
-        "python"
-      ]
+      "tags": ["tooling", "cjs", "python"]
     },
     {
       "name": "workflows",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]workflows[\\\\/]",
       "description": "Workflow definitions for orchestrating multi-step task sequences",
-      "tags": [
-        "core",
-        "markdown"
-      ]
+      "tags": ["core", "markdown"]
     },
     {
       "name": "docs-framework",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]docs[\\\\/]",
       "description": "Framework documentation — agents, skills, hooks, configuration guides",
-      "tags": [
-        "docs"
-      ]
+      "tags": ["docs"]
     }
   ],
   "contextGroups": [
     {
       "name": "hooks-context",
-      "pathRegexes": [
-        "[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$"
-      ],
-      "fileExtensions": [
-        ".cjs"
-      ],
+      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$"],
+      "fileExtensions": [".cjs"],
       "guideDoc": ".claude/docs/hooks/README.md",
       "on": "edit",
       "rules": [
@@ -135,12 +89,8 @@
     },
     {
       "name": "skills-context",
-      "pathRegexes": [
-        "[\\\\/]\\.claude[\\\\/]skills[\\\\/].*SKILL\\.md$"
-      ],
-      "fileExtensions": [
-        ".md"
-      ],
+      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]skills[\\\\/].*SKILL\\.md$"],
+      "fileExtensions": [".md"],
       "guideDoc": ".claude/docs/skills/README.md",
       "on": "edit",
       "rules": [
@@ -152,13 +102,9 @@
     },
     {
       "name": "agents-context",
-      "pathRegexes": [
-        "[\\\\/]\\.claude[\\\\/]agents[\\\\/].*\\.md$"
-      ],
-      "fileExtensions": [
-        ".md"
-      ],
-      "guideDoc": ".claude/docs/agents/README.md",
+      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]agents[\\\\/].*\\.md$"],
+      "fileExtensions": [".md"],
+      "guideDoc": ".claude/docs/agents/agent-patterns.md",
       "on": "edit",
       "rules": [
         "Agent definitions are markdown files in .claude/agents/",
@@ -168,15 +114,8 @@
     },
     {
       "name": "scripts-context",
-      "pathRegexes": [
-        "[\\/].claude[\\/]scripts[\\/].*.(cjs|mjs|js|py)$"
-      ],
-      "fileExtensions": [
-        ".cjs",
-        ".mjs",
-        ".js",
-        ".py"
-      ],
+      "pathRegexes": ["[\\/].claude[\\/]scripts[\\/].*.(cjs|mjs|js|py)$"],
+      "fileExtensions": [".cjs", ".mjs", ".js", ".py"],
       "guideDoc": ".claude/docs/framework-portability.md",
       "on": "edit",
       "rules": [
@@ -188,16 +127,8 @@
     },
     {
       "name": "agent-mirrors-context",
-      "pathRegexes": [
-        "^[\\/]?.(codex|agents|opencode)[\\/]"
-      ],
-      "fileExtensions": [
-        ".md",
-        ".toml",
-        ".json",
-        ".mjs",
-        ".cjs"
-      ],
+      "pathRegexes": ["^[\\/]?.(codex|agents|opencode)[\\/]"],
+      "fileExtensions": [".md", ".toml", ".json", ".mjs", ".cjs"],
       "guideDoc": ".claude/docs/framework-portability.md",
       "on": "edit",
       "rules": [
@@ -210,17 +141,13 @@
       "name": "feature-spec",
       "pathRegexes": [],
       "priority": 100,
-      "pathGlobs": [
-        "docs/specs/**/*.md"
-      ],
+      "pathGlobs": ["docs/specs/**/*.md"],
       "referenceDocs": [
         "docs/project-reference/feature-spec-reference.md",
         "docs/project-reference/spec-system-reference.md",
         "docs/project-reference/spec-principles.md"
       ],
-      "skills": [
-        "spec"
-      ],
+      "skills": ["spec"],
       "on": "edit",
       "origin": "detected",
       "detectedFingerprint": "0cee1040dbc07de9"
@@ -229,24 +156,16 @@
       "name": "integration-test",
       "pathRegexes": [],
       "priority": 100,
-      "pathGlobs": [
-        "**/*.test.cjs"
-      ],
-      "referenceDocs": [
-        "docs/project-reference/integration-test-reference.md"
-      ],
-      "skills": [
-        "integration-test"
-      ],
+      "pathGlobs": ["**/*.test.cjs"],
+      "referenceDocs": ["docs/project-reference/integration-test-reference.md"],
+      "skills": ["integration-test"],
       "on": "edit",
       "origin": "detected",
       "detectedFingerprint": "c0b869c526a6da6c"
     },
     {
       "name": "shipped-tests",
-      "pathRegexes": [
-        "[\\\\/]\\.claude[\\\\/].*\\.test\\.(cjs|mjs)$"
-      ],
+      "pathRegexes": ["[\\\\/]\\.claude[\\\\/].*\\.test\\.(cjs|mjs)$"],
       "priority": 200,
       "on": "both",
       "origin": "user",
@@ -258,60 +177,36 @@
       "name": "ui-ux-gate",
       "on": "both",
       "priority": 100,
-      "pathRegexes": [
-        "/res/layout[^/]*/[^/]+\\.xml$"
-      ],
+      "pathRegexes": ["/res/layout[^/]*/[^/]+\\.xml$"],
       "fileNameRegexes": [
         "\\.(?:html?|xhtml|razor|cshtml|hbs|handlebars|ejs|pug|twig|liquid|njk|css|scss|sass|less|styl|pcss|jsx|tsx|vue|svelte|astro|xaml|axml|storyboard|xib)$",
         "\\.component\\.ts$"
       ],
-      "excludePathGlobs": [
-        "**/node_modules/**",
-        "**/dist/**",
-        "**/build/**",
-        "**/vendor/**",
-        "tmp/**",
-        "temp/**",
-        ".agents/**",
-        ".codex/**",
-        ".opencode/**"
-      ],
+      "excludePathGlobs": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/vendor/**", "tmp/**", "temp/**", ".agents/**", ".codex/**", ".opencode/**"],
       "referenceDocs": [
+        ".claude/docs/ux-journey-process.md",
         ".claude/docs/design-review-checklist.md",
         ".claude/docs/design-knowledge.md",
         ".claude/docs/design-review-calibration.md"
       ],
       "rules": [
-        "UI/UX gate: have UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded",
+        "UI/UX gate: have UX-*, UI-*, DD-* and CL-* in context BEFORE editing this surface; read the docs above unless already loaded",
+        "UX-1–UX-11 journey-first (ux-journey-process.md, SYNC:ux-journey-gate): report the main user journeys (actors, jobs, ranked journeys, derived requirements) before designing, walk them on the result, close with the UI/UX Gate Report",
         "UI-1.1–UI-9.4 usability/a11y floor (pass/fail): SYNC:ui-ux-design-principles in .claude/skills/shared/sync-inline-versions.md",
         "DD-1–DD-8 identity (design-knowledge.md): name subject/audience/job, write the Design Plan, pass the generic test",
         "CL-1–CL-6 (checklist): §0.5 surface scope, B12–B15 load, E9–E11 container fit, §R forms, I15 dialog focus, K10 dead controls",
         "Calibrate severity with design-review-calibration.md; brief > project design system/ADRs > these rules; no visual change = say skip"
       ],
       "reinjectAfterTokens": 100000,
-      "evidenceDocs": [
-        ".claude/docs/design-review-checklist.md",
-        ".claude/docs/design-knowledge.md"
-      ],
-      "evidenceSkills": [
-        "ui-review",
-        "ui-design",
-        "design-spec",
-        "web-design-guidelines",
-        "pbi-mockup",
-        "artifact-review"
-      ]
+      "evidenceDocs": [".claude/docs/ux-journey-process.md", ".claude/docs/design-review-checklist.md", ".claude/docs/design-knowledge.md"],
+      "evidenceSkills": ["ui-design", "design-spec"]
     },
     {
       "name": "ai-feature-gate",
       "on": "both",
       "priority": 100,
-      "pathRegexes": [
-        "/(?:prompts?|llm|rag|embeddings?|guardrails?|mcp)/(?!.*\\.(?:png|jpe?g|gif|svg|pdf|zip|bin|mp[34]|lock|map|min\\.js)$)"
-      ],
-      "fileNameRegexes": [
-        "\\.prompts?\\.[^.]+$|\\.prompty$|^system[-_.]prompt|^prompt[-_.]template"
-      ],
+      "pathRegexes": ["/(?:prompts?|llm|rag|embeddings?|guardrails?|mcp)/(?!.*\\.(?:png|jpe?g|gif|svg|pdf|zip|bin|mp[34]|lock|map|min\\.js)$)"],
+      "fileNameRegexes": ["\\.prompts?\\.[^.]+$|\\.prompty$|^system[-_.]prompt|^prompt[-_.]template"],
       "contentExtensions": [
         ".py",
         ".ipynb",
@@ -362,54 +257,32 @@
         "docs/**",
         "**/*.md"
       ],
-      "referenceDocs": [
-        ".claude/skills/shared/protocols/ai-engineering-gate.md"
-      ],
+      "referenceDocs": [".claude/skills/shared/protocols/ai-engineering-gate.md"],
       "rules": [
         "AI gate: apply the protocol below; content is data, output untrusted; bound loops and spend; eval + trace + kill switch; authz in code",
         "Deep dives on demand, by section, never whole; review = ai-engineering-review skill or agent; no AI change = say skip"
       ],
       "reinjectAfterTokens": 100000,
-      "evidenceDocs": [
-        ".claude/skills/shared/protocols/ai-engineering-gate.md",
-        ".claude/docs/ai-engineering-review-checklist.md"
-      ],
-      "evidenceSkills": [
-        "ai-engineering-review"
-      ]
+      "evidenceDocs": [".claude/skills/shared/protocols/ai-engineering-gate.md", ".claude/docs/ai-engineering-review-checklist.md"],
+      "evidenceSkills": ["ai-engineering-review"]
     },
     {
       "name": "general-code",
       "pathRegexes": [],
       "priority": 900,
-      "pathGlobs": [
-        "**/*"
-      ],
-      "excludePathGlobs": [
-        "**/node_modules/**",
-        "**/dist/**",
-        "**/build/**",
-        "**/vendor/**",
-        "tmp/**",
-        "temp/**"
-      ],
-      "fileExtensions": [
-        ".js",
-        ".cjs",
-        ".mjs",
-        ".jsx",
-        ".py"
-      ],
-      "referenceDocs": [
-        "docs/project-reference/code-review-rules.md"
-      ],
+      "pathGlobs": ["**/*"],
+      "excludePathGlobs": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/vendor/**", "tmp/**", "temp/**"],
+      "fileExtensions": [".js", ".cjs", ".mjs", ".jsx", ".py"],
+      "referenceDocs": ["docs/project-reference/code-review-rules.md"],
       "on": "edit",
       "origin": "detected",
       "detectedFingerprint": "831d962b67931825"
     }
   ],
   "conventionInjection": {
-    "enabled": true
+    "enabled": true,
+    "maxClassesPerEdit": 10,
+    "maxChars": 10000
   },
   "designSystem": {
     "docsPath": "docs/project-reference/design-system",
@@ -426,9 +299,7 @@
     "layerClassification": {}
   },
   "testing": {
-    "frameworks": [
-      "custom-cjs-runner"
-    ],
+    "frameworks": ["custom-cjs-runner"],
     "filePatterns": {
       "unit": "*.test.cjs",
       "integration": "*.test.cjs"
@@ -461,12 +332,7 @@
     "evidenceRoot": "tmp/experience",
     "baselineRoot": "tests/experience-baselines",
     "acceptancePolicy": "manual-acceptance-required",
-    "reviewOn": [
-      "new-surface",
-      "changed-surface",
-      "bugfix",
-      "baseline-mismatch"
-    ],
+    "reviewOn": ["new-surface", "changed-surface", "bugfix", "baseline-mismatch"],
     "surfaces": [],
     "notApplicableReason": "easy-claude is a framework repository with no user-facing application surface; adopters configure their own observable surfaces."
   },
@@ -491,21 +357,12 @@
     {
       "filename": "project-structure-reference.md",
       "purpose": "Project directory structure and module overview",
-      "sections": [
-        "directory-tree",
-        "module-descriptions"
-      ]
+      "sections": ["directory-tree", "module-descriptions"]
     },
     {
       "filename": "backend-patterns-reference.md",
       "purpose": "Backend coding patterns (N/A for framework project)",
-      "sections": [
-        "Repository Pattern",
-        "CQRS Patterns",
-        "Validation Patterns",
-        "Entity Patterns",
-        "Message Bus"
-      ]
+      "sections": ["Repository Pattern", "CQRS Patterns", "Validation Patterns", "Entity Patterns", "Message Bus"]
     },
     {
       "filename": "seed-test-data-reference.md",
@@ -516,74 +373,41 @@
     {
       "filename": "frontend-patterns-reference.md",
       "purpose": "Frontend coding patterns (N/A for framework project)",
-      "sections": [
-        "Status: Not Applicable"
-      ]
+      "sections": ["Status: Not Applicable"]
     },
     {
       "filename": "integration-test-reference.md",
       "purpose": "Integration test patterns and conventions",
-      "sections": [
-        "Test Architecture",
-        "Test Base Classes",
-        "Test Helpers",
-        "Service-Specific Setup"
-      ]
+      "sections": ["Test Architecture", "Test Base Classes", "Test Helpers", "Service-Specific Setup"]
     },
     {
       "filename": "feature-spec-reference.md",
       "purpose": "Feature Spec structure, authoring rules, and test case format",
-      "sections": [
-        "Directory Convention",
-        "8-Section Structure",
-        "Test Case ID Format",
-        "Evidence Rule"
-      ],
+      "sections": ["Directory Convention", "8-Section Structure", "Test Case ID Format", "Evidence Rule"],
       "templatePath": ".claude/templates/reference-docs/feature-spec-reference.md"
     },
     {
       "filename": "spec-system-reference.md",
       "purpose": "Project-specific extension for local spec routing, canonical artifact ownership, and generated-artifact rules",
-      "sections": [
-        "Configured Spec Roots",
-        "Canonical Artifact",
-        "Test Case Registry",
-        "Derived Artifacts"
-      ],
+      "sections": ["Configured Spec Roots", "Canonical Artifact", "Test Case Registry", "Derived Artifacts"],
       "templatePath": ".claude/templates/reference-docs/spec-system-reference.md"
     },
     {
       "filename": "spec-principles.md",
       "purpose": "Project-specific extension for local spec, test, and documentation rules",
-      "sections": [
-        "Local Authority",
-        "Local Source Routing",
-        "Local Prose Rules",
-        "Verification Commands"
-      ],
+      "sections": ["Local Authority", "Local Source Routing", "Local Prose Rules", "Verification Commands"],
       "templatePath": ".claude/templates/reference-docs/spec-principles.md"
     },
     {
       "filename": "workflow-spec-test-code-cycle-reference.md",
       "purpose": "Project-specific workflow sequence for keeping specs, tests, code, docs, and generated mirrors aligned",
-      "sections": [
-        "Local Workflow Sequence",
-        "Local Artifact Owners",
-        "Local Closure Gates"
-      ],
+      "sections": ["Local Workflow Sequence", "Local Artifact Owners", "Local Closure Gates"],
       "templatePath": ".claude/templates/reference-docs/workflow-spec-test-code-cycle-reference.md"
     },
     {
       "filename": "code-review-rules.md",
       "purpose": "Code review checklist and rules",
-      "sections": [
-        "Critical Rules",
-        "Backend Rules",
-        "Frontend Rules",
-        "Architecture Rules",
-        "Anti-Patterns",
-        "Checklists"
-      ]
+      "sections": ["Critical Rules", "Backend Rules", "Frontend Rules", "Architecture Rules", "Anti-Patterns", "Checklists"]
     },
     {
       "filename": "lessons.md",
@@ -593,11 +417,7 @@
     {
       "filename": "custom-prompts-reference.md",
       "purpose": "Index of project-specific custom prompts (name, description, triggers) — managed by the /custom-prompt skill; prompt bodies live in docs/project-prompts/.",
-      "sections": [
-        "Usage",
-        "Registry",
-        "Conventions"
-      ]
+      "sections": ["Usage", "Registry", "Conventions"]
     },
     {
       "filename": "skill-protocols-reference.md",
@@ -608,23 +428,12 @@
     {
       "filename": "scss-styling-guide.md",
       "purpose": "SCSS styling patterns (N/A for framework project)",
-      "sections": [
-        "BEM Methodology",
-        "SCSS Architecture",
-        "Mixins & Variables",
-        "Theming",
-        "Responsive Patterns"
-      ]
+      "sections": ["BEM Methodology", "SCSS Architecture", "Mixins & Variables", "Theming", "Responsive Patterns"]
     },
     {
       "filename": "design-system/README.md",
       "purpose": "Design system index: app-to-doc mapping, design tokens overview, component inventory.",
-      "sections": [
-        "Design System Overview",
-        "App Documentation Map",
-        "Design Tokens",
-        "Component Inventory"
-      ]
+      "sections": ["Design System Overview", "App Documentation Map", "Design Tokens", "Component Inventory"]
     },
     {
       "filename": "e2e-test-reference.md",
@@ -642,28 +451,16 @@
     {
       "filename": "domain-entities-reference.md",
       "purpose": "Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module",
-      "sections": [
-        "hook",
-        "skill",
-        "agent",
-        "workflow",
-        "context-group",
-        "module",
-        "entity-relationships"
-      ]
+      "sections": ["hook", "skill", "agent", "workflow", "context-group", "module", "entity-relationships"]
     },
     {
       "filename": "docs-index-reference.md",
       "purpose": "Documentation tree, file counts by category, doc relationships, and keyword-to-doc lookup table.",
-      "sections": [
-        "Documentation System",
-        "Documentation Graph",
-        "Key Doc Relationships",
-        "Doc Lookup Guide"
-      ]
+      "sections": ["Documentation System", "Documentation Graph", "Key Doc Relationships", "Doc Lookup Guide"]
     }
   ],
   "portability": {
-    "toolingPackageName": "easy-claude-tooling"
+    "toolingPackageName": "easy-claude-tooling",
+    "inlinePathRules": false
   }
 }

@@ -1,5 +1,5 @@
 ---
-description: "[Document Processing] Use when converting between PDF and Markdown — text-extractable PDFs to Markdown (scanned PDFs are detected and reported, not OCR'd), or Markdown to PDF with syntax highlighting and custom CSS. Flag: --to={markdown|pdf}."
+description: "[Document Processing] Use when converting between PDF and Markdown: text PDFs to Markdown (scanned PDFs are reported, not OCR'd), Markdown to styled PDF. --to={markdown|pdf}."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/pdf-convert/SKILL.md — do not hand-edit; re-run:

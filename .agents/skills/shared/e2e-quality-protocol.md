@@ -24,8 +24,8 @@ Trigger evidence includes changed E2E test/spec files, browser configuration, fi
 | Consumer | Owns | Shared gate use |
 | --- | --- | --- |
 | `e2e-test` | Selects, writes, or updates tests | Apply before authoring; preserve the native scenario format, invariant, and gate record. |
-| `e2e-test-verify` | Report-only inspection and one configured verification invocation | Evaluate every applicable row; never edit source, tests, fixtures, baselines, or user data. |
-| `e2e-test-verify --fix-loop` | Full-scope convergence, repair, and fresh reruns | Reapply the gate each round; retain scope, evidence, and cleanup integrity. |
+| `e2e-test --mode=verify` | Report-only inspection and one configured verification invocation | Evaluate every applicable row; never edit source, tests, fixtures, baselines, or user data. |
+| `e2e-test --mode=verify --fix-loop` | Full-scope convergence, repair, and fresh reruns | Reapply the gate each round; retain scope, evidence, and cleanup integrity. |
 | `experience-review` | Runtime and configured visual acceptance evidence | Apply runtime/visual rows; own required per-capture case records and cross-capture synthesis; route static source findings to the code/UI owner. |
 | `changes-review` / `workflow-review-changes` | Conditional diff routing and finding integration | Trigger only from executable-surface evidence; preserve the existing review sequence. |
 
@@ -64,7 +64,7 @@ Apply one row per scenario and record `PASS`, `NOT-APPLICABLE`, `ENVIRONMENT-BLO
 
 - `PASS` requires every applicable row, exact runner output, and readable evidence; a passing command alone is insufficient.
 - `NOT-APPLICABLE` requires evidence that no executable E2E/user-flow surface exists. `ENVIRONMENT-BLOCKED` names the relevant missing runner, auth, data, service, browser, or evidence capability. `UNVERIFIED` names incomplete inspection.
-- Route test-code/fixture/locator findings to `e2e-test` or `e2e-test-verify`; route convergence and owning-layer repairs to `e2e-test-verify --fix-loop`; route runtime and configured visual-evidence findings to `experience-review`; route static UI source findings to `ui-review`.
+- Route test-code/fixture/locator findings to `e2e-test` or `e2e-test --mode=verify`; route convergence and owning-layer repairs to `e2e-test --mode=verify --fix-loop`; route runtime and configured visual-evidence findings to `experience-review`; route static UI source findings to `ui-design --mode=review`.
 
 ## Required record
 

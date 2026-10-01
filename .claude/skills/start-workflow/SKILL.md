@@ -12,21 +12,23 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 
 **Workflow:**
 
-1. **Select** — Use the exact workflow named by the user or selected by the opt-in runtime route payload
+1. **Select** — Use the exact workflow named by the user, or one the route payload matched after the user picks it in the workflow question (Key Rules)
 2. **Confirm identity** — Resolve the workflow ID and requested mode/output; when neither source supplies an ID, stop and request the missing workflow identity
 3. **Activate** — Resolve the selected mode/output to a complete canonical manifest (`intent`, `outcomeGates`, ordered occurrence IDs with `role`, skill/args, applicability, barriers, fingerprint and context); create ALL TaskCreate items for the selected occurrences; materialize every declared `parallelGroups` group as a wave; mark first `in_progress`
 4. **Execute intent-first** — `gate` steps always run; `core` and `optional` steps are recommendations; every deviation is logged (Step Execution Protocol)
 
 **Key Rules:**
 
+- **MUST ATTENTION resolve host-native execution first.** Skill execution means loading the skill and performing its protocol through the active host, not requiring a tool from another host. Canonical `.claude/**` reads establish source ownership, not the session's runtime; use registered Codex skill paths when running on Codex.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 
-- MUST ATTENTION automatic selection applies only when the runtime route payload is present. When it is absent, this skill requires an explicit workflow ID.
+- MUST ATTENTION automatic selection applies only when the runtime route payload is present (a host that delivers none is unsupported). When it is absent, this skill requires an explicit workflow ID.
+- **Route mode** — set per person, stated by the route block the hook delivers: `ask` (the default, and the mode when no block was delivered) applies the workflow question below; `auto` starts a self-matched workflow without asking, by its tier (`auto` starts; `confirm` asks the question only when a leaner route would also do; `manual` never starts on its own); `off` (the `CK:RUNTIME-WORKFLOW-ROUTE-OFF` state) activates nothing the user did not explicitly request — when you reach this skill in `off` mode without an explicit request, stop and run the request directly, reporting that workflow routing is off. An explicit request, and a workflow that a skill step, the user's named skill or a running parent workflow requires, run in every mode.
 - Explicit `/workflow-*` or `/start-workflow <id>` invocation counts as the user choosing that workflow; execute it directly.
-- **Activation tier** — use the selected workflow's effective tier before activating: the tier its runtime catalog row shows (the entry's `activation`, absent = `auto`, which project config `portability.workflowActivation` may tighten or override; resolver `resolveActivationTier` in `.claude/scripts/lib/workflow-routing-config.cjs`). `manual`: activate only on an explicit user request (a `/workflow-*` or `/start-workflow <id>` call, the user asking in words, or the user picking it in a question); never on your own selection — take the best non-manual route and name the manual workflow in the route declaration. `confirm`: on your own selection, and only when a leaner route would also satisfy the request, ask ONCE before activating — the workflow with its step count, or your lean custom-simple route with its steps — then follow the answer; an explicit request skips the question. A `/start-workflow <id>` call you issue yourself — including a workflow skill's hand-off after you invoked that skill — is your own selection, never an explicit request.
-- **Mid-session: never auto-activate a workflow.** Auto-activation applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `/start-workflow <id>` call, or the user asking in words to use a workflow; follow it.
-- Auto-select a Custom Pipeline when no catalog workflow is a strong fit (>80% of its unconditional steps do real work = use catalog); declare it, never ask the user to choose
+- **Workflow question** (mode `ask`) — asked ONLY when your route is to start a catalog workflow; a direct, single-skill or custom-simple route (a Catalog-fit downgrade included) asks nothing. A catalog workflow you route to yourself, whatever its tier, is NEVER activated before the user answers ONE question: `AskUserQuestion` where available, else the host's own question tool, else plain text followed by a stop until the user answers. Offer three options, the recommended one first with a one-line reason: (a) the full workflow `<id>` with its step count; (b) a slimmer custom route (Custom Pipeline Option) listing its steps and keeping every required gate — root-cause investigation for bugs, tests, review, spec/doc sync on behavior or public-contract change; (c) execute directly, no workflow or skill. Follow the answer without re-asking. The effective tier — the tier its runtime catalog row shows (the entry's `activation`, absent = `auto`, which project config `portability.workflowActivation` may tighten or override; resolver `resolveActivationTier` in `.claude/scripts/lib/workflow-routing-config.cjs`) — only orders the recommendation: `auto` by catalog fit (>80% of unconditional steps do real work → (a), else (b)); `confirm` recommends (a) only when no leaner route would satisfy the request; `manual` never recommends (a) first. An explicit request (a `/workflow-*` or `/start-workflow <id>` call, `$workflow-*` on Codex, the user asking in words, or the user picking (a) in the question) activates any tier with no question. A `/start-workflow <id>` call you issue yourself — including a workflow skill's hand-off after you chose to invoke that skill — is your own selection, never an explicit request. A workflow (or workflow skill) that an explicit skill step, the user's named skill or an already-running parent workflow requires is part of that run, not a self-matched workflow: it neither asks the workflow question nor is skipped by `off`; `off`/`ask` govern only a workflow YOU choose to start for the task.
+- **Mid-session: never auto-activate a workflow or ask to start one.** The workflow question applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `/start-workflow <id>` call, or the user asking in words to use a workflow; follow it.
+- Auto-select a Custom Pipeline when the route matches no catalog workflow (a focused change); declare it, never ask the user to choose. When the route matched a catalog workflow that fails catalog fit (>80% of its unconditional steps do real work = use catalog), take the Custom Pipeline as your route and proceed without a question; if you still choose to start the catalog workflow, its workflow question offers the Custom Pipeline as option (b)
 - `workflows.json` `workflows` field is an **OBJECT** — use `workflows[workflowId]`, NEVER `.find()` or `[index]`; resolve `variants[mode]` through `.claude/scripts/lib/workflow-manifest.cjs`
 - Create ALL `TaskCreate` items BEFORE marking the first task `in_progress` — batch creation, then execute
 - Read the selected manifest's `occurrences` and `parallelGroups` at activation and tag its member tasks as one wave — 1:1 occurrence tasks still stand (a group never collapses members into one task)
@@ -62,15 +64,15 @@ When the prompt doesn't cleanly match a single catalog workflow — or combining
 1. **Valid steps only** — Use only canonical step ids — those appearing in a resolved workflow manifest's `occurrences` (legacy `sequence` entries are normalized by the resolver; variant entries are selected by mode). Each maps to a real `.claude/skills/<step>/SKILL.md` and is invoked with the active host's syntax. No invented step names.
 2. **Logical order** — Investigate → Plan → Implement → Test. Never reverse dependency order.
 3. **Minimal** — Include only steps the prompt needs. No "just in case" additions.
-4. **Keep required gates** — A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes (`investigate`/`debug-investigate`, `spec`/`docs-update` per the project's spec-test-code cycle reference). A custom pipeline never drops a quality gate the change still requires.
+4. **Keep required gates** — A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes (`investigate --mode=debug` for a bug, `spec`/`docs-manager --mode=update` per the project's spec-test-code cycle reference). A custom pipeline never drops a quality gate the change still requires.
 5. **Name it** — Short descriptive name: "Quick Fix + Docs", "Audit + Test Coverage".
 
-### How to declare (auto-select, no confirmation prompt)
+### How to declare
 
-Declare the chosen route with its full step list and key signals, then activate it immediately. Do NOT use `AskUserQuestion` to choose between the catalog workflow and the custom pipeline — the declaration is the user's override point. The single exception is the one activation question a `confirm`-tier catalog workflow requires (Key Rules → Activation tier).
+Declare the chosen route with its full step list and key signals. When no catalog workflow is your route (none matched, or a Catalog-fit downgrade), activate it immediately — Do NOT use `AskUserQuestion` to choose between routes; the declaration is the user's override point. When your route is to start a catalog workflow, this pipeline is option (b) of the one workflow question (Key Rules → Workflow question), asked before anything starts; never add a second question.
 
 ```
-Route: custom-simple "Quick Fix + Docs" [investigate → fix → changes-review → test → docs-update] — because known location, one module, no contract change; workflow-bugfix adds spec, integration-test and demo steps this request does not need
+Route: custom-simple "Quick Fix + Docs" [investigate → fix → changes-review → test → docs-manager --mode=update] — because known location, one module, no contract change; workflow-bugfix adds spec, integration-test and demo steps this request does not need
 ```
 
 **Rules:**
@@ -137,51 +139,9 @@ in a user-private OS temp directory; otherwise remain metadata-only.
 
 FIRST action after activation: create EXACTLY one `TaskCreate` for EACH entry in the selected manifest's `occurrences` array. The task subject carries the stable occurrence ID; the task description carries the resolved skill, opaque args, applicability and workflow fingerprint. Persist the run ID, mode, fingerprint and ordered occurrence IDs with the task ledger before marking the first task `in_progress`.
 
-### How to read `workflows.json` — CRITICAL SCHEMA
+### Reading `workflows.json`
 
-**`workflows.json` is a JSON OBJECT, not an array.** Most common AI mistake.
-
-```
-{
-  "settings":       { ... },
-  "workflows":      { <workflowId>: WorkflowEntry }   ← OBJECT, keyed by ID
-}
-```
-
-**Lookup algorithm:**
-
-```
-workflow = workflows[workflowId]           // key lookup — NOT .find(), NOT [index]
-manifest = resolveWorkflowManifest(workflowsDoc, workflowId, { mode })
-occurrences = manifest.occurrences      // ordered stable IDs + skill + opaque args
-invocation = resolveActiveHostSyntax(occurrence.skill, occurrence.args)
-```
-
-**WorkflowEntry fields:**
-
-| Field            | Type     | Notes                                                                                     |
-| ---------------- | -------- | ----------------------------------------------------------------------------------------- |
-| `name`           | string   | Display name                                                                              |
-| `sequence`       | (legacy) string[] or explicit occurrence[] | Ordered compatibility input; normalized by the resolver |
-| `variants`       | object   | Complete named mode/output entries; each variant owns its full occurrence list             |
-| `defaultMode`    | string   | Required when `variants` exists; names the default variant                                  |
-| `whenToUse`      | string   | Natural language intent matching                                                          |
-| `intent`         | string   | One sentence: the goal the run must achieve                                               |
-| `outcomeGates`   | object[] | Results that must hold at close — `{id, satisfiedBy: skill[], when?}`                     |
-| `preActions`     | object   | **Required** — non-empty `injectContext`; optional `readFiles`                           |
-| `parallelGroups` | object[] | Optional all-return barrier groups — `{id, members: occurrence IDs[], barrier:true, conditionalMembers[]}` |
-
-**FORBIDDEN (common mistakes):**
-
-```
-// ❌ WRONG
-workflows.find(w => w.id === workflowId)
-workflows[0]
-
-// ✅ CORRECT
-workflows[workflowId]
-Object.keys(workflows)   // list all IDs
-```
+Never read the file directly: Tier 2 (`read-workflow-entry.mjs`) resolves the selected entry and mode. `workflows` is an OBJECT keyed by workflow ID, and `variants[mode]` resolves through `.claude/scripts/lib/workflow-manifest.cjs` (Key Rules).
 
 ### Task creation steps
 
@@ -190,8 +150,6 @@ Object.keys(workflows)   // list all IDs
 3. **Read every `preActions.readFiles` file BEFORE TaskCreate** — the workflow's own SKILL.md is listed there and owns its purpose, required gates and triage; `injectContext` is only a digest of it.
 4. **Apply selected-workflow pre-actions to task context:** preserve the selected entry's `preActions.injectContext` as workflow-level execution context. For every conditional step it governs, put the exact run condition and evidence-backed skip transition in that task's description; never infer or drop a predicate because the static catalog rendered only a step name.
 5. Create one `TaskCreate` per selected manifest occurrence IN ORDER; persist the manifest fingerprint and ordered occurrence IDs in the workflow run record before the first step starts.
-
-> See **Workflow Lookup — Token-Efficient (3-Tier Strategy)** above for full lookup rules and fallback chain.
 
 **Task format:**
 
@@ -204,7 +162,6 @@ TaskCreate: subject="[Workflow] [{role}] {step-name} — {brief description}", d
 - **1:1 mapping** — each selected occurrence entry = exactly one task, even when the skill repeats with different args. No consolidation, no invented tasks. A merge or skip later changes a task's status, never the task list.
 - **Role per task** — every subject shows its occurrence `role` (`gate`, `core` or `optional`) so the unskippable steps stay visible.
 - **Conditional steps still get tasks** — add the exact canonical run condition and evidence-backed skip transition to the description; a skip then follows the Step Execution Protocol. Never use a generic skip label.
-- **Selected-workflow pre-actions are mandatory execution input** — after Tier 1 selects any standard workflow, Tier 2 must load its non-empty `preActions.injectContext` before TaskCreate. A conditional step's task description must state its canonical run condition and evidence-backed skip transition.
 - **Recursive self-calls get tasks** — e.g., `[Workflow] /workflow-review-changes — Recursive re-review (conditional)`
 - **Count verification** — after creation: `task count == len(manifest.occurrences)` and the ordered task occurrence IDs exactly equal the manifest IDs. Fix mismatch before proceeding.
 
@@ -233,8 +190,8 @@ as returned for any barrier.
 
 A workflow MAY declare barrier groups in `parallelGroups` (schema: `.claude/workflows.schema.json` → `WorkflowEntry.parallelGroups`; live example: `workflow-review-changes`, groups `initial-reviews` and `reviewers`). Materialize each declared group as a wave IN THE TASK LIST, so the barrier is visible in the tasks and not only in prose.
 
-1. **Read `parallelGroups` alongside `occurrences`.** Tier 1 (`## Workflow Catalog` in `CLAUDE.md`) renders members FLAT and carries no group data. Tier 2's JSON-aware selected-manifest lookup supplies barrier member occurrence IDs with the ordered list.
-2. **Expand any barrier token you were given.** The Codex mirrors (`AGENTS.md`, `.codex/CODEX_CONTEXT.md`) collapse a group into ONE `[parallel ⇉ all-return barrier: a, b*]` token (`*` = conditional member). That token is a barrier marker, NOT a step — expand it back to its member steps and create one task per member.
+1. **Read `parallelGroups` alongside `occurrences`.** Tier 1 (the runtime workflow catalog) renders members FLAT and carries no group data. Tier 2's JSON-aware selected-manifest lookup supplies barrier member occurrence IDs with the ordered list.
+2. **Expand any barrier token you were given.** The catalog a Codex host receives collapses a group into ONE `[parallel ⇉ all-return barrier: a, b*]` token (`*` = conditional member). That token is a barrier marker, NOT a step — expand it back to its member steps and create one task per member.
 3. **Task count is still `len(manifest.occurrences)`.** A group NEVER collapses its members into a single task; it only adds wave metadata to the member tasks.
 4. **Tag each member task** — subject `[Workflow] [{role}] [wave: {groupId}] /{step} — {brief description}`, description `Workflow step N/{total}. Parallel group '{groupId}' — spawned together with {other members}; barrier: advance only after ALL members return. {conditional note}`.
 5. **Conditional members still get their own task** — add "Conditional — a skipped member still counts as returned for the barrier"; skip via `in_progress` → comment → deviation-log line → `completed`, never delete.
@@ -259,13 +216,13 @@ Create ALL tasks first → then `TaskUpdate` first task to `in_progress`.
 This section is the single owner of the flex rules (BR-GWF-16); `workflows.json` supplies their data (`intent`, `outcomeGates`, per-occurrence `role`). Wrappers and hooks carry at most a one-line pointer here, never a copy.
 
 1. **Intent first.** Before the first step, read the manifest's `intent` (the goal) and `outcomeGates` (the results `workflow-end` must prove). Choose steps to reach that intent.
-2. **`gate` steps ALWAYS run and are NEVER skipped, merged away, simplified away or reordered** (BR-GWF-01). They invoke their Skill tool in every run. Gate outcomes never flex: changed behaviour is tested and green, the review converged, the spec is synced when behaviour or a public contract changed, a bug has a root-cause trace, and the run closes.
+2. **`gate` steps ALWAYS run and are NEVER skipped, merged away, simplified away or reordered** (BR-GWF-01). They execute their skill protocol through the active host in every run. Gate outcomes never flex: changed behaviour is tested and green, the review converged, the spec is synced when behaviour or a public contract changed, a bug has a root-cause trace, and the run closes.
 3. **`core` and `optional` steps are recommendations** (BR-GWF-13). Intent first, you may skip, merge, simplify or reorder one when every applicable outcome gate can still be satisfied and the data dependencies hold. An `optional` step whose `applicability.when` is false is skipped with its declared `skipReason`; when it holds, the step flexes like a `core` step. Unannotated steps are `core`.
 4. **Data dependencies never flex** (BR-GWF-14): a change is made before it is reviewed and before its tests run; the spec sync runs before the review that checks it; the close runs last; a nested `workflow-review-changes` runs inline. A reorder or merge that breaks one of these is not allowed.
 5. **Tests are recommendations of which, never of whether** (BR-GWF-15). The choice of test steps and test cases may flex; every behaviour the run changed is covered by tests that ran green in this run. A skip or merge that would leave changed behaviour untested or failing is not allowed.
 6. **Deviation log (the skip log) — every deviation writes one line** to `tmp/workflow-runs/<runId>/skips.md`: `<occurrence-id> · <deviation-kind> · <evidence>` (BR-GWF-08). `runId` is the baseline run id captured at activation (a nested workflow writes to its parent's log); there is no other id format. Deviation kinds (closed set; the reason code): `when-false` (an optional step's `applicability.when` was false; its `skipReason` applies) · `pre-action` (skip pre-authorized by the selected `preActions.injectContext`) · `intent-skip` (a step the intent does not need) · `merged` (folded into another occurrence; the evidence names it) · `simplified` (run in a reduced form; the evidence says how) · `reordered` (run at another position; the evidence names the new neighbour) · `review-report` (written only by `workflow-end`). `evidence` is a short note; never write secrets. With no recorded baseline run, the task comment is the only record — say so at close.
-7. **Mechanics.** Run: `TaskUpdate in_progress` → **invoke `Skill` tool** → `TaskUpdate completed`. Skip or merge: `TaskUpdate in_progress` → comment "Skipped — {deviation-kind}: {evidence}" → deviation-log line → `TaskUpdate completed`. A skipped or merged task, including a conditionally skipped task, completes without invoking its Skill tool only after both the comment and the deviation-log line. Simplified and reordered steps still invoke their Skill tool and add their line. Never delete a task.
-8. **Validation gates** (`/plan-validate`, `/plan-review`, `/why-review`) MUST use explicit evidence and local project protocol — NEVER auto-approve inferred decisions. Explicit user approval in the prompt may satisfy the gate only when the gate's skill permits it.
+7. **Mechanics.** Run: mark the task `in_progress` → **execute the skill protocol through the active host** → mark the task `completed`. Use native task tools or the documented equivalent ledger. Skip or merge: mark the task `in_progress` → comment "Skipped — {deviation-kind}: {evidence}" → deviation-log line → mark the task `completed`. A skipped or merged task, including a conditionally skipped task, completes without skill execution only after both the comment and the deviation-log line. Simplified and reordered steps still execute their skill protocol and add their line. Never delete a task.
+8. **Validation gates** (`/plan --mode=validate`, `/plan --mode=review`, `/why-review`) MUST use explicit evidence and local project protocol — NEVER auto-approve inferred decisions. Explicit user approval in the prompt may satisfy the gate only when the gate's skill permits it.
 9. **Close.** `workflow-end` checks evidence for every outcome gate before the run closes.
 10. **Verify-last loop** (`SYNC:verify-last-order`). A code-changing workflow reviews statically, then verifies once. When a step after the review edits the tree, re-invoke the review gate with its same args; when that re-review applies a fix, re-invoke the verify gates. A re-invocation reuses the existing task row (comment `rerun N: <reason>`) and is a loop iteration, never a new step or a deviation. The verify ↔ re-review alternation is capped at 2 turns; a third turn, or the same failure returning, escalates via `AskUserQuestion`. `workflow-end` checks the review receipt (`review-converged`, a stale one is flagged) and requires the cited green run to be newer than the last source or test edit (`tests-pass`).
 
@@ -277,7 +234,7 @@ Some workflow steps ARE themselves full workflows. The DEFAULT for a step that a
 
 **Default protocol (sub-agent delegation) for a nested-workflow step:**
 
-1. NEVER invoke via inline `Skill` tool call
+1. NEVER execute the nested workflow inline
 2. Spawn via `Agent` tool with the appropriate `subagent_type`
 3. Agent prompt must include: current git diff context + feature/task description
 4. Sub-agent runs the full nested workflow in its isolated context
@@ -290,46 +247,29 @@ Some workflow steps ARE themselves full workflows. The DEFAULT for a step that a
 | -------------------------- | ------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------- |
 | `/workflow-review-changes` | `workflow-review-changes` | **INLINE — main session agent** | Its Step 0 `/goal` gate binds the session Stop hook + its post-fix re-review is inline by design; a sub-agent cannot own the Stop hook, so delegating it silently breaks the unabandonable review→fix→re-review loop. Context stays bounded because its OWN step 2 and steps 3–9 reviewers are sub-agents writing to `tmp/reports/`. |
 
-When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow-feature`, `workflow-bugfix`, `workflow-refactor`), invoke it via the `Skill` tool INLINE — do NOT spawn it as an `Agent` sub-agent.
+When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow-feature`, `workflow-bugfix`, `workflow-refactor`), execute its skill protocol INLINE through the active host — do NOT spawn it as an `Agent` sub-agent.
 
 > The ⚠️ **[WORKFLOW-IN-WORKFLOW GATE]** is model-driven: apply it (default sub-agent, or the `workflow-review-changes` inline exception) yourself whenever the next step activates a nested workflow — no hook emits this warning.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> auto-select-execution-path -> activate-workflow -> create-task-tracking -> execute-sequence
-
-**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> auto-select-execution-path -> activate-workflow -> create-task-tracking -> execute-sequence
+**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> select-execution-path -> ask-workflow-question (self-matched workflow only) -> activate-workflow -> create-task-tracking -> execute-sequence
 
 > **[MANDATORY]** `TaskCreate` FIRST — break every workflow into tasks before any action. NEVER skip.
-> **[MANDATORY]** Auto-select the best path for auto-detected workflows; do not use `AskUserQuestion` for workflow-selection confirmation, except the single question a `confirm`-tier workflow requires. Never auto-activate a `manual`-tier workflow. Explicit workflow invocation executes directly.
-> **[MANDATORY]** `Skill` tool REQUIRED for every step that runs. A step completes without it only when skipped or merged with a deviation-log line; `gate` steps never skip.
+> **[MANDATORY]** In mode `ask`, when your route is to start a catalog workflow, never activate it, whatever its tier, before the user answers the one workflow question (full workflow · slimmer custom route · execute directly); ask no other route question. Mode `auto` follows its route block; mode `off` activates no self-matched workflow. Explicit workflow invocation executes directly in every mode.
+> **[MANDATORY]** Host-native skill execution REQUIRED for every step that runs. A step completes without it only when skipped or merged with a deviation-log line; `gate` steps never skip. A foreign-host tool name is not a missing capability.
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 
@@ -340,46 +280,33 @@ When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Detect intent, auto-select the direct/skill/workflow/custom route, then activate the canonical contract with a complete TaskCreate plan.
+**IMPORTANT MUST ATTENTION Goal:** Detect intent, select the direct/skill/workflow/custom route (a self-matched workflow only after the workflow question), then activate the canonical contract with a complete TaskCreate plan.
 
-**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** detect workflow or route → analyze the best match → auto-select direct/skill/standard/custom execution → load Tier 1 catalog context and Tier 2 complete canonical selected-mode manifest (`occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, `fingerprint`) → read every `preActions.readFiles` file → create exactly one task per occurrence → materialize declared waves and barriers → execute intent-first: `gate` steps always, `core`/`optional` steps as recommendations, every deviation logged, task status synchronized.
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** detect workflow or route → analyze the best match → select direct/skill/standard/custom execution (ask the workflow question only before starting a standard workflow; direct, skill and custom routes ask nothing) → load Tier 1 catalog context and Tier 2 complete canonical selected-mode manifest (`occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, `fingerprint`) → read every `preActions.readFiles` file → create exactly one task per occurrence → materialize declared waves and barriers → execute intent-first: `gate` steps always, `core`/`optional` steps as recommendations, every deviation logged, task status synchronized.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** traced `file:line` proof, confidence >80%; NEVER present guess as fact.
 - **Incremental Persistence:** append findings to report per file; NEVER hold in memory.
 - **Sub-Agent Return Contract:** sub-agents return summary only; NEVER inline full output.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**MUST ATTENTION** auto-select the best path for ordinary prompts; explicit `/workflow-*` or `/start-workflow <id>` invocation executes directly. Do not ask for workflow-selection confirmation, except the one question a `confirm`-tier workflow requires; never auto-activate a `manual`-tier workflow. Mid-session, never auto-activate a workflow — do the work directly or with a lean skill chain; required gates still run.
-**MUST ATTENTION** `workflows` is an OBJECT — `workflows[workflowId]`, NEVER `.find()` / `[index]` / `.forEach()`
+**MUST ATTENTION** explicit `/workflow-*` or `/start-workflow <id>` invocation executes directly; a catalog workflow you route to yourself, of ANY tier, waits for the one workflow question (full · slimmer custom route · direct, recommended first); direct, single-skill and custom-simple routes ask nothing. Mid-session, never auto-activate a workflow or ask to start one — do the work directly or with a lean skill chain; required gates still run.
 **MUST ATTENTION** create ALL `TaskCreate` items for the full sequence BEFORE marking the first task `in_progress`
-**MUST ATTENTION** `gate` steps never skip; a `core`/`optional` step completes without its `Skill` tool only when skipped or merged with a deviation-log line (`<occurrence-id> · <deviation-kind> · <evidence>` in `tmp/workflow-runs/<runId>/skips.md`) and the outcome gates still hold; simplified and reordered steps log too — never delete a task — why: an unlogged deviation is invisible to review and to the close check
+**MUST ATTENTION** execute skills through the active host; a source read does not switch hosts and a foreign-host tool name is not a blocker. `gate` steps never skip; a `core`/`optional` step completes without skill execution only when skipped or merged with a deviation-log line (`<occurrence-id> · <deviation-kind> · <evidence>` in `tmp/workflow-runs/<runId>/skips.md`) and the outcome gates still hold; simplified and reordered steps log too — never delete a task — why: an unlogged deviation is invisible to review and to the close check
 **MUST ATTENTION** custom pipeline steps must be canonical step ids (each maps to a real `.claude/skills/<step>/SKILL.md`) — never invent step names
 **MUST ATTENTION** use Tier 1 context selection FIRST, then Tier 2 JSON-aware complete canonical-entry read before TaskCreate for EVERY standard workflow — resolve the selected mode and load `occurrences`, non-empty `preActions.injectContext`, `parallelGroups`, and `fingerprint`, and read every `preActions.readFiles` file; never use fixed-context grep output
-**MUST ATTENTION** every executable workflow entry must carry a non-empty `preActions.injectContext`; missing context is catalog drift and blocks activation. This is host- and hook-independent.
 **MUST ATTENTION** materialize every declared `parallelGroups` group as a wave in the task list — one task per member, wave-tagged, spawned in ONE message, all-return barrier before the next step — why: a barrier that lives only in prose gets executed one step at a time
 **MUST ATTENTION** no `parallelGroups` → `sequence` IS the order — never invent a group that contradicts it; only adjacent read-only steps may be surfaced as a `Candidate wave (not declared)` — why: a self-authored wave silently reorders a validated workflow, and that costs more than the time it saves
 

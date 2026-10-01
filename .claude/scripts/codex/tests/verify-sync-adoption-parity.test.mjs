@@ -146,7 +146,7 @@ test('declared carrier missing the MAIN block is a violation', () => {
 });
 
 test('declared carrier missing only the :reminder is still a violation', () => {
-    // This is the real-world shape that exposed the stray spec-clarify block: a main block
+    // This is the real-world shape that exposed a stray review-skill block: a main block
     // with no reminder cannot have been written by the injector, which always writes both.
     const s = baseSetup();
     s.skillText.set('skill-a', carrier([wrap('SYNC:alpha', ALPHA_MAIN)]));

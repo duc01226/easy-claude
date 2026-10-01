@@ -2,6 +2,8 @@
 
 > Portable troubleshooting for the Claude Code enhancement framework. The `.claude/` directory is reusable; project-specific behavior comes from the adopting project's configuration and reference docs.
 
+**MUST** identify the active host and required operation first. **MUST** distinguish a foreign-host tool name from a genuinely unavailable capability. **MUST** fix the owning source or configuration while preserving workflow gates; never disable a gate to hide an error.
+
 ## Quick Navigation
 
 - [Start with context and setup](#start-with-context-and-setup)
@@ -49,6 +51,12 @@ The portability boundary is intentional:
 Do not copy project-owned context from one project into another. Regenerate it with `/project-init` instead.
 
 ## Skills or Workflows Not Discovered
+
+### A discovered skill reports that the `Skill` tool is missing
+
+Check the active host before diagnosing an installation problem. Codex executes a loaded skill's instructions with its available tools; it does not require Claude Code's separately named `Skill` tool. Read the registered `.agents/skills/<name>/SKILL.md` when executing a Codex skill. Reading `.claude/**` to inspect canonical source does not change the active host.
+
+Continue through the host-native execution path when the required operation is available. Ask for help only when an actual capability is missing, naming the required step and the failed capability check. Keep every workflow gate and authority boundary intact. Read `.claude/docs/skills/README.md` when distinguishing skill loading from execution.
 
 ### A skill is missing or has stale metadata
 
@@ -329,7 +337,7 @@ Some files are generated from canonical sources. Fix the source and then run the
 | Project reference docs are missing or generic        | Run `/project-init` or the relevant `/scan --target=<key>`         |
 | `CLAUDE.md` sections are stale                       | Run `/ai-context-refresh` through the project setup route          |
 | `AGENTS.md` or `.codex/` differs from Claude sources | Run `/sync-codex` after updating the canonical Claude-side sources |
-| Graph state does not match the current checkout      | Run the graph `sync` command or `/graph-build`                     |
+| Graph state does not match the current checkout      | Run the graph `sync` command or `/graph-code --mode=build`                     |
 
 When stale guidance names a consumer project, first verify whether the problem is in project-owned context (`docs/project-config.json`, `docs/project-reference/`, or generated root instructions) rather than in the portable `.claude/` framework.
 
@@ -353,3 +361,7 @@ Before asking for help, collect:
 Never include secrets in a report.
 
 _Source: portable framework documentation and the linked authoritative references._
+
+## Closing Reminders
+
+**MUST** identify the active host, capture the first failure and use the owning diagnostic route. **MUST** use available native capabilities; reading `.claude/**` source never changes hosts. **MUST** preserve gates, repair canonical source or project configuration and regenerate stale mirrors; evidence an actual unavailable capability before reporting a blocker.

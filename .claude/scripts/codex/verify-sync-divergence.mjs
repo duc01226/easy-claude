@@ -4,7 +4,8 @@
 //
 // Guards FOUR committed-mirror surfaces against a fresh regeneration:
 //   (1) the .agents/skills mirror (materializeSkillMirror),
-//   (2) the CONTEXT mirror — AGENTS.md + .codex/CODEX_CONTEXT.md (runContextSync),
+//   (2) the CONTEXT mirror — AGENTS.md, the project-information projection of CLAUDE.md
+//       (runContextSync); a leftover .codex/CODEX_CONTEXT.md is reported as an orphan,
 //   (3) the .codex/agents TOML mirror (materializeAgentMirror) — the ENTIRE Codex sub-agent
 //       surface, which until now was the one committed mirror with no gate at all: 23 files
 //       that could be hand-edited or left stale with nothing to catch it, and
@@ -18,8 +19,7 @@
 // Oracle design (vs re-implementing the transforms): the checker and the writer call the
 // SAME functions (materializeSkillMirror / runContextSync), so the "expected" output cannot
 // drift from real sync behavior. The intentional dialect rewrites (/skill -> $skill,
-// TaskCreate -> task tracking, version: strip, compat-note prepend, project-reference block,
-// etc.) are reproduced for free because they ARE the real transform.
+// TaskCreate -> task tracking, version: strip, compat-note prepend, etc.) are reproduced for free because they ARE the real transform.
 //
 // Why the CONTEXT check lives HERE rather than in a new standalone file: a new pipeline
 // script would have to be present in the portable export (export-claude ships tracked and
@@ -179,18 +179,18 @@ async function readNormalized(target) {
     }
 }
 
-// CONTEXT-mirror idempotency check. Re-renders the two context outputs via the SAME
-// runContextSync the writer uses, redirected to a throwaway dir via { outRootDir }, then
-// diffs the fresh AGENTS.md + .codex/CODEX_CONTEXT.md against the committed copies. Returns a
-// diffTrees-shaped list (keyed by repo-relative POSIX path) so reporting is uniform with the
-// skills check. Inputs/baselines are always read from the real repo by runContextSync; only
-// the two writes are redirected. Throws on a failed render so the caller's fail-open catch
+// CONTEXT-mirror idempotency check. Re-renders AGENTS.md via the SAME runContextSync the writer
+// uses, redirected to a throwaway dir via { outRootDir }, then diffs it against the committed copy.
+// The retired .codex/CODEX_CONTEXT.md is never rendered, so a committed one surfaces as an
+// 'extra-in-mirror' orphan. Returns a diffTrees-shaped list (keyed by repo-relative POSIX path) so
+// reporting is uniform with the skills check. Inputs/baselines are always read from the real repo by
+// runContextSync; only the write is redirected. Throws on a failed render so the caller's fail-open catch
 // handles an internal fault rather than reporting it as divergence.
 // Skips return a `{ skip }` reason like the three sibling checks, NOT an empty
 // diff list. Returning `[]` made "nothing to compare" indistinguishable from
 // "compared and identical", so the gate printed
-// `context: PASS (AGENTS.md + .codex/CODEX_CONTEXT.md in sync)` for files that
-// do not exist — the one sentence a reader would quote as proof they DO. A gate
+// `context: PASS (AGENTS.md in sync)` for a file that
+// does not exist — the one sentence a reader would quote as proof they DO. A gate
 // may decline to check; it may not report a check it never ran.
 async function checkContextMirror(rootDir) {
     const { runContextSync, contextPath, agentsPath } = await loadSyncModules();
@@ -198,7 +198,7 @@ async function checkContextMirror(rootDir) {
         return { skip: 'no CLAUDE.md source to mirror' };
     }
     if (!(await pathExists(agentsPath)) && !(await pathExists(contextPath))) {
-        return { skip: 'no context mirror yet — run the standalone runner to create it' };
+        return { skip: 'no AGENTS.md mirror yet — run the standalone runner to create it' };
     }
 
     const staging = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-context-check-'));
@@ -208,11 +208,10 @@ async function checkContextMirror(rootDir) {
         const contextRel = path.relative(rootDir, contextPath).replaceAll('\\', '/');
 
         const freshAgents = await readNormalized(path.join(staging, 'AGENTS.md'));
-        const freshContext = await readNormalized(path.join(staging, '.codex', 'CODEX_CONTEXT.md'));
-        if (freshAgents === null || freshContext === null) {
-            throw new Error('fresh context render did not produce AGENTS.md + CODEX_CONTEXT.md');
+        if (freshAgents === null) {
+            throw new Error('fresh context render did not produce AGENTS.md');
         }
-        const expected = new Map([[agentsRel, freshAgents], [contextRel, freshContext]]);
+        const expected = new Map([[agentsRel, freshAgents]]);
 
         const actual = new Map();
         const committedAgents = await readNormalized(agentsPath);
@@ -504,10 +503,10 @@ async function main() {
     if (context.skip) {
         console.log(`[codex-verify-sync-divergence] context: PASS (${context.skip})`);
     } else if (contextDiffs.length === 0) {
-        console.log('[codex-verify-sync-divergence] context: PASS (AGENTS.md + .codex/CODEX_CONTEXT.md in sync)');
+        console.log('[codex-verify-sync-divergence] context: PASS (AGENTS.md in sync)');
     } else {
         markFailed();
-        console.error('[codex-verify-sync-divergence] FAIL — context mirror (AGENTS.md / .codex/CODEX_CONTEXT.md) is out of sync');
+        console.error('[codex-verify-sync-divergence] FAIL — context mirror (AGENTS.md, or a leftover .codex/CODEX_CONTEXT.md) is out of sync');
         console.error('Remediation: run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — or the standalone orchestrator:');
         console.error('`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` (never hand-edit the managed blocks).');
         for (const diff of contextDiffs.slice(0, MAX_REPORTED_DIFFS)) {

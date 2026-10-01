@@ -46,8 +46,8 @@
           "type": "string"
         },
         "satisfiedBy": {
-          "description": "Skills whose occurrences can satisfy this gate (alternatives). Each skill MUST appear in the workflow's sequence (with variants: in at least one mode), and every resolved mode MUST contain at least one of them.",
-          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "description": "Satisfiers of this gate (alternatives): a skill name, or a skill name plus invocation arguments (for example \"plan --mode=validate\") when one skill serves several roles; a satisfier with arguments matches only occurrences whose args contain every one of its argument tokens. Each satisfier MUST match a step in the workflow's sequence (with variants: in at least one mode), and every resolved mode MUST contain at least one of them.",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*( \\S.*)?$" },
           "minItems": 1,
           "uniqueItems": true,
           "type": "array"
@@ -67,9 +67,16 @@
       "properties": {
         "sequence": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/Occurrence" } },
         "parallelGroups": { "$ref": "#/definitions/WorkflowEntry/properties/parallelGroups" },
-        "stepMeta": { "$ref": "#/definitions/WorkflowEntry/properties/stepMeta" }
+        "stepMeta": { "$ref": "#/definitions/WorkflowEntry/properties/stepMeta" },
+        "outcomeGates": {
+          "description": "Gates this mode adds to the entry-level outcomeGates shared by every mode. The selected mode's gate list is the entry-level gates followed by these; gate IDs stay unique across both lists.",
+          "items": { "$ref": "#/definitions/OutcomeGate" },
+          "minItems": 1,
+          "title": "Variant Outcome Gates",
+          "type": "array"
+        }
       },
-      "description": "Complete ordered mode; no inheritance of base sequence, parallel groups or step metadata. Group members and stepMeta keys reference occurrence IDs."
+      "description": "Complete ordered mode; no inheritance of base sequence, parallel groups or step metadata. Group members and stepMeta keys reference occurrence IDs. Entry-level outcomeGates apply to every mode; a variant may add gates of its own."
     },
     "PreActions": {
       "additionalProperties": false,
@@ -127,7 +134,7 @@
       "properties": {
         "activation": {
           "default": "auto",
-          "description": "Who may start this workflow. auto: the route gate may select and start it (first task of a session only). confirm: before starting it on its own selection, the model asks the user once, showing its step count and the lean alternative. manual: the model never selects or starts it; it runs only on an explicit user request, and its wrapper skill sets disable-model-invocation: true (the Codex mirror then sets allow_implicit_invocation: false). An explicit user request runs every tier directly.",
+          "description": "Which option the workflow question recommends. Every tier: only when the model's own route is to start a catalog workflow (first task of a session only; a direct, single-skill or custom-simple route asks nothing), the model asks the user one question — the full workflow with its step count, a slimmer custom route, or direct execution. auto: recommend by catalog fit. confirm: recommend the full workflow only when no leaner route would do. manual: never recommend the full workflow; its wrapper skill also sets disable-model-invocation: true (the Codex mirror then sets allow_implicit_invocation: false). An explicit user request runs every tier directly, with no question.",
           "enum": ["auto", "confirm", "manual"],
           "title": "Activation Tier",
           "type": "string"
@@ -140,7 +147,7 @@
           "type": "string"
         },
         "outcomeGates": {
-          "description": "Evidence every finished run must produce. Gate IDs are unique per workflow.",
+          "description": "Evidence every finished run must produce, in every mode. Gate IDs are unique per workflow (and per resolved mode when a variant adds gates).",
           "items": { "$ref": "#/definitions/OutcomeGate" },
           "minItems": 1,
           "title": "Outcome Gates",

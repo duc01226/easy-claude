@@ -7,7 +7,7 @@
 
 ##### Parallel Researcher Agents
 
-- Use `researcher` subagents for independent codebase file-discovery threads; use the main `/investigate` skill for inline graph-backed tracing
+- Use `researcher` subagents for independent codebase file-discovery threads; use the main `/investigate` skill for inline tracing (an optional graph hint may help)
 - Each researcher locates files needed for a specific task aspect
 - Wait for all researcher agents to report back before analysis
 - Efficient for finding relevant code across large codebases

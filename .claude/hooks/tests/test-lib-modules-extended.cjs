@@ -1163,12 +1163,12 @@ logSection('CK Config Schema — ck-config-schema.cjs');
         logResult('ck: valid full config passes', r.valid && r.errors.length === 0);
     }
 
-    // The consumed portability opt-out is declared in the CK schema.
+    // The retired universal-guides opt-out is no longer a declared key: it validates as unknown.
     {
         const r = validateCkConfig({ portability: { requireUniversalGuides: false } });
         logResult(
-            'ck: portability.requireUniversalGuides is a declared boolean',
-            r.valid && !r.warnings.some(w => w.includes('portability.requireUniversalGuides') && w.includes('unknown'))
+            'ck: portability.requireUniversalGuides is no longer a declared key',
+            r.warnings.some(w => w.includes('portability.requireUniversalGuides') && w.includes('unknown'))
         );
     }
 

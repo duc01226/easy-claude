@@ -10,6 +10,10 @@
  * - it never writes an inline review-family skill or a `references/*.md` file (TC-PDL-081), nor an
  *   agent, while the default mode still propagates a canonical edit to skills AND agents
  *   (TC-PDL-061);
+ * - strip mode (`--mode=strip-root-pointer`) removes every universal body and reminder and any retired
+ *   `Root-carried protocols` pointer line from each skill (inline skills included) and agent, adds
+ *   nothing, keeps references/*.md untouched and is a byte no-op on the second run (TC-PDL-036); guide
+ *   mode refuses a universal tag; the retired-pointer recognizers of both languages agree;
  * - the Python recognizer (`sync_blocks.has_guide_entry`) and its JavaScript twin
  *   (`lib/protocol-guide-carrier.cjs`) agree on every line, so sensors in either language count
  *   the same carriers.
@@ -35,7 +39,9 @@ const LINE_ENDINGS = path.join(SCRIPTS_DIR, 'line_endings.py');
 const PROJECTION = path.join(SCRIPTS_DIR, 'build-protocol-projection.cjs');
 const carrier = require(path.join(SCRIPTS_DIR, 'lib', 'protocol-guide-carrier.cjs'));
 
-const ROOT_CARRIED = ['critical-thinking-mindset', 'ai-mistake-prevention', 'project-reference-docs-guide', 'project-protocol-overlay'];
+// Tags of the hook-delivered universal group in the fixture; no skill or agent carries any part of them.
+const UNIVERSAL = ['critical-thinking-mindset', 'ai-mistake-prevention', 'project-reference-docs-guide', 'project-protocol-overlay'];
+const UNIVERSAL_BINS = [['critical-thinking-mindset', 'ai-mistake-prevention'], ['project-reference-docs-guide', 'project-protocol-overlay']];
 const INLINE_SKILL = 'inline-review';
 
 // ─── Fixture ───────────────────────────────────────────────────────────────
@@ -49,7 +55,7 @@ const BODIES = {
 function canonicalText(bodies) {
     const out = ['# SYNC Inline Versions (fixture)', '', '> Canonical fixture.'];
     const all = { ...bodies };
-    for (const tag of ROOT_CARRIED) all[tag] = `> **${tag}** — root-carried fixture body.`;
+    for (const tag of UNIVERSAL) all[tag] = `> **${tag}** — universal fixture body.`;
     for (const [tag, body] of Object.entries(all)) {
         out.push('', '---', '', `## SYNC:${tag}`, '', body);
         out.push('', '---', '', `## SYNC:${tag}:reminder`, '', `**Reminder** for ${tag}.`);
@@ -69,7 +75,7 @@ function groups() {
             'workflow-task': { tags: { gamma: entry('gamma') } },
             'spec-test': { tags: {} },
             design: { tags: {} },
-            universal: { tags: Object.fromEntries(ROOT_CARRIED.map(t => [t, entry(t)])) }
+            universal: { tags: Object.fromEntries(UNIVERSAL.map(t => [t, entry(t)])), bins: UNIVERSAL_BINS }
         },
         inlineSkills: [INLINE_SKILL]
     };
@@ -480,4 +486,152 @@ test('recognizer twins: the Python and JavaScript recognizers agree on every gui
         assert.equal(js !== null, ok, `JS writer: ${name}`);
         assert.equal(py.lines[i], js, `writer disagreement: ${name}`);
     });
+});
+// ─── Universal strip ───────────────────────────────────────────────────────
+
+const RETIRED_POINTER = '> **Root-carried protocols** — fixture pointer naming every universal tag.';
+
+/** A carrier that still holds every universal body, its reminder, the retired pointer and (for a guided skill) a guide line. */
+function universalCarrierText(title, { guides = false, extra = [] } = {}) {
+    return [
+        '---',
+        `name: ${title}`,
+        '---',
+        '',
+        `# ${title}`,
+        '',
+        'Main content.',
+        '',
+        RETIRED_POINTER,
+        '',
+        ...(guides ? [carrier.GUIDE_BLOCK_START, '', '> **Protocol guides** — fixture.', '', carrier.formatGuideLine({ tag: 'alpha', summary: 'Summary of alpha', when: 'when alpha applies', path: '.claude/skills/shared/protocols/alpha.md' }), '', carrier.GUIDE_BLOCK_END, ''] : []),
+        ...UNIVERSAL.map(t => block(t, `> **${t}** — universal fixture body.`)),
+        ...extra.map(t => block(t, `> **${t}** — folded fixture body.`)),
+        '## Closing Reminders',
+        '',
+        ...UNIVERSAL.map(t => reminder(t)),
+        ...extra.map(t => reminder(t)),
+        'End.',
+        ''
+    ].join('\n');
+}
+
+const STRIP_FILES = {
+    '.claude/skills/guided/SKILL.md': universalCarrierText('guided', { guides: true }),
+    [`.claude/skills/${INLINE_SKILL}/SKILL.md`]: universalCarrierText(INLINE_SKILL),
+    '.claude/skills/guided/references/r.md': universalCarrierText('reference'),
+    '.claude/agents/helper.md': universalCarrierText('helper', { extra: ['task-tracking-external-report'] })
+};
+
+test('TC-PDL-036: strip mode: every skill (inline included) and agent ends with no universal body, reminder or retired pointer line', () =>
+    withProject(STRIP_FILES, ({ run, read }) => {
+        // Given a guided skill, an inline skill, a reference file and an agent that all carry the universal set
+        const referenceBefore = read('.claude/skills/guided/references/r.md');
+        // When strip mode runs
+        const result = run('--mode=strip-root-pointer');
+        assert.equal(result.code, 0, result.stderr + result.stdout);
+        for (const rel of ['.claude/skills/guided/SKILL.md', `.claude/skills/${INLINE_SKILL}/SKILL.md`, '.claude/agents/helper.md']) {
+            const after = lf(read(rel));
+            // Then no universal body or reminder is left, and nothing is written in their place
+            for (const tag of UNIVERSAL) {
+                assert.equal(markedBody(after, `SYNC:${tag}`), null, `${rel}: ${tag} body left`);
+                assert.equal(markedBody(after, `SYNC:${tag}:reminder`), null, `${rel}: ${tag} reminder left`);
+                assert.equal(carrier.hasGuideEntry(after, tag), false, `${rel}: ${tag} guide line written`);
+            }
+            // And the retired pointer line is gone while the surrounding text survives
+            assert.equal(carrier.rootPointerLines(after).length, 0, `${rel}: retired pointer left`);
+            assert.ok(after.includes('Main content.') && after.includes('End.'), `${rel}: surrounding text lost`);
+        }
+        // And a guide line for a non-universal tag survives
+        assert.equal(carrier.hasGuideEntry(lf(read('.claude/skills/guided/SKILL.md')), 'alpha'), true);
+        // And an agent also drops the agent-folded protocol
+        assert.equal(markedBody(read('.claude/agents/helper.md'), 'SYNC:task-tracking-external-report'), null);
+        // And a references/*.md file is never touched
+        assert.ok(read('.claude/skills/guided/references/r.md').equals(referenceBefore), 'reference file was written');
+    }));
+
+test('strip mode: a second run and a dry run change no byte; other guide lines and skill text survive', () =>
+    withProject(
+        {
+            ...STRIP_FILES,
+            '.claude/skills/mixed/SKILL.md': `${carrierText('mixed', ['alpha']).replace('## Closing Reminders', `${block('critical-thinking-mindset', '> root body.')}## Closing Reminders`)}`
+        },
+        ({ run, read }) => {
+            // Given a skill that also carries a non-universal protocol (alpha)
+            assert.equal(run('--mode=guide', '--tags', 'alpha').code, 0);
+            const before = lf(read('.claude/skills/mixed/SKILL.md'));
+            const dry = run('--dry-run', '--mode=strip-root-pointer');
+            // Then a dry run reports and writes nothing
+            assert.equal(dry.code, 0, dry.stderr);
+            assert.equal(lf(read('.claude/skills/mixed/SKILL.md')), before, 'dry run wrote the file');
+            assert.match(dry.stdout, /skill: \d+ changed/);
+            // When strip mode runs, then again
+            assert.equal(run('--mode=strip-root-pointer').code, 0);
+            const mixed = lf(read('.claude/skills/mixed/SKILL.md'));
+            const snapshot = Object.keys(STRIP_FILES).map(rel => [rel, read(rel)]);
+            const again = run('--mode=strip-root-pointer');
+            // Then the second run is a byte no-op and says so
+            assert.equal(again.code, 0, again.stderr);
+            assert.match(again.stdout, /Total files changed: 0/);
+            for (const [rel, bytes] of snapshot) assert.ok(read(rel).equals(bytes), `second run changed ${rel}`);
+            // And the alpha guide line and its reminder survive, while the universal body is gone
+            assert.equal(carrier.hasGuideEntry(mixed, 'alpha'), true);
+            assert.notEqual(markedBody(mixed, 'SYNC:alpha:reminder'), null);
+            assert.equal(markedBody(mixed, 'SYNC:critical-thinking-mindset'), null);
+        }
+    ));
+
+test('strip mode keeps each file in its own newline style; guide mode refuses a universal tag', () =>
+    withProject({ '.claude/skills/crlf/SKILL.md': universalCarrierText('crlf', { guides: true }).replace(/\n/g, '\r\n') }, ({ run, read }) => {
+        // Given a CRLF skill, When strip mode runs, Then it stays CRLF
+        assert.equal(run('--mode=strip-root-pointer').code, 0);
+        const text = String(read('.claude/skills/crlf/SKILL.md'));
+        assert.equal((text.match(/(?<!\r)\n/g) || []).length, 0, 'LF-only line found in a CRLF file');
+        assert.equal(carrier.rootPointerLines(text).length, 0);
+        // And guide mode never converts a universal tag
+        const refused = run('--mode=guide', '--tags', 'critical-thinking-mindset');
+        assert.equal(refused.code, 2);
+        assert.match(refused.stderr, /universal tags are never converted/);
+        // And strip mode takes no tag
+        assert.notEqual(run('--mode=strip-root-pointer', 'alpha').code, 0);
+    }));
+
+test('retired-pointer twins: the Python and JavaScript recognizers agree', () => {
+    const line = RETIRED_POINTER;
+    const cases = [
+        { name: 'well-formed', text: `x\n\n${line}\n\ny\n`, count: 1 },
+        { name: 'CRLF checkout', text: `x\r\n\r\n${line}\r\n\r\ny\r\n`, count: 1 },
+        { name: 'duplicate', text: `${line}\n\n${line}\n`, count: 2 },
+        { name: 'quoted inside a list', text: `- ${line}\n`, count: 0 },
+        { name: 'wrong lead', text: `> **Root protocols** — nothing\n`, count: 0 },
+        { name: 'none', text: '# title\n', count: 0 }
+    ];
+    const program = [
+        'import json, sys',
+        `sys.path.insert(0, ${JSON.stringify(SCRIPTS_DIR)})`,
+        'from sync_blocks import has_root_pointer, root_pointer_lines',
+        'data = json.loads(sys.stdin.read())',
+        'print(json.dumps({"texts": [{"has": has_root_pointer(t), "lines": root_pointer_lines(t)} for t in data["texts"]]}))'
+    ].join('\n');
+    const c = python();
+    const home = tempDir('ck-guide-py-');
+    try {
+        const r = spawnSync(c.command, [...c.baseArgs, '-c', program], {
+            input: JSON.stringify({ texts: cases.map(x => x.text) }),
+            encoding: 'utf8',
+            timeout: 60000,
+            env: childEnv(home, home)
+        });
+        assert.equal(r.status, 0, `python recognizer failed: ${r.stderr}`);
+        const py = JSON.parse(r.stdout);
+        // Then both recognizers agree case by case
+        cases.forEach((x, i) => {
+            assert.equal(carrier.rootPointerLines(x.text).length, x.count, `JS: ${x.name}`);
+            assert.equal(py.texts[i].lines.length, x.count, `Python: ${x.name}`);
+            assert.equal(carrier.hasRootPointer(x.text), py.texts[i].has, `has-pointer disagreement: ${x.name}`);
+            assert.equal(carrier.hasRootPointer(x.text), x.count > 0, `JS: ${x.name}`);
+        });
+    } finally {
+        fs.rmSync(home, { recursive: true, force: true });
+    }
 });

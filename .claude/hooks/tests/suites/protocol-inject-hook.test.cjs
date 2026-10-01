@@ -32,7 +32,9 @@ const { childEnv, codexLauncherCommand, makeHookTreeProject, removeTempDir } = r
 const HOOKS_DIR = path.resolve(__dirname, '..', '..');
 const LIB = path.join(HOOKS_DIR, 'lib', 'protocol-delivery.cjs');
 const REPO_ROOT = path.resolve(HOOKS_DIR, '..', '..');
-const GROUPS = ['review', 'evidence-trace', 'workflow-task', 'spec-test', 'design', 'universal'];
+// The index lists six groups; the five skill-load groups have an entry file (the universal bundle has its own: universal-hook-delivery.test.cjs).
+const INDEX_GROUPS = ['review', 'evidence-trace', 'workflow-task', 'spec-test', 'design', 'universal'];
+const ENTRY_GROUPS = INDEX_GROUPS.filter(group => group !== 'universal');
 const UNIVERSAL = ['ai-mistake-prevention', 'critical-thinking-mindset', 'project-protocol-overlay', 'project-reference-docs-guide'];
 const PROTOCOLS_DIR = '.claude/skills/shared/protocols';
 const BIN = 9500;
@@ -118,11 +120,11 @@ async function withFixture(fn) {
             parts: [{ file: `${PROTOCOLS_DIR}/${spec.tag}.md` }]
         };
     });
-    fx.write(`${PROTOCOLS_DIR}/index.json`, JSON.stringify({ binChars: BIN, groups: GROUPS, tags: rows }, null, 2));
+    fx.write(`${PROTOCOLS_DIR}/index.json`, JSON.stringify({ binChars: BIN, groups: INDEX_GROUPS, tags: rows }, null, 2));
     fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
         version: 1,
         binChars: BIN,
-        groups: Object.fromEntries(GROUPS.map(group => [group, { description: `${group} fixture`, tags: {} }])),
+        groups: Object.fromEntries(INDEX_GROUPS.map(group => [group, { description: `${group} fixture`, tags: {} }])),
         inlineSkills: []
     }, null, 2));
     fx.skill('conv-a', ['review-alpha', 'review-beta', 'evidence-alpha', 'spec-alpha']);
@@ -254,10 +256,10 @@ const LAUNCHER = discoverLauncher();
 
 const tests = [
     {
-        name: '[entry] each of the six groups has a bare three-line entry file whose group is a literal (BR-PDL-15)',
+        name: '[entry] each of the five skill-load groups has a bare three-line entry file whose group is a literal (BR-PDL-15)',
         fn: () => {
-            // Given the six fixed delivery groups (BR-PDL-03)
-            for (const group of GROUPS) {
+            // Given the five skill-load delivery groups (BR-PDL-03)
+            for (const group of ENTRY_GROUPS) {
                 // When the entry file for the group is read
                 const lines = fs.readFileSync(entryFile(group), 'utf8').replace(/\r\n/g, '\n').replace(/\n$/, '').split('\n');
                 // Then it is exactly the shebang, strict mode and one runHook call naming the group (no argv)
@@ -460,7 +462,7 @@ const tests = [
                 ['Read of an ordinary file', { hook_event_name: 'PostToolUse', tool_name: 'Read', tool_input: { file_path: path.join(fx.project, 'README.md') }, session_id: 's1', cwd: fx.project }],
                 ['second-host prompt without $', { hook_event_name: 'UserPromptSubmit', prompt: 'explain the build', turn_id: 't1', session_id: 's1', cwd: fx.project }]
             ];
-            for (const group of GROUPS) {
+            for (const group of ENTRY_GROUPS) {
                 for (const [label, input] of nonMatching) {
                     // Given a non-matching event and a module-load logger
                     const log = path.join(fx.temp, `load-${group}-${label.length}.jsonl`);

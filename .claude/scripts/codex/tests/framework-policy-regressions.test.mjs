@@ -41,7 +41,8 @@ async function readIfExists(rel) {
 
 test("orchestrator tier includes every proven direct-dispatch skill (CR-089)", async () => {
   const source = await read(".claude/scripts/sync-hooks-to-skills.py");
-  for (const skill of ["architecture-design", "demo-guide", "feature-presentation", "test"]) {
+  // The `architecture` skill keeps parallel-subagent-dispatch inline in its mode references, so it is not a tier member.
+  for (const skill of ["demo-guide", "feature-presentation", "test"]) {
     assert.match(source, new RegExp(`(?:^|[,\\s])\\"${skill}\\"(?:[,\\s]|$)`));
   }
   assert.match(source, /ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER \+ \["parallel-subagent-dispatch"\]/);
@@ -54,7 +55,7 @@ test("large ideas use embedded decomposition and ordinary workflows do not add a
     read(".claude/skills/workflow-idea-to-spec/SKILL.md"),
     read(".claude/skills/workflow-spec-to-pbi/SKILL.md"),
     read(".claude/skills/feature-presentation/SKILL.md"),
-    read(".claude/skills/pbi-mockup/SKILL.md"),
+    read(".claude/skills/pbi/references/mode-mockup.md"),
     read(".claude/skills/product-roadmap/SKILL.md"),
   ]);
   for (const content of [contract, ideaToPbi, ideaToSpec, specToPbi]) {
@@ -77,10 +78,10 @@ test("shared-protocol maintenance documents both skill tiers without fixed inven
   assert.doesNotMatch(skill, /all 163 skills|all 29 agents|183 updated/);
 });
 
-test("plan and plan-review keep decision-boundary altitude and verify-last order (CR-092, CR-093)", async () => {
+test("plan and plan --mode=review keep decision-boundary altitude and verify-last order (CR-092, CR-093)", async () => {
   const [plan, review] = await Promise.all([
     read(".claude/skills/plan/SKILL.md"),
-    read(".claude/skills/plan-review/SKILL.md"),
+    read(".claude/skills/plan/references/mode-review.md"),
   ]);
   assert.match(plan, /Important technical decisions/);
   assert.match(plan, /Areas and owners to touch/);
@@ -90,8 +91,8 @@ test("plan and plan-review keep decision-boundary altitude and verify-last order
   assert.match(review, /Verify-last/);
 });
 
-test("docs-update reserves spec and generated-doc paths to canonical child skills (CR-096)", async () => {
-  const skill = await read(".claude/skills/docs-update/SKILL.md");
+test("docs-manager --mode=update reserves spec and generated-doc paths to canonical child skills (CR-096)", async () => {
+  const skill = await read(".claude/skills/docs-manager/references/mode-update.md");
   assert.match(skill, /MUST NOT own any `docs\/specs\/\*\*`/);
   assert.match(skill, /explicitly reserved to its child skill/);
   assert.match(skill, /Exclude `docs\/specs\/\*\*`/);
@@ -112,7 +113,7 @@ function assertDocsUpdateStampPolicy(skillInput, localDocsIndexFixture) {
   const skill = skillInput.replace(/\r\n/g, "\n");
   const start = skill.indexOf("### Step 1.6: Stamp Discipline (BLOCKING)");
   const end = skill.indexOf("### Step 1.7: Phase 1 Output", start);
-  assert.ok(start >= 0 && end > start, "docs-update must keep its bounded Step 1.6 stamp policy");
+  assert.ok(start >= 0 && end > start, "docs-manager --mode=update must keep its bounded Step 1.6 stamp policy");
   const stampPolicy = skill.slice(start, end);
 
   assert.match(stampPolicy, /Resolve and read `docs-index-reference\.md`[\s\S]*`docsRoots\.projectReference\.path`/);
@@ -145,8 +146,8 @@ function assertDocsUpdateStampPolicy(skillInput, localDocsIndexFixture) {
   assert.doesNotMatch(skill, /Last verified[^\n.]{0,100}(?:must|shall|always|required)[^\n.]{0,80}(?:every|all) impact-scoped/i, "there must be no universal Last verified mandate");
 }
 
-test("docs-update keeps local stamp rules optional and the no-rule default portable (TC-FIT-026)", async () => {
-  const skill = await read(".claude/skills/docs-update/SKILL.md");
+test("docs-manager --mode=update keeps local stamp rules optional and the no-rule default portable (TC-FIT-026)", async () => {
+  const skill = await read(".claude/skills/docs-manager/references/mode-update.md");
 
   assert.equal(hasImpactScopedLastVerifiedRule(NO_STAMP_POLICY_INDEX_FIXTURE), false);
   assert.equal(hasImpactScopedLastVerifiedRule(EXPLICIT_LAST_VERIFIED_INDEX_FIXTURE), true);
@@ -181,7 +182,7 @@ test("the configured docs-index Last verified rule is honored when present (TC-F
   const config = JSON.parse(configInput);
   const referenceRoot = getDocsRoot("projectReference", config).replace(/\/+$/, "");
   const [skill, localDocsIndex] = await Promise.all([
-    read(".claude/skills/docs-update/SKILL.md"),
+    read(".claude/skills/docs-manager/references/mode-update.md"),
     readIfExists(`${referenceRoot}/docs-index-reference.md`),
   ]);
   if (localDocsIndex === null) {
@@ -204,12 +205,12 @@ test("the configured docs-index Last verified rule is honored when present (TC-F
   assert.match(stampRule, /files with no scan stamp \(`CLAUDE\.md`, `\.claude\/\*\*`\) get \*\*no\*\* stamp/i);
 });
 
-test("docs-manager follows the docs-update local stamp contract", async () => {
+test("docs-manager follows the docs-manager --mode=update local stamp contract", async () => {
   const role = (await read(".claude/agents/docs-manager.md")).replace(/\r\n/g, "\n");
   const stampRule = role.split("\n").find((line) => /Stamp discipline:/i.test(line));
 
   assert.ok(stampRule, "docs-manager must keep one explicit stamp rule");
-  assert.match(stampRule, /follow Step 1\.6 of `\.claude\/skills\/docs-update\/SKILL\.md`/i);
+  assert.match(stampRule, /follow Step 1\.6 of `\.claude\/skills\/docs-manager\/references\/mode-update\.md`/i);
   assert.match(stampRule, /update `Last verified` only when the resolved local docs-index explicitly requires it/i);
   assert.match(stampRule, /Preserve explicit no-stamp paths such as `CLAUDE\.md` and `\.claude\/\*\*`/);
   assert.match(stampRule, /record the pass in the untracked ledger/i);
@@ -219,7 +220,7 @@ test("docs-manager follows the docs-update local stamp contract", async () => {
 test("parallel and adjudication contracts retain fixed-order and exact artifact semantics (CR-024, CR-099..101)", async () => {
   const [canonical, protocol, guide, understand, scale] = await Promise.all([
     read(".claude/skills/shared/sync-inline-versions.md"),
-    read(".claude/scripts/lib/hookless-prompt-protocol.cjs"),
+    read(".claude/skills/shared/protocols/parallel-subagent-dispatch.md"),
     read(".claude/skills/shared/sub-agent-selection-guide.md"),
     read(".claude/skills/understand/SKILL.md"),
     read(".claude/skills/understand/references/scale-protocol.md"),
@@ -259,17 +260,17 @@ test("review convergence uses one blocking predicate and byte-identical low-only
   assert.match(loop, /changed fingerprint.*re-review/i);
 
   const reviewCarriers = [
-    ".claude/skills/architecture-review-full/SKILL.md",
-    ".claude/skills/architecture-review/SKILL.md",
-    ".claude/skills/artifact-review/SKILL.md",
+    ".claude/skills/architecture/references/mode-full.md",
+    ".claude/skills/architecture/references/mode-review.md",
     ".claude/skills/changes-review/SKILL.md",
     ".claude/skills/code-quality-review/SKILL.md",
-    ".claude/skills/domain-entities-review/SKILL.md",
+    ".claude/skills/domain-analysis/references/mode-review.md",
     ".claude/skills/knowledge-review/SKILL.md",
+    ".claude/skills/pbi/references/mode-review.md",
     ".claude/skills/performance-review/SKILL.md",
     ".claude/skills/production-readiness-review/SKILL.md",
     ".claude/skills/security-audit/SKILL.md",
-    ".claude/skills/ui-review/SKILL.md",
+    ".claude/skills/ui-design/references/mode-review.md",
     ".claude/skills/why-review/SKILL.md",
   ];
   const projection = await readIfExists(`.claude/skills/shared/protocols/${BLOCKING_PREDICATE_TAG}.md`);
@@ -307,16 +308,16 @@ test("CR-017 carrier predicate accepts a guide entry backed by its projection an
   assert.equal(carriesBlockingPredicate(projection, null, { acceptGuide: false }), true);
 });
 
-test("investigation and fan-out skills retain graph and shard discipline (CR-020..023)", async () => {
+test("investigation and fan-out skills keep the graph hint optional and retain shard discipline (CR-020..023)", async () => {
   const [investigate, discovery, understand, scale, scan] = await Promise.all([
     read(".claude/skills/investigate/SKILL.md"),
-    read(".claude/skills/spec-discovery/SKILL.md"),
+    read(".claude/skills/spec/references/mode-discovery.md"),
     read(".claude/skills/understand/SKILL.md"),
     read(".claude/skills/understand/references/scale-protocol.md"),
     read(".claude/skills/scan/SKILL.md"),
   ]);
-  assert.match(investigate, /Post-Grep Trace Trigger/i);
-  assert.match(investigate, /grep CANNOT find/i);
+  assert.match(investigate, /Post-Grep Graph Hint \(optional\)/i);
+  assert.match(investigate, /grep may not reveal/i);
   assert.match(discovery, /unique (?:artifact|report path)/i);
   assert.match(discovery, /reducer/i);
   assert.match(understand, /S2.*never assigns fragment ownership/i);
@@ -329,18 +330,18 @@ test("investigation and fan-out skills retain graph and shard discipline (CR-020
   assert.match(scan, /sole writer/i);
 });
 
-test("mutating workflow closures refresh domain-entity references before docs-update or delegate to workflow-review-changes (CR-102)", async () => {
+test("mutating workflow closures refresh domain-entity references before docs-manager --mode=update or delegate to workflow-review-changes (CR-102)", async () => {
   const workflows = JSON.parse(await read(".claude/workflows.json")).workflows;
-  // Workflows that still own the terminal refresh carry scan -> docs-update explicitly.
+  // Workflows that still own the terminal refresh carry scan -> docs-manager --mode=update explicitly.
   for (const id of ["workflow-review-changes"]) {
     const sequence = workflows[id].sequence;
     const scanIndex = sequence.indexOf("scan --target=domain-entities");
     assert.ok(scanIndex >= 0, `${id} must carry the refresh step`);
-    assert.equal(sequence[scanIndex + 1], "docs-update");
+    assert.equal(sequence[scanIndex + 1], "docs-manager --mode=update");
     assert.match(workflows[id].preActions.domainEntityReferenceRefresh, /cited skip reason/);
   }
   // Workflows that delegate their review/docs tail to the nested workflow-review-changes must name
-  // it — the nested workflow owns the scan -> docs-update refresh and the cited-skip-reason rule.
+  // it — the nested workflow owns the scan -> docs-manager --mode=update refresh and the cited-skip-reason rule.
   for (const id of ["workflow-greenfield-init", "workflow-refactor"]) {
     assert.ok(
       workflows[id].sequence.some((step) => (typeof step === "string" ? step : step?.skill) === "workflow-review-changes"),
@@ -349,25 +350,26 @@ test("mutating workflow closures refresh domain-entity references before docs-up
   }
 });
 
-test("plan never invokes plan-review and only offers it after a standalone plan", async () => {
+test("plan creation never runs --mode=review and only offers it after a standalone plan", async () => {
   const plan = await read(".claude/skills/plan/SKILL.md");
-  assert.match(plan, /Never invoke `plan-review` or another review skill/);
-  assert.match(plan, /Standalone invocation:\*{0,2}[\s\S]*(?:ask|asking) exactly one optional question: `Run plan-review on this plan\?`/);
+  assert.match(plan, /Plan creation never runs `--mode=review` or another review skill/);
+  assert.match(plan, /Standalone invocation:\*{0,2}[\s\S]*(?:ask|asking) exactly one optional question: `Run \/plan --mode=review on this plan\?`/);
   assert.match(plan, /Workflow invocation:\*{0,2}[\s\S]*Do not ask about review, execution, or other next steps/);
-  assert.doesNotMatch(plan, /invoke `plan-review` automatically|then run `plan-review`/i);
+  assert.doesNotMatch(plan, /run `--mode=review` automatically|then run `\/plan --mode=review`/i);
 });
 
-test("plan-review performs exactly one read-only review round", async () => {
+test("plan --mode=review performs exactly one read-only review round", async () => {
   const [review, planSkill, planner] = await Promise.all([
-    read(".claude/skills/plan-review/SKILL.md"),
+    read(".claude/skills/plan/references/mode-review.md"),
     read(".claude/skills/plan/SKILL.md"),
     read(".claude/agents/planner.md"),
   ]);
   const text = review.replace(/\r\n/g, "\n");
-  const frontmatter = text.slice(0, text.indexOf("\n---", 4));
+  const planText = planSkill.replace(/\r\n/g, "\n");
+  const frontmatter = planText.slice(0, planText.indexOf("\n---", 4));
   const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## One-Round Contract"));
   const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
-  assert.match(frontmatter, /maximum one review round per invocation/);
+  assert.match(frontmatter, /\bone (?:evidence-backed )?(?:review )?(?:pass|round)\b/, "frontmatter advertises the single-pass cap");
   for (const [where, section] of [["Quick Summary", summary], ["Closing Reminders", closing]]) {
     assert.match(section, /one review round|ONE ROUND MAXIMUM/i, `${where} must state the single-pass cap`);
     assert.match(section, /never (?:fix the plan|edit the plan)|never edit the plan/i, `${where} must preserve the read-only boundary`);
@@ -376,19 +378,20 @@ test("plan-review performs exactly one read-only review round", async () => {
   assert.match(text, /Stop\. Do not apply fixes or re-review/);
   assert.match(text, /another review requires a new explicit invocation/i);
   assert.doesNotMatch(text, /OVERRIDE:double-round-trip-review|SYNC:double-round-trip-review|extendable ONCE|fresh full re-review/i);
-  assert.match(planSkill, /Never invoke `plan-review`/);
-  assert.match(planner, /never invoke `\/plan-review` automatically/);
+  assert.match(planSkill, /Plan creation never runs `--mode=review`/);
+  assert.match(planSkill, /When `--mode=review`, read `references\/mode-review\.md` in full FIRST/);
+  assert.match(planner, /never invoke `\/plan --mode=review` automatically/);
   const connections = planner.slice(planner.indexOf("<!-- AGENT-SKILL-CONNECTIONS:START -->"), planner.indexOf("<!-- AGENT-SKILL-CONNECTIONS:END -->"));
   assert.match(connections, /- `plan`/);
-  assert.doesNotMatch(connections, /plan-review/, "planner must not preload the optional review contract");
+  assert.doesNotMatch(connections, /mode-review|One-Round Contract/, "planner must not preload the optional review contract");
 });
 
 // The retired standalone loop skill now lives as `changes-review --fix-loop`: the mode must keep every
 // loop gate (scope + Goal Contract, convergence binding, round loop, convergence/escalation, fresh
-// re-review, terminal docs-update) while the flagless default path keeps its own self-fix loop.
+// re-review, terminal docs-manager --mode=update) while the flagless default path keeps its own self-fix loop.
 function assertChangesReviewFixLoop(text) {
   const frontmatter = text.slice(0, text.indexOf("\n---", 4));
-  assert.match(frontmatter, /description: '[^'\n]*Flag: --fix-loop reviews, fixes and re-reviews until converged\.'/);
+  assert.match(frontmatter, /^description: '[^'\n]*--fix-loop reviews, fixes,? (?:and )?re-reviews[^'\n]*'$/m);
   const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("**Workflow:**"));
   assert.match(summary, /Optional `--fix-loop` mode \(standalone-only\) DECOUPLES find from fix/);
   const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
@@ -436,7 +439,7 @@ test("changes-review --fix-loop carries the retired loop skill's gates without c
   await assert.rejects(fs.access(path.join(repoRoot, ".claude", "skills", retiredLoopSkill)), "the retired loop skill directory must stay removed");
 });
 
-// Given the integration-test convergence loop is an OPTIONAL `--fix-loop` mode of integration-test-verify
+// Given the integration-test convergence loop is an OPTIONAL `--fix-loop` flag of `integration-test --mode=verify`
 // (not a separate skill), When its documentation and workflow wiring are read, Then the flag is advertised
 // top and bottom, the mode is delimited, every loop gate survives (five-way Fault Verdict, owning-layer fix,
 // per-round fix-diff review, Round Integrity, 2-consecutive-green exit, cap/escalation, Goal Contract binding),
@@ -456,7 +459,7 @@ function carriesProtocolTag(text, tag, skillsDir = path.join(repoRoot, ".claude"
   return existsSync(projection) && readFileSync(projection, "utf8").trim().length > 0;
 }
 
-test("integration-test-verify protocol carrier check accepts a guide entry backed by its projection (TC-PDL-065, N1)", async () => {
+test("integration-test --mode=verify protocol carrier check accepts a guide entry backed by its projection (TC-PDL-065, N1)", async () => {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "n1-guide-"));
   try {
     // Given a skills root whose projection file holds the protocol, and a skill carrying only its guide line
@@ -483,14 +486,30 @@ test("integration-test-verify protocol carrier check accepts a guide entry backe
   }
 });
 
-function assertIntegrationTestVerifyFixLoop(text) {
-  assert.equal(text.split("<!-- FIX-LOOP-MODE:START -->").length - 1, 1, "exactly one delimited --fix-loop mode opener");
-  assert.equal(text.split("<!-- FIX-LOOP-MODE:END -->").length - 1, 1, "exactly one delimited --fix-loop mode closer");
-  const mode = text.match(/<!-- FIX-LOOP-MODE:START -->([\s\S]*?)<!-- FIX-LOOP-MODE:END -->/)?.[1] ?? "";
+// The mode section lives in references/fix-loop.md (one delimited block, no SYNC body); the verify-mode reference
+// (`text`, references/mode-verify.md) holds the BLOCKING first-read pointer, the flag advertisement, and the inline
+// protocol bodies; integration-test/SKILL.md (`itSkillText`) holds the mode dispatch, the frontmatter and the protocol
+// guide lines. `ref` is the fix-loop reference text.
+let itSkillText = "";
+function assertIntegrationTestVerifyFixLoop(text, ref) {
+  assert.equal(text.includes("<!-- FIX-LOOP-MODE:START -->") || text.includes("<!-- FIX-LOOP-MODE:END -->"), false, "mode-verify.md holds no FIX-LOOP-MODE block (the mode lives in references/fix-loop.md)");
+  assert.equal(ref.split("<!-- FIX-LOOP-MODE:START -->").length - 1, 1, "exactly one delimited --fix-loop mode opener");
+  assert.equal(ref.split("<!-- FIX-LOOP-MODE:END -->").length - 1, 1, "exactly one delimited --fix-loop mode closer");
+  const mode = ref.match(/<!-- FIX-LOOP-MODE:START -->([\s\S]*?)<!-- FIX-LOOP-MODE:END -->/)?.[1] ?? "";
+  // The default path loads only the pointer: a mandatory first read of the reference when the flag is present.
+  assert.match(text, /## Mode: `--fix-loop` — Read `references\/fix-loop\.md` First \(BLOCKING\)/, "mode-verify.md carries the BLOCKING first-read pointer heading");
+  assert.match(text, /When the flag is present, read `references\/fix-loop\.md` in full FIRST \(BLOCKING\)/);
+  assert.match(text, /\*\*When `--fix-loop` is passed, read `references\/fix-loop\.md` FIRST \(BLOCKING\)/, "Quick Summary points at the reference");
+  // The shared convergence-loop skeleton is read from its single owner, by the reference and by the default flake rule.
+  assert.match(ref, /\.claude\/skills\/shared\/verify-convergence-loop\.md` — read it before round 1/);
+  assert.match(text, /READ `\.claude\/skills\/shared\/verify-convergence-loop\.md` § 1 whenever a required test is red in one run and green in another/);
   assert.match(mode, /^\s*## Mode: `--fix-loop`/, "the delimited block is the --fix-loop mode section");
-  const frontmatter = text.slice(0, text.indexOf("\n---", 4));
-  assert.match(frontmatter, /^version: 1\.1\.0$/m);
-  assert.match(frontmatter, /^description: '[^'\n]*Flag: --fix-loop[^'\n]*'$/m, "frontmatter description advertises the flag");
+  // The surviving skill dispatches the verify mode with a BLOCKING read-first line and advertises the flag.
+  assert.match(itSkillText, /\*\*\[BLOCKING\]\*\* When `--mode=verify`, read `references\/mode-verify\.md` in full FIRST/, "SKILL.md dispatches --mode=verify");
+  assert.match(itSkillText, /read `references\/fix-loop\.md` in full before any loop work/, "SKILL.md points --fix-loop at its reference");
+  const frontmatter = itSkillText.slice(0, itSkillText.indexOf("\n---", 4));
+  assert.match(frontmatter, /^version: 3\.0\.0$/m);
+  assert.match(frontmatter, /^description: '[^'\n]*--fix-loop[^'\n]*'$/m, "frontmatter description advertises the flag");
   const summary = text.slice(text.indexOf("## Quick Summary"), text.indexOf("## First Principle"));
   assert.match(summary, /\*\*`--fix-loop` \(OPTIONAL mode flag — absent by default, and absence changes nothing in this skill\):\*\*/);
   const closing = text.slice(text.lastIndexOf("## Closing Reminders"));
@@ -512,7 +531,7 @@ function assertIntegrationTestVerifyFixLoop(text) {
   for (const verdict of ["TEST-WRONG", "TEST-NOT-OPTIMAL", "SOURCE-WRONG", "ENVIRONMENT-BLOCKED", "AMBIGUOUS"]) {
     assert.match(mode, new RegExp(`\\| \\*\\*${verdict}\\*\\*\\s+\\|`), `verdict row ${verdict}`);
   }
-  assert.match(mode, /`\/integration-test-review` — REPORT-ONLY/);
+  assert.match(mode, /`\/integration-test --mode=review` — REPORT-ONLY/);
   assert.match(mode, /Fix the source at the \*\*lowest owning layer\*\*/);
   assert.match(mode, /CONDITIONAL — run `\/changes-review` on the round's fix diff only when ANY fix landed/);
   assert.match(mode, /Round Integrity Check \(no fake green\) — BLOCKING/);
@@ -521,20 +540,22 @@ function assertIntegrationTestVerifyFixLoop(text) {
   assert.match(mode, /Round cap `N` hit with failures still open/);
   assert.match(mode, /\*\*Increasing failures = STOP\.\*\*/);
   // Shared protocols referenced, not re-copied, and carried once in the skill body.
-  assert.match(mode, /are carried once below; never re-copy them into this section/);
+  assert.match(mode, /are carried once \(guide lines in `integration-test\/SKILL\.md`, full bodies in `references\/mode-verify\.md`\); never re-copy them into this section/);
   assert.doesNotMatch(mode, /<!-- SYNC:/, "mode section references shared protocols instead of duplicating SYNC blocks");
   for (const tag of ["goal-contract-satisfaction-loop", "trade-off-interrogation-gate", "test-failure-fault-adjudication", "integration-test-execution-discipline"]) {
-    assert.ok(carriesProtocolTag(text, tag), `carries SYNC:${tag} (inline body, or a guide entry backed by its projection file)`);
+    assert.ok(carriesProtocolTag(`${itSkillText}\n${text}`, tag), `carries SYNC:${tag} (inline body, or a guide entry backed by its projection file)`);
   }
-  assert.ok(!text.includes(RETIRED_IT_LOOP_SKILL), "no reference to the retired standalone loop skill");
+  assert.ok(!text.includes(RETIRED_IT_LOOP_SKILL) && !ref.includes(RETIRED_IT_LOOP_SKILL), "no reference to the retired standalone loop skill");
 }
 
-test("integration-test-verify --fix-loop carries the retired loop skill's gates without changing the default path", async () => {
-  const text = (await read(".claude/skills/integration-test-verify/SKILL.md")).replace(/\r\n/g, "\n");
-  assertIntegrationTestVerifyFixLoop(text);
+test("integration-test --mode=verify --fix-loop carries the retired loop skill's gates without changing the default path", async () => {
+  itSkillText = (await read(".claude/skills/integration-test/SKILL.md")).replace(/\r\n/g, "\n");
+  const text = (await read(".claude/skills/integration-test/references/mode-verify.md")).replace(/\r\n/g, "\n");
+  const ref = (await read(".claude/skills/integration-test/references/fix-loop.md")).replace(/\r\n/g, "\n");
+  assertIntegrationTestVerifyFixLoop(text, ref);
   // The flagless default path keeps its own snapshot contract.
   assert.match(text, /\*\*Filter:\*\* Run only projects relevant to the current change, unless the user explicitly asks for all\./);
-  assert.match(text, /6\. \*\*RECOMMEND `\/workflow-integration-test-green` whenever this run ends with ANY failure\.\*\*/);
+  assert.match(text, /6\. \*\*RECOMMEND `\/workflow-integration-test --mode=green` whenever this run ends with ANY failure\.\*\*/);
   for (const [before, after] of [
     ["**MUST ATTENTION NEVER self-invoke with the flag.** Each round's verification is THIS skill's default pass (Steps 1–5) WITHOUT `--fix-loop`", "**Re-invoke with the flag each round.**"],
     ["Round Integrity Check (no fake green) — BLOCKING", "Round Integrity Check (advisory)"],
@@ -542,15 +563,19 @@ test("integration-test-verify --fix-loop carries the retired loop skill's gates 
     ["**Increasing failures = STOP.**", "**Increasing failures = continue.**"],
     ["<!-- FIX-LOOP-MODE:END -->", ""],
   ]) {
-    const mutant = text.replaceAll(before, after);
-    assert.notEqual(mutant, text, `mutation anchor exists: ${before}`);
-    assert.throws(() => assertIntegrationTestVerifyFixLoop(mutant), { code: "ERR_ASSERTION" });
+    const mutantRef = ref.replaceAll(before, after);
+    const mutantText = text.replaceAll(before, after);
+    assert.ok(mutantRef !== ref || mutantText !== text, `mutation anchor exists: ${before}`);
+    assert.throws(() => assertIntegrationTestVerifyFixLoop(mutantText, mutantRef), { code: "ERR_ASSERTION" });
   }
-  assert.throws(() => assertIntegrationTestVerifyFixLoop(`${text}\nSee /${RETIRED_IT_LOOP_SKILL}.`), { code: "ERR_ASSERTION" });
+  // The pointer is load-bearing: dropping the mandatory first read, or inlining the mode block back into SKILL.md, fails.
+  assert.throws(() => assertIntegrationTestVerifyFixLoop(text.replaceAll("read `references/fix-loop.md` in full FIRST (BLOCKING)", "may read references/fix-loop.md"), ref), { code: "ERR_ASSERTION" });
+  assert.throws(() => assertIntegrationTestVerifyFixLoop(`${text}\n${ref}`, ref), { code: "ERR_ASSERTION" });
+  assert.throws(() => assertIntegrationTestVerifyFixLoop(`${text}\nSee /${RETIRED_IT_LOOP_SKILL}.`, ref), { code: "ERR_ASSERTION" });
   await assert.rejects(fs.access(path.join(repoRoot, ".claude", "skills", RETIRED_IT_LOOP_SKILL)), "the retired loop skill directory must stay removed");
-  // The green workflow drives the loop through the flag on the surviving skill.
+  // The green variant drives the loop through the flag on the surviving skill.
   const workflows = JSON.parse(await read(".claude/workflows.json")).workflows;
-  const sequence = workflows["workflow-integration-test-green"].sequence;
-  assert.equal(typeof sequence[1] === "string" ? sequence[1] : [sequence[1].skill, sequence[1].args].filter(Boolean).join(" "), "integration-test-verify --fix-loop");
+  const sequence = workflows["workflow-integration-test"].variants.green.sequence;
+  assert.equal(typeof sequence[1] === "string" ? sequence[1] : [sequence[1].skill, sequence[1].args].filter(Boolean).join(" "), "integration-test --mode=verify --fix-loop");
   assert.ok(!JSON.stringify(workflows).includes(RETIRED_IT_LOOP_SKILL), "workflows.json must not name the retired loop skill");
 });

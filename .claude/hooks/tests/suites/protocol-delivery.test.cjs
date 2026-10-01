@@ -6,14 +6,13 @@
  * `docs/project-config.json` overrides it).
  *
  * Guards: every load path resolves its skill (BR-PDL-15, BR-PDL-06, BR-PDL-08), untrusted names and
- * paths open nothing (BR-PDL-10), root-carried and inline rules are never duplicated (BR-PDL-04,
- * BR-PDL-11), undeclared skills stay inert (BR-PDL-01), and every message fits the bin while losing
- * no protocol (BR-PDL-03, BR-PDL-05). Each test name starts with its TC id (spec join key).
+ * paths open nothing (BR-PDL-10), the universal bundle and inline rules are never delivered by a skill
+ * load (BR-PDL-04, BR-PDL-11), undeclared skills stay inert (BR-PDL-01), and every message fits the bin
+ * while losing no protocol (BR-PDL-03, BR-PDL-05). Each test name starts with its TC id (spec join key).
  *
  * Portability: every case plans against its own temp fixture project (projection, group data,
  * skills, agents) with an empty ledger view; the lib is pure, so no environment key is read — the
- * project root, the universal-guides setting and the file reader are injected. Fixtures are removed
- * in `finally`.
+ * project root and the file reader are injected. Fixtures are removed in `finally`.
  */
 
 const assert = require('node:assert/strict');
@@ -28,6 +27,7 @@ const CARRIER = path.resolve(__dirname, '..', '..', '..', 'scripts', 'lib', 'pro
 const carrier = require(CARRIER);
 
 const GROUPS = ['review', 'evidence-trace', 'workflow-task', 'spec-test', 'design', 'universal'];
+// Fixture stand-ins for the hook-delivered universal bundle: published in the index, never delivered by a skill load.
 const UNIVERSAL = ['ai-mistake-prevention', 'critical-thinking-mindset', 'project-protocol-overlay', 'project-reference-docs-guide'];
 const PROTOCOLS_DIR = '.claude/skills/shared/protocols';
 const BIN = 9500;
@@ -103,7 +103,7 @@ function withFixture(fn) {
     }
 }
 
-/** The standard fixture: three review tags, one evidence tag, the four universal tags, six skills, four agents. */
+/** The standard fixture: three review tags, one evidence tag, four universal tags, six skills, four agents. */
 function standard(fx, { inlineSkills } = {}) {
     fx.projection([
         { tag: 'review-alpha', group: 'review' },
@@ -112,7 +112,7 @@ function standard(fx, { inlineSkills } = {}) {
         { tag: 'evidence-alpha', group: 'evidence-trace' },
         ...UNIVERSAL.map(tag => ({ tag, group: 'universal' }))
     ], inlineSkills);
-    // Declares a duplicate, a root-carried tag by mistake and an unknown tag.
+    // Declares a duplicate, a universal tag by mistake and an unknown tag.
     fx.skill('conv-a', guideBlock(['review-alpha', 'review-beta', 'evidence-alpha', 'review-alpha', 'critical-thinking-mindset', 'not-in-index']));
     fx.skill('conv-b', guideBlock(['review-gamma']));
     fx.skill('review-free', guideBlock(['evidence-alpha']));
@@ -140,35 +140,83 @@ function spyReader() {
     return { opened, readFile };
 }
 
-/**
- * The shipped projection's universal rows and texts (`.claude/` travels with the bundle, so this reads the
- * framework's own published output, never the adopter's project files). `parts` lists every part file with
- * its text as delivered (trailing newlines stripped) and the line that names it when it overflows.
- */
-function shippedUniversal() {
-    const claudeDir = path.resolve(__dirname, '..', '..', '..');
-    const index = JSON.parse(fs.readFileSync(path.join(claudeDir, 'skills', 'shared', 'protocols', 'index.json'), 'utf8'));
-    const rows = index.tags.filter(row => row.group === 'universal');
-    assert.deepEqual(rows.map(row => row.tag).sort(), [...UNIVERSAL].sort(), 'the shipped universal group holds the four root-carried tags');
-    const files = [];
-    const parts = [];
-    for (const row of rows) {
-        row.parts.forEach((part, i) => {
-            const raw = fs.readFileSync(path.join(claudeDir, '..', ...part.file.split('/')), 'utf8');
-            files.push([part.file, raw]);
-            const label = row.parts.length > 1 ? ` part ${i + 1} of ${row.parts.length}` : '';
-            parts.push({ tag: row.tag, text: raw.replace(/\n+$/, ''), nameLine: `- \`${row.tag}\`${label} → ${part.file}` });
-        });
-    }
-    return { bin: index.binChars, rows, files, parts };
-}
-
 function plan(fx, input, group, extra = {}) {
     return delivery.planDelivery(input, group, {
         projectRoot: fx.project,
-        requireUniversalGuides: true,
         isDelivered: () => false,
         ...extra
+    });
+}
+
+/** BR-PDL-16: an unreadable trigger context delivers the gated protocol; a readable one with no match withholds it. */
+function unreadableTriggerContextDelivers() {
+    withFixture(fx => {
+        // Given a gated design tag beside an ungated one
+        fx.projection([
+            { tag: 'design-gated', group: 'design' },
+            { tag: 'design-plain', group: 'design' }
+        ]);
+        fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
+            version: 1,
+            deliveryTriggers: { ui: { pattern: '\\b(?:screen|mockup)\\b', pathPattern: '\\.(?:tsx|vue)\\b', skills: [] } },
+            groups: { design: { tags: { 'design-gated': { summary: 's', when: 'w', trigger: 'ui' }, 'design-plain': { summary: 's', when: 'w' } } } },
+            inlineSkills: []
+        }));
+        fx.skill('mixed', guideBlock(['design-gated', 'design-plain']));
+        const both = ['design-gated', 'design-plain'];
+        const load = skillLoad('mixed');
+        // When the context provider throws, returns a non-object, or reports itself unreadable
+        // Then the gated protocol is delivered in full: a failing rule never withholds a protocol
+        assertTags(plan(fx, load, 'design', { triggerContext: () => { throw new Error('unreadable'); } }), both, 'provider throws');
+        assertTags(plan(fx, load, 'design', { triggerContext: () => null }), both, 'provider returns a non-object');
+        assertTags(plan(fx, load, 'design', { triggerContext: () => ({ prompts: '', transcript: '', unreadable: true }) }), both, 'provider reports unreadable');
+        // And a readable context with no UI signal still withholds it (the gate is not a no-op)
+        const readable = plan(fx, load, 'design', { triggerContext: () => ({ prompts: 'optimize the batch import query', transcript: '', unreadable: false }) });
+        assertTags(readable, ['design-plain'], 'readable, no match');
+        assert.ok(!readable.text.includes('design-gated'), 'a withheld protocol leaked');
+
+        // Given the real context builder: a session with no record file at all
+        const input = { hook_event_name: 'PostToolUse', session_id: 's1', transcript_path: path.join(fx.root, 'missing.jsonl') };
+        const env = { HOME: fx.root, USERPROFILE: fx.root, TMPDIR: fx.root, TEMP: fx.root, TMP: fx.root };
+        // When the record is absent (ENOENT), the context is readable and empty
+        assert.equal(delivery.buildTriggerContext(fx.project, input, env).unreadable, false, 'an absent record is not an unreadable one');
+        // Given an existing prompt record corrupted by an interrupted or external write
+        const promptFile = fx.abs('tmp/prompt-ledger/s1/ledger.json');
+        fs.mkdirSync(path.dirname(promptFile), { recursive: true });
+        for (const malformed of ['{bad json', JSON.stringify({ version: 1, entries: null })]) {
+            fs.writeFileSync(promptFile, malformed);
+            // When the real builder reads it, Then full gated guidance must still arrive
+            const context = delivery.buildTriggerContext(fx.project, input, env);
+            assert.equal(context.unreadable, true, 'an existing malformed prompt record is unreadable');
+            assertTags(plan(fx, load, 'design', { triggerContext: () => context }), both, 'corrupt prompt record opens the gate');
+        }
+        // Given a non-file source, representing a failed/invalid replacement at the storage boundary
+        fs.unlinkSync(promptFile);
+        fs.mkdirSync(promptFile);
+        // When reading fails, Then it is not mistaken for a legitimately absent record
+        assert.equal(delivery.buildTriggerContext(fx.project, input, env).unreadable, true, 'prompt read failure opens the gate');
+        fs.rmdirSync(promptFile);
+        // And healthy prompt records keep the subject gate meaningful in either direction
+        for (const prefix of ['', '\uFEFF']) {
+            for (const [text, expected] of [['optimize the batch query', ['design-plain']], ['build a screen', both]]) {
+                // Given a healthy UTF-8 record, with or without its optional byte-order mark
+                const record = { version: 1, entries: [{ text }] };
+                fs.writeFileSync(promptFile, prefix + JSON.stringify(record));
+                // When either reader loads it, Then the ledger and subject gate retain their meaning
+                const context = delivery.buildTriggerContext(fx.project, input, env);
+                assert.equal(context.unreadable, false, 'healthy prompt record remains readable');
+                assertTags(plan(fx, load, 'design', { triggerContext: () => context }), expected, 'healthy prompt subject gate');
+                assert.deepEqual(require('../../lib/prompt-ledger-store.cjs').readLedger(path.dirname(promptFile)), record, 'nullable reader preserves healthy records');
+            }
+        }
+        // When the record cannot be opened for a reason other than absence (a path with a NUL byte is refused on every OS, standing in for a locked or corrupt record)
+        const broken = delivery.buildTriggerContext(fx.project, { ...input, transcript_path: path.join(fx.root, 'bad\0.jsonl') }, env);
+        // Then the context is unreadable, so the gate opens
+        assert.equal(broken.unreadable, true, 'an unreadable record marks the context unreadable');
+        // And a readable record with text is kept as the transcript
+        fs.writeFileSync(path.join(fx.root, 'ok.jsonl'), '{"file_path":"a.tsx"}');
+        const ok = delivery.buildTriggerContext(fx.project, { ...input, transcript_path: path.join(fx.root, 'ok.jsonl') }, env);
+        assert.deepEqual([ok.unreadable, ok.transcript], [false, '{"file_path":"a.tsx"}'], 'a readable record');
     });
 }
 
@@ -338,22 +386,19 @@ const tests = [
         })
     },
     {
-        name: 'TC-PDL-012 an Explore or Plan agent receives only the universal group',
+        name: 'TC-PDL-012 no skill-load group delivers anything to an Explore or Plan agent, or to an agent that preloads no skill',
         fn: () => withFixture(fx => {
-            // Given the universal group published and the root file relied on
+            // Given the universal tags published and agents that preload nothing (the universal bundle reaches them through the universal hook)
             standard(fx);
-            for (const type of ['Explore', 'Plan']) {
+            for (const type of ['Explore', 'Plan', 'fx-noskills', 'general-purpose']) {
                 const spy = spyReader();
-                // When the built-in agent starts
+                // When the agent starts
                 const all = planAll(fx, agentStart(type), { readFile: spy.readFile });
-                // Then only the universal group is returned, with all four texts
-                assertTags(all.universal, UNIVERSAL, `${type} universal`);
-                for (const group of GROUPS.filter(g => g !== 'universal')) assertEmpty(all[group], `${type} ${group}`);
-                assert.ok(spy.opened.every(file => !file.includes(`${path.sep}agents${path.sep}`) && !file.endsWith('SKILL.md')), `${type}: an agent or skill file was opened`);
+                // Then no group returns anything, the universal group included
+                for (const group of GROUPS) assertEmpty(all[group], `${type} ${group}`);
+                assert.ok(spy.opened.every(file => !file.endsWith('SKILL.md')), `${type}: a skill file was opened`);
             }
-            // Boundary: a custom agent type with no preloaded skills → nothing, universal included
-            assertEmpty(plan(fx, agentStart('fx-noskills'), 'universal'), 'custom agent');
-            // And the second host does not need the root-skipping rule (its sub-agents inherit the root file)
+            // And the second host behaves the same
             assertEmpty(plan(fx, { ...agentStart('Explore'), turn_id: 't1' }, 'universal'), 'Codex Explore');
         })
     },
@@ -447,83 +492,51 @@ const tests = [
         })
     },
     {
-        name: 'TC-PDL-017 a root-carried protocol is not delivered while the project relies on the root file',
+        name: 'TC-PDL-017 a universal protocol is never delivered by a skill load, whatever a skill declares',
         fn: () => withFixture(fx => {
-            // Given the universal guides requirement on and a converted skill that lists a root-carried protocol by mistake
+            // Given a converted skill that lists a universal protocol by mistake
             standard(fx);
             // When the converted skill loads
-            const all = planAll(fx, skillLoad('conv-a'), { requireUniversalGuides: true });
-            // Then no root-carried protocol is returned by any group
+            const all = planAll(fx, skillLoad('conv-a'));
+            // Then no universal protocol is returned by any group
             assertEmpty(all.universal, 'universal group');
             for (const group of GROUPS) {
                 for (const tag of UNIVERSAL) assert.ok(!all[group].tags.includes(tag), `${group} delivered ${tag}`);
             }
-            // And the project config shape resolves the same way
-            assertEmpty(plan(fx, skillLoad('conv-a'), 'universal', { requireUniversalGuides: undefined, config: { portability: {} } }), 'config default');
         })
     },
     {
-        name: 'TC-PDL-018 without the universal requirement a converted skill gets the universal group; an inline skill gets nothing',
+        name: 'TC-PDL-018 an inline skill receives nothing from any group, by any load path',
         fn: () => withFixture(fx => {
-            // Given the universal guides requirement off, a converted skill and an inline skill (which declares a guide entry by mistake)
+            // Given an inline skill (which declares a guide entry by mistake) beside a converted skill
             standard(fx);
-            const off = { requireUniversalGuides: false };
-            // When the converted skill loads
-            assertTags(plan(fx, skillLoad('conv-a'), 'universal', off), UNIVERSAL, 'converted skill');
-            assertTags(plan(fx, skillLoad('conv-a'), 'universal', { requireUniversalGuides: undefined, config: { portability: { requireUniversalGuides: false } } }), UNIVERSAL, 'config shape');
             // When the inline skill loads, by any load path
             for (const input of [skillLoad('inline-review'), typed('inline-review'), read(fx.abs('.claude/skills/inline-review/SKILL.md'))]) {
-                const all = planAll(fx, input, off);
-                // Then nothing is returned from any group
+                // Then no group returns anything: its role protocols are full bodies
+                const all = planAll(fx, input);
                 for (const group of GROUPS) assertEmpty(all[group], `inline ${input.hook_event_name} ${group}`);
             }
             // Boundary: the same name removed from the inline list (read from the group data) → treated by its guide block
             standard(fx, { inlineSkills: [] });
-            assertTags(plan(fx, skillLoad('inline-review'), 'review', off), ['review-gamma'], 'removed from inline list');
+            assertTags(plan(fx, skillLoad('inline-review'), 'review'), ['review-gamma'], 'removed from inline list');
         })
     },
     {
-        name: 'TC-PDL-038 a project without the universal requirement receives the four texts on a converted skill load',
-        fn: () => {
-            withFixture(fx => {
-                // Given the universal requirement off and a converted skill
-                standard(fx);
+        name: 'TC-PDL-018b a retired root-carried pointer line declares nothing: a skill holding only it is undeclared and inert',
+        fn: () => withFixture(fx => {
+            // Given skills that hold only the retired pointer line
+            standard(fx, { inlineSkills: ['inline-review', 'inline-ptr'] });
+            const pointer = '> **Root-carried protocols** — `critical-thinking-mindset` is carried once by the root instruction file; read its file if that is absent.';
+            fx.skill('ptr-only', pointer);
+            fx.skill('inline-ptr', pointer);
+            for (const name of ['ptr-only', 'inline-ptr']) {
                 // When it loads
-                const result = plan(fx, typed('conv-b'), 'universal', { requireUniversalGuides: false });
-                // Then the universal group delivers the four texts
-                assertTags(result, UNIVERSAL, 'universal');
-                assert.deepEqual(result.full, UNIVERSAL);
-                // Boundary: the requirement on → nothing
-                assertEmpty(plan(fx, typed('conv-b'), 'universal', { requireUniversalGuides: true }), 'requirement on');
-            });
-            // Re-run with the shipped shape (P26): the published rows and texts of the four root-carried tags,
-            // and a skill whose guide lines the format owner writes from those rows — the conversion's own
-            // output, including its "carried by the root instruction file; …" wording.
-            withFixture(fx => {
-                // Given the shipped index rows and projection files, and the universal requirement off
-                const shipped = shippedUniversal();
-                fx.write(`${PROTOCOLS_DIR}/index.json`, JSON.stringify({ binChars: shipped.bin, groups: GROUPS, tags: shipped.rows }, null, 2));
-                fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({ version: 1, binChars: shipped.bin, groups: {}, inlineSkills: [] }, null, 2));
-                for (const [rel, text] of shipped.files) fx.write(rel, text);
-                const lines = shipped.rows.map(row => carrier.formatGuideLine({ tag: row.tag, summary: row.summary, when: row.when, path: row.file }));
-                fx.skill('shipped-conv', ['<!-- PROTOCOL-GUIDES:START -->', '', ...lines, '', '<!-- PROTOCOL-GUIDES:END -->'].join('\n'));
-                // When the converted skill loads
-                const result = plan(fx, skillLoad('shipped-conv'), 'universal', { requireUniversalGuides: false });
-                // Then the universal group covers the four, each exactly once: full text, or named by its path
-                assert.deepEqual([...result.tags].sort(), [...UNIVERSAL].sort(), 'shipped: universal tags');
-                assert.deepEqual([...result.full, ...result.named].sort(), [...UNIVERSAL].sort(), 'shipped: every tag is full or named, never both, never lost');
-                assert.ok(result.text.length <= shipped.bin, `shipped: ${result.text.length} chars exceeds the bin`);
-                for (const part of shipped.parts) {
-                    const seen = count(result.text, part.text) + count(result.text, part.nameLine);
-                    assert.equal(seen, 1, `shipped: ${part.nameLine} appears ${seen} times as text or name (expected exactly once)`);
-                }
-                // And the four stay whole when they fit one bin, and overflow by path when they do not (spec edge case)
-                const whole = shipped.parts.map(part => part.text).join('\n\n').length;
-                assert.equal(result.named.length > 0, whole > shipped.bin, `shipped: named ${JSON.stringify(result.named)} for ${whole} chars in a ${shipped.bin} bin`);
-                // Boundary: the requirement on → nothing
-                assertEmpty(plan(fx, skillLoad('shipped-conv'), 'universal', { requireUniversalGuides: true }), 'shipped: requirement on');
-            });
-        }
+                const all = planAll(fx, skillLoad(name));
+                // Then no group returns anything (the line is no guide entry)
+                for (const group of GROUPS) assertEmpty(all[group], `${name} ${group}`);
+            }
+            assert.equal(delivery.declaredTags(pointer), null, 'the pointer line declares no tag');
+        })
     },
     {
         name: 'TC-PDL-019 a skill that declares no guide block receives nothing',
@@ -535,11 +548,6 @@ const tests = [
                 const all = planAll(fx, skillLoad(name));
                 // Then no group returns anything
                 for (const group of GROUPS) assertEmpty(all[group], `${name} ${group}`);
-            }
-            // And an undeclared skill stays inert even when the project does not rely on the root file
-            // (an empty or unclosed block declares no guide entry, so it is undeclared too — spec edge case)
-            for (const name of ['plain', 'empty-block', 'unclosed']) {
-                assertEmpty(plan(fx, skillLoad(name), 'universal', { requireUniversalGuides: false }), `${name} universal off`);
             }
             // Boundary: the same skill with a guide block → its protocols are returned
             fx.skill('plain', guideBlock(['review-beta']));
@@ -588,7 +596,7 @@ const tests = [
             for (const file of spy.opened) assert.ok(allowed.some(prefix => file.startsWith(prefix)), `opened outside the framework folders: ${file}`);
             // And a line whose path names another protocol's file is no guide entry (the recognizer's tag/path binding): nothing delivered
             fx.skill('hostile-swap', guideBlock(['review-alpha'], '../../secret/review-beta.md'));
-            const swapped = planAll(fx, skillLoad('hostile-swap'), { requireUniversalGuides: false });
+            const swapped = planAll(fx, skillLoad('hostile-swap'));
             for (const group of GROUPS) assertEmpty(swapped[group], `swapped path ${group}`);
             // And an index row pointing outside the projection folder is dropped, never read
             const indexFile = fx.abs(`${PROTOCOLS_DIR}/index.json`);
@@ -654,14 +662,189 @@ const tests = [
         })
     },
     {
+        name: '[protocol-delivery] a trigger-gated protocol is delivered in full only when its trigger applies; otherwise the guide line is the only path',
+        fn: () => withFixture(fx => {
+            // Given a gated design tag (UI trigger) beside an ungated one, a skill declaring both, and a skill whose scope is the domain
+            fx.projection([
+                { tag: 'design-gated', group: 'design' },
+                { tag: 'design-plain', group: 'design' },
+                { tag: 'domain-gated', group: 'design' }
+            ]);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
+                version: 1,
+                deliveryTriggers: {
+                    ui: { pattern: '\\b(?:screen|mockup)\\b|\\.(?:tsx|css)\\b', pathPattern: '\\.(?:tsx|vue)\\b', skills: ['ui-owner'] },
+                    broken: { pattern: '(' }
+                },
+                groups: {
+                    design: {
+                        tags: {
+                            'design-gated': { summary: 's', when: 'w', trigger: 'ui' },
+                            'design-plain': { summary: 's', when: 'w' },
+                            'domain-gated': { summary: 's', when: 'w', trigger: 'broken' }
+                        }
+                    }
+                },
+                inlineSkills: []
+            }));
+            fx.skill('mixed', guideBlock(['design-gated', 'design-plain', 'domain-gated']));
+            fx.skill('ui-owner', guideBlock(['design-gated', 'design-plain']));
+            const load = (name, extra = {}) => ({ ...skillLoad(name), ...extra });
+            const empty = { prompts: '', transcript: '' };
+
+            // When a mixed skill loads with no UI in the event, the prompts or the transcript
+            const none = plan(fx, load('mixed'), 'design', { triggerContext: () => empty });
+            // Then only the ungated protocols arrive (a trigger with no usable pattern never withholds), the gated one is neither delivered nor named
+            assertTags(none, ['design-plain', 'domain-gated'], 'no UI in context');
+            assert.ok(!none.text.includes('design-gated') && !none.text.includes('Read each file now'), 'a withheld protocol was named or its path forced');
+
+            // When the event text, the recorded prompts, or the touched files carry a UI signal, or the loaded skill owns the domain
+            const viaArgs = plan(fx, { ...load('mixed'), tool_input: { skill: 'mixed', args: 'fix the settings screen' } }, 'design', { triggerContext: () => empty });
+            const viaPrompt = plan(fx, load('mixed'), 'design', { triggerContext: () => ({ prompts: 'add a MOCKUP for it', transcript: '' }) });
+            const viaFile = plan(fx, load('mixed'), 'design', { triggerContext: () => ({ prompts: '', transcript: '{"file_path":"src/app/list.vue"}' }) });
+            const viaOwner = plan(fx, load('ui-owner'), 'design', { triggerContext: () => empty });
+            // Then the gated protocol is delivered in full with the rest, once
+            for (const [label, result] of [['args', viaArgs], ['prompt', viaPrompt], ['file', viaFile]]) {
+                assertTags(result, ['design-gated', 'design-plain', 'domain-gated'], label);
+            }
+            assertTags(viaOwner, ['design-gated', 'design-plain'], 'owner skill');
+
+            // And the path pattern also reads the recorded prompts
+            assertTags(plan(fx, load('mixed'), 'design', { triggerContext: () => ({ prompts: 'edit list.vue', transcript: '' }) }), ['design-gated', 'design-plain', 'domain-gated'], 'path pattern on prompts');
+            // And no provider at all is a readable empty context: the gated protocol stays withheld
+            assertTags(plan(fx, load('mixed'), 'design'), ['design-plain', 'domain-gated'], 'no provider');
+
+            // And an unreadable context delivers while a readable one with no match withholds (BR-PDL-16)
+            unreadableTriggerContextDelivers();
+        })
+    },
+    {
+        name: '[protocol-delivery] the shipped ui and ai-feature triggers recognize plain task wording and stay closed for unrelated work (BR-PDL-16)',
+        fn: () => withFixture(fx => {
+            // Given the shipped ui and ai-feature triggers (the framework's own published data) gating two fixture protocols
+            const shipped = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', '..', '..', 'skills', 'shared', 'protocol-groups.json'), 'utf8'));
+            assert.ok(shipped.deliveryTriggers && shipped.deliveryTriggers.ui && shipped.deliveryTriggers['ai-feature'], 'the shipped data defines the ui and ai-feature triggers');
+            fx.projection([
+                { tag: 'design-gated', group: 'design' },
+                { tag: 'ai-gated', group: 'design' },
+                { tag: 'design-plain', group: 'design' }
+            ]);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
+                version: 1,
+                deliveryTriggers: { ui: { ...shipped.deliveryTriggers.ui, skills: [] }, 'ai-feature': { ...shipped.deliveryTriggers['ai-feature'], skills: [] } },
+                groups: { design: { tags: {
+                    'design-gated': { summary: 's', when: 'w', trigger: 'ui' },
+                    'ai-gated': { summary: 's', when: 'w', trigger: 'ai-feature' },
+                    'design-plain': { summary: 's', when: 'w' }
+                } } },
+                inlineSkills: []
+            }));
+            fx.skill('mixed', guideBlock(['design-gated', 'ai-gated', 'design-plain']));
+            const withPrompt = prompts => plan(fx, skillLoad('mixed'), 'design', { triggerContext: () => ({ prompts, transcript: '' }) });
+            // When the user's prompt uses plain UI wording (the original list, then the common component and layout nouns)
+            // Then the gated design protocol is delivered in full with the ungated one, and the AI protocol stays withheld
+            const uiPrompts = ['build a signup form', 'settings page with dark theme', 'navigation menu and sidebar',
+                'profile card component', 'change the navbar color to blue', 'add a dropdown to select the country', 'add a toast notification when save succeeds',
+                'create a data table with sortable columns', 'render the chart', 'make the app work on mobile', 'add a hero section', 'show a spinner while loading',
+                'add avatars to the list', 'add a status badge'];
+            for (const prompt of uiPrompts) assertTags(withPrompt(prompt), ['design-gated', 'design-plain'], prompt);
+            // When it uses plain AI wording (vendor and model names, agents built on a model, model calls)
+            // Then the gated AI protocol is delivered in full with the ungated one, and the design protocol stays withheld
+            const aiPrompts = ['Add an agent that triages tickets using Claude', 'call the GPT-4 API', 'ask ChatGPT to summarize it', 'wire up Copilot',
+                'use the chat completions endpoint', 'cap the token budget', 'add a model provider fallback'];
+            for (const prompt of aiPrompts) assertTags(withPrompt(prompt), ['ai-gated', 'design-plain'], prompt);
+            // And both gated protocols arrive when a prompt carries both kinds of wording
+            assertTags(withPrompt('add a chart of the ChatGPT answers'), ['design-gated', 'ai-gated', 'design-plain'], 'both domains');
+            // And clearly unrelated prompts still withhold both: only the ungated protocol arrives and neither gated one is named (readable context, no fail-open)
+            const unrelated = ['optimize the batch import query', 'rename the variable in the parser', 'fix the flaky retry logic', 'add pagination to the REST endpoint',
+                'update the sub-agent with a new tool', 'edit CLAUDE.md and run the tests with claude code', 'task completion criteria'];
+            for (const prompt of unrelated) {
+                const result = withPrompt(prompt);
+                assertTags(result, ['design-plain'], prompt);
+                assert.ok(!result.text.includes('design-gated') && !result.text.includes('ai-gated'), 'the withheld protocol leaked for: ' + prompt);
+            }
+        })
+    },
+    {
+        name: '[protocol-delivery] the shipped plan, feature-implement and scaffold skills declare the journey-first UX gate and receive it only for UI work (BR-PDL-16)',
+        fn: () => withFixture(fx => {
+            // Given the shipped trigger data and the shipped SKILL.md of the three planning and implementation skills
+            const frameworkRoot = path.resolve(__dirname, '..', '..', '..');
+            const shipped = JSON.parse(fs.readFileSync(path.join(frameworkRoot, 'skills', 'shared', 'protocol-groups.json'), 'utf8'));
+            const entry = shipped.groups.design.tags['ux-journey-gate'];
+            assert.ok(entry && entry.trigger === 'ui', 'the shipped data gates ux-journey-gate on the ui trigger');
+            const owners = ['plan', 'feature-implement', 'scaffold'];
+            // The skills reach the gate through the UI wording of the task, never through the trigger's owner-skill list (that list would make it unconditional)
+            for (const name of owners) assert.ok(!shipped.deliveryTriggers.ui.skills.includes(name), `${name} must not be a ui-trigger owner skill`);
+            // One ungated design protocol each skill carries, so a non-UI load still has something to deliver
+            const ungated = { plan: 'core-engineering-principles', 'feature-implement': 'design-distinctiveness-gate', scaffold: 'understand-code-first' };
+            fx.projection([
+                { tag: 'ux-journey-gate', group: 'design' },
+                ...Object.values(ungated).map(tag => ({ tag, group: 'design' }))
+            ], []);
+            fx.write('.claude/skills/shared/protocol-groups.json', JSON.stringify({
+                version: 1,
+                deliveryTriggers: { ui: shipped.deliveryTriggers.ui },
+                groups: { design: { tags: {
+                    'ux-journey-gate': { summary: 's', when: 'w', trigger: 'ui' },
+                    ...Object.fromEntries(Object.values(ungated).map(tag => [tag, { summary: 's', when: 'w' }]))
+                } } },
+                inlineSkills: []
+            }));
+            for (const name of owners) {
+                const text = fs.readFileSync(path.join(frameworkRoot, 'skills', name, 'SKILL.md'), 'utf8');
+                fx.write(`.claude/skills/${name}/SKILL.md`, text);
+                fx.write(`.agents/skills/${name}/SKILL.md`, text);
+                // Then each skill declares the gate and its ungated companion in its guide block
+                const declared = delivery.declaredTags(text) || [];
+                assert.ok(declared.includes('ux-journey-gate'), `${name} must declare the ux-journey-gate guide line`);
+                assert.ok(declared.includes(ungated[name]), `${name} must declare ${ungated[name]}`);
+            }
+            const withPrompt = (name, prompts) => plan(fx, skillLoad(name), 'design', { triggerContext: () => ({ prompts, transcript: '' }) });
+            const published = new Set(['ux-journey-gate', ...Object.values(ungated)]);
+            for (const name of owners) {
+                // The ungated protocols this skill declares among the published fixture tags
+                const companions = (delivery.declaredTags(fs.readFileSync(fx.abs(`.claude/skills/${name}/SKILL.md`), 'utf8')) || []).filter(tag => published.has(tag) && tag !== 'ux-journey-gate');
+                // When the task is about a user-facing surface, the full text arrives with the ungated protocols
+                const ui = withPrompt(name, 'plan the settings screen and its form layout');
+                assert.deepEqual([...ui.tags].sort(), [...companions, 'ux-journey-gate'].sort(), `${name} with UI wording: tags`);
+                assert.equal(count(ui.text, marker('ux-journey-gate')), 1, `${name}: the gate's full text exactly once`);
+                // When the task has no UI wording, the gate is neither delivered nor named
+                const none = withPrompt(name, 'optimize the batch import query');
+                assertTags(none, companions, `${name} without UI wording`);
+                assert.ok(!none.text.includes('ux-journey-gate'), `${name}: the withheld gate was named for a non-UI task`);
+            }
+        })
+    },
+    {
+        name: '[protocol-delivery] a sub-agent start does not receive a protocol its agent definition already carries as a full body',
+        fn: () => withFixture(fx => {
+            // Given an agent that preloads a converted skill and carries the full body of one of its tags (and only the reminder of another)
+            standard(fx);
+            fx.write('.claude/agents/fx-inline.md', [
+                '---', 'name: fx-inline', 'description: carries a body', 'skills: conv-a', '---', '',
+                '<!-- SYNC:review-alpha -->', 'body of alpha', '<!-- /SYNC:review-alpha -->', '',
+                '<!-- SYNC:review-beta:reminder -->', 'reminder of beta', '<!-- /SYNC:review-beta:reminder -->', ''
+            ].join('\n'));
+            // When it starts
+            const result = plan(fx, agentStart('fx-inline'), 'review');
+            // Then the inlined tag is not delivered again; the tag with only a reminder still is
+            assertTags(result, ['review-beta'], 'fx-inline');
+            assert.equal(delivery.agentInlines('<!-- SYNC:a -->\nx\n<!-- /SYNC:a -->', 'a'), true);
+            assert.equal(delivery.agentInlines('<!-- SYNC:a:reminder -->\nx\n<!-- /SYNC:a:reminder -->', 'a'), false, 'a reminder is not the body');
+            assert.equal(delivery.agentInlines('<!-- SYNC:a -->\nunclosed', 'a'), false, 'an unclosed fence is not a body');
+            // And a skill load in the main session is not filtered by any agent file
+            assertTags(plan(fx, skillLoad('conv-a'), 'review'), ['review-alpha', 'review-beta'], 'skill load');
+        })
+    },
+    {
         name: '[protocol-delivery] load cost: requiring the lib loads no project module (BR-PDL-09)',
         fn: () => {
             // Given a fresh module registry
             const { spawnSync } = require('node:child_process');
             const probe = `require(${JSON.stringify(LIB)}); const loaded = Object.keys(require.cache); process.stdout.write(JSON.stringify(loaded));`;
             // When the lib alone is required in a clean process (scrubbed env: only what Node needs to start)
-            const env = { PATH: process.env.PATH || '' };
-            if (process.env.SystemRoot) env.SystemRoot = process.env.SystemRoot;
+            const env = require('../lib/os-essentials-env.cjs').osEssentialsEnv();
             const run = spawnSync(process.execPath, ['-e', probe], { encoding: 'utf8', env, cwd: os.tmpdir() });
             assert.equal(run.status, 0, run.stderr);
             // Then the only project module in the registry is the lib itself

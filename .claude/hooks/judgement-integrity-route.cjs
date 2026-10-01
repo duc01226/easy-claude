@@ -10,13 +10,13 @@
  * problems exist, a stated theory presumes it is right, an evaluation presumes the named
  * option is the one to weigh. The directive body is the canonical
  * `SYNC:judgement-integrity:reminder` from `.claude/skills/shared/sync-inline-versions.md`,
- * so the hook and the static carriers never drift.
+ * so the hook and the protocol text never drift.
  *
- * Accelerator only: the static `critical-thinking-mindset:full` line baked into CLAUDE.md /
- * AGENTS.md binds every host without this hook. Runs on every prompt (no dedup ledger): a
- * judgement question can arrive at any point and the directive only helps on the prompt that
- * asks. Detection is a small heuristic and the directive is conditional, so a false positive
- * costs a few lines of context and a false negative falls back to the static rule.
+ * The universal `critical-thinking-mindset` protocol carries the judgement-integrity rule for every
+ * task; this hook adds the lean-specific directive on the prompt that asks. Runs on every prompt
+ * (no dedup ledger): a judgement question can arrive at any point and the directive only helps on
+ * the prompt that asks. Detection is a small heuristic and the directive is conditional, so a false
+ * positive costs a few lines of context and a false negative falls back to the universal rule.
  *
  * Mirrored to Codex and OpenCode by the hook sync generators, which is why the directive
  * names the skill host-neutrally. Advisory plaintext; always exit 0.
@@ -135,10 +135,10 @@ const LEAN_GUIDANCE = {
 
 function loadCanonicalReminder() {
     try {
-        const { buildCanonicalProtocolText } = require('../scripts/lib/hookless-prompt-protocol.cjs');
+        const { readCanonicalProtocol } = require('../scripts/lib/canonical-protocol.cjs');
         const { resolveProjectRoot } = require('./lib/project-root.cjs');
         const rootDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env: process.env }).rootDir;
-        return buildCanonicalProtocolText(rootDir, SYNC_TAG);
+        return readCanonicalProtocol(rootDir, SYNC_TAG);
     } catch (error) {
         debugError(HOOK_NAME, error); // the directive falls back to its built-in body
         return null;

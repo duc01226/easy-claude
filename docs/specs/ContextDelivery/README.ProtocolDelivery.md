@@ -14,12 +14,14 @@ entities:
         'DeliveryMessage',
         'DeliveryRecord',
         'LoadPath',
-        'SecondHostInlineList'
+        'SecondHostInlineList',
+        'UniversalBin',
+        'OverlayReminder'
     ]
 status: draft
 provisional: true
 owner: 'Framework maintainers'
-last_updated: '2026-09-25'
+last_updated: '2026-10-01'
 scope_mode: FRAMEWORK-LIBRARY
 large_idea_decomposition: null
 roadmap: null
@@ -46,7 +48,7 @@ roadmap_status: null
 | Host mapping              | Primary assistant host = Claude Code (`.claude/settings.json`); second assistant host = Codex (`.codex/hooks.json`, `.agents/skills/`, `.codex/agents/`); third assistant host = OpenCode (bridge template `.claude/scripts/opencode/templates/easy-claude-hooks.js.tmpl`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Products behind the host roles named in the prose.                                                                     |
 | Canonical protocol source | `.claude/skills/shared/sync-inline-versions.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | The one place each protocol is authored.                                                                               |
 | Group data                | `.claude/skills/shared/protocol-groups.json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Groups, one-line summaries, "when" lines, the inline skill list.                                                       |
-| Published protocol text   | `.claude/skills/shared/protocols/<tag>.md`, `.claude/skills/shared/protocols/index.json`; generator `.claude/scripts/build-protocol-projection.cjs`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | The only text delivery reads; versioned so hookless hosts can read it by path.                                         |
+| Published protocol text   | `.claude/skills/shared/protocols/<tag>.md`, `.claude/skills/shared/protocols/index.json`; generator `.claude/scripts/build-protocol-projection.cjs`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | The only text delivery reads; versioned so a reader can open it by path when hook text is missing.                     |
 | Delivery                  | `.claude/hooks/lib/protocol-delivery.cjs`; entries `.claude/hooks/protocol-inject-<group>.cjs`; record store `<project>/tmp/protocol-delivery`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Event resolution, filters, pack, session records.                                                                      |
 | Host mapping generators   | `.claude/scripts/codex/sync-hooks.mjs`, `.claude/scripts/codex/migrate-claude-to-codex.mjs`, `.claude/scripts/opencode/sync-hooks.mjs`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Second- and third-host registration and the second-host inline list.                                                   |
 | Carrier tooling           | `.claude/scripts/sync-update-blocks.py` (guide mode)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Converts skill bodies to guide entries; propagates canonical edits to full-text carriers.                              |
@@ -67,43 +69,45 @@ roadmap_status: null
 
 ## 1. Overview
 
-Many skills follow the same shared protocols — evidence rules, review rules, task rules — and until now every skill carried a full copy of each one, so half of what the assistant read when it loaded a skill was repeated text. This capability keeps one short guide entry per protocol in each skill and delivers the full protocol text to the assistant once per session, in six small group messages, when the skill loads on any of the three supported assistant hosts; a delivery that cannot happen degrades to the assistant reading the protocol by its path, never to silence. The five review-family skills, whose protocol text is larger than the delivery capacity, and every supporting reference file keep their full text in place, and the four rules the root instruction file already carries are not repeated.
+Many skills follow the same shared protocols — evidence rules, review rules, task rules — and until now every skill carried a full copy of each one, so half of what the assistant read when it loaded a skill was repeated text. This capability keeps one short guide entry per protocol in each skill and delivers the full protocol text to the assistant once per session, in five small group messages, when the skill loads on any of the three supported assistant hosts; a delivery that cannot happen degrades to the assistant reading the protocol by its path, never to silence. The four review-family skills, whose protocol text is larger than the delivery capacity, and every supporting reference file keep their full text in place. The framework rules every task follows (the universal group) are carried by no file: a hook delivers them in four small messages on the session's first prompt and again after a long stretch or a compaction, and to every sub-agent at its start. A second hook reminds the assistant, when a skill starts, which project overlay files apply to it.
 
 ---
 
 ## 2. Glossary
 
-| Term                         | Definition                                                                                                                                                                                                   | Context                                                                              |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| Protocol                     | A shared rule text that several skills or agents follow, such as the evidence rules or the review rules                                                                                                      | Authored once, in the canonical protocol source                                      |
-| Canonical Protocol Source    | The one document where every protocol is written                                                                                                                                                             | Every other copy is derived from it                                                  |
-| Published Protocol Text      | One generated, versioned file per protocol, plus an index of all protocols                                                                                                                                   | The only text delivery reads; hosts without delivery read it by path                 |
-| Protocol Index               | The list of published protocols, each with its group, one-line summary, when it applies, size and parts                                                                                                      | Unknown protocol names are dropped against it                                        |
-| Protocol Group               | One of six fixed sets of protocols, each delivered as its own message                                                                                                                                        | review · evidence and trace · workflow and task · spec and test · design · universal |
-| Bin                          | The largest delivery message: 9,500 characters                                                                                                                                                               | Below the primary host's 10,000-character limit for one added message                |
-| Host Message Limit           | The largest added message a host shows in full                                                                                                                                                               | Primary host: 10,000 characters; a longer one becomes a file with a 2 KB preview     |
-| Guide Entry                  | One line in a skill naming a protocol, a one-line summary, when it applies and where its published text lives                                                                                                | Replaces the full protocol body in a converted skill                                 |
-| Guide Block                  | The marked block in a skill that holds its guide entries                                                                                                                                                     | The only place delivery reads a skill's declared protocols                           |
-| Reminder Digest              | The short recap of a protocol near the end of a skill                                                                                                                                                        | Always kept, in every kind of skill                                                  |
-| Converted Skill              | A skill whose protocol bodies were replaced by guide entries                                                                                                                                                 | Receives the full text by delivery                                                   |
-| Inline Skill                 | A skill that keeps every full protocol body and has no guide block                                                                                                                                           | The five review-family skills, listed in the group data                              |
-| Undeclared Skill             | A skill not yet converted and not on the inline list                                                                                                                                                         | Carries full bodies; delivery gives it nothing                                       |
-| Reference Carrier            | A supporting file of a skill, read at the point in the skill where it is needed                                                                                                                              | Keeps full protocol bodies; never converted                                          |
-| Root Instruction File        | The always-loaded project instruction file a host reads at session start                                                                                                                                     | Carries the four root-carried protocols                                              |
-| Root-Carried Protocol        | One of the four protocols the root instruction file carries: critical thinking, AI mistake prevention, the project reference docs gate, the project protocol overlay                                         | Exactly the universal group                                                          |
-| Universal Guides Requirement | The project setting that says every skill relies on the root file for the root-carried protocols                                                                                                             | On by default; a project may switch it off                                           |
-| Load Path                    | A way a skill reaches the assistant: a typed command, a skill the assistant chose, a read of the skill file, an agent that preloads skills, a prompt naming a skill, a shell command that reads a skill file | Each host has its own set                                                            |
-| Root-Skipping Agent Type     | A built-in agent type that starts without the root instruction file                                                                                                                                          | Decided: Explore and Plan, on the primary host only                                  |
-| Delivery Message             | The text one group delivers for one load: full protocol texts, then the names and paths of any that did not fit                                                                                              | At most one bin                                                                      |
-| Delivery Record              | The per-session, per-scope note that a protocol's current text was delivered                                                                                                                                 | Stops counting after compaction or re-arm distance                                   |
-| Scope                        | The main session, or one sub-agent                                                                                                                                                                           | Each scope receives a protocol once                                                  |
-| Compaction                   | The host's summary of an over-long conversation, which drops earlier added messages                                                                                                                          | Re-arms every delivery record                                                        |
-| Re-arm Distance              | About 4,500,000 bytes of conversation record growth, about 200,000 tokens                                                                                                                                    | Same distance as routing guidance and file conventions                               |
-| Read-by-Path Fallback        | The assistant reading a protocol from the path in its guide entry                                                                                                                                            | What every delivery miss degrades to                                                 |
-| Second-Host Inline List      | The protocols the second host's generated skill copy keeps as full text                                                                                                                                      | Decided: empty                                                                       |
-| Handler Review               | The second host's rule that a new or changed delivery step runs only after the user reviews it                                                                                                               | Until then, guides are the path                                                      |
-| Mode-Only Section            | Skill text used by one mode only, such as the fix loop                                                                                                                                                       | Loads when that mode runs                                                            |
-| Non-Matching Event           | A host event that cannot load a skill, such as a read of an ordinary source file                                                                                                                             | Costs no delivery start where a filter exists                                        |
+| Term                      | Definition                                                                                                                                                                                                   | Context                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Protocol                  | A shared rule text that several skills or agents follow, such as the evidence rules or the review rules                                                                                                      | Authored once, in the canonical protocol source                                      |
+| Canonical Protocol Source | The one document where every protocol is written                                                                                                                                                             | Every other copy is derived from it                                                  |
+| Published Protocol Text   | One generated, versioned file per protocol, plus an index of all protocols                                                                                                                                   | The only text delivery reads; hosts without delivery read it by path                 |
+| Protocol Index            | The list of published protocols, each with its group, one-line summary, when it applies, size and parts                                                                                                      | Unknown protocol names are dropped against it                                        |
+| Protocol Group            | One of six fixed sets of protocols, each delivered as its own message                                                                                                                                        | review · evidence and trace · workflow and task · spec and test · design · universal |
+| Bin                       | The largest delivery message: 9,500 characters                                                                                                                                                               | Below the primary host's 10,000-character limit for one added message                |
+| Host Message Limit        | The largest added message a host shows in full                                                                                                                                                               | Primary host: 10,000 characters; a longer one becomes a file with a 2 KB preview     |
+| Guide Entry               | One line in a skill naming a protocol, a one-line summary, when it applies and where its published text lives                                                                                                | Replaces the full protocol body in a converted skill                                 |
+| Guide Block               | The marked block in a skill that holds its guide entries                                                                                                                                                     | The only place delivery reads a skill's declared protocols                           |
+| Reminder Digest           | The short recap of a protocol near the end of a skill                                                                                                                                                        | Always kept, in every kind of skill                                                  |
+| Converted Skill           | A skill whose protocol bodies were replaced by guide entries                                                                                                                                                 | Receives the full text by delivery                                                   |
+| Inline Skill              | A skill that keeps every full protocol body and has no guide block                                                                                                                                           | The four review-family skills, listed in the group data                              |
+| Undeclared Skill          | A skill not yet converted and not on the inline list                                                                                                                                                         | Carries full bodies; delivery gives it nothing                                       |
+| Reference Carrier         | A supporting file of a skill, read at the point in the skill where it is needed                                                                                                                              | Keeps full protocol bodies; never converted                                          |
+| Root Instruction File     | The always-loaded project instruction file a host reads at session start                                                                                                                                     | Holds project information only; carries no protocol                                  |
+| Universal Protocol        | One protocol of the universal group: a framework rule every task follows (critical thinking, AI mistake prevention, planning, evidence, git, closing reminders and the like)                                 | Delivered by the universal hook; carried by no file                                  |
+| Universal Bin             | One authored message of the universal group: an ordered list of universal protocols rendered under a numbered header, at most one bin in size                                                                | Delivered by its own hook with its own delivery record                               |
+| Load Path                 | A way a skill reaches the assistant: a typed command, a skill the assistant chose, a read of the skill file, an agent that preloads skills, a prompt naming a skill, a shell command that reads a skill file | Each host has its own set                                                            |
+| Skill Overlay Reminder    | The short note, given when a skill starts, that names the project overlay files the project registry matches to that skill                                                                                   | At most three lines; repeats after a long stretch                                    |
+| Delivery Trigger          | The scope test of a trigger-gated protocol: owner skills, a text pattern and a path pattern, named in the group data                                                                                         | A gated protocol arrives in full only when a trigger applies (BR-PDL-16)             |
+| Agent-Carried Protocol    | A protocol whose full body sits between paired fences in the starting agent's own definition                                                                                                                 | Not delivered again at that agent's start (BR-PDL-08)                                |
+| Delivery Message          | The text one group delivers for one load: full protocol texts, then the names and paths of any that did not fit                                                                                              | At most one bin                                                                      |
+| Delivery Record           | The per-session, per-scope note that a protocol's current text was delivered                                                                                                                                 | Stops counting after compaction or re-arm distance                                   |
+| Scope                     | The main session, or one sub-agent                                                                                                                                                                           | Each scope receives a protocol once                                                  |
+| Compaction                | The host's summary of an over-long conversation, which drops earlier added messages                                                                                                                          | Re-arms every delivery record                                                        |
+| Re-arm Distance           | About 4,500,000 bytes of conversation record growth, about 200,000 tokens                                                                                                                                    | Same distance as routing guidance and file conventions                               |
+| Read-by-Path Fallback     | The assistant reading a protocol from the path in its guide entry                                                                                                                                            | What every delivery miss degrades to                                                 |
+| Second-Host Inline List   | The protocols the second host's generated skill copy keeps as full text                                                                                                                                      | Decided: empty                                                                       |
+| Handler Review            | The second host's rule that a new or changed delivery step runs only after the user reviews it                                                                                                               | Until then, guides are the path                                                      |
+| Mode-Only Section         | Skill text used by one mode only, such as the fix loop                                                                                                                                                       | Loads when that mode runs                                                            |
+| Non-Matching Event        | A host event that cannot load a skill, such as a read of an ordinary source file                                                                                                                             | Costs no delivery start where a filter exists                                        |
 
 ---
 
@@ -141,20 +145,20 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 
 **Acceptance Criteria:**
 
-- **AC-PDL-07** — **Given** one of the five inline skills **When** it loads on any host **Then** it keeps every full protocol body, receives nothing from any group, and a guide entry placed in it fails verification
+- **AC-PDL-07** — **Given** one of the inline skills **When** it loads on any host **Then** it keeps every full role-protocol body, receives nothing from any role group, and a guide entry placed in it fails verification; like every skill it holds no body, reminder or guide entry of a universal protocol
 - **AC-PDL-08** — **Given** a reference file of a skill that holds full protocol bodies **When** conversion runs **Then** the file is unchanged, and a converted skill's guide block lists every protocol that any mode or reference of the skill declares
 
-### US-PDL-04: Root-carried rules are carried once
+### US-PDL-04: Universal rules arrive by hook and are carried nowhere
 
 **As a** project maintainer
-**I want** the four rules my root instruction file carries not to be repeated in skills or deliveries
-**So that** the assistant is not charged for them twice, and still gets them where the root file is missing
+**I want** the framework rules every task follows to reach the assistant through one hook, and my root instruction file to hold project information only
+**So that** no file repeats the rules, and every host and sub-agent gets them at the same moments
 
 **Acceptance Criteria:**
 
-- **AC-PDL-09** — **Given** the universal guides requirement is on (the default) **When** skills are converted and loaded **Then** no skill outside the inline list carries the four root-carried bodies, none is delivered, and the root instruction files carry all four
-- **AC-PDL-10** — **Given** the universal guides requirement is off **When** a converted skill loads **Then** the universal group is delivered with it
-- **AC-PDL-11** — **Given** an agent type that starts without the root instruction file **When** it starts **Then** the universal group is delivered to it
+- **AC-PDL-09** — **Given** a session **When** its first prompt is processed **Then** the universal bundle arrives as its authored bins, each a message of at most 9,500 characters, once; it arrives again only after about 200,000 tokens of conversation growth or a compaction (a compaction reported at session start delivers it at once, and the prompt after it stays silent); and no skill (inline skills included), no agent and no root instruction file carries a body, reminder, guide entry or pointer line of a universal protocol
+- **AC-PDL-10** — **Given** any agent type **When** it starts **Then** every bin is delivered to it once for that spawn, whether or not it preloads skills or has a definition file
+- **AC-PDL-11** — **Given** a skill that the project registry matches to overlay files **When** the skill starts **Then** a reminder of at most three lines names those files and states that overlays are additive only; after successful delivery it repeats for that skill only after about 100,000 tokens of growth, a compaction or a changed overlay set; a failed delivery leaves the reminder eligible at the next activation
 
 ### US-PDL-05: Every load path on every host delivers
 
@@ -215,33 +219,49 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 - **AC-PDL-24** — **Given** compressed protocols **When** they are published **Then** each keeps every rule it had and stays at or under 9,000 characters, the reviewer injection template excepted
 - **AC-PDL-25** — **Given** the conditional pruning follow-up runs **When** a skill's guide list is pruned **Then** only protocols that no mode of the skill uses are removed, each with a recorded reason
 
+### US-PDL-10: Delivery adds only what the task needs
+
+**As an** AI assistant
+**I want** a protocol delivered in full only when the task can use it, and never twice
+**So that** a load costs the rules that apply, not every rule the skill could ever declare
+
+**Acceptance Criteria:**
+
+- **AC-PDL-26** — **Given** a protocol that applies only to a subject (user-facing visual surfaces, domain-model changes, AI features) **When** a converted skill declaring it loads **Then** it arrives in full only if the skill is an owner of that subject, or the event text, the session's recorded prompts or the files the session touched show the subject; otherwise it is neither delivered nor named, leaves no delivery record, and the skill's guide entry remains the path
+- **AC-PDL-27** — **Given** an agent whose own definition carries the full body of a protocol **When** the agent starts **Then** that protocol is not delivered to it again
+- **AC-PDL-28** — **Given** the core engineering principles reach the assistant both from the task-step and prompt reminder and from the design group **When** either delivers first **Then** the other treats it as delivered within its own re-delivery distance, and a compaction re-arms both
+
 ---
 
 ## 4. Business Rules
 
 ### Rule Catalog
 
-| Rule ID   | Name                                                                     | Category  | Enforcement |
-| --------- | ------------------------------------------------------------------------ | --------- | ----------- |
-| BR-PDL-01 | Every converted skill keeps a guide entry per protocol                   | Carrier   | [HARD]      |
-| BR-PDL-02 | Once per session per scope, re-armed by compaction and distance          | Delivery  | [HARD]      |
-| BR-PDL-03 | Six standalone group messages, each within the bin                       | Delivery  | [HARD]      |
-| BR-PDL-04 | Root-carried rules are neither copied nor delivered, with two exceptions | Delivery  | [HARD]      |
-| BR-PDL-05 | A miss degrades to read-by-path, never to silence                        | Fail-safe | [HARD]      |
-| BR-PDL-06 | Second-host copy and second-host load paths                              | Host      | [HARD]      |
-| BR-PDL-07 | Mode-only sections load with their mode                                  | Carrier   | [HARD]      |
-| BR-PDL-08 | Agent-start delivery, narrowed                                           | Delivery  | [HARD]      |
-| BR-PDL-09 | Per-event, per-host cost budget                                          | Cost      | [HARD]      |
-| BR-PDL-10 | Input trust                                                              | Security  | [HARD]      |
-| BR-PDL-11 | The five review-family skills stay inline                                | Carrier   | [HARD]      |
-| BR-PDL-12 | Reference carriers stay inline                                           | Carrier   | [HARD]      |
-| BR-PDL-13 | Published protocol text is generated, fresh and portable                 | Integrity | [HARD]      |
-| BR-PDL-14 | One owner; every carrier and check stays in step                         | Integrity | [HARD]      |
-| BR-PDL-15 | Every host load path is registered                                       | Host      | [HARD]      |
+| Rule ID   | Name                                                                         | Category  | Enforcement |
+| --------- | ---------------------------------------------------------------------------- | --------- | ----------- |
+| BR-PDL-01 | Every converted skill keeps a guide entry per protocol                       | Carrier   | [HARD]      |
+| BR-PDL-02 | Once per session per scope, re-armed by compaction and distance              | Delivery  | [HARD]      |
+| BR-PDL-03 | Five standalone group messages, each within the bin                          | Delivery  | [HARD]      |
+| BR-PDL-04 | Universal rules are carried by no file and delivered by the bundle hook      | Delivery  | [HARD]      |
+| BR-PDL-05 | A miss degrades to read-by-path, never to silence                            | Fail-safe | [HARD]      |
+| BR-PDL-06 | Second-host copy and second-host load paths                                  | Host      | [HARD]      |
+| BR-PDL-07 | Mode-only sections load with their mode                                      | Carrier   | [HARD]      |
+| BR-PDL-08 | Agent-start delivery decided per agent                                       | Delivery  | [HARD]      |
+| BR-PDL-09 | Per-event, per-host cost budget                                              | Cost      | [HARD]      |
+| BR-PDL-10 | Input trust                                                                  | Security  | [HARD]      |
+| BR-PDL-11 | The four review-family skills stay inline                                    | Carrier   | [HARD]      |
+| BR-PDL-12 | Reference carriers stay inline                                               | Carrier   | [HARD]      |
+| BR-PDL-13 | Published protocol text is generated, fresh and portable                     | Integrity | [HARD]      |
+| BR-PDL-14 | One owner; every carrier and check stays in step                             | Integrity | [HARD]      |
+| BR-PDL-15 | Every host load path is registered                                           | Host      | [HARD]      |
+| BR-PDL-16 | Trigger-gated protocols arrive only when their subject is in scope           | Delivery  | [HARD]      |
+| BR-PDL-17 | Core principles share one delivery record                                    | Delivery  | [HARD]      |
+| BR-PDL-18 | The universal bundle is delivered in authored bins on prompt and agent start | Delivery  | [HARD]      |
+| BR-PDL-19 | A skill start reminds the assistant of its project overlays                  | Delivery  | [HARD]      |
 
 ### BR-PDL-01: Every converted skill keeps a guide entry per protocol [HARD]
 
-IF a skill is converted THEN for every protocol it follows it carries one guide entry inside its guide block — the protocol name, a one-line summary, when it applies, and the path of the published text — and it keeps each protocol's reminder digest. A guide entry is the fallback every delivery miss relies on (BR-PDL-05). The inline skills of BR-PDL-11 are never converted and carry no guide block. A skill that declares no guide block receives nothing from delivery, so a skill is never delivered text it already carries in full while conversion is in progress.
+IF a skill is converted THEN for every protocol it follows it carries one guide entry inside its guide block — the protocol name, a one-line summary, when it applies, and the path of the published text — and it keeps each protocol's reminder digest. A guide entry is the fallback every delivery miss relies on (BR-PDL-05). The universal protocols (BR-PDL-04) have no guide entry: no skill and no agent carries any part of them. The inline skills of BR-PDL-11 are never converted and carry no guide block. A skill that declares no guide block receives nothing from delivery, so a skill is never delivered text it already carries in full while conversion is in progress.
 
 `[Source: rule/skills/protocol-guide-entry]`
 
@@ -251,20 +271,15 @@ On a host that runs delivery steps, IF a converted skill loads THEN each protoco
 
 `[Source: rule/hooks/protocol-dedup]`
 
-### BR-PDL-03: Six standalone group messages, each within the bin [HARD]
+### BR-PDL-03: Five standalone group messages, each within the bin [HARD]
 
-Protocols belong to exactly one of six fixed groups: review, evidence and trace, workflow and task, spec and test, design, universal. Each group is delivered as its own message of at most 9,500 characters (the bin), and each message stands alone: groups need no order and none refers to another. The bin leaves room below the primary host's 10,000-character limit, above which a message is replaced by a 2 KB preview and a file; several messages on one event are each limited separately, which is what lets six groups carry up to 57,000 characters per skill load. A protocol longer than the bin is published in parts, each within the bin and split at section boundaries; a part after the first still fits the bin once the "continued" line that opens it is added. IF one group's declared protocols for a load exceed the bin THEN the protocols that do not fit are listed by name and published path ("read these"); no protocol is dropped. A protocol's full text is never included at the cost of turning another protocol's name into an anonymous count: a closing "N more … → index" line appears only when the names alone would already exceed the bin.
+Protocols belong to exactly one of six fixed groups: review, evidence and trace, workflow and task, spec and test, design, universal. Each of the five skill-load groups is delivered as its own message of at most 9,500 characters (the bin); the universal group is delivered as its authored bins (BR-PDL-18), and each message stands alone: groups need no order and none refers to another. The bin leaves room below the primary host's 10,000-character limit, above which a message is replaced by a 2 KB preview and a file; several messages on one event are each limited separately, which is what lets five groups carry up to 47,500 characters per skill load. A protocol longer than the bin is published in parts, each within the bin and split at section boundaries; a part after the first still fits the bin once the "continued" line that opens it is added. IF one group's declared protocols for a load exceed the bin THEN the protocols that do not fit are listed by name and published path ("read these"); no protocol is dropped. A protocol's full text is never included at the cost of turning another protocol's name into an anonymous count: a closing "N more … → index" line appears only when the names alone would already exceed the bin.
 
 `[Source: rule/hooks/protocol-pack]`
 
-### BR-PDL-04: Root-carried rules are neither copied nor delivered, with two exceptions [HARD]
+### BR-PDL-04: Universal rules are carried by no file and delivered by the bundle hook [HARD]
 
-The universal group holds exactly the four root-carried protocols: critical thinking, AI mistake prevention, the project reference docs gate, and the project protocol overlay. The root instruction files carry all four, so they are neither copied into converted skills nor delivered, except:
-
-- IF a project switches the universal guides requirement off THEN the universal group is delivered with every converted skill load;
-- IF an agent type starts without the root instruction file (BR-PDL-08) THEN the universal group is delivered at its start.
-
-The inline skills of BR-PDL-11 are excluded from both exceptions; they already carry the four in full.
+The universal group holds the framework rules every task follows, among them critical thinking, AI mistake prevention, the project reference docs gate, the project protocol overlay, task planning, workflow step advancement, evidence, git discipline, code responsibility, artifact storage, lesson extraction and the closing reminders. No file carries them: not the root instruction files, not a converted or inline skill, not an agent definition. A skill load delivers none of them (the five group steps drop the universal group whatever a skill declares), and a host that runs no hooks is not supported. The bundle is delivered by BR-PDL-18.
 
 `[Source: rule/hooks/protocol-root-carried]`
 
@@ -291,7 +306,7 @@ The second host delivers on three paths:
 - a shell command that reads a skill file — **kept on**, because the second host loads a skill through the shell when the prompt names none, and the prompt path then carries nothing. The relevance check matches the skill file name anywhere in the command, whatever the shell or path separator;
 - an agent start (BR-PDL-08).
 
-Each second-host delivery message has an allowance of 3,000 (holds up to about 11,000 characters). Every second-host delivery step that existed before this capability renders exactly as before, so the user's earlier handler review still holds for it. The second host shows a large skill whole (a 12 KB skill file arrived in full), so no size cut forces a protocol onto the inline list. Second-host sub-agents inherit the root instruction file, so the root-skipping rule of BR-PDL-08 is not needed there.
+Each second-host delivery message has an allowance of 3,000 (holds up to about 11,000 characters). Every second-host delivery step that existed before this capability renders exactly as before, so the user's earlier handler review still holds for it. The second host shows a large skill whole (a 12 KB skill file arrived in full), so no size cut forces a protocol onto the inline list. The second host delivers the universal bundle on its prompt event and to its sub-agents at their start, through the same generated steps.
 
 `[Source: rule/scripts/codex-protocol-mapping]`
 
@@ -301,9 +316,9 @@ IF a section of a skill is used by one mode only — the full review of the reas
 
 `[Source: rule/skills/review-mode-sections]`
 
-### BR-PDL-08: Agent-start delivery, narrowed [HARD]
+### BR-PDL-08: Agent-start delivery decided per agent [HARD]
 
-Delivery at agent start is registered only for agent types whose definition preloads skills, plus the built-in agent types that start without the root instruction file. **Decided: Explore and Plan** — the confirmation run showed the root file absent for both and present for a custom agent. The agent-start filter equals exactly that list, sorted. IF an agent that preloads skills starts THEN it receives the protocols of the converted skills it preloads (an inline skill among them contributes nothing). IF Explore or Plan starts THEN it receives the universal group only. The second host mirrors agent start with the same filter for skill-preloading agents; its agent type is the agent's name in the generated agent file. This reverses the earlier deliberate removal of agent-start injection; ADR-0004 records why.
+Delivery at agent start is registered with no agent-type filter, so every agent type — a named agent, a custom agent or the general-purpose agent — reaches the delivery steps, and each step decides per agent what to deliver. IF an agent that preloads skills starts THEN it receives the protocols of the converted skills it preloads (an inline skill among them contributes nothing). IF Explore or Plan starts, or an agent that preloads no skill starts, THEN the five group steps deliver nothing to it. Every agent type — custom or general-purpose, with or without preloaded skills, whether or not its definition file exists or is trusted — receives the universal bundle at its start, once per spawn (BR-PDL-18). A protocol whose full body the agent's own definition carries between paired fences is not delivered again (a reminder digest never counts as the body); this applies only when the definition's declared name equals the agent type. The second host mirrors agent start the same way; its agent type is the agent's name in the generated agent file. ADR-0004 records the decision.
 
 `[Source: rule/hooks/protocol-agent-start]`
 
@@ -327,9 +342,9 @@ The budget is **per event and per host**: the added wall time of all delivery st
 
 `[Source: rule/hooks/protocol-input-trust]`
 
-### BR-PDL-11: The five review-family skills stay inline [HARD]
+### BR-PDL-11: The four review-family skills stay inline [HARD]
 
-The skills on the inline list of the group data keep every full protocol body in their main file. **Decided list:** changes-review, code-quality-review, plan-review, why-review, workflow-review-changes — each carries between 55,176 and 121,781 characters of shared protocol text, more than the 57,000 characters six bins can deliver per load, so delivery would reach them mostly as paths. They are never converted, even when a conversion run names their protocols; they declare no guide entries, so no group delivers to them, the universal exceptions included; a guide entry in one of them fails verification. Every name on the list must be a valid skill name with an existing skill folder. Agents keep their full protocol text as before and are never converted.
+The skills on the inline list of the group data keep every full protocol body in their main file. **Decided list:** changes-review, code-quality-review, why-review, workflow-review-changes — each carries between 63,871 and 139,257 characters of shared protocol text, more than the 47,500 characters five bins can deliver per load, so delivery would reach them mostly as paths. They are never converted, even when a conversion run names their protocols; they declare no guide entries, so no group delivers to them on a skill load; a guide entry in one of them fails verification. Every name on the list must be a valid skill name with an existing skill folder. Agents keep their full protocol text as before and are never converted.
 
 `[Source: rule/skills/inline-skills]`
 
@@ -349,7 +364,7 @@ The published text — one file per protocol in use plus the protocol index (gro
 
 - A canonical protocol edit reaches every full-text carrier — inline skills, reference files and agents — through the carrier tooling; guide conversion never changes an agent, an inline skill or a reference file, is limited to the protocols it is asked for, and is repeatable with no further change.
 - Every framework check and skill injector that looks for a protocol accepts a guide entry with its reminder in place of the body, and still fails when both are missing; the text-presence checks on a converted skill read the pinned rule fragments from the published text.
-- The duplication policy states the hybrid rule — skills keep guides, delivery carries the text, agents and reviewer prompts carry full text, the five review-family skills keep full bodies — and every copy of the policy equals the canonical text.
+- The duplication policy states the hybrid rule — skills keep guides, delivery carries the text, agents and reviewer prompts carry full text, the four review-family skills keep full bodies — and every copy of the policy equals the canonical text.
 - Compressed protocols keep every rule they had (checked rule by rule) and stay at or under 9,000 characters, the reviewer injection template excepted.
 - Pruning a skill's guide list is a conditional follow-up that runs only if delivered protocol text is still a top-three cost after de-duplication; it removes only protocols that no mode of the skill uses, each with a recorded reason.
 
@@ -364,7 +379,41 @@ The published text — one file per protocol in use plus the protocol index (gro
 
 `[Source: rule/scripts/protocol-host-registration]`
 
----
+### BR-PDL-16: Trigger-gated protocols arrive only when their subject is in scope [HARD]
+
+A few protocols apply only to one subject: user-facing visual surfaces (design, journey, copy), domain-model changes, and AI features. The group data names each such protocol's delivery trigger — its owner skills, a text pattern and a path pattern. IF a converted skill declares a gated protocol THEN it is delivered in full only when (a) a loaded skill is one of the trigger's owner skills, (b) the text pattern matches the event text (skill arguments, typed-command arguments, the prompt) or the session's recorded prompts, or (c) the path pattern matches the files the session touched or those prompts. Otherwise it is neither delivered nor named, no delivery record is written (a later load whose context shows the subject still delivers it), and the skill's guide entry stays the read-by-path fallback (BR-PDL-05). A trigger that is unknown, has an unusable pattern, or whose context cannot be read delivers unconditionally. Protocols without a trigger are never gated.
+
+`[Source: rule/hooks/protocol-trigger]`
+
+### BR-PDL-17: Core principles share one delivery record [HARD]
+
+The core engineering principles reach the assistant from two hooks: the task-step and prompt reminder, and the design group of BR-PDL-03. Both write and read one record per session under the delivery record store, keyed by the same hash of the published text, so a delivery by either marks the protocol delivered for both. Each reader keeps its own re-delivery distance (the reminder about 100,000 tokens, the design group 4,500,000 bytes of conversation growth) and a compaction re-arms both. IF no published text exists THEN the reminder keeps a private record keyed by the content hash.
+
+`[Source: rule/hooks/protocol-dedup]`
+
+### BR-PDL-18: The universal bundle is delivered in authored bins on prompt and agent start [HARD]
+
+The universal group carries an authored layout: an ordered list of bins, each an ordered list of its protocols. Each bin is one message of at most 9,500 characters that opens with a numbered header and is delivered by its own hook step with its own delivery record, so a bin that went missing is delivered again without the others. The build fails when a universal protocol sits in no bin, a bin names a foreign or repeated protocol, or a rendered bin exceeds the bin size.
+
+- IF a prompt is the session's first THEN every bin is delivered; afterwards a bin is delivered again only after about 200,000 tokens of conversation growth since its last delivery (the growth distance is the token figure converted by the measured bytes per token; no age re-arm) or after a compaction, on every host that reports one.
+- IF a session start reports a compaction (source `compact`) THEN every bin is delivered again at once, so a run that ends no prompt after the compaction still carries the rules; the bin's own record is replaced, so the prompt that follows finds the bundle present and stays silent.
+- IF the host writes its own compaction boundary after the compaction report was delivered THEN the first boundary stamped within 120 seconds after that delivery belongs to it: the bin's record moves just past the boundary and the expectation is spent, so the prompt that follows stays silent (one delivery per compaction, not two). A boundary beyond the 120-second window, a second boundary after the first was attributed, and a boundary after a clear (a clear writes none) are real compactions and deliver again; with no boundary the growth re-arm is unchanged. A genuine second compaction inside the window and before the next prompt reads as the same one and is delivered again only at the next boundary or after the growth distance.
+- IF a delivery was recorded while the conversation record did not exist yet (its size unknown) THEN growth counts from an empty record, so the bundle still returns after the growth distance; with the current size also unknown no growth is measured and the delivery stays present.
+- IF a session start reports a clear (source `clear`) THEN every bin is delivered again once, because the host emptied the conversation and the earlier delivery is no longer in context; the bin's own record is replaced, so the prompt that follows stays silent.
+- IF a session start reports startup or resume THEN nothing is delivered and nothing is recorded; the first prompt delivers.
+- IF a bin's source file cannot be read THEN the step writes one notice line naming the unreadable file, never throws, and does not record the failed render as delivered; a later prompt, compaction or clear delivers it again once the file is readable. The workflow route hook gives the same one-line notice for an unreadable route source.
+- IF an agent of any type starts THEN every bin is delivered to it once; the spawn is its own scope.
+- IF the delivery record store cannot be used or the session has no identity THEN the bins are still delivered, without a record; a duplicate is accepted over a miss. A missing protocol file drops that protocol, never the bin.
+- Any other event ends before any project module loads and writes nothing.
+- The hosts are the three supported assistant hosts; the generated second-host and third-host steps derive from the primary host's registration.
+
+`[Source: rule/hooks/protocol-universal-bundle]`
+
+### BR-PDL-19: A skill start reminds the assistant of its project overlays [HARD]
+
+The project keeps a registry of overlay rules layered onto framework skills. IF a skill activates (a skill tool call, a read of its file, a typed command, or a second-host prompt or shell read naming it) and the registry matches it THEN a reminder of at most three lines names the matched overlay body files, at most eight, counting any more, and states that overlays are additive only and never waive the workflow route rules, git discipline, a review gate or a user-confirmation gate. The most specific matching tier wins outright (exact name, then pattern, then the catch-all); a body file is always derived from the registry row's bare name, never from its link text, and a malformed or directory-escaping name is skipped unread. The reminder is delivered once per skill and scope and again only after about 100,000 tokens of growth, a compaction or a changed overlay set. Only successful delivery starts that suppression window; IF delivery fails THEN the reminder remains eligible at the next activation. IF several eligible skills activate together THEN their reminders arrive in one message, and a failed delivery leaves each eligible for retry. IF the registry is absent or empty, no row matches, or any read or parse fails THEN nothing is emitted and nothing fails.
+
+## `[Source: rule/hooks/skill-overlay-reminder]`
 
 ## 5. Domain Model
 
@@ -385,12 +434,12 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 
 ### Entity: Protocol
 
-| Property     | Type                   | Required | Constraints                                                                                 | Business Meaning                         |
-| ------------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| Name         | text                   | Yes      | Unique; listed in the protocol index                                                        | How skills and guide entries refer to it |
-| Group        | enum ProtocolGroupName | Yes      | Exactly one                                                                                 | Which delivery message carries it        |
-| Root-carried | yes-no                 | Yes      | Yes only for the four universal protocols                                                   | Whether the root file already carries it |
-| Size         | number                 | Yes      | Target at most 9,000 characters after compression, the reviewer injection template excepted | What it costs to deliver                 |
+| Property  | Type                   | Required | Constraints                                                                                 | Business Meaning                                             |
+| --------- | ---------------------- | -------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Name      | text                   | Yes      | Unique; listed in the protocol index                                                        | How skills and guide entries refer to it                     |
+| Group     | enum ProtocolGroupName | Yes      | Exactly one                                                                                 | Which delivery message carries it                            |
+| Universal | yes-no                 | Yes      | Yes only for the universal group                                                            | Whether a hook delivers it to every task, carried by no file |
+| Size      | number                 | Yes      | Target at most 9,000 characters after compression, the reviewer injection template excepted | What it costs to deliver                                     |
 
 ### Entity: PublishedProtocol
 
@@ -415,7 +464,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Property         | Type                   | Required | Constraints                                               | Business Meaning                             |
 | ---------------- | ---------------------- | -------- | --------------------------------------------------------- | -------------------------------------------- |
 | Name             | text                   | Yes      | Lowercase letters, digits, hyphens                        | How hosts and agents refer to it             |
-| Delivery mode    | enum SkillDeliveryMode | Yes      | Inline for the five review-family skills                  | Whether it keeps bodies or receives delivery |
+| Delivery mode    | enum SkillDeliveryMode | Yes      | Inline for the four review-family skills                  | Whether it keeps bodies or receives delivery |
 | Guide block      | list of GuideEntry     | No       | Only on converted skills; union over modes and references | What delivery reads                          |
 | Reminder digests | list                   | Yes      | Kept in every mode                                        | Recency recap                                |
 
@@ -428,12 +477,12 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 
 ### Entity: Agent
 
-| Property           | Type         | Required | Constraints                                                     | Business Meaning                     |
-| ------------------ | ------------ | -------- | --------------------------------------------------------------- | ------------------------------------ |
-| Type               | text         | Yes      | Lowercase letters, digits, hyphens; built-ins named by the host | Which agent-start filter applies     |
-| Preloaded skills   | list of text | No       | Named in the agent definition                                   | Whose protocols it receives at start |
-| Receives root file | yes-no       | Yes      | No for Explore and Plan on the primary host                     | Whether it needs the universal group |
-| Protocol bodies    | list         | Yes      | Always full text                                                | Agents are never converted           |
+| Property         | Type         | Required | Constraints                                                     | Business Meaning                          |
+| ---------------- | ------------ | -------- | --------------------------------------------------------------- | ----------------------------------------- |
+| Type             | text         | Yes      | Lowercase letters, digits, hyphens; built-ins named by the host | Which agent-start delivery applies        |
+| Preloaded skills | list of text | No       | Named in the agent definition                                   | Whose protocols it receives at start      |
+| Receives bundle  | yes-no       | Yes      | Yes for every agent type                                        | Delivered the universal bins at its start |
+| Protocol bodies  | list         | Yes      | Always full text                                                | Agents are never converted                |
 
 ### Entity: DeliveryMessage
 
@@ -470,7 +519,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | workflow-task  | Workflow, task and session rules          |
 | spec-test      | Spec, test-case and test-execution rules  |
 | design         | Interface design rules                    |
-| universal      | The four root-carried protocols           |
+| universal      | The framework rules every task follows    |
 
 ### Enum: LoadPath
 
@@ -485,13 +534,13 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 
 ### Domain Events (business occurrences)
 
-| Occurrence                | When it happens                                | Who/what reacts (business outcome)                                     |
-| ------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
-| Skill loaded              | A skill reaches the assistant on any load path | Undelivered declared protocols are delivered per group                 |
-| Agent started             | A listed agent type starts                     | Its preloaded skills' protocols, or the universal group, are delivered |
-| Conversation compacted    | The host summarizes the conversation           | Every delivery record stops counting                                   |
-| Canonical protocol edited | A maintainer edits a protocol                  | Published text must be rebuilt; carriers are propagated                |
-| Group converted           | A maintainer converts a protocol group         | Bodies become guide entries; compliance is compared before and after   |
+| Occurrence                | When it happens                                | Who/what reacts (business outcome)                                   |
+| ------------------------- | ---------------------------------------------- | -------------------------------------------------------------------- |
+| Skill loaded              | A skill reaches the assistant on any load path | Undelivered declared protocols are delivered per group               |
+| Agent started             | Any agent type starts                          | Its preloaded skills' protocols and the universal bins are delivered |
+| Conversation compacted    | The host summarizes the conversation           | Every delivery record stops counting                                 |
+| Canonical protocol edited | A maintainer edits a protocol                  | Published text must be rebuilt; carriers are propagated              |
+| Group converted           | A maintainer converts a protocol group         | Bodies become guide entries; compliance is compared before and after |
 
 ---
 
@@ -506,17 +555,18 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | 1    | Assistant or user | Loads a skill on a load path   | Each group's delivery step checks relevance first; a non-matching event ends with no output (BR-PDL-09)   | 2 or end |
 | 2    | System            | Resolves the skill or agent    | Names and folders checked (BR-PDL-10); unresolved → nothing, guides remain (BR-PDL-05)                    | 3        |
 | 3    | System            | Reads the guide block          | Inline and undeclared skills yield nothing (BR-PDL-01, BR-PDL-11)                                         | 4        |
-| 4    | System            | Filters to this group          | Root-carried dropped unless an exception applies (BR-PDL-04); unknown names dropped                       | 5        |
+| 4    | System            | Filters to this group          | The universal group is dropped (BR-PDL-04); unknown names dropped                                         | 5        |
 | 5    | System            | Checks delivery records        | Protocols already delivered in the scope dropped (BR-PDL-02); unusable store → deliver anyway (BR-PDL-05) | 6        |
 | 6    | System            | Packs and delivers the message | At most 9,500 characters; overflow named by path (BR-PDL-03)                                              | end      |
 
 ### Flow: Agent start
 
-| Step | Actor     | Action                   | System Response                                    | Next     |
-| ---- | --------- | ------------------------ | -------------------------------------------------- | -------- |
-| 1    | Assistant | Starts an agent          | Filter matches only listed agent types (BR-PDL-08) | 2 or end |
-| 2    | System    | Agent preloads skills    | Delivers those converted skills' protocols         | end      |
-| 3    | System    | Agent is Explore or Plan | Delivers the universal group only                  | end      |
+| Step | Actor     | Action                                        | System Response                                                                         | Next     |
+| ---- | --------- | --------------------------------------------- | --------------------------------------------------------------------------------------- | -------- |
+| 1    | Assistant | Starts an agent                               | Every agent type reaches the steps; each decides per agent (BR-PDL-08)                  | 2 or end |
+| 2    | System    | Agent preloads skills                         | Delivers those converted skills' protocols, minus bodies the agent's definition carries | 3 or end |
+| 3    | System    | Agent is Explore or Plan or preloads no skill | The group steps deliver nothing                                                         | 4        |
+| 4    | System    | Every agent type                              | Delivers every universal bin once for this spawn (BR-PDL-18)                            | end      |
 
 ### Flow: Convert a protocol group
 
@@ -542,7 +592,7 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Role                 | View | Create | Edit | Delete | Scope                                                                             |
 | -------------------- | :--: | :----: | :--: | :----: | --------------------------------------------------------------------------------- |
 | Framework maintainer | yes  |  yes   | yes  |  yes   | Canonical protocols, group data, inline list, conversion, second-host inline list |
-| Project maintainer   | yes  |   no   | yes  |   no   | The universal guides requirement for the project                                  |
+| Project maintainer   | yes  |   no   | yes  |   no   | The project's skill overlays; no switch exists for the universal protocols        |
 | Developer            | yes  |   no   | yes  |   no   | Reviews and approves new second-host delivery steps on their machine              |
 | AI assistant         | yes  |   no   |  no  |   no   | Reads delivered text and guide entries; reads by path on a miss                   |
 | Assistant host       |  no  |   no   |  no  |   no   | Runs the registered delivery steps; runs a second-host step only after review     |
@@ -563,12 +613,12 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 
 ### Test Summary
 
-| Priority  | Count  | Automated | Manual |
-| --------- | ------ | --------- | ------ |
-| P0        | 14     | 13        | 1      |
-| P1        | 54     | 52        | 2      |
-| P2        | 7      | 6         | 1      |
-| **Total** | **75** | **71**    | **4**  |
+| Priority  | Count   | Automated | Manual |
+| --------- | ------- | --------- | ------ |
+| P0        | 24      | 23        | 1      |
+| P1        | 73      | 71        | 2      |
+| P2        | 8       | 7         | 1      |
+| **Total** | **105** | **101**   | **4**  |
 
 | Category                       | TCs                                                                                                                                                                                |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -582,56 +632,63 @@ SecondHostInlineList    1──N Protocol           (decided: none)
 | Mode Section Tests             | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                                                                                         |
 | Compression Tests              | TC-PDL-047, TC-PDL-048, TC-PDL-049, TC-PDL-062                                                                                                                                     |
 | Conditional Pruning Tests      | TC-PDL-050, TC-PDL-051, TC-PDL-052                                                                                                                                                 |
+| Universal Bundle Tests         | TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114 |
+| Skill Overlay Reminder Tests   | TC-PDL-100, TC-PDL-101, TC-PDL-102, TC-PDL-103, TC-PDL-104, TC-PDL-105, TC-PDL-106, TC-PDL-107, TC-PDL-108, TC-PDL-109                                                             |
 
 ### Planned Executors
 
-| Executor                                                                                                        | TCs                                                                                                                                            |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.claude/scripts/tests/build-protocol-projection.test.cjs`                                                      | TC-PDL-001, TC-PDL-002, TC-PDL-003, TC-PDL-004, TC-PDL-005, TC-PDL-006, TC-PDL-007, TC-PDL-008, TC-PDL-047, TC-PDL-049, TC-PDL-055, TC-PDL-080 |
-| `.claude/hooks/tests/suites/protocol-delivery.test.cjs`                                                         | TC-PDL-009, TC-PDL-010, TC-PDL-011, TC-PDL-012, TC-PDL-013, TC-PDL-016, TC-PDL-017, TC-PDL-018, TC-PDL-019, TC-PDL-038, TC-PDL-052, TC-PDL-056 |
-| `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs`                                                      | TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-053, TC-PDL-054, TC-PDL-057, TC-PDL-067                                                             |
-| `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs`                                                     | TC-PDL-021, TC-PDL-022, TC-PDL-023, TC-PDL-024, TC-PDL-025, TC-PDL-027, TC-PDL-042, TC-PDL-058, TC-PDL-059, TC-PDL-060, TC-PDL-070             |
-| `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only`                                       | TC-PDL-026                                                                                                                                     |
-| `.claude/hooks/tests/suites/content-presence.test.cjs`                                                          | TC-PDL-028, TC-PDL-084                                                                                                                         |
-| `.claude/scripts/tests/sync-update-blocks-guide.test.cjs`                                                       | TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-061, TC-PDL-081                                                                                     |
-| `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs`                                         | TC-PDL-032, TC-PDL-033, TC-PDL-065, TC-PDL-083                                                                                                 |
-| `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs`                                                       | TC-PDL-034, TC-PDL-035, TC-PDL-036, TC-PDL-037, TC-PDL-039, TC-PDL-040, TC-PDL-050, TC-PDL-062, TC-PDL-065, TC-PDL-082                         |
-| Manual-QC (live transcript or review evidence)                                                                  | TC-PDL-041, TC-PDL-048, TC-PDL-051, TC-PDL-063                                                                                                 |
-| `.claude/hooks/tests/suites/review-mode-sections.test.cjs`                                                      | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                                                     |
-| `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,review-validate-coverage` | TC-PDL-045                                                                                                                                     |
-| `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle`                 | TC-PDL-046                                                                                                                                     |
-| `.claude/scripts/codex/tests/verify-sync-adoption-parity.test.mjs`                                              | TC-PDL-065                                                                                                                                     |
-| `.claude/hooks/tests/suites/project-reference-gate-coverage.test.cjs`                                           | TC-PDL-065                                                                                                                                     |
-| `.claude/hooks/tests/suites/protocol-text-parity.test.cjs`                                                      | TC-PDL-065                                                                                                                                     |
-| `.claude/scripts/codex/tests/framework-policy-regressions.test.mjs`                                             | TC-PDL-065                                                                                                                                     |
-| `.claude/scripts/codex/tests/review-policy-consumers.test.mjs`                                                  | TC-PDL-065                                                                                                                                     |
-| `.claude/hooks/tests/suites/prompt-ledger.test.cjs`                                                             | TC-PDL-065                                                                                                                                     |
-| `.claude/scripts/codex/tests/round3-prompt-contract.test.mjs`                                                   | TC-PDL-065                                                                                                                                     |
-| `.claude/scripts/tests/experience-config.test.cjs`                                                              | TC-PDL-065                                                                                                                                     |
-| `.claude/hooks/tests/suites/agent-universal-rules.test.cjs`                                                     | TC-PDL-065                                                                                                                                     |
-| `.claude/scripts/tests/injectors-respect-guides.test.cjs`                                                       | TC-PDL-066                                                                                                                                     |
-| `.claude/scripts/opencode/tests/sync-hooks.test.mjs`                                                            | TC-PDL-068                                                                                                                                     |
-| `.claude/scripts/codex/tests/verify-sync-divergence.test.mjs`                                                   | TC-PDL-069                                                                                                                                     |
+| Executor                                                                                                        | TCs                                                                                                                                                                                |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.claude/scripts/tests/build-protocol-projection.test.cjs`                                                      | TC-PDL-001, TC-PDL-002, TC-PDL-003, TC-PDL-004, TC-PDL-005, TC-PDL-006, TC-PDL-007, TC-PDL-008, TC-PDL-047, TC-PDL-049, TC-PDL-055, TC-PDL-080                                     |
+| `.claude/hooks/tests/suites/protocol-delivery.test.cjs`                                                         | TC-PDL-009, TC-PDL-010, TC-PDL-011, TC-PDL-012, TC-PDL-013, TC-PDL-016, TC-PDL-017, TC-PDL-018, TC-PDL-019, TC-PDL-038, TC-PDL-052, TC-PDL-056                                     |
+| `.claude/hooks/tests/suites/protocol-inject-hook.test.cjs`                                                      | TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-053, TC-PDL-054, TC-PDL-057, TC-PDL-067                                                                                                 |
+| `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs`                                                     | TC-PDL-021, TC-PDL-022, TC-PDL-023, TC-PDL-024, TC-PDL-025, TC-PDL-027, TC-PDL-042, TC-PDL-058, TC-PDL-059, TC-PDL-060, TC-PDL-070                                                 |
+| `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only`                                       | TC-PDL-026                                                                                                                                                                         |
+| `.claude/hooks/tests/suites/content-presence.test.cjs`                                                          | TC-PDL-028, TC-PDL-084                                                                                                                                                             |
+| `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs`                                                   | TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114 |
+| `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs`                                                      | TC-PDL-100, TC-PDL-101, TC-PDL-102, TC-PDL-103, TC-PDL-104, TC-PDL-105, TC-PDL-106, TC-PDL-107, TC-PDL-108, TC-PDL-109                                                             |
+| `.claude/scripts/tests/sync-update-blocks-guide.test.cjs`                                                       | TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-036, TC-PDL-061, TC-PDL-081                                                                                                             |
+| `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs`                                         | TC-PDL-032, TC-PDL-033, TC-PDL-065, TC-PDL-083                                                                                                                                     |
+| `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs`                                                       | TC-PDL-034, TC-PDL-035, TC-PDL-037, TC-PDL-039, TC-PDL-040, TC-PDL-050, TC-PDL-062, TC-PDL-065, TC-PDL-082                                                                         |
+| Manual-QC (live transcript or review evidence)                                                                  | TC-PDL-041, TC-PDL-048, TC-PDL-051, TC-PDL-063                                                                                                                                     |
+| `.claude/hooks/tests/suites/review-mode-sections.test.cjs`                                                      | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                                                                                         |
+| `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,review-validate-coverage` | TC-PDL-045                                                                                                                                                                         |
+| `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle`                 | TC-PDL-046                                                                                                                                                                         |
+| `.claude/scripts/codex/tests/verify-sync-adoption-parity.test.mjs`                                              | TC-PDL-065                                                                                                                                                                         |
+| `.claude/hooks/tests/suites/protocol-text-parity.test.cjs`                                                      | TC-PDL-065                                                                                                                                                                         |
+| `.claude/scripts/codex/tests/framework-policy-regressions.test.mjs`                                             | TC-PDL-065                                                                                                                                                                         |
+| `.claude/scripts/codex/tests/review-policy-consumers.test.mjs`                                                  | TC-PDL-065                                                                                                                                                                         |
+| `.claude/hooks/tests/suites/prompt-ledger.test.cjs`                                                             | TC-PDL-065                                                                                                                                                                         |
+| `.claude/scripts/codex/tests/round3-prompt-contract.test.mjs`                                                   | TC-PDL-065                                                                                                                                                                         |
+| `.claude/scripts/tests/experience-config.test.cjs`                                                              | TC-PDL-065                                                                                                                                                                         |
+| `.claude/hooks/tests/suites/agent-universal-rules.test.cjs`                                                     | TC-PDL-065                                                                                                                                                                         |
+| `.claude/scripts/tests/injectors-respect-guides.test.cjs`                                                       | TC-PDL-066                                                                                                                                                                         |
+| `.claude/scripts/opencode/tests/sync-hooks.test.mjs`                                                            | TC-PDL-068                                                                                                                                                                         |
+| `.claude/scripts/codex/tests/verify-sync-divergence.test.mjs`                                                   | TC-PDL-069                                                                                                                                                                         |
 
 ### Rule Coverage
 
-| Rule      | Proven by                                                                                                              |
-| --------- | ---------------------------------------------------------------------------------------------------------------------- |
-| BR-PDL-01 | TC-PDL-019, TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-032, TC-PDL-033, TC-PDL-034, TC-PDL-036, TC-PDL-040             |
-| BR-PDL-02 | TC-PDL-009, TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-041, TC-PDL-053                                                 |
-| BR-PDL-03 | TC-PDL-002, TC-PDL-016, TC-PDL-047                                                                                     |
-| BR-PDL-04 | TC-PDL-017, TC-PDL-018, TC-PDL-035, TC-PDL-036, TC-PDL-037, TC-PDL-038, TC-PDL-080                                     |
-| BR-PDL-05 | TC-PDL-016, TC-PDL-054, TC-PDL-063                                                                                     |
-| BR-PDL-06 | TC-PDL-013, TC-PDL-022, TC-PDL-024, TC-PDL-025, TC-PDL-042                                                             |
-| BR-PDL-07 | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                             |
-| BR-PDL-08 | TC-PDL-011, TC-PDL-012, TC-PDL-060                                                                                     |
-| BR-PDL-09 | TC-PDL-057, TC-PDL-058, TC-PDL-067, TC-PDL-068, TC-PDL-070                                                             |
-| BR-PDL-10 | TC-PDL-027, TC-PDL-056                                                                                                 |
-| BR-PDL-11 | TC-PDL-018, TC-PDL-039, TC-PDL-041, TC-PDL-064, TC-PDL-080, TC-PDL-081, TC-PDL-083                                     |
-| BR-PDL-12 | TC-PDL-039, TC-PDL-081                                                                                                 |
-| BR-PDL-13 | TC-PDL-001, TC-PDL-003, TC-PDL-004, TC-PDL-005, TC-PDL-006, TC-PDL-007, TC-PDL-008, TC-PDL-049, TC-PDL-055             |
-| BR-PDL-14 | TC-PDL-048, TC-PDL-050, TC-PDL-051, TC-PDL-052, TC-PDL-061, TC-PDL-062, TC-PDL-065, TC-PDL-066, TC-PDL-082, TC-PDL-084 |
-| BR-PDL-15 | TC-PDL-010, TC-PDL-013, TC-PDL-021, TC-PDL-022, TC-PDL-023, TC-PDL-026, TC-PDL-027, TC-PDL-028, TC-PDL-059, TC-PDL-069 |
+| Rule      | Proven by                                                                                                                                                                                                  |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BR-PDL-01 | TC-PDL-019, TC-PDL-029, TC-PDL-030, TC-PDL-031, TC-PDL-032, TC-PDL-033, TC-PDL-034, TC-PDL-036, TC-PDL-040                                                                                                 |
+| BR-PDL-02 | TC-PDL-009, TC-PDL-014, TC-PDL-015, TC-PDL-020, TC-PDL-041, TC-PDL-053                                                                                                                                     |
+| BR-PDL-03 | TC-PDL-002, TC-PDL-016, TC-PDL-047                                                                                                                                                                         |
+| BR-PDL-04 | TC-PDL-012, TC-PDL-017, TC-PDL-035, TC-PDL-036, TC-PDL-037, TC-PDL-097                                                                                                                                     |
+| BR-PDL-05 | TC-PDL-016, TC-PDL-054, TC-PDL-063                                                                                                                                                                         |
+| BR-PDL-06 | TC-PDL-013, TC-PDL-022, TC-PDL-024, TC-PDL-025, TC-PDL-042                                                                                                                                                 |
+| BR-PDL-07 | TC-PDL-043, TC-PDL-044, TC-PDL-045, TC-PDL-046, TC-PDL-064                                                                                                                                                 |
+| BR-PDL-08 | TC-PDL-011, TC-PDL-012, TC-PDL-060; `protocol-delivery.test.cjs` tests "a sub-agent start does not receive a protocol its agent definition already carries…" and "Tier-0 fallback…"                        |
+| BR-PDL-09 | TC-PDL-057, TC-PDL-058, TC-PDL-067, TC-PDL-068, TC-PDL-070                                                                                                                                                 |
+| BR-PDL-10 | TC-PDL-027, TC-PDL-056                                                                                                                                                                                     |
+| BR-PDL-11 | TC-PDL-018, TC-PDL-039, TC-PDL-041, TC-PDL-064, TC-PDL-080, TC-PDL-081, TC-PDL-083                                                                                                                         |
+| BR-PDL-12 | TC-PDL-039, TC-PDL-081                                                                                                                                                                                     |
+| BR-PDL-13 | TC-PDL-001, TC-PDL-003, TC-PDL-004, TC-PDL-005, TC-PDL-006, TC-PDL-007, TC-PDL-008, TC-PDL-049, TC-PDL-055                                                                                                 |
+| BR-PDL-14 | TC-PDL-048, TC-PDL-050, TC-PDL-051, TC-PDL-052, TC-PDL-061, TC-PDL-062, TC-PDL-065, TC-PDL-066, TC-PDL-082, TC-PDL-084                                                                                     |
+| BR-PDL-15 | TC-PDL-010, TC-PDL-013, TC-PDL-021, TC-PDL-022, TC-PDL-023, TC-PDL-026, TC-PDL-027, TC-PDL-028, TC-PDL-059, TC-PDL-069                                                                                     |
+| BR-PDL-16 | `protocol-delivery.test.cjs` test "a trigger-gated protocol is delivered in full only when its trigger applies…" and "the shipped plan, feature-implement and scaffold skills declare the journey-first UX gate and receive it only for UI work" (named tests carry no TC id)                                                              |
+| BR-PDL-17 | `core-principles-inject.test.cjs::TC-CEP-019` (both directions of the shared record); `codex-launcher.test.cjs::TC-CXL-009` (record location)                                                              |
+| BR-PDL-18 | TC-PDL-038, TC-PDL-080, TC-PDL-085, TC-PDL-086, TC-PDL-087, TC-PDL-088, TC-PDL-089, TC-PDL-090, TC-PDL-091, TC-PDL-092, TC-PDL-093, TC-PDL-094, TC-PDL-095, TC-PDL-096, TC-PDL-097, TC-PDL-098, TC-PDL-099, TC-PDL-110, TC-PDL-111, TC-PDL-112, TC-PDL-113, TC-PDL-114 |
+| BR-PDL-19 | TC-PDL-100, TC-PDL-101, TC-PDL-102, TC-PDL-103, TC-PDL-104, TC-PDL-105, TC-PDL-106, TC-PDL-107, TC-PDL-108, TC-PDL-109                                                                                     |
 
 ### Published Protocol Text Tests
 
@@ -1159,13 +1216,13 @@ boundaryCounterCase: 'a project that is not the framework repository → the cas
 
 ---
 
-#### TC-PDL-080: The universal group holds exactly the four root-carried protocols and the inline list names real skills [P0]
+#### TC-PDL-080: The universal bins cover the universal group exactly and the inline list names real skills [P0]
 
-**Objective:** Prove the group data pins the universal group and the inline skill list.
+**Objective:** Prove the group data pins the universal layout and the inline skill list.
 
-**Business Intent / Invariant Guarded:** A wrong universal group repeats or loses a root rule; a wrong inline name converts a review skill or keeps a ghost (BR-PDL-04, BR-PDL-11).
+**Business Intent / Invariant Guarded:** A tag in no bin is never delivered, a foreign or repeated tag is delivered wrongly, and a wrong inline name converts a review skill or keeps a ghost (BR-PDL-18, BR-PDL-11).
 
-**Traces:** AC-PDL-07, AC-PDL-09 / BR-PDL-04, BR-PDL-11
+**Traces:** AC-PDL-07, AC-PDL-09 / BR-PDL-18, BR-PDL-11
 
 **Preconditions:**
 
@@ -1173,14 +1230,14 @@ boundaryCounterCase: 'a project that is not the framework repository → the cas
 
 **Real-World Reachability:** A maintainer edits the group data.
 
-**Demo Flow:** Build and read the universal group and the inline list, then build with a bad inline name.
+**Demo Flow:** Build with a missing, foreign, repeated, absent and oversized layout, then with a bad inline name.
 
 ```gherkin
 Given the group data
 When the published text is built
-Then the universal group holds exactly the four root-carried protocols
+Then every universal protocol sits in exactly one bin and each rendered bin fits
 And the inline list names existing skills only
-And an inline name that is malformed or has no skill folder fails the build by name
+And a bad layout or inline name fails the build by name
 ```
 
 **Expected Result:**
@@ -1189,21 +1246,21 @@ And an inline name that is malformed or has no skill folder fails the build by n
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
 | **System behavior**     | Validates the group data                                                                                                                                              |
-| **Business data state** | Universal group and inline list as decided                                                                                                                            |
-| **Data shown on UI**    | An error naming a bad inline entry                                                                                                                                    |
+| **Business data state** | Bins and inline list as authored                                                                                                                                      |
+| **Data shown on UI**    | An error naming the bad tag, bin or inline entry                                                                                                                      |
 
 **Acceptance Criteria:**
 
-- ✅ Exactly four universal protocols
+- ✅ Each universal protocol in exactly one bin, each bin within the size
 - ✅ Only existing, well-formed inline names
-- ❌ A fifth protocol in the universal group
+- ❌ A universal protocol in no bin
 - ❌ An inline name with no skill folder accepted
 
 **Test Data:**
 
 ```yaml
 inputDomain: 'any group data'
-invariant: 'for ALL group data the universal group is exactly the four and every inline name is a valid existing skill'
+invariant: 'for ALL group data the bins partition the universal group and every inline name is a valid existing skill'
 boundaryCounterCase: 'an inline name with an upper-case letter → the build fails naming it'
 ```
 
@@ -1214,8 +1271,8 @@ boundaryCounterCase: 'an inline name with an upper-case letter → the build fai
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/skills/inline-skills]`
-> **Related Behaviors:** `rule/hooks/protocol-root-carried` · `operation/scripts/build-protocol-projection`
-> **CoveredBy:** `.claude/scripts/tests/build-protocol-projection.test.cjs::TC-PDL-080` · **Status:** Implemented — evidence: `.claude/scripts/tests/build-protocol-projection.test.cjs:380` (passed in P22; not re-run at the final gate)
+> **Related Behaviors:** `rule/hooks/protocol-universal-bundle` · `operation/scripts/build-protocol-projection`
+> **CoveredBy:** `.claude/scripts/tests/build-protocol-projection.test.cjs::TC-PDL-080` · **Status:** Implemented — evidence: `.claude/scripts/tests/build-protocol-projection.test.cjs` "TC-PDL-080: the universal bins must cover every universal tag exactly once and each bin must fit"
 
 ---
 
@@ -1395,13 +1452,13 @@ boundaryCounterCase: 'an agent file whose declared name differs from the agent t
 
 ---
 
-#### TC-PDL-012: An Explore agent receives only the universal group [P1]
+#### TC-PDL-012: No group delivers anything to an Explore or Plan agent, or to an agent that preloads no skill [P1]
 
-**Objective:** Prove a root-skipping agent type receives the four root-carried protocols and nothing else.
+**Objective:** Prove the five group steps add nothing for an agent type that preloads no skill.
 
-**Business Intent / Invariant Guarded:** Explore and Plan start without the root file, so the universal group is their only source of the root rules (BR-PDL-08, BR-PDL-04).
+**Business Intent / Invariant Guarded:** The universal bundle reaches every agent through its own steps (BR-PDL-18); a group step must not double it or deliver role text nobody asked for (BR-PDL-08, BR-PDL-04).
 
-**Traces:** AC-PDL-11 / BR-PDL-08
+**Traces:** AC-PDL-10 / BR-PDL-08
 
 **Preconditions:**
 
@@ -1412,9 +1469,9 @@ boundaryCounterCase: 'an agent file whose declared name differs from the agent t
 **Demo Flow:** Plan delivery for an Explore agent start.
 
 ```gherkin
-Given the built-in Explore agent type
+Given the built-in Explore agent type, or an agent that preloads no skill
 When it starts
-Then only the universal group is returned
+Then the group steps deliver nothing
 ```
 
 **Expected Result:**
@@ -1422,22 +1479,22 @@ Then only the universal group is returned
 | Dimension               | Expectation                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
-| **System behavior**     | Delivers the universal group                                                                                                                                          |
-| **Business data state** | Recorded for the agent scope                                                                                                                                          |
-| **Data shown on UI**    | The universal message                                                                                                                                                 |
+| **System behavior**     | Delivers nothing from a group step                                                                                                                                    |
+| **Business data state** | No group record written                                                                                                                                               |
+| **Data shown on UI**    | Nothing from the group steps                                                                                                                                          |
 
 **Acceptance Criteria:**
 
-- ✅ Universal group only
-- ❌ Any other group
-- ❌ Nothing at all
+- ✅ Nothing from any group
+- ❌ The universal group delivered by a group step
+- ❌ A role group delivered
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'any root-skipping agent type'
-invariant: 'for ALL root-skipping types only the universal group is returned'
-boundaryCounterCase: 'a custom agent type with no preloaded skills → nothing'
+inputDomain: 'any agent type that preloads no skill'
+invariant: 'for ALL such types the group steps return nothing'
+boundaryCounterCase: 'an agent that preloads a converted skill → its protocols'
 ```
 
 **Edge Cases:**
@@ -1447,8 +1504,8 @@ boundaryCounterCase: 'a custom agent type with no preloaded skills → nothing'
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/protocol-agent-start]`
-> **Related Behaviors:** `rule/hooks/protocol-root-carried`
-> **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-012` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-delivery.test.cjs:319` (passed in P23; not re-run at the final gate)
+> **Related Behaviors:** `rule/hooks/protocol-universal-bundle`
+> **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-012` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-delivery.test.cjs` "TC-PDL-012 no skill-load group delivers anything to an Explore or Plan agent, or to an agent that preloads no skill"
 
 ---
 
@@ -1569,27 +1626,27 @@ boundaryCounterCase: 'a set whose named paths alone would exceed the bin → sti
 
 ---
 
-#### TC-PDL-017: A root-carried protocol is not delivered when the project relies on the root file [P1]
+#### TC-PDL-017: A universal protocol is never delivered by a skill load [P1]
 
-**Objective:** Prove the default project does not receive the four root-carried protocols by delivery.
+**Objective:** Prove no skill load delivers a universal protocol, whatever the skill declares.
 
-**Business Intent / Invariant Guarded:** The root file already carries them; delivering them again doubles their cost (BR-PDL-04).
+**Business Intent / Invariant Guarded:** The bundle hook owns the universal group; a skill load repeating it doubles its cost (BR-PDL-04).
 
 **Traces:** AC-PDL-09 / BR-PDL-04
 
 **Preconditions:**
 
-- A fixture project with the universal guides requirement on
-- A converted skill
+- A fixture with the universal group published
 
-**Real-World Reachability:** The default configuration of every adopting project.
+**Real-World Reachability:** A skill that lists a universal protocol in its guide block by mistake loads.
 
-**Demo Flow:** Load the skill and read the universal group message.
+**Demo Flow:** Plan delivery for that skill.
 
 ```gherkin
-Given the universal guides requirement is on
-When a converted skill loads
-Then no root-carried protocol is returned
+Given a converted skill whose guide block names a universal protocol
+When the skill loads
+Then no universal protocol is returned
+And the skill's other protocols are
 ```
 
 **Expected Result:**
@@ -1597,58 +1654,55 @@ Then no root-carried protocol is returned
 | Dimension               | Expectation                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
-| **System behavior**     | Drops root-carried protocols                                                                                                                                          |
-| **Business data state** | Nothing recorded for them                                                                                                                                             |
-| **Data shown on UI**    | No universal message                                                                                                                                                  |
+| **System behavior**     | Drops the universal group                                                                                                                                             |
+| **Business data state** | No universal record written by a skill load                                                                                                                           |
+| **Data shown on UI**    | The skill's role protocols only                                                                                                                                       |
 
 **Acceptance Criteria:**
 
-- ✅ No root-carried delivery
-- ❌ Any root-carried protocol delivered
+- ✅ No universal protocol delivered by a skill load
+- ❌ A universal protocol delivered by a skill load
 
 **Test Data:**
 
 ```yaml
 inputDomain: 'any converted skill'
-invariant: 'for ALL converted skills no root-carried protocol is returned while the requirement is on'
-boundaryCounterCase: 'the requirement switched off → the universal group is returned'
+invariant: 'for ALL converted skills no universal protocol is returned by a skill load'
+boundaryCounterCase: 'a skill that lists a universal protocol by mistake → still not delivered'
 ```
 
 **Edge Cases:**
 
-- A skill that lists a root-carried protocol in its guide block by mistake → still not delivered
+- A skill that lists only a universal protocol → undeclared and inert
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/protocol-root-carried]`
-> **Related Behaviors:** `operation/hooks/protocol-delivery`
-> **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-017` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-delivery.test.cjs:421` (passed in P23; not re-run at the final gate)
+> **Related Behaviors:** `rule/hooks/protocol-universal-bundle`
+> **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-017` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-delivery.test.cjs` "TC-PDL-017 a universal protocol is never delivered by a skill load, whatever a skill declares"
 
 ---
 
-#### TC-PDL-018: A project without the universal requirement gets the universal group; an inline skill gets nothing [P0]
+#### TC-PDL-018: An inline skill receives nothing from any group, by any load path [P0]
 
-**Objective:** Prove the universal exception applies to converted skills and never to inline skills.
+**Objective:** Prove an inline skill receives no delivery from a skill load, on every load path.
 
-**Business Intent / Invariant Guarded:** Projects that do not rely on the root file still need the four rules; inline skills already carry them, so a delivery would duplicate (BR-PDL-04, BR-PDL-11).
+**Business Intent / Invariant Guarded:** Inline skills already carry their protocol bodies in full; a delivery would repeat them (BR-PDL-11).
 
-**Traces:** AC-PDL-07, AC-PDL-10 / BR-PDL-04, BR-PDL-11
+**Traces:** AC-PDL-07 / BR-PDL-11
 
 **Preconditions:**
 
-- A fixture project with the universal guides requirement off
-- A converted skill and an inline skill
+- A fixture with an inline skill
 
-**Real-World Reachability:** A project switches the requirement off; a review skill loads in it.
+**Real-World Reachability:** A review-family skill loads through any path.
 
-**Demo Flow:** Load each skill and read the messages.
+**Demo Flow:** Plan delivery for an inline skill by each load path.
 
 ```gherkin
-Given the universal guides requirement is off
-When a converted skill loads
-Then the universal group is returned
-When an inline skill loads
-Then nothing is returned from any group
+Given an inline skill
+When it loads by any load path
+Then nothing is delivered
 ```
 
 **Expected Result:**
@@ -1656,33 +1710,32 @@ Then nothing is returned from any group
 | Dimension               | Expectation                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
-| **System behavior**     | Applies the exception to converted skills only                                                                                                                        |
-| **Business data state** | Inline skill has no delivery record                                                                                                                                   |
-| **Data shown on UI**    | Universal message for the converted skill only                                                                                                                        |
+| **System behavior**     | Delivers nothing                                                                                                                                                      |
+| **Business data state** | No record written                                                                                                                                                     |
+| **Data shown on UI**    | Nothing                                                                                                                                                               |
 
 **Acceptance Criteria:**
 
-- ✅ Universal group for the converted skill
-- ✅ Nothing for the inline skill
-- ❌ Any group for an inline skill
+- ✅ Nothing delivered to an inline skill
+- ❌ Any group delivered to an inline skill
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'any skill under either requirement value'
-invariant: 'for ALL inline skills nothing is returned from any group'
-boundaryCounterCase: 'the same inline name removed from the inline list → treated by its guide block'
+inputDomain: 'any inline skill and any load path'
+invariant: 'for ALL inline skills and load paths nothing is delivered'
+boundaryCounterCase: 'a converted skill on the same path → its protocols'
 ```
 
 **Edge Cases:**
 
-- The inline list is read from the group data, never assumed
+- A retired pointer line declares nothing and leaves a skill inert (TC-PDL-018b)
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/skills/inline-skills]`
-> **Related Behaviors:** `rule/hooks/protocol-root-carried` · `operation/hooks/protocol-delivery`
-> **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-018` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-delivery.test.cjs:437` (passed in P23; not re-run at the final gate)
+> **Related Behaviors:** `operation/hooks/protocol-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-018` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-delivery.test.cjs` "TC-PDL-018 an inline skill receives nothing from any group, by any load path"
 
 ---
 
@@ -2569,11 +2622,11 @@ boundaryCounterCase: 'a step registered with an argument → flagged'
 
 ---
 
-#### TC-PDL-060: The agent-start filter equals the skill-preloading agents plus Explore and Plan [P1]
+#### TC-PDL-060: The agent-start registration admits every agent type [P1]
 
-**Objective:** Prove the agent-start filter is derived from the agent definitions and the decided root-skipping list.
+**Objective:** Prove the agent-start delivery steps carry no agent-type filter, so a custom or general-purpose agent of any project is served the universal bundle.
 
-**Business Intent / Invariant Guarded:** A filter wider than needed starts steps on every agent; a narrower one misses an agent (BR-PDL-08).
+**Business Intent / Invariant Guarded:** A filter listing agent names misses every agent it does not name, leaving the universal group undelivered to them (BR-PDL-08).
 
 **Traces:** AC-PDL-11, AC-PDL-12 / BR-PDL-08
 
@@ -2583,12 +2636,12 @@ boundaryCounterCase: 'a step registered with an argument → flagged'
 
 **Real-World Reachability:** Every agent start.
 
-**Demo Flow:** Derive the expected list and compare it with every delivery step's filter.
+**Demo Flow:** Read every agent-start delivery step's registration and test it against each skill-preloading agent, Explore, Plan and the general-purpose agent.
 
 ```gherkin
 Given the agent definitions and the settings
-When the expected list is derived from every agent that preloads skills plus Explore and Plan
-Then every delivery step's agent-start filter equals that list, sorted
+When the registration of every agent-start delivery step is read
+Then it carries no agent-type filter and therefore admits each skill-preloading agent, Explore, Plan and the general-purpose agent
 ```
 
 **Expected Result:**
@@ -2596,32 +2649,32 @@ Then every delivery step's agent-start filter equals that list, sorted
 | Dimension               | Expectation                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
-| **System behavior**     | Filters agent starts                                                                                                                                                  |
-| **Business data state** | Filter matches the derived list                                                                                                                                       |
-| **Data shown on UI**    | The filter and the list                                                                                                                                               |
+| **System behavior**     | Admits every agent start                                                                                                                                              |
+| **Business data state** | No agent-type filter on any delivery step                                                                                                                             |
+| **Data shown on UI**    | The registration                                                                                                                                                      |
 
 **Acceptance Criteria:**
 
-- ✅ Equal lists
-- ❌ An extra or missing agent type
+- ✅ No filter; every listed agent type admitted
+- ❌ An agent-name list that omits an agent type
 
 **Test Data:**
 
 ```yaml
 inputDomain: 'any set of agent definitions'
-invariant: 'for ALL sets the filter equals the derived list'
-boundaryCounterCase: 'an agent that stops preloading skills → the filter must drop it'
+invariant: 'for ALL sets every agent type reaches the delivery steps'
+boundaryCounterCase: 'an agent-name list on the registration → rejected'
 ```
 
 **Edge Cases:**
 
-- A new agent that preloads skills → must be added
+- A new agent that preloads skills → admitted with no registration change
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/protocol-agent-start]`
 > **Related Behaviors:** `test/hooks/protocol-host-mapping`
-> **CoveredBy:** `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs::TC-PDL-060` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs:391` (passed in P24; not re-run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs::TC-PDL-060` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs:391` (not re-run since the registration change)
 
 ---
 
@@ -3291,7 +3344,7 @@ boundaryCounterCase: 'an empty subset → no change'
 Given the policy sections
 When they are read
 Then no rule says never to reference a protocol by path
-And the hybrid rule is present, including that agents keep full text, reviewer prompts carry bodies inline, and the five review-family skills keep full bodies inline
+And the hybrid rule is present, including that agents keep full text, reviewer prompts carry bodies inline, and the four review-family skills keep full bodies inline
 ```
 
 **Expected Result:**
@@ -3733,7 +3786,7 @@ boundaryCounterCase: 'agents → still require the full body'
 
 > **Evidence:** `[Source: rule/skills/protocol-carrier-parity]`
 > **Related Behaviors:** `operation/scripts/verify-sync-adoption-parity` · `operation/scripts/verify-skill-protocol-compliance`
-> **CoveredBy:** `.claude/scripts/codex/tests/verify-sync-adoption-parity.test.mjs::TC-PDL-065`, `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs::TC-PDL-065`, `.claude/hooks/tests/suites/project-reference-gate-coverage.test.cjs::TC-PDL-065`, `.claude/hooks/tests/suites/protocol-text-parity.test.cjs::TC-PDL-065`, `.claude/scripts/codex/tests/framework-policy-regressions.test.mjs::TC-PDL-065`, `.claude/scripts/codex/tests/review-policy-consumers.test.mjs::TC-PDL-065`, `.claude/hooks/tests/suites/prompt-ledger.test.cjs::TC-PDL-065`, `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs::TC-PDL-065`, `.claude/scripts/codex/tests/round3-prompt-contract.test.mjs::TC-PDL-065`, `.claude/scripts/tests/experience-config.test.cjs::TC-PDL-065`, `.claude/hooks/tests/suites/agent-universal-rules.test.cjs::TC-PDL-065` · **Status:** Implemented — evidence: `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs:350` "TC-PDL-065a: the guide-block hint stays inside the recognizer's block marker", `.claude/scripts/codex/tests/verify-sync-adoption-parity.test.mjs:206` "TC-PDL-065: a guide entry + reminder + projection satisfies the main-block assertion", `.claude/hooks/tests/suites/project-reference-gate-coverage.test.cjs:206` "TC-PDL-065 TC-PRG-002 accepts a guide entry + reminder backed by a projection file, and fails when both forms are missing" (passed in P48; not re-run at the final gate). P27 sensor cases N1–N8, written in P27, never executed, not run at the final gate: `.claude/scripts/codex/tests/framework-policy-regressions.test.mjs:559` "integration-test-verify protocol carrier check accepts a guide entry backed by its projection (TC-PDL-065, N1)", `.claude/scripts/codex/tests/review-policy-consumers.test.mjs:520` "TC-PDL-065 visual-consumer check (R3-PROMPT-031) accepts a guide entry backed by a canonical projection (N2)", `.claude/scripts/codex/tests/round3-prompt-contract.test.mjs:160` "TC-PDL-065 R3-PROMPT-030 reads a guide carrier through its projection only while the guide is present (N3)", `.claude/scripts/tests/experience-config.test.cjs:673` "TC-PDL-065 the e2e-test non-vacuity mutant reads a guide carrier through its projection (N4)", `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs:468` "TC-PDL-065 COVERAGE counts a review-protocol-injection guide carrier only while its projection equals canonical" (N5), `.claude/hooks/tests/suites/agent-universal-rules.test.cjs:486` "[agent-universal-rules] TC-PDL-065 TC-UAR-009/-010/-013 accept a skill guide carrier only while its projection exists" (N6–N8)
+> **CoveredBy:** `.claude/scripts/codex/tests/verify-sync-adoption-parity.test.mjs::TC-PDL-065`, `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs::TC-PDL-065`, `.claude/hooks/tests/suites/protocol-text-parity.test.cjs::TC-PDL-065`, `.claude/scripts/codex/tests/framework-policy-regressions.test.mjs::TC-PDL-065`, `.claude/scripts/codex/tests/review-policy-consumers.test.mjs::TC-PDL-065`, `.claude/hooks/tests/suites/prompt-ledger.test.cjs::TC-PDL-065`, `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs::TC-PDL-065`, `.claude/scripts/codex/tests/round3-prompt-contract.test.mjs::TC-PDL-065`, `.claude/scripts/tests/experience-config.test.cjs::TC-PDL-065`, `.claude/hooks/tests/suites/agent-universal-rules.test.cjs::TC-PDL-065` · **Status:** Implemented — evidence: `.claude/scripts/codex/tests/verify-skill-protocol-compliance.test.mjs:350` "TC-PDL-065a: the guide-block hint stays inside the recognizer's block marker", `.claude/scripts/codex/tests/verify-sync-adoption-parity.test.mjs:206` "TC-PDL-065: a guide entry + reminder + projection satisfies the main-block assertion" (passed in P48; not re-run at the final gate). P27 sensor cases N1–N8, written in P27, never executed, not run at the final gate: `.claude/scripts/codex/tests/framework-policy-regressions.test.mjs:559` "integration-test --mode=verify protocol carrier check accepts a guide entry backed by its projection (TC-PDL-065, N1)", `.claude/scripts/codex/tests/review-policy-consumers.test.mjs:520` "TC-PDL-065 visual-consumer check (R3-PROMPT-031) accepts a guide entry backed by a canonical projection (N2)", `.claude/scripts/codex/tests/round3-prompt-contract.test.mjs:160` "TC-PDL-065 R3-PROMPT-030 reads a guide carrier through its projection only while the guide is present (N3)", `.claude/scripts/tests/experience-config.test.cjs:673` "TC-PDL-065 the e2e-test non-vacuity mutant reads a guide carrier through its projection (N4)", `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs:468` "TC-PDL-065 COVERAGE counts a review-protocol-injection guide carrier only while its projection equals canonical" (N5), `.claude/hooks/tests/suites/agent-universal-rules.test.cjs:486` "[agent-universal-rules] TC-PDL-065 TC-UAR-009/-010/-013 accept a skill guide carrier only while its projection exists" (N6–N8)
 
 ---
 
@@ -3915,27 +3968,27 @@ boundaryCounterCase: 'a fragment in neither → fails'
 
 > The converted tree and the compliance hold (US-PDL-02, US-PDL-03, US-PDL-04).
 
-#### TC-PDL-035: After conversion, only inline skills and agents carry the four root-carried bodies [P0]
+#### TC-PDL-035: The universal bundle is published and delivered by bins; no carrier holds any part of it [P0]
 
-**Objective:** Prove the root-carried bodies left every converted skill and stayed in inline skills and agents.
+**Objective:** Prove no skill, agent or reference carries a body, reminder, guide entry or pointer line of a universal protocol, while every universal protocol is published in a bin.
 
-**Business Intent / Invariant Guarded:** The root file carries the four rules; converted skills must not repeat them and inline skills and agents must keep them (BR-PDL-04).
+**Business Intent / Invariant Guarded:** The bundle hook is the one source of the universal rules; a second copy would double their cost and drift (BR-PDL-04).
 
 **Traces:** AC-PDL-09 / BR-PDL-04
 
 **Preconditions:**
 
-- The framework after root-carried conversion
+- The framework with the universal bundle
 
-**Real-World Reachability:** The first conversion step of the release.
+**Real-World Reachability:** The release that moved the universal rules to the hook.
 
-**Demo Flow:** Scan every skill and agent.
+**Demo Flow:** Scan every skill and agent and the published universal files.
 
 ```gherkin
-Given every skill outside the inline list
-When it is scanned
-Then none carries the four root-carried bodies
-And every inline skill and every agent still does
+Given every skill (inline included), every agent and every reference file
+When they are scanned
+Then none carries a body, reminder, guide entry or pointer line of a universal protocol
+And every universal protocol is published and placed in one bin
 ```
 
 **Expected Result:**
@@ -3943,57 +3996,58 @@ And every inline skill and every agent still does
 | Dimension               | Expectation                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
-| **System behavior**     | Scans carriers                                                                                                                                                        |
-| **Business data state** | Bodies only where decided                                                                                                                                             |
+| **System behavior**     | Scans carriers and the projection                                                                                                                                     |
+| **Business data state** | Universal text only in the published files                                                                                                                            |
 | **Data shown on UI**    | Pass, or the offending files                                                                                                                                          |
 
 **Acceptance Criteria:**
 
-- ✅ Bodies only in inline skills and agents
-- ❌ A converted skill with a body
-- ❌ An agent without one
+- ✅ No universal body, reminder, guide entry or pointer line in any carrier
+- ✅ Each universal protocol published and binned
+- ❌ A carrier with any part of a universal protocol
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'any skill or agent'
-invariant: 'for ALL converted skills the four bodies are absent and for ALL inline skills and agents present'
-boundaryCounterCase: 'a body re-added to a converted skill → fails'
+inputDomain: 'any skill, agent or reference file'
+invariant: 'for ALL carriers the universal text is absent'
+boundaryCounterCase: 'a universal body re-added to a skill or agent → fails'
 ```
 
 **Edge Cases:**
 
-- A reference file → keeps its bodies
+- A reference file → holds none either
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/protocol-root-carried]`
 > **Related Behaviors:** `test/hooks/sync-carrier-parity`
-> **CoveredBy:** `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs::TC-PDL-035` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs:654` "TC-PDL-035: after conversion only the inline skills and the agents carry the four root-carried bodies" (passed in P26; not re-run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs::TC-PDL-035` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs` "TC-PDL-035: the universal bundle is published and delivered by bins; no carrier holds a body, reminder, guide line or pointer line of it"
 
 ---
 
-#### TC-PDL-036: Every former carrier of a root-carried protocol keeps a guide entry and the reminder [P1]
+#### TC-PDL-036: Strip mode removes every universal body, reminder and retired pointer line from skills and agents [P1]
 
-**Objective:** Prove each skill that used to carry the four bodies now holds one guide entry per protocol and the reminder.
+**Objective:** Prove the strip mode of the propagation tool leaves no universal text in any skill or agent, changes nothing else, and is a byte no-op on its second run.
 
-**Business Intent / Invariant Guarded:** A project that switches the universal requirement off still needs a path to each rule (BR-PDL-04, BR-PDL-01).
+**Business Intent / Invariant Guarded:** A skill or agent that regained universal text must be brought back to the bundle contract without touching anything else (BR-PDL-04, BR-PDL-14).
 
-**Traces:** AC-PDL-09, AC-PDL-10 / BR-PDL-04, BR-PDL-01
+**Traces:** AC-PDL-09 / BR-PDL-04
 
 **Preconditions:**
 
-- The framework after root-carried conversion
+- A guided skill, an inline skill, a reference file and an agent that carry universal bodies, reminders and a retired pointer line
 
-**Real-World Reachability:** The first conversion step of the release.
+**Real-World Reachability:** A maintainer runs the strip mode.
 
-**Demo Flow:** Scan every former carrier.
+**Demo Flow:** Run the strip mode twice and once as a dry run.
 
 ```gherkin
-Given each former carrier outside the inline list
-When it is scanned
-Then it has one guide entry per root-carried protocol
-And the reminder digest
+Given carriers that hold universal bodies, reminders and a retired pointer line
+When strip mode runs
+Then none keeps any of them and other guide entries survive
+And a second run and a dry run change no byte
+And a reference file is never written
 ```
 
 **Expected Result:**
@@ -4001,57 +4055,57 @@ And the reminder digest
 | Dimension               | Expectation                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
-| **System behavior**     | Scans guides                                                                                                                                                          |
-| **Business data state** | Guides and reminders present                                                                                                                                          |
-| **Data shown on UI**    | Pass, or the offending files                                                                                                                                          |
+| **System behavior**     | Strips the universal text                                                                                                                                             |
+| **Business data state** | Carriers hold no universal text                                                                                                                                       |
+| **Data shown on UI**    | The per-file byte delta                                                                                                                                               |
 
 **Acceptance Criteria:**
 
-- ✅ One entry per protocol
-- ✅ Reminder kept
-- ❌ A missing entry or reminder
+- ✅ No universal body, reminder or pointer line left
+- ✅ Second run and dry run change nothing
+- ✅ Each file keeps its newline style
+- ❌ A guide line written for a universal tag
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'any former carrier'
-invariant: 'for ALL former carriers one entry per protocol and the reminder exist'
-boundaryCounterCase: 'an entry removed → fails'
+inputDomain: 'any skill or agent'
+invariant: 'for ALL skills and agents the universal text is absent after strip and strip is idempotent'
+boundaryCounterCase: 'a guide-mode request naming a universal tag → refused'
 ```
 
 **Edge Cases:**
 
-- A skill that never carried a body → not a former carrier
+- A CRLF file stays CRLF
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: rule/skills/protocol-guide-entry]`
-> **Related Behaviors:** `test/hooks/sync-carrier-parity`
-> **CoveredBy:** `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs::TC-PDL-036` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs:687` "TC-PDL-036: every former carrier of a root-carried protocol keeps one current guide line per protocol and its reminder" (passed in P26; not re-run at the final gate)
+> **Evidence:** `[Source: rule/hooks/protocol-root-carried]`
+> **Related Behaviors:** `operation/scripts/sync-update-blocks`
+> **CoveredBy:** `.claude/scripts/tests/sync-update-blocks-guide.test.cjs::TC-PDL-036` · **Status:** Implemented — evidence: `.claude/scripts/tests/sync-update-blocks-guide.test.cjs` "TC-PDL-036: strip mode: every skill (inline included) and agent ends with no universal body, reminder or retired pointer line"
 
 ---
 
-#### TC-PDL-037: The framework's root instruction files carry all four root-carried rules [P0]
+#### TC-PDL-037: The framework's root instruction files carry no universal protocol text [P0]
 
-**Objective:** Prove the root instruction files of the framework repository hold the four rules the skills no longer repeat.
+**Objective:** Prove the framework repository's own root instruction files hold project information only.
 
-**Business Intent / Invariant Guarded:** Removing the bodies from skills is only safe if the root files carry them (BR-PDL-04).
+**Business Intent / Invariant Guarded:** A root file that still carries universal text would repeat what the bundle hook delivers (BR-PDL-04).
 
 **Traces:** AC-PDL-09 / BR-PDL-04
 
 **Preconditions:**
 
-- The framework repository's root instruction files
+- The framework repository root files
 
-**Real-World Reachability:** Every session in the framework repository.
+**Real-World Reachability:** A maintainer regenerates the root files.
 
-**Demo Flow:** Scan both root instruction files.
+**Demo Flow:** Scan the root files for the lead line and managed-block marker of every universal protocol.
 
 ```gherkin
-Given the framework repository
-When its root instruction files are scanned
-Then all four rules are present
-And in any other project the case reports skipped with the reason that it checks the framework repository's own root files
+Given the framework's root instruction files
+When they are scanned
+Then none carries the marker or lead line of a universal protocol
 ```
 
 **Expected Result:**
@@ -4060,56 +4114,54 @@ And in any other project the case reports skipped with the reason that it checks
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
 | **System behavior**     | Scans root files                                                                                                                                                      |
-| **Business data state** | Four rules present                                                                                                                                                    |
-| **Data shown on UI**    | Pass, or skipped with its reason                                                                                                                                      |
+| **Business data state** | Root files hold project information only                                                                                                                              |
+| **Data shown on UI**    | Pass, or the offending marker or lead line                                                                                                                            |
 
 **Acceptance Criteria:**
 
-- ✅ All four present
-- ❌ A rule missing
-- ❌ A pass reported in another project
+- ✅ No universal marker or lead line in any root file
+- ❌ A root file regenerated with a universal section
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'the root instruction files'
-invariant: 'for ALL root files the four rules are present'
-boundaryCounterCase: 'another project → skipped; its coverage is TC-PDL-038'
+inputDomain: 'any root instruction file'
+invariant: 'for ALL root files no universal text is present'
+boundaryCounterCase: 'a root file with a universal section → fails naming it and the strip flag'
 ```
 
 **Edge Cases:**
 
-- A root file regenerated without a rule → fails
+- Another project → skipped; the check reads the framework repository's own root files
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/protocol-root-carried]`
-> **Related Behaviors:** `test/hooks/sync-carrier-parity`
-> **CoveredBy:** `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs::TC-PDL-037` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/sync-carrier-parity.test.cjs:747` "TC-PDL-037: the framework root instruction files carry all four root-carried rules" (passed in P26; not re-run at the final gate; expected red until `/sync-codex` restamps the root files after the P29 canonical change)
+> **Related Behaviors:** `test/hooks/protocol-text-parity`
+> **CoveredBy:** `.claude/hooks/tests/suites/protocol-text-parity.test.cjs::TC-CTXP-031` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-text-parity.test.cjs` "TC-CTXP-031 P3: CLAUDE.md carries no universal protocol text (the hook delivers it) · TC-CTXP-032 P4: AGENTS.md carries no universal protocol text (the hook delivers it)"
 
 ---
 
-#### TC-PDL-038: A project without the universal requirement receives the four texts on a converted skill load [P1]
+#### TC-PDL-038: A project with a project-only root file receives the whole bundle on its first prompt [P1]
 
-**Objective:** Prove the adopter path: the universal group delivers the four root-carried texts.
+**Objective:** Prove an adopting project, whose root file holds only its own information, still receives every universal bin.
 
-**Business Intent / Invariant Guarded:** Adopting projects that do not rely on the root file must still receive the four rules (BR-PDL-04).
+**Business Intent / Invariant Guarded:** Adopting projects depend on the hook for the universal rules (BR-PDL-18).
 
-**Traces:** AC-PDL-10 / BR-PDL-04
+**Traces:** AC-PDL-09 / BR-PDL-18
 
 **Preconditions:**
 
-- A fixture project with the universal requirement off
-- A converted skill
+- A fixture project with a project-only root file and the universal group published
 
-**Real-World Reachability:** A project switches the requirement off.
+**Real-World Reachability:** The first prompt of a session in an adopting project.
 
-**Demo Flow:** Load a converted skill.
+**Demo Flow:** Process one first prompt and read every bin.
 
 ```gherkin
-Given the universal requirement is off
-When a converted skill loads
-Then the universal group delivers the four texts
+Given a project-only root file
+When the session's first prompt is processed
+Then every bin is delivered within the bin size
 ```
 
 **Expected Result:**
@@ -4117,32 +4169,33 @@ Then the universal group delivers the four texts
 | Dimension               | Expectation                                                                                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
-| **System behavior**     | Delivers the universal group                                                                                                                                          |
-| **Business data state** | Four records written                                                                                                                                                  |
-| **Data shown on UI**    | The universal message                                                                                                                                                 |
+| **System behavior**     | Delivers every bin                                                                                                                                                    |
+| **Business data state** | One record per bin                                                                                                                                                    |
+| **Data shown on UI**    | The universal messages                                                                                                                                                |
 
 **Acceptance Criteria:**
 
-- ✅ Four texts delivered
-- ❌ Any of the four missing
+- ✅ Every bin delivered once
+- ❌ A bin missing
+- ❌ A bin over the size
 
 **Test Data:**
 
 ```yaml
-inputDomain: 'any converted skill'
-invariant: 'for ALL converted skills the universal group delivers the four'
-boundaryCounterCase: 'the requirement on → nothing'
+inputDomain: 'any first prompt'
+invariant: 'for ALL first prompts every bin is delivered once'
+boundaryCounterCase: 'a second prompt inside the window → nothing'
 ```
 
 **Edge Cases:**
 
-- The four texts exceed one bin after growth → overflow named by path
+- A prompt without a session id → delivered every time, no record
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
-> **Evidence:** `[Source: rule/hooks/protocol-root-carried]`
-> **Related Behaviors:** `operation/hooks/protocol-delivery`
-> **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-038` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/protocol-delivery.test.cjs:457` "TC-PDL-038 a project without the universal requirement receives the four texts on a converted skill load" (passed in P23, extended and re-run in P26; not re-run at the final gate)
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-086` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-086 the first prompt delivers every bin within 9,500 characters and the bundle exactly once across bins"
 
 ---
 
@@ -5028,3 +5081,1718 @@ boundaryCounterCase: 'a protocol used only by a rarely used mode → still deliv
 > **Evidence:** `[Source: rule/skills/protocol-prune]`
 > **Related Behaviors:** `operation/hooks/protocol-delivery`
 > **CoveredBy:** `.claude/hooks/tests/suites/protocol-delivery.test.cjs::TC-PDL-052` · **Status:** Untested — pruning follow-up not triggered
+
+---
+
+### Universal Bundle Tests
+
+> Delivery of the universal group in authored bins (BR-PDL-18, US-PDL-04).
+
+#### TC-PDL-085: Each bin has a bare three-line entry file and no other bin entry exists [P1]
+
+**Objective:** Prove each bin is delivered by its own three-line step whose number is a literal.
+
+**Business Intent / Invariant Guarded:** One step per bin keeps delivery records independent (BR-PDL-18).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Read every bin entry file.
+
+```gherkin
+Given the fixture project
+When the case is run: read every bin entry file
+Then each bin has a bare entry file and no extra one exists
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Each bin has a bare entry file and no extra one exists
+- ❌ The counter case: a fifth bin entry with no bin → fails
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any bin entry'
+invariant: 'for ALL inputs in the domain each bin has a bare entry file and no extra one exists'
+boundaryCounterCase: 'a fifth bin entry with no bin → fails'
+```
+
+**Edge Cases:**
+
+- A bin without an entry → fails
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-085` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-085 each bin has a bare three-line entry file whose number is a literal, and no other bin entry exists"
+
+---
+
+#### TC-PDL-086: The first prompt delivers every bin within 9,500 characters, each protocol exactly once [P0]
+
+**Objective:** Prove the first prompt delivers the whole bundle once, each message within the bin.
+
+**Business Intent / Invariant Guarded:** A missing or oversized bin loses or truncates a rule (BR-PDL-18).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Process a first prompt through each bin step.
+
+```gherkin
+Given the fixture project
+When the case is run: process a first prompt through each bin step
+Then every bin is delivered once within the size
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Every bin is delivered once within the size
+- ❌ The counter case: a bin over the size → fails
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any first prompt'
+invariant: 'for ALL inputs in the domain every bin is delivered once within the size'
+boundaryCounterCase: 'a bin over the size → fails'
+```
+
+**Edge Cases:**
+
+- The messages together hold each universal protocol once
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-086` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-086 the first prompt delivers every bin within 9,500 characters and the bundle exactly once across bins"
+
+---
+
+#### TC-PDL-087: A second prompt inside the window delivers nothing [P0]
+
+**Objective:** Prove a delivered bin is not repeated inside the window.
+
+**Business Intent / Invariant Guarded:** Repeating the bundle every prompt wastes the context (BR-PDL-18).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Process a second prompt.
+
+```gherkin
+Given the fixture project
+When the case is run: process a second prompt
+Then nothing is delivered again
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Nothing is delivered again
+- ❌ The counter case: growth past the distance → delivered again (TC-PDL-088)
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any prompt after the first inside the window'
+invariant: 'for ALL inputs in the domain nothing is delivered again'
+boundaryCounterCase: 'growth past the distance → delivered again (TC-PDL-088)'
+```
+
+**Edge Cases:**
+
+- A prompt without a session id is exempt (TC-PDL-093)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-087` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-087 a second prompt inside the window delivers nothing"
+
+---
+
+#### TC-PDL-088: Growth of 200,000 tokens re-delivers the bundle and one byte less does not [P1]
+
+**Objective:** Prove the re-delivery distance is exactly the token figure converted by the measured bytes per token.
+
+**Business Intent / Invariant Guarded:** The bundle must return before it is forgotten, but not before (BR-PDL-18).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Grow the conversation record by the distance and one byte less.
+
+```gherkin
+Given the fixture project
+When the case is run: grow the conversation record by the distance and one byte less
+Then the bundle returns at the distance and not before
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ The bundle returns at the distance and not before
+- ❌ The counter case: one byte below the distance → nothing
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any conversation growth'
+invariant: 'for ALL inputs in the domain the bundle returns at the distance and not before'
+boundaryCounterCase: 'one byte below the distance → nothing'
+```
+
+**Edge Cases:**
+
+- No age re-arm exists
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-088` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-088 growth of 200,000 tokens re-delivers the bundle and one byte less does not"
+
+---
+
+#### TC-PDL-089: After a compaction the bundle is delivered again, once [P1]
+
+**Objective:** Prove a compaction re-arms every bin exactly once.
+
+**Business Intent / Invariant Guarded:** A compaction wipes the context; the rules must come back (BR-PDL-18, BR-PDL-02).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Mark a compaction and process prompts.
+
+```gherkin
+Given the fixture project
+When the case is run: mark a compaction and process prompts
+Then every bin returns once after a compaction
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Every bin returns once after a compaction
+- ❌ The counter case: a second prompt after the return → nothing
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any compaction mark'
+invariant: 'for ALL inputs in the domain every bin returns once after a compaction'
+boundaryCounterCase: 'a second prompt after the return → nothing'
+```
+
+**Edge Cases:**
+
+- The second host's own compaction entry counts
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-089` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-089 after a compaction the bundle is delivered again, once"
+
+---
+
+#### TC-PDL-090: Bins dedup independently: a bin whose record is gone is delivered again alone [P1]
+
+**Objective:** Prove each bin keeps its own delivery record.
+
+**Business Intent / Invariant Guarded:** One lost bin must not force or block the others (BR-PDL-18).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Delete one bin record and process a prompt.
+
+```gherkin
+Given the fixture project
+When the case is run: delete one bin record and process a prompt
+Then only the bin without a record is delivered
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Only the bin without a record is delivered
+- ❌ The counter case: all records present → nothing
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any subset of missing records'
+invariant: 'for ALL inputs in the domain only the bin without a record is delivered'
+boundaryCounterCase: 'all records present → nothing'
+```
+
+**Edge Cases:**
+
+- A record for another session is ignored
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-090` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-090 bins dedup independently: a bin whose record is gone is delivered again alone"
+
+---
+
+#### TC-PDL-091: Every agent type receives the bundle once per spawn [P0]
+
+**Objective:** Prove every agent type, with or without preloaded skills, receives every bin once for each spawn.
+
+**Business Intent / Invariant Guarded:** Sub-agents start with no conversation; without the bundle they would lack the rules (BR-PDL-18, BR-PDL-08).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Start agents of several types, twice.
+
+```gherkin
+Given the fixture project
+When the case is run: start agents of several types, twice
+Then each spawn is delivered every bin once
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Each spawn is delivered every bin once
+- ❌ The counter case: a second start of the same spawn → nothing
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any agent type'
+invariant: 'for ALL inputs in the domain each spawn is delivered every bin once'
+boundaryCounterCase: 'a second start of the same spawn → nothing'
+```
+
+**Edge Cases:**
+
+- A started agent with no definition file still receives it
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-091` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-091 every agent type receives the bundle once per spawn"
+
+---
+
+#### TC-PDL-092: An event that cannot carry a bin ends before any project module loads and writes nothing [P1]
+
+**Objective:** Prove a non-matching event costs one early exit.
+
+**Business Intent / Invariant Guarded:** Every prompt and tool event passes these steps; the cost must stay minimal (BR-PDL-09, BR-PDL-18).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Send unrelated events.
+
+```gherkin
+Given the fixture project
+When the case is run: send unrelated events
+Then nothing loads and nothing is written
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Nothing loads and nothing is written
+- ❌ The counter case: a first prompt → delivers
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any other event'
+invariant: 'for ALL inputs in the domain nothing loads and nothing is written'
+boundaryCounterCase: 'a first prompt → delivers'
+```
+
+**Edge Cases:**
+
+- Oversized or malformed input ends silently
+- A session start of source startup or resume is such an event (TC-PDL-098)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-092` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-092 an event that cannot carry a bin ends before any project module loads and writes nothing"
+
+---
+
+#### TC-PDL-093: A prompt with no session id still delivers every time and records nothing [P1]
+
+**Objective:** Prove a session without identity gets the bundle and leaves no record.
+
+**Business Intent / Invariant Guarded:** A duplicate is accepted over a miss (BR-PDL-18, BR-PDL-05).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Process prompts with no session id.
+
+```gherkin
+Given the fixture project
+When the case is run: process prompts with no session id
+Then every prompt delivers and no record is written
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Every prompt delivers and no record is written
+- ❌ The counter case: a prompt with an id → de-duplicated
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any prompt without an id'
+invariant: 'for ALL inputs in the domain every prompt delivers and no record is written'
+boundaryCounterCase: 'a prompt with an id → de-duplicated'
+```
+
+**Edge Cases:**
+
+- Two prompts → two deliveries
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-093` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-093 a prompt with no session id still delivers every time and records nothing"
+
+---
+
+#### TC-PDL-094: An unusable record store still delivers, and a missing protocol file drops only that protocol [P1]
+
+**Objective:** Prove delivery survives a broken store and a missing file.
+
+**Business Intent / Invariant Guarded:** A fault must never turn into silence (BR-PDL-18, BR-PDL-05).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Break the store and remove one file.
+
+```gherkin
+Given the fixture project
+When the case is run: break the store and remove one file
+Then the bins are delivered, the missing protocol alone is dropped
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ The bins are delivered, the missing protocol alone is dropped
+- ❌ The counter case: a live peer lock → skipped
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any store or file fault'
+invariant: 'for ALL inputs in the domain the bins are delivered, the missing protocol alone is dropped'
+boundaryCounterCase: 'a live peer lock → skipped'
+```
+
+**Edge Cases:**
+
+- A read-only checkout still delivers
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-094` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-094 an unusable record store still delivers, and a missing protocol file drops only that protocol"
+
+---
+
+#### TC-PDL-095: The re-delivery distance is the named token constant converted by the measured bytes per token, with no age re-arm [P1]
+
+**Objective:** Prove the distance is derived, not hard-coded twice.
+
+**Business Intent / Invariant Guarded:** One constant keeps the distance honest when the conversion is re-measured (BR-PDL-18, BR-PDL-02).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Read the settings the hook builds.
+
+```gherkin
+Given the fixture project
+When the case is run: read the settings the hook builds
+Then the distance equals the token constant times the bytes per token
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ The distance equals the token constant times the bytes per token
+- ❌ The counter case: an age-based re-arm → absent
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any setting'
+invariant: 'for ALL inputs in the domain the distance equals the token constant times the bytes per token'
+boundaryCounterCase: 'an age-based re-arm → absent'
+```
+
+**Edge Cases:**
+
+- The figure is 200,000 tokens
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-095` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-095 the re-delivery distance is the named token constant converted by the measured bytes per token, with no age re-arm"
+
+---
+
+#### TC-PDL-096: The universal layout covers the group exactly and each bin renders within the bin size [P0]
+
+**Objective:** Prove the shipped layout partitions the universal group and each rendered bin fits.
+
+**Business Intent / Invariant Guarded:** A protocol in no bin is never delivered; an oversized bin is cut by the host (BR-PDL-18).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Read the shipped group data and render each bin.
+
+```gherkin
+Given the fixture project
+When the case is run: read the shipped group data and render each bin
+Then every universal protocol in exactly one bin, each bin within 9,500 characters
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Every universal protocol in exactly one bin, each bin within 9,500 characters
+- ❌ The counter case: a tag in two bins → fails
+
+**Test Data:**
+
+```yaml
+inputDomain: 'the shipped group data'
+invariant: 'for ALL inputs in the domain every universal protocol in exactly one bin, each bin within 9,500 characters'
+boundaryCounterCase: 'a tag in two bins → fails'
+```
+
+**Edge Cases:**
+
+- The hook and the build render a bin the same way
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-096` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-096 the universal layout covers the group exactly and each bin renders within the bin size"
+
+---
+
+#### TC-PDL-097: No skill or agent carries any part of the universal bundle [P0]
+
+**Objective:** Prove no skill or agent holds a body, reminder, guide entry or pointer line of a universal protocol.
+
+**Business Intent / Invariant Guarded:** A carrier copy would double the cost and drift (BR-PDL-04).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Scan every skill and agent.
+
+```gherkin
+Given the fixture project
+When the case is run: scan every skill and agent
+Then no carrier holds any part of a universal protocol
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ No carrier holds any part of a universal protocol
+- ❌ The counter case: a pointer line re-added → fails
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any skill or agent'
+invariant: 'for ALL inputs in the domain no carrier holds any part of a universal protocol'
+boundaryCounterCase: 'a pointer line re-added → fails'
+```
+
+**Edge Cases:**
+
+- Agent-folded protocols are covered by the agent tier check
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-097` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-097 no skill or agent carries any part of the universal bundle: no body, reminder, guide line or pointer line"
+
+---
+
+#### TC-PDL-098: A compaction reported at session start delivers the bundle once; the next prompt stays silent; startup and resume deliver nothing [P0]
+
+**Objective:** Prove a compaction reported at session start re-delivers every bin at once, exactly once, and that a startup or resume session start delivers or records nothing (a clear is TC-PDL-110).
+
+**Business Intent / Invariant Guarded:** A long autonomous run can compact with no user prompt after it; without a delivery at the compaction the rules would lapse until a prompt that may never come, and a second delivery at the next prompt would double the cost (BR-PDL-18, BR-PDL-02).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session of the three supported hosts that reports a compaction at session start.
+
+**Demo Flow:** Deliver the bundle on a first prompt, mark a compaction, send the session start of source compact and then a prompt; repeat with a conversation record that has no timed boundary, with a session that has no readable conversation record and with no session id; send the session starts of source startup and resume to a session that never received the bundle.
+
+```gherkin
+Given the fixture project and a session that already received the bundle
+When a compaction is reported at session start
+Then every bin is delivered again, named for the session-start event
+And the next prompt delivers nothing
+And a session start of source startup or resume delivers nothing and records nothing
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Each bin's own record is replaced by the new delivery; no record for startup or resume                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ A compaction reported at session start delivers every bin once, also when the conversation record carries no timed boundary and when the host has no readable record
+- ✅ The prompt after that delivery → nothing
+- ✅ A compaction report for a session with no id still delivers, without a record
+- ❌ A session start of source startup or resume → nothing delivered and nothing recorded
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any session-start source'
+invariant: 'for ALL inputs in the domain only the sources compact and clear deliver, once per event'
+boundaryCounterCase: 'a session start of source resume → nothing'
+```
+
+**Edge Cases:**
+
+- The four bins run in parallel; a per-bin record replacement is race-free where one session-wide compaction mark would not be
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-098` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-098 a compaction reported at session start delivers the bundle once; the next prompt stays silent; startup and resume deliver nothing"
+
+---
+
+#### TC-PDL-099: The four universal bins are registered on the compact and clear session start only, besides the prompt and the agent start [P1]
+
+**Objective:** Prove each of the four bins is registered once, in bin order, on the prompt, the agent start and the session start, and that the session-start group matches compaction and clear only.
+
+**Business Intent / Invariant Guarded:** A bin missing from the compact or clear registration loses part of the rules after a compaction or a clear; a broader matcher would deliver at every startup or resume (BR-PDL-18, BR-PDL-09).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- The framework repository's primary-host settings
+
+**Real-World Reachability:** Every primary-host session; the second and third hosts derive their steps from this registration.
+
+**Demo Flow:** Parse the settings and list the registrations of the four bin steps.
+
+```gherkin
+Given the primary-host settings
+When they are parsed
+Then each bin step is registered once, in bin order, on the prompt, the agent start and the session start
+And the one session-start group that carries them has the matcher compact|clear
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Registers the bins on three events                                                                                                                                    |
+| **Business data state** | Four steps on each of three events                                                                                                                                    |
+| **Data shown on UI**    | The registration list                                                                                                                                                 |
+
+**Acceptance Criteria:**
+
+- ✅ Four bin steps on each of the prompt, the agent start and the session start, in bin order
+- ✅ Exactly one session-start group carries them, with the matcher compact|clear
+- ❌ A bin missing on one event
+- ❌ A session-start matcher other than compact|clear
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any bin step and any carrying event'
+invariant: 'for ALL bins each is registered once per event and the session-start matcher is compact|clear'
+boundaryCounterCase: 'an adopting project → the case reports skipped'
+```
+
+**Edge Cases:**
+
+- Outside the framework repository → skipped with its reason
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `test/hooks/protocol-host-mapping`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-099`; the live counts and the second-host rendering of the group are also asserted by `.claude/hooks/tests/suites/protocol-host-mapping.test.cjs::TC-PDL-021` and `::TC-PDL-022` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-099 the four universal bins are registered on the compact and clear session start only, besides the prompt and the agent start"
+
+---
+
+#### TC-PDL-110: A clear reported at session start delivers the bundle once; the next prompt stays silent [P0]
+
+**Objective:** Prove a clear reported at session start re-delivers every bin at once, exactly once, replacing each bin's own record.
+
+**Business Intent / Invariant Guarded:** A clear empties the conversation, so the bundle delivered earlier is gone; waiting for a prompt that may never come, or delivering twice, loses the rules or doubles the cost (BR-PDL-18, BR-PDL-02).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session of the three supported hosts that reports a clear at session start.
+
+**Demo Flow:** Deliver the bundle on a first prompt, send the session start of source clear and then a prompt; repeat with no session id.
+
+```gherkin
+Given the fixture project and a session that already received the bundle
+When a clear is reported at session start
+Then every bin is delivered again, named for the session-start event
+And the next prompt delivers nothing
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Each bin's own record is replaced by the new delivery                                                                                                                 |
+| **Data shown on UI**    | The delivered text, then nothing                                                                                                                                      |
+
+**Acceptance Criteria:**
+
+- ✅ A clear reported at session start delivers every bin once
+- ✅ The prompt after that delivery → nothing
+- ✅ A clear report for a session with no id still delivers, without a record
+- ❌ A second delivery at the next prompt
+
+**Test Data:**
+
+```yaml
+inputDomain: 'a session-start event of source clear'
+invariant: 'for ALL sessions a clear delivers each bin once and the next prompt is silent'
+boundaryCounterCase: 'a session start of source resume → nothing'
+```
+
+**Edge Cases:**
+
+- A session that never received the bundle also receives it on a clear
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-110` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-110 a clear reported at session start delivers the bundle once even when the session record says delivered; the next prompt stays silent"
+
+---
+
+#### TC-PDL-111: An unreadable protocol source gives one notice line, never throws, and is not recorded as delivered [P0]
+
+**Objective:** Prove a universal bin or the workflow route whose source file cannot be read writes exactly one notice line, ends normally, and leaves no delivery record, so the next opportunity delivers it once the file is readable.
+
+**Business Intent / Invariant Guarded:** A corrupt or missing shipped file must be visible to the user and must not silently consume the delivery: a recorded failed render would suppress the rules for the next 200,000 tokens although the assistant never received them (BR-PDL-18, BR-PDL-02).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state and one unreadable bin source
+
+**Real-World Reachability:** Any session of a project whose shipped protocol file was damaged by a bad merge, partial sync or disk fault.
+
+**Demo Flow:** Make one bin source unreadable, send a first prompt, repair the file, send the next prompt; repeat for the route source.
+
+```gherkin
+Given the fixture project and a bin whose source file cannot be read
+When the first prompt reaches that bin's step
+Then the step writes one notice line naming the unreadable file and ends without an error
+And no delivery record is written for that bin
+And once the file is readable the next prompt delivers the bin
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file and exits normally                                                                                                         |
+| **Business data state** | No record for the failed render; the other bins keep their own records                                                                                                |
+| **Data shown on UI**    | One notice line, then the bin text on the later prompt                                                                                                                |
+
+**Acceptance Criteria:**
+
+- ✅ An unreadable source → exactly one notice line and a normal exit
+- ✅ The failed render is not recorded as delivered; the next prompt delivers the repaired bin
+- ✅ The workflow route gives the same one-line notice for an unreadable route source
+- ❌ A thrown error, a multi-line dump, or a record that suppresses the later delivery
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any bin or route source that cannot be read'
+invariant: 'for ALL unreadable sources one notice line, no throw, no record'
+boundaryCounterCase: 'a readable source → the normal delivery and its record'
+```
+
+**Edge Cases:**
+
+- The other bins of the bundle still deliver in the same prompt
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-111`; the route half is also asserted by `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-020` and `::[workflow-route-modes] TC-WFR-021` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-111 a bundle that cannot be rendered is reported by bin 1 alone in one line, never throws, records nothing and retries on the next event"
+
+---
+
+#### TC-PDL-112: A bundle that renders partly is not reported; an unreadable protocol file only drops that protocol [P1]
+
+**Objective:** Prove that one unreadable protocol file inside a bin drops only that protocol and produces no notice, while the other bins still deliver.
+
+**Business Intent / Invariant Guarded:** The unavailable notice is for a bundle that cannot be rendered at all; a damaged single protocol must not turn into a notice that hides the rest of a working bundle (BR-PDL-18, BR-PDL-02).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state and every protocol file of the first bin removed
+
+**Real-World Reachability:** A project whose shipped protocol folder lost some files through a partial sync or a bad merge.
+
+**Demo Flow:** Remove the protocol files the first bin names, send a first prompt, read what each bin writes.
+
+```gherkin
+Given the fixture project and every protocol file of the first bin missing while the other bins still render
+When the first prompt reaches every bin
+Then the first bin writes nothing and no notice line appears
+And each of the other bins delivers its text
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file and exits normally                                                                                                         |
+| **Business data state** | The other bins record their own delivery                                                                                                                              |
+| **Data shown on UI**    | The text of the readable bins, no notice                                                                                                                              |
+
+**Acceptance Criteria:**
+
+- ✅ A partly rendered bundle → no notice line
+- ✅ The readable bins deliver in the same prompt
+- ❌ A notice line for a bundle that still renders partly
+
+**Test Data:**
+
+```yaml
+inputDomain: 'a bundle where some protocol files are unreadable and the index and layout are readable'
+invariant: 'for ALL partly rendered bundles only the unreadable protocol is dropped'
+boundaryCounterCase: 'an unreadable index or layout → the one notice line (TC-PDL-111)'
+```
+
+**Edge Cases:**
+
+- A bin whose every protocol is unreadable delivers nothing
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-112` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-112 a bundle that renders partly is not reported: an unreadable protocol file only drops that protocol"
+
+---
+#### TC-PDL-113: A compaction boundary the host writes after the session-start hooks belongs to the delivery already made [P1]
+
+**Objective:** Prove that one delivery is made per compaction when the host writes its boundary line after the session-start hooks ran, and that a later or second boundary still delivers.
+
+**Business Intent / Invariant Guarded:** A second delivery of the same bundle costs thousands of tokens on every compaction, while attributing too much would swallow a real compaction and lose the rules (BR-PDL-18, BR-PDL-02).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state and a conversation record per scenario
+
+**Real-World Reachability:** Every compaction on a host that fires the session start before it writes the boundary line.
+
+**Demo Flow:** Deliver on the first prompt, report a compaction at session start, append the boundary line, send prompts, read what each bin writes.
+
+```gherkin
+Given a session that received the bundle and a compaction reported at session start before any boundary line exists
+When the host appends the boundary line a moment later and the next prompts arrive
+Then every bin stays silent on those prompts
+And a second boundary appended afterwards delivers once
+And a boundary stamped beyond the 120-second window delivers once
+And a report with no boundary stays silent until the growth distance
+And a boundary after a clear is a real compaction and delivers
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook steps run through their real entry files and exit normally                                                                                                       |
+| **Business data state** | The delivery record moves past the attributed boundary and drops the expectation                                                                                      |
+| **Data shown on UI**    | Nothing on the prompt after the late boundary; the bundle on a real second compaction                                                                                 |
+
+**Acceptance Criteria:**
+
+- ✅ The prompt after a late boundary stays silent, and so does the one after it
+- ✅ A second boundary, a boundary beyond the window and a boundary after a clear each deliver once
+- ✅ No boundary at all leaves the growth re-arm working
+- ❌ Two deliveries for one compaction
+
+**Test Data:**
+
+```yaml
+inputDomain: 'a compaction report, then a boundary line stamped inside, beyond or never relative to the 120-second window'
+invariant: 'for ALL host orders one compaction delivers the bundle exactly once'
+boundaryCounterCase: 'a boundary beyond the window → delivered again (a real compaction)'
+```
+
+**Edge Cases:**
+
+- The boundary is written before the hook: silent (TC-PDL-098)
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-113` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-113 the host writes its compaction boundary AFTER the session-start hooks: that one boundary belongs to the delivery already made; a boundary beyond the window or a second boundary re-delivers"
+
+---
+#### TC-PDL-114: A delivery recorded before the conversation record existed still returns after the growth distance [P1]
+
+**Objective:** Prove that a delivery recorded with an unknown conversation size re-delivers exactly when the record has grown by the 200,000-token distance.
+
+**Business Intent / Invariant Guarded:** A record written blind would otherwise never age by growth and the rules would lapse for the whole session (BR-PDL-18, BR-PDL-02).
+
+**Traces:** AC-PDL-09 / BR-PDL-18
+
+**Preconditions:**
+
+- A fixture project with its own temporary state; the conversation record does not exist at the first prompt
+
+**Real-World Reachability:** A host that creates its conversation record file only after the first prompt hooks ran.
+
+**Demo Flow:** Deliver on the first prompt with no record file, create the file one byte under the growth distance, send a prompt, add one byte, send a prompt.
+
+```gherkin
+Given the bundle delivered while the conversation record did not exist
+When the record reaches one byte under the growth distance and a prompt arrives
+Then nothing is delivered
+And one more byte later the bundle is delivered again, once
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook steps run through their real entry files and exit normally                                                                                                       |
+| **Business data state** | The first record carries no size; the re-delivery records one                                                                                                         |
+| **Data shown on UI**    | Nothing one byte under the distance; the bundle at the distance                                                                                                       |
+
+**Acceptance Criteria:**
+
+- ✅ One byte under the distance → silent
+- ✅ At the distance → delivered again, then silent
+- ✅ An unknown current size too → the delivery stays present
+- ❌ A blind record that never returns
+
+**Test Data:**
+
+```yaml
+inputDomain: 'a record with no stored size and a conversation record of every size around the distance'
+invariant: 'for ALL records growth is measured from the stored size, or from zero when none was stored'
+boundaryCounterCase: 'a known size under the distance → the delivery stays present'
+```
+
+**Edge Cases:**
+
+- The current size is unknown too: no growth is measurable, the delivery stays present
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
+> **Related Behaviors:** `operation/hooks/universal-delivery`
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-114` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 200,000 tokens of growth"
+
+---
+### Skill Overlay Reminder Tests
+
+> The reminder given when a skill starts (BR-PDL-19, US-PDL-04).
+
+#### TC-PDL-100: A project with no registry, an empty one or no matching row gets no output and no record [P1]
+
+**Objective:** Prove the reminder is silent when there is nothing to remind.
+
+**Business Intent / Invariant Guarded:** A project with no overlays pays one early exit (BR-PDL-19).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Activate a skill with no registry, an empty registry and no matching row.
+
+```gherkin
+Given the fixture project
+When the case is run: activate a skill with no registry, an empty registry and no matching row
+Then nothing is emitted or recorded
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Nothing is emitted or recorded
+- ❌ The counter case: a matching row → the reminder (TC-PDL-101)
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any skill in a project with no matching overlay'
+invariant: 'for ALL inputs in the domain nothing is emitted or recorded'
+boundaryCounterCase: 'a matching row → the reminder (TC-PDL-101)'
+```
+
+**Edge Cases:**
+
+- A skill named in no row is silent
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-100` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-100 a project with no registry, an empty one or no matching row gets no output and no record"
+
+---
+
+#### TC-PDL-101: An exact, a pattern and a catch-all row each emit the reminder naming the overlay file [P0]
+
+**Objective:** Prove each row tier produces the reminder with the body path.
+
+**Business Intent / Invariant Guarded:** The assistant must learn which overlay files apply (BR-PDL-19).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Activate a skill matched by each tier.
+
+```gherkin
+Given the fixture project
+When the case is run: activate a skill matched by each tier
+Then the reminder names the matching overlay file and states the additive-only rule
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ The reminder names the matching overlay file and states the additive-only rule
+- ❌ The counter case: the reminder over three lines → fails
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any matching row'
+invariant: 'for ALL inputs in the domain the reminder names the matching overlay file and states the additive-only rule'
+boundaryCounterCase: 'the reminder over three lines → fails'
+```
+
+**Edge Cases:**
+
+- The reminder is at most three lines
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-101` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-101 an exact, a glob and a \* row each emit the reminder naming the overlay file"
+
+---
+
+#### TC-PDL-102: The most specific tier wins outright: exact over pattern over catch-all [P1]
+
+**Objective:** Prove a more specific row replaces the lower tiers.
+
+**Business Intent / Invariant Guarded:** Overlays rank each other by specificity only (BR-PDL-19).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Activate a skill matched by several tiers.
+
+```gherkin
+Given the fixture project
+When the case is run: activate a skill matched by several tiers
+Then only the most specific tier's files are named
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Only the most specific tier's files are named
+- ❌ The counter case: a lower tier also named → fails
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any skill matched by several tiers'
+invariant: 'for ALL inputs in the domain only the most specific tier's files are named'
+boundaryCounterCase: 'a lower tier also named → fails'
+```
+
+**Edge Cases:**
+
+- Two equally specific rows are both named
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-102` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-102 the most specific tier wins outright: exact over glob over \*"
+
+---
+
+#### TC-PDL-103: Every skill-activation event path emits: skill tool, skill file read, typed command, second-host prompt [P0]
+
+**Objective:** Prove the reminder fires on every path that marks a skill start.
+
+**Business Intent / Invariant Guarded:** A missed path is a missed overlay (BR-PDL-19, BR-PDL-15).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Activate one skill through each path.
+
+```gherkin
+Given the fixture project
+When the case is run: activate one skill through each path
+Then each path emits the same reminder
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Each path emits the same reminder
+- ❌ The counter case: an unrelated read → nothing
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any activation path'
+invariant: 'for ALL inputs in the domain each path emits the same reminder'
+boundaryCounterCase: 'an unrelated read → nothing'
+```
+
+**Edge Cases:**
+
+- A read of another file is silent
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-103` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-103 every skill-activation event path emits: skill tool, SKILL.md read, typed command, second-host prompt"
+
+---
+
+#### TC-PDL-104: The reminder is deduplicated per skill and repeats only after 100,000 tokens of growth [P1]
+
+**Objective:** Prove the per-skill reminder distance and that failed delivery never suppresses the next activation.
+
+**Business Intent / Invariant Guarded:** A reminder on every activation is noise; none at all is a miss (BR-PDL-19).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Activate the same skill repeatedly and grow the record.
+
+```gherkin
+Given the fixture project
+When the case is run: activate the same skill repeatedly and grow the record
+Then one reminder per skill until the distance, a compaction or a changed overlay set
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ One reminder per skill until the distance, a compaction or a changed overlay set
+- ✅ For every failed delivery in the tested domain, the next healthy activation delivers the missing reminder without growth or compaction
+- ✅ Several new reminders share one message; a previously delivered skill stays silent while the other skill's failed delivery is retried
+- ❌ The counter case: one byte below the distance → nothing
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any repeated activation'
+invariant: 'for ALL inputs in the domain successful delivery alone starts per-skill suppression; failed delivery leaves the reminder eligible'
+boundaryCounterCase: 'one byte below the distance → nothing'
+```
+
+**Edge Cases:**
+
+- A second skill is reminded on its own record
+- Delivery reports failure or throws; immediate retry delivers, then a further unchanged activation stays silent
+- A batch mixes a previously delivered skill and a new skill; only the new reminder is delivered and retried on failure
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-104` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-104 the reminder is deduplicated per skill and repeats only after 100,000 tokens of growth"
+
+---
+
+#### TC-PDL-105: A malformed registry, an unsafe name or header, a missing body and an unusable configuration emit nothing and never fail [P1]
+
+**Objective:** Prove every fault is silent and never blocks.
+
+**Business Intent / Invariant Guarded:** The reminder is advisory; a fault must not stop a skill (BR-PDL-19).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Activate a skill with each fault present.
+
+```gherkin
+Given the fixture project
+When the case is run: activate a skill with each fault present
+Then nothing is emitted and the hook exits cleanly
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Nothing is emitted and the hook exits cleanly
+- ❌ The counter case: a valid row → the reminder
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any malformed input'
+invariant: 'for ALL inputs in the domain nothing is emitted and the hook exits cleanly'
+boundaryCounterCase: 'a valid row → the reminder'
+```
+
+**Edge Cases:**
+
+- A directory-escaping name is skipped unread
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-105` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-105 a malformed registry, an unsafe name or header, a missing body and an unusable configuration emit nothing and never fail"
+
+---
+
+#### TC-PDL-106: A relocated registry and a header-selected body directory are honored, and the link text is never a read path [P1]
+
+**Objective:** Prove configuration relocates the registry and bodies without letting link text steer a read.
+
+**Business Intent / Invariant Guarded:** Projects relocate their docs; a link must never choose a file (BR-PDL-19, BR-PDL-10).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Relocate the registry and set a body directory; put a path in the link text.
+
+```gherkin
+Given the fixture project
+When the case is run: relocate the registry and set a body directory; put a path in the link text
+Then the relocated files are named and the link text is ignored
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ The relocated files are named and the link text is ignored
+- ❌ The counter case: a link path pointing outside → ignored
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any relocation'
+invariant: 'for ALL inputs in the domain the relocated files are named and the link text is ignored'
+boundaryCounterCase: 'a link path pointing outside → ignored'
+```
+
+**Edge Cases:**
+
+- The bare name alone derives the body file
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-106` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-106 a relocated registry and a header-selected body directory are honored, and the Body link is never a read path"
+
+---
+
+#### TC-PDL-107: The reminder names at most eight files and counts the rest [P2]
+
+**Objective:** Prove the reminder stays short for a skill with many overlays.
+
+**Business Intent / Invariant Guarded:** A long list defeats the three-line limit (BR-PDL-19).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Match a skill with more than eight overlay files.
+
+```gherkin
+Given the fixture project
+When the case is run: match a skill with more than eight overlay files
+Then eight files are named and the rest counted
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Eight files are named and the rest counted
+- ❌ The counter case: exactly eight → no count line
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any skill with many overlays'
+invariant: 'for ALL inputs in the domain eight files are named and the rest counted'
+boundaryCounterCase: 'exactly eight → no count line'
+```
+
+**Edge Cases:**
+
+- The count line is part of the three lines
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-107` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-107 the reminder names at most eight files and counts the rest"
+
+---
+
+#### TC-PDL-108: An unusable record store still reminds and a session with no id reminds every time [P1]
+
+**Objective:** Prove the reminder survives a broken store and a session with no identity.
+
+**Business Intent / Invariant Guarded:** A duplicate is accepted over a miss (BR-PDL-19, BR-PDL-05).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Break the store; omit the session id.
+
+```gherkin
+Given the fixture project
+When the case is run: break the store; omit the session id
+Then the reminder is emitted every time without a record
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ The reminder is emitted every time without a record
+- ❌ The counter case: a working store → de-duplicated
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any store fault or missing id'
+invariant: 'for ALL inputs in the domain the reminder is emitted every time without a record'
+boundaryCounterCase: 'a working store → de-duplicated'
+```
+
+**Edge Cases:**
+
+- A live peer lock → skipped
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-108` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-108 an unusable record store still reminds and a session with no id reminds every time"
+
+---
+
+#### TC-PDL-109: The overlay library resolves overlay files without reading a body and stays silent on hostile input [P1]
+
+**Objective:** Prove the resolver lists files only and never opens or echoes a hostile value.
+
+**Business Intent / Invariant Guarded:** Overlay bodies are read by the assistant, never by the hook (BR-PDL-19, BR-PDL-10).
+
+**Traces:** AC-PDL-11 / BR-PDL-19
+
+**Preconditions:**
+
+- A fixture project with its own temporary state
+
+**Real-World Reachability:** Every session and every skill start on the three supported hosts.
+
+**Demo Flow:** Resolve with hostile names, headers and registry text.
+
+```gherkin
+Given the fixture project
+When the case is run: resolve with hostile names, headers and registry text
+Then only safe paths are listed and no body is read
+```
+
+**Expected Result:**
+
+| Dimension               | Expectation                                                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
+| **System behavior**     | Hook step runs through its real entry file                                                                                                                            |
+| **Business data state** | Records only as stated                                                                                                                                                |
+| **Data shown on UI**    | The delivered or reminded text, or nothing                                                                                                                            |
+
+**Acceptance Criteria:**
+
+- ✅ Only safe paths are listed and no body is read
+- ❌ The counter case: a bare safe name → its body path
+
+**Test Data:**
+
+```yaml
+inputDomain: 'any registry text'
+invariant: 'for ALL inputs in the domain only safe paths are listed and no body is read'
+boundaryCounterCase: 'a bare safe name → its body path'
+```
+
+**Edge Cases:**
+
+- A traversal name is skipped
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/hooks/skill-overlay-reminder]`
+> **Related Behaviors:** `operation/hooks/skill-overlay-remind`
+> **CoveredBy:** `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs::TC-PDL-109` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/skill-overlay-remind.test.cjs` "TC-PDL-109 the lib resolves overlay files without reading a body and stays silent on hostile input"

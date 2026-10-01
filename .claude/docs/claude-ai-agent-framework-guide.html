@@ -197,11 +197,11 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h1>Claude AI Agent Framework Guide</h1>
       <p class="lead">A portable <code>.claude/</code> framework that makes Claude Code project-aware, evidence-driven and gated at every quality step, from idea and spec to reviewed commit and pull request. This page is the map; each topic links to its owner doc.</p>
       <div class="stats" aria-label="Framework inventory">
-        <div class="stat"><b><!-- COUNT:skills -->129<!-- /COUNT --></b><span>skills</span></div>
-        <div class="stat"><b><!-- COUNT:workflows -->21<!-- /COUNT --></b><span>workflows</span></div>
+        <div class="stat"><b><!-- COUNT:skills -->102<!-- /COUNT --></b><span>skills</span></div>
+        <div class="stat"><b><!-- COUNT:workflows -->19<!-- /COUNT --></b><span>workflows</span></div>
         <div class="stat"><b><!-- COUNT:agents -->24<!-- /COUNT --></b><span>agents</span></div>
-        <div class="stat"><b><!-- COUNT:hooks -->25<!-- /COUNT --></b><span>hook files</span></div>
-        <div class="stat"><b><!-- COUNT:lib-modules -->46<!-- /COUNT --></b><span>hook libraries</span></div>
+        <div class="stat"><b><!-- COUNT:hooks -->29<!-- /COUNT --></b><span>hook files</span></div>
+        <div class="stat"><b><!-- COUNT:lib-modules -->45<!-- /COUNT --></b><span>hook libraries</span></div>
       </div>
       <details class="toc-mobile"><summary>Contents</summary><ol id="toc-mobile-list"></ol></details>
     </header>
@@ -222,16 +222,16 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="scroll"><table>
         <thead><tr><th>Failure mode</th><th>What counters it</th><th>Where</th></tr></thead>
         <tbody>
-          <tr><td>Picks the wrong process</td><td>Routing gate + workflow catalog injected at prompt time</td><td><code>CLAUDE.md</code>, <code>workflow-route-inject</code></td></tr>
+          <tr><td>Picks the wrong process</td><td>Routing gate + workflow catalog injected at prompt time</td><td><code>workflow-route-inject</code></td></tr>
           <tr><td>Skips steps or stops early</td><td>Gate steps, outcome gates, evidence-gated close</td><td><code>workflows.json</code>, <code>workflow-end</code></td></tr>
           <tr><td>Guesses APIs and facts</td><td>Evidence protocols, project config, reference docs, code graph</td><td>shared protocols, project config</td></tr>
           <tr><td>Forgets rules in long sessions</td><td>Rules delivered once, re-armed after compaction</td><td>protocol-inject hooks, prompt ledger</td></tr>
           <tr><td>Ships unreviewed work</td><td>Review fix-loop → receipt → commit gate</td><td><code>review-commit-gate</code>, <code>/commit</code></td></tr>
-          <tr><td>Drifts from the spec</td><td>Spec-first workflows, spec sync, doc-sync warning</td><td><code>spec</code>, <code>docs-update</code></td></tr>
+          <tr><td>Drifts from the spec</td><td>Spec-first workflows, spec sync, doc-sync warning</td><td><code>spec</code>, <code>docs-manager</code></td></tr>
           <tr><td>Leaks one project into another</td><td>Portable source, generated mirrors, residue verifiers</td><td><code>/sync-codex</code></td></tr>
         </tbody>
       </table></div>
-      <div class="callout"><b>Design bet</b><span>Static rules carry the contract; hooks only accelerate it. Everything a model must obey lives in <code>CLAUDE.md</code>, skills and agents, so it binds Claude Code, Codex and OpenCode alike.</span></div>
+      <div class="callout"><b>Design bet</b><span>Hooks put the contract in context at the right moment: the universal rules on the first prompt and to every sub-agent, skill protocols when a skill loads. <code>CLAUDE.md</code> holds project information only. Claude Code, Codex and OpenCode run the same hooks; a host with no hooks is unsupported.</span></div>
     </section>
 
     <section id="use" aria-labelledby="use-h">
@@ -246,9 +246,9 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
           <tr><td>Refactor safely</td><td><code>/workflow-refactor</code></td></tr>
           <tr><td>Review your changes</td><td><code>/changes-review</code> · full: <code>/workflow-review-changes --fix-loop</code></td></tr>
           <tr><td>Commit / open a PR</td><td><code>/commit</code> · <code>/pull-request</code></td></tr>
-          <tr><td>Design or mock up UI</td><td><code>/ui-design</code> · <code>/pbi-mockup --explore</code> · <code>/workflow-spec-to-mockup</code></td></tr>
+          <tr><td>Design or mock up UI</td><td><code>/ui-design</code> · <code>/pbi --mode=mockup --explore</code> · <code>/workflow-spec-to-mockup</code></td></tr>
           <tr><td>Write or sync a spec</td><td><code>/spec</code> · <code>/workflow-feature-spec</code> · <code>/workflow-spec-sync</code></td></tr>
-          <tr><td>Write or fix tests</td><td><code>/workflow-write-integration-test</code> · <code>/workflow-integration-test-green</code> · <code>/workflow-e2e</code></td></tr>
+          <tr><td>Write or fix tests</td><td><code>/workflow-integration-test</code> (<code>--mode=write</code> · <code>--mode=green</code>) · <code>/workflow-e2e</code></td></tr>
           <tr><td>Set up a project</td><td><code>/project-init</code>, then <code>/scan-all</code></td></tr>
           <tr><td>Capture a lesson / ask for help</td><td><code>/learn</code> · <code>/project-help</code></td></tr>
         </tbody>
@@ -291,20 +291,20 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
 
     <section id="routing" aria-labelledby="routing-h">
       <h2 id="routing-h">Routing — how a request becomes a route</h2>
-      <p class="lead">The WORKFLOW-GATE block in <code>CLAUDE.md</code> binds every host; at prompt time a hook adds the workflow catalog.</p>
+      <p class="lead">The workflow route is delivered only by a hook at prompt time (the gate and the workflow catalog, in each person's mode: ask, auto or off); no tracked file carries it.</p>
       <ol class="steps">
         <li><div><b>Honor explicit requests</b><span>A <code>/skill</code>, <code>/workflow-*</code> or "use a workflow" always runs.</span></div></li>
         <li><div><b>Assess</b><span>Scope, change type, risk, ambiguity and needed artifacts. Escalate on risk and ambiguity, not file count.</span></div></li>
         <li><div><b>Pick a route</b><span>Trivial → direct · one module → custom-simple · non-trivial bug → <code>workflow-bugfix</code> · cross-module feature → <code>workflow-feature</code>.</span></div></li>
         <li><div><b>Check catalog fit</b><span>Keep a workflow only if more than 80% of its unconditional steps do real work. A downgrade still keeps test, review, root cause and spec sync where they apply.</span></div></li>
-        <li><div><b>Declare, then activate</b><span><code>Route: workflow-bugfix — because …</code> before any edit, agent or command.</span></div></li>
+        <li><div><b>Declare, ask, then activate</b><span><code>Route: workflow-bugfix — because …</code> before any edit, agent or command. A matched workflow first asks one question: full workflow, slimmer custom route, or direct.</span></div></li>
       </ol>
       <div class="grid">
-        <div class="card"><h4><span class="pill auto">auto</span></h4><p>May start on its own for the first task of a session. Default when a workflow sets no tier.</p></div>
-        <div class="card"><h4><span class="pill confirm">confirm</span></h4><p>Asks once, and only when a leaner route would also do the job.</p></div>
-        <div class="card"><h4><span class="pill opt">manual</span></h4><p>Never self-starts; Claude names it and waits for you. Set per project.</p></div>
+        <div class="card"><h4><span class="pill auto">auto</span></h4><p>Asks first; recommends the full workflow when it fits the request. Default when a workflow sets no tier.</p></div>
+        <div class="card"><h4><span class="pill confirm">confirm</span></h4><p>Asks first; recommends the full workflow only when no leaner route would do the job.</p></div>
+        <div class="card"><h4><span class="pill opt">manual</span></h4><p>Asks first and never recommends the full workflow; it runs when you pick it. Set per project.</p></div>
       </div>
-      <p class="caption">Tune tiers with <code>portability.workflowActivation</code> (a <code>default</code> only tightens; an <code>overrides</code> entry may loosen). Turn prompt-time routing off with <code>portability.workflowAutoDetect: false</code>.</p>
+      <p class="caption">Tune tiers with <code>portability.workflowActivation</code> (a <code>default</code> only tightens; an <code>overrides</code> entry may loosen). Set the route mode (ask, auto, off) with <code>portability.workflowRouteMode</code>; a person overrides it in <code>~/.claude/.ck.json</code>, <code>.claude/.ck.local.json</code> or <code>CK_WORKFLOW_ROUTE_MODE</code>.</p>
     </section>
 
     <section id="workflows" aria-labelledby="workflows-h">
@@ -325,7 +325,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="callout"><b>Nested workflows</b><span>Run as sub-agents that return a summary — except <code>workflow-review-changes</code>, which always runs inline so its review loop can hold the session open until it converges.</span></div>
 
       <h3>Workflow catalog</h3>
-      <div class="filter"><label for="wf-filter" class="caption">Filter</label><input id="wf-filter" type="search" placeholder="e.g. spec, test, bug" autocomplete="off" /><span id="wf-count">21 workflows</span></div>
+      <div class="filter"><label for="wf-filter" class="caption">Filter</label><input id="wf-filter" type="search" placeholder="e.g. spec, test, bug" autocomplete="off" /><span id="wf-count">19 workflows</span></div>
       <div class="scroll"><table id="wf-table">
         <thead><tr><th>Workflow</th><th>Tier</th><th>Steps</th><th>Use when</th></tr></thead>
         <tbody>
@@ -342,14 +342,12 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
           <tr><td><code>workflow-idea-to-spec</code></td><td><span class="pill auto">auto</span></td><td class="num">19</td><td>Raw idea → one reviewed provisional spec</td></tr>
           <tr><td><code>workflow-idea-to-pbi</code></td><td><span class="pill auto">auto</span></td><td class="num">30</td><td>Idea → grooming-ready PBI, stories, test specs</td></tr>
           <tr><td><code>workflow-spec-to-pbi</code></td><td><span class="pill auto">auto</span></td><td class="num">22</td><td>Specs → prioritized, dependency-aware backlog</td></tr>
-          <tr><td><code>workflow-greenfield-init</code></td><td><span class="pill confirm">confirm</span></td><td class="num">56</td><td>A new project from scratch</td></tr>
-          <tr><td><code>workflow-write-integration-test</code></td><td><span class="pill auto">auto</span></td><td class="num">10</td><td>Write or update integration tests, spec-first</td></tr>
-          <tr><td><code>workflow-integration-test-green</code></td><td><span class="pill auto">auto</span></td><td class="num">9</td><td>Drive the integration suite to fully green</td></tr>
+          <tr><td><code>workflow-greenfield-init</code></td><td><span class="pill confirm">confirm</span></td><td class="num">55</td><td>A new project from scratch</td></tr>
+          <tr><td><code>workflow-integration-test</code></td><td><span class="pill auto">auto</span></td><td class="num">6–10</td><td>Write or update integration tests spec-first, or drive a red suite to green</td></tr>
           <tr><td><code>workflow-e2e</code></td><td><span class="pill auto">auto</span></td><td class="num">6</td><td>Write, update and verify E2E tests</td></tr>
           <tr><td><code>workflow-seed-test-data</code></td><td><span class="pill auto">auto</span></td><td class="num">9</td><td>Idempotent seeders and realistic dev data</td></tr>
           <tr><td><code>workflow-architecture-audit</code></td><td><span class="pill auto">auto</span></td><td class="num">6</td><td>Whole-project architecture and readiness check</td></tr>
-          <tr><td><code>workflow-research</code></td><td><span class="pill auto">auto</span></td><td class="num">6–7</td><td>Web research → synthesis, business, marketing or course</td></tr>
-          <tr><td><code>workflow-visualize</code></td><td><span class="pill auto">auto</span></td><td class="num">4–5</td><td>Diagrams from code or research</td></tr>
+          <tr><td><code>workflow-research</code></td><td><span class="pill auto">auto</span></td><td class="num">5–6</td><td>Web research → synthesis, business, marketing or course</td></tr>
         </tbody>
       </table></div>
 
@@ -374,20 +372,20 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <h2 id="skills-h">Skills</h2>
       <p class="lead">A skill is a folder with <code>SKILL.md</code> (name, a <code>[Category] Use when …</code> description, optional flags) plus optional <code>references/</code>, <code>scripts/</code> and <code>tests/</code>.</p>
       <div class="cats" role="img" aria-label="Skill categories with counts">
-        <div class="cat"><span>Workflows</span><div class="cat-bar"><i style="width:230px"></i><b>23</b><span>workflow-*, start-workflow, workflow-end</span></div></div>
-        <div class="cat"><span>Review &amp; quality</span><div class="cat-bar"><i style="width:150px"></i><b>15</b><span>changes-review, why-review, security-audit</span></div></div>
-        <div class="cat"><span>Planning &amp; architecture</span><div class="cat-bar"><i style="width:100px"></i><b>10</b><span>plan, plan-review, scenario</span></div></div>
-        <div class="cat"><span>Understand, fix, debug, graph</span><div class="cat-bar"><i style="width:100px"></i><b>10</b><span>investigate, debug-investigate, fix, graph-*</span></div></div>
-        <div class="cat"><span>Testing</span><div class="cat-bar"><i style="width:90px"></i><b>9</b><span>test, integration-test, e2e-test</span></div></div>
-        <div class="cat"><span>Specs &amp; reference docs</span><div class="cat-bar"><i style="width:90px"></i><b>9</b><span>spec, tech-spec, docs-update, scan</span></div></div>
+        <div class="cat"><span>Workflows</span><div class="cat-bar"><i style="width:220px"></i><b>22</b><span>workflow-*, start-workflow, workflow-end</span></div></div>
+        <div class="cat"><span>Review &amp; quality</span><div class="cat-bar"><i style="width:80px"></i><b>8</b><span>changes-review, why-review, security-audit</span></div></div>
+        <div class="cat"><span>Planning &amp; architecture</span><div class="cat-bar"><i style="width:70px"></i><b>7</b><span>plan (review, validate, execute modes), scenario</span></div></div>
+        <div class="cat"><span>Understand, fix, debug, graph</span><div class="cat-bar"><i style="width:50px"></i><b>5</b><span>investigate (debug mode), fix, graph-code, graph-export</span></div></div>
+        <div class="cat"><span>Testing</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>test, integration-test, e2e-test</span></div></div>
+        <div class="cat"><span>Specs &amp; reference docs</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>spec, tech-spec, docs-manager, scan</span></div></div>
         <div class="cat"><span>Project setup &amp; help</span><div class="cat-bar"><i style="width:90px"></i><b>9</b><span>project-init, ai-context-refresh, learn</span></div></div>
-        <div class="cat"><span>Research &amp; business</span><div class="cat-bar"><i style="width:80px"></i><b>8</b><span>web-research, market-analysis</span></div></div>
-        <div class="cat"><span>Documents &amp; media</span><div class="cat-bar"><i style="width:80px"></i><b>8</b><span>feature-presentation, html-export, watzup</span></div></div>
-        <div class="cat"><span>Product / PBI</span><div class="cat-bar"><i style="width:70px"></i><b>7</b><span>idea, refine, story, dor-gate</span></div></div>
+        <div class="cat"><span>Research &amp; business</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>web-research, market-analysis</span></div></div>
+        <div class="cat"><span>Documents &amp; media</span><div class="cat-bar"><i style="width:90px"></i><b>9</b><span>feature-presentation, html-export, watzup</span></div></div>
+        <div class="cat"><span>Product / PBI</span><div class="cat-bar"><i style="width:40px"></i><b>4</b><span>idea, pbi (refine, story, mockup, challenge, review, dor modes), prioritize</span></div></div>
         <div class="cat"><span>Framework maintenance</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>sync-codex, skill-creator</span></div></div>
-        <div class="cat"><span>Implementation</span><div class="cat-bar"><i style="width:50px"></i><b>5</b><span>feature-implement, plan-execute</span></div></div>
+        <div class="cat"><span>Implementation</span><div class="cat-bar"><i style="width:60px"></i><b>6</b><span>feature-implement, code-simplifier</span></div></div>
         <div class="cat"><span>Git &amp; delivery</span><div class="cat-bar"><i style="width:50px"></i><b>5</b><span>commit, pull-request</span></div></div>
-        <div class="cat"><span>Design &amp; UI</span><div class="cat-bar"><i style="width:40px"></i><b>4</b><span>design, design-spec, pbi-mockup</span></div></div>
+        <div class="cat"><span>Design &amp; UI</span><div class="cat-bar"><i style="width:30px"></i><b>3</b><span>design, design-spec, pbi --mode=mockup</span></div></div>
       </div>
       <div class="grid">
         <div class="card"><h4>Who can start a skill</h4><p>Most are model-invocable. 17 are command-only (<code>disable-model-invocation: true</code>): only you start them with <code>/name</code>.</p></div>
@@ -398,7 +396,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
 
     <section id="agents" aria-labelledby="agents-h">
       <h2 id="agents-h">Agents</h2>
-      <p class="lead">Specialist sub-agents with their own context. They carry full protocol text, start with no conversation context, and return a summary while writing full findings to <code>tmp/reports/</code>.</p>
+      <p class="lead">Specialist sub-agents with their own context. They carry their role protocols, receive the universal rules from the <code>SubagentStart</code> hook, start with no conversation context, and return a summary while writing full findings to <code>tmp/reports/</code>.</p>
       <div class="grid">
         <div class="card"><h4>Implementation</h4><p class="names">backend-developer · frontend-developer · fullstack-developer · code-simplifier · database-admin</p></div>
         <div class="card"><h4>Review</h4><p class="names">code-reviewer · architect · security-auditor · performance-optimizer · spec-compliance-reviewer</p></div>
@@ -424,7 +422,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="grid">
         <div class="card"><h4>Routing injection</h4><p>Gate plus workflow catalog, once per session; re-armed on change, compaction or long growth.</p></div>
         <div class="card"><h4>Protocol delivery</h4><p>A loading skill's protocols arrive in full, once per session, grouped and size-capped.</p></div>
-        <div class="card"><h4>File conventions</h4><p>Touching a file injects its path rules (opt-in). Hookless: <code>file-conventions.cjs --lookup &lt;path&gt;</code>.</p></div>
+        <div class="card"><h4>File conventions</h4><p>Touching a file injects its path rules (opt-in). Shell read: <code>file-conventions.cjs --lookup &lt;path&gt;</code>.</p></div>
         <div class="card"><h4>Prompt ledger</h4><p>Pins the session goal and every prompt in <code>tmp/prompt-ledger/</code>; re-delivered after compaction.</p></div>
         <div class="card"><h4>Token checkpoint</h4><p>An advisory note each 500,000 non-cached tokens (configurable).</p></div>
         <div class="card"><h4>Code graph · alerts</h4><p>Graph is <code>auto</code> by default (on only when built). Desktop alerts on; Discord, Slack, Telegram by env key.</p></div>
@@ -439,9 +437,9 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <tbody>
           <tr><td>Normal skills</td><td>One guide line per protocol: tag, summary, when, path</td></tr>
           <tr><td>Protocol-inject hooks</td><td>The full text, delivered when the skill loads</td></tr>
-          <tr><td>Hookless hosts</td><td>Read the guide line's path</td></tr>
+          <tr><td>Guide line path</td><td>The fallback when a protocol's text is not in context</td></tr>
           <tr><td>Review-family skills and agents</td><td>Full inline bodies — a reviewer never depends on delivery</td></tr>
-          <tr><td>Root <code>CLAUDE.md</code></td><td>The four universal protocols</td></tr>
+          <tr><td>Universal hook</td><td>The <code>universal</code> group in four messages (first prompt, every sub-agent)</td></tr>
         </tbody>
       </table></div>
       <p class="caption">Why: a rule already in context beats a rule to go read, but repeating every body everywhere bloats context. After editing a canonical block, run <code>/sync-skills-shared-protocols</code> and rebuild the projection.</p>
@@ -496,7 +494,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
           <tr><td><code>contextGroups</code>, <code>conventionInjection</code></td><td>Per-path conventions and their hook delivery</td></tr>
           <tr><td><code>designSystem</code>, <code>uiReview</code>, <code>styling</code></td><td>UI capability and review settings</td></tr>
           <tr><td><code>testing</code>, <code>e2eTesting</code>, <code>experienceVerification</code></td><td>Test commands and evidence contracts</td></tr>
-          <tr><td><code>portability</code></td><td>Routing switches, activation tiers, universal guides</td></tr>
+          <tr><td><code>portability</code></td><td>Routing switches, activation tiers, tooling package name</td></tr>
           <tr><td><code>hooks</code></td><td>Startup install, code graph, token budget</td></tr>
           <tr><td><code>commit</code>, <code>pullRequest</code>, <code>skillProfile</code></td><td>Commit trailer, PR target, skill visibility</td></tr>
         </tbody>
@@ -537,8 +535,8 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="scroll"><table>
         <thead><tr><th>Runner</th><th>Tests</th><th>Covers</th></tr></thead>
         <tbody>
-          <tr><td><code>test-all-hooks.cjs</code> (primary gate)</td><td class="num"><b>137</b></td><td>Hook behaviors and the count guard</td></tr>
-          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1103</b></td><td>Primary plus every suite</td></tr>
+          <tr><td><code>test-all-hooks.cjs</code> (primary gate)</td><td class="num"><b>133</b></td><td>Hook behaviors and the count guard</td></tr>
+          <tr><td><code>run-all-tests.cjs</code> (full aggregate)</td><td class="num"><b>1348</b></td><td>Primary plus every suite</td></tr>
           <tr><td><code>node --test .claude/scripts/codex/tests</code></td><td class="num">—</td><td>Mirror generators and verifiers</td></tr>
           <tr><td><code>run-codex-sync.mjs --verify-only</code></td><td class="num">—</td><td>All read-only gates before a commit</td></tr>
         </tbody>
@@ -551,7 +549,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
       <div class="scroll"><table>
         <thead><tr><th>Feature</th><th>Key</th><th>Default</th></tr></thead>
         <tbody>
-          <tr><td>Prompt-time routing</td><td><code>portability.workflowAutoDetect</code></td><td>on</td></tr>
+          <tr><td>Prompt-time routing mode</td><td><code>portability.workflowRouteMode</code></td><td>ask</td></tr>
           <tr><td>Activation tiers</td><td><code>portability.workflowActivation</code></td><td>per workflow</td></tr>
           <tr><td>File-convention injection</td><td><code>conventionInjection.enabled</code></td><td>off</td></tr>
           <tr><td>Code graph</td><td><code>hooks.codeGraph.enabled</code></td><td><code>auto</code></td></tr>
@@ -573,7 +571,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <div class="card"><h4>Evidence before conclusion</h4><p>Cite <code>file:line</code>, state confidence, don't recommend below 60%.</p></div>
         <div class="card"><h4>Root cause at the owner</h4><p>Trace the wrong state to the component that owns the invariant; fix once there.</p></div>
         <div class="card"><h4>Judgement integrity</h4><p>Treat a prompt's premise as a hypothesis; test it and its opposite. "No issues" is a valid verdict.</p></div>
-        <div class="card"><h4>Static contract, hook accelerator</h4><p>Correctness never depends on a hook firing.</p></div>
+        <div class="card"><h4>Hooks deliver the contract</h4><p>Universal rules, route and overlay reminders arrive only through hooks; a host with no hooks is unsupported. An unreadable shipped file yields a one-line notice, and Codex needs the handlers reviewed in <code>/hooks</code>.</p></div>
         <div class="card"><h4>Context is a budget</h4><p>Deliver rules once, when they apply; write long work to disk.</p></div>
         <div class="card"><h4>Parallel when independent</h4><p>Tag tasks PAR or SEQ; run independent waves in one message and wait for all.</p></div>
       </div>

@@ -1,7 +1,7 @@
 'use strict';
 // doc-impact-map — routing regression net for the impact-scoped freshness pass.
 //
-// `/docs-update` Phase 1 verifies ONLY the reference docs and project-config
+// `/docs-manager --mode=update` Phase 1 verifies ONLY the reference docs and project-config
 // sections this mapper routes to. Every routing hole therefore becomes a doc
 // that is silently assumed fresh, so these tests pin the properties that make
 // the narrow scope safe:
@@ -449,10 +449,10 @@ const tests = [
         name: '[doc-impact-map] D8 fastExit is true only when the change set is genuinely empty',
         skip: GIT_SKIP,
         fn: () => {
-            // fastExit is the single boolean /docs-update Phase 1 reads to skip the whole
+            // fastExit is the single boolean /docs-manager --mode=update Phase 1 reads to skip the whole
             // freshness pass, so a wrong `true` silently certifies every doc as fresh.
             // D4b pins the false branch; this pins the true branch it gates against.
-            // Real scenario: /docs-update on a branch that has not diverged from its base,
+            // Real scenario: /docs-manager --mode=update on a branch that has not diverged from its base,
             // with a clean tree -> nothing changed -> nothing can have rotted.
             const { dir, g } = makeRepo();
             try {
@@ -514,7 +514,7 @@ const tests = [
                 g(['add', '-A']);
                 g(['commit', '-qm', 'seed']);
 
-                // A developer adds a new file, then runs /docs-update — genuinely back-to-back.
+                // A developer adds a new file, then runs /docs-manager --mode=update — genuinely back-to-back.
                 const NEW_FILE = 'docs/project-reference/brand-new-doc.md';
                 fs.mkdirSync(path.join(dir, 'docs', 'project-reference'), { recursive: true });
                 fs.writeFileSync(path.join(dir, NEW_FILE), '# new\n', 'utf8');
@@ -1135,7 +1135,7 @@ const tests = [
         fn: () => {
             // An explicit `referenceDocs: []` is the exact task-specific selection. Every static
             // built-in rule must therefore emit NOTHING for these representative route classes —
-            // otherwise the map hands /docs-update a scan the exact-selection gate must block.
+            // otherwise the map hands /docs-manager --mode=update a scan the exact-selection gate must block.
             const empty = { project: { name: 'Empty Selection Fixture' }, referenceDocs: [] };
             const cases = [
                 ['src/app.ts', 'plain source'],

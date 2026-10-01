@@ -162,7 +162,7 @@ Register hooks for Claude Code lifecycle events.
 | `Notification`     | (none)                                  | Waiting for user input    |
 | `Stop`             | (none)                                  | Main agent finishes responding |
 
-> Claude Code supports these events for hook registration. This framework registers `UserPromptExpansion` and `SubagentStart` only for the protocol delivery steps (`protocol-inject-<group>.cjs`; the `SubagentStart` matcher lists exact agent names); standing sub-agent context stays static in `agents/*.md`. `Stop` registers only the notification router (`hooks/notifications/notify.cjs`) for the turn-complete alert. Read [../hooks/README.md § Protocol Delivery](../hooks/README.md#protocol-delivery) when changing those registrations.
+> Claude Code supports these events for hook registration. This framework registers `UserPromptExpansion` and `SubagentStart` only for the protocol delivery steps (`protocol-inject-<group>.cjs`; the `SubagentStart` registration has no agent-type matcher, so every agent type reaches the handlers); standing sub-agent context stays static in `agents/*.md`. `Stop` registers only the notification router (`hooks/notifications/notify.cjs`) for the turn-complete alert. Read [../hooks/README.md § Protocol Delivery](../hooks/README.md#protocol-delivery) when changing those registrations.
 
 ### Tool Matchers
 

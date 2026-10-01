@@ -75,7 +75,7 @@ No managed scale and no `z-index` declaration exists in the authored style scope
 
 ## UI/UX Clause Coverage
 
-A RECORD of the project's actual conventions, never a grade — enforcement belongs to `ui-review`.
+A RECORD of the project's actual conventions, never a grade — enforcement belongs to `ui-design --mode=review`.
 
 | Clause   | Project rule                                                       | `file:line`                                                         | Verdict                                                 |
 | -------- | ------------------------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------- |

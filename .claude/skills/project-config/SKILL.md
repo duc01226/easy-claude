@@ -1,6 +1,6 @@
 ---
 name: project-config
-description: '[Utilities] Use when scanning the workspace to update the configured project-config file (default docs/project-config.json) to match current structure.'
+description: '[Utilities] Use when syncing the project-config file (default docs/project-config.json) with the current workspace structure. Not reference docs (scan) or CLAUDE.md (ai-context-refresh).'
 disable-model-invocation: false
 ---
 
@@ -130,13 +130,13 @@ Medium/large projects: create `tmp/project-config` with `node -e "require('fs').
 
 ## ⛔ Local-Only Workflow Routing — `.claude/.ck.local.json`
 
-The configured project-config file (default `docs/project-config.json`) is **team-shared and committed**. Three routing settings have a portable developer-local override: `portability.workflowAutoDetect` (the on/off switch), `portability.workflowRouteProtocol` (optional custom protocol text the runtime route hook appends), and `portability.workflowActivation` (per-project workflow activation tiers). Their local values belong in `.claude/.ck.local.json`, inside the copied framework bundle and ignored by `.claude/.gitignore`.
+The configured project-config file (default `docs/project-config.json`) is **team-shared and committed**. Three routing settings have a portable developer-local override: `portability.workflowRouteMode` (`ask` | `auto` | `off`, how a matched workflow starts; the legacy boolean `portability.workflowAutoDetect` reads as `off`/`ask`), `portability.workflowRouteProtocol` (optional custom protocol text the runtime route hook appends), and `portability.workflowActivation` (per-project workflow activation tiers). Their local values belong in `.claude/.ck.local.json`, inside the copied framework bundle and ignored by `.claude/.gitignore`.
 
 **MUST ATTENTION — route by who the change is for, and ask when it is ambiguous.**
 
 | The user says | Write to |
 | --- | --- |
-| "turn workflow routing off/on **for me / on my machine / locally / just here / don't commit it**" | `.claude/.ck.local.json` — **never** the team file |
+| "turn workflow routing off/on, or set it to ask/auto/off, **for me / on my machine / locally / just here / don't commit it**" | `/workflow-mode <mode> --save` (`~/.claude/.ck.json`, every project) or `--save --local` (`.claude/.ck.local.json`, this checkout) — **never** the team file |
 | "add/change the route protocol **for me / on my machine / locally / just here / don't commit it**" | `.claude/.ck.local.json` — **never** the team file |
 | "turn workflow routing off/on **for this project / for the team / for everyone**" | The configured project-config file (the normal scan/merge path) |
 | "add/change the route protocol **for this project / for the team / for everyone**" | The configured project-config file (the normal scan/merge path) |
@@ -162,16 +162,16 @@ The configured project-config file (default `docs/project-config.json`) is **tea
 ```jsonc
 // .claude/.ck.local.json — git-ignored, this machine only, sparse override
 {
-  "portability": { "workflowAutoDetect": false }
+  "portability": { "workflowRouteMode": "off" }   // "ask" (default) | "auto" | "off"
 }
 ```
 
 **Resolution contract** (`.claude/scripts/lib/workflow-routing-config.cjs` implements it for both
-`workflowAutoDetect` and `workflowRouteProtocol`): framework default (`true` / none) → the configured
-team project-config file → local `.claude/.ck.local.json`, **later valid layer wins**. A layer that is
+`workflowRouteMode` and `workflowRouteProtocol`): framework default (`ask` / none) → the configured
+team project-config file → (mode only) `~/.claude/.ck.json` → local `.claude/.ck.local.json` → (mode only) env `CK_WORKFLOW_ROUTE_MODE`, **later valid layer wins**. A layer that is
 absent, unparseable, or simply silent on a key expresses no opinion and falls through to the layer
 below — so a missing file never flips a setting, and the override works in BOTH directions (a
-developer can set `true`/a protocol locally to opt back in when the team set `false`/its own text).
+developer can set `ask`/a protocol locally to opt back in when the team set `off`/its own text).
 The team path follows `.ck.json` `portability.projectConfigPath`; the local path remains
 `.claude/.ck.local.json` so the portable framework carries its ignore rule to every consuming project.
 
@@ -202,8 +202,8 @@ protocol on top of the canonical route gate. The value is either:
 - Team and local layers do **not** concatenate: a valid local value **replaces** the team value, the
   same "later valid layer wins" rule the on/off switch uses. To extend the team protocol locally, copy
   its text into the local value (or point the local `path` at the shared file and add your lines).
-- It is **runtime-only**. It is never stamped into tracked `CLAUDE.md` / `AGENTS.md` /
-  `.codex/CODEX_CONTEXT.md` (those remain team-owned), so `/ai-context-refresh` and `/sync-codex` are
+- It is **runtime-only**. It is never stamped into tracked `CLAUDE.md` / `AGENTS.md`
+  (those remain team-owned), so `/ai-context-refresh` and `/sync-codex` are
   never required to apply it.
 - A protocol edit changes the delivery content hash, so the next `UserPromptSubmit` re-delivers it.
 - **Safety and bounds.** A `path` naming a privacy-sensitive file (`.env`, credentials, secrets,
@@ -213,8 +213,9 @@ protocol on top of the canonical route gate. The value is either:
 
 ### Workflow activation tiers (`portability.workflowActivation`)
 
-Use this when the project wants workflows to ask before starting, or never start without an explicit
-request, without forking `.claude/workflows.json`. Tier order is `auto` < `confirm` < `manual`.
+In route mode `ask` the route gate's workflow question is asked only when the route is to start a catalog workflow (direct and custom-simple routes ask nothing) (mode `auto` lets the tier decide whether to ask); use this when the
+project wants to change which option that question recommends (or hide a workflow's wrapper skill from
+implicit invocation with `manual`), without forking `.claude/workflows.json`. Tier order is `auto` < `confirm` < `manual`.
 
 - `default` — `auto` | `confirm` | `manual`: a floor applied to every workflow. The effective tier is
   the stricter of this and the workflow's framework tier, so `default` only tightens.
@@ -226,15 +227,14 @@ request, without forking `.claude/workflows.json`. Tier order is `auto` < `confi
   does not name still applies. An explicit user request still runs any tier.
 
 ```jsonc
-// team (docs/project-config.json) — every workflow asks first, except bugfix
+// team (docs/project-config.json) — recommend the full workflow only when nothing leaner fits, except bugfix
 { "portability": { "workflowActivation": { "default": "confirm", "overrides": { "workflow-bugfix": "auto" } } } }
 ```
 
-**⛔ SCOPE — tracked defaults and runtime overrides.** `CLAUDE.md`, `AGENTS.md`, and
-`.codex/CODEX_CONTEXT.md` carry the canonical default route gate. `workflow-route-inject.cjs`
-resolves the effective default + team + local cascade at `UserPromptSubmit`, refreshes advisory
-context when enabled (gate + catalog + optional `workflowRouteProtocol`), and otherwise delivers
-a short routing-OFF notice that supersedes the tracked gate's auto-select for this checkout.
+**⛔ SCOPE — tracked defaults and runtime overrides.** `CLAUDE.md` and `AGENTS.md` carry no route text. `workflow-route-inject.cjs`
+resolves the effective default + team + personal cascade at `UserPromptSubmit` and delivers the route
+for the resolved mode (gate + catalog + optional `workflowRouteProtocol` in `ask`/`auto`; a short
+routing-OFF notice in `off`).
 
 **Do NOT tell the user to run `/ai-context-refresh` or `/sync-codex` to apply an override.** The
 next prompt resolves it at runtime. There is no option that bakes local routing or the custom
@@ -285,7 +285,7 @@ docs/project-config.json
 ├── specArtifacts? — { version, kind, sections{ intent[], contracts[], evidence[] }, identifiers{ requirement{}, acceptance{}, scenario{} }, ownership, carriers[] } (native engineering-contract profile; omission preserves strict defaults)
 ├── docsRoots — { projectReference{ path }, adr{ path }, templates{ path }, plans{ path }, teamArtifacts{ path }, productRoadmap{ path } }  (relocatable doc roots; omit a sub-object to keep its default)
 ├── techSpecScan — { sourceRoot, fileExtensions[], annotationPattern }  (enables /tech-spec) | else _techSpecScanNote (deliberate-omission carrier)
-├── portability — { requireUniversalGuides, workflowAutoDetect, inlinePathRules, workflowRouteProtocol, workflowActivation{ default, overrides{} }, toolingPackageName }  (optional; routing + portability switches)
+├── portability — { workflowRouteMode, workflowAutoDetect, inlinePathRules, workflowRouteProtocol, workflowActivation{ default, overrides{} }, toolingPackageName }  (optional; routing + portability switches)
 ├── hooks — { startupInstall{ enabled, packageManager, allowLifecycleScripts }, windowsGit{ enabled, autoRepair }, codeGraph{ enabled }, tokenBudget{ enabled, checkpointTokens } }  (optional; hook behavior — omitted properties keep portable defaults)
 ├── commit — { fixOriginTrailer }  (optional; commit-skill policy — default false, no Fix-Origin trailer)
 ├── pullRequest — { targetBranch }  (optional; pull-request-skill policy — default "main")
@@ -639,7 +639,7 @@ Run only when a spec/test-artifact capability already exists or is selected. Ski
 
 ### 2r. Convention Classes — Detect & Merge (NEVER clobber)
 
-Per-file convention classes tell the AI which rules, skill protocols and reference docs apply when it reads or edits a file (hook `file-convention-inject.cjs`; hookless fallback = CLAUDE.md "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`). Run this optional detector only when useful context groups or opt-in convention injection are selected. If run, do so after the selected config areas so it sees their final evidence-backed values. (`docsRoots` is deliberately NOT a detection input: no context group is keyed off a `docsRoots` value.)
+Per-file convention classes tell the AI which rules, skill protocols and reference docs apply when it reads or edits a file (hook `file-convention-inject.cjs`; CLAUDE.md "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` for a shell read). Run this optional detector only when useful context groups or opt-in convention injection are selected. If run, do so after the selected config areas so it sees their final evidence-backed values. (`docsRoots` is deliberately NOT a detection input: no context group is keyed off a `docsRoots` value.)
 
 ```bash
 node .claude/hooks/lib/convention-merge.cjs --detect --merge            # dry run: added / refreshed / kept
@@ -668,7 +668,7 @@ Merge only selected properties. Preserve existing user-authored values; replace 
 
 Queue only the scan targets selected by `referenceDocs` or supported by repository evidence. Use the scan catalog's trigger for each selected target; omit absent frontend, backend, styling, design-system, domain, test, seed-data, E2E, and spec capabilities. A selected target with no source evidence is a visible blocker or skip, not a fabricated reference.
 
-Then update root AI context when this config change affects it. Run `/graph-build` only when graph tooling is configured/available and the selected task needs a graph; otherwise record an evidence-backed skip.
+Then update root AI context when this config change affects it. Run `/graph-code --mode=build` only when graph tooling is configured/available and the selected task needs a graph; otherwise record an evidence-backed skip.
 
 ## Phase 6: Enhance Selected Guidance (CONDITIONAL)
 
@@ -686,42 +686,9 @@ Report: required config path and project identity; optional sections updated; ev
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
 
-<!-- PROTOCOL-GUIDES:START -->
-
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-
-<!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Keep the required project config schema-valid, with only evidence-backed optional capabilities via Plan → Review → Execute.
-
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **Critical Thinking:** apply critical + sequential thinking; trace every claim, confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **IMPORTANT MUST ATTENTION** read the configured project-config file, docs index, `lessons.md`, task-required references, and exact schema before scanning; bootstrap missing config with a derived project name.
 **IMPORTANT MUST ATTENTION** select scans from requested or evidenced capabilities; scale controls grouping only and never forces optional sections.

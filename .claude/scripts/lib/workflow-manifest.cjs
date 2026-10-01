@@ -66,26 +66,44 @@ function normalizeIntent(entry, workflowId) {
   return entry.intent;
 }
 
-// satisfiedBy lists alternative skills. Every listed skill must exist somewhere in the workflow
-// (any mode), and the selected mode must contain at least one of them, or the gate is unprovable.
-function normalizeOutcomeGates(entry, workflowId, mode, occurrences) {
-  if (!own(entry, "outcomeGates")) return [];
-  check(Array.isArray(entry.outcomeGates) && entry.outcomeGates.length > 0, `Invalid outcomeGates for ${workflowId}: expected a non-empty array`);
-  const workflowSkills = new Set(own(entry, "variants")
-    ? Object.values(entry.variants).flatMap(variant => (Array.isArray(variant?.sequence) ? variant.sequence : []).map(step => step?.skill))
-    : occurrences.map(record => record.skill));
-  const modeSkills = new Set(occurrences.map(record => record.skill));
+// A satisfier is a skill name, or a skill name plus invocation arguments (`plan --mode=validate`) when
+// one skill serves several roles. It matches an occurrence of that skill whose args contain every
+// argument token of the satisfier; a bare skill name matches every occurrence of the skill.
+const SATISFIER = /^([a-z][a-z0-9-]*)(?:\s+(\S[\s\S]*))?$/;
+const argTokens = text => String(text ?? "").trim().split(/\s+/).filter(Boolean);
+function satisfierMatches(satisfier, step) {
+  const match = SATISFIER.exec(satisfier);
+  if (!match || !step || step.skill !== match[1]) return false;
+  const have = new Set(argTokens(step.args));
+  return argTokens(match[2]).every(token => have.has(token));
+}
+
+// satisfiedBy lists alternative satisfiers. Every listed satisfier must match a step somewhere in the
+// workflow (any mode), and the selected mode must contain at least one of them, or the gate is unprovable.
+// A variant may add its own gates (`variants.<mode>.outcomeGates`) to the entry-level gates shared by
+// every mode; the selected mode's gate list is the entry-level gates followed by its own. Gate IDs stay
+// unique across both lists, so a variant can never redefine a shared gate.
+function normalizeOutcomeGates(entry, workflowId, mode, occurrences, selected) {
+  const variantGates = own(entry, "variants") && own(selected, "outcomeGates") ? selected.outcomeGates : undefined;
+  if (!own(entry, "outcomeGates") && variantGates === undefined) return [];
+  const validList = gates => Array.isArray(gates) && gates.length > 0;
+  check(!own(entry, "outcomeGates") || validList(entry.outcomeGates), `Invalid outcomeGates for ${workflowId}: expected a non-empty array`);
+  check(variantGates === undefined || validList(variantGates), `Invalid outcomeGates for ${workflowId} variant ${mode}: expected a non-empty array`);
+  const gateList = [...(entry.outcomeGates ?? []), ...(variantGates ?? [])];
+  const workflowSteps = own(entry, "variants")
+    ? Object.values(entry.variants).flatMap(variant => (Array.isArray(variant?.sequence) ? variant.sequence : []))
+    : occurrences;
   const seen = new Set();
-  return entry.outcomeGates.map(gate => {
+  return gateList.map(gate => {
     fields(gate, ["id", "satisfiedBy", "when"], `outcome gate in ${workflowId}`);
     check(GATE_IDS.includes(gate.id), `Invalid outcome gate ID in ${workflowId}: ${String(gate.id)}`);
     check(!seen.has(gate.id), `Duplicate outcome gate in ${workflowId}: ${gate.id}`);
     seen.add(gate.id);
     check(Array.isArray(gate.satisfiedBy) && gate.satisfiedBy.length > 0, `Outcome gate ${gate.id} needs satisfiedBy skills`);
-    check(gate.satisfiedBy.every(skill => typeof skill === "string" && SLUG.test(skill)), `Invalid satisfiedBy skill in outcome gate ${gate.id}`);
+    check(gate.satisfiedBy.every(skill => typeof skill === "string" && SATISFIER.test(skill)), `Invalid satisfiedBy skill in outcome gate ${gate.id}`);
     check(new Set(gate.satisfiedBy).size === gate.satisfiedBy.length, `Duplicate satisfiedBy skill in outcome gate ${gate.id}`);
-    for (const skill of gate.satisfiedBy) check(workflowSkills.has(skill), `Outcome gate ${gate.id} names a skill not in the sequence of ${workflowId}: ${skill}`);
-    check(gate.satisfiedBy.some(skill => modeSkills.has(skill)), `Outcome gate ${gate.id} has no satisfying step in ${workflowId}/${mode}`);
+    for (const skill of gate.satisfiedBy) check(workflowSteps.some(step => satisfierMatches(skill, step)), `Outcome gate ${gate.id} names a skill not in the sequence of ${workflowId}: ${skill}`);
+    check(gate.satisfiedBy.some(skill => occurrences.some(record => satisfierMatches(skill, record))), `Outcome gate ${gate.id} has no satisfying step in ${workflowId}/${mode}`);
     check(gate.when === undefined || nonempty(gate.when), `Invalid when for outcome gate ${gate.id}`);
     return { id: gate.id, satisfiedBy: [...gate.satisfiedBy], when: gate.when ?? null };
   });
@@ -149,7 +167,7 @@ function resolveWorkflowManifest(document, workflowId, options = {}) {
   const mode = own(options, "mode") ? options.mode : (entry.defaultMode ?? "default");
   check(typeof mode === "string" && modes.includes(mode), `Unknown workflow mode: ${String(mode)} for ${workflowId}`);
   const selected = own(entry, "variants") ? entry.variants[mode] : entry;
-  if (own(entry, "variants")) fields(selected, ["sequence", "parallelGroups", "stepMeta"], `variant ${mode}`);
+  if (own(entry, "variants")) fields(selected, ["sequence", "parallelGroups", "stepMeta", "outcomeGates"], `variant ${mode}`);
   check(isObject(selected) && Array.isArray(selected.sequence) && selected.sequence.length > 0, `Invalid sequence for ${workflowId}/${mode}`);
   const sourceVersion = document.version === undefined ? "unversioned" : document.version;
   check(nonempty(sourceVersion), "Invalid workflow source version");
@@ -191,7 +209,7 @@ function resolveWorkflowManifest(document, workflowId, options = {}) {
     for (const target of targets) Object.defineProperty(stepMeta, target.id, { value: { ...meta }, enumerable: true });
   }
   const intent = normalizeIntent(entry, workflowId);
-  const outcomeGates = normalizeOutcomeGates(entry, workflowId, mode, occurrences);
+  const outcomeGates = normalizeOutcomeGates(entry, workflowId, mode, occurrences, selected);
   const fingerprint = digest({ sourceHash, mode, occurrences, parallelGroups, stepMeta });
   return { workflow: workflowId, mode, sourceVersion, fingerprint, intent, outcomeGates, occurrences,
     sequence: occurrences.map(({ skill, args }) => args ? `${skill} ${args}` : skill), parallelGroups, stepMeta };
@@ -202,4 +220,4 @@ function resolveAllWorkflowManifests(document, workflowId, options = {}) {
   return listWorkflowModes(document.workflows[workflowId]).map(mode => resolveWorkflowManifest(document, workflowId, { ...options, mode }));
 }
 
-module.exports = { resolveWorkflowManifest, resolveAllWorkflowManifests, listWorkflowModes };
+module.exports = { resolveWorkflowManifest, resolveAllWorkflowManifests, listWorkflowModes, satisfierMatches };

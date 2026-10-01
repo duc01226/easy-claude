@@ -9,11 +9,11 @@ disable-model-invocation: false
 
 **Goal:** After a code change, bug fix or PR review, bring the canonical test cases, feature docs and integration tests back in line with the code, so every changed behavior ends covered by tests that ran green in this run.
 
-**Use when:** code already changed and its specs, test cases or docs may be stale. To write tests for code nobody changed, use `/workflow-write-integration-test`; to drive a red suite to green, use `/workflow-integration-test-green`; for a change still being built, the feature/bugfix workflows own spec sync themselves.
+**Use when:** code already changed and its specs, test cases or docs may be stale. To write tests for code nobody changed, use `/workflow-integration-test --mode=write`; to drive a red suite to green, use `/workflow-integration-test --mode=green`; for a change still being built, the feature/bugfix workflows own spec sync themselves.
 
-**IMPORTANT MANDATORY Steps:** /workflow-review-changes -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /workflow-review-changes --tests=defer -> /spec [mode=tests] -> /pbi --mode=review --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test --mode=review -> /integration-test --mode=verify -> /test -> /docs-manager --mode=update -> /workflow-end -> /watzup
 
-**Steps:** /workflow-review-changes → /spec [mode=tests] → /artifact-review --type=spec-tests → /spec [mode=sync] → /integration-test → /integration-test-review → /integration-test-verify → /test → /docs-update → /workflow-end → /watzup
+**Steps:** /workflow-review-changes --tests=defer → /spec [mode=tests] → /pbi --mode=review --type=spec-tests → /spec [mode=sync] → /integration-test → /integration-test --mode=review → /integration-test --mode=verify → /test → /docs-manager --mode=update → /workflow-end → /watzup
 
 Both chains are the recommended default order. Which steps are gates and when each optional step runs is declared in the registry entry and restated in [Recommended Skills](#recommended-skills).
 
@@ -40,11 +40,11 @@ Classify the triggering change before choosing depth and record the result in th
 
 Each gate names the evidence `/workflow-end` checks. None of them flexes.
 
-1. **Triggering change reviewed** (`review-converged`, gate `/workflow-review-changes`) — the nested review runs INLINE in the main session and converges; validated blocking findings are fixed and re-reviewed. Evidence: its report path and verdict.
+1. **Triggering change reviewed** (`review-converged`, gate `/workflow-review-changes --tests=defer`) — the nested review runs INLINE in the main session and converges; validated blocking findings are fixed and re-reviewed. It reads code and tests but runs no test suite (`--tests=defer`, `SYNC:verify-last-order`): the later `/integration-test --mode=verify` and `/test` gates prove the tests once, on the final tree. A standalone `/workflow-review-changes` keeps its own test run. Evidence: its report path and verdict.
 2. **Cases encode intent, not the bug** — each added or changed case names its `Business Intent / Invariant Guarded` and would fail if that intent broke; a bug fix gets a regression case. For each changed hard rule or invariant, sync a universally quantified property case plus its boundary counter-case; every behavior-changing finding lands in BOTH the spec and the tests.
 3. **Spec synced** (`spec-synced`, gate `/spec [mode=sync]`) — the case owner and its coverage carrier match the executing tests and the source, per the three-way sync contract in `spec-system-reference.md` (strict default: Feature Spec Section 8 TCs and `CoveredBy` links; native profile: its declared identities and fields).
-4. **Changed behavior tested green in this run** (`tests-pass`, gate `/test`) — runner output for every suite that covers the changed behavior; integration tests written or changed here also meet the configured repeat policy through `/integration-test-verify`.
-5. **Every failing test adjudicated before an edit** — a five-way Fault Verdict (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`) from `/debug-investigate` against the spec and the source, per `.claude/skills/shared/protocols/test-failure-fault-adjudication.md`; never weaken, skip or retry an assertion to force green.
+4. **Changed behavior tested green in this run** (`tests-pass`, gate `/test`) — runner output for every suite that covers the changed behavior; integration tests written or changed here also meet the configured repeat policy through `/integration-test --mode=verify`.
+5. **Every failing test adjudicated before an edit** — a five-way Fault Verdict (`SOURCE-WRONG` · `TEST-WRONG` · `TEST-NOT-OPTIMAL` · `ENVIRONMENT-BLOCKED` · `AMBIGUOUS`) from `/investigate --mode=debug` against the spec and the source, per `.claude/skills/shared/protocols/test-failure-fault-adjudication.md`; never weaken, skip or retry an assertion to force green.
 6. **Docs synced** — feature docs and derived docs the change made stale are updated.
 7. **Run closed** (`run-closed`, gate `/workflow-end`).
 
@@ -52,15 +52,15 @@ Each gate names the evidence `/workflow-end` checks. None of them flexes.
 
 | Step                                 | Role     | Runs when (optional steps: registry `when` / `skipReason`)                                                                                                                                                                                                                       | Proves / feeds                              |
 | ------------------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `/workflow-review-changes`           | gate     | Always, first, INLINE in the main session.                                                                                                                                                                                                                                       | `review-converged`                          |
+| `/workflow-review-changes --tests=defer` | gate | Always, first, INLINE in the main session; static review, the test gates below run the tests.                                                                                                                                                                                                                                       | `review-converged`                          |
 | `/spec [mode=tests]`                 | core     | Usually: diff existing cases against the changed code; add regression cases for bug fixes. A behavior-preserving change reduces it to that diff check.                                                                                                                           | Current cases.                              |
-| `/artifact-review --type=spec-tests` | optional | When: The spec [mode=tests] step added or changed at least one test case in this run. · Skip reason: No test case was added or changed in this run, so there is no case to review.                                                                                               | Case quality.                               |
+| `/pbi --mode=review --type=spec-tests` | optional | When: The spec [mode=tests] step added or changed at least one test case in this run. · Skip reason: No test case was added or changed in this run, so there is no case to review.                                                                                               | Case quality.                               |
 | `/spec [mode=sync]`                  | gate     | Always.                                                                                                                                                                                                                                                                          | `spec-synced`                               |
 | `/integration-test`                  | optional | When: An added or changed test case has no executing integration test, or changed behavior is not yet covered by one. · Skip reason: Every added or changed test case already has an executing integration test covering it (see the case-to-test map).                          | Test code for new cases.                    |
-| `/integration-test-review`           | optional | When: Integration test code was written or changed in this run. · Skip reason: No integration test code was written or changed in this run, so there is no new test code to review.                                                                                              | Converged review of this run's test code.   |
-| `/integration-test-verify`           | optional | When: Integration test code was written or changed in this run, or an integration test covers behavior the triggering change altered. · Skip reason: No integration test was written or changed and none covers the altered behavior; the test gate proves the remaining suites. | Repeat-policy proof for integration suites. |
+| `/integration-test --mode=review`           | optional | When: Integration test code was written or changed in this run. · Skip reason: No integration test code was written or changed in this run, so there is no new test code to review.                                                                                              | Converged review of this run's test code.   |
+| `/integration-test --mode=verify`           | optional | When: Integration test code was written or changed in this run, or an integration test covers behavior the triggering change altered. · Skip reason: No integration test was written or changed and none covers the altered behavior; the test gate proves the remaining suites. | Repeat-policy proof for integration suites. |
 | `/test`                              | gate     | Always.                                                                                                                                                                                                                                                                          | `tests-pass`                                |
-| `/docs-update`                       | core     | Usually: feature docs, evidence fields, version history.                                                                                                                                                                                                                         | Docs synced.                                |
+| `/docs-manager --mode=update`                       | core     | Usually: feature docs, evidence fields, version history.                                                                                                                                                                                                                         | Docs synced.                                |
 | `/workflow-end`                      | gate     | Always, last.                                                                                                                                                                                                                                                                    | `run-closed`                                |
 | `/watzup`                            | core     | Always.                                                                                                                                                                                                                                                                          | Recap.                                      |
 
@@ -68,7 +68,7 @@ Each gate names the evidence `/workflow-end` checks. None of them flexes.
 
 You choose inline vs sub-agent, batching and ordering to minimise wall-clock and token cost at equal quality. Fixed constraints only:
 
-- The nested `/workflow-review-changes` runs INLINE in the main session, never as a sub-agent; its own reviewers stay sub-agents.
+- The nested `/workflow-review-changes --tests=defer` runs INLINE in the main session, never as a sub-agent; its own reviewers stay sub-agents. When `/integration-test --mode=verify` or `/test` edits any source or test file, re-run it (still `--tests=defer`) over the settled tree before closing.
 - Cases are updated before the tests that implement them; test code exists before it is reviewed and run; fixes are re-verified after they land; `/spec [mode=sync]` sees the final tests; `/workflow-end` runs last; gates awaiting user approval never run in parallel.
 - Recommended: XS/S inline end to end; for M+ partitions, independent case/test partitions with disjoint files may run as one wave of sub-agents, each writing its own report section first.
 
@@ -89,29 +89,14 @@ You choose inline vs sub-agent, batching and ordering to minimise wall-clock and
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `ui-intent-layer` — Tech-agnostic UI intent layer in every UI-bearing spec; writing a spec for a feature with a user interface → .claude/skills/shared/protocols/ui-intent-layer.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 
@@ -126,16 +111,9 @@ You choose inline vs sub-agent, batching and ordering to minimise wall-clock and
 
 <!-- /SYNC:ui-intent-layer:reminder -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 

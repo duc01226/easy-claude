@@ -10,7 +10,7 @@
 
 **Key Rules:**
 
-- **Understand code first** — READ existing code, search 3+ patterns, run graph trace before ANY modification
+- **Understand code first** — READ existing code, search 3+ patterns before ANY modification (the code graph is optional advice for high-risk blast radius)
 - **Code style** — Follow the project formatter, conventions, and any path-scoped rules in config or references.
 - **Responsibility** — Place behavior with the owner selected by the project's architecture and evidence; do not assume Entity/Model > Service > Component/Handler.
 - **YAGNI / KISS / DRY** — No speculative abstractions, no over-engineering
@@ -29,7 +29,7 @@
 
 - **File Naming**: Follow the language and project naming convention; if none is documented, match nearby files.
 - **File Size**: Follow project guidance. Split when doing so improves cohesion and change cost, not to meet a universal line count.
-- Skills/tools: `/web-research` (library docs; Context7 MCP optional), `debug-investigate` (analysis), available image/video analysis tools, `gh` (GitHub)
+- Skills/tools: `/web-research` (library docs; Context7 MCP optional), `investigate --mode=debug` (analysis), available image/video analysis tools, `gh` (GitHub)
 - **[IMPORTANT]** Follow codebase structure and code standards in `./docs` during implementation
 - **[IMPORTANT]** Always implement real code — never simulate or mock implementations
 - **[CRITICAL] Responsibility Rule:**
@@ -39,9 +39,9 @@
 ## Understand Code First (MANDATORY)
 
 > **Understand-Code-First** — Do NOT write code, create plans, or attempt fixes until you READ existing code.
-> Search 3+ similar implementations first. Run graph on key files (MANDATORY when graph.db exists).
+> Search 3+ similar implementations first. The code graph is optional advice, never required.
 
-- **MUST ATTENTION USE graph trace** on key files when `.code-graph/graph.db` exists — after grep finds entry points, **STOP AND DECIDE:** run `python .claude/scripts/code_graph trace <file> --direction both --json` NOW. Use `--node-mode file` for overview (10-30x less noise), `--node-mode function` for detail. Graph reveals callers, importers, bus messages, event chains that grep cannot find. See CLAUDE.md "Graph Intelligence" section.
+- **Optional graph hint** — when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests, e.g. `python .claude/scripts/code_graph trace <file> --direction both --json` (`--node-mode file` first for overview). Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes. Read `.claude/skills/shared/protocols/graph-assisted-investigation.md` when you consider using it.
 
 ## Code Quality Guidelines
 
@@ -67,13 +67,14 @@
 >
 > - **Skills keep guides.** A converted skill's `SKILL.md` carries one guide line per protocol in its `PROTOCOL-GUIDES` block (tag, summary, when it applies, path of the published text) instead of the full `<!-- SYNC:tag -->` body.
 > - **Hooks deliver the full text** where the host runs hooks, from the generated projection `.claude/skills/shared/protocols/`. The guide path is the fallback: when a protocol's text is not in your context, read its file before you act on it.
-> - **`:reminder` digests stay** in every carrier for must-never-miss rules.
-> - **The four converging review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry. Single-pass `plan-review` uses protocol guides and loads only triggered depth.
-> - **Agents keep full protocol text.** `.claude/agents/*.md` are never converted to guides.
+> - **`:reminder` digests stay** in every carrier for a role protocol's must-never-miss rules.
+> - **The universal bundle is hook-delivered only.** The `universal` group in `.claude/skills/shared/protocol-groups.json` holds the framework rules every task follows (critical thinking, AI mistake prevention, project-reference loading, overlays, task planning, workflow advancement, git discipline and the rest). Its bins (`bins` in that file, each at most 9,500 characters) are delivered on the first prompt of a session and again after about 200K tokens of growth or a compaction, and at every sub-agent start. No skill, agent, root instruction file or mirror carries a body, reminder, guide line or pointer for them; the root file holds project information only. Hosts that run no hooks are not supported.
+> - **The four converging review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry. Single-pass `plan --mode=review` uses protocol guides and loads only triggered depth.
+> - **Agents keep full protocol text.** `.claude/agents/*.md` are never converted to guides; only the universal bundle is absent from them (the sub-agent start hook delivers it).
 > - **Reviewer prompts carry protocol bodies inline.** The orchestrator copies ONE template (`SYNC:review-protocol-injection`) wholesale into each fresh reviewer prompt; a reviewer is never handed a path to go read.
 > - **`references/`:** a mode-only section of a skill may live in `references/*.md`, read at the point of use as that mode's first action; a SYNC body inside `references/*.md` stays inline.
 >
-> Never hand-extract, deduplicate or replace a SYNC body outside these rules. To update a protocol: edit the canonical file first; run `.claude/scripts/sync-update-blocks.py <tag>` (Windows `py -3`, macOS/Linux `python3`), which rewrites every skill AND agent carrier; convert skills to guides only with its `--mode=guide --tags <tag>`; rebuild the projection with `node .claude/scripts/build-protocol-projection.cjs`; then grep `SYNC:<tag>` for copies outside the tool's scope, such as `.claude/docs/development-rules.md`.
+> Never hand-extract, deduplicate or replace a SYNC body outside these rules. To update a protocol: edit the canonical file first; run `.claude/scripts/sync-update-blocks.py <tag>` (Windows `py -3`, macOS/Linux `python3`), which rewrites every skill AND agent carrier; convert skills to guides only with its `--mode=guide --tags <tag>` (never a universal tag); rebuild the projection with `node .claude/scripts/build-protocol-projection.cjs`; then grep `SYNC:<tag>` for copies outside the tool's scope, such as `.claude/docs/development-rules.md`.
 
 <!-- /SYNC:shared-protocol-duplication-policy -->
 
@@ -216,7 +217,7 @@ Failure Signal: [what change would make this test fail]
 **Right:** Assert the observable outcome that proves the intended rule still holds.
 
 When implementation and tests disagree, record a provisional verdict from the full
-five-way taxonomy BEFORE tracing or editing either side (canonical: `CLAUDE.md`):
+five-way taxonomy BEFORE tracing or editing either side (canonical: `.claude/skills/shared/protocols/ai-mistake-prevention.md`, delivered by the universal hook):
 
 - **SOURCE-WRONG** — production violates the intended rule: fix source, keep/add the failing test.
 - **TEST-WRONG** — the assertion or setup is stale: update the test/spec to the intended rule.
@@ -237,9 +238,9 @@ retitled as a stale test.
 
 ## Pre-commit/Push Rules
 
-**Consent & safety (BLOCKING — binds Claude and Codex equally; static rule, with hooks as optional accelerators):**
+**Consent & safety (BLOCKING — binds Claude, Codex and OpenCode equally; the rule text is delivered by the universal hook as `.claude/skills/shared/protocols/git-discipline.md`):**
 
-- **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. This is a static behavioral rule on every host; no hook enforces it.
+- **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. This is a behavioral rule on every host; no hook enforces it.
 - **Amend is a commit — gated like one.** `git commit --amend` and `git reset --soft HEAD~1` + `git commit` produce the same commit, so both need an explicit amend request (a plain commit request makes a new commit), and neither may rewrite a commit that is already pushed or that this task did not create. `review-commit-gate.cjs` gates an amend by a review receipt over the amended commit's candidate measured against HEAD's parent (descriptor `"amend":true`); amending a merge commit fails closed.
 - **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. **Model-behavioral:** nothing catches a commit on `main` but you.
 - Read-only git needs no permission: `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`.
@@ -286,7 +287,7 @@ After completing code changes, check for stale documentation:
 
 ## Closing Reminders
 
-**MANDATORY IMPORTANT MUST ATTENTION** understand existing code FIRST — read, grep 3+ patterns, run graph trace before ANY modification
+**MANDATORY IMPORTANT MUST ATTENTION** understand existing code FIRST — read, grep 3+ patterns before ANY modification (graph trace is optional advice)
 **MANDATORY IMPORTANT MUST ATTENTION** follow formatters, conventions, and path-scoped style rules selected by project config or references; never assume blank lines encode dependencies
 **MANDATORY IMPORTANT MUST ATTENTION** place logic with the owner selected by project config, references, accepted decisions, and existing code; do not assume a fixed layer hierarchy
 **MANDATORY IMPORTANT MUST ATTENTION** ensure zero broken builds — code must compile with no syntax errors

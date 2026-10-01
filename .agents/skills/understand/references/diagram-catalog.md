@@ -57,7 +57,7 @@ flowchart TD
 
 - **Purpose:** the nouns and their relationships — what data the feature owns and how it connects.
 - **Derivation source:** an existing spec §5 `erDiagram` (**lift it verbatim** — cheapest correct source) → entity/model class fields read from source → migration or schema files.
-- **Labelling:** match the repo standard exactly (`spec/references/author.md:744-760`, `domain-analysis/SKILL.md:708-720`): **tech-agnostic types only** — `string`, `number`, `boolean`, `date`, `list`, `map`. Mark `PK` / `FK`. Cardinality carries a quoted label. Cross-service references are ID-only, annotated as such.
+- **Labelling:** match the repo standard exactly (`spec/references/author.md` → "Domain Model ERD" ERD rules, `domain-analysis/SKILL.md` → "Step 6: Generate ERD"): **tech-agnostic types only** — `string`, `number`, `boolean`, `date`, `list`, `map`. Mark `PK` / `FK`. Cardinality carries a quoted label. Cross-service references are ID-only, annotated as such.
 - **Skeleton:**
 
 ```mermaid
@@ -201,7 +201,7 @@ flowchart TD
 
 Walk it top-down per diagram. Stop at the first rung that yields verified nodes.
 
-1. **Graph trace** — `python .claude/scripts/code_graph trace <file> --direction both --json` (Windows: `py -3`; macOS/Linux: `python3`). Highest confidence; edges are traced.
+1. **Graph trace (optional, when available)** — `python .claude/scripts/code_graph trace <file> --direction both --json` (Windows: `py -3`; macOS/Linux: `python3`). Edges are traced but the graph can be stale — confirm key edges by reading.
 2. **Grep + read** — find the references, open the files, record what you actually read. Edges from a read call site are traced; edges from a name match alone are **inferred**.
 3. **Spec / plan text** — an existing `erDiagram` or a declared dependency list. Traced, because the artifact asserts it.
 4. **STATE THE BLOCKER.** Emit the diagram with **only the nodes you verified**, and one line beneath naming what you could not derive and why.

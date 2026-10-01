@@ -64,11 +64,11 @@ const DOMAIN_ENTITY_REFERENCE_REFRESH_WORKFLOW_IDS = new Set([
 ]);
 
 // A parent workflow that runs `workflow-review-changes` INLINE delegates the nested review gates
-// to it: that workflow owns the specialist reviewers (notably `integration-test-review`) and the
-// terminal `scan --target=domain-entities` reference refresh. It also owns `docs-update` — but ONLY
+// to it: that workflow owns the specialist reviewers (notably `integration-test --mode=review`) and the
+// terminal `scan --target=domain-entities` reference refresh. It also owns `docs-manager --mode=update` — but ONLY
 // when the nested review is the parent's last docs-mutating step: if a canonical spec step still
-// runs AFTER the nested review, that mutation lands after the nested `docs-update`, so the parent
-// owes its own terminal docs-update (see the positional `docsClosureSatisfied` guard below). The
+// runs AFTER the nested review, that mutation lands after the nested `docs-manager --mode=update`, so the parent
+// owes its own terminal docs-manager --mode=update (see the positional `docsClosureSatisfied` guard below). The
 // gate is NOT dropped for a workflow that runs no nested review: `delegatesNestedReview` is false
 // there and each explicit requirement still applies.
 const NESTED_REVIEW_WORKFLOW_ID = "workflow-review-changes";
@@ -78,10 +78,10 @@ function delegatesNestedReview(sequence) {
 // The domain-entity refresh is anchored on the step it must follow. That anchor is derived from the
 // workflow's own sequence rather than hard-coded, because not every delivery workflow ends its
 // verification with the same step: `workflow-bugfix` runs no standalone `test` step (its regression
-// evidence is the RED/GREEN `integration-test` pair plus `integration-test-verify`). The prose anchor
+// evidence is the RED/GREEN `integration-test` pair plus `integration-test --mode=verify`). The prose anchor
 // skips conditional neighbours, so the injectContext names the last step that ALWAYS runs.
 const DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT_TERMS = [
-  "before /docs-update",
+  "before /docs-manager --mode=update",
   "run /scan --target=domain-entities",
   "when the final diff",
   "final diff",
@@ -93,7 +93,7 @@ const DOMAIN_ENTITY_REFERENCE_REFRESH_CONTEXT_TERMS = [
   "cited skip reason",
 ];
 
-const IMPLEMENTATION_STEPS = new Set(["feature-implement", "fix", "plan-execute"]);
+const IMPLEMENTATION_STEPS = new Set(["feature-implement", "fix", "plan --mode=execute"]);
 const CANONICAL_SPEC_BEFORE_FIRST_PLAN_WORKFLOW_IDS = new Set([
   "workflow-bugfix",
   "workflow-feature",
@@ -133,7 +133,6 @@ const GOAL_CONTRACT_SKILL_IDS = [
   "plan", // creates {plan-dir}/goal.md during plan bootstrap
   "start-workflow", // resolves the active goal before child task creation
   "feature-implement", // reads the goal contract before implementation
-  "plan-execute", // reads the goal during analysis/task extraction
   "feature", // maps success validation to saved criteria
   "fix", // active-goal read before root-cause work (ci/issue/logs/test/ui are --target branches)
 ];
@@ -142,23 +141,35 @@ const GOAL_CONTRACT_SKILL_IDS = [
 const GOAL_CONTRACT_REVIEW_SKILL_IDS = [
   "changes-review",
   "why-review",
-  "plan-review",
   "code-quality-review",
+];
+
+// Review gates that live in a skill's mode reference rather than in a SKILL.md of their own:
+// the same Goal Satisfaction requirement applies (`/plan --mode=review`, `/integration-test --mode=verify`
+// — the verification evidence that feeds the Goal Satisfaction matrix).
+const GOAL_CONTRACT_REVIEW_REFERENCE_PATHS = [
+  ".claude/skills/plan/references/mode-review.md",
+  ".claude/skills/integration-test/references/mode-verify.md",
+];
+
+// Implementation surfaces that live in a skill's mode reference: must resolve + read the active goal
+// before work (`/plan --mode=execute`).
+const GOAL_CONTRACT_ENTRY_REFERENCE_PATHS = [
+  ".claude/skills/plan/references/mode-execute.md",
 ];
 
 // Workflow wrappers + verification/audit surfaces (Phases 05-06). The planned
 // workflow-verification / workflow-quality-audit / workflow-tdd-feature / workflow-test-verify
 // wrappers do not exist as files; their intent maps to: test (verification evidence),
-// workflow-feature (covers TDD/test-first), and integration-test-verify (test
-// verification evidence).
+// workflow-feature (covers TDD/test-first), and `integration-test --mode=verify` (test
+// verification evidence; its body is GOAL_CONTRACT_REVIEW_REFERENCE_PATHS).
 const GOAL_CONTRACT_WORKFLOW_SKILL_IDS = [
   "workflow-feature",
   "workflow-bugfix",
   "workflow-review-changes",
-  "workflow-write-integration-test",
+  "workflow-integration-test",
   "workflow-code-to-spec",
   "test",
-  "integration-test-verify",
 ];
 
 // Required structure of a Goal Contract file (see .claude/templates/goal-contract-template.md).
@@ -213,10 +224,10 @@ const REVIEW_CHANGES_INLINE_SURFACES = [
     ],
   },
   {
-    rel: ".claude/skills/ai-context-refresh/references/claude-md-template.md",
+    rel: ".claude/skills/shared/protocols/workflow-step-advancement.md",
     require: [
       {
-        label: "§3 workflow-review-changes inline-in-main-session exception",
+        label: "workflow-step-advancement: workflow-review-changes inline-in-main-session exception",
         re: /workflow-review-changes[^\n]*inline\s+in\s+the\s+main\s+(?:current\s+)?session/i,
       },
     ],
@@ -271,7 +282,7 @@ const START_WORKFLOW_PREACTION_REQUIREMENTS = [
   },
   {
     label: "conditional completion exception",
-    re: /conditional(?:ly)? skipped task[^.\n]*without invoking(?: its)? `?Skill`? tool/i,
+    re: /conditional(?:ly)? skipped task[^.\n]*without (?:invoking(?: its)? `?Skill`? tool|skill execution)/i,
   },
 ];
 const START_WORKFLOW_PREACTION_FORBIDDEN = [
@@ -495,6 +506,12 @@ export function checkGoalContractFileLifecycle(content) {
   return failures;
 }
 
+// `.claude/skills/<owner>/references/<file>.md` -> `<owner>` (the skill whose SKILL.md ships the mode reference).
+function referenceOwnerSkill(rel) {
+  const match = /^\.claude\/skills\/([^/]+)\/references\//.exec(rel);
+  return match ? match[1] : null;
+}
+
 async function checkGoalContractSkillCoverage(rootDir, failures) {
   const claudeSkillsRoot = path.join(rootDir, ".claude", "skills");
   const targets = [
@@ -502,13 +519,28 @@ async function checkGoalContractSkillCoverage(rootDir, failures) {
     ...GOAL_CONTRACT_REVIEW_SKILL_IDS.map((id) => ({ id, requireSatisfaction: true })),
     ...GOAL_CONTRACT_WORKFLOW_SKILL_IDS.map((id) => ({ id, requireSatisfaction: true })),
   ];
+  for (const rel of GOAL_CONTRACT_REVIEW_REFERENCE_PATHS) {
+    targets.push({ id: rel, requireSatisfaction: true, filePath: path.join(rootDir, ...rel.split("/")), ownerSkill: referenceOwnerSkill(rel) });
+  }
+  for (const rel of GOAL_CONTRACT_ENTRY_REFERENCE_PATHS) {
+    targets.push({ id: rel, requireSatisfaction: false, filePath: path.join(rootDir, ...rel.split("/")), ownerSkill: referenceOwnerSkill(rel) });
+  }
   let checkedCount = 0;
   for (const target of targets) {
-    const skillPath = path.join(claudeSkillsRoot, target.id, "SKILL.md");
-    // Absent skill ⇒ this framework checkout does not ship that skill (skip, do not fail) —
-    // same portability rule as the optional mirror carriers above. In the canonical repo all
-    // targeted skills exist, so removals surface through the normal review/diff path.
-    if (!(await exists(skillPath))) continue;
+    const skillPath = target.filePath ?? path.join(claudeSkillsRoot, target.id, "SKILL.md");
+    if (!(await exists(skillPath))) {
+      // A mode reference whose owner skill ships is part of that skill: its goal-contract lifecycle
+      // cannot be checked when the file is gone, so that is a failure, never a silent skip.
+      if (target.ownerSkill && (await exists(path.join(claudeSkillsRoot, target.ownerSkill, "SKILL.md")))) {
+        failures.push(
+          `Goal-contract violation (${target.id}): the mode reference is missing although its owner skill '${target.ownerSkill}' ships — its goal-contract lifecycle cannot be verified`
+        );
+      }
+      // Absent skill ⇒ this framework checkout does not ship that skill (skip, do not fail) —
+      // same portability rule as the optional mirror carriers above. In the canonical repo all
+      // targeted skills exist, so removals surface through the normal review/diff path.
+      continue;
+    }
     const content = await fs.readFile(skillPath, "utf8");
     failures.push(
       ...checkGoalContractSkillCompliance(target.id, content, {
@@ -555,7 +587,7 @@ function parseStepsFromSkill(content) {
   if (!matchedLine) return [];
 
   // Variant-aware wrappers often explain the resolver before showing the default sequence, e.g.
-  // "resolve ... (default: /investigate -> /excalidraw-diagram -> /workflow-end)".  Extract the
+  // "resolve ... (default: /investigate -> /web-research -> /workflow-end)".  Extract the
   // parenthesized/default list before splitting arrows so prose and trailing punctuation cannot
   // become synthetic step IDs.  Plain legacy lines continue through unchanged.
   const defaultList = matchedLine.match(/\bdefault\s*:\s*([^)]*)\)?\s*\.?\s*$/i)?.[1];
@@ -628,8 +660,11 @@ function findFirstIndex(sequence, predicate) {
   return -1;
 }
 
+// `spec [mode=discovery|clarify|index]` read specs, gate decisions or derive aids; they never author or
+// sync the canonical artifact, so they cannot stand in for the canonical spec step.
+const NON_CANONICAL_SPEC_MODE = /\[mode=(?:discovery|clarify|index)\]/;
 function isCanonicalSpecStep(step) {
-  return step === "spec" || step.startsWith("spec ");
+  return (step === "spec" || step.startsWith("spec ")) && !NON_CANONICAL_SPEC_MODE.test(step);
 }
 
 export function checkWorkflowDebuggerTracePolicy(workflowId, workflow) {
@@ -649,15 +684,23 @@ export function checkWorkflowDebuggerTracePolicy(workflowId, workflow) {
 // The nested review's `--tests={prove|defer}` mode flag (SYNC:verify-last-order) selects when its test
 // run happens, not which step it is: the policy identifies it by skill name.
 const REVIEW_TESTS_MODE_FLAG = /^workflow-review-changes\s+--tests=(?:prove|defer)$/;
+
+// `integration-test` and `e2e-test` serve several roles through their `--mode` flag; the policy identifies
+// the role (review / verify), not the flag set that accompanies it (`--report-only`, `--fix-loop`, ...).
+const MODE_ROLE_STEP = /^(integration-test|e2e-test)\s+(?:\S+\s+)*--mode=(review|verify)(?:\s|$)/;
+function modeRoleStep(step) {
+  const match = MODE_ROLE_STEP.exec(step);
+  return match ? `${match[1]} --mode=${match[2]}` : step;
+}
 const REVIEW_DEFERS_TESTS_FLAG = /^workflow-review-changes\s+--tests=defer$/;
 
 function ensureWorkflowPolicy(workflowId, workflow, rawPolicySequence, failures) {
-  const sequence = rawPolicySequence.map((step) => (REVIEW_TESTS_MODE_FLAG.test(step) ? NESTED_REVIEW_WORKFLOW_ID : step));
+  const sequence = rawPolicySequence.map((step) => modeRoleStep(REVIEW_TESTS_MODE_FLAG.test(step) ? NESTED_REVIEW_WORKFLOW_ID : step));
   const nestedReview = delegatesNestedReview(sequence);
   const nestedReviewIndex = sequence.indexOf(NESTED_REVIEW_WORKFLOW_ID);
   const integrationIndex = sequence.indexOf("integration-test");
-  const integrationVerifyIndex = sequence.indexOf("integration-test-verify");
-  // A delegated review stands in for `integration-test-review` ONLY when it runs AFTER the
+  const integrationVerifyIndex = sequence.indexOf("integration-test --mode=verify");
+  // A delegated review stands in for `integration-test --mode=review` ONLY when it runs AFTER the
   // integration test it is meant to review. A position-blind `includes` let `workflow-spec-sync`
   // pass the gate with a nested review that executes BEFORE the integration test — the review
   // reviewed the wrong state. Mirror the positional `docsClosure` guard below.
@@ -666,31 +709,31 @@ function ensureWorkflowPolicy(workflowId, workflow, rawPolicySequence, failures)
   const integrationGateSatisfied =
     hasOrderedSubsequence(sequence, [
       "integration-test",
-      "integration-test-review",
-      "integration-test-verify",
+      "integration-test --mode=review",
+      "integration-test --mode=verify",
     ]) ||
     (nestedReview && nestedReviewAfterIntegration &&
-      hasOrderedSubsequence(sequence, ["integration-test", "integration-test-verify"]));
+      hasOrderedSubsequence(sequence, ["integration-test", "integration-test --mode=verify"]));
   if (!integrationGateSatisfied) {
     failures.push(
-      `Workflow policy violation (${workflowId}): missing ordered integration gate integration-test -> integration-test-review -> integration-test-verify (a nested workflow-review-changes occurrence satisfies integration-test-review)`
+      `Workflow policy violation (${workflowId}): missing ordered integration gate integration-test -> integration-test --mode=review -> integration-test --mode=verify (a nested workflow-review-changes occurrence satisfies integration-test --mode=review)`
     );
   }
 
   // Delegated docs closure is only valid when the nested review observes the SETTLED docs state: if
   // the parent still runs a canonical spec step AFTER the nested review, that mutation lands after
-  // the nested `docs-update`, so the parent owes its own terminal docs-update. Without this
+  // the nested `docs-manager --mode=update`, so the parent owes its own terminal docs-manager --mode=update. Without this
   // positional guard a workflow could place `workflow-review-changes` first, mutate specs
   // afterwards, and still pass the closure check with no docs sync over its own changes.
   const specStepsAfterNestedReview =
     nestedReviewIndex >= 0 &&
     sequence.slice(nestedReviewIndex + 1).some((step) => isCanonicalSpecStep(step));
   const docsClosureSatisfied =
-    hasOrderedSubsequence(sequence, ["docs-update", "workflow-end"]) ||
+    hasOrderedSubsequence(sequence, ["docs-manager --mode=update", "workflow-end"]) ||
     (nestedReview && sequence.includes("workflow-end") && !specStepsAfterNestedReview);
   if (!docsClosureSatisfied) {
     failures.push(
-      `Workflow policy violation (${workflowId}): missing ordered closure docs-update -> workflow-end (a nested workflow-review-changes occurrence satisfies docs-update only when no canonical spec step runs after it)`
+      `Workflow policy violation (${workflowId}): missing ordered closure docs-manager --mode=update -> workflow-end (a nested workflow-review-changes occurrence satisfies docs-manager --mode=update only when no canonical spec step runs after it)`
     );
   }
 
@@ -704,10 +747,10 @@ function ensureWorkflowPolicy(workflowId, workflow, rawPolicySequence, failures)
   // own fixes unverified, so that shape fails below.
   const nestedReviewDefersTests = rawPolicySequence.some((step) => REVIEW_DEFERS_TESTS_FLAG.test(step));
   if (nestedReviewDefersTests) {
-    const verifySteps = new Set(["integration-test-verify", "test", "e2e-test-verify"]);
+    const verifySteps = new Set(["integration-test --mode=verify", "test", "e2e-test --mode=verify"]);
     if (!sequence.slice(nestedReviewIndex + 1).some((step) => verifySteps.has(step))) {
       failures.push(
-        `Workflow policy violation (${workflowId}): workflow-review-changes --tests=defer needs a verify step (integration-test-verify|test|e2e-test-verify) after it — its fixes would otherwise never run under tests`
+        `Workflow policy violation (${workflowId}): workflow-review-changes --tests=defer needs a verify step (integration-test --mode=verify|test|e2e-test --mode=verify) after it — its fixes would otherwise never run under tests`
       );
     }
   }
@@ -719,14 +762,14 @@ function ensureWorkflowPolicy(workflowId, workflow, rawPolicySequence, failures)
     const scanCount = sequence.filter((step) => step === domainEntityScanStep).length;
     const scanIndex = sequence.indexOf(domainEntityScanStep);
     const hasTerminalDomainEntityRefresh =
-      scanCount === 1 && scanIndex > 0 && sequence[scanIndex + 1] === "docs-update";
+      scanCount === 1 && scanIndex > 0 && sequence[scanIndex + 1] === "docs-manager --mode=update";
     if (scanCount !== 1) {
       failures.push(
-        `Workflow policy violation (${workflowId}): requires exactly one terminal domain-entity reference refresh <verification step> -> scan --target=domain-entities -> docs-update (found ${scanCount})`
+        `Workflow policy violation (${workflowId}): requires exactly one terminal domain-entity reference refresh <verification step> -> scan --target=domain-entities -> docs-manager --mode=update (found ${scanCount})`
       );
     } else if (!hasTerminalDomainEntityRefresh) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing terminal domain-entity reference refresh <verification step> -> scan --target=domain-entities -> docs-update`
+        `Workflow policy violation (${workflowId}): missing terminal domain-entity reference refresh <verification step> -> scan --target=domain-entities -> docs-manager --mode=update`
       );
     }
 
@@ -759,9 +802,9 @@ function ensureWorkflowPolicy(workflowId, workflow, rawPolicySequence, failures)
   }
 
   if (TDD_WORKFLOW_IDS.has(workflowId)) {
-    if (!hasOrderedSubsequence(sequence, ["spec [mode=tests]", "artifact-review --type=spec-tests"])) {
+    if (!hasOrderedSubsequence(sequence, ["spec [mode=tests]", "pbi --mode=review --type=spec-tests"])) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing ordered spec [mode=tests] -> artifact-review --type=spec-tests`
+        `Workflow policy violation (${workflowId}): missing ordered spec [mode=tests] -> pbi --mode=review --type=spec-tests`
       );
     }
     if (!sequence.includes("spec [mode=sync]")) {
@@ -781,7 +824,7 @@ function ensureWorkflowPolicy(workflowId, workflow, rawPolicySequence, failures)
     const hasImplementationStep = sequence.some((step) => IMPLEMENTATION_STEPS.has(step));
     if (!hasImplementationStep) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing implementation step (feature-implement|fix|plan-execute)`
+        `Workflow policy violation (${workflowId}): missing implementation step (feature-implement|fix|plan --mode=execute)`
       );
     }
   }
@@ -832,18 +875,18 @@ function ensureSddWorkflowPolicy(workflowId, sequence, failures) {
     hasOrderedSubsequence(implementationTail, [
       implementationStep,
       "integration-test",
-      "integration-test-review",
-      "integration-test-verify",
+      "integration-test --mode=review",
+      "integration-test --mode=verify",
     ]) ||
     (nestedReview &&
       hasOrderedSubsequence(implementationTail, [
         implementationStep,
         "integration-test",
-        "integration-test-verify",
+        "integration-test --mode=verify",
       ]));
   if (!implementationVerified) {
     failures.push(
-      `Workflow policy violation (${workflowId}): implementation must be verified by integration-test -> integration-test-review -> integration-test-verify after '${implementationStep}' (a nested workflow-review-changes occurrence satisfies integration-test-review)`
+      `Workflow policy violation (${workflowId}): implementation must be verified by integration-test -> integration-test --mode=review -> integration-test --mode=verify after '${implementationStep}' (a nested workflow-review-changes occurrence satisfies integration-test --mode=review)`
     );
   }
 
@@ -851,13 +894,13 @@ function ensureSddWorkflowPolicy(workflowId, sequence, failures) {
     hasOrderedSubsequence(implementationTail, [
       implementationStep,
       "spec [mode=sync]",
-      "docs-update",
+      "docs-manager --mode=update",
     ]) ||
     (nestedReview &&
       hasOrderedSubsequence(implementationTail, [implementationStep, "spec [mode=sync]"]));
   if (!specSyncBeforeDocs) {
     failures.push(
-      `Workflow policy violation (${workflowId}): implementation must be followed by spec [mode=sync] before docs-update (a nested workflow-review-changes occurrence satisfies docs-update)`
+      `Workflow policy violation (${workflowId}): implementation must be followed by spec [mode=sync] before docs-manager --mode=update (a nested workflow-review-changes occurrence satisfies docs-manager --mode=update)`
     );
   }
 }
@@ -1298,6 +1341,7 @@ export {
   WORKFLOW_SKILL_NAME_OVERRIDES,
   getWorkflowSkillName,
   hasOrderedSubsequence,
+  isCanonicalSpecStep,
   ensureWorkflowPolicy,
   normalizeSequence,
   parseStepsFromSkill,
@@ -1313,6 +1357,8 @@ export {
   GOAL_CONTRACT_MARKER,
   GOAL_CONTRACT_SKILL_IDS,
   GOAL_CONTRACT_REVIEW_SKILL_IDS,
+  GOAL_CONTRACT_REVIEW_REFERENCE_PATHS,
+  GOAL_CONTRACT_ENTRY_REFERENCE_PATHS,
   GOAL_CONTRACT_WORKFLOW_SKILL_IDS,
   GOAL_CONTRACT_FILE_REQUIRED_SECTIONS,
 };

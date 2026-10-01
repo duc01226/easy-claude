@@ -40,9 +40,6 @@ const {
     buildOfferMessage
 } = require('./lib/agent-files-state.cjs');
 
-// Plane 3 accelerator — NON-LOAD-BEARING. See the deletability contract in the lib header.
-const { buildOverlayContext } = require('./lib/skill-protocol-overlay.cjs');
-
 const {
     INIT_DISMISSED_PATH: DISMISS_FLAG,
     SCAN_STALE_DISMISSED_PATH: SCAN_DISMISS_FLAG,
@@ -95,7 +92,7 @@ const ALLOWLIST_PATTERNS = [
     /\/init-project/i, // Alias phrase for the unified bootstrap route
     /\/project-config/i, // The skill that populates config
     /\/scan[-\w]*/i, // The /scan host (incl. /scan --target=<key>) + /scan-* orchestrators that populate reference docs
-    /\/graph-build/i, // The skill that builds the knowledge graph
+    /\/graph-code/i, // The skill that builds and queries the knowledge graph
     /\/ai-context-refresh/i, // Generates root AI context (fixes missing-agent-file state)
     /\/sync-codex/i, // Generates AGENTS.md mirror (fixes missing-agent-file state)
     /\/init/i, // Any init-related command
@@ -556,54 +553,26 @@ function handleGraphGate(userPrompt, { config, sessionId } = {}) {
     }
 
     const instructions = hasPython
-        ? ['  /graph-build          — Build the knowledge graph before structural investigation']
+        ? ['  /graph-code --mode=build — Build the code graph (optional)']
         : [
-              'Python 3.10+ required; `/graph-build` installs the rest.',
-              '  /graph-build          — Build the knowledge graph'
+              'Python 3.10+ required; `/graph-code --mode=build` installs the rest.',
+              '  /graph-code --mode=build — Build the code graph (optional)'
           ];
 
-    // WARN — graph not built. Allow the model to continue or auto-route.
+    // Advisory only — the graph is an optional hint source; nothing depends on it.
     emitPromptContext(
         [
             '',
-            '[project-context] Knowledge graph not built.',
+            '[project-context] Knowledge graph not built (optional — nothing requires it).',
             '',
-            'The code knowledge graph (.code-graph/graph.db) does not exist.',
-            'Graph enables: frontend↔backend tracing, blast radius analysis,',
-            'cross-service flow detection, and structural code intelligence.',
-            '',
-            'Auto-route before graph-dependent investigation:',
+            'Optional: the code graph (.code-graph/graph.db) can add callers, dependents and',
+            'impacted tests when grep alone may not reveal a high-risk blast radius.',
+            'It is a hint, not proof, and can be stale or incomplete. Skip it for low-risk work.',
             ...instructions,
             ''
         ].join('\n')
     );
     markGraphNoteShown(sessionId);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// PROJECT PROTOCOL OVERLAY GATE (Plane 3 accelerator — DELETABLE)
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Inject the project's protocol overlays for a user-typed `/skill-name`.
- *
- * NON-LOAD-BEARING: Planes 1 (CLAUDE.md CK:PROJECT-PROTOCOLS) and 2 (the SYNC block in every
- * SKILL.md) deliver the same rules on both hosts without any hook. Deleting this function, its
- * single call site, and lib/skill-protocol-overlay.cjs removes the whole plane cleanly.
- *
- * Emits nothing and NEVER throws: no leading `/name`, no registry, or no match resolves to a
- * silent no-op. An invalid required config/path emits a fixed diagnostic without reading files,
- * so the accelerator remains fail-soft while explicit bad declarations stay visible.
- */
-function handleProtocolOverlayGate(userPrompt) {
-    try {
-        const configStatus = getProjectConfigStatus();
-        const projectConfig = configStatus.valid ? configStatus.config : null;
-        const text = buildOverlayContext(userPrompt, PROJECT_DIR, projectConfig);
-        if (text) emitPromptContext(text);
-    } catch {
-        // Accelerator only — never block.
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -662,10 +631,6 @@ function main() {
         // The remaining setup gates apply to content-bearing projects only.
         if (!hasProjectContent()) process.exit(0);
 
-        // Plane 3 accelerator: a user-typed /skill-name gets its project protocol overlays
-        // injected only after required project configuration has been verified.
-        handleProtocolOverlayGate(userPrompt);
-
         // Schema-valid config → check agent-files, staleness and optional graph gates.
         // Agent-files first: CLAUDE.md/AGENTS.md are the most foundational artifacts and
         // /ai-context-refresh depends on the (now-populated) config.
@@ -710,9 +675,7 @@ module.exports = {
     getGraphNoteMarkerPath,
     isGraphNoteShown,
     // Agent-files gate
-    handleAgentFilesGate,
-    // Project protocol overlay gate (Plane 3 accelerator — deletable)
-    handleProtocolOverlayGate
+    handleAgentFilesGate
 };
 
 // Entry-point check covers the Codex `node -e … require(hook)` launcher too (require.main is undefined there).

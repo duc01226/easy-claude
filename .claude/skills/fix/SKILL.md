@@ -1,7 +1,7 @@
 ---
 name: fix
 version: 1.4.2
-description: '[Implementation] Use when a workflow step or the user asks for an issue to be analyzed and fixed. Flag: --target={ci|issue|logs|review|test|types|ui} scopes the fix; review fixes validated review findings.'
+description: '[Implementation] Use when a workflow step or the user asks for an issue to be analyzed and fixed. --target={ci|issue|logs|review|test|types|ui} scopes it.'
 disable-model-invocation: false
 ---
 
@@ -21,25 +21,25 @@ disable-model-invocation: false
 **Summary:**
 
 - **Purpose:** Diagnose end-to-start, fix the lowest invariant-owning layer, update regression coverage and spec/tests; NEVER patch symptoms.
-- **No-flag spine:** Root-Cause Prerequisite Gate → researcher investigation → `debug-investigate` trace (`file:line`, hypothesis matrix, forward proof) → Confidence & Evidence → impact plan → 🛑 Validate-Before-Fix → owning-layer implementation → standalone test update (`/integration-test`, or justified `/test` fallback) → conditional `/spec` check → `/changes-review` for production code → `/why-review` → verify once (`/integration-test-verify` or `/test` with the mutation check; fix and re-run to green; re-review only if that edited anything, `SYNC:verify-last-order`); ALWAYS follow this order.
-- **Routing:** `--target={ci|issue|logs|review|test|types|ui}` selects a self-contained inline branch with its own diagnosis; no flag runs the spine. Branches skip standalone §1/§2 duplication, but every direct call passes the Root-Cause Prerequisite Gate.
-- **Modes/gates:** HARD is default; fast mode requires ALL 5 trivial-bug conditions. Root-cause proof, `Confidence: X%` (`<60%` STOP), and Validate-Before-Fix are hard gates; approval may skip only inside a workflow, while standalone calls own test/spec/review phases; NEVER bypass a gate.
+- **No-flag spine:** Root-Cause Prerequisite Gate → researcher investigation → `investigate --mode=debug` trace (`file:line`, hypothesis matrix, forward proof) → Confidence & Evidence → impact plan → 🛑 Validate-Before-Fix → owning-layer implementation → standalone test update (`/integration-test`, or justified `/test` fallback) → conditional `/spec` check → `/changes-review` for production code → `/why-review` → verify once (`/integration-test --mode=verify` or `/test` with the mutation check; fix and re-run to green; re-review only if that edited anything, `SYNC:verify-last-order`); ALWAYS follow this order.
+- **Routing:** `--target={ci|issue|logs|review|test|types|ui}` selects a self-contained branch with its own diagnosis; no flag runs the spine. Branches skip standalone §1/§2 duplication, but every direct call passes the Root-Cause Prerequisite Gate.
+- **Modes/gates:** HARD is default; fast mode requires ALL 5 trivial-bug conditions. Root-cause proof, `Confidence: X%` (`<60%` STOP), and Validate-Before-Fix are hard gates; approval may skip only when `nested=true` (a `[Workflow]` row that merely exists in `TaskList` does not count), while standalone calls own test/spec/review phases; NEVER bypass a gate.
 
 **Workflow:**
 
-1. **Investigation** — Use researcher subagents to explore the issue in parallel; use `/investigate` inline for graph-backed tracing.
+1. **Investigation** — Use researcher subagents to explore the issue in parallel; use `/investigate` inline for tracing (an optional graph hint may help).
 2. **Diagnose** — Trace root cause through code paths with evidence
 3. **Plan** — Create fix plan with impact analysis
 4. **Fix** — Implement the fix with its regression test; tests run once in the verify step, not here (`SYNC:verify-last-order`)
-5. **Standalone test update** — After the fix, every standalone call invokes `/integration-test` to add or update regression coverage; use `/test` only for a justified unit-test seam. Inside a workflow, the parent sequence owns these test phases.
+5. **Standalone test update** — After the fix, every standalone call invokes `/integration-test` to add or update regression coverage; use `/test` only for a justified unit-test seam. When `nested=true` (a workflow step with its own linked phase tasks), the parent sequence owns these test phases.
 
 **Key Rules:**
 
-- **Root-Cause Prerequisite Gate (BLOCKING):** no code edit until `/debug-investigate` traced THIS problem in THIS session — evidence, not recall
+- **Root-Cause Prerequisite Gate (BLOCKING):** no code edit until `/investigate --mode=debug` traced THIS problem in THIS session — evidence, not recall
 - Debug Mindset: every claim needs `file:line` evidence
 - Use subagents for parallel investigation of multiple hypotheses
 - Always create a plan before implementing complex fixes
-- **Target flag** (see [Target Routing](#target-routing---target)): `--target={ci|issue|logs|review|test|types|ui}` selects a self-contained inline branch that scopes the fix to that domain. No flag = full diagnose→fix spine below.
+- **Target flag** (see [Target Routing](#target-routing---target)): `--target={ci|issue|logs|review|test|types|ui}` selects a self-contained branch that scopes the fix to that domain. No flag = full diagnose→fix spine below.
 
 ## First Principle — Easy to Change · Easy to Scale · Easy to Maintain
 
@@ -65,20 +65,20 @@ disable-model-invocation: false
 
 ## 🛑 Root-Cause Prerequisite Gate (Direct `/fix` Invocation) — BLOCKING
 
-> **[BLOCKING]** Direct `/fix` MUST NOT edit code until `/debug-investigate` produces THIS problem's root cause in THIS session. The gate runs before the Standalone Mode Minimum Contract, any `--target=` branch, and 🛑 Validate-Before-Fix. — why: an untraced first edit patches the symptom site and ships the disease.
+> **[BLOCKING]** Direct `/fix` MUST NOT edit code until `/investigate --mode=debug` produces THIS problem's root cause in THIS session. The gate runs before the Standalone Mode Minimum Contract, any `--target=` branch, and 🛑 Validate-Before-Fix. — why: an untraced first edit patches the symptom site and ships the disease.
 >
 > **1. Trigger — ALL direct invocations.** User-typed command or model-selected skill; every `--target={ci|issue|logs|review|test|types|ui}` branch and no-flag spine. Branches skip contract §1/§2 duplication but pass this gate. — why: a branch `debugger`/`tester` step is not an end-to-start trace.
 >
-> **2. Check — evidence, never memory.** Before the first code edit, accept only same-session, same-problem `/debug-investigate` evidence:
+> **2. Check — evidence, never memory.** Before the first code edit, accept only same-session, same-problem `/investigate --mode=debug` evidence:
 >
-> - a `TaskList` row for `debug-investigate` (or its phase tasks) covering this symptom, **or**
+> - a `TaskList` row for `investigate --mode=debug` (or its phase tasks) covering this symptom, **or**
 > - a written investigation report naming this symptom (e.g. `tmp/analysis/{issue-name}.analysis.md`, `tmp/reports/debug-investigate-*.md`) containing the end-to-start trace.
 >
 > No evidence → NOT run. Recalling that the cause "is known" is not proof. — why: context compaction preserves belief, not findings.
 >
-> **3. Act.** Not run → run `/debug-investigate` FIRST, then resume `/fix` at planning with its report. This subsumes the spine's step-1 `debugger`. — why: repeating an existing diagnosis double-runs the spine.
+> **3. Act.** Not run → run `/investigate --mode=debug` FIRST, then resume `/fix` at planning with its report. This subsumes the spine's step-1 `debugger`. — why: repeating an existing diagnosis double-runs the spine.
 >
-> **4. Same-problem test.** A prior `/debug-investigate` for a different symptom does NOT satisfy this gate. If `<issues>` is not covered, the gate fires. — why: one investigation per session would license unlimited untraced fixes.
+> **4. Same-problem test.** A prior `/investigate --mode=debug` for a different symptom does NOT satisfy this gate. If `<issues>` is not covered, the gate fires. — why: one investigation per session would license unlimited untraced fixes.
 >
 > **5. Skip conditions — explicit, narrow, and recorded.** Record which one applies with its proof; never skip silently:
 >
@@ -86,23 +86,23 @@ disable-model-invocation: false
 > | -------------------------------------------------------------------------------------------------------------------------- | ----- |
 > | Same-problem evidence per §2 exists → cite the `file:line` / task-row proof and proceed                                     | YES   |
 > | Fast-mode-trivial bug (**ALL 5** `Default Mode Policy` opt-out conditions hold) → MAY inline the end-to-start trace instead of spawning the skill; the trace itself is still REQUIRED | PARTIAL |
-> | Active parent workflow row whose sequence **already executed** `debug-investigate` for this problem → cite the completed step | YES   |
+> | Active parent workflow row whose sequence **already executed** `investigate --mode=debug` for this problem → cite the completed step | YES   |
 > | `--target=review` over VALIDATED review findings, each carrying `file:line` evidence and a named owning layer (validated by `/why-review --validate-findings` or by its reviewer's own validation step) → cite the report | YES   |
-> | Active parent workflow row **alone**, with no completed `debug-investigate` step for this problem                            | **NO** |
+> | Active parent workflow row **alone**, with no completed `investigate --mode=debug` step for this problem                            | **NO** |
 >
-> **The last row is the hole this gate closes.** A parent workflow row may exist while its `debug-investigate` step never ran, covered another symptom, or was skipped. This gate adds completed same-problem proof; it never relaxes the contract. — why: a container task is not evidence that its work happened.
+> **The last row is the hole this gate closes.** A parent workflow row may exist while its `investigate --mode=debug` step never ran, covered another symptom, or was skipped. This gate adds completed same-problem proof; it never relaxes the contract. — why: a container task is not evidence that its work happened.
 >
 > **BLOCKED until:** the §2 check is stated with its evidence (or its explicit skip row + proof) AND a root-cause trace for this problem exists. **NEVER** proceed to plan or edit on "the cause is obvious" alone.
 
 ## Standalone Mode Minimum Contract (Non-Workflow Only)
 
-> **Workflow context:** `/fix` normally runs inside `workflow-bugfix`, whose sequence (`investigate → debug-investigate → spec [mode=amend] → plan → … → fix → … → spec [mode=sync] → workflow-review-changes`) supplies diagnosis, spec sync, and review. Standalone `/fix` diagnoses and patches but does not guarantee root-cause ownership, alignment with the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides), or review; without this contract it risks symptom-patching + spec drift.
+> **Workflow context:** `/fix` normally runs inside `workflow-bugfix`, whose sequence (`investigate --mode=debug → spec [mode=amend] → plan → … → fix → … → spec [mode=sync] → workflow-review-changes`) supplies diagnosis, spec sync, and review. Standalone `/fix` diagnoses and patches but does not guarantee root-cause ownership, alignment with the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides), or review; without this contract it risks symptom-patching + spec drift.
 >
 > **Scope:** applies with no parent workflow. No-flag runs the full diagnose→fix path; `--target={ci|issue|logs|review|test|types|ui}` branches remain self-contained for diagnosis, skip §1/§2 duplication, and inherit mandatory §3 test-update, §4 spec-correctness, the production-code `/changes-review` gate, and §5 `/why-review` gates. A branch's own `tester` / `code-reviewer` sub-agent step does not replace `/changes-review`.
 >
-> **Detect mode:** call `TaskList` first (per Nested Task Expansion). An active parent workflow row — or a `--target=review` call from a reviewer's fix phase (`/changes-review` Phase 7) — skips this section because the caller owns these steps, but the Root-Cause Prerequisite Gate still requires a completed, same-problem `debug-investigate` (or, for `--target=review`, its validated-review-finding skip row); presence alone is insufficient. No parent row → standalone: before the first code edit, MUST ATTENTION create this ordered minimum spine as `TaskCreate` todos:
+> **Detect mode:** call `TaskList` first (per Nested Task Expansion). A run that is a step of a `[Workflow]` row (THIS run's own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation` — a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count) — or a `--target=review` call from a reviewer's fix phase (`/changes-review` Phase 7) — skips this section because the caller owns these steps, but the Root-Cause Prerequisite Gate still requires a completed, same-problem `investigate --mode=debug` (or, for `--target=review`, its validated-review-finding skip row); presence alone is insufficient. Not nested (no linked parent row, or only a stale/unrelated `[Workflow]` row) → standalone: before the first code edit, MUST ATTENTION create this ordered minimum spine as `TaskCreate` todos:
 >
-> 1. **`/debug-investigate`** — root cause FIRST; §2 evidence decides whether it already ran. Trace symptom end-to-start to the invariant-owning layer with `file:line`, hypothesis matrix, and forward proof. This is standalone diagnosis and subsumes the spine's step-1 `debugger`; resume at planning with its report. Fast-mode-trivial bugs may inline the trace, but the trace remains required.
+> 1. **`/investigate --mode=debug`** — root cause FIRST; §2 evidence decides whether it already ran. Trace symptom end-to-start to the invariant-owning layer with `file:line`, hypothesis matrix, and forward proof. This is standalone diagnosis and subsumes the spine's step-1 `debugger`; resume at planning with its report. Fast-mode-trivial bugs may inline the trace, but the trace remains required.
 > 2. **Fix spine** — this skill's `plan → 🛑 approve → implement` body below; Validate-Before-Fix remains unchanged.
 > 3. **`/integration-test` test-update gate** — **MUST ATTENTION — MANDATORY after the fix for every standalone call.** Invoke it first to inspect changed behavior and add/update regression coverage. Use integration coverage across a real process/service boundary or for externally observable behavior; use `/test` only for a justified unit seam and record why. An existing suite run does not replace a regression update. Read `integration-test-reference.md` from the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) first.
 > 4. **`/spec` spec-correctness check** — *CONDITIONAL, ensures spec docs aren't left stale.* From the proven root cause, decide which case holds:
@@ -110,9 +110,9 @@ disable-model-invocation: false
 >    - **Spec CORRECT, code failed it** — no §1-§7 amendment. If the bug case is absent from §8, run `/spec [mode=tests]` to add it, then `/spec [mode=sync]`; if an existing TC covers it, record `Spec verified correct, bug case already in §8 — no spec change (code-only defect)` with `file:line`. Never leave the bug case absent from §8.
 >    - **No governing spec** — record `No governing spec — nothing to amend` with `file:line`; if warranted, run `/spec [mode=init]`, then `[mode=tests]` to seed the bug-case regression TC. Decide explicitly; skip only amendment, never the decision.
 > 5. **`/why-review`** — the last REVIEW todo after fix, test-update, spec decision, and `/changes-review`; sign off root-cause ownership, lowest-layer fix, no symptom patch, regression coverage, and justified §4 decision. Trivial non-functional fixes may satisfy it inline/briefly.
-> 6. **Verify once** (`SYNC:verify-last-order`) — the final todo, after every review: `/integration-test-verify` (or a justified `/test`) runs the regression tests once, then the mutation check (revert the fix → the regression test must fail = the RED proof); fix and re-run to green; re-run the reviews only if that edited anything. Reporting "done" is blocked until 5 passes and 6 is green on the final tree.
+> 6. **Verify once** (`SYNC:verify-last-order`) — the final todo, after every review: `/integration-test --mode=verify` (or a justified `/test`) runs the regression tests once, then the mutation check (revert the fix → the regression test must fail = the RED proof); fix and re-run to green; re-run the reviews only if that edited anything. Reporting "done" is blocked until 5 passes and 6 is green on the final tree.
 >
-> **Production-code fixes:** add `/changes-review` before §5; the shared Standalone Review Gate owns placement and inside-workflow skip. **Final standalone order:** `debug-investigate → [fix spine] → /integration-test` (or justified `/test`) → spec-check → changes-review (production code) → `/why-review` → verify once (`/integration-test-verify` or `/test` + mutation check = the RED proof).
+> **Production-code fixes:** add `/changes-review` before §5; the shared Standalone Review Gate owns placement and inside-workflow skip. **Final standalone order:** `investigate --mode=debug → [fix spine] → /integration-test` (or justified `/test`) → spec-check → changes-review (production code) → `/why-review` → verify once (`/integration-test --mode=verify` or `/test` + mutation check = the RED proof).
 
 ## Debug Mindset (NON-NEGOTIABLE)
 
@@ -133,56 +133,29 @@ disable-model-invocation: false
 
 ## Target Routing (`--target=`)
 
-`/fix` is an intelligent router. With no flag it runs the full diagnose→fix spine below. Pass `--target=` to scope the run to a self-contained inline branch:
+`/fix` is an intelligent router. With no flag it runs the full diagnose→fix spine below. Pass `--target=` to scope the run to a self-contained branch:
 
 | `--target` | Behavior                                                                  |
 | ---------- | ------------------------------------------------------------------------- |
-| `types`    | **Inline branch (below)** — TypeScript / type-error resolution.           |
-| `ci`       | **Inline branch (below)** — CI / pipeline failure triage.                 |
+| `types`    | **Branch in `references/target-types.md`** — TypeScript / type-error resolution.           |
+| `ci`       | **Branch in `references/target-ci.md`** — CI / pipeline failure triage.                 |
 | `issue`    | **Inline branch (below)** — tracked issue / ticket resolution.            |
-| `logs`     | **Inline branch (below)** — log / stack-trace-driven debugging.           |
-| `test`     | **Inline branch (below)** — failing-test repair.                          |
-| `ui`       | **Inline branch (below)** — UI / visual-defect fixes.                     |
+| `logs`     | **Branch in `references/target-logs.md`** — log / stack-trace-driven debugging.           |
+| `test`     | **Branch in `references/target-test.md`** — failing-test repair.                          |
+| `ui`       | **Branch in `references/target-ui.md`** — UI / visual-defect fixes.                     |
 | `review`   | **Inline branch (below)** — fix VALIDATED review findings from review report(s). |
 
-No `--target` (or an unrecognized value) → run the full Workflow spine below; infer the right specialization from `<issues>`.
+No `--target` (or an unrecognized value) → run the full Workflow spine below; infer the right specialization from `<issues>`. When that inference selects a branch (`types|ci|logs|test|ui`), read its `references/target-<name>.md` in full FIRST (BLOCKING), exactly as an explicit `--target` does.
 
-> **Target routing:** `--target=ci|issue|logs|review|test|ui` are inline `/fix` branches; invoke them through `/fix --target=...`, not separate skill names.
+> **Target routing:** `--target=ci|issue|logs|review|test|ui` are `/fix` branches; invoke them through `/fix --target=...`, not separate skill names. `issue` and `review` are below in this file; `types`, `ci`, `logs`, `test` and `ui` live in `references/target-<name>.md`, read in full FIRST (BLOCKING) when that target runs — an invocation of another target never reads them.
 
 ### `--target=types` — TypeScript / type-error branch
 
-Run `tsc --noEmit` (or `nx build` / `bun run typecheck` / `npx tsc`) to gather all type errors, then:
-
-1. **Collect** — Capture every type error with `file:line`.
-2. **Classify** — Group by cause: missing types, wrong signatures, import/export issues.
-3. **Fix at root** — Give each value its real, specific type (or `unknown` + a narrowing guard). Do NOT use `any` to silence the checker — `any` ships the underlying type defect. Fix the root cause (wrong interface, missing export), not the symptom site. — why: `any` silences the checker and lets the type defect ship.
-4. **Repeat** until `tsc --noEmit` is clean — zero type errors.
-5. **🛑 Validate Before Fix:** present errors + root cause via `AskUserQuestion`, get approval before code changes (skip if inside a workflow).
-
-The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+Read `references/target-types.md` in full FIRST (BLOCKING) — it holds this branch's goal, rules and workflow. The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to it unchanged.
 
 ### `--target=ci` — CI / pipeline-failure branch
 
-**Goal:** Analyze CI/CD pipeline logs to identify and fix build/test failures in the configured CI provider/tooling.
-
-**Key Rules:**
-
-- **Infrastructure context:** read `docs/project-config.json` → `infrastructure.cicd.tool` to identify the CI provider/tooling (e.g. `azure-devops`, `github-actions`, `gitlab-ci`); target that provider's pipeline config files.
-- Focus on CI-specific issues (env vars, Docker, dependencies, build order).
-- Verify the fix does not break local development.
-
-**Workflow:**
-
-1. Use the `debugger` subagent to read the CI logs via the configured CI tool/API (from `docs/project-config.json`), analyze the final failing log/error **backward** to the root cause, and report back. Write findings to `tmp/analysis/{ci-issue}.analysis.md`; re-read before implementing.
-2. **🛑 Present root cause + proposed fix → `AskUserQuestion` → wait for approval.**
-3. Implement the fix from the report.
-4. Use the `tester` subagent to verify; report back.
-5. If tests fail, repeat from step 2.
-6. Report a summary of changes; suggest next steps.
-
-**Notes:** Use the CLI/API for the configured CI provider. If it is GitHub Actions and `gh` is unavailable, instruct the user to install and authorize GitHub CLI first.
-
-The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+Read `references/target-ci.md` in full FIRST (BLOCKING) — it holds this branch's goal, rules and workflow. The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to it unchanged.
 
 ### `--target=issue` — tracked-issue / ticket branch
 
@@ -197,7 +170,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 
 **Workflow:**
 
-1. Activate `debug-investigate` and follow its workflow; this satisfies the Root-Cause Prerequisite Gate—record its report path as §2 evidence.
+1. Activate `investigate --mode=debug` and follow its workflow; this satisfies the Root-Cause Prerequisite Gate—record its report path as §2 evidence.
    > **AI Debugging Protocol:** frame the observed symptom, trace reader → storage/projection → writer → consumer/job → producer/origin, enumerate feeder paths, record hypotheses, and prove convergence forward.
    > **MUST ATTENTION READ** `.claude/docs/AI-DEBUGGING-PROTOCOL.md` for full search, risk, and confirmation rules.
 2. Use external memory at `tmp/analysis/issue-[number].analysis.md` for structured analysis. **Re-read the ENTIRE analysis file before proposing any fix.**
@@ -219,101 +192,25 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 **Workflow:**
 
 1. **Load and track** — re-read every input report; create one task per validated blocking finding (current round bar per the review-loop severity floor above). Record `FIXING` in the report next to each.
-2. **Re-confirm before editing** — the cited `file:line` evidence still holds on the current tree; a finding that is a *bug with an unknown cause* (the report names a symptom, not the owning cause) goes to `/debug-investigate` first — the Root-Cause Prerequisite Gate still binds that case.
+2. **Re-confirm before editing** — the cited `file:line` evidence still holds on the current tree; a finding that is a *bug with an unknown cause* (the report names a symptom, not the owning cause) goes to `/investigate --mode=debug` first — the Root-Cause Prerequisite Gate still binds that case.
 3. **Fix at the owning layer** — one authoritative correction per violated invariant; group findings that share an owner. For a large or cross-module fix set, `/plan` is RECOMMENDED; it must capture the decisions, owners, risks and final gates without adding an automatic review step.
 4. **Tests** — a behavior-changing fix gets a regression/preservation test for the intended behavior, written with the fix. NOT run here when the caller has a later verify step or passes `--tests=defer` — that single verify runs it, and its mutation check is the fix's RED proof (`SYNC:verify-last-order`). With NO later verify step (a standalone `/workflow-review-changes` in its default `--tests=prove` mode), re-run the affected tests and record exact results. A `/fix` that is itself the verify-step repair of a red test re-runs the failing set after each fix and follows the project's test-failure adjudication before any source or test edit.
 5. **Write back** — append to the SAME report a `## Fix Log` row per finding: `FIXED` (files changed, test evidence) · `REJECTED` (new evidence that the finding is wrong — never final on the fixer's word: the caller re-validates it via `/why-review --validate-findings` or asks the user) · `DEFERRED` (round-2+ LOW only). The report stays the single living record the re-review reads.
 6. **Hand back** — when a reviewer's fix phase or a workflow fix step called this branch (`/changes-review` Phase 7, `/workflow-review-changes`), the caller owns re-review, spec and docs: the Standalone Mode Minimum Contract does not apply, skip the approval prompt, and never re-invoke `/changes-review`. Only a user-typed `/fix --target=review` is standalone: it presents the fix set once and ends with `/changes-review` over the fixed diff.
 
-Inside a workflow or a reviewer's fix phase, skip approval prompts; user-typed standalone, present the fix set once via `AskUserQuestion` before editing. The Debug Mindset, Confidence & Evidence Gate, the review-loop severity floor above, and all SYNC gates apply to this branch unchanged.
+When `nested=true` (a `[Workflow]` row that merely exists in `TaskList` does not count) or in a reviewer's fix phase, skip approval prompts; user-typed standalone, present the fix set once via `AskUserQuestion` before editing. The Debug Mindset, Confidence & Evidence Gate, the review-loop severity floor above, and all SYNC gates apply to this branch unchanged.
 
 ### `--target=logs` — log / stack-trace branch
 
-**Goal:** Analyze application logs to diagnose and fix runtime errors or unexpected behavior.
-
-**Key Rules:**
-
-- Focus on log patterns: stack traces, error codes, timing anomalies.
-- Cross-reference logs with source code to find the actual root cause.
-
-**Workflow:**
-
-1. Check whether `./logs.txt` exists. If missing, set up permanent log piping in the project's script config (`package.json`, `Makefile`, `pyproject.toml`, …): **Bash/Unix** append `2>&1 | tee logs.txt`; **PowerShell** append `*>&1 | Tee-Object logs.txt`. Run the command to generate logs.
-2. Use the `debugger` subagent to analyze `./logs.txt`: read with `Grep` `head_limit: 30` (last 30 lines; increase if needed — avoid loading the whole file). Write analysis to `tmp/analysis/{issue-name}.analysis.md`; re-read before fixing.
-3. Use the `/investigate` skill to locate the exact source of the issue; report back.
-4. Use the `planner` subagent to create an implementation plan; report back.
-5. **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for approval.**
-6. Implement the fix.
-7. Use the `tester` subagent to verify; report back.
-8. Use the `code-reviewer` subagent to review the changes; report back.
-9. If tests fail, repeat from step 3.
-10. Report a summary; suggest next steps.
-
-The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+Read `references/target-logs.md` in full FIRST (BLOCKING) — it holds this branch's goal, rules and workflow. The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to it unchanged.
 
 ### `--target=test` — failing-test branch
 
-**Goal:** Run test suites, analyze failures, and fix the underlying code or test issues.
-
-**Active-goal read (BEFORE fixing):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`, plans root default `plans/` with `docsRoots.plans.path` in `docs/project-config.json` overriding → create from the reported test failure). Map failing-test evidence (before) and passing-test evidence (after) to the saved success criteria in the Iteration Log — a passing suite that misses a saved required criterion does NOT close the loop.
-
-**Key Rules:**
-
-- Distinguish between code bugs and flawed test expectations.
-- Re-run tests after the fix to confirm all pass.
-- Read `integration-test-reference.md` from the reference-docs root before reviewing/writing integration tests; consult the business spec root for expected-behavior context when diagnosing failures (defaults `docs/project-reference` / `docs/specs/`; `docsRoots.projectReference.path` and `specRoots.business.path` in `docs/project-config.json` override them).
-
-**Workflow:**
-
-1. Use the `tester` subagent to compile the code and fix any syntax errors.
-2. Use the `tester` subagent to run the tests; report back. Write failure analysis to `tmp/analysis/{test-issue}.analysis.md`; re-read before fixing.
-3. If tests fail, use the `debugger` subagent to find the root cause; report back.
-4. Use the `planner` subagent to create an implementation plan; report back.
-5. **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for approval.**
-6. Implement the plan step by step.
-7. Use the `tester` subagent to verify; report back.
-8. Use the `code-reviewer` subagent to review the changes; report back.
-9. If tests fail, repeat from step 2.
-10. Report a summary; suggest next steps.
-
-The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+Read `references/target-test.md` in full FIRST (BLOCKING) — it holds this branch's goal, rules and workflow. The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to it unchanged.
 
 ### `--target=ui` — UI / visual-defect branch
 
-**Goal:** Diagnose and fix UI/UX issues — layout, styling, responsiveness, and visual bugs.
-
-**Key Rules:**
-
-- Follow the project's documented styling and class-naming convention; use BEM only when the project selects it. Treat styling classes as styling hooks, not semantic E2E locators.
-- Check responsive states and sizes supported by the target platform; use breakpoints only where that platform supports them.
-- **Pre-read (design authority):** read configured design-system docs and token files when present. Otherwise follow the project's frontend references, accepted ADRs, and observed source; do not invent a shared token system or canonical component classes.
-
-**Required skills (when applicable):** `ui-design` (local design-intelligence search + implementation patterns) → `web-design-guidelines` for web surfaces or the target platform's accessibility guidance for non-web UI (use project guidance when present, otherwise its native standard) → `ui-review` (source-level review when applicable).
-
-**Workflow:**
-
-**FIRST** — use the `ui-design` skill's local search to understand context and common issues:
-
-```bash
-# Windows: py -3 · macOS/Linux: python3 (same arguments)
-py -3 .claude/skills/ui-design/scripts/search.py "<product-type>" --domain product
-py -3 .claude/skills/ui-design/scripts/search.py "<style-keywords>" --domain style
-py -3 .claude/skills/ui-design/scripts/search.py "accessibility" --domain ux
-py -3 .claude/skills/ui-design/scripts/search.py "z-index animation" --domain ux
-```
-
-If the user provides screenshots/videos, use the `visual analysis tooling` skill to describe the issue in detail so developers can predict the root causes.
-
-> **🛑 After identifying the UI root cause, present findings + proposed fix → `AskUserQuestion` → wait for approval before any code change.**
-
-1. Use the `ui-ux-designer` subagent to implement the fix against the configured design authority, or the brief and observed project conventions when no design system is configured.
-2. Capture the affected view and state with platform-supported visual tooling when available, then analyze it with the appropriate visual-analysis skill. Repeat until addressed.
-3. Use platform-appropriate automation or interaction checks to verify the fix against the design authority.
-4. Use the `tester` subagent to compile and test; report back. Repeat until all tests pass.
-5. **If the user approves:** run the `docs-manager` subagent to update `./docs`, and update plan progress inline in the main session.
-6. Report a summary; suggest next steps.
-
-The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+Read `references/target-ui.md` in full FIRST (BLOCKING) — it holds this branch's goal, rules and workflow. The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to it unchanged.
 
 ## Workflow:
 
@@ -328,7 +225,7 @@ If screenshots or videos are provided, use `visual analysis tooling` to describe
 - No questions → start next step.
 
 > **⚠️ Validate Before Fix (NON-NEGOTIABLE):** After root cause + plan, present findings + plan via `AskUserQuestion` and get approval BEFORE code changes; no silent fixes.
-> **End-to-Start Trace Gate:** For non-trivial bugs, failed verification, stale/incorrect outputs, or behavior-changing fixes, the root-cause plan MUST ATTENTION include `Debugger Trace: End -> Start`, feeder paths, hypothesis matrix, owning layer, and forward convergence proof. If missing, STOP and run `/debug-investigate` or `/investigate` before planning; the Root-Cause Prerequisite Gate re-checks trace content.
+> **End-to-Start Trace Gate:** For non-trivial bugs, failed verification, stale/incorrect outputs, or behavior-changing fixes, the root-cause plan MUST ATTENTION include `Debugger Trace: End -> Start`, feeder paths, hypothesis matrix, owning layer, and forward convergence proof. If missing, STOP and run `/investigate --mode=debug` or `/investigate` before planning; the Root-Cause Prerequisite Gate re-checks trace content.
 
 ### Fix the issue
 
@@ -336,15 +233,15 @@ If screenshots or videos are provided, use `visual analysis tooling` to describe
 
 **AI surface?** Only if the defect sits in, or the fix creates or changes, a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-engineering-gate.md` and apply it; otherwise skip this line.
 
-Use `debug-investigate` for complex problems, and the skills catalog to activate other needed skills.
+Use `investigate --mode=debug` for complex problems, and the skills catalog to activate other needed skills.
 
-1. Use `debugger` subagent to find the root cause and report to the main agent. **Skip when the Root-Cause Prerequisite Gate already ran `/debug-investigate` for this problem**; that report subsumes this step, so resume at planning. — why: repeating diagnosis double-runs the spine.
+1. Use `debugger` subagent to find the root cause and report to the main agent. **Skip when the Root-Cause Prerequisite Gate already ran `/investigate --mode=debug` for this problem**; that report subsumes this step, so resume at planning. — why: repeating diagnosis double-runs the spine.
    1.5. Write results to `tmp/analysis/{issue-name}.analysis.md`; re-read the ENTIRE file before planning.
    1.6. Confirm it contains final symptom → reader → storage/projection → writer → consumer/job → producer/origin, all feeders, hypothesis matrix, owning layer, and forward proof.
 2. Use `researcher` subagent to research root causes on the internet if needed; report back.
 3. Use `planner` subagent to create the implementation plan from reports; report back.
 4. **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for user approval.**
-5. Use `/plan-execute` SlashCommand to implement plan step by step.
+5. Use `/plan --mode=execute` SlashCommand to implement plan step by step.
 6. Final Report:
 
 - Report changes, brief explanation, getting-started guidance, and next steps.
@@ -360,18 +257,18 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 
 ---
 
-## Next Steps (Standalone: after the Minimum Contract completes. Skip if inside workflow.)
+## Next Steps (Standalone: after the Minimum Contract completes. Skip only when `nested=true` — a `[Workflow]` row that merely exists in `TaskList` does not count.)
 
-> **The Root-Cause Prerequisite Gate and the Standalone Mode Minimum Contract above are NOT optional and NOT a question** — standalone `/fix` has already auto-run `debug-investigate` (gate-enforced) → fix spine → mandatory `/integration-test` test update (or justified `/test` unit-test fallback) → conditional `/spec` check → (`/changes-review` for production code) → `/why-review` as the terminal sign-off. Do not re-ask the user whether to do those; they are the guaranteed floor.
+> **The Root-Cause Prerequisite Gate and the Standalone Mode Minimum Contract above are NOT optional and NOT a question** — standalone `/fix` has already auto-run `investigate --mode=debug` (gate-enforced) → fix spine → mandatory `/integration-test` test update (or justified `/test` unit-test fallback) → conditional `/spec` check → (`/changes-review` for production code) → `/why-review` as the terminal sign-off. Do not re-ask the user whether to do those; they are the guaranteed floor.
 >
 > **AFTER that floor is met,** MUST ATTENTION use `AskUserQuestion` to offer what lies BEYOND the minimum (user decides):
 
-- **"Proceed with full workflow (Recommended)"** — Hand off to the best-fit workflow (e.g. `workflow-bugfix`) from here to add the remaining gates the minimum spine omits — `plan-validate`, `integration-test-review`, `integration-test-verify`, `production-readiness-review`, `security-audit`, `docs-update`.
+- **"Proceed with full workflow (Recommended)"** — Hand off to the best-fit workflow (e.g. `workflow-bugfix`) from here to add the remaining gates the minimum spine omits — `plan --mode=validate`, `integration-test --mode=review`, `integration-test --mode=verify`, `production-readiness-review`, `security-audit`, `docs-manager --mode=update`.
 - **"/test"** — Run the full test suite to verify the fix in context.
 - **"Commit & push"** — Hand the proven, reviewed change to the `git-manager` subagent.
 - **"Stop here"** — Minimum contract satisfied; user takes it from here.
 
-> If already inside a workflow, skip both the contract and this menu — the workflow sequence handles diagnosis, spec sync, review, and next steps.
+> If THIS run is a step of a `[Workflow]` row (`nested=true`: its own phase tasks are linked to that parent row; a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count), skip both the contract and this menu — the workflow sequence handles diagnosis, spec sync, review, and next steps.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
 
@@ -381,9 +278,7 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `design-distinctiveness-gate` — Design identity gate DD-1 to DD-8: subject, design plan, generic test, restraint; designing, implementing or reviewing a visual surface → .claude/skills/shared/protocols/design-distinctiveness-gate.md
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
@@ -391,8 +286,6 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `fix-layer-accountability` — Fix at the component that owns the violated contract, not at the crash site; choosing where to apply a fix → .claude/skills/shared/protocols/fix-layer-accountability.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `root-cause-debugging` — Systematic root-cause debugging, never guess-and-check; debugging a failure → .claude/skills/shared/protocols/root-cause-debugging.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
@@ -411,7 +304,7 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. Run graph trace when graph.db exists.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
@@ -421,33 +314,12 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -468,12 +340,6 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 - **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:design-distinctiveness-gate:reminder -->
 
@@ -506,33 +372,30 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 
 **IMPORTANT MUST ATTENTION Goal:** Eliminate each issue's root cause with end-to-start `file:line` evidence, fix the lowest invariant-owning layer (never the crash site), and add or update regression coverage that proves the fix converges.
 
-**IMPORTANT MUST ATTENTION — Main steps:** route `--target=` first → pass the Root-Cause Prerequisite Gate → investigate with researcher subagents → diagnose end-to-start with `debug-investigate` → declare confidence/evidence → plan impact → pass Validate-Before-Fix approval → implement at the owning layer → update regression tests → decide spec correctness/sync → run `/changes-review` for production code → finish with `/why-review`; standalone calls keep the full spine, while parent workflows own their declared sequence.
+**IMPORTANT MUST ATTENTION — Main steps:** route `--target=` first → pass the Root-Cause Prerequisite Gate → investigate with researcher subagents → diagnose end-to-start with `investigate --mode=debug` → declare confidence/evidence → plan impact → pass Validate-Before-Fix approval → implement at the owning layer → update regression tests → decide spec correctness/sync → run `/changes-review` for production code → finish with `/why-review`; standalone calls keep the full spine, while parent workflows own their declared sequence.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **End-To-Start Debugger Trace:** start at observed final output, trace backward through every feeder path before fixing.
 - **Root Cause Debugging:** reproduce → isolate → trace → hypothesize → verify → fix the cause, never symptoms.
 - **Nested Task Creation:** parent workflow rows don't replace child phase tracking; expand and link phases.
-- **Project Reference Docs Guide:** read required project-reference docs (`lessons.md` always) before target work.
 - **Task Tracking & External Report:** bootstrap task tracking; persist plan/review findings to `tmp/reports/` incrementally.
-- **Critical Thinking:** apply critical + sequential thinking; traced proof per claim, confidence >80% to act.
 - **Understand Code First:** search 3+ patterns and read code before any modification.
 - **Evidence-Based Reasoning:** cite `file:line` for every claim; <60% confidence = do NOT recommend.
 - **Fix-Layer Accountability:** trace full data flow, fix at the owning layer, not the crash site.
 - **Source/Test Drift Check:** when source behavior changes, decide from evidence whether affected tests change.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-**IMPORTANT MUST ATTENTION** Root-Cause Prerequisite Gate (BLOCKING, FIRST) — a direct `/fix` call (no-flag spine AND every `--target=` branch) MUST NOT edit code until `/debug-investigate` traced THIS problem in THIS session, proven by a `TaskList` row or a written investigation report; recall is NOT evidence, a prior investigation of a DIFFERENT symptom does NOT count, and a parent workflow row alone is NOT proof its diagnosis step ran — not satisfied → run `/debug-investigate` first, then resume from the planning step — why: without it the first edit lands with zero traced cause and patches the symptom site
+**IMPORTANT MUST ATTENTION** Root-Cause Prerequisite Gate (BLOCKING, FIRST) — a direct `/fix` call (no-flag spine AND every `--target=` branch) MUST NOT edit code until `/investigate --mode=debug` traced THIS problem in THIS session, proven by a `TaskList` row or a written investigation report; recall is NOT evidence, a prior investigation of a DIFFERENT symptom does NOT count, and a parent workflow row alone is NOT proof its diagnosis step ran — not satisfied → run `/investigate --mode=debug` first, then resume from the planning step — why: without it the first edit lands with zero traced cause and patches the symptom site
 **IMPORTANT MUST ATTENTION** trace the symptom end-to-start to the invariant-owning layer and fix there — NEVER at the crash site — why: the crash site is a symptom; the bad state enters at a lower layer and one fix there protects all downstream consumers
 **IMPORTANT MUST ATTENTION** declare `Confidence: X%` + `file:line` proof for EVERY claim — 95%+ recommend, 80-94% caveats, 60-79% list unknowns, STOP if <60% — why: speculation patches the wrong layer and ships the disease
-**IMPORTANT MUST ATTENTION** 🛑 Validate-Before-Fix — present root cause + plan via `AskUserQuestion` and get approval BEFORE any code change (skip ONLY inside a workflow) — why: silent fixes bypass the human gate on irreversible code change
+**IMPORTANT MUST ATTENTION** 🛑 Validate-Before-Fix — present root cause + plan via `AskUserQuestion` and get approval BEFORE any code change (skip ONLY when `nested=true`) — why: silent fixes bypass the human gate on irreversible code change
 **IMPORTANT MUST ATTENTION** route on `--target=` FIRST — each `{ci|issue|logs|test|types|ui}` branch is self-contained (own diagnosis); no flag = full diagnose→fix spine — why: branches must not re-run §1/§2 of the standalone spine
 **IMPORTANT MUST ATTENTION** default mode HARD (full rigor) — opt out to fast mode ONLY when the bug is genuinely trivial (ALL 5 Default Mode Policy conditions met); when in doubt default hard — why: skipping diagnosis on a non-trivial bug fixes the symptom and leaves the disease
-**IMPORTANT MUST ATTENTION** standalone (no parent workflow) self-assembles the spine `debug-investigate → fix → /integration-test test-update (or justified /test unit-test fallback; write only) → /spec correctness check → /changes-review (production code) → /why-review → verify once (`/integration-test-verify` or `/test` with the mutation check; fix and re-run to green; re-review only if that edited anything)`; invoke `/integration-test` after every standalone fix to add or update regression coverage, and use `/test` only for an evidence-backed unit-test seam — inside a workflow SKIP the contract — but NEVER the Root-Cause Prerequisite Gate, which still demands proof the sequence's `debug-investigate` step ran for this problem — why: standalone has no sequence supplying diagnosis, test updates, spec sync, or review; and a container row is not proof its diagnosis step ran
+**IMPORTANT MUST ATTENTION** standalone (not `nested=true`; a stale `[Workflow]` row alone does not count) self-assembles the spine `investigate --mode=debug → fix → /integration-test test-update (or justified /test unit-test fallback; write only) → /spec correctness check → /changes-review (production code) → /why-review → verify once (`/integration-test --mode=verify` or `/test` with the mutation check; fix and re-run to green; re-review only if that edited anything)`; invoke `/integration-test` after every standalone fix to add or update regression coverage, and use `/test` only for an evidence-backed unit-test seam — when `nested=true` SKIP the contract — but NEVER the Root-Cause Prerequisite Gate, which still demands proof the sequence's `investigate --mode=debug` step ran for this problem — why: standalone has no sequence supplying diagnosis, test updates, spec sync, or review; and a container row is not proof its diagnosis step ran
 **IMPORTANT MUST ATTENTION** spec-loop completion — the fix is NOT done until the violated §4/§5 invariant has a universally-quantified property TC + boundary case, the changed line is mutation-killed, and the finding fed BOTH spec and tests (Dual-Feedback) — why: a code-only patch leaves the bug case undocumented and able to silently return
 **IMPORTANT MUST ATTENTION** break work into small `TaskCreate` todos BEFORE starting (one read = one task); call `TaskList` first on context loss to resume, never duplicate — why: long debug files exhaust context and silently lose findings
 **IMPORTANT MUST ATTENTION** read required project-reference docs (`lessons.md` always; `integration-test-reference.md` for test branch; the business spec root, default `docs/specs/` and overridable via `specRoots.business.path` in `docs/project-config.json`, for behavior) before target work — why: project conventions override generic debugging assumptions
-**IMPORTANT MUST ATTENTION** on a FAILED TEST (`--target=test` or any test failure), FIRST read the `/integration-test-review` skill protocol (assertion-quality, coverage & spec↔test↔code fault gates) to set fix direction — decide whether the fault is a source-code root cause or a test-code setup/assertion issue — why: fixing without that verdict patches the wrong side and can green a broken invariant.
+**IMPORTANT MUST ATTENTION** on a FAILED TEST (`--target=test` or any test failure), FIRST read the `/integration-test --mode=review` skill protocol (assertion-quality, coverage & spec↔test↔code fault gates) to set fix direction — decide whether the fault is a source-code root cause or a test-code setup/assertion issue — why: fixing without that verdict patches the wrong side and can green a broken invariant.
 **IMPORTANT MUST ATTENTION** search 3+ similar patterns and read existing code before any fix; evaluate fit before copying a nearby pattern — why: closest example ≠ matching preconditions
 **IMPORTANT MUST ATTENTION** add a final review todo to verify work quality, then extract root-cause lessons (`/learn`) if the failure mode would recur without the reminder
 
@@ -542,7 +405,7 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | "Root cause is obvious, just patch it"   | Trace end-to-start to the invariant owner with `file:line` first — the obvious site is the symptom. |
 | "I already investigated this"            | Show the `TaskList` row or investigation report for THIS symptom. Recall is not evidence — after compaction the belief survives, the findings do not. |
-| "A workflow is running, it handled diagnosis" | A parent row is a container, not proof. Cite the *completed* `debug-investigate` step for this problem or the gate fires. |
+| "A workflow is running, it handled diagnosis" | A parent row is a container, not proof. Cite the *completed* `investigate --mode=debug` step for this problem or the gate fires. |
 | "`--target=` scopes it, so no trace needed"   | Every branch passes through the Root-Cause Prerequisite Gate. A `debugger`/`tester` subagent step is not an end-to-start trace. |
 | "Fix it where it crashes"                | Crash site ≠ cause site. Fix at the project-identified owner of the invariant and protect all relevant consumers. |
 | "Add a `?.` / guard and move on"         | Scattered defensive checks = wrong layer. One authoritative fix beats many guards.               |
@@ -551,7 +414,7 @@ Use `debug-investigate` for complex problems, and the skills catalog to activate
 | "Tests pass, the fix is done"            | Not done until property TC + boundary case exist, the changed line is mutation-killed, and spec ↔ tests fed (Dual-Feedback). |
 | "Already searched the codebase"          | Show `file:line` evidence. No proof = no search.                                                 |
 
-**IMPORTANT MUST ATTENTION** NEVER edit code until `/debug-investigate` traced THIS problem in THIS session — evidence (task row / report), not recall.
+**IMPORTANT MUST ATTENTION** NEVER edit code until `/investigate --mode=debug` traced THIS problem in THIS session — evidence (task row / report), not recall.
 **IMPORTANT MUST ATTENTION** NEVER fix at the crash site — trace end-to-start to the invariant owner and fix there.
 **IMPORTANT MUST ATTENTION** declare `Confidence: X%` + `file:line` for every claim; STOP if <60%.
 **IMPORTANT MUST ATTENTION** 🛑 Validate-Before-Fix approval before any code change — never skip it.

@@ -91,6 +91,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sync_blocks import AGENT_FOLDED_TAGS, has_root_pointer, universal_tags  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -241,7 +244,7 @@ AGENT_QUALITY_BLOCKS = {
         "integration-test-sync-check",
         # wave 3 (twin: changes-review Phase 3.8 -- domain entity gate)
         "domain-entity-change-gate",
-        # The front-end review PROCEDURE (twin: changes-review / ui-review). changes-review routes
+        # The front-end review PROCEDURE (twin: changes-review / ui-design --mode=review). changes-review routes
         # an arbitrary diff here, and a sub-agent inherits nothing but its own .md -- so without
         # this row a frontend diff reviewed by this agent gets no screen-state or a11y pass at all.
         # Procedure only: the DD-* taste clauses stay off this agent deliberately, because a
@@ -249,7 +252,7 @@ AGENT_QUALITY_BLOCKS = {
         # is self-gating on "has a user-facing front-end surface", so a backend diff costs one line.
         "design-review-checklist",
         # Test-architecture review is a production-quality concern too: this
-        # agent is the production face of architecture-review-full and the
+        # agent is the production face of `architecture --mode=full` and the
         # review owner for seed-test-data.
         "test-architecture-execution-contract",
         # An agent that JUDGES a test must adjudicate a RED test on the same
@@ -296,7 +299,7 @@ AGENT_QUALITY_BLOCKS = {
         "severity-rubric",
         "behavioral-delta-matrix", "spec-drift-adjudication",
         "test-spec-verification",
-        # wave 2 (twin: artifact-review / spec)
+        # wave 2 (twin: pbi --mode=review / spec)
         "trade-off-interrogation-gate", "spec-tests-code-triangulation", "ui-intent-layer",
         # Judges spec<->test alignment, so it meets red tests and must reach a
         # verdict on the same five-way scale as the author (/why-review F-M2).
@@ -312,7 +315,7 @@ AGENT_QUALITY_BLOCKS = {
         "core-engineering-principles",
         "end-to-start-debugger-trace", "root-cause-debugging", "red-flag-stop-conditions",
         "graph-assisted-investigation", "incremental-persistence",
-        # wave 2 (twin: debug-investigate / investigate)
+        # wave 2 (twin: investigate --mode=debug / investigate)
         "test-failure-fault-adjudication", "source-test-drift-check",
     ],
     "researcher": [
@@ -347,17 +350,17 @@ AGENT_QUALITY_BLOCKS = {
         "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation",
         "design-patterns-quality",
-        # wave 2 (twin: architecture-design / architecture-review)
+        # wave 2 (twin: `architecture --mode=design` / `architecture --mode=review`)
         # NOT source-test-drift-check: an explicit off-role trim for architect
         # (TC-UAR-016, commit 698195a5). Deliberate non-parity; do NOT "fix".
         "trade-off-interrogation-gate", "scale-technique-gate", "scenario-stress-eval",
         "test-architecture-execution-contract",
         # wave 3 -- the third gate in the family: the companions judge the running
         # system's DESIGN, this one judges the project's engineering FOUNDATION
-        # (build/run/test/change). Twin: architecture-design / architecture-review-full.
+        # (build/run/test/change). Twin: `architecture --mode=design` / `architecture --mode=full`.
         "engineering-foundation-gate",
         # AI agents are a potential system actor; this is relevant to the
-        # architecture-review/architecture-design agent's evidence-based audit.
+        # `architecture --mode=review` / `architecture --mode=design` agent's evidence-based audit.
         "ai-agent-as-user-access",
         "review-principle-awareness",
     ],
@@ -382,7 +385,7 @@ AGENT_QUALITY_BLOCKS = {
         "repeatable-test-principle", "source-test-drift-check", "red-flag-stop-conditions",
         "graph-impact-analysis", "incremental-persistence", "rationalization-prevention",
         "severity-rubric", "category-review-thinking",
-        # wave 2 (twin: integration-test / integration-test-review)
+        # wave 2 (twin: integration-test, incl. its review and verify modes)
         "trade-off-interrogation-gate", "test-failure-fault-adjudication",
         "integration-test-execution-discipline", "spec-tests-code-triangulation",
         "spec-drift-adjudication", "test-data-isolation",
@@ -433,16 +436,16 @@ AGENT_QUALITY_BLOCKS = {
         "design-patterns-quality", "severity-rubric",
         "category-review-thinking",
         "source-test-drift-check", "graph-assisted-investigation",
-        # wave 2 (twin: ui-review / ui-design / design-spec)
+        # wave 2 (twin: ui-design / design-spec)
         "trade-off-interrogation-gate", "ui-intent-layer", "existing-ui-research",
-        # UI/UX design principles -- 40 clauses (twin: ui-review / ui-design / design-spec)
+        # UI/UX design principles -- 40 clauses (twin: ui-design / design-spec)
         "ui-ux-design-principles",
         # Visual IDENTITY, the question the 40 usability clauses do not ask (twin: ui-design /
-        # design-spec / ui-review). This agent AUTHORS the direction, so it owns both the
+        # design-spec). This agent AUTHORS the direction, so it owns both the
         # design plan + generic test (DD-3) and the interface voice.
         "design-distinctiveness-gate", "ui-copywriting", "design-review-checklist",
         "review-principle-awareness",
-        # Journey-first order (twin: ui-design / design-spec / pbi-mockup / ui-review): this agent
+        # Journey-first order (twin: ui-design / design-spec / pbi --mode=mockup): this agent
         # is where a brief turns into a surface, so it must report the main user journeys and
         # read the project's design authority BEFORE it generates anything.
         "ux-journey-gate",
@@ -480,7 +483,7 @@ AGENT_QUALITY_BLOCKS = {
     "backend-developer": [
         "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
-        # wave 2 (twin: plan-execute / feature-implement)
+        # wave 2 (twin: plan --mode=execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation",
         # wave 3 -- authors entities, so it acts on all 6 gate decision points;
         # without it the implementer runs weaker rules than its own reviewer.
@@ -491,7 +494,7 @@ AGENT_QUALITY_BLOCKS = {
     "frontend-developer": [
         "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
-        # wave 2 (twin: plan-execute / feature-implement)
+        # wave 2 (twin: plan --mode=execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
         # UI/UX design principles -- 40 clauses; the implementer gate for user-facing surfaces
         "ui-ux-design-principles",
@@ -505,7 +508,7 @@ AGENT_QUALITY_BLOCKS = {
     "fullstack-developer": [
         "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
-        # wave 2 (twin: plan-execute / feature-implement)
+        # wave 2 (twin: plan --mode=execute / feature-implement)
         "source-test-drift-check", "graph-assisted-investigation", "ui-system-context",
         # UI/UX design principles -- 40 clauses; binds FRONTEND phases only (backend-only: N/A)
         "ui-ux-design-principles",
@@ -518,7 +521,7 @@ AGENT_QUALITY_BLOCKS = {
         "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
     # --- operations family ------------------------------------------------
-    # These agents still receive Core-6 and have an explicit skill connection.
+    # These agents still receive the Core-2 tier and have an explicit skill connection.
     # Empty additive rows are valid when the twin skill has no role-specific
     # SYNC block; keeping the row makes the all-agent matrix complete and
     # prevents silent tier drift when a new block is introduced.
@@ -537,26 +540,24 @@ AGENT_QUALITY_BLOCKS = {
 AGENT_SKILL_CONNECTIONS = {
     "ai-engineering-reviewer": ["ai-engineering-review"],
     "architect": [
-        "architecture-design", "architecture-review", "architecture-scalability-review",
-        "architecture-review-full", "security-audit", "performance-review",
+        "architecture", "security-audit", "performance-review",
     ],
     "backend-developer": ["feature-implement", "fix"],
     "code-reviewer": [
-        "code-quality-review", "changes-review", "architecture-review-full", "seed-test-data", "ui-review",
+        "code-quality-review", "changes-review", "architecture", "seed-test-data", "ui-design",
     ],
     "code-simplifier": ["code-simplifier"],
     "database-admin": ["db-migrate", "seed-test-data"],
-    "debugger": ["debug-investigate", "investigate"],
-    "docs-manager": ["docs-update"],
+    "debugger": ["investigate"],
+    "docs-manager": ["docs-manager"],
     "e2e-runner": ["e2e-test", "workflow-e2e"],
     "framework-maintainer": ["custom-agent", "skill-creator", "sync-skills-shared-protocols"],
     "frontend-developer": ["feature-implement", "ui-design"],
     "fullstack-developer": ["feature-implement"],
     "git-manager": ["commit"],
     "integration-tester": [
-        "integration-test", "integration-test-review", "integration-test-verify",
-        "workflow-write-integration-test",
-        "workflow-integration-test-green",
+        "integration-test",
+        "workflow-integration-test",
     ],
     "journal-writer": ["learn"],
     "knowledge-worker": ["knowledge-review", "knowledge-synthesis"],
@@ -565,23 +566,23 @@ AGENT_SKILL_CONNECTIONS = {
     "researcher": ["web-research"],
     "security-auditor": ["security-audit"],
     "solution-architect": [
-        "architecture-design", "scaffold", "harness-setup",
+        "architecture", "scaffold", "harness-setup",
         "workflow-greenfield-init", "tech-stack-research",
     ],
-    "spec-compliance-reviewer": ["artifact-review", "spec", "spec-clarify"],
+    "spec-compliance-reviewer": ["pbi", "spec"],
     "tester": ["test"],
-    "ui-ux-designer": ["ui-design", "design-spec", "ui-review"],
+    "ui-ux-designer": ["ui-design", "design-spec"],
 }
 
 # The test-architecture contract is intentionally connected across the full
 # setup -> author -> verify -> review path. Keep this reverse-coverage set
 # explicit so a future skill addition cannot silently become skill-only.
 TEST_ARCHITECTURE_SKILLS = {
-    "architecture-design", "architecture-scalability-review", "architecture-review-full",
+    "architecture",
     "scaffold", "harness-setup", "workflow-greenfield-init",
-    "integration-test", "integration-test-review", "integration-test-verify",
+    "integration-test",
     "e2e-test", "workflow-e2e",
-    "workflow-write-integration-test", "workflow-integration-test-green", "test",
+    "workflow-integration-test", "test",
     "seed-test-data",
 }
 TEST_ARCHITECTURE_AGENTS = {
@@ -675,6 +676,23 @@ def agent_tools(agent: str) -> str | None:
     frontmatter = m.group(1) if m else text
     tm = re.search(r"^tools:\s*(.+)$", frontmatter, flags=re.MULTILINE)
     return tm.group(1).strip() if tm else None
+
+
+def agent_universal_problems(agent: str) -> list[str]:
+    """Universal-bundle contract for one agent file: no body or reminder of a universal or
+    agent-folded tag and no retired pointer line (`sync_blocks.strip_universal` owns both)."""
+    f = AGENTS_DIR / f"{agent}.md"
+    if not f.exists():
+        return []
+    text = f.read_text(encoding="utf-8")
+    problems: list[str] = []
+    for tag in [*universal_tags(), *AGENT_FOLDED_TAGS]:
+        for variant in (tag, f"{tag}:reminder"):
+            if re.search(rf"^<!-- SYNC:{re.escape(variant)} -->", text, flags=re.MULTILINE):
+                problems.append(f"SYNC:{variant}")
+    if has_root_pointer(text):
+        problems.append("retired Root-carried protocols pointer line")
+    return problems
 
 
 def disk_agent_names() -> set[str]:
@@ -785,6 +803,19 @@ def validate() -> tuple[list[str], list[str]]:
             errors.append(
                 f"(i) agent '{agent}' still carries excluded-orchestration block(s) {stale}; "
                 "run inject_agent_protocol_blocks.py to reconcile exact fences"
+            )
+
+    # (j) universal-bundle contract -- HARD FAIL. The universal hook delivers the universal group and
+    # the agent-folded tags live in their folding block, so an agent holds none of their bodies or
+    # reminders and no pointer line, and the matrix never assigns them.
+    for tag in sorted(union_blocks & (set(universal_tags()) | set(AGENT_FOLDED_TAGS))):
+        errors.append(f"(j) matrix assigns universal or agent-folded block '{tag}' to an agent")
+    for agent in sorted(on_disk & set(AGENT_QUALITY_BLOCKS)):
+        problems = agent_universal_problems(agent)
+        if problems:
+            errors.append(
+                f"(j) agent '{agent}' breaks the universal-bundle contract: {problems}; "
+                "run sync-update-blocks.py --mode=strip-root-pointer"
             )
 
     # (connection) every canonical agent has an explicit, valid skill link and

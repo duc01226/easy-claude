@@ -1,10 +1,13 @@
 ---
 name: workflow-review-changes
-description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged changes before committing — triage-selected reviewers, validated fixes, and re-review until the severity bar clears. Flag: --fix-loop re-runs the whole workflow until a round applies zero fixes.'
+description: '[Workflow] Use when reviewing uncommitted changes that are cross-module, contract-changing or security-sensitive: specialist lenses, validated fixes, re-review until clean; --fix-loop adds an outer convergence loop. Focused diff: changes-review.'
 ---
 
 > Codex compatibility note:
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
+> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
+> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
+> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
@@ -13,39 +16,6 @@ description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged cha
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (Hook-Independent)
-
-Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
-When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
-
-**Always read:**
-- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
-- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
-- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
-
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
-
-**Situation-based docs** (pick by the phase you are about to enter — plan/investigate, edit, test, spec/doc, review — and read only docs the project selects in `referenceDocs` that exist):
-- Planning, investigation, or design: `project-structure-reference.md`, `domain-entities-reference.md`, plus the docs below for every file type the plan touches
-- Editing or writing code: `code-review-rules.md` plus the backend or frontend docs below for the file type
-- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
-- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
-- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md` (or the configured styling reference), `design-system/README.md`
-- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
-- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
-- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
-- Integration test implementation/review: `integration-test-reference.md`
-- E2E test implementation/review: `e2e-test-reference.md`
-- Test-data seeders: `seed-test-data-reference.md`
-- Code review/audit work: `code-review-rules.md` plus the docs above for every file type under review
-- Per-file conventions (`contextGroups[]`): before editing an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`
-
-**Dedup:** a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens, and it has not changed since — cite it `(loaded)` instead of re-reading. A hook reminder, a summary, or a prior mention never counts; a delegated sub-agent starts empty, so name the resolved doc paths in its brief.
-
-Never read all docs blindly: route from `docs-index-reference.md` and open only what the task needs.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
-
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Workflow steps follow the guided contract in `$start-workflow` → Step Execution Protocol: `gate` steps are fixed; other steps may flex with a logged reason.
@@ -70,7 +40,8 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **Memory:** one task per selected step/aspect and ONE living report (the step-1 `$changes-review` report) that every reviewer, validation, fix and re-review appends to — the report is what survives compaction.
 - **Loop:** review → validate → fix → re-review until the round bar clears (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOWs deferred), bounded at **2 rounds MAX**, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open (escalate by asking the user directly at whichever trips first: 2 no-progress repeats of the same blocker, review blockers increasing round-over-round (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the review budget spent with a review blocker still open — round 2 blocked by MEDIUM/`NOT VERIFIABLE` alone, or round 3 by any review blocker — cap exhaustion escalates, never PASSes; a failing test gate is outside the budget and loops until green).
 - **`--fix-loop` (OPTIONAL mode flag — absent by default, and absence changes nothing in this skill):** wraps this WHOLE workflow in an OUTER convergence loop that re-runs the default workflow INLINE round after round over a fixed scope until a complete round applies **ZERO fixes**, so every selected specialist re-reviews the fixed code from scratch. **When `--fix-loop` is passed, read `references/fix-loop.md` FIRST (BLOCKING).**
-- **`--tests={prove|defer}` (default `prove`):** `prove` keeps this workflow's own read-only test run (`integration-test-review --prove-tests`) — right for a standalone review with no later verify step. `defer` is what a parent workflow passes when its later step is the single verify (`SYNC:verify-last-order`): this workflow is then STATIC — `integration-test-review` runs without `--prove-tests`, no test suite runs here, the fix step writes or amends tests without running them, and the parent's verify proves `tests-pass`. The flag passes through `--fix-loop` to every round.
+- **`--tests={prove|defer}` (default `prove`):** `prove` keeps this workflow's own read-only test run (`integration-test --mode=review --prove-tests`) — right for a standalone review with no later verify step. `defer` is what a parent workflow passes when its later step is the single verify (`SYNC:verify-last-order`): this workflow is then STATIC — `integration-test --mode=review` runs without `--prove-tests`, no test suite runs here, the fix step writes or amends tests without running them, and the parent's verify proves `tests-pass`. The flag passes through `--fix-loop` to every round.
+- **Caller-mode flags to children:** this workflow is the caller, so it passes its children the flags of the caller-mode contract — `references/caller-mode.md` (`--report-only`, `--defer=<list>`). Step 1 `$changes-review` gets `--report-only --defer=whole-target,specialists,tests,entities` (plus `simplify` while the `code-simplifier` step will run); the `code-simplifier` step gets `--defer=review`. The registry occurrences carry these flags as their `args` (a runner building tasks from the registry passes them as written), and the orchestrator appends `,simplify` or drops a flag only as the caller-mode contract allows. Read that file before the first child call.
 
 **Key Rules:**
 
@@ -92,7 +63,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 Before any review work, bind the loop as a standing obligation you self-drive — the **protocol loop is the binding mechanism** on every host; the `/goal` command is an optional accelerator:
 
-1. **Protocol loop — ALWAYS binding.** Do not stop until: the initial reviews and the selected specialists have returned → findings are validated → validated blocking findings are fixed → the settled post-fix whole target is re-reviewed clean at the round's bar → the conditional experience check has run (source fixes it lands get the post-fix re-review again) → `$docs-update` has run → the workflow closes (top-level only). Stop early only on a documented escalation.
+1. **Protocol loop — ALWAYS binding.** Do not stop until: the initial reviews and the selected specialists have returned → findings are validated → validated blocking findings are fixed → the settled post-fix whole target is re-reviewed clean at the round's bar → the conditional experience check has run (source fixes it lands get the post-fix re-review again) → `$docs-manager --mode=update` has run → the workflow closes (top-level only). Stop early only on a documented escalation.
 2. **`/goal` — WHEN AVAILABLE**, invoke it with that same condition to add a mechanical Stop-hook block. If unavailable, record `/goal accelerator unavailable — review loop bound by protocol` and continue; never fake a gate.
 
 This binding always runs, including when this workflow is nested inside a parent workflow, because the orchestrator runs inline in the main (current) session and owns the loop directly.
@@ -116,12 +87,12 @@ The workflow is not done until every applicable gate holds, each with its eviden
 1. **Coverage** — every changed file is assigned to a reviewer or batch and reviewed (or classified mechanical with evidence), and a behavior-changing diff is also read whole once (`SYNC:whole-diff-correctness`); the Review Plan names which dimensions ran and why the others did not.
 2. **Evidence** — every finding cites `file:line`, consequence, severity (per `SYNC:severity-rubric`) and confidence; speculation is not a finding.
 3. **Validated before fixed** — no finding is fixed until it is validated: report-only specialists and batch reviewers validate their own findings in their own session (`$why-review --validate-findings`, `SYNC:systematic-review-batching` Step 2b); the orchestrator re-validates in the main session only findings no reviewer validated plus the independent check set of `SYNC:systematic-review-batching` Step 3 (the `validate-findings` occurrence).
-4. **Fixed at the owner** — every validated finding that blocks the current round is fixed at its owning layer (`$fix --target=review`), with its Fix Log row appended to the living report; a defect finding whose owning cause the report does not trace gets `$debug-investigate` first.
+4. **Fixed at the owner** — every validated finding that blocks the current round is fixed at its owning layer (`$fix --target=review`), with its Fix Log row appended to the living report; a defect finding whose owning cause the report does not trace gets `$investigate --mode=debug` first.
 5. **Re-reviewed** — when any fix or simplification landed, the post-fix `why-review` runs INLINE in FULL mode over the settled whole target (never `--validate-findings`, never just the last fix) — except a round-1 fix set of LOWs closed by scoped check or deferral with no simplification landed (`SYNC:double-round-trip-review` → Round-1 LOW closure), which needs no full re-review; a specialist whose finding was fixed also gets a scoped re-run of its dimension unless the holistic pass covers it with written justification.
-6. **Tests** — every changed behavior is covered by tests that ran green in this run (`integration-test-review` is the `tests-pass` prover: its read-only run of the relevant tests is REQUIRED and a red or not-run result keeps the gate open; the fix step re-runs the tests its fixes affect). Under `--tests=defer` the parent's single verify step proves this gate instead: no test runs here, and a parent verify that edits anything re-runs this review.
+6. **Tests** — every changed behavior is covered by tests that ran green in this run (`integration-test --mode=review` is the `tests-pass` prover: its read-only run of the relevant tests is REQUIRED and a red or not-run result keeps the gate open; the fix step re-runs the tests its fixes affect). Under `--tests=defer` the parent's single verify step proves this gate instead: no test runs here, and a parent verify that edits anything re-runs this review.
 7. **Spec/test/code sync** — every behavior-changing file is adjudicated CODE-WRONG / SPEC-STALE / SPEC-SILENT / AMBIGUOUS against its configured canonical owner, and every behavior-changing finding reconciles BOTH its profile-declared scenario/case and the mapped executing assertion/result (the strict default profile expresses these as §3/§4 requirements and §8 TCs). Green tests never normalize drift.
 8. **User-decision gates** — integration-test coverage gaps and multilingual UI translation gaps are surfaced by asking the user directly by the orchestrator at consolidation (report-only reviewers only record them), never silently passed.
-9. **Docs** — `$docs-update` runs over the final changeset (its triage may fast-exit).
+9. **Docs** — `$docs-manager --mode=update` runs over the final changeset (its triage may fast-exit).
 10. **Close** — top-level only: `$workflow-end` then `$watzup`.
 
 ## Recommended Skills
@@ -130,24 +101,24 @@ The registry sequence is the recommended default order; `gate` occurrences alway
 
 | Skill (registry occurrence)                                       | Runs when                                                                                           | Proves / feeds                                                                          |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `$changes-review` (gate, INLINE, report-only here)                | always                                                                                              | triage + Review Plan, dimensional baseline, spec-drift verdicts, living report          |
+| `$changes-review --report-only --defer=…` (gate, INLINE)          | always                                                                                              | triage + Review Plan, dimensional baseline, spec-drift verdicts, living report          |
 | `$why-review --target=whole-review-target` (sub-agent, FULL mode) | always recommended; may merge into step 1 only for XS docs/tooling-only diffs with a logged reason  | independent whole-target adversarial pass over the starting state                       |
-| `$architecture-review --report-only`                              | cross-module, new module/layer, contract or dependency-direction change, or size ≥ M                | layering, coupling, ADR conformance                                                     |
-| `$domain-entities-review --report-only`                           | entity / value-object / aggregate files changed                                                     | DDD model quality, invariants                                                           |
+| `$architecture --mode=review --report-only`                              | cross-module, new module/layer, contract or dependency-direction change, or size ≥ M                | layering, coupling, ADR conformance                                                     |
+| `$domain-analysis --mode=review --report-only`                           | entity / value-object / aggregate files changed                                                     | DDD model quality, invariants                                                           |
 | `$performance-review --report-only`                               | data access, hot paths, caching, concurrency, render-heavy UI                                       | measured or evidenced performance risk                                                  |
-| `$integration-test-review --report-only --prove-tests` (gate)     | always (without `--prove-tests` under `--tests=defer`)                                              | coverage map (behavior change → scenario/case → executing test) + relevant test results |
+| `$integration-test --mode=review --report-only --prove-tests` (gate)     | always (without `--prove-tests` under `--tests=defer`)                                              | coverage map (behavior change → scenario/case → executing test) + relevant test results |
 | `$security-audit --report-only`                                  | auth, secrets, input handling, dependencies, CI/infra, PII/money — or not provably security-neutral | exploitable-risk findings                                                               |
 | `$production-readiness-review --report-only`                      | deployable service/API/job/migration/config/operational surface                                     | deploy/operate readiness score + gate                                                   |
-| `$ui-review --report-only`                                        | frontend/UI files changed (also runs inside step 1's UI dimension, by design)                       | UI floor, layout, states, accessibility                                                 |
+| `$ui-design --mode=review --report-only`                          | frontend/UI files changed (step 1 runs with `--defer=specialists`, so this is the only UI lens)     | UI floor, layout, states, accessibility                                                 |
 | `$ai-engineering-review --report-only`                            | `node .claude/scripts/ai-signal-scan.cjs --base <review base> --json` (run first) reports `status: surface` (`unknown` and an inconclusive §0.1 grep also run it) — spawned only then | AI Gate Report: framing, engineering floor, trust boundaries, cost and eval gaps |
 | `$why-review --validate-findings`                                 | after dedup: findings no reviewer validated, plus the independent check set (CRITICAL/HIGH, reviewer conflicts, MEDIUM sample) | ≥85% survival validation before any fix                                                 |
-| `$debug-investigate` | a validated blocking finding is a defect whose report names the symptom but not the owning cause | root cause traced end-to-start before its fix (`root-cause-traced`) |
+| `$investigate --mode=debug` | a validated blocking finding is a defect whose report names the symptom but not the owning cause | root cause traced end-to-start before its fix (`root-cause-traced`) |
 | `$fix --target=review`                                            | validated blocking findings exist                                                                   | owning-layer fixes + Fix Log + affected-test results                                    |
-| `$code-simplifier`                                                | source code changed (diff or fixes)                                                                 | clarity/maintainability, behavior preserved; re-reviewed afterwards                     |
+| `$code-simplifier --defer=review`                                 | source code changed (diff or fixes)                                                                 | clarity/maintainability, behavior preserved; re-reviewed by the post-fix `why-review`   |
 | `$why-review` (post-fix, INLINE, FULL mode)                       | a fix or simplification landed, other than a round-1 LOW-only fix set closed by scoped check with no simplification | the settled post-fix whole target is clean at the round's bar                           |
-| `$experience-review`                                              | a configured or likely observable surface is affected                                               | runtime evidence + acceptance state; when it lands source fixes, re-run the post-fix `why-review` over the settled target before `$docs-update` (same round budget)                   |
+| `$experience-review`                                              | a configured or likely observable surface is affected                                               | runtime evidence + acceptance state; when it lands source fixes, re-run the post-fix `why-review` over the settled target before `$docs-manager --mode=update` (same round budget)                   |
 | `$scan --target=domain-entities`                                  | final diff changes entity/model, DTO/contract, schema/migration or entity-sync evidence             | entity reference catalog fresh; otherwise skip it as a `pre-action` deviation authorized by the DOMAIN-ENTITY REFRESH clause of `preActions.injectContext`, with the cited reason                          |
-| `$docs-update`                                                    | always                                                                                              | docs and specs synced to the final changeset                                                |
+| `$docs-manager --mode=update`                                                    | always                                                                                              | docs and specs synced to the final changeset                                                |
 | `$workflow-end` → `$watzup`                                       | top-level invocation only                                                                           | run closed + wrap-up                                                                    |
 
 Use `$plan` inside the fix step only when the validated fix set is large, cross-module or ambiguous — never as a fixed step. The plan must carry the decisions and final gates.
@@ -156,34 +127,34 @@ Use `$plan` inside the fix step only when the validated fix set is large, cross-
 
 You decide inline vs sub-agent, wave composition, batch boundaries and whether to merge or simplify a `core`/`optional` step, optimizing for speed and cost at equal quality. Only these data dependencies are fixed:
 
-- A change is reviewed before it is fixed; fixes are re-verified (post-fix re-review + affected tests) after they land; `$code-simplifier` edits are re-reviewed; `$docs-update` runs on the final changeset; the close runs last.
+- A change is reviewed before it is fixed; fixes are re-verified (post-fix re-review + affected tests) after they land; `$code-simplifier` edits are re-reviewed; `$docs-manager --mode=update` runs on the final changeset; the close runs last.
 - Read-only reviewers never share a wave with a writer; mutating steps (fix, simplify, experience-review remediation) run only after every reviewer they depend on has returned (the all-return barrier).
 - The orchestrator stays inline in the main session; it never delegates the whole workflow to a sub-agent.
 - Before consolidating findings and before trusting a failing test, confirm the target did not move under the run: `workflow-baseline.cjs report` for this run (or `git status` against the Review Plan). A path changed outside this run's own writes means another writer is active — stop and ask before attributing findings or failures on those paths to the change.
 
-**Initial Parallel Phase (Steps 1–2)** — launch `$why-review --target=whole-review-target` as a fresh `code-reviewer` sub-agent in FULL mode over the whole review target combined with the current changes, then immediately run `$changes-review` inline while it is active. Neither consumes the other's output. Advance only after BOTH return, then fold the whole-target report into the living report.
+**Initial Parallel Phase (Steps 1–2)** — launch `$why-review --target=whole-review-target` as a fresh `code-reviewer` sub-agent in FULL mode over the whole review target combined with the current changes, then immediately run `$changes-review --report-only --defer=whole-target,specialists,tests,entities` inline while it is active (append `,simplify` when the `code-simplifier` step will run: the same simplification lens then runs once, mutating, after the fixes). Neither consumes the other's output. Advance only after BOTH return, then fold the whole-target report into the living report.
 
 **Specialist wave** — size the wave before you spawn it; every lens and gate still runs, only the number of agents changes. Specialists whose lenses read the same files share one agent that loads each lens's skill, unless the combined context would not fit with room to reason. An optional specialist whose surface is small and carries no material risk in its lens is folded into a reviewer that already reads those files, as concrete lens questions, without loading its skill — logged as a `merged` deviation. A `gate` specialist always runs its own skill and may carry merged lenses. Spawn the resulting agents together in ONE message and advance only after every one returns (a skipped or merged member counts as returned). Maximum shape, one agent per selected specialist:
 
 ```
-spawn_agent(architecture-review, agent_type="architect", ...)           ← when selected
-spawn_agent(domain-entities-review, agent_type="code-reviewer", ...)    ← when entity files changed
+spawn_agent(architecture --mode=review, agent_type="architect", ...)           ← when selected
+spawn_agent(domain-analysis --mode=review, agent_type="code-reviewer", ...)    ← when entity files changed
 spawn_agent(performance-review, agent_type="performance-optimizer", ...)
-spawn_agent(integration-test-review, agent_type="integration-tester", ...)  ← always
+spawn_agent(integration-test --mode=review, agent_type="integration-tester", ...)  ← always
 spawn_agent(security-audit, agent_type="security-auditor", ...)
 spawn_agent(production-readiness-review, agent_type="code-reviewer", ...)
-spawn_agent(ui-review, agent_type="ui-ux-designer", ...)                ← when frontend/UI files changed
+spawn_agent(ui-design --mode=review, agent_type="ui-ux-designer", ...)  ← when frontend/UI files changed
 spawn_agent(ai-engineering-review, agent_type="ai-engineering-reviewer", ...)   ← only when the scan (run with `--base <review base>`) reports `status: surface`; put the review base in the brief
 ```
 
-Each reviewer brief carries: the `--report-only` flag (`integration-test-review` also gets `--prove-tests`: it is the `tests-pass` prover — except under `--tests=defer`, where every brief instead says "run no test suite": the leaf's read-only run is optional and the parent's single verify proves the tests); the triage and Review Plan; the unresolved-risk register and any generated-mirror or spec/test/docs drift already known; any step-1 finding in its dimension labelled as an UNVALIDATED hint to verify independently; the instruction to write its report FIRST to `tmp/reports/{skill}-{date}-{slug}.md` and append per file/batch; and the full review protocols per `SYNC:review-protocol-injection` — read the generated template `.claude/skills/shared/protocols/review-protocol-injection.md` once per wave and copy it WHOLESALE into each reviewer prompt, replacing only the `{placeholders}`. NEVER paraphrase, summarize or drop a protocol section, and NEVER hand the reviewer that path instead of the text. For L/XL targets, partition a specialist's scope into bounded batches rather than one oversized brief.
+Each reviewer brief carries: the `--report-only` flag (`integration-test --mode=review` also gets `--prove-tests`: it is the `tests-pass` prover — except under `--tests=defer`, where every brief instead says "run no test suite": the leaf's read-only run is optional and the parent's single verify proves the tests); the triage and Review Plan; the unresolved-risk register and any generated-mirror or spec/test/docs drift already known; any step-1 finding in its dimension labelled as an UNVALIDATED hint to verify independently; the instruction to write its report FIRST to `tmp/reports/{skill}-{date}-{slug}.md` and append per file/batch; and the full review protocols per `SYNC:review-protocol-injection` — read the generated template `.claude/skills/shared/protocols/review-protocol-injection.md` once per wave and copy it WHOLESALE into each reviewer prompt, replacing only the `{placeholders}`. NEVER paraphrase, summarize or drop a protocol section, and NEVER hand the reviewer that path instead of the text. For L/XL targets, partition a specialist's scope into bounded batches rather than one oversized brief.
 
 ## Fix & Re-Review Loop
 
 1. **Consolidate** — merge every reviewer report into the living report: findings by severity, conflicts between reviewers, deferred LOWs. **Deduplicate by root cause FIRST** (same owning `file:line` range and same violated rule — one entry listing every source reviewer, the highest justified severity) so no duplicate is validated or fixed twice.
 2. **Validate** — run `$why-review --validate-findings <living-report>` in the main session over findings no reviewer validated plus the independent check set of `SYNC:systematic-review-batching` Step 3. Rejected findings are recorded with the evidence that rejected them.
 3. **Fix** — `$fix --target=review` on validated blocking findings; it appends a Fix Log row per finding (FIXED / REJECTED / DEFERRED) and re-runs the affected tests (not under `--tests=defer`: the parent's verify runs them). Each behavior-changing fix reconciles its configured canonical owner, profile-declared scenario/case and mapped assertion/result (spec enrichment per cycle).
-4. **Simplify** — `$code-simplifier` when source code changed; its edits join the post-fix target.
+4. **Simplify** — `$code-simplifier --defer=review` when source code changed; its edits join the post-fix target, and step 5 is its review (the simplifier skips its own Self-Review Gate because the caller guarantees the FULL re-review). If the orchestrator skips or merges step 5, it omits the flag so the simplifier reviews itself.
 5. **Re-review** — the post-fix `why-review` re-reads the settled whole target from scratch INLINE in FULL mode (orchestrator confirmation bias is the risk it counters) and appends its verdict to the living report; blocking findings re-enter step 2 of this loop.
 
 **Severity floor & budget** — round 1 converges on a pass with zero open findings at any severity — a LOW closes by a local fix plus scoped check, or by deferral when its fix needs new code or tests, and a LOW-only fix set with no simplification needs no full re-review (`SYNC:double-round-trip-review` → Round-1 LOW closure); from round 2 the bar is zero validated CRITICAL/HIGH/MEDIUM, and a LOW-only round ENDS the loop with the LOWs listed under `## Deferred LOW Findings (severity floor, round ≥2)`. Never re-tier a real finding to reach the exit, and never apply the floor to a binary gate. Budget rules:
@@ -197,7 +168,7 @@ PASS = one complete pass finds zero blocking issues after all validated fixes an
 
 ## Nested Invocation
 
-When a parent workflow (e.g. `workflow-feature`, `workflow-bugfix`, `workflow-refactor`) runs this workflow as a step, everything above applies identically — including Step 0 and `$docs-update` (it documents the reviewed diff; the parent's own later `$docs-update` documents what its later steps produce, so neither replaces the other). Only the close differs: skip `$workflow-end` and `$watzup` with their registry `skipReason` and return control to the parent after `$docs-update`. A parent that runs its tests once, last (`SYNC:verify-last-order`) invokes this workflow with `--tests=defer`, and re-invokes it (still `--tests=defer`) when its verify step edited any source or test.
+When a parent workflow (e.g. `workflow-feature`, `workflow-bugfix`, `workflow-refactor`) runs this workflow as a step, everything above applies identically — including Step 0 and `$docs-manager --mode=update` (it documents the reviewed diff; the parent's own later `$docs-manager --mode=update` documents what its later steps produce, so neither replaces the other). Only the close differs: skip `$workflow-end` and `$watzup` with their registry `skipReason` and return control to the parent after `$docs-manager --mode=update`. A parent that runs its tests once, last (`SYNC:verify-last-order`) invokes this workflow with `--tests=defer`, and re-invokes it (still `--tests=defer`) when its verify step edited any source or test.
 
 ## `--fix-loop` Mode — Read `references/fix-loop.md` First (BLOCKING)
 
@@ -205,7 +176,7 @@ ONLY when the invocation carries `--fix-loop`: read `references/fix-loop.md` in 
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $changes-review -> $why-review --target=whole-review-target -> $architecture-review --report-only -> $domain-entities-review --report-only -> $performance-review --report-only -> $integration-test-review --report-only --prove-tests -> $security-audit --report-only -> $production-readiness-review --report-only -> $ui-review --report-only -> $ai-engineering-review --report-only -> $why-review --validate-findings -> $debug-investigate -> $fix --target=review -> $code-simplifier -> $why-review -> $experience-review -> $scan --target=domain-entities -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $changes-review --report-only --defer=whole-target,specialists,tests,entities -> $why-review --target=whole-review-target -> $architecture --mode=review --report-only -> $domain-analysis --mode=review --report-only -> $performance-review --report-only -> $integration-test --mode=review --report-only --prove-tests -> $security-audit --report-only -> $production-readiness-review --report-only -> $ui-design --mode=review --report-only -> $ai-engineering-review --report-only -> $why-review --validate-findings -> $investigate --mode=debug -> $fix --target=review -> $code-simplifier --defer=review -> $why-review -> $experience-review -> $scan --target=domain-entities -> $docs-manager --mode=update -> $workflow-end -> $watzup
 
 Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-review-changes` with the user's prompt as context.
 
@@ -215,7 +186,7 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 >
 > 1. **Build** — implement every phase and write its tests in the same pass. Between phases run only type-check or compile. NEVER a test suite, a mutation run or a review per phase or per wave.
 > 2. **Review and fix, static** — one converging review fix-loop over the whole changeset, reading code and tests (TEST-GAP, WEAK-TEST by mutation thinking). It does NOT run tests (`$workflow-review-changes --tests=defer`). Fixes may write or amend tests but never run them.
-> 3. **Verify once** — run the full affected suite once through the runner (`tester`, `$integration-test-verify`, `$test`), plus a mutation check on every changed core-logic line and new rule: use the project's mutation tool when configured, else temporarily break the line by hand-editing it: first copy the file to `tmp/` and restore from that copy afterwards, confirming a clean diff against the copy before green counts — NEVER `git checkout`, `restore`, `reset` or `stash` on the working tree, which can destroy the uncommitted work under test. The mutation check needs a step that may edit code — `$integration-test-verify`, or the main session when no such step runs — never the read-only `tester` or `$test`. A surviving mutant is a missing test: write it, then re-run. For a bugfix the mutation check is the RED proof: reverting the fix must turn its regression test red.
+> 3. **Verify once** — run the full affected suite once through the runner (`tester`, `$integration-test --mode=verify`, `$test`), plus a mutation check on every changed core-logic line and new rule: use the project's mutation tool when configured, else temporarily break the line by hand-editing it: first copy the file to `tmp/` and restore from that copy afterwards, confirming a clean diff against the copy before green counts — NEVER `git checkout`, `restore`, `reset` or `stash` on the working tree, which can destroy the uncommitted work under test. The mutation check needs a step that may edit code — `$integration-test --mode=verify`, or the main session when no such step runs — never the read-only `tester` or `$test`. A surviving mutant is a missing test: write it, then re-run. For a bugfix the mutation check is the RED proof: reverting the fix must turn its regression test red.
 > 4. **Fix and re-run until green** — record a provisional verdict for each red test (SOURCE-WRONG · TEST-WRONG · TEST-NOT-OPTIMAL · ENVIRONMENT-BLOCKED · AMBIGUOUS) before any edit, fix at the owner, re-run the failing set, then the whole set once. NEVER weaken, skip or delete a test to force green.
 > 5. **Re-review only if step 4 edited anything** — any source or test edit after the review re-runs the review (`--tests=defer`) over the settled tree; a re-review that applies a fix sends you back to step 3. This verify ↔ re-review alternation is capped at 2 turns: a third turn, or the same failure returning, STOPS and escalates by asking the user directly (the review's own round cap does not bound it). Done = a green verify AND no edit after the last review.
 > 6. **Green counts only on the final tree** — an edit after the last green run invalidates it.
@@ -382,31 +353,11 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- /SYNC:subagent-return-contract -->
 
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Compaction, resume, or long-running work makes memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts; check the source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Map the docs, generated mirrors, configs, and callers a removal can stale.
-> **Trace the full impact chain after edits, and verify ALL affected outputs.** A changed definition reaches derived outputs and consumers; one green check is not all green checks.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never delivery/retry bookkeeping in shared infrastructure that any co-running process can write; such a check passes alone and flakes once anything shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->
-
 <!-- SYNC:nested-task-creation -->
 
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
-> 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
+> 1. Call the current task list first. Set `nested=true` and record `parentTaskId` ONLY when this run created its own child phase tasks linked to that parent row; a `[Workflow]` row that merely exists in the current task list (stale, abandoned, or belonging to another run) does not make a run nested — such a run behaves as standalone.
 > 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
@@ -430,38 +381,6 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 > **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
 
 <!-- /SYNC:task-tracking-external-report -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:project-reference-docs-guide -->
-
-> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap, immediately before target/source reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate but never prove it ran.
->
-> 1. **Scope** — identify file types, domain area, and operation.
-> 2. **Project config is OPTIONAL.** Read the configured project-config file via its loader (default `docs/project-config.json`) when it exists. Absent is a supported state, not an error: run on portable defaults, derive project facts (paths, commands, conventions, architecture, test/spec layout) from repository evidence (manifests, lockfiles, scripts, CI, layout, root instruction files), state material assumptions, never block, and at most OFFER `$project-init` or `$project-config` once. Present → minimum valid shape is a non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. A DECLARED section left malformed or incomplete is a configuration error: fail closed on it and run `$project-init` or `$project-config` before relying on it — why: silent defaults would present wrong facts as authoritative. Verify material config hints against repository evidence; generic defaults are never project facts.
-> 3. **Select docs.** Always-on: the project-init-owned `lessons.md` and docs-index inputs at their configured owner paths — read independently, never appended to `referenceDocs`. Task-specific: an explicit `referenceDocs` array is the exact selection, subsets and `[]` included; absent → the runtime capability-aware resolver (portable baseline plus configuration- or repository-evidenced capabilities; may be empty). The scan-target manifest is a registry, not a default selection. Filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Custom-doc schema, ownership, and path-safety rules: `.claude/skills/scan/references/targets.md`.
-> 4. **Route by phase.** Just in time, read the selected docs the table names for the phase you are ABOUT to enter, plus any selected custom doc whose `purpose` covers that phase. An unmatched row is `Not applicable`, never a blocker.
->
-> | About to… | Read first (when selected and present) |
-> | --- | --- |
-> | investigate, explain, plan, design, estimate | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan will touch |
-> | edit or write code | `code-review-rules.md`, plus server-side / non-UI code → `backend-patterns-reference.md`; UI → `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` |
-> | write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `seed-test-data-reference.md` |
-> | author or change specs, test cases, or docs | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; `workflow-spec-test-code-cycle-reference.md` when specs, tests, and code must stay in sync |
-> | review a diff, plan, spec, or artifact | `code-review-rules.md`, plus the edit/test/spec-row docs for every file type under review |
->
-> 5. **Per-file conventions** (`contextGroups[]` in the project config) add rules for the exact file read or edited: hooks deliver them where they run; elsewhere run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` before the first edit of an unfamiliar path class.
-> 6. **Cite and repair.** State `Reference docs read: ... | Not applicable: ...` (record an explicit empty selection); still honor references the active skill or task requires. A missing/stale always-on input or selected/required doc, or a malformed declared config section → `$project-init` or the narrow owner route (`$project-config`, `$docs-init`, `$scan --target=<key>`, `$ai-context-refresh`) before relying on it.
-> 7. **Dedup within ~200K tokens.** A doc counts as loaded only when its full content came back to THIS context from your own read, after the last compaction and within roughly the last 200K tokens, and it has not changed since — list it in `Reference docs read:` as `<doc> (loaded)` and skip the re-read. Everything else is not loaded: a hook reminder, a summary, a doc merely named in the conversation, or a read by another agent. Re-select and re-read after compaction, resume, a material context change, or ~200K tokens of growth (= the file-convention hook default). A delegated sub-agent starts empty: name the resolved doc paths in its brief.
->
-> **Ready when:** scope set · config read or its absence recorded · always-on inputs confirmed · selection applied (may be empty) · phase docs read or cited `(loaded)` · citation emitted.
-
-<!-- /SYNC:project-reference-docs-guide -->
 
 <!-- SYNC:goal-contract-satisfaction-loop -->
 
@@ -523,14 +442,6 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- /SYNC:parallel-subagent-dispatch -->
 
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve project overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). A matching `referenceDocs[]` filename may relocate the index within that root; this registry is independent from task-specific reference-doc selection, so omitted or empty `referenceDocs` does not disable it. The index's `**Protocols directory:**` header selects a project-root-relative body directory (default `docs/project-protocols/`). Match this skill against the `Target` column and take the most specific tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read only matched bodies derived as `<protocols-dir>/<Name>.md`; the row's Body link is display text, never a read path. Reject unsafe paths without reading. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. An absent index or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->
-
 <!-- SYNC:severity-rubric -->
 
 > **Severity Rubric** — Classify every finding by consequence, not by effort, reviewer preference, or how annoying the fix is. One scale applies to every review, skill, agent, workflow, and host so a tier means the same everywhere. Choose the highest credible consequence supported by evidence; do not lower a tier to make a round pass.
@@ -558,7 +469,7 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 >
 > - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (unmet, blocks readiness), `1` = MEDIUM (partial, consequential gap), `2` = pass. A polish-only criterion is LOW, not a forced `0`.
 > - **Two-axis scoring** (e.g. performance-review, impact × likelihood): high impact + high exposure → CRITICAL/HIGH; material impact, bounded exposure → HIGH/MEDIUM; low impact and exposure → LOW. Record the axes and why the tier is the highest credible consequence.
-> - **Scorecards / `/20` grades** (e.g. architecture-scalability-review): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
+> - **Scorecards / `/20` grades** (e.g. `architecture --mode=scalability`): the aggregate score and verdict band are separate from finding severity. A sub-80 area is evidence to investigate, not an automatic tier; classify each underlying gap by the decision tree and keep advisory score deductions apart from blocking findings.
 >
 > **Domain-vocabulary normalization (mandatory):** a skill may keep a local reporting vocabulary, but it MUST feed this same four-tier round predicate — never a second severity system:
 >
@@ -617,33 +528,12 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- /SYNC:whole-diff-correctness:reminder -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `$project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -675,17 +565,9 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
@@ -714,12 +596,12 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 > **Detailed protocol routing — read/apply only when warranted:**
 > - `SYNC:scale-ready-foundation` — greenfield foundation is blocking; big-feature brownfield fit/adapt/defer; architecture review is advisory when auditing. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`.
 > - `SYNC:test-architecture-execution-contract` — assertion-bearing tests use the project's configured/native format, name the guarded intent/technical contract, and assert an owned outcome; GWT is one valid format. Detailed carriers: `integration-test`, `workflow-greenfield-init`, and the test-architecture review path.
-> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and native-format contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture-review`.
+> - `SYNC:ai-agent-as-user-access` — when an AI/machine actor or future contract is evidenced, inspect identity/delegation, capability boundaries, selected API/CLI/MCP/WebMCP/event/SDK surface, safety/consent, audit/observability, and native-format contract tests. Detailed carriers: `workflow-greenfield-init`, `workflow-big-feature`, `architecture --mode=review`.
 > - `SYNC:design-system-check` — when UI changes, inspect the design-system and component-contract obligations; route visual/UX depth to the owning UI review.
 >
 > **Review behavior:** Check only principles applicable to the reviewed scope; record `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, `BLOCKED`, or `UNVERIFIED` with `file:line`/config/CI evidence, status/severity, owner/route, and next step/revisit trigger. Do not invent findings from a generic checklist, flag unrelated pre-existing gaps as regressions, silently expand the requested scope, or mutate a parent gate merely because advice exists.
 >
-> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture-review`, `integration-test-review`, `security-audit`, `performance-review`, `ui-review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
+> **Ownership:** `changes-review` coordinates the applicability pass and routes depth to the owning specialist (`architecture --mode=review`, `integration-test --mode=review`, `security-audit`, `performance-review`, `ui-design --mode=review`, `production-readiness-review`, or another matching review). A specialist reports its own lens and does not duplicate or override another review's verdict; existing brownfield gaps stay advisory unless new, safety-relevant, or explicitly in scope.
 >
 > **Required review note:** `context/scope | principle/protocol checked | evidence | status/verdict | severity | owner/route | next step/revisit trigger`.
 >
@@ -735,8 +617,7 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 
@@ -752,7 +633,7 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 **IMPORTANT MUST ATTENTION** treat integration-test coverage gaps and multilingual UI translation gaps as mandatory ask the user directly user-decision gates.
 **IMPORTANT MUST ATTENTION** one task per selected step/aspect and ONE living report appended by every reviewer, validation, fix and re-review — re-read it and the current task list after any compaction.
 **IMPORTANT MUST ATTENTION** steps follow `$start-workflow` → Step Execution Protocol: `gate` steps always run, a step that runs invokes its skill invocation, and every other deviation is logged; NEVER batch-complete validation gates.
-**IMPORTANT MUST ATTENTION** this workflow always runs inline in the main session, top-level or nested; only its child reviewers run as sub-agents; nested → skip `$workflow-end` + `$watzup` and return to the parent after `$docs-update`.
+**IMPORTANT MUST ATTENTION** this workflow always runs inline in the main session, top-level or nested; only its child reviewers run as sub-agents; nested → skip `$workflow-end` + `$watzup` and return to the parent after `$docs-manager --mode=update`.
 
 **IMPORTANT MUST ATTENTION `--fix-loop` (OPTIONAL mode — only when the flag is passed):** re-run the WHOLE default workflow INLINE via the skill invocation (NEVER a sub-agent), round after round, over a FIXED scope (branch-diff base ∪ current uncommitted changes, recomputed each round) until a complete round applies **ZERO fixes** (working-tree fingerprint unchanged AND reviews clean at that round's bar) — not merely one clean review; its value is the fresh full specialist sweep the default post-fix re-review never re-runs. **Mode scope:** this workflow-level mode re-runs the WHOLE workflow and is DISTINCT from standalone `$changes-review --fix-loop`, which pairs ONE review pass with `$fix` on validated findings — their convergence wording differs by design. Bind the outer protocol loop (primary) plus the `/goal` accelerator when available, keep a Goal Contract with a per-round Iteration Log, regenerate a fresh task plan every round, and evaluate the FL-2 rows in order — first matching row decides.
 **IMPORTANT MUST ATTENTION** enforce the **round cap (default 2, extendable ONCE to round 3 when round 2 leaves a validated CRITICAL/HIGH open)**; review blockers not shrinking across 2 rounds (checked only after the round-2 CRITICAL/HIGH extension, which is granted first), or the budget spent with fixes still landing (CRITICAL/HIGH/MEDIUM fixes, or edits with no review blocker open) → **STOP & escalate** by asking the user directly. NEVER loop past round 3 on review blockers, or open-ended — only failing test gates continue, until green. In `--fix-loop`, from round 2 a LOW-only round that landed no other edit is a zero-fix round and ENDS the loop.
@@ -782,86 +663,3 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 **IMPORTANT MUST ATTENTION** code-changing work runs tests ONCE, last: build all phases + write tests → static review fix-loop → verify once with mutation check → fix and re-run to green → re-review only if step 4 edited anything. No per-phase or in-review test runs.
 
 <!-- /SYNC:verify-last-order:reminder -->
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Static Prompt Protocol Mirror (Auto-Synced)
-
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (static quality-protocol composer)
-
-## Shared AI-SDD Protocol Markers
-
-Source: `.claude/skills/shared/sync-inline-versions.md`
-
-## SYNC:ai-sdd-artifact-contract
-
-> **AI-SDD Artifact Contract** — Shared spec-driven development rules stay portable and source-owned.
->
-> 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
-> 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
-> 3. Resolve `specArtifacts` before selecting identity or carrier: use a valid profile, use strict-default TC/test identity only when the profile is absent, and block a malformed or unsupported declaration. Trace every requirement or invariant through decision, task, configured case/test identity and inspected assertion evidence, then carry it through source evidence and canonical docs/spec updates.
-> 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
-> 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
-> 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
-> 7. If `docs/project-config.json`, root instruction files, or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
->
-> **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
-
----
-
-## SYNC:ai-sdd-artifact-contract:reminder
-
-- **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
-- **MANDATORY** Resolve and validate `specArtifacts`: use valid native owner/case/variant identity and assertion-bearing evidence; use strict-default TC/TestSpec only when the profile is absent; block a malformed or unsupported declaration without fallback.
-- **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
-- **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
-- **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes. Preserve fixed ordering when a skill or workflow explicitly fixes it.
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
-## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
-
-Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
-
-**Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
-3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
-4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
-6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-8. ALL three gates pass → ask user to run `$learn`.
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
-**Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
-## Common AI Mistake Prevention (System Lessons)
-
-- **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
-- **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-- **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-- **Re-read and re-verify after context compaction or resume.** Compaction wipes read state and memory; summaries describe intent, not environment state. Re-read before editing, audit current state (git status, files) before creating anything new, grep-verify sub-agent output — every "completed" claim is a hypothesis until evidence confirms it.
-- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
-- **Trace every consumer before and after a change.** Map referencing files before deleting; after bulk replacements, renames, or extractions, grep ALL consumer file types (templates, configs, catalogs and generated files fail silently) for every old or removed name; trace the full dependency chain of an edited definition; update docs that embed canonical data alongside their source.
-- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
-- **Sub-agents: inherit, cover, persist.** Sub-agents know only their agent .md definition — use custom agent types, not built-in Explore. Reconcile the union of assignments against the full target list — category splits miss boundary items. Make the report write the first deliverable, appended per file/section with bounded scope; a truncated run with no report → spawn a narrower scope, never the same prompt.
-- **Ownership before action.** When investigating a failure, ask which part owns the behavior before changing anything. Trace the wrong state to the component responsible for its invariant, then make one authoritative correction there.
-- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec if one exists (the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
-- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting any constant/limit/flag/cutoff, read comments, git blame, the CALLER's ordering (the guarantee usually runs immediately BEFORE the cited line), and 2+ sibling call sites. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and an accurate `file:line` citation proves the transcription, never the defect.
-- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
-- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
-- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, state) and verify each against evidence. Ask "what would falsify this?" — if nothing, it is not a hypothesis.
-- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem: "Would this change exist if I were not addressing this request?" — if not, remove or disclose it; never silently expand scope.
-- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort ("(1) [N h], (2) [N h]. Which matters?"), list assumptions, name a simpler path when one exists.
-- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC: steel-man a rejected alternative, invert each reason ("what does it sacrifice?"), stress-test the top 2-3 assumptions, run a pre-mortem. Quality = causal reasoning + mitigations + evidence, not section presence.
-- **OOM/memory: check row count before row size.** An unbounded query (no DB filter for the trigger) → push the filter to the DB; then large rows → projection. Row reduction > projection in ROI.
-- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** For async work (queues, retries, background jobs, caches, replication) assert the final business/entity state — NEVER delivery bookkeeping (consume/send status, attempt counts, last-error, broker/scheduler/outbox rows) that ANY co-running process can write: green alone, flaky once anything shares that broker + database. Gate: "would this hold no matter WHICH process did the work?" Process-local fault injection is a stress amplifier (arm → bounded window → disarm → assert convergence), never a precondition.
-- **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before any verdict, sweep environment preconditions (toolchain/lockfile state, stale build/cache artifacts, env vars and config, service dependencies, ports/clock, OS path/locale, permissions, leftover processes/test data) AND transient resource pressure (RAM/OOM, CPU, disk/temp, handle and connection-pool limits, network, a timeout that is really slowness). Tell-tale: non-deterministic, fails only in parallel, on one machine or only on CI, or an error naming resources. Cite the discriminator you ran (clean environment? path changed? concurrency 1?) — a verdict without one is a guess. Fix an environment cause in the environment; NEVER edit product code or weaken/skip a test to absorb it; a failure that vanishes on retry stays unexplained until its mechanism is named.
-- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral APIs and literal argv vectors; never infer shell, temp-path, executable-extension, ACL, or symlink semantics from the current host. A documented command gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>`. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
-- **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer must reference NO consumer-specific domain concept (tenant/customer/product IDs, business entities, feature rules); such a leak compiles, runs, and passes review while coupling the layer to one consumer. Push domain fields/logic down into the consumer via subclass/composition.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

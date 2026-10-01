@@ -25,20 +25,16 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 SKILL_NAMES = [
     # Plan family
     "plan",
-    "plan-review",
-    "plan-validate",
     # Review family
     "security-audit",
     "ai-engineering-review",
     "code-quality-review",
-    "integration-test-review",
     "knowledge-review",
-    "architecture-review",
-    "artifact-review",
+    # `pbi` keeps its task-tracking body inline in pbi/references/mode-review.md, so it is not an injector target.
     "changes-review",
-    "domain-entities-review",
     "production-readiness-review",
-    "architecture-review-full",
+    # `architecture` (review and full modes) keeps its task-tracking body inline in
+    # architecture/references/mode-*.md, so it is not an injector target.
     "why-review",
     "workflow-review-changes",
     # Cook family
@@ -47,19 +43,17 @@ SKILL_NAMES = [
     "fix",
     # Investigate family
     "investigate",
-    "debug-investigate",
-    # Spec authoring quality family (idea → spec gates)
-    "spec-discovery",
-    "spec-clarify",
-    # workflow-write-integration-test step skills (those not already listed)
+    # Spec authoring quality gates (discovery / clarify) are `spec` modes: their bodies carry
+    # these blocks inline in spec/references/mode-*.md, so `spec` is intentionally not a target.
+    # workflow-integration-test step skills (those not already listed)
     # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —
     # it carries task-tracking via STEP-TASK-ANCHOR and writes its TC registry
     # to docs/specs/; the external-report block would duplicate that contract.
     "integration-test",
-    "integration-test-verify",
-    "docs-update",
+    # `docs-manager` modes carry this block inline in docs-manager/references/mode-*.md,
+    # so `docs-manager` is intentionally not a target.
     "watzup",
-    "workflow-write-integration-test",
+    "workflow-integration-test",
     # workflow-end is intentionally excluded — it just clears state, no long work
 ]
 

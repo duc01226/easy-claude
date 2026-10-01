@@ -53,7 +53,7 @@ async function copyPortableCodexTooling(tempRoot) {
     );
 }
 
-test('migrate-claude-to-codex mirrors skills and injects protocol block', async () => {
+test('migrate-claude-to-codex mirrors skills without injecting any protocol block', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-migrate-'));
     try {
         const skillDir = path.join(tempRoot, '.claude', 'skills', 'sample-skill');
@@ -85,9 +85,9 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
                 'Plan directory: `{plan-dir}/plan.md` + `{plan-dir}/research/*.md`.',
                 'Run /simplify after implementation.',
                 'Agent({ subagent_type: "architect", prompt: "review" })',
-                'Agent(architecture-review, subagent_type="code-reviewer", ...)',
+                'Agent(example-review, subagent_type="code-reviewer", ...)',
                 'Use the specialized subagent_type when one exists.',
-                'STOP and `AskUserQuestion` whether integration-test-verify ran.',
+                'STOP and `AskUserQuestion` whether integration-test --mode=verify ran.',
                 ''
             ].join('\n'),
             'utf8'
@@ -184,23 +184,22 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         const mirroredYml = await fs.readFile(path.join(tempRoot, '.agents', 'skills', 'sample-skill', 'settings.yml'), 'utf8');
         const codexConfig = await fs.readFile(path.join(tempRoot, '.codex', 'config.toml'), 'utf8');
 
-        assert.match(mirroredSkill, /CODEX:SYNC-PROMPT-PROTOCOLS:START/);
-        assert.match(mirroredSkill, /Static Prompt Protocol Mirror/);
+        // Shared protocols are delivered by hooks; a mirrored skill carries none of the old static blocks.
+        assert.doesNotMatch(mirroredSkill, /CODEX:SYNC-PROMPT-PROTOCOLS|Static Prompt Protocol Mirror|CODEX:PROJECT-REFERENCE-LOADING|LESSON-LEARNED-REMINDER/);
         assert.doesNotMatch(mirroredSkill, /Custom portable rule from local config\./);
         assert.doesNotMatch(mirroredSkill, /WORKFLOW-EXECUTION-PROTOCOL|Auto-select|Workflow Catalog/i);
         assert.doesNotMatch(mirroredSkill, /Lessons Stub/);
         assert.doesNotMatch(mirroredSkill, /Workflow Protocol Stub|Critical Context Stub|Lesson Reminder Stub/);
         assert.doesNotMatch(mirroredSkill, /prompt-injections\.cjs/);
-        assert.match(mirroredSkill, /LESSON-LEARNED-REMINDER/);
         assert.match(mirroredSkill, new RegExp(subagentAuthorizationSnippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
         assert.match(mirroredSkill, /Use \$plan for planning\./);
         assert.match(mirroredSkill, /Plan directory: `\{plan-dir\}\/plan\.md` \+ `\{plan-dir\}\/research\/\*\.md`\./);
         assert.doesNotMatch(mirroredSkill, /\{plan-dir\}\$plan\.md|\{plan-dir\}\$research/);
         assert.match(mirroredSkill, /Run \$code-simplifier after implementation\./);
         assert.match(mirroredSkill, /spawn_agent\(\{ agent_type: "architect"/);
-        assert.match(mirroredSkill, /spawn_agent\(architecture-review, agent_type="code-reviewer"/);
+        assert.match(mirroredSkill, /spawn_agent\(example-review, agent_type="code-reviewer"/);
         assert.match(mirroredSkill, /Use the specialized agent_type when one exists\./);
-        assert.match(mirroredSkill, /STOP and ask the user directly whether integration-test-verify ran\./);
+        assert.match(mirroredSkill, /STOP and ask the user directly whether integration-test --mode=verify ran\./);
         assert.doesNotMatch(mirroredSkill, /a direct user question/);
         assert.doesNotMatch(mirroredSkill, /\bAgent\(|\bsubagent_type\b/);
         assert.equal(mirroredReadme, 'Legacy $code-simplifier note.\n');
@@ -217,21 +216,6 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         assert.doesNotMatch(mirroredPackageJson, /\r/);
         assert.doesNotMatch(mirroredYaml, /\r/);
         assert.doesNotMatch(mirroredYml, /\r/);
-        // Portability: the routing block may name only framework-owned reference docs, never a
-        // consumer project's own doc. Allowed = registry built-ins + the framework spec/lessons docs.
-        const { SCAN_SKILL_MAP } = createRequire(import.meta.url)(path.join(repoRoot, '.claude', 'hooks', 'lib', 'project-reference-registry.cjs'));
-        const frameworkDocs = new Set([
-            ...Object.keys(SCAN_SKILL_MAP),
-            'spec-system-reference.md', 'spec-principles.md', 'workflow-spec-test-code-cycle-reference.md', 'lessons.md',
-            'CLAUDE.md', 'AGENTS.md',
-        ]);
-        const routingBlock = mirroredSkill.split('<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->')[1].split('<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->')[0];
-        const namedDocs = [...routingBlock.matchAll(/`([\w./-]+\.md)`/g)].map(m => m[1].replace(/^docs\/project-reference\//, ''));
-        assert.ok(namedDocs.length > 5, 'routing block must name the phase docs');
-        assert.deepEqual(namedDocs.filter(doc => !frameworkDocs.has(doc)), [], 'routing block names a non-framework doc');
-        assert.match(mirroredSkill, /pick by the phase you are about to enter/);
-        assert.match(mirroredSkill, /\*\*Dedup:\*\*[^\n]*last 200K tokens/);
-        assert.match(mirroredSkill, /\*\*Dedup:\*\*[^\n]*and it has not changed since/, 'a doc edited after the read must not count as loaded');
         assert.match(mirroredAgent, /name = "sample-agent"/);
         assert.match(mirroredAgent, new RegExp(subagentAuthorizationSnippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
         // The retired legacy notify runs after every turn of every Codex thread, subagents included,
@@ -349,7 +333,7 @@ test('sync-codex runner works from copied .claude without a root scripts folder'
         assert.match(codexConfig, /status_line = \["model-with-reasoning", "current-dir", "project-root", "context-used", "five-hour-limit", "weekly-limit"\]/);
         assert.doesNotMatch(mirroredSkill, /Lessons Stub/);
         assert.doesNotMatch(mirroredSkill, /Workflow Protocol Stub|Critical Context Stub|Lesson Reminder Stub|prompt-injections\.cjs/);
-        assert.match(mirroredSkill, /LESSON-LEARNED-REMINDER/);
+        assert.doesNotMatch(mirroredSkill, /LESSON-LEARNED-REMINDER|CODEX:SYNC-PROMPT-PROTOCOLS/);
         assert.equal(await pathExists(path.join(tempRoot, '.codex', 'scripts', 'codex', 'codex-notify.mjs')), false);
         assert.equal(await pathExists(path.join(tempRoot, 'scripts')), false);
         assert.equal(await pathExists(path.join(tempRoot, 'AGENTS.md')), true);
@@ -478,7 +462,7 @@ test('local install artifacts are recognised at any depth with either separator;
     for (const rel of ['docx-convert/to-docx/package-lock.json', 'a\\b\\yarn.lock', 'pdf-convert/node_modules', 'x/node_modules/y/z.js', 'pnpm-lock.yaml']) {
         assert.equal(isLocalInstallArtifact(rel), true, `${rel} is a local install artifact`);
     }
-    for (const rel of ['docx-convert/to-docx/package.json', 'shared/workflow-first-gate.md', 'commit/SKILL.md', 'excalidraw-diagram/references/uv.lock']) {
+    for (const rel of ['docx-convert/to-docx/package.json', 'shared/workflow-first-gate.md', 'commit/SKILL.md', 'some-skill/references/uv.lock']) {
         assert.equal(isLocalInstallArtifact(rel), false, `${rel} is not a local install artifact`);
     }
     // Every non-VCS directory the divergence gate skips must also be git-ignored, or a committed
@@ -1030,4 +1014,53 @@ test('TC-ADS-037 a user-set Codex compaction budget survives the sync and is rep
         assert.ok(updated.split('\n').includes(`model_auto_compact_token_limit = ${value}`), `user value must stay: ${value}`);
         assert.deepEqual(notices, [`kept user-set model_auto_compact_token_limit=${value}`]);
     }
+});
+
+test('TC-MIG-WRITE-001 a mirror write retries a transient open refusal and fails closed on anything else', async () => {
+    const { writeFileTransientSafe } = await import(pathToFileURL(path.join(repoRoot, '.claude', 'scripts', 'lib', 'write-file-transient-safe.mjs')).href);
+    const refusal = code => Object.assign(new Error(`open refused: ${code}`), { code });
+
+    // Given a write that a scanner refuses twice before it lets go
+    let calls = 0;
+    const flaky = async () => {
+        calls += 1;
+        if (calls <= 2) throw refusal('UNKNOWN');
+    };
+    // When the mirror write runs
+    await writeFileTransientSafe('mirror-file', 'text', 'utf8', { write: flaky, baseDelayMs: 1 });
+    // Then it succeeds on the third attempt without surfacing the refusal
+    assert.equal(calls, 3);
+
+    // Given a refusal that never clears
+    let stuck = 0;
+    // When the retry budget is spent
+    await assert.rejects(
+        writeFileTransientSafe('mirror-file', 'text', 'utf8', {
+            write: async () => {
+                stuck += 1;
+                throw refusal('EBUSY');
+            },
+            attempts: 3,
+            baseDelayMs: 1
+        }),
+        { code: 'EBUSY' }
+    );
+    // Then it stops at the budget and reports the original error
+    assert.equal(stuck, 3);
+
+    // Given a permanent failure such as a missing directory
+    let missing = 0;
+    // When the write runs
+    await assert.rejects(
+        writeFileTransientSafe('mirror-file', 'text', 'utf8', {
+            write: async () => {
+                missing += 1;
+                throw refusal('ENOENT');
+            },
+            baseDelayMs: 1
+        }),
+        { code: 'ENOENT' }
+    );
+    // Then it is not retried
+    assert.equal(missing, 1);
 });

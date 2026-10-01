@@ -43,9 +43,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # (Verified via grep for validate-findings / double-round-trip-review / Findings
 #  Validation Gate across .claude/skills/*. why-review itself is excluded.)
 REVIEW_SKILLS = {
-    "architecture-review", "ui-review", "ai-engineering-review", "domain-entities-review",
-    "artifact-review", "plan-review",
-    "knowledge-review", "integration-test-review",
+    "architecture --mode=review", "ui-design --mode=review", "ai-engineering-review",
+    "pbi --mode=review",
+    "knowledge-review",
     "code-quality-review", "production-readiness-review", "security-audit", "performance",
 }
 

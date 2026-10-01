@@ -1,7 +1,7 @@
 ---
 name: product-roadmap
 version: 1.0.0
-description: '[Planning] Use ONLY when the user explicitly requests a product roadmap, roadmap update, or milestone selection — outcome milestones, MVP scope, non-goals, risks, evidence gates.'
+description: '[Planning] Use ONLY when the user explicitly requests a product roadmap, roadmap update or milestone selection: outcome milestones, MVP scope, non-goals, risks, evidence gates.'
 argument-hint: '[create|update|select] [product vision or milestone]'
 disable-model-invocation: true
 ---
@@ -120,7 +120,7 @@ For an explicit roadmap request, handoff only after the roadmap document (defaul
 
 1. `/scenario {scope-brief}` to enumerate adversarial situations.
 2. `/brainstorm` for a selected capability’s detailed scope only when ideation is still needed; do not reopen the product roadmap silently.
-3. `/spec`, `/refine`, or `/plan` only after the downstream skill confirms the roadmap/milestone references or the EXEMPT branch.
+3. `/spec`, `/pbi --mode=refine`, or `/plan` only after the downstream skill confirms the roadmap/milestone references or the EXEMPT branch.
 
 Stop and report `BLOCKED` when applicable roadmap artifacts are missing, no applicable milestone is selected, the EXEMPT reason/owner is missing, a material term has multiple plausible meanings, or the owner has not approved the selection/boundary.
 
@@ -135,16 +135,6 @@ Report:
 - confirmed decisions and open questions;
 - scope brief path;
 - next skill and any blocker.
-
-<!-- PROTOCOL-GUIDES:START -->
-
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-
-<!-- PROTOCOL-GUIDES:END -->
 
 ## Closing Reminders
 

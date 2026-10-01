@@ -15,12 +15,12 @@
       "group": "workflow-task",
       "summary": "Plan tasks first, keep one in progress and keep a progress file for long work",
       "when": "an agent starts a task",
-      "chars": 1013,
+      "chars": 1102,
       "file": ".claude/skills/shared/protocols/agent-bootstrap.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/agent-bootstrap.md",
-          "chars": 1013
+          "chars": 1102
         }
       ]
     },
@@ -43,12 +43,12 @@
       "group": "design",
       "summary": "Treat an AI agent as a first-class machine actor with its own identity and authority",
       "when": "creating a greenfield system or reviewing actor-facing architecture",
-      "chars": 7271,
+      "chars": 7280,
       "file": ".claude/skills/shared/protocols/ai-agent-as-user-access.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-agent-as-user-access.md",
-          "chars": 7271
+          "chars": 7280
         }
       ]
     },
@@ -98,13 +98,13 @@
       "tag": "ai-mistake-prevention",
       "group": "universal",
       "summary": "Failure modes to avoid on every task",
-      "when": "carried by the root instruction file; if it is absent, read",
-      "chars": 3888,
+      "when": "delivered by the universal hook",
+      "chars": 8977,
       "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-mistake-prevention.md",
-          "chars": 3888
+          "chars": 8977
         }
       ]
     },
@@ -133,6 +133,20 @@
         {
           "file": ".claude/skills/shared/protocols/ai-sdd-artifact-contract.md",
           "chars": 1476
+        }
+      ]
+    },
+    {
+      "tag": "artifact-storage",
+      "group": "universal",
+      "summary": "Disposable generated output goes under the workspace tmp directory",
+      "when": "delivered by the universal hook",
+      "chars": 1017,
+      "file": ".claude/skills/shared/protocols/artifact-storage.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/artifact-storage.md",
+          "chars": 1017
         }
       ]
     },
@@ -179,6 +193,20 @@
       ]
     },
     {
+      "tag": "canonical-ownership",
+      "group": "universal",
+      "summary": "Edit sources, never generated mirrors",
+      "when": "delivered by the universal hook",
+      "chars": 901,
+      "file": ".claude/skills/shared/protocols/canonical-ownership.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/canonical-ownership.md",
+          "chars": 901
+        }
+      ]
+    },
+    {
       "tag": "category-review-thinking",
       "group": "review",
       "summary": "Derive review concerns per category of changed files from domain knowledge",
@@ -189,6 +217,20 @@
         {
           "file": ".claude/skills/shared/protocols/category-review-thinking.md",
           "chars": 4096
+        }
+      ]
+    },
+    {
+      "tag": "code-responsibility-hierarchy",
+      "group": "universal",
+      "summary": "Place logic with the owner the project architecture selects",
+      "when": "delivered by the universal hook",
+      "chars": 615,
+      "file": ".claude/skills/shared/protocols/code-responsibility-hierarchy.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/code-responsibility-hierarchy.md",
+          "chars": 615
         }
       ]
     },
@@ -238,13 +280,13 @@
       "tag": "critical-thinking-mindset",
       "group": "universal",
       "summary": "Critical and sequential thinking with traced proof for every claim",
-      "when": "carried by the root instruction file; if it is absent, read",
-      "chars": 397,
+      "when": "delivered by the universal hook",
+      "chars": 1950,
       "file": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
-          "chars": 397
+          "chars": 1950
         }
       ]
     },
@@ -281,12 +323,12 @@
       "group": "review",
       "summary": "Trace the changed area end to end across the client-server seam before judging files",
       "when": "starting a review of a diff that touches more than one tier",
-      "chars": 2830,
+      "chars": 2889,
       "file": ".claude/skills/shared/protocols/cross-stack-impact-trace.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/cross-stack-impact-trace.md",
-          "chars": 2830
+          "chars": 2889
         }
       ]
     },
@@ -347,16 +389,30 @@
       ]
     },
     {
+      "tag": "discovery-and-first-principles",
+      "group": "universal",
+      "summary": "Discovery order, search-first rule and first principles",
+      "when": "delivered by the universal hook",
+      "chars": 1960,
+      "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
+          "chars": 1960
+        }
+      ]
+    },
+    {
       "tag": "domain-entity-change-gate",
       "group": "design",
       "summary": "DDD entity, value object and aggregate change gate",
       "when": "planning, implementing or reviewing a domain model change",
-      "chars": 6368,
+      "chars": 6431,
       "file": ".claude/skills/shared/protocols/domain-entity-change-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/domain-entity-change-gate.md",
-          "chars": 6368
+          "chars": 6431
         }
       ]
     },
@@ -379,12 +435,12 @@
       "group": "spec-test",
       "summary": "Evidence and baseline rules for visual review in E2E and human QC",
       "when": "handling visual-review evidence or visual baseline updates",
-      "chars": 4400,
+      "chars": 4414,
       "file": ".claude/skills/shared/protocols/e2e-visual-design-contract.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/e2e-visual-design-contract.md",
-          "chars": 4400
+          "chars": 4414
         }
       ]
     },
@@ -407,12 +463,12 @@
       "group": "design",
       "summary": "Seven engineering-foundation dimensions judged by project profile",
       "when": "creating or reviewing how a project is built, run, tested or checked",
-      "chars": 8878,
+      "chars": 8906,
       "file": ".claude/skills/shared/protocols/engineering-foundation-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/engineering-foundation-gate.md",
-          "chars": 8878
+          "chars": 8906
         }
       ]
     },
@@ -455,6 +511,20 @@
         {
           "file": ".claude/skills/shared/protocols/evidence-based-reasoning.md",
           "chars": 1110
+        }
+      ]
+    },
+    {
+      "tag": "evidence-investigation",
+      "group": "universal",
+      "summary": "Evidence, confidence and investigation rules for every claim",
+      "when": "delivered by the universal hook",
+      "chars": 662,
+      "file": ".claude/skills/shared/protocols/evidence-investigation.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/evidence-investigation.md",
+          "chars": 662
         }
       ]
     },
@@ -515,6 +585,20 @@
       ]
     },
     {
+      "tag": "git-discipline",
+      "group": "universal",
+      "summary": "Commit, amend, branch and publication authority rules",
+      "when": "delivered by the universal hook",
+      "chars": 1791,
+      "file": ".claude/skills/shared/protocols/git-discipline.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/git-discipline.md",
+          "chars": 1791
+        }
+      ]
+    },
+    {
       "tag": "goal-contract-satisfaction-loop",
       "group": "workflow-task",
       "summary": "Save the goal in a file and loop until every saved criterion passes",
@@ -531,42 +615,28 @@
     {
       "tag": "graph-assisted-investigation",
       "group": "evidence-trace",
-      "summary": "Run a code-graph command on the key files before concluding",
-      "when": "investigating code while the code graph exists",
-      "chars": 971,
+      "summary": "Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale",
+      "when": "a high-risk change where grep and reading alone may miss the blast radius",
+      "chars": 1516,
       "file": ".claude/skills/shared/protocols/graph-assisted-investigation.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/graph-assisted-investigation.md",
-          "chars": 971
+          "chars": 1516
         }
       ]
     },
     {
       "tag": "graph-impact-analysis",
       "group": "evidence-trace",
-      "summary": "Blast-radius query that finds the files a change affects and flags stale ones",
-      "when": "assessing change impact while the code graph exists",
-      "chars": 428,
+      "summary": "Optional blast-radius query that suggests files a high-risk change may affect, a hint that can be stale and never proof",
+      "when": "assessing the impact of a high-risk change while the code graph exists",
+      "chars": 778,
       "file": ".claude/skills/shared/protocols/graph-impact-analysis.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/graph-impact-analysis.md",
-          "chars": 428
-        }
-      ]
-    },
-    {
-      "tag": "graph-intelligence-queries",
-      "group": "evidence-trace",
-      "summary": "Code-graph CLI query reference",
-      "when": "querying code relationships through the code graph",
-      "chars": 1128,
-      "file": ".claude/skills/shared/protocols/graph-intelligence-queries.md",
-      "parts": [
-        {
-          "file": ".claude/skills/shared/protocols/graph-intelligence-queries.md",
-          "chars": 1128
+          "chars": 778
         }
       ]
     },
@@ -603,12 +673,12 @@
       "group": "spec-test",
       "summary": "How integration tests are written, reviewed, run, diagnosed and cleared",
       "when": "working in the integration-test skill family",
-      "chars": 2344,
+      "chars": 2372,
       "file": ".claude/skills/shared/protocols/integration-test-execution-discipline.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/integration-test-execution-discipline.md",
-          "chars": 2344
+          "chars": 2372
         }
       ]
     },
@@ -669,6 +739,20 @@
       ]
     },
     {
+      "tag": "lesson-extraction-gate",
+      "group": "universal",
+      "summary": "Extract root-cause lessons at the end of a non-trivial task",
+      "when": "delivered by the universal hook",
+      "chars": 653,
+      "file": ".claude/skills/shared/protocols/lesson-extraction-gate.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/lesson-extraction-gate.md",
+          "chars": 653
+        }
+      ]
+    },
+    {
       "tag": "logic-and-intention-review",
       "group": "review",
       "summary": "Check that what the code does matches why it changed, with happy and error path traces",
@@ -701,12 +785,12 @@
       "group": "workflow-task",
       "summary": "A child skill creates its own phase tasks under the workflow parent row",
       "when": "a skill runs as a workflow step",
-      "chars": 1002,
+      "chars": 1169,
       "file": ".claude/skills/shared/protocols/nested-task-creation.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/nested-task-creation.md",
-          "chars": 1002
+          "chars": 1169
         }
       ]
     },
@@ -757,12 +841,12 @@
       "group": "workflow-task",
       "summary": "Outcome phases name decisions, boundaries and bounded discovery without replaying implementation",
       "when": "breaking a plan into phases",
-      "chars": 1156,
+      "chars": 1205,
       "file": ".claude/skills/shared/protocols/plan-granularity.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/plan-granularity.md",
-          "chars": 1156
+          "chars": 1205
         }
       ]
     },
@@ -771,12 +855,12 @@
       "group": "workflow-task",
       "summary": "Plans decide direction, affected owners, risks and final proof without pre-writing implementation",
       "when": "writing or reviewing a plan",
-      "chars": 3821,
+      "chars": 4691,
       "file": ".claude/skills/shared/protocols/plan-quality.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/plan-quality.md",
-          "chars": 3821
+          "chars": 4691
         }
       ]
     },
@@ -798,13 +882,13 @@
       "tag": "project-protocol-overlay",
       "group": "universal",
       "summary": "Resolve the additive project overlays for the running skill",
-      "when": "carried by the root instruction file; if it is absent, read",
-      "chars": 1780,
+      "when": "delivered by the universal hook",
+      "chars": 1982,
       "file": ".claude/skills/shared/protocols/project-protocol-overlay.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/project-protocol-overlay.md",
-          "chars": 1780
+          "chars": 1982
         }
       ]
     },
@@ -812,13 +896,13 @@
       "tag": "project-reference-docs-guide",
       "group": "universal",
       "summary": "Read the project config and the right reference docs just in time",
-      "when": "carried by the root instruction file; if it is absent, read",
-      "chars": 4789,
+      "when": "delivered by the universal hook",
+      "chars": 4834,
       "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/project-reference-docs-guide.md",
-          "chars": 4789
+          "chars": 4834
         }
       ]
     },
@@ -827,12 +911,12 @@
       "group": "workflow-task",
       "summary": "Base transforms shared by every prompt-enhance operation",
       "when": "running prompt-enhance",
-      "chars": 2513,
+      "chars": 2532,
       "file": ".claude/skills/shared/protocols/prompt-enhancement-transforms-base.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/prompt-enhancement-transforms-base.md",
-          "chars": 2513
+          "chars": 2532
         }
       ]
     },
@@ -883,12 +967,12 @@
       "group": "spec-test",
       "summary": "Eight Definition of Ready criteria before grooming",
       "when": "challenging or grooming a PBI",
-      "chars": 1661,
+      "chars": 1670,
       "file": ".claude/skills/shared/protocols/refinement-dor-checklist.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/refinement-dor-checklist.md",
-          "chars": 1661
+          "chars": 1670
         }
       ]
     },
@@ -925,12 +1009,12 @@
       "group": "review",
       "summary": "Classify the change context first, then apply the current principles that fit it",
       "when": "starting any review",
-      "chars": 2962,
+      "chars": 2997,
       "file": ".claude/skills/shared/protocols/review-principle-awareness.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/review-principle-awareness.md",
-          "chars": 2962
+          "chars": 2997
         }
       ]
     },
@@ -939,7 +1023,7 @@
       "group": "review",
       "summary": "Verbatim template and protocol blocks for every fresh sub-agent review prompt",
       "when": "spawning a fresh sub-agent to review",
-      "chars": 16987,
+      "chars": 17698,
       "file": ".claude/skills/shared/protocols/review-protocol-injection.md",
       "parts": [
         {
@@ -948,7 +1032,7 @@
         },
         {
           "file": ".claude/skills/shared/protocols/review-protocol-injection.part-2.md",
-          "chars": 7860
+          "chars": 8571
         }
       ]
     },
@@ -957,12 +1041,12 @@
       "group": "evidence-trace",
       "summary": "Systematic root-cause debugging, never guess-and-check",
       "when": "debugging a failure",
-      "chars": 1464,
+      "chars": 1568,
       "file": ".claude/skills/shared/protocols/root-cause-debugging.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/root-cause-debugging.md",
-          "chars": 1464
+          "chars": 1568
         }
       ]
     },
@@ -1041,12 +1125,12 @@
       "group": "evidence-trace",
       "summary": "Structured multi-step reasoning with revision, branch and hypothesis markers",
       "when": "planning, debugging or reviewing complex or ambiguous work",
-      "chars": 1459,
+      "chars": 1492,
       "file": ".claude/skills/shared/protocols/sequential-thinking-protocol.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/sequential-thinking-protocol.md",
-          "chars": 1459
+          "chars": 1492
         }
       ]
     },
@@ -1069,12 +1153,12 @@
       "group": "review",
       "summary": "One consequence-based Critical, High, Medium, Low scale for every finding and gate",
       "when": "classifying a finding or deciding whether a review round passes",
-      "chars": 8921,
+      "chars": 8923,
       "file": ".claude/skills/shared/protocols/severity-rubric.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/severity-rubric.md",
-          "chars": 8921
+          "chars": 8923
         }
       ]
     },
@@ -1083,12 +1167,12 @@
       "group": "workflow-task",
       "summary": "Protocol copies in carriers are intentional: edit the canonical source, then propagate",
       "when": "editing a shared protocol or its carriers",
-      "chars": 2182,
+      "chars": 3028,
       "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
-          "chars": 2182
+          "chars": 3028
         }
       ]
     },
@@ -1125,12 +1209,12 @@
       "group": "spec-test",
       "summary": "Spec, test and code loop discipline shared by the spec-driven workflows",
       "when": "running a spec-driven workflow",
-      "chars": 2391,
+      "chars": 2398,
       "file": ".claude/skills/shared/protocols/spec-loop-discipline.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/spec-loop-discipline.md",
-          "chars": 2391
+          "chars": 2398
         }
       ]
     },
@@ -1187,6 +1271,20 @@
         {
           "file": ".claude/skills/shared/protocols/systematic-review-batching.md",
           "chars": 7940
+        }
+      ]
+    },
+    {
+      "tag": "task-planning-rules",
+      "group": "universal",
+      "summary": "Task breakdown, task-graph analysis and the session goal ledger",
+      "when": "delivered by the universal hook",
+      "chars": 1259,
+      "file": ".claude/skills/shared/protocols/task-planning-rules.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/task-planning-rules.md",
+          "chars": 1259
         }
       ]
     },
@@ -1251,12 +1349,12 @@
       "group": "spec-test",
       "summary": "Decide whether the source or the test is at fault before editing either",
       "when": "a test fails",
-      "chars": 4411,
+      "chars": 4418,
       "file": ".claude/skills/shared/protocols/test-failure-fault-adjudication.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/test-failure-fault-adjudication.md",
-          "chars": 4411
+          "chars": 4418
         }
       ]
     },
@@ -1289,16 +1387,16 @@
       ]
     },
     {
-      "tag": "two-stage-task-review",
-      "group": "workflow-task",
-      "summary": "Two review stages that must both finish before a task is done",
-      "when": "marking a task complete",
-      "chars": 415,
-      "file": ".claude/skills/shared/protocols/two-stage-task-review.md",
+      "tag": "translation-sync-check",
+      "group": "review",
+      "summary": "Multilingual UI changes must include translation updates or an explicit user decision",
+      "when": "reviewing a change that touches user-visible text in a multilingual project",
+      "chars": 1053,
+      "file": ".claude/skills/shared/protocols/translation-sync-check.md",
       "parts": [
         {
-          "file": ".claude/skills/shared/protocols/two-stage-task-review.md",
-          "chars": 415
+          "file": ".claude/skills/shared/protocols/translation-sync-check.md",
+          "chars": 1053
         }
       ]
     },
@@ -1391,12 +1489,26 @@
       "group": "evidence-trace",
       "summary": "Read and trace the target and existing patterns before changing code",
       "when": "planning or editing code",
-      "chars": 1363,
+      "chars": 1521,
       "file": ".claude/skills/shared/protocols/understand-code-first.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/understand-code-first.md",
-          "chars": 1363
+          "chars": 1521
+        }
+      ]
+    },
+    {
+      "tag": "universal-closing-reminders",
+      "group": "universal",
+      "summary": "Closing reminders that restate the universal rules",
+      "when": "delivered by the universal hook",
+      "chars": 544,
+      "file": ".claude/skills/shared/protocols/universal-closing-reminders.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/universal-closing-reminders.md",
+          "chars": 544
         }
       ]
     },
@@ -1405,12 +1517,12 @@
       "group": "design",
       "summary": "Journey-first UX gate UX-1 to UX-11: report journeys, read the design authority, generate, then check every UI/UX gate",
       "when": "generating, specifying, planning, mocking up or reviewing a user-facing surface",
-      "chars": 5386,
+      "chars": 5599,
       "file": ".claude/skills/shared/protocols/ux-journey-gate.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ux-journey-gate.md",
-          "chars": 5386
+          "chars": 5599
         }
       ]
     },
@@ -1419,12 +1531,12 @@
       "group": "spec-test",
       "summary": "Build all phases and write tests, review statically, then verify once with a mutation check",
       "when": "planning or running any code-changing task",
-      "chars": 2824,
+      "chars": 2838,
       "file": ".claude/skills/shared/protocols/verify-last-order.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/verify-last-order.md",
-          "chars": 2824
+          "chars": 2838
         }
       ]
     },
@@ -1467,6 +1579,20 @@
         {
           "file": ".claude/skills/shared/protocols/workflow-registry-binding.md",
           "chars": 3287
+        }
+      ]
+    },
+    {
+      "tag": "workflow-step-advancement",
+      "group": "universal",
+      "summary": "Model-driven step advancement and the parallel-phase barrier",
+      "when": "delivered by the universal hook",
+      "chars": 2169,
+      "file": ".claude/skills/shared/protocols/workflow-step-advancement.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/workflow-step-advancement.md",
+          "chars": 2169
         }
       ]
     }

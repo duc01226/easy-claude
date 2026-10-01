@@ -112,19 +112,19 @@ sub-agents to a DIFFERENT specialist needs the same protocol substance with a di
   copy to the canonical protocol COUNT and to each protocol's header AND body verbatim; only the
   Subagent-Type / Agent-Call / Reference-Docs sections may differ. Silent staleness on substance is
   the failure mode it exists to catch.
-- **The carrier set is pinned — for that tag only.** The guard asserts exactly 3
-  `OVERRIDE:review-protocol-injection` carriers (`sync-carrier-parity.test.cjs:287-292`), so a new
+- **The carrier set is pinned — for that tag only.** The guard asserts exactly 2
+  `OVERRIDE:review-protocol-injection` carriers (`sync-carrier-parity.test.cjs:440-446`), so a new
   one appearing — or an existing one vanishing — fails the suite rather than passing quietly.
 - **`OVERRIDE:fresh-context-review` has NO sensor.** It is excluded from the SYNC equality property
   by design, is outside the substance guard above (`sync-carrier-parity.test.cjs:183` scopes the
   whole guard to `review-protocol-injection`), and `verify-sync-divergence.mjs` does not handle
-  OVERRIDE at all. Those three copies drift silently — canonical's report-only role-boundary clause
-  is already absent from all three. **Hand-merge them deliberately; nothing will tell you.**
+  OVERRIDE at all. Those two copies drift silently — canonical's report-only role-boundary clause
+  is already absent from both. **Hand-merge them deliberately; nothing will tell you.**
 - **Both markers are recognized as fences.** `check-subagent-routing.cjs` treats `SYNC` and
   `OVERRIDE` openers/closers identically for balance checking.
 
-**Live carriers (3 skills × 2 tags):** `architecture-review`, `integration-test-review`, and
-`ui-review` each override `fresh-context-review` and `review-protocol-injection`.
+**Live carriers (2 files × 2 tags):** `architecture/references/mode-review.md` and `ui-design/references/mode-review.md` each override
+`fresh-context-review` and `review-protocol-injection`.
 
 **Maintaining one:** edit the canonical section, run the script for the `SYNC:` carriers, then
 **hand-merge** the same substance change into each OVERRIDE block, preserving its
@@ -140,7 +140,7 @@ dispatch elsewhere. Any other divergence belongs in the canonical source, so eve
 
 Use when a NEW SYNC: block needs tiered propagation. Derive the on-disk target inventory at runtime; never copy a fixed skill or agent count into this contract.
 
-- `SKILL_BLOCK_ORDER` is the base tier for every skill.
+- `SKILL_BLOCK_ORDER` is the base tier for every skill (empty: the universal protocols are never inserted).
 - `ORCHESTRATOR_SKILL_BLOCK_ORDER` extends that base only for skills in `ORCHESTRATOR_SKILLS`.
 - Agent tiers remain independently governed by the injector's explicit agent sets.
 
@@ -173,72 +173,43 @@ Edit `.claude/skills/shared/sync-inline-versions.md` and add a new section:
 
 #### Step B2: Add block to `sync-hooks-to-skills.py`
 
-Edit `.claude/scripts/sync-hooks-to-skills.py`:
+The script reads every body and reminder it inserts from the canonical file at import time, so no block text is typed here. Edit `.claude/scripts/sync-hooks-to-skills.py`:
 
-1. Add entry to `BLOCKS` dict:
-
-```python
-BLOCKS = {
-    # ... existing blocks ...
-    "new-block-name": """\
-<!-- SYNC:new-block-name -->
-
-> **[Full block content here — exactly as it should appear in files]**
-
-<!-- /SYNC:new-block-name -->""",
-}
-```
-
-2. Add 1-line reminder to `REMINDERS` dict:
+1. Add the tag to `BODY_TAGS` (and to `REMINDER_TAGS` when canonical defines `## SYNC:{new-block-name}:reminder`).
+2. Add the tag to the relevant tier list(s) (controls which targets receive it and the insertion order):
 
 ```python
-REMINDERS = {
-# ... existing reminders ...
-"new-block-name": """\
-
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
-
-<!-- SYNC:new-block-name:reminder -->
-**MUST ATTENTION** [one-line summary of the rule].
-<!-- /SYNC:new-block-name:reminder -->""",
-}
-```
-
-3. Add the block name to the relevant tier list(s) (controls which targets receive it + insertion order):
-
-```python
-# Skills-3: the two universal blocks + the orchestration block. Do NOT add
-# agent-only rules here. `parallel-subagent-dispatch` is deliberately SKILL-ONLY
-# — not because an agent cannot spawn, but because an agent receives ONE brief an
-# orchestrator has ALREADY partitioned, so re-running the partitioning protocol in
-# the leaf re-decides an upstream decision. It is ALSO declared in
+# Skills carry no inserted block by default; only orchestrator skills receive the dispatch protocol.
+# `parallel-subagent-dispatch` is deliberately SKILL-ONLY — not because an agent cannot spawn, but
+# because an agent receives ONE brief an orchestrator has ALREADY partitioned, so re-running the
+# partitioning protocol in the leaf re-decides an upstream decision. It is ALSO declared in
 # agent_protocol_matrix.py EXCLUDED_ORCHESTRATION and in the TC-UAR-017
 # AGENT_ADOPTION_EXEMPT set (see "Skill-only blocks" below).
-SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention",
-                     "parallel-subagent-dispatch"]
+SKILL_BLOCK_ORDER = []
+ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatch"]
 
-# Core-6: every agent (skills/SKILL.md is unaffected).
-CORE_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention",
-                    "sequential-thinking-protocol", "task-tracking-external-report",
-                    "project-reference-docs-guide", "agent-bootstrap"]
+# Core-2: every agent (skills/SKILL.md is unaffected).
+CORE_BLOCK_ORDER = ["sequential-thinking-protocol", "agent-bootstrap"]
 
-# Code-10: Core-6 + code-investigation blocks, for agents that read/review AND fix code.
+# Code-6: Core-2 + code-investigation blocks, for agents that read/review AND fix code.
 CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "evidence-based-reasoning",
                                        "cross-service-check", "fix-layer-accountability"]
 
-# Readonly-Code-8: Core-6 + reading-discipline blocks only, for read-only/design
+# Readonly-Code-4: Core-2 + reading-discipline blocks only, for read-only/design
 # agents that locate/read/design code but never fix a layer or cross a service
 # boundary (excludes the two mutation-oriented blocks).
 READONLY_CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "evidence-based-reasoning"]
 ```
 
+**Universal protocols are not tier blocks.** The protocols of the `universal` group in `.claude/skills/shared/protocol-groups.json` are delivered by the universal hook, in the authored `bins` layout of that group; no skill (the four `inlineSkills` included) and no agent carries a body, `:reminder` or guide line of one. `py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer` removes any that reappear, together with a retired `Root-carried protocols` pointer line (agents also drop `task-tracking-external-report`, which `agent-bootstrap` states); `sync-hooks-to-skills.py` runs the same step on every target and never inserts a universal block. Never add a universal tag to a tier list, `BODY_TAGS` or `AGENT_QUALITY_BLOCKS`; `agent_protocol_matrix.py --validate` check (j) and TC-UAR-011 fail on it.
+
 **Agent tiering:** agents no longer share one block list. `find_target_files()` classifies each `.claude/agents/*.md` by explicit membership in one of three sets:
 
-- `CODE_AGENTS` (17 code/review/fix agents → `CODE_BLOCK_ORDER`, Code-10).
-- `READONLY_CODE_AGENTS` (2 read-only/design agents — `researcher`, `ui-ux-designer` → `READONLY_CODE_BLOCK_ORDER`, Core-6 + understand-code-first + evidence-based-reasoning; the mutation-oriented `cross-service-check` + `fix-layer-accountability` are deliberately excluded to save tokens on agents that only locate/read/design code).
-- `CORE_ONLY_AGENTS` (4 non-code agents → `CORE_BLOCK_ORDER`, Core-6).
+- `CODE_AGENTS` (code/review/fix agents → `CODE_BLOCK_ORDER`, Code-6).
+- `READONLY_CODE_AGENTS` (2 read-only/design agents — `researcher`, `ui-ux-designer` → `READONLY_CODE_BLOCK_ORDER`, Core-2 + understand-code-first + evidence-based-reasoning; the mutation-oriented `cross-service-check` + `fix-layer-accountability` are deliberately excluded to save tokens on agents that only locate/read/design code).
+- `CORE_ONLY_AGENTS` (non-code agents → `CORE_BLOCK_ORDER`, Core-2).
 
-An agent in **none of the three sets (or in more than one)** raises `SystemExit` — no silent default; classify it before the script will run. Skills always use `SKILL_BLOCK_ORDER`. Pass `--agents-only` to scope a run to agents (skip skills).
+An agent in **none of the three sets (or in more than one)** raises `SystemExit` — no silent default; classify it before the script will run. Skills use `SKILL_BLOCK_ORDER` (`ORCHESTRATOR_SKILL_BLOCK_ORDER` for `ORCHESTRATOR_SKILLS`). Pass `--agents-only` to scope a run to agents (skip skills).
 
 > **Adding a new agent:** add its basename to exactly one of `CODE_AGENTS` / `READONLY_CODE_AGENTS` / `CORE_ONLY_AGENTS` in `sync-hooks-to-skills.py` **and** in the regression suite `.claude/hooks/tests/suites/agent-universal-rules.test.cjs` (TC-UAR-005 fails until both agree). The two enforce one invariant.
 >
@@ -274,8 +245,8 @@ python .claude/scripts/sync-hooks-to-skills.py --verbose
 #                                            exemption lists — see "Skill-only blocks")
 #   - block in SKILL_BLOCK_ORDER + CORE   → every discovered skill + every discovered agent
 #   - block in CORE_BLOCK_ORDER           → every discovered agent (skills excluded)
-#   - block in READONLY_CODE_BLOCK_ORDER  → 21 agents (17 code + 4 readonly-code)
-#   - block in CODE_BLOCK_ORDER           → 17 code agents only
+#   - block in READONLY_CODE_BLOCK_ORDER  → every code and readonly-code agent
+#   - block in CODE_BLOCK_ORDER           → every code agent only
 grep -rl "SYNC:new-block-name" .claude/skills/*/SKILL.md .claude/agents/*.md | wc -l
 
 # Then run the agent-coverage regression suite — it asserts tier membership,
@@ -312,36 +283,15 @@ Check a representative file of each affected tier manually to confirm placement 
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `shared-protocol-duplication-policy` — Protocol copies in carriers are intentional: edit the canonical source, then propagate; editing a shared protocol or its carriers → .claude/skills/shared/protocols/shared-protocol-duplication-policy.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 
-**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
+**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline; the universal bundle is delivered by hooks and no carrier holds any part of it.
 
 <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
@@ -351,9 +301,7 @@ Check a representative file of each affected tier manually to confirm placement 
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **Critical Thinking:** apply critical+sequential thinking; trace every claim, confidence >80%.
 - **Shared Protocol Duplication:** follow the hybrid duplication policy (`SYNC:shared-protocol-duplication-policy`) — skills keep guide lines, the review-family skills and agents keep full bodies, and only the sync tool converts or propagates them.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **IMPORTANT MUST ATTENTION** edit `sync-inline-versions.md` FIRST before syncing to skills
 **IMPORTANT MUST ATTENTION** verify SYNC tag balance after every sync run

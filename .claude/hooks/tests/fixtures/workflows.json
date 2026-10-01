@@ -14,7 +14,7 @@
       "priority": 2,
       "triggerPatterns": ["\\bbug\\b", "\\bfix\\b", "\\berror\\b", "\\bnot\\s+working\\b"],
       "excludePatterns": [],
-      "sequence": ["/investigate", "/debug-investigate", "/fix", "/test"]
+      "sequence": ["/investigate", "/investigate --mode=debug", "/fix", "/test"]
     },
     {
       "id": "refactor",
@@ -22,7 +22,7 @@
       "priority": 3,
       "triggerPatterns": ["\\brefactor\\b", "\\brestructure\\b", "\\bclean\\s*up\\b"],
       "excludePatterns": [],
-      "sequence": ["/plan", "/plan-execute", "/test", "/code-quality-review"]
+      "sequence": ["/plan", "/plan --mode=execute", "/test", "/code-quality-review"]
     },
     {
       "id": "investigation",

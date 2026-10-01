@@ -67,10 +67,9 @@ test('R3-PROMPT-026: CLAUDE.md completion invokes the shared mirror runner after
     rejects(assertSyncHandoff, source, 'one executable pipeline', 'two unrelated pipelines');
     rejects(assertSyncHandoff, source, '--skip=claude-md', '--skip=wrong-stage');
     rejects(assertSyncHandoff, source, 'TaskCreate: "Sync Codex mirrors from updated CLAUDE.md → invoke /sync-codex"', 'TaskCreate: "Report stale Codex mirrors → instruct user"');
+    // The generated root holds project information only; the mirror handoff lives in the skill, not the template.
     const template = read('skills/ai-context-refresh/references/claude-md-template.md');
-    assert.match(template, /full `\/sync-codex` run preflights `CLAUDE\.md`/);
-    assert.match(template, /completed `\/ai-context-refresh` run invokes the same standalone runner/);
-    assert.doesNotMatch(template, /Never auto-run `\/sync-codex`/);
+    assert.doesNotMatch(template, /sync-codex|Never auto-run/);
     // Then final CLAUDE.md authoring has one safe, non-recursive mirror handoff.
 });
 
@@ -91,7 +90,7 @@ function assertUi(text) {
 
 test('R3-PROMPT-027/031: advisory scores and category labels cannot bypass eligibility', () => {
     const readiness = local(skill('production-readiness-review'));
-    const ui = local(skill('ui-review'));
+    const ui = local(read('skills/ui-design/references/mode-review.md'));
     assertReadiness(readiness);
     assertUi(ui);
     rejects(assertReadiness, readiness, 'a failed binary gate blocks PASS at every round regardless of score or owner risk acceptance', 'an unaccepted CRITICAL/HIGH fail blocks PASS');

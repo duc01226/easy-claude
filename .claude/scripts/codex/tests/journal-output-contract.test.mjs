@@ -40,7 +40,8 @@ function assertReportsDistinct(source) {
     assert.ok(boundary, 'writer: missing intermediate assessment boundary');
     assert.match(boundary, /`tmp\/reports\/`/, 'writer: assessment reports retain their destination');
     assert.match(boundary, /journal entries.*`\.\/docs\/journals\/`/, 'writer: durable journal stays separate');
-    assert.match(source, /For plan\/review work, create `tmp\/reports\//);
+    // The report task-tracking contract now lives in the agent-bootstrap block (canonical: SYNC:agent-bootstrap).
+    assert.match(source, /Producing a report\?\*\* Create the `tmp\/reports\/` file path BEFORE the first finding/, 'writer: report task-tracking contract retained');
 }
 
 // TC-HARNESS-015 / S15: prompt-contract checks, not measured agent execution.

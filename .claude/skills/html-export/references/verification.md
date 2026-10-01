@@ -98,7 +98,7 @@ Together they cover the two layouts most pages actually ship. Pass `--viewport=W
 |---|---|---|
 | presentation-builder | `--slides` (the default selector, `section.slide[data-slide-id], [data-export-slide]`) | `keys`, or `stacked` for a deck that shows all slides at once |
 | feature-presentation | `--slides=section.deck__slide` (its slides also carry `slide` and `data-slide-id`, so the default `--slides` finds the same slides) | `keys` |
-| pbi-mockup | `--slides='[data-state]'` (quoted: brackets are a glob in zsh; double quotes in cmd.exe) | `proto`, through the mockup's `window.__proto.goTo` |
+| pbi --mode=mockup | `--slides='[data-state]'` (quoted: brackets are a glob in zsh; double quotes in cmd.exe) | `proto`, through the mockup's `window.__proto.goTo` |
 
 Any other page can mark its items with `data-export-slide`. A `keys` or `proto` to `stacked` switch is recorded in `navigation[].fallback`. From `keys` it usually means the key handler is missing or ignores `Home`; from `proto` it means `goTo` did not show the requested screen. The captures are still valid, but they show each item forced visible rather than through the page's own navigation.
 

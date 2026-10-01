@@ -32,7 +32,7 @@ claude --settings .claude/config/vanilla-settings.json --disable-slash-commands
 
 Project agents in `.claude/agents/` and the permission rules in `.claude/settings.json` stay active. `--settings` overrides the same keys in every settings file for this session only; the next plain `claude` session runs the full framework again.
 
-To keep the framework but stop automatic workflow routing, turn `portability.workflowAutoDetect` off instead — for the team in `docs/project-config.json`, or for yourself in `.claude/.ck.local.json` (see `.claude/docs/configuration/README.md`).
+To keep the framework but change how workflows start, set the workflow route mode instead (`off` = no workflow or workflow skill starts without an explicit request, `auto` = start without asking, `ask` = the default) — for the team in `docs/project-config.json`, or for yourself in `~/.claude/.ck.json`, `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE` (see `.claude/docs/configuration/README.md`).
 
 ## Adopter quick settings
 
@@ -41,9 +41,9 @@ Common ways to make the framework lighter for one project. Team settings go in `
 | Need | Setting or action | Undo |
 | --- | --- | --- |
 | Workflows ask before they start | `portability.workflowActivation.default: "confirm"` (or `"manual"`). A default only tightens a workflow's own tier; `portability.workflowActivation.overrides` sets one workflow's tier exactly, looser included. A valid value in `.claude/.ck.local.json` wins for you alone | Remove the key |
-| No automatic workflow routing | `portability.workflowAutoDetect: false`, then regenerate `CLAUDE.md` (`/ai-context-refresh`) so the root file drops the routing gate; the route hook then sends a short routing-off notice instead of the catalog | Set `true` and regenerate |
+| No automatic workflow routing | `portability.workflowRouteMode: "off"` (team: project config; personal: `~/.claude/.ck.json`, `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE=off`; no regeneration either way, the hook reads the setting directly); the route hook then sends a short routing-off notice instead of the catalog | Set `ask` (or `auto`) |
 | Reading a file stops pulling authoring docs | Per convention class: `on: "edit"` on the `contextGroups[]` entry (`read`, `edit` or `both`; default `both`). For every class: `conventionInjection.onRead: false` | Remove `on` / the key |
-| Code graph only when the project wants it | `hooks.codeGraph.enabled`: `auto` (default: active only once `.code-graph/graph.db` exists, built with `/graph-build`), `on`, or `off` (graph hooks silent, graph CLI refuses) | Remove the key |
+| Code graph only when the project wants it | `hooks.codeGraph.enabled`: `auto` (default: active only once `.code-graph/graph.db` exists, built with `/graph-code --mode=build`), `on`, or `off` (graph hooks silent, graph CLI refuses) | Remove the key |
 | No `Fix-Origin:` commit trailer | Nothing to do: it is off by default. Set `commit.fixOriginTrailer: true` to opt in; it applies to new commits only, and a check that demands it on older commits must be made forward-only rather than rewriting history | Remove the key |
 | The host's built-in code reviewer | Type `/code-review` (or its `/review` alias) in Claude Code; the framework ships no skill of that name (its own review skill is `code-quality-review`), so the built-in runs. The same holds for `/security-review`, `/deep-research`, `/release-notes` and `/design`, whose framework skills are `security-audit`, `source-deep-dive`, `release-doc` and `ui-design`. It stops working if `code-review` is set `off` (see [Skill visibility and settings precedence](#skill-visibility-and-settings-precedence)) | None needed |
 | Fewer skills in the model's list | `skillProfile` in `docs/project-config.json`, then `node .claude/scripts/sync-skill-profile.cjs` (see [Skill profile](#skill-profile)) | Remove `skillProfile` and run the sync again |

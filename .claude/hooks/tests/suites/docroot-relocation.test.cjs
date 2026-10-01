@@ -27,7 +27,6 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const vm = require('vm');
 const { spawnSync } = require('child_process');
 const { assertEqual, assertDeepEqual, assertTrue, assertContains, assertNotContains } = require('../lib/assertions.cjs');
 
@@ -294,33 +293,22 @@ const tests = [
         }
     },
     {
-        name: '[docroot-relocation] TC-DOCROOT-155 the Codex mirror resolves the fixture identically to the loader',
+        name: '[docroot-relocation] TC-DOCROOT-155 the Codex-side consumers resolve the fixture identically to the loader',
         fn: async () => {
             const mirrorPath = path.join(REPO, '.claude', 'scripts', 'codex', 'sync-context-workflows.mjs');
             const mirrorSource = fs.readFileSync(mirrorPath, 'utf8');
 
-            // 1. The mirror DELEGATES to the loader whenever the loader is importable, which is
-            //    the only way two hosts can agree about a value neither of them hardcodes.
-            assertContains(
-                mirrorSource,
-                'loader.resolvePortabilityTokens',
-                'the mirror must delegate token resolution to the loader, never reimplement it'
+            // 1. The context mirror projects project text only and resolves no token: a second copy of the
+            //    token table there could only drift from the loader.
+            assertTrue(
+                !/PORTABILITY_TOKEN_DEFAULTS|resolvePortabilityTokens/.test(mirrorSource),
+                'the context mirror must carry no portability-token resolver or default table'
             );
-
-            // 2. Its defaults-only fallback (stripped portable Codex tree) must not drift from the
-            //    loader's table. Lifted under vm because the loader require SUCCEEDS in this repo
-            //    and would otherwise mask the branch — same technique as TC-DOCROOT-029.
-            const defaultsSrc = mirrorSource.match(/const PORTABILITY_TOKEN_DEFAULTS = \{[\s\S]*?\n\};/);
-            assertTrue(!!defaultsSrc, 'mirror PORTABILITY_TOKEN_DEFAULTS source not found — has the fallback shape changed?');
-            const ctx = { result: {} };
-            vm.createContext(ctx);
-            vm.runInContext(`${defaultsSrc[0]}\nresult.defaults = PORTABILITY_TOKEN_DEFAULTS;`, ctx);
             const loaderDefaults = Object.fromEntries(
                 Object.entries(loader.PORTABILITY_TOKENS).map(([token, spec]) => [token, spec.default])
             );
-            assertDeepEqual({ ...ctx.result.defaults }, loaderDefaults, 'mirror fallback defaults drifted from the loader');
 
-            // 3. The OTHER Codex-side consumer that travels without hooks/lib resolves the same
+            // 2. The Codex-side consumer that travels without hooks/lib resolves the same
             //    RELOCATED values as the loader for the same config — the actual parity claim.
             const sdd = await importSdd();
             assertDeepEqual(sdd.PORTABILITY_TOKEN_DEFAULTS, loaderDefaults, 'verify-sdd defaults drifted from the loader');

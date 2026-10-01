@@ -62,9 +62,14 @@ const SKILL_ROOT = path.resolve(__dirname, '..');
 const PLAYWRIGHT_ROOT = path.join(SKILL_ROOT, 'node_modules', 'playwright');
 // The dispatcher reaches the shared project-root helper by relative path from the skill.
 const PROJECT_ROOT_HELPER = path.resolve(SKILL_ROOT, '..', '..', 'scripts', 'lib', 'project-root.cjs');
+// OS essentials only. The Windows well-known folder keys (SYSTEMDRIVE, PROGRAMDATA, ...) stay: without them a
+// child that touches the shell writes its cache files under its working directory.
 const CHILD_ENV_ALLOWLIST = new Set([
-  'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PROCESSOR_ARCHITECTURE',
-  'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
+  'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC',
+  'SYSTEMDRIVE', 'PROGRAMDATA', 'ALLUSERSPROFILE', 'PUBLIC',
+  'PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMW6432',
+  'COMMONPROGRAMFILES', 'COMMONPROGRAMFILES(X86)', 'COMMONPROGRAMW6432',
+  'PROCESSOR_ARCHITECTURE', 'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
 ]);
 const REDIRECTED_KEYS = Object.freeze(['HOME', 'USERPROFILE', 'TMPDIR', 'TEMP', 'TMP']);
 // Notification providers and framework feature switches a developer machine may have set.

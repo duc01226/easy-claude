@@ -12,14 +12,19 @@
  *      recognizer (never the path text of a guide line);
  *   3. looks each tag up in the published protocol index (unknown tags are dropped; text comes only
  *      from the projection files the index names);
- *   4. keeps this group's tags, drops root-carried tags unless the universal case applies, drops
- *      inline review-family skills entirely, and drops tags the ledger view reports as delivered;
+ *   4. keeps this group's tags, drops inline review-family skills, drops tags the ledger view reports
+ *      as delivered, drops tags the starting agent already inlines as a full SYNC body, and drops trigger-gated tags
+ *      (`trigger` in the group data) unless their trigger applies — the skill's guide line stays the
+ *      path for those (see `triggerApplies`);
  *   5. packs the result into one message of at most `binChars` characters; what does not fit is
  *      named by its index path ("read these"), never dropped.
  *
+ * Inline review-family skills receive nothing from any group (their role protocols are full bodies).
+ * The universal bundle is not a skill-load group: `universal-delivery.cjs` delivers it on prompts and
+ * sub-agent starts.
+ *
  * Load cost (BR-PDL-09): the top level requires only Node built-ins. Project modules (the project
- * root resolver, the universal-guides setting, the guide recognizer) are required inside the
- * functions that need them.
+ * root resolver, the guide recognizer) are required inside the functions that need them.
  * The per-group entry files, the session ledger and stdin handling wrap this planner (`runHook`).
  */
 
@@ -36,8 +41,7 @@ const MAX_NAMES = 32;
 /** The largest message the primary host shows in full is 10,000 characters; the bin never exceeds this. */
 const MAX_BIN = 9500;
 
-/** Built-in agent types that start without the root instruction file (BR-PDL-08; the confirmation run in ADR-0004). */
-const ROOT_SKIPPING_AGENT_TYPES = Object.freeze(['Explore', 'Plan']);
+/** The hook-delivered bundle: never a skill-load group (`universal-delivery.cjs` owns it). */
 const UNIVERSAL_GROUP = 'universal';
 
 const SEG = Object.freeze({
@@ -180,17 +184,39 @@ function parseAgentFrontmatter(text) {
     return { name, skills };
 }
 
+/** Upper bound on the event text scanned by a delivery trigger. */
+const TRIGGER_TEXT_MAX = 20000;
+
+/** Free text the event itself carries (skill arguments, typed-command arguments, a second-host prompt). */
+function eventText(input) {
+    const toolInput = isPlainObject(input.tool_input) ? input.tool_input : {};
+    const parts = [toolInput.args, toolInput.arguments, input.command_args, input.prompt].filter(nonBlank);
+    return parts.join('\n').slice(0, TRIGGER_TEXT_MAX);
+}
+
 /**
- * Resolve the event to skill names (or the root-skipping universal-only case). Opens at most the
- * agent definition file, and only for a SubagentStart whose agent type passes the name rule.
- * @returns {{names: string[], universalOnly: boolean}}
+ * True when the agent definition carries the full SYNC body of `tag` between its paired fences
+ * (the `:reminder` variant has another tag name, so it never counts as the body).
+ */
+function agentInlines(agentText, tag) {
+    return typeof agentText === 'string'
+        && agentText.includes(`<!-- SYNC:${tag} -->`)
+        && agentText.includes(`<!-- /SYNC:${tag} -->`);
+}
+
+/**
+ * Resolve the event to skill names. Opens at most the agent definition file, and only for a
+ * SubagentStart whose agent type passes the name rule. `agentText` is the agent definition, set only
+ * when its declared name equals the agent type.
+ * @returns {{names: string[], agentText: string|null, text: string}}
  */
 function resolveEvent(input, ctx) {
-    const result = { names: [], universalOnly: false };
+    const result = { names: [], agentText: null, text: '' };
     if (!isPlainObject(input)) return result;
     const event = input.hook_event_name;
     const toolInput = isPlainObject(input.tool_input) ? input.tool_input : {};
     const base = nonBlank(input.cwd) && path.isAbsolute(input.cwd) ? input.cwd : ctx.root;
+    result.text = eventText(input);
 
     if (event === 'PostToolUse') {
         if (input.tool_name === 'Skill') {
@@ -220,10 +246,6 @@ function resolveEvent(input, ctx) {
     }
     if (event === 'SubagentStart') {
         const agentType = input.agent_type;
-        if (ctx.host !== 'codex' && typeof agentType === 'string' && ctx.rootSkippingAgentTypes.includes(agentType)) {
-            result.universalOnly = true;
-            return result;
-        }
         if (!isSafeName(agentType)) return result;
         const file = containedPath(ctx.root, SEG.claudeAgents, [`${agentType}.md`]);
         const text = file && ctx.read(file);
@@ -231,6 +253,7 @@ function resolveEvent(input, ctx) {
         const frontmatter = parseAgentFrontmatter(text);
         // Trust the file only when its declared name equals the agent type (the host's key).
         if (!frontmatter || frontmatter.name !== agentType) return result;
+        result.agentText = text;
         for (const skill of frontmatter.skills) pushName(result.names, skill);
         return result;
     }
@@ -256,8 +279,8 @@ function loadGuideCarrier() {
  * Tags a skill file declares as guide entries: the recognizer's well-formed guide lines inside
  * closed PROTOCOL-GUIDES blocks. The tag alone is used; the summary, when and path text are never
  * read as a file or repeated (BR-PDL-10), and a tag only ever selects a row of the protocol index.
- * @returns {string[]|null} tags in declared order (deduplicated), or null when the file declares
- *   no guide entry — no block, an empty or unclosed one, or only malformed lines. Such a skill is
+ * @returns {string[]|null} tags in declared order (deduplicated), or null when the file declares no
+ *   guide entry — no block, an empty or unclosed one, or only malformed lines. Such a skill is
  *   undeclared and receives nothing (BR-PDL-01), exactly as the conversion tooling counts it.
  */
 function declaredTags(text) {
@@ -311,6 +334,65 @@ function loadInlineSkills(ctx) {
     const groups = readJson(ctx, GROUPS_REL);
     if (!isPlainObject(groups) || !Array.isArray(groups.inlineSkills)) return null;
     return new Set(groups.inlineSkills.filter(name => typeof name === 'string'));
+}
+
+// ── delivery triggers ───────────────────────────────────────────────────────
+
+function compilePattern(source) {
+    if (!nonBlank(source) || source.length > 4000) return null;
+    try {
+        return new RegExp(source, 'i');
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Trigger-gated tags from the group data: a tag entry naming `"trigger": "<name>"` is delivered in
+ * full only when trigger `<name>` (top-level `deliveryTriggers`) applies. A trigger holds `pattern`
+ * (matched against the event text and the session's recorded prompts), `pathPattern` (matched against
+ * the recent transcript, i.e. files the session touched) and `skills` (loaded skills whose scope IS the
+ * trigger's domain, which always receive the full text). A tag naming an unknown trigger, or a trigger
+ * with no usable pattern, is delivered unconditionally: an unreadable rule never withholds a protocol.
+ * @returns {Map<string, {patterns: RegExp[], pathPattern: RegExp|null, skills: Set<string>}>}
+ */
+function loadTriggers(ctx) {
+    const triggers = new Map();
+    const data = readJson(ctx, GROUPS_REL);
+    if (!isPlainObject(data) || !isPlainObject(data.groups) || !isPlainObject(data.deliveryTriggers)) return triggers;
+    for (const group of Object.values(data.groups)) {
+        if (!isPlainObject(group) || !isPlainObject(group.tags)) continue;
+        for (const [tag, entry] of Object.entries(group.tags)) {
+            const def = isPlainObject(entry) && typeof entry.trigger === 'string' ? data.deliveryTriggers[entry.trigger] : null;
+            if (!isPlainObject(def)) continue;
+            const pattern = compilePattern(def.pattern);
+            const pathPattern = compilePattern(def.pathPattern);
+            if (!pattern && !pathPattern) continue;
+            triggers.set(tag, {
+                pattern,
+                pathPattern,
+                skills: new Set(Array.isArray(def.skills) ? def.skills.filter(name => typeof name === 'string') : [])
+            });
+        }
+    }
+    return triggers;
+}
+
+/**
+ * Whether the trigger of a gated tag applies to this load: a loaded skill whose scope is the domain,
+ * a keyword or file-name match in the event text or the session's recorded prompts, or a path match in
+ * the recent transcript. `context` is lazy (`deps.triggerContext`), evaluated at most once per plan.
+ * A context that cannot be read (`unreadable`) delivers unconditionally (BR-PDL-16): a failing rule
+ * never withholds a protocol. A readable context with no match withholds: the skill's own guide line
+ * stays the path to the protocol.
+ */
+function triggerApplies(def, resolved, context) {
+    if (resolved.names.some(name => def.skills.has(name))) return true;
+    if (def.pattern && def.pattern.test(resolved.text)) return true;
+    const { prompts, transcript, unreadable } = context();
+    if (unreadable) return true;
+    if (def.pattern && def.pattern.test(prompts)) return true;
+    return Boolean(def.pathPattern && (def.pathPattern.test(transcript) || def.pathPattern.test(prompts) || def.pathPattern.test(resolved.text)));
 }
 
 // ── pack ────────────────────────────────────────────────────────────────────
@@ -437,13 +519,24 @@ function resolveRoot(input, deps) {
     }
 }
 
-function universalGuidesRequired(deps) {
-    if (typeof deps.requireUniversalGuides === 'boolean') return deps.requireUniversalGuides;
-    if (isPlainObject(deps.config)) return deps.config?.portability?.requireUniversalGuides !== false;
+/**
+ * The lazy trigger context (`deps.triggerContext`) as `{prompts, transcript, unreadable}`. No provider
+ * is an empty, readable context. A provider that throws, returns a non-object, or reports
+ * `unreadable: true` yields an unreadable context, which `triggerApplies` treats as applying.
+ */
+function readTriggerContext(provider) {
+    const empty = { prompts: '', transcript: '', unreadable: false };
+    if (typeof provider !== 'function') return empty;
     try {
-        return require('./agent-files-state.cjs').isUniversalGuidesRequired() !== false;
+        const value = provider();
+        if (!isPlainObject(value)) return { ...empty, unreadable: true };
+        return {
+            prompts: typeof value.prompts === 'string' ? value.prompts : '',
+            transcript: typeof value.transcript === 'string' ? value.transcript : '',
+            unreadable: value.unreadable === true
+        };
     } catch {
-        return true; // fail toward the root file: never duplicate on an unreadable setting
+        return { ...empty, unreadable: true };
     }
 }
 
@@ -456,10 +549,8 @@ function universalGuidesRequired(deps) {
  * @param {string}   [deps.projectRoot]  absolute project root (default: resolved from `input.cwd`)
  * @param {Function} [deps.readFile]     (absPath) => string|null; every file open goes through it
  * @param {Function} [deps.isDelivered]  (tag) => boolean; ledger view — delivered tags are not packed
- * @param {boolean}  [deps.requireUniversalGuides]  overrides the project setting
- * @param {object}   [deps.config]       project config object (read for `portability.requireUniversalGuides`)
  * @param {string}   [deps.host]         'claude' | 'codex' | 'opencode' (default: detected from the event)
- * @param {string[]} [deps.rootSkippingAgentTypes]  default ROOT_SKIPPING_AGENT_TYPES
+ * @param {Function} [deps.triggerContext]  () => {prompts, transcript}; lazy source for trigger-gated tags (default: none)
  * @returns {{text:string, tags:string[], full:string[], named:string[], summarized:string[]}} `tags` =
  *   every tag the message covers (full text, named path, or the summary line); `full` / `named` /
  *   `summarized` split it (a split tag can be in both `named` and `summarized`).
@@ -473,7 +564,7 @@ function planDelivery(input, group, deps = {}) {
 }
 
 function planDeliveryUnsafe(input, group, deps) {
-    if (typeof group !== 'string' || !group) return emptyPlan();
+    if (typeof group !== 'string' || !group || group === UNIVERSAL_GROUP) return emptyPlan();
     const root = resolveRoot(input, deps);
     if (!root) return emptyPlan();
     const reader = typeof deps.readFile === 'function' ? deps.readFile : defaultRead;
@@ -484,46 +575,43 @@ function planDeliveryUnsafe(input, group, deps) {
     const ctx = {
         root,
         read,
-        host: typeof deps.host === 'string' ? deps.host : detectHost(input),
-        rootSkippingAgentTypes: Array.isArray(deps.rootSkippingAgentTypes) ? deps.rootSkippingAgentTypes : ROOT_SKIPPING_AGENT_TYPES
+        host: typeof deps.host === 'string' ? deps.host : detectHost(input)
     };
     const isDelivered = typeof deps.isDelivered === 'function' ? deps.isDelivered : () => false;
 
     const resolved = resolveEvent(input, ctx);
-    if (!resolved.universalOnly && !resolved.names.length) return emptyPlan();
+    if (!resolved.names.length) return emptyPlan();
 
     const index = loadIndex(ctx);
     if (!index || !index.groups.includes(group)) return emptyPlan();
 
-    let tags = [];
-    if (resolved.universalOnly) {
-        if (group !== UNIVERSAL_GROUP) return emptyPlan();
-        tags = [...index.rows.values()].filter(row => row.group === UNIVERSAL_GROUP).map(row => row.tag);
-    } else {
-        const inline = loadInlineSkills(ctx);
-        if (!inline) return emptyPlan();
-        const declared = [];
-        let converted = 0;
-        for (const name of resolved.names) {
-            if (inline.has(name)) continue; // BR-PDL-11: inline skills get nothing, universal included
-            const skillRoot = ctx.host === 'codex' ? SEG.codexSkills : SEG.claudeSkills;
-            const file = containedPath(root, skillRoot, [name, SKILL_FILE]);
-            const text = file && read(file);
-            if (text === null || text === undefined) continue; // unresolved → its guides remain
-            const skillTags = declaredTags(text);
-            if (!skillTags) continue; // undeclared (pre-conversion) skill → inert (BR-PDL-01)
-            converted += 1;
-            for (const tag of skillTags) if (!declared.includes(tag)) declared.push(tag);
-        }
-        if (!converted) return emptyPlan();
-        if (group === UNIVERSAL_GROUP) {
-            // BR-PDL-04: root-carried protocols come from the root file unless the project opts out.
-            if (universalGuidesRequired(deps)) return emptyPlan();
-            tags = [...index.rows.values()].filter(row => row.group === UNIVERSAL_GROUP).map(row => row.tag);
-        } else {
-            tags = declared.filter(tag => index.rows.get(tag)?.group === group); // unknown tags dropped
-        }
+    const inline = loadInlineSkills(ctx);
+    if (!inline) return emptyPlan();
+    const declared = [];
+    let converted = 0;
+    for (const name of resolved.names) {
+        // BR-PDL-11: an inline skill keeps its role protocols as full bodies, so no group delivers to it.
+        if (inline.has(name)) continue;
+        const skillRoot = ctx.host === 'codex' ? SEG.codexSkills : SEG.claudeSkills;
+        const file = containedPath(root, skillRoot, [name, SKILL_FILE]);
+        const text = file && read(file);
+        if (text === null || text === undefined) continue; // unresolved → its guides remain
+        const skillTags = declaredTags(text);
+        if (!skillTags) continue; // undeclared (pre-conversion) skill → inert (BR-PDL-01)
+        converted += 1;
+        for (const tag of skillTags) if (!declared.includes(tag)) declared.push(tag);
     }
+    if (!converted) return emptyPlan();
+    // Unknown tags are dropped; a universal tag is never a guide tag, so it never matches a skill group.
+    let tags = declared.filter(tag => index.rows.get(tag)?.group === group);
+    const triggers = loadTriggers(ctx);
+    if (triggers.size) {
+        let context = null;
+        const lazy = () => context || (context = readTriggerContext(deps.triggerContext));
+        tags = tags.filter(tag => !triggers.has(tag) || triggerApplies(triggers.get(tag), resolved, lazy));
+    }
+    // A tag the starting agent already carries as a full body is not delivered a second time.
+    if (resolved.agentText) tags = tags.filter(tag => !agentInlines(resolved.agentText, tag));
 
     const items = [];
     for (const tag of tags) {
@@ -685,6 +773,37 @@ function isKnownGroup(root, read, group) {
     }
 }
 
+/** sha256 of a tag's published parts (LF, no trailing newlines): the content key of its delivery record. */
+function tagHash(index, tag, readNormalized) {
+    const crypto = require('node:crypto');
+    const row = index && index.rows.get(tag);
+    const hash = crypto.createHash('sha256');
+    for (const part of row ? row.parts : []) {
+        const text = readNormalized(part.abs);
+        hash.update(typeof text === 'string' ? `${text.replace(/\n+$/, '')}\n\u0000` : '\u0001missing\u0000');
+    }
+    return hash.digest('hex');
+}
+
+/**
+ * The delivery record of one tag, for a hook outside this planner that delivers the same protocol
+ * (core-principles-inject delivers `core-engineering-principles`): the ledger store directory and the
+ * content hash under which this planner records the tag, so both deliveries share ONE record and the
+ * protocol reaches a session scope once per window whichever path ran first. `hash` is null when the
+ * tag has no published projection (the caller then keeps a private record).
+ * @returns {{root: string, group: string, hash: string|null}}
+ */
+function sharedRecordFor(projectRoot, tag, readFile = defaultRead) {
+    const root = path.resolve(projectRoot);
+    const read = file => {
+        const text = readFile(file);
+        return typeof text === 'string' ? text.replace(/\r\n/g, '\n') : null;
+    };
+    const index = loadIndex({ root, read });
+    const hash = index && index.rows.has(tag) ? tagHash(index, tag, read) : null;
+    return { root: path.join(root, ...STORE_SEGMENTS), group: tag, hash };
+}
+
 /**
  * The session ledger view for one run (BR-PDL-02, BR-PDL-05). One record per tag, keyed by the
  * sha256 of the tag's published text, in `<store>/<session>/<scope>/<tag>.json`. Each tag belongs
@@ -693,7 +812,6 @@ function isKnownGroup(root, read, group) {
  */
 function openLedger(root, input, read, now) {
     const ledger = require('./convention-ledger.cjs');
-    const crypto = require('node:crypto');
     const store = path.join(root, ...STORE_SEGMENTS);
     const sessionId = nonBlank(input.session_id) ? input.session_id : null;
     const scope = ledger.scopeFor(input);
@@ -711,15 +829,7 @@ function openLedger(root, input, read, now) {
     });
     const hashes = new Map();
     const hashFor = tag => {
-        if (!hashes.has(tag)) {
-            const row = index && index.rows.get(tag);
-            const hash = crypto.createHash('sha256');
-            for (const part of row ? row.parts : []) {
-                const text = normalized(part.abs);
-                hash.update(typeof text === 'string' ? `${text.replace(/\n+$/, '')}\n\u0000` : '\u0001missing\u0000');
-            }
-            hashes.set(tag, hash.digest('hex'));
-        }
+        if (!hashes.has(tag)) hashes.set(tag, tagHash(index, tag, normalized));
         return hashes.get(tag);
     };
     const isRecorded = tag => sessionId !== null
@@ -788,6 +898,55 @@ function peerHoldsLock(lock, now, staleMs) {
     }
 }
 
+/** Most recent prompt records read from the session's prompt ledger for trigger matching. */
+const TRIGGER_PROMPT_ENTRIES = 40;
+/** Tail of the conversation record scanned for touched file paths. */
+const TRIGGER_TRANSCRIPT_TAIL_BYTES = 128 * 1024;
+
+/**
+ * The lazy context of `triggerApplies`: the session's recorded prompts (prompt ledger, when the
+ * project keeps one) and the tail of the conversation record. An ABSENT source (no session id, no
+ * ledger, no record file) contributes nothing, which leaves a gated protocol to its guide line; a
+ * source that EXISTS but fails to read marks the context `unreadable`, which delivers (BR-PDL-16).
+ * @returns {{prompts: string, transcript: string, unreadable: boolean}}
+ */
+function buildTriggerContext(root, input, env) {
+    const context = { prompts: '', transcript: '', unreadable: false };
+    try {
+        if (nonBlank(input.session_id)) {
+            const store = require('./prompt-ledger-store.cjs');
+            const { status, ledger } = store.readLedgerStatus(store.sessionDir(store.storeRoot(env, root), input.session_id));
+            if (status === 'unreadable') context.unreadable = true;
+            if (ledger) {
+                context.prompts = ledger.entries.slice(-TRIGGER_PROMPT_ENTRIES)
+                    .map(entry => (entry && typeof entry.text === 'string' ? entry.text : ''))
+                    .join('\n')
+                    .slice(0, TRIGGER_TEXT_MAX * 4);
+            }
+        }
+    } catch {
+        context.unreadable = true; // the prompt record store could not be read
+    }
+    try {
+        const file = require('./convention-ledger.cjs').transcriptPathFor(input);
+        if (file) {
+            const fd = fs.openSync(file, 'r');
+            try {
+                const size = fs.fstatSync(fd).size;
+                const length = Math.min(size, TRIGGER_TRANSCRIPT_TAIL_BYTES);
+                const buffer = Buffer.alloc(length);
+                fs.readSync(fd, buffer, 0, length, size - length);
+                context.transcript = buffer.toString('utf8');
+            } finally {
+                fs.closeSync(fd);
+            }
+        }
+    } catch (error) {
+        if (!error || error.code !== 'ENOENT') context.unreadable = true; // a missing record is absent, not unreadable
+    }
+    return context;
+}
+
 function defaultHookWrite(text, done) {
     try {
         process.stdout.write(text, err => done(!err));
@@ -810,7 +969,10 @@ function deliver(group, input, deps, finish) {
     }
     const now = typeof deps.now === 'number' ? deps.now : Date.now();
     const ledger = openLedger(root, input, read, now);
-    const planDeps = { ...deps, projectRoot: root, readFile: read };
+    const env = isPlainObject(deps.env) ? deps.env : process.env;
+    let triggerContext = null;
+    const provider = typeof deps.triggerContext === 'function' ? deps.triggerContext : () => buildTriggerContext(root, input, env);
+    const planDeps = { ...deps, projectRoot: root, readFile: read, triggerContext: () => triggerContext || (triggerContext = provider()) };
     let plan = planDelivery(input, group, { ...planDeps, isDelivered: tag => ledger.isDelivered(tag) });
     if (!plan.text) return finish('');
     const claim = ledger.claim(plan.tags);
@@ -872,7 +1034,7 @@ function recordCompaction(input, deps = {}) {
  * Hook entry for one protocol group. Always leaves exit code 0 (delivery never blocks).
  * @param {string} group  protocol group name (a key of protocol-groups.json `groups`)
  * @param {object} [deps] test seams: `input` (skips stdin), `write(text, done)`, `now`, plus
- *   the planDelivery deps (`projectRoot`, `readFile`, `requireUniversalGuides`, `config`, `host`)
+ *   the planDelivery deps (`projectRoot`, `readFile`, `host`)
  * @returns {Promise<string>} the text written, or '' when nothing was delivered
  */
 function runHook(group, deps = {}) {
@@ -902,13 +1064,21 @@ module.exports = {
     isRelevantEvent,
     getLedgerSettings,
     planDelivery,
+    buildTriggerContext,
+    sharedRecordFor,
+    agentInlines,
     pack,
     continuationLabel,
     declaredTags,
     detectHost,
     isSafeName,
     parseAgentFrontmatter,
-    ROOT_SKIPPING_AGENT_TYPES,
+    resolveEvent,
+    resolveRoot,
+    readHookInput,
+    loadIndex,
+    defaultRead,
+    STORE_SEGMENTS,
     MAX_BIN,
     INDEX_REL,
     GROUPS_REL

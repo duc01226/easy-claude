@@ -20,7 +20,7 @@ test('TC-SKILLFIX-010: flags a denylisted project symbol in a non-allowlisted fi
 // TC-SKILLFIX-011 — the SAME symbol is exempt in an allowlisted file (per-file exemption).
 test('TC-SKILLFIX-011: allowlisted file+symbol is not flagged', () => {
     const content = '- API services MUST extend `PlatformApiService` (BLOCKED)';
-    const violations = findProjectSymbolViolations(content, '.claude/skills/architecture-review/SKILL.md');
+    const violations = findProjectSymbolViolations(content, '.claude/skills/architecture/references/mode-review.md');
     assert.equal(violations.length, 0);
 });
 
@@ -79,11 +79,11 @@ test('TC-SKILLFIX-013e: forbidden-term scan covers portable hook config', () => 
     assert.ok(genericSourceRoots.includes('.claude/hooks/config'), 'generic hook config must be scanned for project residue');
 });
 
-test('TC-SKILLFIX-013f: prompt protocol mirrors are not exempt from project-term residue checks', () => {
-    assert.equal(
-        managedBlockRanges.some(range => range.start === '<!-- PROMPT-PROTOCOLS:START -->'),
-        false,
-        'PROMPT-PROTOCOLS is generated portable context and must not hide project-specific lesson bodies'
+test('TC-SKILLFIX-013f: no generated block is exempt from project-term residue checks', () => {
+    assert.deepEqual(
+        managedBlockRanges,
+        [],
+        'generated portable context must never hide project-specific text behind a managed-block exemption'
     );
 });
 

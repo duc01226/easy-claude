@@ -1,4 +1,4 @@
-> **DERIVED — regenerate via `/spec-index`; do NOT hand-edit.** Source of truth: the linked canonical artifacts under the configured root.
+> **DERIVED — regenerate via `/spec [mode=index]`; do NOT hand-edit.** Source of truth: the linked canonical artifacts under the configured root.
 >
 > Regenerated: 2026-09-27
 

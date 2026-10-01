@@ -9,10 +9,15 @@ const vm = require('node:vm');
 const { EXAMPLE_SPEC, defaultLookWarning, generatePresentation, main, normalizeSpec } = require('../scripts/create-presentation.cjs');
 const { validatePresentation } = require('../scripts/validate-presentation.cjs');
 
-// OS essentials a spawned node child may need on Windows, macOS or Linux; everything else is dropped.
+// OS essentials a spawned node child may need on Windows, macOS or Linux; everything else is dropped. The Windows
+// well-known folder keys (SYSTEMDRIVE, PROGRAMDATA, ...) stay: without them a child that touches the shell writes
+// its cache files under its working directory.
 const CHILD_ENV_ALLOWLIST = new Set([
-  'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PROCESSOR_ARCHITECTURE',
-  'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
+  'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC',
+  'SYSTEMDRIVE', 'PROGRAMDATA', 'ALLUSERSPROFILE', 'PUBLIC',
+  'PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMW6432',
+  'COMMONPROGRAMFILES', 'COMMONPROGRAMFILES(X86)', 'COMMONPROGRAMW6432',
+  'PROCESSOR_ARCHITECTURE', 'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
 ]);
 
 const html = generatePresentation(EXAMPLE_SPEC);

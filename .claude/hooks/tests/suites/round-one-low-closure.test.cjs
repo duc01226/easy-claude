@@ -125,7 +125,7 @@ const tests = [
                 // A full re-review demanded after any fix, with no closure exception
                 'Fix only validated findings, then restart the FULL review wave with fresh sub-agents.',
                 'fix only validated blocking plan issues, then **re-run the FULL review from the start**.',
-                '7. **After each validated fix cycle** — rerun the full plan-review protocol from the first review step',
+                '7. **After each validated fix cycle** — rerun the full review protocol from the first review step',
                 'Validate via `/why-review` first, then route the fix; every fix restarts review from Phase 0.',
                 'Fresh-context re-review MANDATORY after any fix cycle.',
                 '- Double round-trip MANDATORY — Phase 4 never optional after a fix cycle'

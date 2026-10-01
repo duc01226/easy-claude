@@ -113,7 +113,7 @@ const HOOKS = {
         },
         {
           "type": "command",
-          "command": ".claude/hooks/protocol-inject-universal.cjs"
+          "command": ".claude/hooks/skill-overlay-remind.cjs"
         }
       ],
       "matcher": "Skill"
@@ -147,7 +147,7 @@ const HOOKS = {
         },
         {
           "type": "command",
-          "command": ".claude/hooks/protocol-inject-universal.cjs",
+          "command": ".claude/hooks/skill-overlay-remind.cjs",
           "if": "Read(**/SKILL.md)"
         }
       ],
@@ -260,6 +260,27 @@ const HOOKS = {
         }
       ],
       "matcher": "compact|resume|clear"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal-1.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal-2.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal-3.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal-4.cjs"
+        }
+      ],
+      "matcher": "compact|clear"
     }
   ],
   "Stop": [
@@ -273,6 +294,26 @@ const HOOKS = {
     }
   ],
   "UserPromptSubmit": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal-1.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal-2.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal-3.cjs"
+        },
+        {
+          "type": "command",
+          "command": ".claude/hooks/protocol-inject-universal-4.cjs"
+        }
+      ]
+    },
     {
       "hooks": [
         {

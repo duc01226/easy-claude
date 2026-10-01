@@ -206,7 +206,7 @@ def _status_of(skill):
     status = skill.get('status') or 'active'
     if status not in SKILL_STATUSES:
         # Unknown status (likely typo) — warn but coerce to 'active' so
-        # the catalog still builds. Per plan-review M3.
+        # the catalog still builds. Per plan review M3.
         print(
             f"WARN: skill '{skill.get('name', '?')}' has unknown status "
             f"'{status}' (expected one of {SKILL_STATUSES}); coercing to 'active'.",
@@ -444,7 +444,7 @@ def write_output(content, output_path=None, label=None):
 def check_against_file(generated, target_path, label):
     """Compare freshly generated catalog against an on-disk file.
 
-    Exit code contract (per ADR-0001 `--check` Mode + plan-review M2):
+    Exit code contract (per ADR-0001 `--check` Mode + plan review M2):
       0 = identical (clean tree)
       1 = drift detected (unified diff on stderr)
       2 = target file does not exist (CI can't certify a nonexistent catalog)

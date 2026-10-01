@@ -16,6 +16,13 @@
  * authored, `.claude/skills/shared/protocol-groups.json`), and the path must end in `<tag>.md`,
  * so a line cannot name one protocol while pointing at another's file.
  *
+ * Retired pointer line. The protocols of the `universal` group (`protocol-groups.json`) are delivered
+ * by the universal hook; no skill or agent carries a body, a `:reminder`, a guide line or a
+ * `> **Root-carried protocols** — …` pointer line for them. `hasRootPointer` and `rootPointerLines`
+ * recognize that retired line so a guard can fail when one reappears; they are the twins of
+ * `sync_blocks.has_root_pointer` / `root_pointer_lines`, and the twin-parity case in
+ * `.claude/scripts/tests/sync-update-blocks-guide.test.cjs` fails when the two disagree.
+ *
  * Pure text functions: nothing here reads a file or resolves a path taken from a guide line.
  */
 
@@ -23,6 +30,7 @@ const GUIDE_BLOCK_START = '<!-- PROTOCOL-GUIDES:START -->';
 const GUIDE_BLOCK_END = '<!-- PROTOCOL-GUIDES:END -->';
 
 const GUIDE_BLOCK_RE = /^[ \t]*<!-- PROTOCOL-GUIDES:START -->[ \t]*$([\s\S]*?)^[ \t]*<!-- PROTOCOL-GUIDES:END -->[ \t]*$/gm;
+const ROOT_POINTER_RE = /^> \*\*Root-carried protocols\*\* — [^\n]*$/m;
 const GUIDE_LINE_RE = /^- `([a-z0-9][a-z0-9-]*)` — ([^;\n→]+?); ([^\n→]+?) → (\S+)[ \t]*$/gm;
 
 /** Well-formed guide lines in one block body, as `{tag, line, summary, when, path}` rows. */
@@ -59,6 +67,17 @@ function hasGuideEntry(text, tag) {
     return guideEntries(text).has(tag);
 }
 
+/** True when the text carries the retired pointer line (the twin of `sync_blocks.has_root_pointer`). */
+function hasRootPointer(text) {
+    return ROOT_POINTER_RE.test(String(text ?? '').replace(/\r\n?/g, '\n'));
+}
+
+/** Every pointer-shaped line in the text (a duplicate counts), the twin of `sync_blocks.root_pointer_lines`. */
+function rootPointerLines(text) {
+    const re = new RegExp(ROOT_POINTER_RE.source, 'gm');
+    return String(text ?? '').replace(/\r\n?/g, '\n').match(re) || [];
+}
+
 /**
  * The one guide line for a tag; throws unless the recognizer reads back exactly the fields given
  * (a `;` in the summary, for example, would silently shift text into the when field).
@@ -79,5 +98,7 @@ module.exports = {
     formatGuideLine,
     guideEntries,
     guideTags,
-    hasGuideEntry
+    hasGuideEntry,
+    hasRootPointer,
+    rootPointerLines
 };

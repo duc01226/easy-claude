@@ -643,7 +643,7 @@ const tests = [
         })
     },
     {
-        name: 'TC-SPL-041 static carriers',
+        name: 'TC-SPL-041 protocol carriers',
         fn: async () => {
             const { extractSyncBody } = require(path.join(REPO_ROOT, '.claude', 'scripts', 'lib', 'extract-sync-block.cjs'));
             const canonical = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', 'shared', 'sync-inline-versions.md'), 'utf8');
@@ -654,8 +654,11 @@ const tests = [
 
             const norm = s => s.replace(/\r\n?/g, '\n');
             const skillsDir = path.join(REPO_ROOT, '.claude', 'skills');
+            // `workflow-mode` is a one-shot configuration utility named after the `workflow-mode:` prompt directive; it
+            // runs no steps, so the step-running skills' goal-ledger protocol does not apply to it.
+            const NOT_STEP_RUNNING = new Set(['workflow-mode']);
             const carriers = fs.readdirSync(skillsDir)
-                .filter(name => name.startsWith('workflow-') || name === 'start-workflow')
+                .filter(name => (name.startsWith('workflow-') || name === 'start-workflow') && !NOT_STEP_RUNNING.has(name))
                 .map(name => path.join(skillsDir, name, 'SKILL.md'))
                 .filter(file => fs.existsSync(file));
             assert.ok(carriers.length >= 3, 'workflow skills discovered');
@@ -668,11 +671,9 @@ const tests = [
                 assert.ok(text.includes(`<!-- SYNC:session-goal-ledger:reminder -->\n\n${reminder}\n\n<!-- /SYNC:session-goal-ledger:reminder -->`), `${rel} carries the canonical reminder`);
             }
 
-            const { buildPromptProtocolSections } = require(path.join(REPO_ROOT, '.claude', 'scripts', 'lib', 'hookless-prompt-protocol.cjs'));
-            assert.ok(buildPromptProtocolSections(REPO_ROOT).includes(reminder), 'mirrored-skill prompt protocol carries the reminder');
-
-            const claudeMd = norm(fs.readFileSync(path.join(REPO_ROOT, 'CLAUDE.md'), 'utf8'));
-            assert.ok(/Original goal:/.test(claudeMd) && claudeMd.includes('SYNC:session-goal-ledger'), 'always-loaded instructions carry the rule');
+            // The universal task-planning protocol (hook-delivered for every task) carries the rule too.
+            const planning = extractSyncBody(canonical, 'task-planning-rules');
+            assert.ok(planning && /Original goal:/.test(planning) && planning.includes('SYNC:session-goal-ledger'), 'the universal task-planning protocol carries the rule');
         }
     },
     {

@@ -59,6 +59,26 @@ test("variants: selected complete list replaces default and enumerates all modes
   assert.deepEqual(doc, original, "resolution must not rewrite the canonical input");
 });
 
+test("variants: a variant adds its own outcome gates to the shared entry gates, scoped to the selected mode", () => {
+  const skills = new Set(["investigate", "spec", "workflow-end"]);
+  const gated = (extra = {}) => document({ defaultMode: "audit", outcomeGates: [{ id: "run-closed", satisfiedBy: ["workflow-end"] }], variants: {
+    audit: { outcomeGates: [{ id: "review-converged", satisfiedBy: ["spec [mode=audit]"] }], sequence: [occurrence("inspect", "spec", { args: "[mode=audit]" }), occurrence("close", "workflow-end")] },
+    update: { outcomeGates: [{ id: "spec-synced", satisfiedBy: ["spec"], when: "The update changed behavior" }], sequence: [occurrence("write", "spec", { args: "[mode=update]" }), occurrence("close", "workflow-end")] },
+  }, ...extra });
+  const gateIds = (doc, mode) => run(doc, { mode, availableSkills: skills }).outcomeGates.map(gate => gate.id);
+  assert.deepEqual(gateIds(gated(), "audit"), ["run-closed", "review-converged"]);
+  assert.deepEqual(gateIds(gated(), "update"), ["run-closed", "spec-synced"]);
+  assert.equal(run(gated(), { mode: "update", availableSkills: skills }).outcomeGates[1].when, "The update changed behavior");
+  // a variant cannot redefine an entry gate, and a variant gate must be provable in its own mode
+  const clash = gated(); clash.workflows["workflow-test"].variants.audit.outcomeGates = [{ id: "run-closed", satisfiedBy: ["workflow-end"] }];
+  assert.throws(() => run(clash, { availableSkills: skills }), /Duplicate outcome gate in workflow-test: run-closed/);
+  const unprovable = gated(); unprovable.workflows["workflow-test"].variants.update.outcomeGates = [{ id: "review-converged", satisfiedBy: ["spec [mode=audit]"] }];
+  assert.throws(() => run(unprovable, { mode: "update", availableSkills: skills }), /has no satisfying step in workflow-test\/update/);
+  // a workflow without variants keeps resolving its entry-level gates unchanged
+  const legacy = document({ outcomeGates: [{ id: "run-closed", satisfiedBy: ["workflow-end"] }] });
+  assert.deepEqual(run(legacy, { availableSkills: skills }).outcomeGates.map(gate => gate.id), ["run-closed"]);
+});
+
 test("variants: semantic identity survives unrelated insertion; source changes invalidate resume", () => {
   const doc = variantDoc(); const before = run(doc);
   doc.workflows["workflow-test"].variants.audit.sequence.unshift(occurrence("prepare", "investigate"));
@@ -224,23 +244,23 @@ test("seeded semantic mutants: existing invariant tests kill fallback, duplicate
   }
 });
 
-test("variants: shipped research/spec/visualize workflows resolve every complete mode", () => {
+test("variants: shipped research/spec/integration-test workflows resolve every complete mode", () => {
   const registry = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.json"), "utf8"));
   const expected = {
     "workflow-research": {
-      synthesis: ["web-research", "source-deep-dive", "knowledge-synthesis", "knowledge-review", "workflow-end", "watzup"],
-      "business-eval": ["web-research", "source-deep-dive", "market-analysis", "business-evaluation", "knowledge-review", "workflow-end", "watzup"],
-      marketing: ["web-research", "source-deep-dive", "market-analysis", "strategy-builder", "knowledge-review", "workflow-end", "watzup"],
-      course: ["web-research", "source-deep-dive", "course-builder", "knowledge-review", "workflow-end", "watzup"]
+      synthesis: ["web-research --chain=deep-dive", "knowledge-synthesis", "knowledge-review", "workflow-end", "watzup"],
+      "business-eval": ["web-research --chain=deep-dive", "market-analysis", "business-evaluation", "knowledge-review", "workflow-end", "watzup"],
+      marketing: ["web-research --chain=deep-dive", "market-analysis", "strategy-builder", "knowledge-review", "workflow-end", "watzup"],
+      course: ["web-research --chain=deep-dive", "course-builder", "knowledge-review", "workflow-end", "watzup"]
     },
     "workflow-code-to-spec": {
-      "init-full": ["investigate", "plan", "plan-validate", "spec [mode=init]", "spec [mode=tests]", "artifact-review --type=spec-tests", "artifact-review", "docs-update", "workflow-end", "watzup"],
-      update: ["workflow-review-changes", "spec [mode=update]", "spec [mode=tests]", "artifact-review --type=spec-tests", "spec [mode=sync]", "docs-update", "workflow-end", "watzup"],
-      audit: ["investigate", "spec [mode=audit]", "artifact-review", "docs-update", "workflow-end", "watzup"]
+      "init-full": ["investigate", "plan", "plan --mode=validate", "spec [mode=init]", "spec [mode=tests]", "pbi --mode=review --type=spec-tests", "pbi --mode=review", "docs-manager --mode=update", "workflow-end", "watzup"],
+      update: ["workflow-review-changes", "spec [mode=update]", "spec [mode=tests]", "pbi --mode=review --type=spec-tests", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
+      audit: ["investigate", "spec [mode=audit]", "pbi --mode=review", "docs-manager --mode=update", "workflow-end", "watzup"]
     },
-    "workflow-visualize": {
-      codebase: ["investigate", "excalidraw-diagram", "workflow-end", "watzup"],
-      knowledge: ["web-research", "source-deep-dive", "excalidraw-diagram", "workflow-end", "watzup"]
+    "workflow-integration-test": {
+      write: ["investigate", "spec [mode=tests]", "pbi --mode=review --type=spec-tests", "integration-test", "integration-test --mode=review", "integration-test --mode=verify", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"],
+      green: ["investigate", "integration-test --mode=verify --fix-loop", "spec [mode=sync]", "docs-manager --mode=update", "workflow-end", "watzup"]
     }
   };
   for (const [workflowId, modes] of Object.entries(expected)) {
@@ -250,13 +270,14 @@ test("variants: shipped research/spec/visualize workflows resolve every complete
   }
 });
 
-test("plan-review is confined to confirmed large/init workflows and no workflow invokes understand", () => {
+test("plan --mode=review is confined to confirmed large/init workflows and no workflow invokes understand", () => {
   const registry = JSON.parse(fs.readFileSync(path.join(root, ".claude/workflows.json"), "utf8"));
   const withPlanReview = [];
   const withUnderstand = [];
   for (const [workflowId, entry] of Object.entries(registry.workflows)) {
     const skills = (entry.sequence ?? []).map(step => typeof step === "string" ? step : step.skill);
-    if (skills.includes("plan-review")) withPlanReview.push(workflowId);
+    const invocations = (entry.sequence ?? []).map(step => typeof step === "string" ? step : `${step.skill}${step.args ? ` ${step.args}` : ""}`);
+    if (invocations.some(step => /^plan\s+.*--mode=review\b/.test(step))) withPlanReview.push(workflowId);
     if (skills.includes("understand")) withUnderstand.push(workflowId);
   }
   assert.deepEqual(withPlanReview.sort(), ["workflow-big-feature", "workflow-greenfield-init"]);
@@ -265,9 +286,11 @@ test("plan-review is confined to confirmed large/init workflows and no workflow 
   assert.equal(registry.workflows["workflow-greenfield-init"].activation, "confirm");
   for (const workflowId of ["workflow-big-feature", "workflow-greenfield-init"]) {
     const skill = fs.readFileSync(path.join(root, ".claude", "skills", workflowId, "SKILL.md"), "utf8");
-    assert.match(skill, /When the AI routes here on its own[\s\S]*compare this workflow's current step count with the lean custom/);
-    assert.match(skill, /present both, and ask the user once which route to run/);
-    assert.match(skill, /An explicit user request for this workflow needs no second confirmation/);
+    // Self-routing stops at the route gate's one workflow question: full workflow with its step count,
+    // a slimmer custom route, or direct execution; an explicit request skips it.
+    assert.match(skill, /When the AI routes here on its own[\s\S]*ask the route gate's one workflow question[\s\S]*current step count[\s\S]*slimmer custom[\s\S]*direct execution/);
+    assert.match(skill, /recommending the full workflow only when no leaner route would satisfy the request/);
+    assert.match(skill, /An explicit user request for this workflow needs no question/);
   }
 });
 
@@ -284,10 +307,11 @@ test("production workflows declare required and opt-in near-end E2E handoffs", (
     const index = manifest.occurrences.findIndex(item => item.skill === "workflow-e2e");
     assert.ok(index > 0, `${workflowId} must include workflow-e2e`);
     // Verify-last order: the near-end E2E handoff comes after the static review and after the verify
-    // step that follows it (`integration-test-verify` or `test`), never before either.
+    // step that follows it (`integration-test --mode=verify` or `test`), never before either.
     const reviewIndex = manifest.occurrences.findIndex(item => item.skill === "workflow-review-changes");
     assert.ok(reviewIndex >= 0 && reviewIndex < index - 1, `${workflowId} must run its review before the verify that precedes E2E`);
-    assert.ok(["integration-test-verify", "test"].includes(manifest.occurrences[index - 1].skill), `${workflowId} E2E must follow a verify step`);
+    const previous = manifest.occurrences[index - 1];
+    assert.ok(previous.skill === "test" || (previous.skill === "integration-test" && /(^|\s)--mode=verify(\s|$)/.test(previous.args)), `${workflowId} E2E must follow a verify step`);
     assert.equal(manifest.occurrences[index].args, "--source=context");
     assert.equal(manifest.occurrences[index + 1].skill, nextSkill);
     if (required) {
@@ -304,7 +328,7 @@ test("E2E visual review is gated by the project contract and reviews generated s
   const skillFiles = [
     ".claude/skills/e2e-test/SKILL.md",
     ".claude/skills/workflow-e2e/SKILL.md",
-    ".claude/skills/e2e-test-verify/SKILL.md",
+    ".claude/skills/e2e-test/references/mode-verify.md",
   ];
   for (const relativePath of skillFiles) {
     const source = fs.readFileSync(path.join(root, relativePath), "utf8");

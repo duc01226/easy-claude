@@ -6,23 +6,25 @@
  *
  * Re-delivers the canonical `SYNC:core-engineering-principles` body from
  * `.claude/skills/shared/sync-inline-versions.md` so the gate stays near the model's attention
- * while it plans, implements and reviews. Triggers:
+ * while it plans, implements and reviews. The universal `critical-thinking-mindset` protocol carries
+ * its one-paragraph digest for every task. Triggers:
  *   - UserPromptSubmit (plain stdout), and
  *   - PostToolUse on the task/plan step boundaries `TodoWrite|TaskCreate|TaskUpdate|update_plan`
  *     (JSON `additionalContext`), so a long autonomous turn with no new prompt is covered too.
  *
  * De-duplication: `deliverOnce` of the session-scoped convention ledger (`lib/convention-ledger.cjs`,
  * the same owner `workflow-route-inject.cjs` delivers through) keeps one record per scope (main
- * conversation or one sub-agent). The body is delivered again only when the content changes, the context is
+ * conversation or one sub-agent). That record IS the protocol-delivery record of the tag
+ * `core-engineering-principles` (`sharedRecordFor` in `lib/protocol-delivery.cjs`): a skill load served
+ * by the design-group protocol hook, or this hook, marks the principles delivered for both, so a scope
+ * receives the body once per window. The body is delivered again only when the content changes, the context is
  * compacted, or the transcript has grown by about `reinjectAfterTokens` tokens since the last
  * delivery (default 100,000; bytes = tokens × `BYTES_PER_TOKEN`, the measured transcript ratio in
  * `lib/file-conventions.cjs`). A host that exposes no transcript gets one delivery until the next
  * compaction or content change: elapsed time is not evidence that the context moved on.
  *
- * Accelerator only: the static `**Core engineering principles:**` line in CLAUDE.md / AGENTS.md
- * (the `SYNC:core-engineering-principles` digest, composed there from the `critical-thinking-mindset:full`
- * block) binds every host without this hook; skills declaring the tag get the body from the
- * design-group protocol hook. Advisory; never blocks; every failure stays silent (exit 0).
+ * Skills declaring the tag also get the body from the design-group protocol hook. Advisory; never
+ * blocks; every failure stays silent (exit 0).
  *
  * On by default. Off with `.claude/.ck.json` `corePrinciplesInject.enabled: false` (a developer
  * override in `.claude/.ck.local.json` wins) or env CK_CORE_PRINCIPLES_INJECT=0. The interval is
@@ -38,8 +40,9 @@ const crypto = require('crypto');
 const path = require('path');
 
 const HOOK_NAME = 'core-principles-inject';
-const RECORD_GROUP = 'core-principles';
 const SYNC_TAG = 'core-engineering-principles';
+// The delivery record is the protocol-delivery record of the tag (see the header), so its group is the tag.
+const RECORD_GROUP = SYNC_TAG;
 const MARKER_START = '<!-- CK:CORE-ENGINEERING-PRINCIPLES -->';
 const MARKER_END = '<!-- /CK:CORE-ENGINEERING-PRINCIPLES -->';
 const SETTINGS_SECTION = 'corePrinciplesInject';
@@ -94,12 +97,27 @@ function ledgerSettings(reinjectTokens) {
 function buildContent(projectDir) {
     let body = null;
     try {
-        const { buildCanonicalProtocolText } = require('../scripts/lib/hookless-prompt-protocol.cjs');
-        body = buildCanonicalProtocolText(projectDir, SYNC_TAG);
+        const { readCanonicalProtocol } = require('../scripts/lib/canonical-protocol.cjs');
+        body = readCanonicalProtocol(projectDir, SYNC_TAG);
     } catch {
         body = null;
     }
     return [MARKER_START, nonBlank(body) ? body.trim() : FALLBACK_BODY, MARKER_END].join('\n');
+}
+
+/**
+ * Where and under which content key the delivery is recorded: the protocol-delivery record of the tag
+ * (store directory and hash of the published projection), so a delivery by the design-group protocol
+ * hook counts here and this delivery counts there. With no published projection the record is private
+ * to this hook (hash of the delivered content).
+ */
+function recordTarget(projectDir, contentHash) {
+    try {
+        const shared = require('./lib/protocol-delivery.cjs').sharedRecordFor(projectDir, SYNC_TAG);
+        return { root: shared.root, hash: shared.hash || contentHash };
+    } catch {
+        return { root: path.join(projectDir, 'tmp', 'protocol-delivery'), hash: contentHash };
+    }
 }
 
 function formatPayload(kind, content) {
@@ -139,13 +157,13 @@ function run(input, deps = {}) {
             const settings = ledgerSettings(resolveReinjectTokens(rawSettings));
 
             const content = deps.content || buildContent(projectDir);
-            const hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+            const target = recordTarget(projectDir, crypto.createHash('sha256').update(content, 'utf8').digest('hex'));
             const ledger = deps.ledger || require('./lib/convention-ledger.cjs');
             ledger.deliverOnce({
-                root: deps.storeRoot || path.join(projectDir, 'tmp', 'core-principles'),
+                root: deps.storeRoot || target.root,
                 input,
                 group: RECORD_GROUP,
-                hash,
+                hash: target.hash,
                 payload: formatPayload(kind, content),
                 settings,
                 now,
@@ -169,6 +187,7 @@ module.exports = {
     FALLBACK_BODY,
     resolveReinjectTokens,
     buildContent,
+    recordTarget,
     run
 };
 

@@ -15,14 +15,14 @@ const expectedApplicability = {
 };
 const expectedSequence = [
   "idea", "web-research", "source-deep-dive", "market-analysis", "business-evaluation",
-  "spec-discovery", "domain-analysis", "why-review", "tech-stack-research", "architecture-design",
-  "architecture-scalability-review", "why-review", "scenario", "plan", "plan-review",
-  "refine", "artifact-review --type=pbi", "story", "artifact-review --type=story", "pbi-challenge",
-  "dor-gate", "pbi-mockup --explore", "spec", "spec [mode=tests]", "artifact-review --type=spec-tests",
-  "spec-clarify", "plan", "plan-review", "scaffold", "architecture-review-full",
+  "spec [mode=discovery]", "domain-analysis", "why-review", "tech-stack-research", "architecture --mode=design",
+  "architecture --mode=scalability", "why-review", "scenario", "plan", "plan --mode=review",
+  "pbi --mode=refine", "pbi --mode=review --type=pbi", "pbi --mode=story", "pbi --mode=review --type=story", "pbi --mode=challenge --reuse=pbi-review",
+  "pbi --mode=dor --reuse=pbi-review", "pbi --mode=mockup --explore", "spec", "spec [mode=tests]", "pbi --mode=review --type=spec-tests",
+  "spec [mode=clarify]", "plan", "plan --mode=review", "scaffold", "architecture --mode=full",
   "scan --target=ui-system", "scan --target=backend-patterns", "scan --target=integration-tests",
-  "scan --target=project-structure", "plan-validate", "plan-execute", "seed-test-data",
-  "integration-test", "spec [mode=sync]", "workflow-review-changes --tests=defer", "integration-test-verify",
+  "scan --target=project-structure", "plan --mode=validate", "plan --mode=execute", "seed-test-data",
+  "integration-test", "spec [mode=sync]", "workflow-review-changes --tests=defer", "integration-test --mode=verify",
   "workflow-e2e --source=context", "test", "workflow-end", "watzup",
 ];
 
@@ -105,7 +105,7 @@ test("market-analysis parity, consumer obligations, and all workflow steps stay 
   const sequence = workflow.sequence.map(normalizeStep);
   const skillChain = sequence.map((step) => `/${step}`).join(" -> ");
   const mandatoryChains = [...skill.matchAll(/^\*\*IMPORTANT MANDATORY Steps:\*\* (.+)$/gm)].map((match) => match[1]);
-  const displayChain = skill.match(/^\*\*Steps:\*\* (.+)$/m)?.[1];
+  const displayChains = [...skill.matchAll(/^\*\*Steps:\*\* (.+)$/gm)];
 
   // Then: registry and skill agree, evaluation does not re-derive, research gates remain, and no step moves.
   assert.equal(skill.split(when).length - 1, 1);
@@ -118,6 +118,7 @@ test("market-analysis parity, consumer obligations, and all workflow steps stay 
   assert.equal(sequence.length, 45);
   assert.deepEqual(sequence, expectedSequence);
   assert.equal(sequence[sequence.indexOf("market-analysis") + 1], "business-evaluation");
-  assert.deepEqual(mandatoryChains, [skillChain, skillChain]);
-  assert.deepEqual(displayChain.split(" → ").map((step) => step.trim()), sequence.map((step) => `/${step}`));
+  // The registry owns the chain; the skill carries exactly ONE parity line (the verifier parses it) and no display copy.
+  assert.deepEqual(mandatoryChains, [skillChain]);
+  assert.equal(displayChains.length, 0);
 });

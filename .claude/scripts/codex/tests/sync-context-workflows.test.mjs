@@ -7,7 +7,6 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-import vm from "node:vm";
 
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -34,8 +33,10 @@ test('sync-context fixture overrides a competing ambient root without touching i
     await fs.writeFile(path.join(foreign, '.codex/CODEX_CONTEXT.md'), 'foreign-context-sentinel');
     await fs.writeFile(path.join(foreign, 'AGENTS.md'), 'foreign-agent-sentinel');
     await runSync(target, { ...process.env, CLAUDE_PROJECT_DIR: foreign });
-    assert.doesNotMatch(await fs.readFile(path.join(target, '.codex/CODEX_CONTEXT.md'), 'utf8'), /Run fixture test|Workflow Catalog/);
-    assert.match(await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8'), /CODEX_CONTEXT\.md/);
+    const targetAgents = await fs.readFile(path.join(target, 'AGENTS.md'), 'utf8');
+    assert.match(targetAgents, /# Codex Project Instructions/);
+    assertProjectOnly(targetAgents, 'target AGENTS.md');
+    assert.equal(await fs.access(path.join(target, '.codex/CODEX_CONTEXT.md')).then(() => true, () => false), false, 'no context file is written');
     assert.equal(await fs.readFile(path.join(foreign, '.codex/CODEX_CONTEXT.md'), 'utf8'), 'foreign-context-sentinel');
     assert.equal(await fs.readFile(path.join(foreign, 'AGENTS.md'), 'utf8'), 'foreign-agent-sentinel');
     assert.deepEqual(await fs.readdir(path.join(foreign, '.codex')), ['CODEX_CONTEXT.md']);
@@ -43,14 +44,26 @@ test('sync-context fixture overrides a competing ambient root without touching i
     await fs.rm(owner, { recursive: true, force: true });
   }
 });
-const subagentAuthorizationSnippet =
-  "Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.";
-const projectReferenceGateHeading = "## Codex Project Reference Gate (Hook-Independent)";
-const projectReferenceGateRequiredDocs = [
-  "docs/project-config.json",
-  "docs/project-reference/docs-index-reference.md",
-  "docs/project-reference/lessons.md",
+// AGENTS.md is the project-information projection of CLAUDE.md: no protocol text, no context mirror, no
+// route pointer. These signatures are the lead lines of universal protocols the universal hook delivers.
+const UNIVERSAL_SIGNATURES = [
+  "[CRITICAL-THINKING-MINDSET]",
+  "## Common AI Mistake Prevention (System Lessons)",
+  "Create a small task per change before edits",
+  "Never commit, push, or stage (`git add`) unless the user explicitly asks",
 ];
+const RETIRED_MARKERS = [
+  "CODEX-CONTEXT-MIRROR",
+  "PROMPT-PROTOCOLS",
+  "CK:WORKFLOW-ROUTE-POINTER",
+  "CK:WORKFLOW-GATE",
+  "CK:UNIVERSAL-GUIDES",
+  "CODEX:SYNC-PROMPT-PROTOCOLS",
+];
+function assertProjectOnly(text, label) {
+  for (const signature of UNIVERSAL_SIGNATURES) assert.ok(!text.includes(signature), `${label} carries universal protocol text: ${signature}`);
+  for (const marker of RETIRED_MARKERS) assert.ok(!text.includes(marker), `${label} carries the retired block ${marker}`);
+}
 const require = createRequire(import.meta.url);
 const workflowCatalog = require(path.join(repoRoot, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
 
@@ -83,76 +96,33 @@ test("runtime workflow catalog rejects a workflow without injectContext", async 
   }
 });
 
-test("sync-context-workflows mirrors subagent authorization into AGENTS.md", async () => {
+test("sync-context-workflows writes the project projection and strips every retired block", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-"));
 
   try {
     await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "shared"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".claude", "hooks", "lib"), { recursive: true });
     await fs.mkdir(path.join(tempRoot, ".codex"), { recursive: true });
-
+    await fs.writeFile(path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"), "---\nname: test\ndescription: Test skill\n---\n\n# Test\n", "utf8");
     await fs.writeFile(
-      path.join(tempRoot, ".claude", "workflows.json"),
-      JSON.stringify(
-        {
-          workflows: {
-            testing: {
-              name: "Testing",
-              description: "Run local tests",
-              sequence: ["test"],
-              preActions: { injectContext: "Use /test for local test execution." },
-            },
-          },
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
-      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "skills", "shared", "sync-inline-versions.md"),
+      path.join(tempRoot, "CLAUDE.md"),
       [
-        "## SYNC:ai-sdd-artifact-contract",
-        "",
-        "> Any supported AI tool may execute with synced context.",
-        "> Code-to-spec extraction is reference-only until accepted.",
-        "> Active reference: `shared/sdd-artifact-contract.md`.",
-        "",
-        "---",
-        "",
-        "## SYNC:ai-sdd-artifact-contract:reminder",
-        "",
-        "- MANDATORY keep generated mirrors current.",
-        "",
+        "# Claude Source Instructions", "", "Use /test from the Claude source instructions.", "",
+        "## Doc Lookup — What to Read When", "", "| If user prompt mentions... | Read first |", "| --- | --- |", "| Anything | `docs/project-config.json` |", "",
+        "## Task Planning Rules", "", "Create a small task per change before edits.", "",
+        "## Project Rules & Context", "", "Keep commits small.", "",
       ].join("\n"),
       "utf8"
     );
-
-    await fs.writeFile(
-      path.join(tempRoot, "CLAUDE.md"),
-      ["# Claude Source Instructions", "", "Use /test from the Claude source instructions.", ""].join("\n"),
-      "utf8"
-    );
-
+    // A previous generation left a context file and the managed blocks that point at it.
     await fs.writeFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "# Existing Context\n", "utf8");
     await fs.writeFile(
       path.join(tempRoot, "AGENTS.md"),
       [
         "# Codex Project Instructions",
         "",
-        "<!-- CLAUDE-MERGE:START -->",
-        "## CLAUDE.md (Prompt-Enhanced Snapshot)",
+        "<!-- CLAUDE-MERGE:START -->", "## CLAUDE.md (Prompt-Enhanced Snapshot)", "", "Legacy generated instructions.", "<!-- CLAUDE-MERGE:END -->",
         "",
-        "Legacy generated instructions.",
-        "<!-- CLAUDE-MERGE:END -->",
+        "<!-- CODEX-CONTEXT-MIRROR:START -->", "## Codex Context Mirror (Auto-Synced)", "Read `.codex/CODEX_CONTEXT.md`.", "<!-- CODEX-CONTEXT-MIRROR:END -->",
         "",
       ].join("\n"),
       "utf8"
@@ -160,34 +130,19 @@ test("sync-context-workflows mirrors subagent authorization into AGENTS.md", asy
 
     await runSync(tempRoot);
 
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
     const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
-
-    assert.match(contextText, new RegExp(subagentAuthorizationSnippet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    assert.match(contextText, new RegExp(projectReferenceGateHeading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    for (const requiredDoc of projectReferenceGateRequiredDocs) {
-      assert.match(contextText, new RegExp(requiredDoc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-      assert.match(agentsText, new RegExp(requiredDoc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    }
-    assert.doesNotMatch(contextText, /Auto-select|Workflow Catalog/);
-    assert.doesNotMatch(contextText, /Which workflow do you want to activate\?/);
-    assert.match(contextText, /SYNC:ai-sdd-artifact-contract/);
-    assert.match(contextText, /Any supported AI tool/);
-    assert.match(contextText, /reference-only until accepted/);
-    assert.doesNotMatch(contextText, /Confirm First:/);
-    assert.doesNotMatch(contextText, /if workflow requires confirmation or ambiguity exists/);
-    assert.match(contextText, new RegExp(subagentAuthorizationSnippet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.match(agentsText, /<!-- CLAUDE-MIRROR:START -->/);
     assert.match(agentsText, /# Claude Source Instructions/);
-    assert.match(agentsText, /Use \$test from the Claude source instructions\./);
-    assert.match(agentsText, /<!-- CODEX-CONTEXT-MIRROR:START -->/);
-    assert.doesNotMatch(contextText, /Use \$test for local test execution\./);
-    assert.match(agentsText, /\.codex\/CODEX_CONTEXT\.md/);
-    // The compact root points to the full context; shared AI-SDD detail remains in that
-    // canonical context rather than being duplicated into AGENTS.md.
-    assert.ok(agentsText.indexOf("<!-- CLAUDE-MIRROR:START -->") < agentsText.indexOf("<!-- CODEX-CONTEXT-MIRROR:START -->"));
-    assert.doesNotMatch(agentsText, /<!-- CLAUDE-MERGE:START -->/);
-    assert.doesNotMatch(agentsText, /Legacy generated instructions\./);
+    assert.match(agentsText, /Use \$test from the Claude source instructions\./, "skill mentions are rewritten for Codex");
+    assert.match(agentsText, /## Doc Lookup — What to Read When/);
+    assert.match(agentsText, /## Project Rules & Context/);
+    // Only whitelisted project headings are projected: the universal section never reaches AGENTS.md
+    assert.doesNotMatch(agentsText, /## Task Planning Rules/);
+    assertProjectOnly(agentsText, "AGENTS.md");
+    assert.doesNotMatch(agentsText, /<!-- CLAUDE-MERGE:START -->|Legacy generated instructions\./);
+    assert.equal(await fs.access(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md")).then(() => true, () => false), false, "the retired context file is removed");
+    // Doc Lookup comes before the hand-owned rules
+    assert.ok(agentsText.indexOf("## Doc Lookup") < agentsText.indexOf("## Project Rules & Context"));
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -214,54 +169,23 @@ test("sync-context-workflows re-sync keeps dollar sequences in mirrored CLAUDE.m
     const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
     assert.ok(agentsText.includes(ruleLine), "mirrored rule line must survive re-sync verbatim");
     assert.equal(agentsText.split("<!-- CLAUDE-MIRROR:START -->").length, 2, "exactly one CLAUDE mirror block");
-    assert.equal(agentsText.split("<!-- CODEX-CONTEXT-MIRROR:START -->").length, 2, "exactly one context mirror block");
+    assert.equal(agentsText.includes("CODEX-CONTEXT-MIRROR"), false, "no context mirror block");
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
 
-test("sync-context-workflows points to lessons.md without inlining project lessons", async () => {
+test("sync-context-workflows never inlines project lessons into AGENTS.md", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-lessons-"));
 
   try {
     await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".claude", "hooks", "lib"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".codex"), { recursive: true });
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "workflows.json"),
-      JSON.stringify(
-        {
-          workflows: {
-            testing: {
-              name: "Testing",
-              description: "Run local tests",
-              sequence: ["test"],
-              preActions: { injectContext: "Use /test for local test execution." },
-            },
-          },
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
-      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
-      "utf8"
-    );
+    await fs.writeFile(path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"), ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"), "utf8");
+    await fs.writeFile(path.join(tempRoot, "CLAUDE.md"), "# Project\n\nRead `docs/project-reference/lessons.md` for project guardrails.\n", "utf8");
     await runSync(tempRoot);
 
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
     const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
-
-    assert.match(contextText, /docs\/project-reference\/lessons\.md/);
-    assert.match(agentsText, /docs\/project-reference\/lessons\.md/);
-    assert.doesNotMatch(contextText, /^## Learned Lessons\b/m);
-    assert.doesNotMatch(contextText, /^# Lessons Learned\b/m);
-    assert.doesNotMatch(contextText, /ExecuteInjectScopedAsync/);
+    assert.match(agentsText, /docs\/project-reference\/lessons\.md/, "the project's own pointer is kept");
     assert.doesNotMatch(agentsText, /^## Learned Lessons\b/m);
     assert.doesNotMatch(agentsText, /^# Lessons Learned\b/m);
     assert.doesNotMatch(agentsText, /ExecuteInjectScopedAsync/);
@@ -270,341 +194,105 @@ test("sync-context-workflows points to lessons.md without inlining project lesso
   }
 });
 
-test("sync-context-workflows creates Codex context and AGENTS when both are missing", async () => {
+test("sync-context-workflows creates AGENTS.md when it is missing and never creates a context file", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-missing-"));
 
   try {
     await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".claude", "hooks", "lib"), { recursive: true });
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "workflows.json"),
-      JSON.stringify(
-        {
-          workflows: {
-            testing: {
-              name: "Testing",
-              description: "Run local tests",
-              sequence: ["test"],
-              preActions: { injectContext: "Use /test for local test execution." },
-            },
-          },
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
-      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
-      "utf8"
-    );
+    await fs.writeFile(path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"), ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"), "utf8");
 
     await runSync(tempRoot);
 
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
     const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
-
-    assert.match(contextText, /^<!-- PROMPT-PROTOCOLS:START -->/);
-    assert.match(contextText, /# Codex Context/);
-    assert.match(contextText, new RegExp(projectReferenceGateHeading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    for (const requiredDoc of projectReferenceGateRequiredDocs) {
-      assert.match(contextText, new RegExp(requiredDoc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-      assert.match(agentsText, new RegExp(requiredDoc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    }
     assert.match(agentsText, /# Codex Project Instructions/);
-    assert.doesNotMatch(agentsText, /<!-- CLAUDE-MIRROR:START -->/);
-    assert.match(agentsText, /<!-- CODEX-CONTEXT-MIRROR:START -->/);
-    assert.match(agentsText, /\.codex\/CODEX_CONTEXT\.md/);
-    assert.doesNotMatch(agentsText, /Confirm First:/);
+    assert.doesNotMatch(agentsText, /<!-- CLAUDE-MIRROR:START -->/, "no CLAUDE.md, nothing to project");
+    assertProjectOnly(agentsText, "AGENTS.md");
+    assert.equal(await fs.access(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md")).then(() => true, () => false), false);
     assert.equal(await fs.access(path.join(tempRoot, "scripts")).then(() => true, () => false), false);
 
     await runSync(tempRoot);
-    const agentsTextAfterSecondRun = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
-    assert.equal(agentsTextAfterSecondRun, agentsText);
+    assert.equal(await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8"), agentsText, "a second run is byte-idempotent");
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
 
-test("sync-context-workflows builds routed static prompt protocols without prompt-injections.cjs", async () => {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-no-hooks-"));
+test("sync-context-workflows writes no protocol text and ignores local portability data", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-no-protocol-"));
 
   try {
     await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "workflows.json"),
-      JSON.stringify(
-        {
-          workflows: {
-            testing: {
-              name: "Testing",
-              description: "Run local tests",
-              sequence: ["test"],
-              preActions: { injectContext: "Use /test for local test execution." },
-            },
-          },
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", ".ck.json"),
-      JSON.stringify(
-        {
-          portability: {
-            rule: "Custom portable rule from local config.",
-            projectConfigPath: "custom/project-config.json",
-            docsIndexPath: "custom/docs-index.md",
-          },
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
-      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
-      "utf8"
-    );
-
-    await runSync(tempRoot);
-
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
-    const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
-
-    for (const text of [contextText]) {
-      assert.match(text, /\[TASK-PLANNING\]/);
-      assert.match(text, /<!-- CK:WORKFLOW-GATE -->/);
-      assert.doesNotMatch(text, /WORKFLOW-EXECUTION-PROTOCOL|Workflow Catalog/i);
-      assert.doesNotMatch(text, /Unable to load `\.claude\/hooks\/lib\/prompt-injections\.cjs`/);
-      assert.doesNotMatch(text, /Source: `\.claude\/hooks\/lib\/prompt-injections\.cjs`/);
-    }
-    assert.match(agentsText, /\.codex\/CODEX_CONTEXT\.md/);
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-});
-
-test("sync-context-workflows keeps local portability routing data out of tracked mirrors", async () => {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-portability-"));
-
-  try {
-    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".claude", "hooks", "lib"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".codex"), { recursive: true });
     await fs.mkdir(path.join(tempRoot, "custom"), { recursive: true });
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "workflows.json"),
-      JSON.stringify(
-        {
-          workflows: {
-            testing: {
-              name: "Testing",
-              description: "Run local tests",
-              sequence: ["test"],
-              preActions: { injectContext: "Use /test for local test execution." },
-            },
-          },
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-
     await fs.writeFile(
       path.join(tempRoot, ".claude", ".ck.json"),
-      JSON.stringify(
-        {
-          portability: {
-            rule: "Custom portable rule from local config.",
-            projectConfigPath: "custom/project-config.json",
-            docsIndexPath: "custom/docs-index.md",
-          },
-        },
-        null,
-        2
-      ),
+      JSON.stringify({ portability: { rule: "Custom portable rule from local config.", projectConfigPath: "custom/project-config.json", docsIndexPath: "custom/docs-index.md" } }, null, 2),
       "utf8"
     );
+    await fs.writeFile(path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"), ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"), "utf8");
+    await fs.writeFile(path.join(tempRoot, "custom", "project-config.json"), JSON.stringify({ portability: { workflowRouteMode: "off" } }, null, 2), "utf8");
+    await fs.writeFile(path.join(tempRoot, "CLAUDE.md"), "# Project\n\nProject notes.\n", "utf8");
 
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
-      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
-      "utf8"
-    );
-    await fs.writeFile(
-      path.join(tempRoot, "custom", "project-config.json"),
-      JSON.stringify({ portability: { workflowAutoDetect: false } }, null, 2),
-      "utf8"
-    );
-
-    await runSync(tempRoot);
-
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
-    const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
-
-    for (const expected of [
-      "Custom portable rule from local config.",
-      "custom/project-config.json",
-      "custom/docs-index.md",
-    ]) {
-      assert.doesNotMatch(contextText, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    // Whatever the route mode, the tracked mirror holds no route text, no protocol and no local configuration
+    for (const mode of ["off", "ask", "auto"]) {
+      await fs.writeFile(path.join(tempRoot, "custom", "project-config.json"), JSON.stringify({ portability: { workflowRouteMode: mode } }, null, 2), "utf8");
+      await runSync(tempRoot);
+      const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
+      assertProjectOnly(agentsText, `AGENTS.md (mode ${mode})`);
+      assert.doesNotMatch(agentsText, /Workflow Catalog|\[TASK-PLANNING\]/);
+      for (const local of ["Custom portable rule from local config.", "custom/project-config.json", "custom/docs-index.md"]) {
+        assert.ok(!agentsText.includes(local), `local portability data reached the tracked mirror: ${local}`);
+      }
     }
-    assert.doesNotMatch(contextText, /<!-- CK:WORKFLOW-GATE -->/);
-    assert.match(agentsText, /\.codex\/CODEX_CONTEXT\.md/);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
 
-test("sync-context-workflows replaces stale project-reference gate content", async () => {
+
+test("sync-context-workflows replaces a previous-generation AGENTS.md and removes the context file instead of duplicating either", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-gate-"));
 
   try {
     await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".claude", "hooks", "lib"), { recursive: true });
     await fs.mkdir(path.join(tempRoot, ".codex"), { recursive: true });
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "workflows.json"),
-      JSON.stringify(
-        {
-          workflows: {
-            testing: {
-              name: "Testing",
-              description: "Run local tests",
-              sequence: ["test"],
-              preActions: { injectContext: "Use /test for local test execution." },
-            },
-          },
-        },
-        null,
-        2
-      ),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
-      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"),
-      [
-        "# Existing Context",
-        "",
-        "Codex uses static project-reference loading instead of runtime-injected project docs. Before coding, planning, debugging, testing, or reviewing:",
-        "",
-        "- Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.",
-        "- Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.",
-        "- Read `docs/project-reference/lessons.md` for always-on project guardrails.",
-        "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.",
-        "",
-        projectReferenceGateHeading,
-        "",
-        "Old direct-read-all-project-reference-docs guidance.",
-        "",
-        "## Critical Thinking Mindset",
-        "",
-        "Keep this section.",
-        "",
-      ].join("\n"),
-      "utf8"
-    );
-
-    await runSync(tempRoot);
-
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
-    const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
-
-    assert.doesNotMatch(contextText, /Old direct-read-all-project-reference-docs guidance/);
-    assert.match(contextText, /auto-run `\$project-init` or the narrow setup route/);
-    assert.match(contextText, /For situation-specific work, open the referenced project doc directly/);
-    assert.equal(contextText.match(/For situation-specific work, open the referenced project doc directly/g)?.length, 1);
-    assert.match(contextText, /## Critical Thinking Mindset/);
-    assert.ok(contextText.indexOf(projectReferenceGateHeading) < contextText.indexOf("## Critical Thinking Mindset"));
-    assert.match(agentsText, /For situation-specific work, open the referenced project doc directly/);
-    // Phase routing + dedup reach Codex, and no older line contradicts the dedup rule.
-    for (const text of [contextText, agentsText]) {
-      assert.equal(text.match(/- Pick docs by the phase you are about to enter/g)?.length, 1);
-      assert.match(text, /- Dedup: [^\n]*within roughly the last 200K tokens[^\n]*never counts/);
-      // A doc edited after it was read is stale, so the dedup credit must require it to be unchanged.
-      assert.match(text, /- Dedup: [^\n]*and it has not changed since/);
-      // Reviewing a spec or test diff must load the spec and test references, not only pattern docs.
-      assert.match(text, /review → `code-review-rules\.md` plus the edit, test, and spec docs for every file type under review/);
-      assert.doesNotMatch(text, /do not rely on prior conversation text as proof/);
-      assert.doesNotMatch(text, /after compaction, resume, delegation,/);
-    }
-
-    await runSync(tempRoot);
-    const contextTextAfterSecondRun = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
-    assert.equal(contextTextAfterSecondRun, contextText);
-  } finally {
-    await fs.rm(tempRoot, { recursive: true, force: true });
-  }
-});
-
-test("sync-context-workflows replaces a previous-generation gate body instead of duplicating it", async () => {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-gate-prev-"));
-
-  try {
-    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
-    await fs.mkdir(path.join(tempRoot, ".codex"), { recursive: true });
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "workflows.json"),
-      JSON.stringify({ workflows: { testing: { name: "Testing", description: "Run local tests", sequence: ["test"], preActions: { injectContext: "Use /test." } } } }),
-      "utf8"
-    );
     await fs.writeFile(path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"), "---\nname: test\ndescription: Test skill\n---\n\n# Test\n", "utf8");
-    // Given a Codex context holding an orphan gate body (no heading) in the shape emitted before the
-    // phase-routing lines existed, followed by a section that must survive.
+    await fs.writeFile(path.join(tempRoot, "CLAUDE.md"), "# Project\n\n## Doc Lookup — What to Read When\n\nProject routing.\n", "utf8");
+    // Given the previous generation: a context file with a project-reference gate and an AGENTS.md that mirrors
+    // CLAUDE.md, the context and a protocol block.
     await fs.writeFile(
       path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"),
+      ["# Existing Context", "", "## Codex Project Reference Gate (Hook-Independent)", "", "Old direct-read-all-project-reference-docs guidance.", ""].join("\n"),
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(tempRoot, "AGENTS.md"),
       [
-        "# Existing Context",
-        "",
-        "Codex uses static project-reference loading instead of runtime-injected project docs. Before coding, planning, debugging, testing, or reviewing:",
-        "",
-        "- Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.",
-        "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.",
-        "- Load context just in time: classify the target and operation, open only the matching reference docs immediately before the first target read/grep/edit/test, and after compaction, resume, delegation, or a context change re-read them and restate `Reference docs read: ... | Not applicable: ...`.",
-        "",
-        "## Critical Thinking Mindset",
-        "",
-        "Keep this section.",
-        "",
+        "# Codex Project Instructions", "",
+        "<!-- CLAUDE-MIRROR:START -->", "<!-- CK:CODEX-ROOT-PROJECTION -->", "old projection with the gate", "<!-- /CK:CODEX-ROOT-PROJECTION -->", "<!-- CLAUDE-MIRROR:END -->", "",
+        "<!-- CODEX-CONTEXT-MIRROR:START -->", "Read `.codex/CODEX_CONTEXT.md`", "Context fingerprint (SHA-256): " + "0".repeat(64), "<!-- CODEX-CONTEXT-MIRROR:END -->", "",
       ].join("\n"),
       "utf8"
     );
 
-    // When the context sync runs.
+    // When the context sync runs, twice
     await runSync(tempRoot);
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+    const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
+    await runSync(tempRoot);
 
-    // Then the old body is replaced by exactly one current gate and the following section is kept intact.
-    assert.equal(contextText.match(/Codex uses static project-reference loading/g)?.length, 1, "previous body must be replaced, not kept beside the new one");
-    assert.equal(contextText.match(/- Load context just in time/g)?.length, 1);
-    assert.doesNotMatch(contextText, /after compaction, resume, delegation,/);
-    assert.match(contextText, /## Critical Thinking Mindset\n\nKeep this section\./);
+    // Then exactly one current projection stands, the old blocks and the context file are gone, and the run is idempotent
+    assert.equal(agentsText.split("<!-- CLAUDE-MIRROR:START -->").length, 2);
+    assert.doesNotMatch(agentsText, /old projection with the gate|CODEX-CONTEXT-MIRROR/);
+    assert.match(agentsText, /Project routing\./);
+    assertProjectOnly(agentsText, "AGENTS.md");
+    assert.equal(await fs.access(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md")).then(() => true, () => false), false);
+    assert.equal(await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8"), agentsText);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
 
-test("runtime catalog renders every canonical workflow variant while Codex context keeps the bounded route gate", async () => {
+
+test("runtime catalog renders every canonical workflow variant while the Codex root carries no route text", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-variants-"));
 
   try {
@@ -648,18 +336,20 @@ test("runtime catalog renders every canonical workflow variant while Codex conte
       );
     }
 
+    await fs.writeFile(path.join(tempRoot, "CLAUDE.md"), "# Project\n", "utf8");
     await runSync(tempRoot);
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+    const contextText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
     const document = JSON.parse(await fs.readFile(path.join(tempRoot, ".claude", "workflows.json"), "utf8"));
     const claudeCatalog = workflowCatalog.buildWorkflowSkillsCatalog({ rootDir: tempRoot, sections: ["workflows"] });
 
-    assert.match(contextText, /<!-- CK:WORKFLOW-GATE -->/);
+    assert.doesNotMatch(contextText, /<!-- CK:WORKFLOW-ROUTE-POINTER -->/);
+    assert.doesNotMatch(contextText, /<!-- CK:WORKFLOW-GATE -->/);
     assert.doesNotMatch(contextText, /synthesis:|audit:|Workflow Catalog/);
     assert.match(claudeCatalog, /synthesis:/);
     assert.match(claudeCatalog, /audit:/);
     assert.match(claudeCatalog, /test --mode=(?:synthesis|audit)/);
     for (const id of ["synth-test", "synth-end", "audit-test", "audit-end"]) {
-      assert.doesNotMatch(contextText, new RegExp(id), `Codex context must omit runtime occurrence ${id}`);
+      assert.doesNotMatch(contextText, new RegExp(id), `the Codex root must omit runtime occurrence ${id}`);
     }
     assert.doesNotMatch(contextText, /\[object Object\]/);
     assert.deepEqual(
@@ -713,8 +403,9 @@ test("runtime catalog resolves {SPEC_ROOT} while the tracked mirror omits workfl
       "utf8"
     );
 
+    await fs.writeFile(path.join(tempRoot, "CLAUDE.md"), "# Project\n", "utf8");
     await runSync(tempRoot);
-    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+    const contextText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
     const catalog = workflowCatalog.buildWorkflowSkillsCatalog({
       rootDir: tempRoot,
       config: { specRoots: { business: { path: "spec-library" } } }
@@ -729,53 +420,15 @@ test("runtime catalog resolves {SPEC_ROOT} while the tracked mirror omits workfl
   }
 });
 
-// TC-DOCROOT-029 — R8 LOCKSTEP. The mirror's own fallback runs only when the loader require
-// fails (stripped portable Codex tree). It must resolve to the DEFAULTS, never pass through.
-// Same isolation technique as extract-sync-block-twin-parity.test.mjs: lift the fallback
-// source and run it under vm, because the loader require succeeds inside this repo and would
-// otherwise mask the branch entirely.
-test("mirror token fallback resolves to loader defaults, never a bare token (TC-DOCROOT-029)", async () => {
-  const twinSource = await fs.readFile(syncContextScript, "utf8");
-  const defaultsSrc = twinSource.match(/const PORTABILITY_TOKEN_DEFAULTS = \{[\s\S]*?\n\};/);
-  const fallbackSrc = twinSource.match(/function resolvePortabilityTokensFallback\(text, config\) \{[\s\S]*?\n\}/);
-  assert.ok(defaultsSrc, "PORTABILITY_TOKEN_DEFAULTS source not found — has the fallback shape changed?");
-  assert.ok(fallbackSrc, "resolvePortabilityTokensFallback source not found — has the fallback shape changed?");
-
-  const ctx = { result: {} };
-  vm.createContext(ctx);
-  vm.runInContext(
-    `${defaultsSrc[0]}\n${fallbackSrc[0]}\nresult.defaults = PORTABILITY_TOKEN_DEFAULTS;\nresult.resolve = resolvePortabilityTokensFallback;`,
-    ctx
-  );
-
+// TC-DOCROOT-029 — the generator carries no copy of the portability-token defaults: the project-config
+// loader is the one resolver, so a second copy could only drift.
+test("the context mirror carries no portability-token fallback: it resolves no token and ships none (TC-DOCROOT-029)", async () => {
+  // The generator projects project text only; workflow routing (the one place tokens are resolved) is
+  // a runtime hook, so a second copy of the token defaults would be dead code that can only drift.
+  const source = await fs.readFile(syncContextScript, "utf8");
+  assert.doesNotMatch(source, /PORTABILITY_TOKEN_DEFAULTS|resolvePortabilityTokensFallback/);
   const loader = require(path.join(repoRoot, ".claude", "hooks", "lib", "project-config-loader.cjs"));
-  const loaderDefaults = Object.fromEntries(
-    Object.entries(loader.PORTABILITY_TOKENS).map(([token, spec]) => [token, spec.default])
-  );
-
-  assert.deepEqual(
-    // Re-spread out of the vm realm: a cross-realm object literal has a foreign prototype and
-    // would fail deepStrictEqual on identical data.
-    { ...ctx.result.defaults },
-    loaderDefaults,
-    "mirror fallback defaults drifted from the loader's PORTABILITY_TOKENS — Claude and Codex would resolve differently"
-  );
-
-  const tokens = Object.keys(loaderDefaults);
-  const input = tokens.map((t) => `{${t}}`).join(" ");
-  const fallbackOut = ctx.result.resolve(input, undefined);
-  assert.equal(fallbackOut, tokens.map((t) => loaderDefaults[t]).join(" "), "fallback must resolve, not pass through");
-  assert.doesNotMatch(fallbackOut, /\{/, "no bare token may survive the fallback");
-  assert.equal(
-    fallbackOut,
-    loader.resolvePortabilityTokens(input, {}),
-    "fallback output must be byte-identical to the loader's output for an unset config"
-  );
-  assert.equal(
-    ctx.result.resolve("keep {Bucket} and {plan-id}", undefined),
-    "keep {Bucket} and {plan-id}",
-    "unknown braces survive the fallback exactly as they survive the loader"
-  );
+  assert.equal(typeof loader.resolvePortabilityTokens, "function", "the loader stays the one resolver");
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -834,8 +487,9 @@ async function buildMirrorFixture(projectConfig) {
       "utf8"
     );
   }
+  await fs.writeFile(path.join(tempRoot, "CLAUDE.md"), "# Project\n", "utf8");
   await runSync(tempRoot);
-  const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+  const contextText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
   const catalog = workflowCatalog.buildWorkflowSkillsCatalog({ rootDir: tempRoot, config: projectConfig || {} });
   return { tempRoot, contextText, catalog };
 }
@@ -860,7 +514,7 @@ test("runtime catalog resolves portability tokens and keeps AI placeholders (TC-
       assert.equal(
         contextText.includes(`{${token}}`),
         false,
-        `a bare {${token}} reached .codex/CODEX_CONTEXT.md — strictly worse than the literal it replaced`
+        `a bare {${token}} reached AGENTS.md — strictly worse than the literal it replaced`
       );
     }
 

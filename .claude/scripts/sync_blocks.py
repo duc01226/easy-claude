@@ -116,3 +116,111 @@ def guide_tags(text: str) -> list:
 def has_guide_entry(text: str, tag: str) -> bool:
     """True when the text carries `tag` as a guide entry (the shared carrier recognizer)."""
     return tag in guide_entries(text)
+
+
+# ─── Universal bundle ───────────────────────────────────────────────────────
+# The `universal` group of `.claude/skills/shared/protocol-groups.json` is the hook-delivered bundle
+# of framework rules every task follows. No skill or agent carries any part of it: no body, no
+# `:reminder`, no guide line and no pointer line. `strip_universal` is the one normaliser that keeps
+# it that way (`sync-update-blocks.py --mode=strip-root-pointer`, and `sync-hooks-to-skills.py`); the
+# recognizer of the retired `Root-carried protocols` pointer line below exists only so the strip and
+# the verifiers can find a line that must not be there. This module and its twin
+# `.claude/scripts/lib/protocol-guide-carrier.cjs` are the ONLY owners of that recognizer.
+#
+# Retired line format:  > **Root-carried protocols** — <text naming every tag>
+
+GROUPS_FILE = PROJECT_ROOT / ".claude" / "skills" / "shared" / "protocol-groups.json"
+UNIVERSAL_GROUP = "universal"
+ROOT_POINTER_LEAD = "> **Root-carried protocols** — "
+_ROOT_POINTER_RE = re.compile(r"^> \*\*Root-carried protocols\*\* — [^\n]*$", re.MULTILINE)
+
+# Protocols an agent never carries because another agent block already states them: the folded
+# tag's rules live in the named block, so the agent keeps one statement instead of two.
+AGENT_FOLDED_TAGS = {"task-tracking-external-report": "agent-bootstrap"}
+
+
+def universal_tags() -> list[str]:
+    """Tags of the `universal` group, in file order. Fails closed: without the list every strip
+    would silently cover the wrong set."""
+    import json
+
+    try:
+        data = json.loads(GROUPS_FILE.read_text(encoding="utf-8"))
+        tags = list(data["groups"][UNIVERSAL_GROUP]["tags"].keys())
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        raise SystemExit(f"ERROR: cannot read the universal group from {GROUPS_FILE}: {exc}")
+    if not tags:
+        raise SystemExit(f"ERROR: the universal group in {GROUPS_FILE} holds no tags")
+    return tags
+
+
+def root_pointer_lines(text: str) -> list[str]:
+    """Every retired pointer-shaped line in the text (a duplicate counts)."""
+    return _ROOT_POINTER_RE.findall(str(text).replace("\r\n", "\n").replace("\r", "\n"))
+
+
+def has_root_pointer(text: str) -> bool:
+    """True when the text carries the retired pointer line (the shared recognizer)."""
+    return bool(root_pointer_lines(text))
+
+
+def line_block_re(tag: str):
+    """Whole-line `<!-- SYNC:tag -->` … `<!-- /SYNC:tag -->` fences. Line-anchored so a prose
+    MENTION of a marker never counts, and exact so `tag` never matches `tag:reminder`."""
+    t = re.escape(tag)
+    open_re = re.compile(rf"^[ \t]*<!--\s*SYNC:{t}\s*-->[ \t]*\n", re.MULTILINE)
+    close_re = re.compile(rf"^[ \t]*<!--\s*/SYNC:{t}\s*-->[ \t]*(?:\n|\Z)", re.MULTILINE)
+    return open_re, close_re
+
+
+def remove_fenced_block(content: str, full_tag: str):
+    """Remove one whole fenced block (`full_tag` is `tag` or `tag:reminder`).
+    Returns (new_content, removed_at or None, error or None)."""
+    open_re, close_re = line_block_re(full_tag)
+    opens = list(open_re.finditer(content))
+    closes = list(close_re.finditer(content))
+    if not opens and not closes:
+        return content, None, None
+    if len(opens) != 1 or len(closes) != 1:
+        return content, None, f"unbalanced SYNC:{full_tag} tags ({len(opens)} open / {len(closes)} close)"
+    start, end = opens[0].start(), closes[0].end()
+    if end <= opens[0].end():
+        return content, None, f"SYNC:{full_tag} close tag appears before open tag"
+    # Drop the blank line that separated the block from what follows, so repeated
+    # conversions do not accumulate blank lines.
+    while content.startswith("\n", end):
+        end += 1
+    return content[:start] + content[end:], start, None
+
+
+def strip_universal(content: str, strip_tags=None):
+    """Bring one skill or agent text to the universal-bundle contract. Pure text function.
+
+    Removes every body and `:reminder` fence of a universal tag (plus `strip_tags`, e.g. the
+    agent-folded tags) and every line of the retired `Root-carried protocols` pointer, and never
+    adds anything. A file that carries none of these is returned unchanged.
+    Returns (new_content, removed_labels, errors). Idempotent.
+    """
+    strip = list(universal_tags()) + [t for t in (strip_tags or []) if t not in universal_tags()]
+    removed: list[str] = []
+    errors: list[str] = []
+    for tag in strip:
+        for full in (tag, f"{tag}:reminder"):
+            content, at, err = remove_fenced_block(content, full)
+            if err:
+                errors.append(err)
+            elif at is not None:
+                removed.append(full)
+    if errors:
+        return content, [], errors
+
+    for match in reversed(list(_ROOT_POINTER_RE.finditer(content))):
+        start, end = match.start(), match.end()
+        while content[end:end + 1] == "\n":
+            end += 1
+        if end >= len(content):
+            content = content[:start].rstrip("\n") + "\n"
+        else:
+            content = content[:start] + content[end:]
+        removed.append("root-pointer")
+    return content, removed, []

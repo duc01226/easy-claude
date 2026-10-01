@@ -668,10 +668,10 @@ test("runChecks passes positive SDD fixture", async () => {
       ],
       [
         ".claude/skills/workflow-idea-to-pbi/SKILL.md",
-        "Feature doc Section 8 TC IDs docs-update docs/project-config.json team-artifacts/ideas team-artifacts/pbis tmp/reports/docs-update",
+        "Feature doc Section 8 TC IDs docs-manager --mode=update docs/project-config.json team-artifacts/ideas team-artifacts/pbis tmp/reports/docs-update",
       ],
       [
-        ".claude/skills/docs-update/SKILL.md",
+        ".claude/skills/docs-manager/references/mode-update.md",
         "configured PBI/idea artifact roots detection/delegation docs/project-config.json",
       ],
       [
@@ -703,12 +703,8 @@ test("runChecks passes positive SDD fixture", async () => {
         "PERFORMANCE-SDD ROUTE performance-review SLA functional no-regression",
       ],
       [
-        ".codex/CODEX_CONTEXT.md",
-        "shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
-      ],
-      [
         "AGENTS.md",
-        "shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
+        "# Codex Project Instructions Project information only.",
       ],
       [
         ".claude/hooks/session-init-docs.cjs",
@@ -724,10 +720,10 @@ test("runChecks passes positive SDD fixture", async () => {
       ],
       [
         ".agents/skills/workflow-idea-to-pbi/SKILL.md",
-        "Feature doc Section 8 TC IDs docs-update shared/sdd-artifact-contract.md team-artifacts/ideas team-artifacts/pbis tmp/reports/docs-update",
+        "Feature doc Section 8 TC IDs docs-manager --mode=update shared/sdd-artifact-contract.md team-artifacts/ideas team-artifacts/pbis tmp/reports/docs-update",
       ],
       [
-        ".agents/skills/docs-update/SKILL.md",
+        ".agents/skills/docs-manager/references/mode-update.md",
         "configured PBI/idea artifact roots detection/delegation docs/project-config.json",
       ],
       [
@@ -936,7 +932,7 @@ test("runChecks promotes the same SDD022 finding warn->error purely via enforce-
 // they stay allowlisted for the root-literal residue scan rather than converted.
 
 const sdd004Check = () =>
-  CHECKS.find((check) => check.code === "SDD004" && check.file === ".claude/skills/docs-update/SKILL.md");
+  CHECKS.find((check) => check.code === "SDD004" && check.file === ".claude/skills/docs-manager/references/mode-update.md");
 
 const DOCS_UPDATE_REQUIRED_LINE =
   "Routes configured PBI/idea artifact roots by detection/delegation from `docs/project-config.json`.";
@@ -1514,7 +1510,7 @@ test("TC-DOCROOT-096: SDD004 accepts a relocatable root inside a form-(b) overri
   await withTempRoot("codex-verify-sdd-formb-accept-", async (tempRoot) => {
     await writeRepoFile(
       tempRoot,
-      ".claude/skills/docs-update/SKILL.md",
+      ".claude/skills/docs-manager/references/mode-update.md",
       [
         DOCS_UPDATE_REQUIRED_LINE,
         "PBI artifacts: default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
@@ -1531,7 +1527,7 @@ test("TC-DOCROOT-097: SDD004 still rejects a bare standalone relocatable-root li
   await withTempRoot("codex-verify-sdd-formb-reject-", async (tempRoot) => {
     await writeRepoFile(
       tempRoot,
-      ".claude/skills/docs-update/SKILL.md",
+      ".claude/skills/docs-manager/references/mode-update.md",
       [DOCS_UPDATE_REQUIRED_LINE, "Write the PBI under team-artifacts/pbis.", ""].join("\n")
     );
     const result = await runChecks(tempRoot, [sdd004Check()]);
@@ -1544,7 +1540,7 @@ test("TC-DOCROOT-097: SDD004 still rejects a bare standalone relocatable-root li
   await withTempRoot("codex-verify-sdd-formb-mixed-", async (tempRoot) => {
     await writeRepoFile(
       tempRoot,
-      ".claude/skills/docs-update/SKILL.md",
+      ".claude/skills/docs-manager/references/mode-update.md",
       [
         DOCS_UPDATE_REQUIRED_LINE,
         "PBI artifacts: default `team-artifacts/pbis`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",
@@ -1562,7 +1558,7 @@ test("TC-DOCROOT-097: SDD004 still rejects a bare standalone relocatable-root li
     await writeProjectConfig(tempRoot, { docsRoots: { teamArtifacts: { path: "artifacts" } } });
     await writeRepoFile(
       tempRoot,
-      ".claude/skills/docs-update/SKILL.md",
+      ".claude/skills/docs-manager/references/mode-update.md",
       [DOCS_UPDATE_REQUIRED_LINE, "Write the PBI under team-artifacts/pbis.", ""].join("\n")
     );
     const result = await runChecks(tempRoot, [sdd004Check()]);
@@ -1575,7 +1571,7 @@ test("TC-DOCROOT-098: PROJECT_LAYOUT_TERMS get no sentence exemption", async () 
   await withTempRoot("codex-verify-sdd-layout-terms-", async (tempRoot) => {
     await writeRepoFile(
       tempRoot,
-      ".claude/skills/docs-update/SKILL.md",
+      ".claude/skills/docs-manager/references/mode-update.md",
       [
         DOCS_UPDATE_REQUIRED_LINE,
         "Modules live under `src/Services/**`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path.",

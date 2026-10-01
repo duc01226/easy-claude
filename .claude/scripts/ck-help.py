@@ -68,7 +68,7 @@ CATEGORY_GUIDES = {
         "title": "Fixing Issues",
         "workflow": [
             ("Start", "`/fix` \"describe your issue\""),
-            ("If stuck", "`/debug-investigate` \"more details\""),
+            ("If stuck", "`/investigate --mode=debug` \"more details\""),
             ("Verify", "`/test`"),
         ],
         "tip": "Include error messages for better results",
@@ -77,10 +77,10 @@ CATEGORY_GUIDES = {
         "title": "Planning",
         "workflow": [
             ("Plan", "`/plan` \"your task\""),
-            ("Validate", "`/plan-validate` (interview to confirm decisions)"),
-            ("Execute plan", "`/plan-execute` (runs the plan)"),
+            ("Validate", "`/plan --mode=validate` (interview to confirm decisions)"),
+            ("Execute plan", "`/plan --mode=execute` (runs the plan)"),
         ],
-        "tip": "Use /plan-validate to confirm assumptions before coding",
+        "tip": "Use /plan --mode=validate to confirm assumptions before coding",
     },
     "feature-implement": {
         "title": "Implementation",
@@ -88,7 +88,7 @@ CATEGORY_GUIDES = {
             ("Implement", "`/feature-implement` \"your feature\""),
             ("Test", "`/test`"),
         ],
-        "tip": "/feature-implement is standalone - it plans internally. Use /plan → /plan-execute for explicit planning",
+        "tip": "/feature-implement is standalone - it plans internally. Use /plan → /plan --mode=execute for explicit planning",
     },
     "test": {
         "title": "Testing",
@@ -101,8 +101,8 @@ CATEGORY_GUIDES = {
     "docs": {
         "title": "Documentation",
         "workflow": [
-            ("Initialize", "`/docs-init`"),
-            ("Update", "`/docs-update`"),
+            ("Initialize", "`/docs-manager --mode=init`"),
+            ("Update", "`/docs-manager --mode=update`"),
         ],
         "tip": "Keep docs close to code for accuracy",
     },
@@ -224,7 +224,7 @@ def discover_skills(skills_dir: Path, prefix: str) -> dict:
         skill_dir = skill_file.parent
         skill_name = skill_dir.name
 
-        # Derive category from skill name prefix (e.g., plan-review -> plan)
+        # Derive category from skill name prefix (e.g., workflow-feature -> workflow)
         parts = skill_name.split('-')
         category = parts[0] if len(parts) > 1 else "core"
 
@@ -300,7 +300,7 @@ def show_overview(data: dict, prefix: str) -> None:
     print()
     print("**Quick Start:**")
     print(f"- `/{prefix}feature-implement` - Implement features (standalone)")
-    print(f"- `/{prefix}plan` + `/{prefix}plan-execute` - Plan then execute")
+    print(f"- `/{prefix}plan` + `/{prefix}plan --mode=execute` - Plan then execute")
     print(f"- `/{prefix}fix` - Fix bugs intelligently")
     print(f"- `/{prefix}test` - Run and analyze tests")
     print()
@@ -594,7 +594,7 @@ def show_config_guide() -> None:
     print("**Plan Validation:**")
     print("- `mode: \"prompt\"` - Ask user after plan creation (default)")
     print("- `mode: \"auto\"` - Always run validation interview")
-    print("- `mode: \"off\"` - Skip; user runs `/plan-validate` manually")
+    print("- `mode: \"off\"` - Skip; user runs `/plan --mode=validate` manually")
     print()
     print("Validation interviews the user with critical questions to confirm")
     print("assumptions, risks, and architectural decisions before implementation.")
@@ -640,9 +640,9 @@ def show_config_guide() -> None:
     print("## Code Review Graph (optional)")
     print()
     print("Builds a knowledge graph of the codebase for blast-radius analysis and smarter reviews.")
-    print("- **Setup:** Python 3.10+ required; `/graph-build` installs the rest into the hooks' environment")
+    print("- **Setup:** Python 3.10+ required; `/graph-code --mode=build` installs the rest into the hooks' environment")
     print("- **Mode:** `hooks.codeGraph.enabled` in `docs/project-config.json` — `auto` (default), `on`, `off`")
-    print("- **Skills:** `/graph-build`, `/graph-blast-radius`, `/graph-export`, `/graph-connect-api`, `/graph-query`")
+    print("- **Skills:** `/graph-code --mode={build|query|trace|blast-radius|connect-api}`, `/graph-export`")
     print("- **Config:** frontend->backend detection via `graphConnectors` in the project config (default `docs/project-config.json`)")
     print("- Docs: `.claude/docs/code-graph-mechanism.md`")
     print()

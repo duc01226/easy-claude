@@ -1,10 +1,10 @@
 # UI/UX Review Calibration — worked examples with expected findings
 
-> **Role:** calibration set for `design-review-checklist.md` (check IDs), `SYNC:ui-ux-design-principles` (`UI-*`) and the `ui-review` skill. Each case states the situation, the evidence a reviewer must gather, the findings a correct review produces (ID + default severity), and — just as important — what is NOT a finding. Use it to calibrate severity before a review and as the fixture set for evaluating review output.
+> **Role:** calibration set for `design-review-checklist.md` (check IDs), `SYNC:ui-ux-design-principles` (`UI-*`) and the `ui-design --mode=review` mode. Each case states the situation, the evidence a reviewer must gather, the findings a correct review produces (ID + default severity), and — just as important — what is NOT a finding. Use it to calibrate severity before a review and as the fixture set for evaluating review output.
 >
 > **Portability.** Every case is generic; no project, product, or stack is implied. Numbers inside a case are the case's own facts, never thresholds. A project's design-system docs, accepted decisions, and configured budgets outrank any expectation here.
 >
-> **Consumed by:** `ui-review` (Phase 2C and the report), `design-review-checklist.md` (Quick Summary). Add a case when a real review mis-ranked a defect class; never add a case that encodes one project's convention.
+> **Consumed by:** `ui-design --mode=review` (Phase 2C and the report), `design-review-checklist.md` (Quick Summary). Add a case when a real review mis-ranked a defect class; never add a case that encodes one project's convention.
 
 ---
 
@@ -42,7 +42,7 @@
 
 **Evidence to gather.** Walk the ancestors of the menu (§0.5 step 2): an ancestor has a transform, opacity below 1, a filter, or another stacking-context-creating property, so the menu's stacking value only competes inside that ancestor. Check whether the project provides an overlay/portal mechanism and a layer scale.
 
-**Expected findings.** `ui-review` Category 4 (stacking context, not the value) — BLOCKED when the menu is unusable. Fix at the owner: render the overlay through the project's overlay mechanism, or remove the unnecessary stacking context — never escalate the stacking value.
+**Expected findings.** `ui-design --mode=review` Category 4 (stacking context, not the value) — BLOCKED when the menu is unusable. Fix at the owner: render the overlay through the project's overlay mechanism, or remove the unnecessary stacking context — never escalate the stacking value.
 
 **NOT a finding.** The high stacking value itself when it comes from the project's layer scale.
 
@@ -54,7 +54,7 @@
 
 **Evidence to gather.** The name's parent is a flex/grid track whose minimum size defaults to its content, so the truncation never triggers. The defect lives in the ancestor's layout context, not in the name's style.
 
-**Expected findings.** `ui-review` Category 1 (HIGH when a flex child truncates without a shrinkable minimum) + `C2`/`F1` if controls become unreachable. Fix on the track that owns the constraint.
+**Expected findings.** `ui-design --mode=review` Category 1 (HIGH when a flex child truncates without a shrinkable minimum) + `C2`/`F1` if controls become unreachable. Fix on the track that owns the constraint.
 
 ---
 

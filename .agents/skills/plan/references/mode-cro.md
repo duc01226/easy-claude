@@ -55,5 +55,5 @@ tags: [cro, conversion]
 
 - PLANNING-ONLY: do not implement, only create the CRO plan.
 - Focus on user behavior, conversion funnels, and measurable outcomes.
-- Preserve standard handoff: standalone asks once whether the user wants `$plan-review`; workflow invocation returns directly to its parent.
+- Preserve standard handoff: standalone asks once whether the user wants `$plan --mode=review`; workflow invocation returns directly to its parent.
 - Be skeptical; every claim needs traced proof, confidence >80% to act.

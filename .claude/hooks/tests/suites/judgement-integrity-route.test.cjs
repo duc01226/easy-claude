@@ -280,13 +280,13 @@ module.exports = {
             }
         },
         {
-            name: '[judgement-integrity-route] TC-JIR-006 registered on UserPromptSubmit and baked into the static floor',
+            name: '[judgement-integrity-route] TC-JIR-006 registered on UserPromptSubmit and carried by the universal critical-thinking protocol',
             fn: () => {
                 const settings = require(path.join(PROJECT_DIR, '.claude', 'settings.json'));
                 const commands = (settings.hooks.UserPromptSubmit || []).flatMap(group => group.hooks.map(h => h.command));
                 assertTrue(commands.some(c => c.includes('judgement-integrity-route.cjs')), 'hook must be wired in settings.json');
-                // The hook is an accelerator only: the hookless floor must carry the rule too.
-                const full = extractSyncBody(fs.readFileSync(SYNC_PATH, 'utf8'), 'critical-thinking-mindset:full');
+                // The universal protocol carries the rule for every task; the hook adds the lean-specific directive.
+                const full = extractSyncBody(fs.readFileSync(SYNC_PATH, 'utf8'), 'critical-thinking-mindset');
                 assertContains(full, '**Judgement integrity:**');
                 assertContains(full, 'never invent findings or manufacture disagreement');
                 assertContains(full, 'web-verify external facts');

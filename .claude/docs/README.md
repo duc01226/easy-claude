@@ -7,11 +7,11 @@
 | Goal                           | Document                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
-| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->129<!-- /COUNT --> skills catalog                                                                        |
+| **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->102<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
-| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->25<!-- /COUNT --> top-level hook files deep-dive                                                           |
-| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->21<!-- /COUNT --> workflows                                             |
+| **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->29<!-- /COUNT --> top-level hook files deep-dive                                                           |
+| **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->19<!-- /COUNT --> workflows                                             |
 | **Configuring Claude?**        | [configuration/README.md](./configuration/README.md)                                                                               |
 | **Team collaboration?**        | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX workflows                                        |
 | **Graph intelligence?**        | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works                                          |
@@ -26,11 +26,11 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   129 skills across 15+ domains
+|-- skills/                   102 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    25 top-level hook files, 46 lib modules
+|-- hooks/                    29 top-level hook files, 45 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -59,28 +59,28 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | Task                       | Command                              | Skill                         |
 | -------------------------- | ------------------------------------ | ----------------------------- |
 | Implement a feature        | `/feature-implement`                 | `feature-implement`           |
-| Fix a bug                  | `/fix`                               | `debug-investigate`           |
+| Fix a bug                  | `/fix`                               | `investigate --mode=debug`    |
 | Create a PR, ready to merge | `/pull-request`                     | `pull-request`                |
 | Commit and push            | `/commit --push`                     | `commit`                      |
 | Understand code            | `/investigate`                       | `investigate`                 |
 | Plan implementation        | `/plan`                              | `plan`                        |
 | Run tests                  | `/test`                              | `test`                        |
 | Review code                | `/review`                            | `code-quality-review`                 |
-| Debug issues               | `/debug-investigate`                 | `debug-investigate`           |
-| Create user story          | `/story`                             | `story`                       |
+| Debug issues               | `/investigate --mode=debug`          | `investigate --mode=debug`    |
+| Create user story          | `/pbi --mode=story`                             | `pbi --mode=story`            |
 | Prioritize backlog         | `/prioritize`                        | `prioritize`                  |
-| Quality gate (pre-dev)     | `/dor-gate`                          | `dor-gate`                    |
-| Quality gate (pre-qa)      | `/artifact-review --type=spec-tests` | `artifact-review`             |
+| Quality gate (pre-dev)     | `/pbi --mode=dor`                          | `pbi --mode=dor`                    |
+| Quality gate (pre-qa)      | `/pbi --mode=review --type=spec-tests` | `pbi --mode=review`             |
 | Quality gate (pre-release) | `/production-readiness-review`       | `production-readiness-review` |
 | Create test cases          | `/spec [mode=tests]`                 | `spec [mode=tests]`           |
 | Create design spec         | `/design-spec`                       | `design-spec`                 |
-| Analyze blast radius       | `/graph-blast-radius`                | `graph-blast-radius`          |
-| Build code graph           | `/graph-build`                       | `graph-build`                 |
-| Review integration tests   | `/integration-test-review`           | `integration-test-review`     |
-| Verify test traceability   | `/integration-test-verify`           | `integration-test-verify`     |
+| Analyze blast radius       | `/graph-code --mode=blast-radius`    | `graph-code --mode=blast-radius` |
+| Build code graph           | `/graph-code --mode=build`           | `graph-code --mode=build`     |
+| Review integration tests   | `/integration-test --mode=review`           | `integration-test --mode=review`     |
+| Verify test traceability   | `/integration-test --mode=verify`           | `integration-test --mode=verify`     |
 | Review an AI feature       | `/ai-engineering-review`             | `ai-engineering-review`       |
 | Enhance AI prompts         | `/prompt-enhance`                    | `prompt-enhance`              |
-| Create PBI visual mockup   | `/pbi-mockup`                        | `pbi-mockup`                  |
+| Create PBI visual mockup   | `/pbi --mode=mockup`                        | `pbi --mode=mockup`                  |
 
 ### "I want to learn about..."
 
@@ -88,11 +88,11 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | How skills work                             | [skills/README.md](./skills/README.md)                                                                          |
 | How skills are activated                    | [skills/README.md](./skills/README.md)                                                                          |
-| How lessons system works                    | [hooks/README.md](./hooks/README.md) — `/learn` skill + static lessons re-anchoring in `CLAUDE.md` / `SKILL.md` |
+| How lessons system works                    | [hooks/README.md](./hooks/README.md) — `/learn` skill + lessons read contract in the hook-delivered universal bundle |
 | How hooks intercept events                  | [hooks/README.md](./hooks/README.md) — hook catalog + lifecycle                                                 |
 | Hook execution order by event               | [hooks/README.md](./hooks/README.md) — hook catalog + execution order                                           |
 | Session lifecycle (init → compact → resume) | [hooks/README.md#session-lifecycle](./hooks/README.md#session-lifecycle)                                        |
-| Workflow detection and routing              | Default-on `workflow-route-inject.cjs` (team opt-out in project config; `.claude/.ck.local.json` local override); definitions in `.claude/workflows.json` |
+| Workflow detection and routing              | Default-on `workflow-route-inject.cjs`, the only carrier of the route; per-person mode `ask` / `auto` / `off` (project default, `~/.claude/.ck.json`, `.claude/.ck.local.json`, env `CK_WORKFLOW_ROUTE_MODE`); definitions in `.claude/workflows.json` |
 | How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                                                          |
 | How to configure output                     | [configuration/output-styles.md](./configuration/output-styles.md)                                              |
 | How team collaboration works                | [team-collaboration-guide.md](./team-collaboration-guide.md)                                                    |
@@ -154,13 +154,13 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 129   |
-| Hook files (top-level) | 25    |
-| Lib Modules            | <!-- COUNT:lib-modules -->46<!-- /COUNT --> |
+| Skills                 | 102   |
+| Hook files (top-level) | 29    |
+| Lib Modules            | <!-- COUNT:lib-modules -->45<!-- /COUNT --> |
 | Hook Events            | 9     |
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
-| Workflows              | 21    |
-| Hook Tests             | 137   |
+| Workflows              | 19    |
+| Hook Tests             | 133   |
 | Documentation Files    | 28    |
 
 ---

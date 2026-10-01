@@ -463,7 +463,7 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
 // no package.json, let the in-bundle runner resolve that project from its own path, and verify the
 // preflight's three safe states. The test deliberately selects only `claude-md`, so a failure names
 // the source-root handoff rather than a later mirror prerequisite.
-test('PORT-015 copied runner initializes missing CLAUDE.md and protects markerless roots', { skip: !isFrameworkRepo(repoRoot) }, async () => {
+test('PORT-015 copied runner initializes missing CLAUDE.md and leaves markerless project-owned roots untouched', { skip: !isFrameworkRepo(repoRoot) }, async () => {
     // Given a copied .claude bundle and a consuming project with no root package.json
     const target = await fs.mkdtemp(path.join(os.tmpdir(), 'port-preflight-'));
     createdDirs.push(target);
@@ -488,35 +488,22 @@ test('PORT-015 copied runner initializes missing CLAUDE.md and protects markerle
     assert.match(init.stdout, /CLAUDE\.md missing.*init required/i);
     assert.match(init.stdout, /all 1 stage\(s\) passed/i);
     const initialized = await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8');
-    assert.match(initialized, /CK:UNIVERSAL-GUIDES/);
+    // A generated root carries project information only: no universal-guide sentinel, no protocol text
+    assert.match(initialized, /<!-- SECTION:/);
+    assert.doesNotMatch(initialized, /CK:UNIVERSAL-GUIDES|CK:CRITICAL-THINKING|CK:AI-MISTAKE-PREVENTION|CK:WORKFLOW-ROUTE-POINTER/);
 
-    // Given a project-owned markerless root, When the preflight runs with default enforcement,
-    // Then it fails closed without overwriting the root or creating a backup.
+    // Given a project-owned markerless root, When the preflight runs,
+    // Then it continues without overwriting the root or creating a backup: nothing is generated into it.
     const markerless = '# Project-owned instructions\n\nKeep this exact text.\n';
     await fs.writeFile(path.join(target, 'CLAUDE.md'), markerless, 'utf8');
-    const blocked = await run(process.execPath, [runner, '--only=claude-md'], {
+    const kept = await run(process.execPath, [runner, '--only=claude-md'], {
         cwd: path.join(target, 'nested', 'work'),
         env: { ...process.env, CLAUDE_PROJECT_DIR: repoRoot },
     });
-    assert.equal(blocked.code, 1, 'markerless root must stop the mirror pipeline');
-    assert.match(blocked.stderr + blocked.stdout, /markerless.*smart-merge/i);
+    assert.equal(kept.code, 0, `a markerless root is project-owned and must not stop the pipeline: ${kept.stderr || kept.stdout}`);
+    assert.match(kept.stdout, /markerless/i);
     assert.equal(await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8'), markerless);
-    assert.equal(await exists(path.join(target, '.claude-md.backup')), false, 'blocked preflight must not create a backup');
-
-    // Given an explicit portability opt-out, When the same markerless root is checked,
-    // Then the runner accepts it while preserving the project-owned bytes.
-    await fs.writeFile(
-        path.join(target, 'docs', 'project-config.json'),
-        JSON.stringify({ project: { name: 'Portable preflight' }, portability: { requireUniversalGuides: false } }) + '\n',
-        'utf8'
-    );
-    const accepted = await run(process.execPath, [runner, '--only=claude-md'], {
-        cwd: path.join(target, 'nested', 'work'),
-        env: { ...process.env, CLAUDE_PROJECT_DIR: repoRoot },
-    });
-    assert.equal(accepted.code, 0, `explicit opt-out must let the runner continue: ${accepted.stderr || accepted.stdout}`);
-    assert.match(accepted.stdout, /universal-guide enforcement is opted out/i);
-    assert.equal(await fs.readFile(path.join(target, 'CLAUDE.md'), 'utf8'), markerless);
+    assert.equal(await exists(path.join(target, '.claude-md.backup')), false, 'a markerless preflight must not create a backup');
 });
 
 test('PORT-001 sync/verify pipeline scripts import only node: built-ins and relative files', async () => {
@@ -639,19 +626,13 @@ test('PORT-013 relocated .claude and .codex bundles resolve from the consuming p
         cwd: path.join(relocated, 'nested', 'work')
     });
     assert.equal(second.code, 0, `relocated bundle must sync from a nested cwd: ${second.stderr || second.stdout}`);
-    const context = await fs.readFile(path.join(relocated, '.codex', 'CODEX_CONTEXT.md'), 'utf8');
     const agents = await fs.readFile(path.join(relocated, 'AGENTS.md'), 'utf8');
-    assert.doesNotMatch(context, /Workflow Protocol \(Hook-Independent\)|Workflow Catalog/);
-    assert.match(agents, /\.codex\/CODEX_CONTEXT\.md/);
+    assert.doesNotMatch(agents, /Workflow Protocol \(Hook-Independent\)|Workflow Catalog|CODEX_CONTEXT/);
+    assert.equal(await exists(path.join(relocated, '.codex', 'CODEX_CONTEXT.md')), false, 'no context file is generated');
     assert.ok(Buffer.byteLength(agents, 'utf8') <= AGENTS_ROOT_LIMIT_BYTES, 'relocated root projection must remain bounded');
 
-    // The adopter path must survive the VERIFIER, not just the generator. This fixture's CLAUDE.md
-    // is the literal '# Portable project\n' — no CK fences — so the projection whitelist has nothing
-    // to source and AGENTS.md carries ZERO protocol-body copies. That is correct for this shape, and
-    // the bounded-root occurrence contract is conditional precisely so it stays correct
-    // (`verify-skill-protocol-compliance.mjs` checkProtocolBodySignatureCounts). Running only the
-    // generator here is what let an unconditional ">=1" ship: it turned every fence-less adopter's
-    // `verify:all` red while this suite stayed green.
+    // The adopter path must survive the VERIFIER, not just the generator. AGENTS.md carries project
+    // information only, so the verifier requires ZERO protocol-body copies in it.
     const skProto = await run(process.execPath, [relocatedRunner, '--only=sk-proto'], {
         cwd: path.join(relocated, 'nested', 'work')
     });
@@ -664,7 +645,6 @@ test('PORT-013 relocated .claude and .codex bundles resolve from the consuming p
         /body signature .* found \d+×/,
         'a CK-fence-less adopter root must not fail the bounded-root protocol-body occurrence contract'
     );
-    assert.doesNotMatch(context, new RegExp(exported.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.doesNotMatch(agents, new RegExp(exported.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 

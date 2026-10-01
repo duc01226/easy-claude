@@ -5,7 +5,7 @@
  *
  * Business intent: implementing an already-written spec must not grow scope silently.
  * The workflow owns a lightweight `spec_baseline` identity in its run report; `plan`
- * keeps its phases within governing intent; `plan-review` checks that boundary once.
+ * keeps its phases within governing intent; `plan --mode=review` checks that boundary once.
  * This suite protects those outcomes without forcing Git-object storage, plan
  * frontmatter, or a dedicated baseline section into every plan.
  */
@@ -18,7 +18,7 @@ const SKILLS_DIR = path.resolve(__dirname, '..', '..', '..', 'skills');
 const readSkill = name => fs.readFileSync(path.join(SKILLS_DIR, name, 'SKILL.md'), 'utf8').replace(/\r\n/g, '\n');
 
 const plan = () => readSkill('plan');
-const review = () => readSkill('plan-review');
+const review = () => fs.readFileSync(path.join(SKILLS_DIR, 'plan', 'references', 'mode-review.md'), 'utf8').replace(/\r\n/g, '\n');
 const workflow = () => readSkill('workflow-implement-spec');
 
 const tests = [
@@ -31,7 +31,7 @@ const tests = [
         }
     },
     {
-        name: '[scope-guard] TC-GWF-024 plan-review checks supplied scope without prescribing storage mechanics',
+        name: '[scope-guard] TC-GWF-024 plan --mode=review checks supplied scope without prescribing storage mechanics',
         fn: () => {
             const text = review();
             assert.match(text, /If a supplied spec baseline exists, review against that baseline and separate proposed additions/);

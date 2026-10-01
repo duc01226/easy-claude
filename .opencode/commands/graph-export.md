@@ -1,5 +1,5 @@
 ---
-description: "[Code Intelligence] Use when exporting the code knowledge graph. Flag: --format={json|mermaid} (default json)."
+description: "[Code Intelligence] Use when exporting the code knowledge graph. --format={json|mermaid}."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/graph-export/SKILL.md — do not hand-edit; re-run:

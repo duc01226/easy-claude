@@ -393,7 +393,7 @@ What the scaffold guarantees (each item is a marker the `review` profile checks,
                     } else if (restoreFocus) buttons.notes.focus();
                 }
 
-                /* OPTIONAL auto-play: pbi-mockup's engine starts its walkthrough on 'play' (§3b). */
+                /* OPTIONAL auto-play: pbi --mode=mockup's engine starts its walkthrough on 'play' (§3b). */
                 function playDemo(slide) {
                     if (!slide.hasAttribute('data-journey') || reducedMotion.matches) return;
                     const frame = slide.querySelector('.deck__embed iframe');
@@ -670,7 +670,7 @@ The `</script>` becomes `&lt;/script&gt;` and the `<script>` becomes `&lt;script
 
 ## 3b. Demo-Flow Slide Pattern (interactive journey + narration)
 
-One demo slide per main user story (journey) — the `demo-{journey-slug}` slide in the §1 scaffold. It embeds the **interactive** `pbi-mockup` HTML scoped to that flow via `<iframe srcdoc>` (the same escape-once rule as §3) and sets the **narration** beside it: the journey's steps in plain language, always visible, never hidden behind the notes. The journey is driven by the mock-up's own controls (▶ Play · ⏮ ⏭ · ↺) **inside** the iframe; the mock-up is self-driving (its engine lives in `pbi-mockup/references/interactive-demo.md` §2–§3) — the deck only navigates slides and adds narration; it does NOT re-implement (or duplicate) interactivity.
+One demo slide per main user story (journey) — the `demo-{journey-slug}` slide in the §1 scaffold. It embeds the **interactive** `pbi --mode=mockup` HTML scoped to that flow via `<iframe srcdoc>` (the same escape-once rule as §3) and sets the **narration** beside it: the journey's steps in plain language, always visible, never hidden behind the notes. The journey is driven by the mock-up's own controls (▶ Play · ⏮ ⏭ · ↺) **inside** the iframe; the mock-up is self-driving (its engine lives in `pbi/references/mockup-interactive-demo.md` §2–§3) — the deck only navigates slides and adds narration; it does NOT re-implement (or duplicate) interactivity.
 
 Demo slide markers:
 
@@ -750,13 +750,13 @@ The §2 engine is a single global slide router; per-journey interactivity lives 
 
 2. **OPTIONAL `postMessage('play')` to auto-start a journey when its slide opens** — the engine's `playDemo()` posts `'play'` to the slide's iframe each time a `data-journey` slide is shown, skipped when the viewer prefers reduced motion. It is a progressive enhancement that MUST degrade gracefully: a frame that has not finished loading misses it, and a mockup without the listener ignores it; the baseline is always the viewer clicking inside the frame.
 
-    Optional only — never a hard dependency. The receiver is the engine's OPTIONAL, inert-when-standalone `message` listener in `pbi-mockup/references/interactive-demo.md` §3 (it calls the walkthrough's `play()` when the parent posts `'play'`). When that listener is absent the post is simply ignored — so the handshake is symmetric (a real receiver exists), not sender-only, and the embedded mock-up stays self-driving with direct clicking as the baseline.
+    Optional only — never a hard dependency. The receiver is the engine's OPTIONAL, inert-when-standalone `message` listener in `pbi/references/mockup-interactive-demo.md` §3 (it calls the walkthrough's `play()` when the parent posts `'play'`). When that listener is absent the post is simply ignored — so the handshake is symmetric (a real receiver exists), not sender-only, and the embedded mock-up stays self-driving with direct clicking as the baseline.
 
 ---
 
 ## 4. [BLOCKING] Fidelity Gate
 
-> **[BLOCKING] After the deck is assembled (SKILL.md Step 6) and passes the `review` conformance check (Step 8), validate its visuals faithfully match the existing UI inventoried in Step 4 before handoff.** Do NOT report the deck as done until this validation records a result — a deck that does not match the current system is not done. (Mirrors the `pbi-mockup` *Fidelity Validation* gate — Step 7 — at deck scope.)
+> **[BLOCKING] After the deck is assembled (SKILL.md Step 6) and passes the `review` conformance check (Step 8), validate its visuals faithfully match the existing UI inventoried in Step 4 before handoff.** Do NOT report the deck as done until this validation records a result — a deck that does not match the current system is not done. (Mirrors the `pbi --mode=mockup` *Fidelity Validation* gate — Step 7 — at deck scope.)
 
 Validate the produced deck against the inventoried existing UI and record an explicit pass/fail:
 

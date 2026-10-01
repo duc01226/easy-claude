@@ -533,7 +533,8 @@ const tests = [
             assert.ok(elapsed < 10000, `the scan took ${elapsed} ms (bound 10000)`);
 
             // Project-controlled location/name/exclusion regexes use the same hard availability boundary.
-            const nearMiss = `${'a'.repeat(1000)}!.py`;
+            // A file name is capped at 255 characters on NTFS, ext4 and APFS; 200 backtracking steps are already unbounded without the guard.
+            const nearMiss = `${'a'.repeat(200)}!.py`;
             fx.write(nearMiss, 'ordinary source\n');
             const cases = [
                 ['pathRegexes', '^/(a+)+$'],

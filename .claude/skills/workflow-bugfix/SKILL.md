@@ -36,10 +36,10 @@ Classify the defect before choosing steps and record the result in the workflow 
 
 Non-negotiable — `/workflow-end` checks each against its evidence before the run closes:
 
-1. **Root cause traced** (`/debug-investigate`, gate) — end-to-start trace from the observed final state through reader → storage/projection → writer → consumer/job → producer, every feeder path, a hypothesis matrix with the environment weighed as a competing cause, the owning fix layer and a forward convergence proof, all with `file:line`.
+1. **Root cause traced** (`/investigate --mode=debug`, gate) — end-to-start trace from the observed final state through reader → storage/projection → writer → consumer/job → producer, every feeder path, a hypothesis matrix with the environment weighed as a competing cause, the owning fix layer and a forward convergence proof, all with `file:line`.
 2. **Code Bug vs Spec Bug classified** before any regression TC or test (gate below), with a preservation note: `current behavior → expected behavior → unchanged behavior to preserve → regression evidence`.
 3. **Regression guard RED → GREEN** — the first `/integration-test` (gate) writes a test that reproduces the bug; the verify step's mutation check reverts `/fix` and the test FAILS (RED), with the fix it PASSES (GREEN). A test that passes without the fix does not catch the bug. Each regression test names its `Business Intent / Invariant Guarded`; lifecycle/state logic asserts state before/after and invalid-transition rejection. A reproducing test that cannot run here is `ENVIRONMENT-BLOCKED` and escalated, never assumed green.
-4. **Tests pass** (`/integration-test-verify`, gate) — every behavior the fix changed is covered by tests that ran green in THIS run.
+4. **Tests pass** (`/integration-test --mode=verify`, gate) — every behavior the fix changed is covered by tests that ran green in THIS run.
 5. **Spec synced** — when a canonical spec or test-case artifact governs the affected area and behavior or a public contract changed, or that spec lacked the case the bug exposed. No canonical spec governs the area → the gate is N/A: record that fact with the searched paths and offer `/spec` as a follow-up.
 6. **Review converged** (`/workflow-review-changes`, gate, INLINE in the main session) — validated blocking findings fixed and the fixed state re-reviewed over the whole package (spec + tests + fix).
 7. **Goal satisfied and run closed** — the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) maps root cause and RED/GREEN evidence to the saved success criteria; `/workflow-end` closes the run (top-level only).
@@ -54,28 +54,28 @@ Non-negotiable — `/workflow-end` checks each against its evidence before the r
 
 ## Gates and Optional Steps
 
-**Step contract:** `/start-workflow` owns how gate, core and optional steps run; this table summarizes this workflow's `intent`, `outcomeGates` and step roles from `.claude/workflows.json`, in its recommended default order.
+**Step contract:** `/start-workflow` owns how gate, core and optional steps run; the registry (`.claude/workflows.json` → `workflow-bugfix`, delivered in the Tier-2 output) owns each step's role and its `applicability` (`when` / `skipReason`, recorded verbatim on skip). This table adds only what the registry does not state — what each step proves and where a step is non-obvious — in the recommended default order.
 
-| Step | Role | Runs when / earns its cost | Proves |
-| --- | --- | --- | --- |
-| `/debug-investigate` | gate | always — owns discovery and root cause | root cause traced |
-| `/spec [mode=amend]` | optional | Spec Bug, or a resolved Ambiguous case | spec states intent |
-| `/pbi-mockup --explore` | optional | the fix is size M+ AND creates new UI like a feature (a new page/view, component or dialog) — see below | selected mockup before planning |
-| `/plan` | optional | size M+, Spec Bug, several TCs, cross-module, contract/data/security, several fix layers | fix plan |
-| `/spec [mode=tests]` | optional | a canonical spec/TC registry covers the area | regression TC |
-| `/artifact-review --type=spec-tests` | optional | TC change beyond one regression case, or M+ / risk | TC quality |
-| `/integration-test` | gate | always — write the regression test that reproduces the bug (not run here) | guard written |
-| `/fix` | core | always in practice — at the owning layer | the change |
-| `/integration-test` | core | adjust the regression test after the fix (not run here); may fold into the write step | guard ready |
-| `/spec [mode=sync]` | optional | a canonical spec/TC changed, or specified behavior/contract changed | spec synced |
-| `/workflow-review-changes --tests=defer` | gate | always — INLINE in the main session | review converged |
-| `/integration-test-verify` | gate | always — the one verify, after the review: full suite + mutation check (RED proof) | tests pass |
-| `/workflow-e2e --source=context` | optional | the user explicitly asks for E2E work | E2E evidence |
-| `/demo-guide` | optional | the fix changes user-facing behavior | demo path |
-| `/workflow-end` | gate | always | run closed |
-| `/watzup` | core | wrap-up summary | handoff |
+| Step | Role | Proves · note |
+| --- | --- | --- |
+| `/investigate --mode=debug` | gate | root cause traced — owns discovery and root cause |
+| `/spec [mode=amend]` | optional | spec states intent |
+| `/pbi --mode=mockup --explore` | optional | selected mockup before planning — see below |
+| `/plan` | optional | fix plan |
+| `/spec [mode=tests]` | optional | regression TC |
+| `/pbi --mode=review --type=spec-tests` | optional | TC quality |
+| `/integration-test` | gate | guard written — write the regression test that reproduces the bug (not run here) |
+| `/fix` | core | the change, at the owning layer |
+| `/integration-test` | core | guard ready — adjust the regression test after the fix (not run here); may fold into the write step |
+| `/spec [mode=sync]` | optional | spec synced |
+| `/workflow-review-changes --tests=defer` | gate | review converged — INLINE in the main session |
+| `/integration-test --mode=verify` | gate | tests pass — the one verify, after the review: full suite + mutation check (RED proof) |
+| `/workflow-e2e --source=context` | optional | E2E evidence |
+| `/demo-guide` | optional | demo path |
+| `/workflow-end` | gate | run closed |
+| `/watzup` | core | handoff |
 
-**New-UI Explore Mockup (conditional, BEFORE `/plan`).** Only when the fix is large (size M+) and creates new user-facing UI like a feature — a new page/view, component or dialog — run the explore mockups (`/pbi-mockup --explore`). **Mockup scope gate first — BEFORE any analysis or drafting, so a skip saves tokens and time** (`pbi-mockup` Step 0): with `AskUserQuestion` available, ALWAYS ask 3 / 2 / 1 options or skip mockups (recommended option by scope; skip → record `Mockup: SKIPPED by user` and continue); without it, generate ONLY ONE mockup in the recommended direction, auto-select it and record `Selection: AUTO-SELECTED — no question tool (1 draft)` in the plan or run report. Then Journey Report (`UX-1`) + design-authority read (`UX-2`) → the chosen 1–3 direction drafts rendered with html-export → each opened in the default browser (`node .claude/scripts/open-report.cjs <draft>`) → with 2–3 drafts, `AskUserQuestion` with one option per draft, your evidence-backed recommendation first labelled `(Recommended)` → the user's pick (or the `Selection:` line) is recorded in `direction-approved.md` and the plan's UI Layout builds on the selected mockup. Never pick for the user while they can be asked; drafts cannot be shown or the question tool errors after drafting → AUTO-SELECT the recommended draft (best journey fit + design-system fit) and record `Selection: AUTO-SELECTED — <reason>` in `direction-approved.md` and the plan. Pass the investigation report (or the amended spec) as `--source`. A fix inside existing UI skips it with the registry `skipReason`.
+**New-UI Explore Mockup (conditional, BEFORE `/plan`).** Only when the fix is large (size M+) and creates completely new user-facing UI like a feature — a new page/view, component or dialog — run `/pbi --mode=mockup --explore`, passing the investigation report (or the amended spec) as `--source`. `pbi --mode=mockup` Step 0 owns the scope gate (asked first, before any analysis or drafting) and the direction pick; both run in the main session only. A fix inside existing UI skips it with the registry `skipReason`.
 
 Without `/plan`, `/fix` plans inline and the investigation report records the fix layer, blast radius and rollback.
 
@@ -89,7 +89,7 @@ A recommended step the triage shows would do no real work is not run; record it 
 
 ## Orchestration Freedom
 
-You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate (pbi-mockup Step 0) and the post-generation pick run in the session that can ask the user — never inside a delegated sub-agent; only the direction-draft builders may be sub-agents. A sub-agent would silently fall back to one auto-selected draft even though the user could have been asked. Fixed constraints (data dependencies):
+You choose inline vs sub-agent, parallel waves vs sequential, batching and order — optimize wall-clock and token cost at equal quality. **Main session only:** the mockup scope gate and pick (`pbi --mode=mockup` Step 0) never run inside a delegated sub-agent. Fixed constraints (data dependencies):
 
 - The root-cause trace exists before any fix plan, regression TC or fix; the RED proof is the verify step's mutation check (revert the fix, the regression test must fail) — no separate RED run.
 - A change exists before it is reviewed or tested; the spec sync runs before the review that checks it; tests run once, last, after the static review (`--tests=defer`); a fix made by the verify step re-runs `/workflow-review-changes --tests=defer`, and a fix made by that re-review re-runs the verify (`SYNC:verify-last-order`); `/workflow-end` runs last.
@@ -113,19 +113,16 @@ Activate the `workflow-bugfix` workflow: run `/start-workflow workflow-bugfix` w
 
 Recommended default order (roles in the table above):
 
-**IMPORTANT MANDATORY Steps:** /debug-investigate -> /spec [mode=amend] -> /pbi-mockup --explore -> /plan -> /spec [mode=tests] -> /artifact-review --type=spec-tests -> /integration-test -> /fix -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test-verify -> /workflow-e2e --source=context -> /demo-guide -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate --mode=debug -> /spec [mode=amend] -> /pbi --mode=mockup --explore -> /plan -> /spec [mode=tests] -> /pbi --mode=review --type=spec-tests -> /integration-test -> /fix -> /integration-test -> /spec [mode=sync] -> /workflow-review-changes --tests=defer -> /integration-test --mode=verify -> /workflow-e2e --source=context -> /demo-guide -> /workflow-end -> /watzup
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `environment-fault-hypothesis` — Weigh the environment as a competing cause, with a named discriminator; judging a bug report, failing test, error or unexpected output → .claude/skills/shared/protocols/environment-fault-hypothesis.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
@@ -162,12 +159,6 @@ Recommended default order (roles in the table above):
 
 <!-- /SYNC:ui-intent-layer:reminder -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 <!-- SYNC:severity-rubric:reminder -->
 
 - **MANDATORY** Classify every finding Critical/High/Medium/Low by consequence using the affected asset, shipped impact, exposure, reversibility, evidence location, and confidence; Critical/High/MEDIUM remain actionable under the round bar, while LOW is recorded/deferred from round 2 onward.
@@ -179,8 +170,7 @@ Recommended default order (roles in the table above):
 
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 
@@ -195,6 +185,6 @@ Recommended default order (roles in the table above):
 **IMPORTANT MUST ATTENTION Goal:** fix the defect at the root cause its end-to-start trace proves, guarded by a regression test that fails without the fix and passes with it.
 
 - **MUST ATTENTION** triage size, kind and risk FIRST; run only the recommended skills the triage shows do real work, and log every deviation with evidence.
-- **MUST ATTENTION** root cause before fix: `/debug-investigate` (gate) produces the trace, feeder paths, hypothesis matrix, owning fix layer and forward convergence proof; classify Code Bug vs Spec Bug before any regression test.
-- **MUST ATTENTION** regression guard: the first `/integration-test` (gate) writes the regression test without running it; the one `/integration-test-verify` (gate, after the static review) proves it FAILS with the fix reverted by hand-edit (never `git checkout`/`restore`/`stash`) and PASSES with it in this run; NEVER encode buggy behavior or weaken a test to go green.
+- **MUST ATTENTION** root cause before fix: `/investigate --mode=debug` (gate) produces the trace, feeder paths, hypothesis matrix, owning fix layer and forward convergence proof; classify Code Bug vs Spec Bug before any regression test.
+- **MUST ATTENTION** regression guard: the first `/integration-test` (gate) writes the regression test without running it; the one `/integration-test --mode=verify` (gate, after the static review) proves it FAILS with the fix reverted by hand-edit (never `git checkout`/`restore`/`stash`) and PASSES with it in this run; NEVER encode buggy behavior or weaken a test to go green.
 - **MUST ATTENTION** `/workflow-review-changes` runs INLINE in the main session and converges the whole package; sync the spec when a canonical spec or specified behavior changed; emit the Goal Satisfaction matrix and close with `/workflow-end`.

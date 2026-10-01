@@ -5,6 +5,7 @@
  * Layout (all ids sanitized):
  *   <root>/<session>/_owner.json              { owner }                  ownership marker (see markSessionOwned)
  *   <root>/<session>/_session.json            { compactedAt }            host-reported condensation
+ *   <root>/<session>/_<name>.json             a caller's own session state (writeSessionState)
  *   <root>/<session>/<scope>/_scan.json       { offset, lastBoundaryAt } incremental transcript scan
  *   <root>/<session>/<scope>/<group>.json     { hash, deliveredAt, transcriptBytes, form }
  *   <root>/<session>/<scope>/<group>.lock     short-lived delivery claim (wx) { pid, at, token }
@@ -26,13 +27,15 @@ const { DEFAULTS } = require('./file-conventions.cjs');
 const MAIN_SCOPE = 'main';
 const ID_MAX = 80;
 const LOCK_STALE_MS = 10 * 1000;
+/** How long after a compact-report delivery the host's own boundary line still belongs to that compaction (observed skew: under 10 s). */
+const BOUNDARY_ATTRIBUTION_MS = 120 * 1000;
 const SCAN_CAP_BYTES = 8 * 1024 * 1024;
 const PRUNE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const PRUNE_LIMIT = 50;
 const PRUNE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const SCOPE_DIR_NAME = /^(?:main|agent-[A-Za-z0-9._-]+)$/;
 const SCOPE_FILE_NAME = /\.(?:json|lock|tmp)$/;
-const SESSION_FILE_NAME = /^(?:_owner\.json|_session\.json|.+\.tmp)$/;
+const SESSION_FILE_NAME = /^(?:_[A-Za-z0-9._-]+\.json|.+\.tmp)$/;
 const OWNER_FILE = '_owner.json';
 const OWNER_TAG = 'ck-convention-ledger';
 const BUILTIN_BOUNDARY = '"subtype":"compact_boundary"';
@@ -145,6 +148,21 @@ function writeSessionJsonAtomic(root, sessionId, file, value) {
     return writeJsonAtomic(file, value);
 }
 
+/** A session-scoped state file `<session>/_<name>.json`; the `_` keeps it apart from group records. */
+function sessionStateFile(root, sessionId, name) {
+    return path.join(sessionDir(root, sessionId), `_${sanitizeId(name)}.json`);
+}
+
+/** Read a session's own state object (`_<name>.json`), or null when absent or unreadable. */
+function readSessionState(root, sessionId, name) {
+    return readJson(sessionStateFile(root, sessionId, name));
+}
+
+/** Write a session's own state object atomically, stamping the ownership marker retention requires. */
+function writeSessionState(root, sessionId, name, value) {
+    return writeSessionJsonAtomic(root, sessionId, sessionStateFile(root, sessionId, name), value);
+}
+
 /** Group file id: sanitized name, never starting with `_` (reserved for `_scan`/`_session` state). */
 function groupFileId(groupName) {
     const id = sanitizeId(groupName);
@@ -225,6 +243,16 @@ function releaseLock(file, token) {
         fs.unlinkSync(file);
     } catch {
         /* already gone */
+    }
+}
+
+/** A lock file that exists and is younger than the stale limit: a live peer is delivering. */
+function peerHoldsLock(file, now = Date.now(), staleMs = LOCK_STALE_MS) {
+    try {
+        const stat = fs.statSync(file);
+        return stat.isFile() && now - stat.mtimeMs < staleMs;
+    } catch {
+        return false;
     }
 }
 
@@ -407,8 +435,12 @@ function isPresent(record, hash, ctx, settings) {
     if (!record || !PRESENT_FORMS.has(record.form)) return false;
     if (record.hash !== hash || typeof record.deliveredAt !== 'number') return false;
     if (!(record.deliveredAt > ctx.lastCompactionAt)) return false;
-    if (typeof ctx.transcriptSize === 'number' && typeof record.transcriptBytes === 'number') {
-        const growth = ctx.transcriptSize - record.transcriptBytes;
+    if (typeof ctx.transcriptSize === 'number') {
+        // A record written while the history did not exist yet carries no size: everything in the
+        // file now is growth since that delivery, so the baseline is 0. Falling through to the age
+        // path instead would keep a no-age setting present for ever, and the byte re-arm would never fire.
+        const baseline = typeof record.transcriptBytes === 'number' ? record.transcriptBytes : 0;
+        const growth = ctx.transcriptSize - baseline;
         return growth >= 0 && growth < settings.reinjectAfterBytes;
     }
     const blind = !Number.isFinite(ctx.lastCompactionAt);
@@ -422,6 +454,30 @@ function isPresent(record, hash, ctx, settings) {
     // an unmeasurable distance costs one extra reminder, never a missed one.
     const elapsed = ctx.now - record.deliveredAt;
     return elapsed >= 0 && elapsed < minutes * 60 * 1000;
+}
+
+/**
+ * A delivery made by a SessionStart `compact` hook is recorded BEFORE the host writes its own
+ * compaction boundary into the transcript (observed host order: the hook stamps earlier than the
+ * boundary line). Read plainly, that boundary is "newer than the delivery" and the next prompt would
+ * deliver the same content a second time. Such a record carries `expectBoundary: true`; the first
+ * boundary seen up to BOUNDARY_ATTRIBUTION_MS after its `deliveredAt` is the SAME compaction, so the
+ * record is moved just past that boundary and the expectation is dropped. A boundary beyond the
+ * window, or a later one after the record was moved, is a real compaction and re-arms as usual; with no
+ * boundary at all nothing changes.
+ *
+ * Trade-off (accepted, not material): a genuine second compaction inside the window and before the next
+ * prompt reads as the same one, so that second compaction is not re-delivered until the next boundary
+ * or the byte re-arm.
+ * @returns {object|null} the record to judge: `record` itself, or the adopted copy
+ */
+function adoptExpectedBoundary(record, hash, ctx) {
+    if (!record || record.expectBoundary !== true || record.hash !== hash || typeof record.deliveredAt !== 'number') return record;
+    const boundary = ctx.lastCompactionAt;
+    if (!Number.isFinite(boundary) || !(boundary > record.deliveredAt)) return record;
+    if (boundary - record.deliveredAt > BOUNDARY_ATTRIBUTION_MS) return record;
+    const { expectBoundary, ...rest } = record;
+    return { ...rest, deliveredAt: boundary + 1 };
 }
 
 /**
@@ -442,7 +498,7 @@ function normalizedDocPath(value) {
     return process.platform === 'win32' ? slashed.toLowerCase() : slashed;
 }
 
-/** Last `:`-separated segment, so a namespaced skill (`plugin:ui-review`) matches its bare name. */
+/** Last `:`-separated segment, so a namespaced skill (`plugin:ui-design`) matches its bare name. */
 function bareSkill(value) {
     const text = String(value).trim().replace(/^[/$]/, '');
     return text.slice(text.lastIndexOf(':') + 1);
@@ -595,7 +651,7 @@ function isOwnerMarker(file) {
  * ours. Ownership is decided by TWO independent tests, both required:
  *   1. the `_owner.json` marker (markSessionOwned) is present and carries the owner tag;
  *   2. the directory is exactly ledger-shaped — at least one entry, and every entry is
- *      `_owner.json`, `_session.json`, a `*.tmp` file, or a scope directory
+ *      a session state file (`_<name>.json`: `_owner.json`, `_session.json`, `_route-mode.json` …), a `*.tmp` file, or a scope directory
  *      (`main` / `agent-<safe id>`) holding only `*.json` / `*.lock` / `*.tmp` files.
  * Either test failing yields null, and `pruneStale` never deletes a directory it cannot age.
  * Shape alone proves nothing: `<dir>/main/<name>.json` is an ordinary cache layout, and the
@@ -669,9 +725,14 @@ function maybePrune(root, now = Date.now(), intervalMs = PRUNE_INTERVAL_MS) {
  * transcript growth under `settings.reinjectAfterBytes`); otherwise claims the group lock,
  * re-checks under it (BR-PFCI-17), writes `payload` through `write(text, done)`, and records the
  * delivery only when the write reported success. Resolves to the payload written, or '' when
- * nothing was delivered. Fail-open: any error delivers nothing and releases the lock.
+ * nothing was delivered. By default any error delivers nothing and releases the lock. With
+ * `failOpen`, a lock that cannot be created (an unusable store) delivers without a record and only a
+ * live peer claim skips: a duplicate is accepted over silence (protocol and overlay delivery).
+ * With `expectBoundary`, the caller says this delivery answers a host-reported compaction whose own
+ * transcript boundary line may be written after it; the record then absorbs that one boundary
+ * (see adoptExpectedBoundary).
  */
-function deliverOnce({ root, input, group, hash, payload, settings, now = Date.now(), write }) {
+function deliverOnce({ root, input, group, hash, payload, settings, now = Date.now(), write, failOpen = false, expectBoundary = false }) {
     return new Promise(resolve => {
         let lock = null;
         let token = null;
@@ -685,28 +746,47 @@ function deliverOnce({ root, input, group, hash, payload, settings, now = Date.n
             const sessionId = input.session_id;
             const scope = scopeFor(input);
             const history = transcriptPathFor(input);
-            const context = () => ({
-                lastCompactionAt: lastCompactionAt(root, sessionId, scope, input, settings, now),
-                transcriptSize: transcriptSize(history),
-                now
-            });
+            // The latest condensation this process observed. A delivery made after observing it is after it
+            // by construction, so it is stamped no earlier than that mark: concurrent hook processes read
+            // their own clocks, and an undated mark placed just before the first scanner's clock would
+            // otherwise read as newer than a peer's delivery made in the same trigger (a duplicate).
+            let observedCondensation = -Infinity;
+            const context = () => {
+                const condensedAt = lastCompactionAt(root, sessionId, scope, input, settings, now);
+                if (Number.isFinite(condensedAt)) observedCondensation = Math.max(observedCondensation, condensedAt);
+                return { lastCompactionAt: condensedAt, transcriptSize: transcriptSize(history), now };
+            };
+            // The stored record as judged now: a record that expected the host's compaction boundary and
+            // finds it inside the attribution window is moved past it once and persisted, so the
+            // expectation is spent (see adoptExpectedBoundary).
+            const storedRecord = ctx => {
+                const stored = readRecord(root, sessionId, scope, group);
+                const adopted = adoptExpectedBoundary(stored, hash, ctx);
+                if (adopted !== stored) writeRecordAtomic(root, sessionId, scope, group, adopted);
+                return adopted;
+            };
             maybePrune(root, now);
-            if (isPresent(readRecord(root, sessionId, scope, group), hash, context(), settings)) return resolve('');
+            const first = context();
+            if (isPresent(storedRecord(first), hash, first, settings)) return resolve('');
             lock = lockFile(root, sessionId, scope, group);
             token = acquireLock(lock, now);
-            if (!token) return resolve('');
-            if (isPresent(readRecord(root, sessionId, scope, group), hash, recheckContext(context()), settings)) {
-                release();
-                return resolve('');
+            if (!token && (!failOpen || peerHoldsLock(lock, now))) return resolve('');
+            if (token) {
+                const again = recheckContext(context());
+                if (isPresent(storedRecord(again), hash, again, settings)) {
+                    release();
+                    return resolve('');
+                }
             }
             write(payload, ok => {
                 try {
                     if (ok !== false) {
                         writeRecordAtomic(root, sessionId, scope, group, {
                             hash,
-                            deliveredAt: now,
+                            deliveredAt: Math.max(now, observedCondensation + 1),
                             transcriptBytes: transcriptSize(history),
-                            form: 'full'
+                            form: 'full',
+                            ...(expectBoundary ? { expectBoundary: true } : {})
                         });
                     }
                 } catch {
@@ -727,6 +807,7 @@ module.exports = {
     MAIN_SCOPE,
     CODEX_COMPACTION_MARKER,
     LOCK_STALE_MS,
+    BOUNDARY_ATTRIBUTION_MS,
     SCAN_CAP_BYTES,
     PRUNE_AGE_MS,
     PRUNE_INTERVAL_MS,
@@ -738,10 +819,13 @@ module.exports = {
     recordFile,
     lockFile,
     readRecord,
+    readSessionState,
+    writeSessionState,
     markSessionOwned,
     writeRecordAtomic,
     acquireLock,
     releaseLock,
+    peerHoldsLock,
     transcriptSize,
     transcriptPathFor,
     scanCompaction,

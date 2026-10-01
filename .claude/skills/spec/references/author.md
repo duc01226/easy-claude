@@ -36,7 +36,7 @@ Every author-mode run sources from ONE of two inputs. Resolve which before any e
 | **Code** (existing implementation) | `init`, `update`, `audit`, `amend` | grep/trace the implementation (the extraction phases below) | real `[Source: namespace/service/id]` anchors | no |
 | **Idea** (requirement/prompt text, no code yet) | `draft` | derive from the requirement/idea text — NO code grep | `Evidence: TBD` (reference-only) | **yes** — `provisional: true` |
 
-**`mode=draft` (idea → provisional spec):** the implementation does not exist yet, so the code-extraction phases (Step 1-INIT.* greps, graph trace, evidence verification) are **skipped**. Instead:
+**`mode=draft` (idea → provisional spec):** the implementation does not exist yet, so the code-extraction phases (Step 1-INIT.* greps, optional graph hint, evidence verification) are **skipped**. Instead:
 
 1. Derive §1-7 (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows & Interaction Surface, Permissions & Roles) from the supplied idea/requirement/prompt — SAME 8-section tech-free template (`detailed-feature-spec-template.md` in the templates root — default `docs/templates/`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path), SAME M1-M5 + M7 mandate rules, SAME size caps. Draft does NOT get a lighter template — only a lighter evidence obligation. In particular M7 binds a draft exactly as it binds a code-sourced spec: an idea-sourced §8 TC shell is still judged by the demo test, and having no code yet is never a reason to admit a technical case. For a UI-bearing idea, populate §6.2–6.5 (View Inventory, Navigation Map, Key UI States, Per-Story Interaction Flow) per the §6 sub-procedure above from the idea text, and record any companion `design_spec:`/`mockup:` path supplied with the idea in YAML frontmatter; backend-only ideas state the §6 skip reason explicitly.
 2. Author §8 TC **shells** in the canonical `tc-format.md` template (Objective, GWT, AC, Test Data, Edge Cases) but set **`Evidence: TBD`** and **`Status: Planned`** — these are reference-only until code lands.
@@ -187,7 +187,7 @@ When a companion `design-spec`/mockup exists, record its path in the spec frontm
 
 > **Scale gate for INIT mode (workflow context only):** If `workflow-code-to-spec` is the caller AND module_count ≥ 4 → MUST spawn sub-agents (one per module) in ONE message. When `spec` is invoked STANDALONE for a single module, no scale gate applies — single-module init is always single-session.
 
-> **Mode: AMEND (bugfix scope — NOT a re-author).** Triggered by `spec [mode=amend]` from the bugfix workflow (inserted after `debug-investigate`, before `plan`). A bug fix changes a narrow slice of behavior. Do the MINIMUM — touch only the sections the bug touches.
+> **Mode: AMEND (bugfix scope — NOT a re-author).** Triggered by `spec [mode=amend]` from the bugfix workflow (inserted after `investigate --mode=debug`, before `plan`). A bug fix changes a narrow slice of behavior. Do the MINIMUM — touch only the sections the bug touches.
 >
 > ### [GATE — BLOCKING] Business-visibility gate (**mandate M7**) — run BEFORE any other branch
 >
@@ -235,7 +235,7 @@ When a companion `design-spec`/mockup exists, record its path in the spec frontm
 
 ### Mode: INIT (New Feature Doc) — Full Extraction from Zero
 
-When no docs exist, run spec-index-style extraction before folding into the 8-section tech-free Feature Spec.
+When no docs exist, run source-first extraction (entities, rules, flows read from source) before folding into the 8-section tech-free Feature Spec.
 
 > **Resolve the project's layout before extracting.** Read the project's structure reference and project config to discover
 > the module source root, layer/folder conventions, file globs, and framework markers (endpoint attributes, handler types,
@@ -365,9 +365,9 @@ Write operation description in business language only — no language/framework 
 
 **Coverage is measured against business capabilities, not against the operation count.** Two handlers serving one user-visible capability are **one** entry, not two; one handler serving two distinct capabilities is **two**. The mapping is deliberately not 1:1 with the architecture — that is what makes the spec survive re-implementation.
 
-#### Step 1-INIT.4.5: Graph Trace for Cross-Service Scope (before Domain Model events)
+#### Step 1-INIT.4.5: Cross-Service Scope Trace (optional graph hint; before Domain Model events)
 
-Before capturing domain events as occurrences, run graph analysis to discover ALL consumers and producers:
+Before capturing domain events as occurrences, discover ALL consumers and producers by grep/read of the project's message/event markers (bus-message, consumer, integration-event types — see the project's message-bus reference). Optional: when the cross-service blast radius is hard to see by grep and `.code-graph/graph.db` exists, graph analysis can add hints (it may be stale — verify by reading):
 
 ```bash
 # Trace cross-service flow from the primary entity/model file
@@ -377,13 +377,13 @@ python .claude/scripts/code_graph trace {path-to-primary-entity-file} --directio
 python .claude/scripts/code_graph connections {path-to-primary-controller-file} --json
 ```
 
-**If `.code-graph/graph.db` is unavailable:** Fall back to grepping for the project's message/event markers (bus-message, consumer, integration-event types — see the project's message-bus reference):
+**Grep for the project's message/event markers** (the primary method; the only one when `.code-graph/graph.db` is unavailable):
 
 ```bash
 grep -rn "{message-bus-and-event-markers}" {module-source-root}/ --include="{backend-source-glob}"
 ```
 
-Use graph output to enumerate: outbound events (produces), inbound events (consumes), cross-service reactions. Feed business-visible findings into **Section 5 (Domain Model)** as business-meaningful occurrences (e.g. "Order Placed" → owner notified, order becomes active) and into **Section 8 (Test Specifications)** only when the case passes M7 as a demoable business outcome. Technical-only publish/consume, payload, retry, idempotency, and projection mechanics belong in the technical spec tree and test code — NEVER as bus/message/payload schemas in the business Feature Spec.
+Use the grep/read results (and any graph hint) to enumerate: outbound events (produces), inbound events (consumes), cross-service reactions. Feed business-visible findings into **Section 5 (Domain Model)** as business-meaningful occurrences (e.g. "Order Placed" → owner notified, order becomes active) and into **Section 8 (Test Specifications)** only when the case passes M7 as a demoable business outcome. Technical-only publish/consume, payload, retry, idempotency, and projection mechanics belong in the technical spec tree and test code — NEVER as bus/message/payload schemas in the business Feature Spec.
 
 #### Step 1-INIT.4.6: Full-Chain Vertical Trace [BLOCKING — the completeness backbone]
 
@@ -407,8 +407,8 @@ UI view / entry point
 
 **Tooling (use in this order; each link must be evidenced, never inferred):**
 
-1. **Frontend→backend links — `graph-connect-api`** (or grep the UI service/data layer for API call sites): map each view/screen action to the backend route/operation it invokes. This is the seam Phase C (backend-only) and Phase E (UI-only) each see from one side; this step JOINS them.
-2. **Backend flow — `graph-trace`** (`python .claude/scripts/code_graph trace {entry-file} --direction both --json`): from each handler, trace down to entity/rule and outward to events/consumers. Reuse the 1-INIT.4.5 cross-service output for the event tail.
+1. **Frontend→backend links — grep the UI service/data layer for API call sites** (optionally `graph-code --mode=connect-api` as a stale-able hint): map each view/screen action to the backend route/operation it invokes. This is the seam Phase C (backend-only) and Phase E (UI-only) each see from one side; this step JOINS them.
+2. **Backend flow — read the code** (optionally `graph-code --mode=trace`: `python .claude/scripts/code_graph trace {entry-file} --direction both --json`, a stale-able hint): from each handler, trace down to entity/rule and outward to events/consumers. Reuse the 1-INIT.4.5 cross-service output for the event tail.
 3. **Read-side closure:** for every write that emits an event, trace to the projection/read model and to the view that displays it — so the chain returns to the UI, not just to persistence.
 
 **Output — Full-Chain Trace Map** (working note in `tmp/analysis/{Module}-chain-map.md`; folds into §6 flows + §8 TCs):
@@ -538,7 +538,7 @@ Note the highest existing ID before assigning new ones. See `.claude/skills/shar
 >
 > | Type              | Path                                                         | Description                                              |
 > | ----------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
-> | Spec Index (derived) | `<spec root>/{Bucket}/INDEX.md` — default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides the root | DERIVED navigation catalog over the Feature Specs (regenerate via /spec-index) — §8 in this doc is the canonical business TC registry |
+> | Spec Index (derived) | `<spec root>/{Bucket}/INDEX.md` — default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides the root | DERIVED navigation catalog over the Feature Specs (regenerate via /spec [mode=index]) — §8 in this doc is the canonical business TC registry |
 > | Integration Tests | `{configured-test-path}/` | Test code; linked to TCs by the configured test-spec annotation (key `TestSpec`) |
 > | Parent Feature    | _(if sub-feature)_                                           |                                                          |
 > | Child Features    | _(if this doc is a parent)_                                  |                                                          |
@@ -638,7 +638,7 @@ When UPDATING existing feature docs (not from scratch):
 
 1. Check the configured Feature Spec root at `<spec root>/{Bucket}/` for the impacted app bucket — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
 2. Note overlapping Feature Specs and derived bucket indexes/ERDs from git diff + spec registry
-3. Flag output: "Derived spec artifact refresh may be required for: {list}" — do NOT trigger spec-index directly (separation of concerns)
+3. Flag output: "Derived spec artifact refresh may be required for: {list}" — do NOT trigger `[mode=index]` directly (separation of concerns)
 
 ### Step 1.5.1: Diff Analysis
 
@@ -784,7 +784,7 @@ erDiagram
     {EntityA} ||--o{ {EntityB} : "contains"
 ```
 
-**ERD rules (same as spec-index standard):**
+**ERD rules (same as the `[mode=index]` standard):**
 
 - Tech-agnostic types only: `string`, `number`, `boolean`, `date`, `list`, `map`
 - No implementation class names or ORM types
@@ -829,10 +829,10 @@ No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template:
     2. Keep Business Rules (S4) + Domain Model (S5) in Part1; secondary stories/edge cases → Part2
     3. Preserve TC ID continuity — both parts share `TC-{FEATURE}-` prefix; NEVER renumber
     4. Add cross-references: each part includes "**See also:** README.{FeatureName}-Part{N}.md" in header
-    5. Flag that derived spec artifacts must be refreshed so `/spec-index` can relink both parts
+    5. Flag that derived spec artifacts must be refreshed so `/spec [mode=index]` can relink both parts
 - **YAML frontmatter** required: module, service, feature_code, entities[], status, last_updated. When `isLargeIdea=true`, also require the complete `large_idea_decomposition` block and its stable slice IDs. Only the explicit roadmap branch carries `roadmap`, `milestone_id`, and `scope_brief`; ordinary specs omit those fields, while EXEMPT/framework branches carry their own explicit applicability metadata.
 - **Audit mode produces AUDIT-{date}.md** — NEVER modifies existing docs
-- **Init mode uses spec-index extraction phases** — all entities, rules, APIs MUST be read from source before writing
+- **Init mode uses source-first extraction phases** — all entities, rules, APIs MUST be read from source before writing
 
 ---
 
@@ -842,7 +842,7 @@ After creating/updating Feature Specs, do **not** edit `<spec root>/{Bucket}/IND
 
 1. Record the bucket(s) affected by the Feature Spec change.
 2. State: "Derived spec artifact refresh may be required for: {bucket list}."
-3. Leave regeneration to `/spec-index`, which owns `INDEX.md` and other derived navigation aids.
+3. Leave regeneration to `/spec [mode=index]`, which owns `INDEX.md` and other derived navigation aids.
 
 ## Anti-Hallucination Protocols
 
@@ -939,7 +939,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7
 - [ ] Feature Spec follows template format (8 tech-free sections, in order)
 - [ ] **YAML frontmatter** present with module, service, feature_code, entities[]
 - [ ] **Applicability and Decomposition Gate** passes: embedded large-idea specs carry the complete decomposition block and stable slice IDs; explicit-roadmap specs carry approved roadmap metadata; ordinary specs omit roadmap placeholders; isolated/framework changes carry their explicit branch
-- [ ] Derived spec artifact refresh flagged for `/spec-index` when Feature Specs were created, renamed, split, or deleted
+- [ ] Derived spec artifact refresh flagged for `/spec [mode=index]` when Feature Specs were created, renamed, split, or deleted
 - [ ] Stakeholder navigation table present
 - [ ] **Split criteria** — no line-count cap applies; split when TCs>40 or distinct module-level capabilities emerge (follow split procedure in Key Principles)
 - [ ] **No code details** in sections 1-7 (no file paths, no source-code types, no command/handler/API/message names)
@@ -1005,7 +1005,7 @@ spec [author mode] (you are here)
   │     CREATE: new feature doc just created → write TCs from spec.
   │     UPDATE: existing doc updated → update TCs to match changed behavior.
   │
-  ├─ [REQUIRED] → /artifact-review --type=spec-tests
+  ├─ [REQUIRED] → /pbi --mode=review --type=spec-tests
   │     Validates TC coverage, GIVEN/WHEN/THEN completeness, no duplicate TC codes.
   │
   ├─ [REQUIRED] → spec [mode=sync]
@@ -1014,9 +1014,9 @@ spec [author mode] (you are here)
   ├─ [RECOMMENDED] → /integration-test [from-changes or from-prompt mode]
   │     Generates/updates integration test files from changed TCs.
   │
-  └─ [RECOMMENDED] → /docs-update
-        If code changes triggered this doc update, run /docs-update for full chain including
-        spec-index (Phase 2.5) and spec [mode=tests] (Phase 3).
+  └─ [RECOMMENDED] → /docs-manager --mode=update
+        If code changes triggered this doc update, run /docs-manager --mode=update for full chain including
+        spec [mode=index] (Phase 2.5) and spec [mode=tests] (Phase 3).
 ```
 
 ### Doc Network Principle
@@ -1035,7 +1035,7 @@ Template to insert or verify in `<spec root>/{Bucket}/README.{FeatureName}.md` �
 
 | Type              | Link                                                                                                          | Description                                                    |
 | ----------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Spec Index (derived) | [docs/specs/{Bucket}/INDEX.md](../../specs/{Bucket}/INDEX.md) — default root `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it | DERIVED navigation catalog over the Feature Specs (regenerate via /spec-index) — §8 here is the canonical business TC registry |
+| Spec Index (derived) | [docs/specs/{Bucket}/INDEX.md](../../specs/{Bucket}/INDEX.md) — default root `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it | DERIVED navigation catalog over the Feature Specs (regenerate via /spec [mode=index]) — §8 here is the canonical business TC registry |
 | Integration Tests | `{configured-test-path}/`                                                  | Test code linked to TCs via the configured test-spec annotation (key `TestSpec`) |
 | Related Modules   | _(list any cross-module dependencies here)_                                                                   |                                                                |
 ```
@@ -1045,5 +1045,5 @@ Fill in `{Bucket}`, `{FeatureName}`, `{Module}`, and `{ServiceName}` from contex
 This section enables:
 
 - Humans navigating from Feature Spec → bucket index → test evidence
-- `/docs-update` detecting when a Feature Spec or bucket index is stale
+- `/docs-manager --mode=update` detecting when a Feature Spec or bucket index is stale
 - Future AI sessions knowing what exists without a full scan

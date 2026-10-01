@@ -7,7 +7,7 @@
  *   - deprecated skills become candidates for deletion once `removal_after` has passed
  *   - deletion is gated on zero non-self references in .claude/, docs/ and the root CLAUDE.md
  *
- * Per plan-review D3: missing `removal_after` is treated as BLOCKED, not auto-derived.
+ * Per plan review D3: missing `removal_after` is treated as BLOCKED, not auto-derived.
  * Authors of deprecation PRs must explicitly set the removal date.
  *
  * Usage:

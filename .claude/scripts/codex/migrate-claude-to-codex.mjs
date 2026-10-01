@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { buildSkillReferenceMap, prependCodexCompatibilityNote, rewriteClaudeToolTermsForCodex, rewriteSkillMentionsForCodex } from './compat-rewrite.mjs';
 import { CODEX_IMPLICIT_OFF_RE, parseFrontmatter, parseFrontmatterBoolean, stripQuotes } from '../lib/agent-frontmatter.mjs';
+import { writeFileTransientSafe } from '../lib/write-file-transient-safe.mjs';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
@@ -29,24 +30,6 @@ function validateCliArgs(argv) {
         seen.add(arg);
     }
 }
-
-function loadHooklessPromptProtocol() {
-    const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-    const candidates = [
-        path.join(rootDir, '.claude', 'scripts', 'lib', 'hookless-prompt-protocol.cjs'),
-        path.join(scriptDir, '..', 'lib', 'hookless-prompt-protocol.cjs')
-    ];
-    for (const candidate of candidates) {
-        try {
-            return require(candidate);
-        } catch {}
-    }
-    throw new Error('static prompt protocol builder is missing');
-}
-
-const {
-    buildCodexPromptProtocolBlock
-} = loadHooklessPromptProtocol();
 
 export const claudeAgentsDir = path.join(rootDir, '.claude', 'agents');
 export const claudeSkillsDir = path.join(rootDir, '.claude', 'skills');
@@ -142,10 +125,6 @@ async function writeAgentsMirrorGitignore() {
     await fs.writeFile(agentsMirrorGitignorePath, buildAgentsMirrorGitignore(existing), 'utf8');
 }
 const TEXT_FILE_EXTENSIONS = new Set(['.cjs', '.css', '.html', '.js', '.json', '.lock', '.md', '.mjs', '.py', '.sh', '.toml', '.ts', '.tsx', '.yaml', '.yml']);
-const CODEX_PROTOCOLS_START = '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->';
-const CODEX_PROTOCOLS_END = '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->';
-const CODEX_PROJECT_REFERENCE_START = '<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->';
-const CODEX_PROJECT_REFERENCE_END = '<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->';
 
 function escapeTomlString(value) {
     return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
@@ -424,67 +403,8 @@ function deriveSkillDescription(body, skillName) {
     return `Claude skill mirrored for Codex compatibility: ${skillName}`;
 }
 
-function buildCodexProjectReferenceBlock() {
-    return [
-        CODEX_PROJECT_REFERENCE_START,
-        '## Codex Project-Reference Loading (Hook-Independent)',
-        '',
-        'Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.',
-        'When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.',
-        '',
-        '**Always read:**',
-        '- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)',
-        '- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)',
-        '- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)',
-        '',
-        '**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.',
-        '',
-        '**Situation-based docs** (pick by the phase you are about to enter — plan/investigate, edit, test, spec/doc, review — and read only docs the project selects in `referenceDocs` that exist):',
-        '- Planning, investigation, or design: `project-structure-reference.md`, `domain-entities-reference.md`, plus the docs below for every file type the plan touches',
-        '- Editing or writing code: `code-review-rules.md` plus the backend or frontend docs below for the file type',
-        '- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`',
-        '- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`',
-        '- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md` (or the configured styling reference), `design-system/README.md`',
-        '- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`',
-        '- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above',
-        '- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`',
-        '- Integration test implementation/review: `integration-test-reference.md`',
-        '- E2E test implementation/review: `e2e-test-reference.md`',
-        '- Test-data seeders: `seed-test-data-reference.md`',
-        '- Code review/audit work: `code-review-rules.md` plus the docs above for every file type under review',
-        '- Per-file conventions (`contextGroups[]`): before editing an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`',
-        '',
-        '**Dedup:** a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens, and it has not changed since — cite it `(loaded)` instead of re-reading. A hook reminder, a summary, or a prior mention never counts; a delegated sub-agent starts empty, so name the resolved doc paths in its brief.',
-        '',
-        'Never read all docs blindly: route from `docs-index-reference.md` and open only what the task needs.',
-        CODEX_PROJECT_REFERENCE_END
-    ].join('\n');
-}
-
-function stripManagedBlock(text, startMarker, endMarker) {
-    const pattern = new RegExp(`${startMarker}[\\s\\S]*?${endMarker}\\s*`, 'gm');
-    return text.replace(pattern, '').trimEnd();
-}
-
-function prependManagedBlock(text, block, startMarker, endMarker) {
-    const stripped = stripManagedBlock(text, startMarker, endMarker).trimStart();
-    if (!block) return stripped;
-    return `${block.trim()}\n\n${stripped}`;
-}
-
 function rewriteCodexBody(text, skillReferenceMap) {
-    const withProjectReferenceBlock = prependManagedBlock(text, buildCodexProjectReferenceBlock(), CODEX_PROJECT_REFERENCE_START, CODEX_PROJECT_REFERENCE_END);
-    return prependCodexCompatibilityNote(rewriteClaudeToolTermsForCodex(rewriteSkillMentionsForCodex(withProjectReferenceBlock, skillReferenceMap)));
-}
-
-function stripManagedProtocolBlock(text) {
-    return stripManagedBlock(text, CODEX_PROTOCOLS_START, CODEX_PROTOCOLS_END);
-}
-
-function appendManagedProtocolBlock(text, protocolBlock) {
-    const stripped = stripManagedProtocolBlock(text).trimEnd();
-    if (!protocolBlock) return stripped;
-    return `${stripped}\n\n${protocolBlock.trim()}\n`;
+    return prependCodexCompatibilityNote(rewriteClaudeToolTermsForCodex(rewriteSkillMentionsForCodex(text, skillReferenceMap)));
 }
 
 function stripTrailingWhitespace(text) {
@@ -572,14 +492,13 @@ async function canonicalProtocolBodies(inlineTags) {
     return tag => extractSyncBody(canonical, tag);
 }
 
-function buildCodexSkillManifest(markdown, fallbackName, skillReferenceMap, protocolBlock, options = {}) {
+function buildCodexSkillManifest(markdown, fallbackName, skillReferenceMap, options = {}) {
     const { frontmatter, body: sourceBody } = parseFrontmatter(markdown);
     const name = stripQuotes(options.overrideName || frontmatter.name || fallbackName || 'unnamed-skill') || 'unnamed-skill';
     const description = stripQuotes(frontmatter.description) || deriveSkillDescription(sourceBody, name);
     const disableModelInvocation = parseFrontmatterBoolean(frontmatter['disable-model-invocation']);
     const body = options.inline ? inlineListedProtocols(sourceBody, options.inline.tags, options.inline.bodyFor) : sourceBody;
-    const bodyWithProtocols = appendManagedProtocolBlock(body, protocolBlock);
-    const rewrittenBody = rewriteCodexBody(bodyWithProtocols, skillReferenceMap);
+    const rewrittenBody = rewriteCodexBody(body, skillReferenceMap);
 
     const sanitizedFrontmatterLines = ['---', `name: ${name}`, `description: '${escapeYamlSingleQuoted(description)}'`];
 
@@ -637,7 +556,7 @@ async function writeCodexSkillPolicy(skillDir, relativeLabel, profileList = null
         throw new Error(flagPolicyRefusalMessage(relativeLabel));
     }
     await fs.mkdir(path.dirname(policyPath), { recursive: true });
-    await fs.writeFile(policyPath, buildCodexSkillPolicy(profileList), 'utf8');
+    await writeFileTransientSafe(policyPath, buildCodexSkillPolicy(profileList), 'utf8');
     return null;
 }
 
@@ -775,12 +694,6 @@ function reserveUniqueName(baseName, usedNames) {
     return next;
 }
 
-function normalizePromptProtocolText(text) {
-    if (!text || typeof text !== 'string') return null;
-    const normalized = text.trim();
-    return normalized.length > 0 ? normalized : null;
-}
-
 async function loadCkConfig() {
     const ckConfigPath = path.join(rootDir, '.claude', '.ck.json');
     let ckConfigRaw;
@@ -798,13 +711,6 @@ async function loadCkConfig() {
         console.warn(`[codex-migrate] malformed JSON in ${ckConfigPath}: ${err.message}`);
         return {};
     }
-}
-
-async function buildAlwaysInjectedPromptProtocolBlock() {
-    return buildCodexPromptProtocolBlock(rootDir, {
-        startMarker: CODEX_PROTOCOLS_START,
-        endMarker: CODEX_PROTOCOLS_END
-    });
 }
 
 async function collectSkillFiles(dirPath) {
@@ -931,7 +837,7 @@ async function collectMarkdownFiles(dirPath) {
     return markdownFiles;
 }
 
-async function sanitizeSkillMirror(skillsRootDir, skillReferenceMap, protocolBlock, inline = null, profile = EMPTY_SKILL_PROFILE, onNotice = () => {}) {
+async function sanitizeSkillMirror(skillsRootDir, skillReferenceMap, inline = null, profile = EMPTY_SKILL_PROFILE, onNotice = () => {}) {
     const skillFiles = await collectSkillFiles(skillsRootDir);
     const skillSources = [];
 
@@ -953,8 +859,8 @@ async function sanitizeSkillMirror(skillsRootDir, skillReferenceMap, protocolBlo
         const hasDeclaredCollision = (declaredNameCounts.get(source.declaredName) || 0) > 1;
         const preferredName = hasDeclaredCollision ? source.folderName : source.declaredName;
         const exportedName = reserveUniqueName(preferredName, usedExportNames);
-        const sanitizedSkill = buildCodexSkillManifest(source.skillText, exportedName, skillReferenceMap, protocolBlock, { overrideName: exportedName, inline });
-        await fs.writeFile(source.skillPath, sanitizedSkill, 'utf8');
+        const sanitizedSkill = buildCodexSkillManifest(source.skillText, exportedName, skillReferenceMap, { overrideName: exportedName, inline });
+        await writeFileTransientSafe(source.skillPath, sanitizedSkill, 'utf8');
         const relativeLabel = path.relative(skillsRootDir, source.skillPath);
         if (parseFrontmatterBoolean(parseFrontmatter(source.skillText).frontmatter['disable-model-invocation']) === true) {
             await writeCodexSkillPolicy(path.dirname(source.skillPath), relativeLabel);
@@ -978,7 +884,7 @@ async function sanitizeSkillMirror(skillsRootDir, skillReferenceMap, protocolBlo
             rewriteClaudeToolTermsForCodex(rewriteSkillMentionsForCodex(markdownText, skillReferenceMap))
         );
         if (rewrittenText !== markdownText) {
-            await fs.writeFile(markdownPath, rewrittenText, 'utf8');
+            await writeFileTransientSafe(markdownPath, rewrittenText, 'utf8');
         }
     }
 
@@ -1004,7 +910,7 @@ async function normalizeTextFileLineEndings(filePath) {
     const content = await fs.readFile(filePath, 'utf8');
     if (!content.includes('\r')) return false;
 
-    await fs.writeFile(filePath, content.replace(/\r\n/g, '\n').replace(/\r/g, '\n'), 'utf8');
+    await writeFileTransientSafe(filePath, content.replace(/\r\n/g, '\n').replace(/\r/g, '\n'), 'utf8');
     return true;
 }
 
@@ -1123,11 +1029,9 @@ export async function materializeSkillMirror(targetDir, skillReferenceMap, optio
     });
     await normalizeTextLineEndingsUnderDir(targetDir);
     await canonicalizeSkillManifestNames(targetDir);
-    const alwaysInjectedProtocolBlock = await buildAlwaysInjectedPromptProtocolBlock();
     return sanitizeSkillMirror(
         targetDir,
         skillReferenceMap,
-        alwaysInjectedProtocolBlock,
         bodyFor ? { tags: inlineTags, bodyFor } : null,
         skillProfile,
         options.onNotice

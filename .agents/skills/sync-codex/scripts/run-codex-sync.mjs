@@ -134,10 +134,7 @@ async function runClaudeMdPreflight() {
     if (check.code === 0) return;
     const mode = check.code === 10 ? "init" : check.code === 11 ? "update" : null;
     if (!mode) {
-        const reason = check.code === 12
-            ? "CLAUDE.md is markerless; run /ai-context-refresh --mode update for an AI smart-merge, then rerun sync-codex"
-            : `CLAUDE.md preflight failed with exit ${check.code}`;
-        throw Object.assign(new Error(reason), { exitCode: 1 });
+        throw Object.assign(new Error(`CLAUDE.md preflight failed with exit ${check.code}`), { exitCode: 1 });
     }
 
     process.stdout.write(`[claude-md] applying --mode ${mode}\n`);
@@ -237,7 +234,7 @@ const stages = [
     // Fail-soft when the catalog is absent, so a project that copied `.claude` without it still syncs.
     { id: "provenance-markers", label: "verify-provenance-markers", cmd: "node", args: [path.join(sourceScriptsDir, "verify-provenance-markers.mjs")] },
     // Cross-surface byte-equality oracle. verify-sync-divergence guards BOTH the .agents/skills mirror
-    // AND the CONTEXT mirror (AGENTS.md + .codex/CODEX_CONTEXT.md) — the context idempotency check is
+    // AND the CONTEXT mirror (AGENTS.md; a leftover .codex/CODEX_CONTEXT.md is an orphan) — the context idempotency check is
     // folded in there (not a separate stage/file) so the portable export ships zero new pipeline scripts.
     { id: "sync-divergence",    label: "verify-sync-divergence",    cmd: "node", args: [path.join(sourceScriptsDir, "verify-sync-divergence.mjs")] },
 ];

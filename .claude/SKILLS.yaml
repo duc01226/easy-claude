@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-09-30'
-  total_skills: 129
+  last_updated: '2026-10-01'
+  total_skills: 102
   total_by_status:
-    active: 129
+    active: 102
     deprecated: 0
     experimental: 0
 categories:
@@ -29,8 +29,9 @@ skills:
     ai-ml:
     - name: ai-context-refresh
       path: ai-context-refresh/SKILL.md
-      description: '[Documentation] Use when initializing, updating, smart-merging,
-        or refactoring portable project AI context and its Claude/Codex projections.'
+      description: '[Documentation] Use when generating, smart-merging or refactoring
+        the root AI context (CLAUDE.md, AGENTS.md) and its Claude/Codex projections.
+        Config file only: project-config.'
       category: ai-ml
       has_scripts: true
       has_references: true
@@ -41,8 +42,8 @@ skills:
     - name: ai-engineering-review
       path: ai-engineering-review/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for an
-        AI-feature review: LLM calls, prompts, agents, RAG, tool use, evals, guardrails,
-        cost and safety. Flags: --mode={code|plan} (default code), --report-only.'
+        AI-feature review: LLM calls, prompts, agents, RAG, evals, guardrails. --mode={code|plan},
+        --report-only.'
       category: ai-ml
       has_scripts: false
       has_references: false
@@ -51,47 +52,12 @@ skills:
       deprecated_since: null
       removal_after: null
     other:
-    - name: architecture-design
-      path: architecture-design/SKILL.md
-      description: '[Architecture] Use when a workflow step or the user asks for a
-        solution architecture design. Covers backend, frontend, data & consistency,
-        integration & APIs, deployment, monitoring, testing and code quality.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: architecture-review
-      path: architecture-review/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for an
-        architecture compliance review. Checks layers, messaging, service boundaries,
-        CQRS, repos, entity events and data/consistency/tenancy boundaries.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: architecture-review-full
-      path: architecture-review-full/SKILL.md
-      description: '[Architecture] Use when a workflow step or the user asks for a
-        whole-project architecture and production-readiness audit. Bundles architecture-review,
-        scalability and production-readiness into one health report.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: architecture-scalability-review
-      path: architecture-scalability-review/SKILL.md
-      description: '[Architecture] Use when a workflow step or the user asks for an
-        architecture and scalability grade. Build/CI scale, distributed-monolith risk,
-        module isolation, coupling, horizontal scaling, clean architecture, observability.'
+    - name: architecture
+      path: architecture/SKILL.md
+      description: '[Architecture] Use when a workflow step or the user asks for --mode=design
+        (solution architecture), --mode=review (compliance: layers, boundaries, CQRS,
+        tenancy), --mode=scalability (scale grade, coupling) or --mode=full (whole-project
+        audit).'
       category: other
       has_scripts: false
       has_references: true
@@ -99,22 +65,10 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: artifact-review
-      path: artifact-review/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for an
-        artifact quality review before handoff. Flag: --type={pbi|story|spec-tests|design}.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: brainstorm
       path: brainstorm/SKILL.md
       description: '[Content] Use when a workflow step or the user asks for PO/BA
-        brainstorming. Ideation for problem-solving, new products, feature enhancement
-        or outcome-roadmap framing. Flag: --mode={roadmap|scope}.'
+        brainstorming: new products, feature enhancement, roadmap framing. --mode={roadmap|scope}.'
       category: other
       has_scripts: false
       has_references: false
@@ -125,8 +79,7 @@ skills:
     - name: business-evaluation
       path: business-evaluation/SKILL.md
       description: '[Content] Use when a workflow step or the user asks for a business
-        idea viability evaluation. Business Model Canvas, financial projections, risk
-        matrix, go-to-market, execution plan.'
+        idea viability evaluation: Business Model Canvas, financials, risks, go-to-market.'
       category: other
       has_scripts: false
       has_references: false
@@ -137,8 +90,8 @@ skills:
     - name: changes-review
       path: changes-review/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for a
-        review of current changes, staged or unstaged diffs, or branch-to-branch diffs.
-        Flag: --fix-loop reviews, fixes and re-reviews until converged.'
+        review of current changes (staged/unstaged or branch diffs, focused scope).
+        --fix-loop reviews, fixes, re-reviews. Cross-module or risky: workflow-review-changes.'
       category: other
       has_scripts: false
       has_references: true
@@ -148,7 +101,9 @@ skills:
       removal_after: null
     - name: ck-help
       path: ck-help/SKILL.md
-      description: '[Utilities] Use when asking for the claudeKit usage guide.'
+      description: '[Utilities] Use when asking how to use the framework''s commands:
+        keyword or category search, command details, task recommendations. Project
+        facts: project-help.'
       category: other
       has_scripts: false
       has_references: false
@@ -159,8 +114,7 @@ skills:
     - name: code-simplifier
       path: code-simplifier/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for code
-        simplification. Improves clarity, consistency and maintainability while preserving
-        behavior.'
+        simplification: clarity, consistency, maintainability, behavior preserved.'
       category: other
       has_scripts: false
       has_references: false
@@ -171,7 +125,7 @@ skills:
     - name: commit
       path: commit/SKILL.md
       description: '[Git] Use when asked to commit, stage and commit, or save changes.
-        Flag: --push also pushes to remote.'
+        --push also pushes.'
       category: other
       has_scripts: false
       has_references: false
@@ -182,7 +136,7 @@ skills:
     - name: course-builder
       path: course-builder/SKILL.md
       description: '[Content] Use when a workflow step or the user asks for course
-        material. Builds Bloom objectives, modules, lessons, exercises and assessments.'
+        material: Bloom objectives, modules, lessons, exercises, assessments.'
       category: other
       has_scripts: false
       has_references: false
@@ -203,9 +157,9 @@ skills:
       removal_after: null
     - name: custom-prompt
       path: custom-prompt/SKILL.md
-      description: '[Utilities] Use when invoking, listing, saving, updating, or deleting
-        a PROJECT-SPECIFIC saved prompt (playbook / recipe / runbook). Subcommands:
-        list | <free-text> | save | update | delete.'
+      description: '[Utilities] Use when invoking, listing, saving, updating or deleting
+        a PROJECT-SPECIFIC saved prompt (playbook, recipe, runbook). list | <free-text>
+        | save | update | delete.'
       category: other
       has_scripts: false
       has_references: true
@@ -226,8 +180,8 @@ skills:
     - name: demo-guide
       path: demo-guide/SKILL.md
       description: '[Documentation] Use when a workflow step or the user asks for
-        a demo guide, demo script or sprint-demo walkthrough. Covers user stories,
-        case identities and their evidence carriers.'
+        a demo guide, demo script or sprint-demo walkthrough: user stories, case identities,
+        evidence carriers.'
       category: other
       has_scripts: false
       has_references: true
@@ -235,24 +189,14 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: docs-init
-      path: docs-init/SKILL.md
-      description: '[Documentation] Use when initializing project reference docs via
-        hook + scan skills.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: docs-update
-      path: docs-update/SKILL.md
+    - name: docs-manager
+      path: docs-manager/SKILL.md
       description: '[Documentation] Use when a workflow step or the user asks for
-        a documentation update. Updates the docs impacted by code, spec or test changes.'
+        a documentation update of docs impacted by code/spec/test changes (--mode=update),
+        or first-time init of the reference-doc set from project-config (--mode=init).'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -260,8 +204,7 @@ skills:
     - name: docx-convert
       path: docx-convert/SKILL.md
       description: '[Document Processing] Use when converting between Word DOCX and
-        Markdown — DOCX to Markdown with GFM support, or Markdown to DOCX with GFM
-        and math rendering. Flag: --to={markdown|docx}.'
+        Markdown (GFM, math rendering). --to={markdown|docx}.'
       category: other
       has_scripts: true
       has_references: false
@@ -272,34 +215,12 @@ skills:
     - name: domain-analysis
       path: domain-analysis/SKILL.md
       description: '[Architecture] Use when a workflow step or the user asks for a
-        business domain analysis. Bounded contexts, aggregates, entities, ERD, domain
-        events, cross-context integration.'
+        business domain analysis (bounded contexts, aggregates, entities, ERD, domain
+        events), or --mode=review: a DDD design-quality review of domain entities
+        and value objects.'
       category: other
       has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: domain-entities-review
-      path: domain-entities-review/SKILL.md
-      description: '[DDD Quality] Use when a workflow step or the user asks for a
-        domain entity review. Checks entities and value objects for DDD design quality.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: dor-gate
-      path: dor-gate/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for a
-        Definition of Ready check. Validates a PBI against DoR and the M1-M7 gates
-        before grooming.'
-      category: other
-      has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -307,32 +228,8 @@ skills:
     - name: e2e-test
       path: e2e-test/SKILL.md
       description: '[Testing] Use when a workflow step or the user asks for E2E test
-        work. Selects, generates, updates or maintains E2E tests from a prompt, current
-        context, recordings, specs or code changes.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: e2e-test-verify
-      path: e2e-test-verify/SKILL.md
-      description: '[Testing] Use when a workflow step or the user asks for E2E verification
-        with runner evidence. --fix-loop owns execution/fix/retest; --visual-review={true|false}
-        follows request or project contract. Quality and visual review run once per
-        attempt.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: excalidraw-diagram
-      path: excalidraw-diagram/SKILL.md
-      description: '[Utilities] Use when a workflow step or the user asks for a diagram.
-        Visualizes workflows, architectures or concepts as Excalidraw diagram JSON.'
+        work: select, generate or update tests, or --mode=verify (run with runner
+        evidence; --fix-loop, --visual-review={true|false}).'
       category: other
       has_scripts: false
       has_references: true
@@ -343,8 +240,8 @@ skills:
     - name: experience-review
       path: experience-review/SKILL.md
       description: '[Testing] Use when a workflow step or the user asks for a running-experience
-        review (UI, API, CLI, service). Drives it end to end, gates on runtime logs
-        and screens, adjudicates regressions. Flag: --rounds=N (default 3; 0 = report-only).'
+        review (UI, API, CLI, service): end-to-end drive, runtime-log and screen gates.
+        --rounds=N (default 3; 0 = report-only).'
       category: other
       has_scripts: false
       has_references: false
@@ -365,8 +262,8 @@ skills:
     - name: feature-presentation
       path: feature-presentation/SKILL.md
       description: '[Documentation] Use when a workflow step or the user asks for
-        a stakeholder slide deck. Synthesizes specs, PBIs, ideas and mockups into
-        one standalone HTML deck.'
+        a stakeholder slide deck: specs, PBIs, ideas and mockups in one standalone
+        HTML deck.'
       category: other
       has_scripts: false
       has_references: true
@@ -377,19 +274,19 @@ skills:
     - name: fix
       path: fix/SKILL.md
       description: '[Implementation] Use when a workflow step or the user asks for
-        an issue to be analyzed and fixed. Flag: --target={ci|issue|logs|review|test|types|ui}
-        scopes the fix; review fixes validated review findings.'
+        an issue to be analyzed and fixed. --target={ci|issue|logs|review|test|types|ui}
+        scopes it.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
       removal_after: null
     - name: git-conflict-resolve
       path: git-conflict-resolve/SKILL.md
-      description: '[Git] Use when resolving git merge, cherry-pick, rebase, or stash-apply
-        conflicts (for example after a pull before commit) with backup and analysis.'
+      description: '[Git] Use when resolving git merge, cherry-pick, rebase or stash-apply
+        conflicts, with backup and analysis.'
       category: other
       has_scripts: false
       has_references: false
@@ -400,7 +297,7 @@ skills:
     - name: git-developer-performance
       path: git-developer-performance/SKILL.md
       description: '[Git] Use when generating developer KPI, contribution, story point,
-        man-day, or code-quality reports from git commit history.'
+        man-day or code-quality reports from git history.'
       category: other
       has_scripts: true
       has_references: true
@@ -408,35 +305,14 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: graph-blast-radius
-      path: graph-blast-radius/SKILL.md
-      description: '[Code Intelligence] Use when analyzing the blast radius of current
-        code changes via the knowledge graph.'
+    - name: graph-code
+      path: graph-code/SKILL.md
+      description: '[Code Intelligence] Use when building/syncing the code graph,
+        querying callers/imports/tests, tracing flow, checking blast radius or linking
+        frontend-backend APIs. --mode={build|query|trace|blast-radius|connect-api}.'
       category: other
       has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: graph-build
-      path: graph-build/SKILL.md
-      description: '[Code Intelligence] Use when building, updating, or syncing the
-        code knowledge graph. Flag: --scope={full|update|sync} (default auto-detect).'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: graph-connect-api
-      path: graph-connect-api/SKILL.md
-      description: '[Code Intelligence] Use when detecting frontend-to-backend API
-        connections via the knowledge graph.'
-      category: other
-      has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -444,29 +320,7 @@ skills:
     - name: graph-export
       path: graph-export/SKILL.md
       description: '[Code Intelligence] Use when exporting the code knowledge graph.
-        Flag: --format={json|mermaid} (default json).'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: graph-query
-      path: graph-query/SKILL.md
-      description: '[Code Intelligence] Use when querying code relationships and connections
-        via the knowledge graph.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: graph-trace
-      path: graph-trace/SKILL.md
-      description: '[Code Intelligence] Use when tracing what happens as code executes,
-        blast radius, or frontend-to-backend flows.'
+        --format={json|mermaid}.'
       category: other
       has_scripts: false
       has_references: false
@@ -477,7 +331,7 @@ skills:
     - name: harness-setup
       path: harness-setup/SKILL.md
       description: '[Quality] Use when a workflow step or the user asks for an agent
-        quality harness. Sets up feedforward guides and feedback sensors.'
+        quality harness: feedforward guides and feedback sensors.'
       category: other
       has_scripts: false
       has_references: false
@@ -488,8 +342,7 @@ skills:
     - name: html-export
       path: html-export/SKILL.md
       description: '[Document Processing] Use when a workflow step or the user asks
-        for an HTML page, deck, mockup or animation export or render check: PNG screenshots
-        with a page-error and blank-capture check, a vector PDF, or MP4/GIF. Flag:
+        for an HTML page, deck, mockup or animation export: PNG, vector PDF, MP4/GIF.
         --to={png|pdf|mp4|gif}.'
       category: other
       has_scripts: true
@@ -501,8 +354,7 @@ skills:
     - name: idea
       path: idea/SKILL.md
       description: '[Project Management] Use when a workflow step or the user asks
-        for an idea to be captured. Records new ideas, feature requests or concepts
-        for later refinement.'
+        for an idea to be captured: ideas, feature requests, concepts for refinement.'
       category: other
       has_scripts: false
       has_references: false
@@ -513,7 +365,8 @@ skills:
     - name: integration-test
       path: integration-test/SKILL.md
       description: '[Testing] Use when a workflow step or the user asks for integration
-        tests. Generates or reviews integration tests.'
+        tests: generate them, --mode=review (one-pass 8-gate review) or --mode=verify
+        (run with runner evidence; --fix-loop converges failures).'
       category: other
       has_scripts: false
       has_references: true
@@ -521,38 +374,15 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: integration-test-review
-      path: integration-test-review/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for an
-        integration-test review. Performs one evidence-backed review pass over tests,
-        source, and governing specs; maximum one review round per invocation.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: integration-test-verify
-      path: integration-test-verify/SKILL.md
-      description: '[Testing] Use when a workflow step or the user asks for integration
-        tests to be verified after writing and reviewing them. Flag: --fix-loop adjudicates,
-        fixes and re-verifies under the configured repeat policy.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: investigate
       path: investigate/SKILL.md
       description: '[Fix & Debug] Use when a workflow step or the user asks for how
-        an existing feature or logic works. Flag: --mode=explain gives a developer-narrative
-        walkthrough.'
+        an existing feature works (read-only code-flow trace) or --mode=debug: a bug''s
+        root cause (reproduce, trace end-to-start). --mode=explain. Plans or decisions:
+        understand.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -560,8 +390,7 @@ skills:
     - name: knowledge-review
       path: knowledge-review/SKILL.md
       description: '[Research] Use when a workflow step or the user asks for a knowledge
-        artifact review. Checks completeness, citation quality, confidence accuracy
-        and template compliance.'
+        artifact review: completeness, citations, confidence accuracy, template compliance.'
       category: other
       has_scripts: false
       has_references: false
@@ -572,7 +401,7 @@ skills:
     - name: knowledge-synthesis
       path: knowledge-synthesis/SKILL.md
       description: '[Research] Use when a workflow step or the user asks for a research
-        synthesis. Turns research findings into a structured report.'
+        synthesis: findings into a structured report.'
       category: other
       has_scripts: false
       has_references: false
@@ -583,8 +412,7 @@ skills:
     - name: learn
       path: learn/SKILL.md
       description: '[Utilities] Use when teaching Claude a lesson that persists across
-        sessions, including an extra rule or lesson for one skill or for the kind
-        of task a skill owns (routed to project-skill-protocol).'
+        sessions, including an extra rule for one skill or task kind (routes to project-skill-protocol).'
       category: other
       has_scripts: false
       has_references: false
@@ -595,8 +423,7 @@ skills:
     - name: linter-setup
       path: linter-setup/SKILL.md
       description: '[Quality] Use when a workflow step or the user asks for code quality
-        tooling. Configures linters, formatters, static analysis, pre-commit hooks
-        and CI gates for a tech stack.'
+        tooling: linters, formatters, static analysis, pre-commit hooks, CI gates.'
       category: other
       has_scripts: false
       has_references: false
@@ -607,8 +434,7 @@ skills:
     - name: market-analysis
       path: market-analysis/SKILL.md
       description: '[Research] Use when a workflow step or the user asks for a market
-        landscape analysis. Competitors, TAM/SAM/SOM sizing, trends, SWOT, customer
-        segments.'
+        landscape analysis: competitors, TAM/SAM/SOM, trends, SWOT, segments.'
       category: other
       has_scripts: false
       has_references: false
@@ -619,7 +445,7 @@ skills:
     - name: package-upgrade
       path: package-upgrade/SKILL.md
       description: '[Code Quality] Use when analyzing package upgrades, outdated dependencies,
-        npm/NuGet update plans, or breaking changes.'
+        npm/NuGet update plans or breaking changes.'
       category: other
       has_scripts: false
       has_references: false
@@ -627,22 +453,12 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: pbi-challenge
-      path: pbi-challenge/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for a
-        Dev BA PIC review of PBI drafts. Runs an AI-assisted challenge of each draft.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: pbi-mockup
-      path: pbi-mockup/SKILL.md
+    - name: pbi
+      path: pbi/SKILL.md
       description: '[Project Management] Use when a workflow step or the user asks
-        for an interactive HTML mockup from PBI/story or spec artifacts. Flags: --explore
-        asks for 1-3 design directions (or skip) and lets the user pick, --source=<path>.'
+        for PBI work, --mode=refine (idea to PBI, acceptance criteria) | story (slicing)
+        | mockup (HTML, --explore) | challenge (Dev BA PIC) | review (--type=) | dor
+        (Definition of Ready, M1-M7).'
       category: other
       has_scripts: false
       has_references: true
@@ -652,10 +468,9 @@ skills:
       removal_after: null
     - name: pdf-convert
       path: pdf-convert/SKILL.md
-      description: '[Document Processing] Use when converting between PDF and Markdown
-        — text-extractable PDFs to Markdown (scanned PDFs are detected and reported,
-        not OCR''d), or Markdown to PDF with syntax highlighting and custom CSS. Flag:
-        --to={markdown|pdf}.'
+      description: '[Document Processing] Use when converting between PDF and Markdown:
+        text PDFs to Markdown (scanned PDFs are reported, not OCR''d), Markdown to
+        styled PDF. --to={markdown|pdf}.'
       category: other
       has_scripts: true
       has_references: false
@@ -666,8 +481,8 @@ skills:
     - name: performance-review
       path: performance-review/SKILL.md
       description: '[Debugging] Use when a workflow step or the user asks for a performance
-        review or optimization. Slow queries, N+1, indexing, API latency, memory/GC,
-        concurrency, caching, frontend rendering, Core Web Vitals.'
+        review: slow queries, N+1, latency, memory, caching, frontend rendering, Web
+        Vitals.'
       category: other
       has_scripts: false
       has_references: true
@@ -688,10 +503,9 @@ skills:
       removal_after: null
     - name: presentation-builder
       path: presentation-builder/SKILL.md
-      description: '[Documentation] Use when creating, revising, auditing, or generating
-        a presentation for any subject. Produces a narrative-led, self-contained HTML
-        deck with per-slide speaker notes, keyboard navigation, accessible controls,
-        persistent browser-local edit mode, reset, export, and validation.'
+      description: '[Documentation] Use when creating, revising, auditing or generating
+        a presentation: narrative-led self-contained HTML deck with speaker notes
+        and edit mode.'
       category: other
       has_scripts: true
       has_references: true
@@ -702,7 +516,7 @@ skills:
     - name: prioritize
       path: prioritize/SKILL.md
       description: '[Project Management] Use when a workflow step or the user asks
-        for backlog prioritization. Ranks items with RICE, MoSCoW or Value-Effort.'
+        for backlog prioritization: RICE, MoSCoW or Value-Effort ranking.'
       category: other
       has_scripts: false
       has_references: false
@@ -713,8 +527,8 @@ skills:
     - name: product-roadmap
       path: product-roadmap/SKILL.md
       description: '[Planning] Use ONLY when the user explicitly requests a product
-        roadmap, roadmap update, or milestone selection — outcome milestones, MVP
-        scope, non-goals, risks, evidence gates.'
+        roadmap, roadmap update or milestone selection: outcome milestones, MVP scope,
+        non-goals, risks, evidence gates.'
       category: other
       has_scripts: false
       has_references: true
@@ -725,7 +539,7 @@ skills:
     - name: production-readiness-review
       path: production-readiness-review/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for a
-        production readiness review. Reviews service-layer and API changes.'
+        production readiness review of service-layer and API changes.'
       category: other
       has_scripts: false
       has_references: false
@@ -735,8 +549,9 @@ skills:
       removal_after: null
     - name: project-config
       path: project-config/SKILL.md
-      description: '[Utilities] Use when scanning the workspace to update the configured
-        project-config file (default docs/project-config.json) to match current structure.'
+      description: '[Utilities] Use when syncing the project-config file (default
+        docs/project-config.json) with the current workspace structure. Not reference
+        docs (scan) or CLAUDE.md (ai-context-refresh).'
       category: other
       has_scripts: true
       has_references: false
@@ -747,9 +562,8 @@ skills:
     - name: project-help
       path: project-help/SKILL.md
       description: '[Utilities] Use when asking what the .claude framework does for
-        THIS project — how it is configured, which skills/agents/workflows exist,
-        what the reference docs are for, and the key technical, architecture, and
-        structure facts of the project.'
+        THIS project: configuration, skills/agents/workflows, reference docs, key
+        tech/architecture/structure facts. Command keyword search: ck-help.'
       category: other
       has_scripts: true
       has_references: false
@@ -759,9 +573,9 @@ skills:
       removal_after: null
     - name: project-init
       path: project-init/SKILL.md
-      description: '[Utilities] Use when initializing or re-evaluating portable project
-        context — project-config, reference docs, CLAUDE.md, AGENTS.md, static-context
-        setup.'
+      description: '[Utilities] Use when setting up or re-evaluating portable project
+        context end to end: project-config, reference docs, CLAUDE.md, AGENTS.md.
+        One piece only: project-config, docs-manager --mode=init or ai-context-refresh.'
       category: other
       has_scripts: false
       has_references: true
@@ -771,9 +585,9 @@ skills:
       removal_after: null
     - name: project-skill-protocol
       path: project-skill-protocol/SKILL.md
-      description: '[Utilities] Use when a project adds, changes, lists, or removes
-        its OWN protocol rules layered over a framework skill. Overlays are ADDITIVE
-        ONLY. Subcommands: list | add | update | delete.'
+      description: '[Utilities] Use when a project adds, changes, lists or removes
+        its OWN protocol rules layered over a framework skill (additive only). list
+        | add | update | delete.'
       category: other
       has_scripts: false
       has_references: true
@@ -783,8 +597,8 @@ skills:
       removal_after: null
     - name: prompt-enhance
       path: prompt-enhance/SKILL.md
-      description: '[Skill Management] Use when enhancing, compressing, or expanding
-        prompts, docs, or skills. Flag: --op={compress|expand|enhance} (default enhance).'
+      description: '[Skill Management] Use when enhancing, compressing or expanding
+        prompts, docs or skills. --op={compress|expand|enhance}.'
       category: other
       has_scripts: false
       has_references: false
@@ -795,21 +609,8 @@ skills:
     - name: pull-request
       path: pull-request/SKILL.md
       description: '[Git] Use when asked to create, open, finish, update or mark ready
-        a pull request. Runs in the main session without asking: branch fresh from
-        the latest target, commit, /workflow-review-changes --fix-loop over the whole
-        branch, open the PR, drive CI to green.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: refine
-      path: refine/SKILL.md
-      description: '[Project Management] Use when a workflow step or the user asks
-        for idea refinement. Converts ideas to PBIs, validates problem hypotheses
-        or adds acceptance criteria.'
+        a pull request. Runs in the main session without asking: fresh branch from
+        the target, commit, /workflow-review-changes --fix-loop, open PR, CI to green.'
       category: other
       has_scripts: false
       has_references: false
@@ -820,8 +621,8 @@ skills:
     - name: release-doc
       path: release-doc/SKILL.md
       description: '[Git] Use when creating release notes or a release document from
-        git history at any scope (tag-to-tag, branch-to-branch, time range), producing
-        markdown plus a standalone HTML presentation.'
+        git history at any scope (tag, branch, time range), as markdown plus a standalone
+        HTML presentation.'
       category: other
       has_scripts: false
       has_references: true
@@ -843,8 +644,7 @@ skills:
     - name: scaffold
       path: scaffold/SKILL.md
       description: '[Architecture] Use when a workflow step or the user asks for project
-        scaffolding. Builds foundations and golden-path examples selected by the target
-        project architecture before feature implementation.'
+        scaffolding: foundations and golden-path examples before feature implementation.'
       category: other
       has_scripts: false
       has_references: false
@@ -855,9 +655,8 @@ skills:
     - name: scan
       path: scan/SKILL.md
       description: '[Documentation] Use when a workflow step or the user asks for
-        one project-reference doc to be regenerated. Flag: --target=<doc key> (project-structure,
-        code-review-rules, domain-entities, docs-index); generic-reference-doc also
-        requires --filename.'
+        one project-reference doc to be regenerated. --target=<doc key> (project-structure,
+        code-review-rules, domain-entities, docs-index). All docs: scan-all.'
       category: other
       has_scripts: false
       has_references: true
@@ -867,8 +666,9 @@ skills:
       removal_after: null
     - name: scan-all
       path: scan-all/SKILL.md
-      description: '[Documentation] Use when refreshing all selected and evidence-applicable
-        reference-doc scan targets.'
+      description: '[Documentation] Use when refreshing every selected, evidence-applicable
+        reference-doc scan target at once. One doc: scan; first-time setup: docs-manager
+        --mode=init.'
       category: other
       has_scripts: false
       has_references: false
@@ -878,7 +678,7 @@ skills:
       removal_after: null
     - name: scan-codebase-health
       path: scan-codebase-health/SKILL.md
-      description: '[Documentation] Use when detecting codebase health issues — unused
+      description: '[Documentation] Use when detecting codebase health issues: unused
         exports, doc count-drift, orphan files, stale config references.'
       category: other
       has_scripts: false
@@ -890,8 +690,7 @@ skills:
     - name: scenario
       path: scenario/SKILL.md
       description: '[Planning] Use when a workflow step or the user asks for adversarial
-        scenarios. Enumerates failure modes, data-integrity risks, state boundaries,
-        access risks or pre-plan edge cases.'
+        scenarios: failure modes, data integrity, state boundaries, access risks.'
       category: other
       has_scripts: false
       has_references: true
@@ -902,8 +701,8 @@ skills:
     - name: security-audit
       path: security-audit/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for a
-        security review or audit. OWASP Top 10, secrets exposure, dependency/supply-chain
-        malware, infrastructure, CI/CD, AI-agent risks, host compromise.'
+        security review or audit: OWASP Top 10, secrets, supply-chain, infrastructure,
+        CI/CD, AI-agent risks.'
       category: other
       has_scripts: false
       has_references: false
@@ -914,8 +713,7 @@ skills:
     - name: seed-test-data
       path: seed-test-data/SKILL.md
       description: '[Dev Data] Use when a workflow step or the user asks for test-data
-        seeders. Builds seeders that simulate QC happy paths via application-layer
-        commands. Flag: --mode=review audits a seeder read-only.'
+        seeders for QC happy paths. --mode=review audits a seeder read-only.'
       category: other
       has_scripts: false
       has_references: false
@@ -926,48 +724,11 @@ skills:
     - name: spec
       path: spec/SKILL.md
       description: '[Documentation] Use when a workflow step or the user asks for
-        spec authoring, auditing, amending, test-speccing or reconciling. Resolve
-        the project artifact profile first; the 8-section/TC format is the strict
-        default.'
+        spec authoring, auditing, amending, test-speccing, reconciling, or [mode=discovery|clarify|index]:
+        pre-spec landscape, user-confirmed decisions, derived index/ERD.'
       category: other
       has_scripts: false
       has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: spec-clarify
-      path: spec-clarify/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for spec
-        decisions to be validated with the user. Covers a canonical spec or declared
-        test-case artifact; blocks on unresolved intent.'
-      category: other
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: spec-discovery
-      path: spec-discovery/SKILL.md
-      description: '[Investigation] Use when a workflow step or the user asks for
-        spec discovery before a new Feature Spec. Surfaces related, overlapping or
-        affected specs, missing test cases and the invariant landscape.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: spec-index
-      path: spec-index/SKILL.md
-      description: '[General] Use when a workflow step or the user asks for a derived
-        spec index. (Re)generates a navigation index, cross-capability ERD or reimplementation
-        guide FROM canonical Feature Specs.'
-      category: other
-      has_scripts: false
-      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -983,22 +744,10 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: story
-      path: story/SKILL.md
-      description: '[Project Management] Use when a workflow step or the user asks
-        for user stories. Creates stories from PBIs, slices features or breaks down
-        requirements.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: strategy-builder
       path: strategy-builder/SKILL.md
       description: '[Content] Use when a workflow step or the user asks for a marketing
-        strategy. Positioning, channels, messaging, campaigns, budget, KPIs.'
+        strategy: positioning, channels, messaging, campaigns, budget, KPIs.'
       category: other
       has_scripts: false
       has_references: false
@@ -1009,8 +758,8 @@ skills:
     - name: sync-codex
       path: sync-codex/SKILL.md
       description: '[Codex] Use when running the full Codex mirror sync and verify
-        pipeline (migrate, hooks, context, verify), or when `.claude/**` source edits
-        leave `.agents/`, `.codex/` or `AGENTS.md` stale.'
+        pipeline, or when `.claude/**` edits leave `.agents/`, `.codex/` or `AGENTS.md`
+        stale.'
       category: other
       has_scripts: true
       has_references: false
@@ -1020,11 +769,9 @@ skills:
       removal_after: null
     - name: sync-opencode
       path: sync-opencode/SKILL.md
-      description: '[opencode] Use when running the opencode sync and verify pipeline
-        (reconcile the recommended root opencode.json, write the skill-selection policy
-        into permission.skill with its ownership ledger and the .opencode/commands/
-        files for hidden skills, generate the .opencode hooks bridge plugin and sub-agent
-        mirror, run tooling tests, verify drift).'
+      description: '[opencode] Use when running the opencode sync and verify pipeline:
+        opencode.json reconcile, skill policy, hidden-skill commands, hooks bridge,
+        sub-agent mirror, drift check.'
       category: other
       has_scripts: true
       has_references: false
@@ -1045,9 +792,9 @@ skills:
       removal_after: null
     - name: tech-spec
       path: tech-spec/SKILL.md
-      description: '[Documentation] Use when (re)generating the DERIVED technical
-        spec view over code and tests, or reporting §8 TC drift. A generator — never
-        authors business content. Modes: generate|audit|sync.'
+      description: '[Documentation] Use when generating the DERIVED technical spec
+        view over code and tests, or reporting §8 TC drift. Generator only, never
+        authors business content. generate|audit|sync.'
       category: other
       has_scripts: true
       has_references: true
@@ -1058,7 +805,7 @@ skills:
     - name: tech-stack-research
       path: tech-stack-research/SKILL.md
       description: '[Architecture] Use when a workflow step or the user asks for tech
-        stack options. Researches and compares them as a solution architect.'
+        stack options, researched and compared as a solution architect.'
       category: other
       has_scripts: false
       has_references: false
@@ -1069,7 +816,7 @@ skills:
     - name: test
       path: test/SKILL.md
       description: '[Testing] Use when a workflow step or the user asks for a local
-        test run. Runs the tests and analyzes the summary report.'
+        test run: runs tests and analyzes the summary report.'
       category: other
       has_scripts: false
       has_references: false
@@ -1079,8 +826,10 @@ skills:
       removal_after: null
     - name: understand
       path: understand/SKILL.md
-      description: '[Process] Use when a developer needs to understand code, plans,
-        decisions, bugs, or concepts — behavior, rationale, trade-offs, testing.'
+      description: '[Process] Use when a developer needs to understand and judge scoped
+        work: a change set, subsystem, decision, plan or concept — flow, rationale,
+        trade-offs, testing. Bugs: investigate --mode=debug; one feature''s code flow:
+        investigate.'
       category: other
       has_scripts: false
       has_references: true
@@ -1091,8 +840,8 @@ skills:
     - name: watzup
       path: watzup/SKILL.md
       description: '[Utilities] Use when a workflow step or the user asks for a session
-        wrap-up. Summarizes what was done, key changes, why and how in an HTML report,
-        then flags stale docs and lessons.'
+        wrap-up: HTML report of what was done, changes, why; flags stale docs and
+        lessons.'
       category: other
       has_scripts: false
       has_references: true
@@ -1103,9 +852,8 @@ skills:
     - name: why-review
       path: why-review/SKILL.md
       description: '[Code Quality] Use when a workflow step or the user asks for a
-        rationale and change-quality review of plans, PBIs, commits, diffs, docs,
-        specs or reports. Flag: --fix-loop fixes validated findings and re-reviews
-        until the severity bar clears.'
+        rationale review of plans, PBIs, commits, diffs, docs, specs or reports; validates
+        findings. --fix-loop fixes and re-reviews.'
       category: other
       has_scripts: false
       has_references: true
@@ -1115,9 +863,8 @@ skills:
       removal_after: null
     - name: workflow-architecture-audit
       path: workflow-architecture-audit/SKILL.md
-      description: '[Workflow] Use when auditing the whole project''s architecture,
-        running an architecture health check, or checking production readiness — read-only,
-        one consolidated health report.'
+      description: '[Workflow] Use when auditing the whole project''s architecture
+        or production readiness: read-only, one consolidated health report.'
       category: other
       has_scripts: false
       has_references: false
@@ -1149,9 +896,9 @@ skills:
       removal_after: null
     - name: workflow-code-to-spec
       path: workflow-code-to-spec/SKILL.md
-      description: '[Workflow] Use when authoring or maintaining the configured canonical
-        feature/spec artifact from existing code, keeping its native contract, implementation,
-        and tests in sync. For idea-to-spec use workflow-idea-to-spec.'
+      description: '[Workflow] Use when authoring or maintaining the canonical feature/spec
+        artifact from existing code, keeping contract, implementation and tests in
+        sync. Idea-to-spec: workflow-idea-to-spec.'
       category: other
       has_scripts: false
       has_references: false
@@ -1161,10 +908,9 @@ skills:
       removal_after: null
     - name: workflow-e2e
       path: workflow-e2e/SKILL.md
-      description: '[Workflow] Use when writing, updating, and verifying E2E tests
-        through a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole},
-        --visual-review={true|false} (resolve from the task request and project contract;
-        no framework-wide default).'
+      description: '[Workflow] Use when writing, updating and verifying E2E tests
+        through a bounded green fix/retest loop. --source={changes|recording|update-ui|prompt|context|whole},
+        --visual-review={true|false}.'
       category: other
       has_scripts: false
       has_references: false
@@ -1185,10 +931,9 @@ skills:
       removal_after: null
     - name: workflow-feature
       path: workflow-feature/SKILL.md
-      description: '[Workflow] Use when implementing a well-defined feature, adding
-        a component, or building a capability — including TDD and spec-driven test-first
-        work — when no canonical spec has the requested behavior yet (update the spec
-        first). Spec-complete work goes to workflow-implement-spec.'
+      description: '[Workflow] Use when implementing a well-defined feature, component
+        or capability (incl. TDD/test-first) where no canonical spec has the behavior
+        yet. Spec-complete work: workflow-implement-spec.'
       category: other
       has_scripts: false
       has_references: false
@@ -1199,9 +944,8 @@ skills:
     - name: workflow-feature-spec
       path: workflow-feature-spec/SKILL.md
       description: '[Workflow] Use when creating or updating the configured canonical
-        feature/spec artifact, applying its native paths, sections, identifiers, and
-        test-evidence carriers; use the portable 8-section/README/TC form only when
-        neither a native profile nor local artifact contract applies.'
+        feature/spec artifact with its native paths, sections, identifiers and test-evidence
+        carriers; portable 8-section/README/TC form only when no native profile applies.'
       category: other
       has_scripts: false
       has_references: false
@@ -1211,8 +955,8 @@ skills:
       removal_after: null
     - name: workflow-greenfield-init
       path: workflow-greenfield-init/SKILL.md
-      description: '[Workflow] Use when starting a new project from scratch — full
-        waterfall inception from idea through implementation and integration testing.'
+      description: '[Workflow] Use when starting a new project from scratch: waterfall
+        inception from idea through implementation and integration testing.'
       category: other
       has_scripts: false
       has_references: false
@@ -1233,9 +977,9 @@ skills:
       removal_after: null
     - name: workflow-idea-to-spec
       path: workflow-idea-to-spec/SKILL.md
-      description: '[Workflow] Use when turning a raw idea, vision, or problem into
-        one reviewed provisional canonical spec under the configured artifact profile.
-        Stops at the spec; chain workflow-spec-to-pbi for a backlog.'
+      description: '[Workflow] Use when turning a raw idea, vision or problem into
+        one reviewed provisional canonical spec. Stops at the spec; backlog: chain
+        workflow-spec-to-pbi.'
       category: other
       has_scripts: false
       has_references: false
@@ -1246,8 +990,7 @@ skills:
     - name: workflow-implement-spec
       path: workflow-implement-spec/SKILL.md
       description: '[Workflow] Use when implementing behavior already written in a
-        canonical spec or TC set (spec-complete work). A spec that lacks the requested
-        behavior goes to workflow-feature.'
+        canonical spec or TC set. Spec lacks the behavior: workflow-feature.'
       category: other
       has_scripts: false
       has_references: false
@@ -1255,11 +998,23 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: workflow-integration-test-green
-      path: workflow-integration-test-green/SKILL.md
-      description: '[Workflow] Use when driving an integration-test suite to fully
-        green — adjudicate every failure before editing, fix at the owning layer,
-        re-verify, then sync specs and docs.'
+    - name: workflow-integration-test
+      path: workflow-integration-test/SKILL.md
+      description: '[Workflow] Use when writing integration tests spec-first, converting
+        test specs into test code, adding coverage to untested code, or driving failing
+        integration tests to green. Flag: --mode={write|green}.'
+      category: other
+      has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-mode
+      path: workflow-mode/SKILL.md
+      description: '[Utilities] Use when showing or changing this person''s workflow
+        route mode (ask, auto, off): which source decided it, set it for one session,
+        or save it to the user file or this checkout.'
       category: other
       has_scripts: false
       has_references: false
@@ -1280,10 +1035,10 @@ skills:
       removal_after: null
     - name: workflow-review-changes
       path: workflow-review-changes/SKILL.md
-      description: '[Workflow] Use when reviewing uncommitted, staged, or unstaged
-        changes before committing — triage-selected reviewers, validated fixes, and
-        re-review until the severity bar clears. Flag: --fix-loop re-runs the whole
-        workflow until a round applies zero fixes.'
+      description: '[Workflow] Use when reviewing uncommitted changes that are cross-module,
+        contract-changing or security-sensitive: specialist lenses, validated fixes,
+        re-review until clean; --fix-loop adds an outer convergence loop. Focused
+        diff: changes-review.'
       category: other
       has_scripts: false
       has_references: true
@@ -1316,9 +1071,8 @@ skills:
     - name: workflow-spec-to-mockup
       path: workflow-spec-to-mockup/SKILL.md
       description: '[Workflow] Use when turning canonical specs into a reviewed interactive
-        HTML mock-up: journey report and design authority first, one to three design
-        directions (the user chooses how many, or skips) to pick from, then the full
-        multi-view mock app.'
+        HTML mock-up: journey report, 1-3 design directions, then the full multi-view
+        mock app.'
       category: other
       has_scripts: false
       has_references: false
@@ -1329,30 +1083,7 @@ skills:
     - name: workflow-spec-to-pbi
       path: workflow-spec-to-pbi/SKILL.md
       description: '[Workflow] Use when converting canonical feature/spec artifacts
-        in the project configured format into complete, prioritized, dependency-aware
-        PBIs and stories.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: workflow-visualize
-      path: workflow-visualize/SKILL.md
-      description: '[Workflow] Use when creating Excalidraw diagrams from codebase
-        investigation or web research.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: workflow-write-integration-test
-      path: workflow-write-integration-test/SKILL.md
-      description: '[Workflow] Use when writing integration tests spec-first, converting
-        test specs into test code, or adding coverage to untested code.'
+        into prioritized, dependency-aware PBIs and stories.'
       category: other
       has_scripts: false
       has_references: false
@@ -1363,23 +1094,12 @@ skills:
     utilities:
     - name: code-quality-review
       path: code-quality-review/SKILL.md
-      description: '[Code Quality] Use when evaluating review feedback, requesting
-        a targeted code-quality review, or verifying completion claims.'
+      description: '[Code Quality] Use when evaluating received review feedback, reviewing
+        named code on request, or verifying a completion claim. Current diffs: changes-review;
+        rationale: why-review.'
       category: utilities
       has_scripts: false
       has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: debug-investigate
-      path: debug-investigate/SKILL.md
-      description: '[Fix & Debug] Use when a workflow step or the user asks for a
-        bug''s root cause. Reproduce, trace end-to-start, test hypotheses and pinpoint
-        the defect before any fix.'
-      category: utilities
-      has_scripts: false
-      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -1398,47 +1118,12 @@ skills:
     - name: plan
       path: plan/SKILL.md
       description: '[Planning] Use when a workflow step or the user asks for a concise
-        implementation plan. Captures technical decisions, affected areas, execution-time
-        discovery, risks, and final quality gates without pre-implementing the change.
-        Flag: --mode={ci|cro}.'
+        implementation plan, or --mode=review (one review pass) / --mode=validate
+        (critical-questions interview) / --mode=execute (code and test it) of a plan.
+        --mode={ci|cro}.'
       category: utilities
       has_scripts: false
       has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: plan-execute
-      path: plan-execute/SKILL.md
-      description: '[Implementation] Use when a workflow step or the user asks for
-        an existing plan to be coded and tested. Flags: --approval=off, --tests=off,
-        --parallel={auto|on|off} (default off).'
-      category: utilities
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: plan-review
-      path: plan-review/SKILL.md
-      description: '[Planning] Use when a workflow step or the user asks for a plan
-        review. Performs one evidence-backed review pass and returns a verdict; maximum
-        one review round per invocation.'
-      category: utilities
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: plan-validate
-      path: plan-validate/SKILL.md
-      description: '[Planning] Use when a workflow step or the user asks for plan
-        validation. Validates a plan through a critical-questions interview.'
-      category: utilities
-      has_scripts: false
-      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -1458,10 +1143,11 @@ skills:
     - name: web-research
       path: web-research/SKILL.md
       description: '[Research] Use when a workflow step or the user asks for web research.
-        Discovers, gathers and triages candidate sources to feed deeper investigation.'
+        Gathers and triages candidate sources; `--chain=deep-dive` also deep-dives
+        them into an evidence base.'
       category: utilities
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -1481,8 +1167,8 @@ skills:
     - name: design-spec
       path: design-spec/SKILL.md
       description: '[Project Management] Use when a workflow step or the user asks
-        for UI/UX design specs from requirements, PBIs or stories. Flag: --mode=wireframe
-        converts sketches into structured specs.'
+        for UI/UX design specs from requirements, PBIs or stories. --mode=wireframe
+        converts sketches.'
       category: frontend
       has_scripts: false
       has_references: false
@@ -1492,8 +1178,9 @@ skills:
       removal_after: null
     - name: ui-design
       path: ui-design/SKILL.md
-      description: '[Design] Use when creating or describing a UI design. Flags: --mode={fast|good|explore|describe|screenshot|video}
-        (default fast), --lane={product|marketing} (default product).'
+      description: '[Design] Use when a workflow step or the user asks for a UI design
+        (create, describe) or a UI review: content fit, layouts, styling conventions,
+        accessibility, async states. --mode={fast|good|explore|describe|screenshot|video|review}.'
       category: frontend
       has_scripts: true
       has_references: true
@@ -1501,22 +1188,10 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: ui-review
-      path: ui-review/SKILL.md
-      description: '[Code Quality] Use when a workflow step or the user asks for a
-        UI review. Checks content fit, supported-size layout, project styling conventions,
-        layering where applicable, accessibility and async states.'
-      category: frontend
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: web-design-guidelines
       path: web-design-guidelines/SKILL.md
       description: '[Code Quality] Use when reviewing UI code for accessibility, responsiveness,
-        performance, and UX best practices.'
+        performance and UX best practices.'
       category: frontend
       has_scripts: false
       has_references: true

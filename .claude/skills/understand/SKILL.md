@@ -1,7 +1,7 @@
 ---
 name: understand
 version: 5.1.0
-description: '[Process] Use when a developer needs to understand code, plans, decisions, bugs, or concepts — behavior, rationale, trade-offs, testing.'
+description: '[Process] Use when a developer needs to understand and judge scoped work: a change set, subsystem, decision, plan or concept — flow, rationale, trade-offs, testing. Bugs: investigate --mode=debug; one feature''s code flow: investigate.'
 disable-model-invocation: false
 ---
 
@@ -25,7 +25,7 @@ disable-model-invocation: false
 3. **SIZE the target → a scope tier S0–S4** from files · capabilities · contexts, and announce the tier.
 4. **DECOMPOSE into understanding groups** (≥2 from tier S2) — each explainable on its own, ≤8 files / ≤2000 diff-lines — and load `references/scale-protocol.md` at tier ≥ S2.
 5. **BREAK THE WORK INTO TASKS before the first deep read** — `TaskList` first, then one task per group plus the fixed spine tasks; exactly one `in_progress`; a group task completes only when its block is **on disk**.
-6. **GATHER the six inventories**, per group — diagram sources · stories + REAL test IDs · route classification · concepts · option space · demo & run evidence — **delegating to read-only investigation skills** (`/investigate`, `/debug-investigate`, `/graph-trace`) when a direct read cannot fill one.
+6. **GATHER the six inventories**, per group — diagram sources · stories + REAL test IDs · route classification · concepts · option space · demo & run evidence — **delegating to read-only investigation skills** (`/investigate`, `/investigate --mode=debug`, `/graph-code --mode=trace`) when a direct read cannot fill one.
 7. **ORDER on two axes** — narrative leverage (governs §5–§10) and contract-inward route (governs §4). Never conflate them.
 8. **OPEN the report before writing section one** — **ONE file at every tier**; at ≥2 groups the spine region sits at the top of that file and one `# G{n}` block is appended per group, in the same file.
 9. **ACCUMULATE group by group** — investigate → analyze → append that group's block → update the spine ledger → complete the task. Never hold the report in context, never batch the write.
@@ -56,7 +56,7 @@ Section shape and authoring rules: `references/report-template.md`. Diagram cont
 - **NO MODE — ALWAYS THE FULL REPORT.** There is no `--mode`, no light variant, no summary-only path, no opt-out. Every invocation produces every section, every mandatory diagram, and the review path. Scope flexes; the contract does not.
 - **ANY SCOPE — SIZE IT, THEN GROUP IT.** Every run sizes its target into a scope tier (Step 0.4) before reading it, and every target above tier S1 is decomposed into **understanding groups** — explainable units, each carrying its own answers. A bigger target buys **MORE GROUPS, never FEWER SECTIONS**: "too big to explain properly" is the one conclusion this skill may never reach. — why: the failure mode of a large target is a report that silently thins into a summary, which is exactly the description-instead-of-teaching failure the skill exists to prevent.
 - **BREAK THE WORK INTO TASKS BEFORE THE FIRST DEEP READ.** `TaskList` first (resume, never duplicate), then one task per group plus the fixed spine tasks, exactly one `in_progress`, and a group task completes **only when its block is on disk**. — why: the gather-and-write phase is where long runs die, and a task list built afterwards records nothing about where it stopped.
-- **DELEGATE THE GATHERING, NEVER THE TEACHING.** When read + grep + trace cannot fill an inventory, invoke the repo's own **read-only** investigation skills (`/investigate` to locate and explain existing behavior, `/debug-investigate` for a live defect's cause, `/graph-trace` / `/graph-blast-radius` for reach) and feed their output in as INPUT — re-verified against `file:line` before it becomes a report claim. NEVER delegate to a skill that mutates files or issues findings/verdicts, and never let a delegate author a section. — why: this skill emits no findings and mutates nothing; a delegate must not smuggle either in, and a claim that passed through another skill is still a claim you must be able to cite.
+- **DELEGATE THE GATHERING, NEVER THE TEACHING.** When read + grep + trace cannot fill an inventory, invoke the repo's own **read-only** investigation skills (`/investigate` to locate and explain existing behavior, `/investigate --mode=debug` for a live defect's cause, `/graph-code --mode=trace` / `/graph-code --mode=blast-radius` for reach) and feed their output in as INPUT — re-verified against `file:line` before it becomes a report claim. NEVER delegate to a skill that mutates files or issues findings/verdicts, and never let a delegate author a section. — why: this skill emits no findings and mutates nothing; a delegate must not smuggle either in, and a claim that passed through another skill is still a claim you must be able to cite.
 - **ACCUMULATE ON DISK, NEVER IN CONTEXT.** Open the report before writing section one; append per section and per group; update the ledger as each block lands; synthesize the scope-wide sections **from the written blocks**, never from memory. A report held in context until the end is a report one cutoff away from nothing. — why: partial results on disk beat complete results that never got written.
 - **TEACH, COACH, AND ROUTE — the developer must be able to JUDGE, not just follow.** A description of what the code does is a FAILED run. Teaching = the reader could re-derive the design. Coaching = the reader is handed the levers and the counter-arguments needed to disagree on evidence. Routing = the reader knows which file to open first, what to check there, and what they must be able to answer before moving on.
 - **ALL SECTIONS, AT EVERY SCOPE TIER.** Part I What Was Done → Visual Map → User Stories & Business Rules; Part II Review Path; Part III Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact; Part IV Test & Demo → Your-call → Challenge-this. Every report includes all sections, mandatory diagrams, and review stages regardless of scope tier.
@@ -94,7 +94,7 @@ You are a **teacher, a coach, and a router**, in that order.
    | Bare `/understand`, no target named                           | **Default: current working context** — active tasks (`TaskList`) + working-tree changes (`git diff --name-only` + untracked) + active plan / latest `/watzup` summary if present. |
    | Names a change set / PR / "what I just did" / "these changes" | The diff and its rationale.                                                                                                                                                       |
    | Names a plan / "the approach" / "before we build"             | The active plan: problem, approach, rejected alternatives, risks, phase order.                                                                                                    |
-   | Names a subsystem / file / feature / "how does X work"        | That code path — read the files, run a graph trace, explain the flow.                                                                                                             |
+   | Names a subsystem / file / feature / "how does X work"        | That code path — read the files (optionally a graph trace as a stale-able hint), explain the flow.                                                                                                             |
    | Names a single decision / "why X over Y"                      | That decision and its trade-offs.                                                                                                                                                 |
    | Names a concept / bug / error                                 | That concept or root cause.                                                                                                                                                       |
    | Ambiguous / multiple plausible targets                        | **Do NOT ask.** Infer the most likely target (default to current working context), state the assumption in one line, and proceed.                                                 |
@@ -153,7 +153,7 @@ Gather **only** what the resolved scope needs:
 
 - **Current working context (default):** `TaskList` for active tasks; `git diff --name-only` (+ untracked via `git ls-files --others --exclude-standard`) for the change set; the active plan and latest `/watzup` summary if they exist. Extract: what's being worked on, what changed, why, new behavior.
 - **A plan:** read the plan files (`plan.md` + `phase-*.md` from the Plan Context / configured plans dir). Extract: problem, chosen approach, rejected alternatives, design decisions, risks, phase order.
-- **A subsystem / feature / "how does X work":** read the relevant files; run `python .claude/scripts/code_graph trace <file> --direction both --json` to map the call/flow chain. Extract: entry points, data flow, key invariants.
+- **A subsystem / feature / "how does X work":** read the relevant files to map the call/flow chain (optionally `python .claude/scripts/code_graph trace <file> --direction both --json` as a stale-able hint). Extract: entry points, data flow, key invariants.
 - **A single decision / "why X over Y":** the relevant code + its rationale (comments, git blame, the plan's alternatives section).
 
 Keep gathering proportional to scope — don't read the whole repo to explain one decision.
@@ -166,11 +166,11 @@ Keep gathering proportional to scope — don't read the whole repo to explain on
 | --- | --- | --- |
 | Where the relevant files even are, across a large or unfamiliar codebase | `/investigate` | Step 0.5 group decomposition + each group's file list |
 | How an existing feature or subsystem actually works, beyond what one read shows | `/investigate` | §6 How It Works · §7 Why This Solution · §5 Concepts |
-| The root cause of a live, un-fixed defect | `/debug-investigate` | §6 · §8 candidate causes with evidence for and against |
-| The call/flow chain and its reach | `/graph-trace` · `/graph-blast-radius` | §2 D1/D3 · §10 Blast Radius · Step 2 Axis A |
-| Which spec owns a capability, when finding it is itself the problem | `/spec-index` | §3 stories + REAL `TC-*` IDs · §11 cases |
+| The root cause of a live, un-fixed defect | `/investigate --mode=debug` | §6 · §8 candidate causes with evidence for and against |
+| The call/flow chain and its reach | `/graph-code --mode=trace` · `/graph-code --mode=blast-radius` | §2 D1/D3 · §10 Blast Radius · Step 2 Axis A |
+| Which spec owns a capability, when finding it is itself the problem | `/spec [mode=index]` | §3 stories + REAL `TC-*` IDs · §11 cases |
 
-1. **Read-only delegates ONLY.** NEVER invoke a skill that mutates files or issues findings/verdicts (`/fix`, `/changes-review`, `/code-quality-review`, `/why-review`, `/plan-execute`) — this skill emits no findings and mutates nothing outside its own git-ignored artifacts, and a delegate must not smuggle either in through the back door.
+1. **Read-only delegates ONLY.** NEVER invoke a skill that mutates files or issues findings/verdicts (`/fix`, `/changes-review`, `/code-quality-review`, `/why-review`, `/plan --mode=execute`) — this skill emits no findings and mutates nothing outside its own git-ignored artifacts, and a delegate must not smuggle either in through the back door.
 2. **MUST ATTENTION delegate on evidence of need — NEVER by reflex.** Try read + grep + trace first, within the group's budget. Announce each delegation in one line and record it in the report header — `Delegated: /investigate — G3 mechanics` — why: the reader calibrates on the provenance chain exactly as they do on a grep-derived route.
 3. **A delegate's output is INPUT, never a finished section.** Re-verify every claim you carry forward against `file:line` before it becomes a claim in the report; a `TC-*` ID that arrives through a delegate is still one you must have read yourself. The anti-hallucination bar does not relax by passing through another skill.
 4. **At tier S3+, delegation happens INSIDE the group's sub-agent**, never in the orchestrator — why: delegating from the orchestrator pulls a whole investigation transcript back into the one context the grouping exists to protect.
@@ -200,7 +200,7 @@ You will explain the **whole** resolved scope. Two orderings come out of this st
 
 **Axis A — narrative depth order (which topics get the most words).** Order by leverage; open with what matters most, compress the rest:
 
-- **Blast radius:** run `/graph-blast-radius` (or `python .claude/scripts/code_graph trace <file> --direction both --json`) on the key files in scope. High upstream/downstream reach → explain first and in most depth.
+- **Blast radius:** assess by grep/read of callers on the key files in scope (optionally `/graph-code --mode=blast-radius` or `python .claude/scripts/code_graph trace <file> --direction both --json` as a stale-able hint). High upstream/downstream reach → explain first and in most depth.
 - **Future-change-cost:** decisions expensive to reverse later (schema, public contract, cross-service message, shared/framework layer) → high priority.
 - **Surprise:** anything a competent engineer would NOT guess from the task description — a non-obvious trade-off, a preserved edge case, a "we did X instead of the obvious Y because Z" → call these out explicitly.
 
@@ -258,7 +258,7 @@ The report runs **high level first, detail later** — the summary, then four pa
 | 4 | **Review Path** | The ordered reading route from `references/review-path.md`: one **"start here"** sentence naming the single file to open first and why, a stage flowchart with at least one back-edge, then a stage per meaningful shift in what the reviewer is checking — no ceiling — each carrying all eight fields — stage number, name in domain words, file group (changed files plus the unchanged `[context — not changed]` files needed to judge them), why this stage is here now, what to check, red flags **sourced from the repo's own rules**, an **exit criterion phrased as a question the reviewer can answer**, and an honest time-box. A file list with no order, no reason, and no exit criterion is a failed section. |
 | | ***Part III — Depth*** | *How it works, why this shape, what it cost.* |
 | 5 | **Concepts You Need** | The load-bearing technical concepts from Step 1 — every one of them, no maximum — each taught: what it is (first principles, plain language) → why THIS problem summons it → where it's visible here (`file:line`) → what breaks without it. **Never use a term in §6 that §5 has not taught.** |
-| 6 | **How It Works** | The execution story: entry point → data flow → decision points → output/persistence. Use the Step 2 graph trace. Invariants and where they're enforced. Edge cases handled — **and edge cases NOT handled**. |
+| 6 | **How It Works** | The execution story: entry point → data flow → decision points → output/persistence. Use the Step 2 flow trace (a graph hint, when used, is verified by reading). Invariants and where they're enforced. Edge cases handled — **and edge cases NOT handled**. |
 | 7 | **Why This Solution** | The forces that narrowed the option space, the one force that actually decided it, and why the obvious approach loses. Drill to the why-behind-the-why. "Best practice" / "cleaner" without a causal chain is a failed section. |
 | 8 | **Options Considered** | **≥2 alternatives beyond the chosen one** (or an argued empty option space), each with specific pros, specific cons, cost-to-switch-later, provenance label, and the disqualifying reason. **The chosen option lists real cons too.** Name the closest call and what would flip the decision. |
 | 9 | **Trade-offs Accepted** | Gained ↔ paid ↔ reversibility. What is now expensive to reverse (schema, public contract, cross-service message, shared layer, persisted shape). Debt knowingly taken + its repayment trigger. A trade-off list with no cost in it is a lie — fix it. |
@@ -320,11 +320,11 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 - **Reference:** `references/scale-protocol.md` — sizing → understanding groups → task breakdown → accumulation ledger → resumability → sub-agent fan-out → caps and the no-silent-truncation rule. Loaded at tier ≥ S2 only.
 - **Skill:** `/investigate` — gather-only delegate: locate the relevant files when the target spans a large or unfamiliar codebase (feeds the group decomposition).
 - **Skill:** `/investigate` — gather-only delegate: how an existing feature actually works when one read is not enough. Its `--mode=explain` is a different, one-way narrative and owns `tmp/understand/{branch}.md` (see Step 3).
-- **Skill:** `/debug-investigate` — gather-only delegate: the root cause of a live, un-fixed defect (feeds §6 and §8's candidate causes).
-- **Skill:** `/graph-blast-radius` — leverage-ordering + §10 blast-radius signal.
+- **Skill:** `/investigate --mode=debug` — gather-only delegate: the root cause of a live, un-fixed defect (feeds §6 and §8's candidate causes).
+- **Skill:** `/graph-code --mode=blast-radius` — leverage-ordering + §10 blast-radius signal.
 - **Skill:** `/why-review` — *adversarially audits* rationale quality (the complement: this *teaches* the rationale and hands the developer the challenge questions).
 - **Skill:** `/demo-guide` — presenter-facing demo script for a whole feature; §11 here is the reviewer-facing subset for the change in scope.
-- **Skill:** `/plan-validate` — elicits plan *decisions* interactively (the complement: this *explains* them one-way).
+- **Skill:** `/plan --mode=validate` — elicits plan *decisions* interactively (the complement: this *explains* them one-way).
 - **Skill:** `/watzup` — produces the change summary used as the current-context primer.
 
 ---
@@ -337,24 +337,14 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
-- `graph-assisted-investigation` — Run a code-graph command on the key files before concluding; investigating code while the code graph exists → .claude/skills/shared/protocols/graph-assisted-investigation.md
+- `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
@@ -364,44 +354,21 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 <!-- SYNC:understand-code-first:reminder -->
 
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. Run graph trace when graph.db exists.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code/conventions BEFORE any modification or explanation. The code graph is optional advice for high-risk blast radius (a hint that may be stale), never a requirement.
 
 <!-- /SYNC:understand-code-first:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
-**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding when graph.db exists. Pattern: grep → graph trace → grep verify.
+**Optional advice:** the code graph (`.code-graph/graph.db`) can hint at a high-risk blast radius grep misses; it can be stale, so verify by reading files. Never required.
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
 
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 ## Closing Reminders
 
@@ -411,13 +378,11 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each:**
 
-- **Critical Thinking:** ALWAYS apply critical + sequential thinking; traced proof, confidence >80%.
 - **Evidence:** cite `file:line` for every claim; NEVER speculate without proof.
 - **Understand Code First:** read code + grep 3+ patterns before explaining.
-- **Graph-Assisted Investigation:** run a graph command on key files when graph.db exists.
+- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
 - **Incremental Persistence:** create the report file BEFORE the first section; append per section and per group; never hold results in memory.
 - **Output Quality:** dense, token-efficient prose; lead with the answer.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 - **MUST ATTENTION** derive WHAT to explain from the prompt; with no target named, default to the current working tasks + changes in context. Never impose a fixed agenda.
@@ -425,7 +390,7 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 - **MUST ATTENTION** BREAK THE WORK INTO TASKS **before the first deep read** — `TaskList` first (resume, never duplicate), one task per group plus the fixed spine tasks, exactly one `in_progress`, and a group task marked `completed` ONLY when its block is on disk.
 - **MUST ATTENTION** DECOMPOSE TO THE FINEST EXPLAINABLE UNIT, then TAG every task `PAR`/`SEQ`, DECLARE the waves, and SPAWN each wave in ONE message — group tasks are the main `PAR` wave (each owns its own fragment, so no shared write target); synthesis, spine, summary and self-check are `SEQ` because each consumes the whole wave. An oversized group that cannot split further gets up to 3 agents split by GATHER AXIS, never by file, each writing its own shard — and the ORCHESTRATOR spawns them, never the group agent. NEVER drip agents one per turn, and NEVER advance a barrier on a wave that has not fully returned. — why: decomposition width IS the parallelism budget, and an undeclared wave silently degrades into the sequential run it replaced.
 - **MUST ATTENTION** OPEN the report — spine, ledger, reserved stubs — before section one, then ACCUMULATE group by group (write the block → update its ledger row → complete the task) and synthesize the scope-wide sections **from the written blocks**, never from memory. After any cutoff or compaction, verify every `written` ledger row against the filesystem before continuing.
-- **MUST ATTENTION** DELEGATE the GATHERING — `/investigate`, `/debug-investigate`, `/graph-trace` — when read + grep + trace cannot fill an inventory; NEVER delegate to a mutating or findings-emitting skill, never let a delegate author a section, and re-verify every delegated claim against `file:line` before it enters the report. At S3+ the delegation runs inside the group's sub-agent, not the orchestrator.
+- **MUST ATTENTION** DELEGATE the GATHERING — `/investigate`, `/investigate --mode=debug`, `/graph-code --mode=trace` — when read + grep + trace cannot fill an inventory; NEVER delegate to a mutating or findings-emitting skill, never let a delegate author a section, and re-verify every delegated claim against `file:line` before it enters the report. At S3+ the delegation runs inside the group's sub-agent, not the orchestrator.
 - **MUST ATTENTION** announce anything deferred, sampled, or dropped in BOTH the spine and the chat summary — bounded coverage must never read as complete coverage.
 - **MUST ATTENTION** TEACH so the reader could re-derive the design, COACH so they could argue for a different one, and ROUTE so they could review it in the right order without asking where to start — a description of what the code does is a FAILED run.
 - **MUST ATTENTION** the report is **ALWAYS FULL**: every section, on every target — **no mode, no light variant, no section drops, no small-diff exemption, no opt-out.** §0 Detailed Summary opens the file, written LAST from the finished sections and restating only what they prove; then Part I What → Visual Map → User Stories; Part II Review Path; Part III Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact; Part IV Test & Demo → Your-call → Challenge-this. It NEVER deletes a section, reduces the diagram count, or drops a review stage. §0, §2, §3, §4, §5, §8, §11, §12, §13 are the ones that get silently dropped — verify them explicitly.
@@ -434,7 +399,7 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 - **MUST ATTENTION** §4 gives ONE "start here" file, orders stages contract-inward (blast radius is the peer tie-break, not the axis), marks unchanged context files `[context — not changed]`, sources red flags from the repo's own rules rather than inventing house rules, and closes every stage with a question the reviewer can answer.
 - **MUST ATTENTION** §8 lists ≥2 alternatives beyond the chosen one, each with SPECIFIC pros, cons, cost-to-switch and disqualifying reason — plus real cons on the chosen option — or an argued empty option space. On a **code-free target** (concept · un-fixed bug) there IS no chosen one: §8 becomes alternatives to the concept itself, or the candidate root causes with evidence for and against (Step 4's code-free form) — a change of form, never a dropped section. Label each `[deliberated]` vs `[reconstructed]`; NEVER fabricate a deliberation that did not happen.
 - **MUST ATTENTION** provoke the reader IN WRITING (§13 weakest link + pressure-test questions + pre-mortem) but NEVER interrogate — no `AskUserQuestion`, no quiz, no teach-back, no waiting on a reply, no comprehension gate. On an ambiguous target, infer, state the assumption, proceed.
-- **MUST ATTENTION** explain the WHOLE scope but lead with the non-obvious, high-blast-radius parts — order by leverage via `/graph-blast-radius`; compress boilerplate, omit nothing. That leverage order governs §5-§10 **only**; §4's route is ordered contract-inward, and conflating the two produces a route that opens on mechanism instead of meaning.
+- **MUST ATTENTION** explain the WHOLE scope but lead with the non-obvious, high-blast-radius parts — order by leverage via grep/read (optionally `/graph-code --mode=blast-radius` as a stale-able hint); compress boilerplate, omit nothing. That leverage order governs §5-§10 **only**; §4's route is ordered contract-inward, and conflating the two produces a route that opens on mechanism instead of meaning.
 - **MUST ATTENTION** cite `file:line` for every concrete claim; state confidence on anything resting on inference; never use a term in §6 that §5 has not taught.
 - **MUST ATTENTION** NEVER put a secret value in the report or the chat summary — connection strings, tokens, keys, passwords and customer identifiers are named, never reproduced, and render as `<redacted:…>` in diagrams, stage tables, and run/demo commands alike.
 - **MUST ATTENTION** this skill is standalone and NEVER blocks — teach, summarize, end. No comprehension loop, never gate commit/implementation. It prepares a human to review; it never issues findings or a verdict of its own.

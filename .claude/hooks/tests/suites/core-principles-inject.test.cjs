@@ -51,7 +51,7 @@ async function withFixture(fn, { canonical = FIXTURE_CANONICAL } = {}) {
         root,
         project,
         main: path.join(transcripts, `${SESSION}.jsonl`),
-        storeRoot: path.join(project, 'tmp', 'core-principles'),
+        storeRoot: path.join(project, 'tmp', 'protocol-delivery'),
         sub(id) {
             const dir = path.join(transcripts, SESSION, 'subagents');
             fs.mkdirSync(dir, { recursive: true });
@@ -93,6 +93,35 @@ function isolatedEnv(fx) {
     }
     return env;
 }
+
+const delivery = require(path.join(HOOKS_DIR, 'lib', 'protocol-delivery.cjs'));
+const PROJECTION_MARK = '[[PROJECTED:core-engineering-principles]]';
+const PROTOCOLS_REL = '.claude/skills/shared/protocols';
+
+/** Publish the principles as a design-group protocol and a converted skill that declares them. */
+function installProjection(fx) {
+    const write = (rel, text) => {
+        const file = path.join(fx.project, ...rel.split('/'));
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, text);
+    };
+    const file = `${PROTOCOLS_REL}/core-engineering-principles.md`;
+    write(file, `> **core principles** fixture ${PROJECTION_MARK}\n`);
+    write(`${PROTOCOLS_REL}/index.json`, JSON.stringify({
+        binChars: 9500,
+        groups: ['design'],
+        tags: [{ tag: 'core-engineering-principles', group: 'design', summary: 'Fixture summary', when: 'when it applies', file, parts: [{ file }] }]
+    }));
+    write('.claude/skills/shared/protocol-groups.json', JSON.stringify({ version: 1, groups: { design: { tags: {} } }, inlineSkills: [] }));
+    write('.claude/skills/conv/SKILL.md', [
+        '---', 'name: conv', 'description: fixture', '---', '',
+        '<!-- PROTOCOL-GUIDES:START -->',
+        `- \`core-engineering-principles\` — Fixture summary; when it applies → ${file}`,
+        '<!-- PROTOCOL-GUIDES:END -->', ''
+    ].join('\n'));
+}
+
+const skillLoadEvent = fx => ({ hook_event_name: 'PostToolUse', tool_name: 'Skill', tool_input: { skill: 'conv' }, session_id: SESSION, transcript_path: fx.main, cwd: fx.project });
 
 function extractSection(text, heading) {
     const start = text.indexOf(`## SYNC:${heading}\n`);
@@ -324,14 +353,32 @@ const tests = [
         }, { canonical: null })
     },
     {
-        name: '[core-principles] TC-CEP-010 shipped canonical body and root carrier name all three pillars (framework repo only)',
+        name: '[core-principles] TC-CEP-019 a skill load served by the design-group protocol hook and this hook share one delivery record',
+        fn: () => withFixture(async fx => {
+            // Given a project whose projection publishes the principles and a converted skill that declares them
+            installProjection(fx);
+            const deliverDesign = () => delivery.runHook('design', { input: skillLoadEvent(fx), projectRoot: fx.project, write: (text, done) => done(true) });
+            // When the design-group hook serves the skill load first
+            const viaSkill = await deliverDesign();
+            assert.ok(viaSkill.includes(PROJECTION_MARK), 'the design-group hook delivers the principles on the skill load');
+            // Then the next prompt of the same scope stays silent here (one delivery, not two)
+            assert.equal(await fire(fx, promptEvent(fx)), '', 'already delivered by the protocol hook: silent');
+            assert.equal(await fire(fx, stepEvent(fx)), '', 'a step event shares the record');
+            // And the reverse: a session whose first delivery came from this hook is not served again by the protocol hook
+            fs.rmSync(fx.storeRoot, { recursive: true, force: true });
+            assert.ok(await fire(fx, promptEvent(fx)), 'first prompt delivers when nothing was delivered');
+            assert.equal(await deliverDesign(), '', 'the principles were delivered by this hook: the protocol hook stays silent');
+        })
+    },
+    {
+        name: '[core-principles] TC-CEP-010 shipped canonical body and universal carrier name all three pillars (framework repo only)',
         skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own canonical file (framework-repo signal)',
         fn: () => {
             const canonical = fs.readFileSync(path.join(REPO_ROOT, ...CANONICAL_REL), 'utf8').replace(/\r\n/g, '\n');
             const body = extractSection(canonical, 'core-engineering-principles');
             const reminder = extractSection(canonical, 'core-engineering-principles:reminder');
-            const root = extractSection(canonical, 'critical-thinking-mindset:full');
-            for (const [name, text] of [['body', body], ['reminder', reminder], ['root carrier', root]]) {
+            const universal = extractSection(canonical, 'critical-thinking-mindset');
+            for (const [name, text] of [['body', body], ['reminder', reminder], ['universal carrier', universal]]) {
                 assert.ok(text, `${name} present`);
                 for (const pillar of PILLARS) assert.match(text, pillar, `${name} names ${pillar}`);
             }

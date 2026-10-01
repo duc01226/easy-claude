@@ -1,7 +1,7 @@
 ---
 name: production-readiness-review
 version: 1.6.0
-description: '[Code Quality] Use when a workflow step or the user asks for a production readiness review. Reviews service-layer and API changes.'
+description: '[Code Quality] Use when a workflow step or the user asks for a production readiness review of service-layer and API changes.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -19,10 +19,10 @@ description: '[Code Quality] Use when a workflow step or the user asks for a pro
 
 **Summary:**
 
-- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions (/24). (3) **Extended SRE Readiness gate** — 8 pass/fail deploy-time + operate-time items; any failed or unresolved binary gate blocks PASS regardless of score or owner risk acceptance. Gating, NOT scored — does not change the /24 math. (4) **Map score + gate → verdict**. (5) **Structural Impact Analysis** — graph gate (blast-radius, `tests_for`, downstream trace) when `graph.db` exists. (6) **Validated Fix + Full Re-Review** loop only while current-round blocking findings remain: Round 1 = all validated severities; Round 2 = CRITICAL/HIGH/MEDIUM; LOW-only is deferred; failed binary gates always block; not run under `--report-only`. (7) **Emit the SRE Review Results report** — `file:line` evidence per score and per gate item. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
+- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions (/24). (3) **Extended SRE Readiness gate** — 8 pass/fail deploy-time + operate-time items; any failed or unresolved binary gate blocks PASS regardless of score or owner risk acceptance. Gating, NOT scored — does not change the /24 math. (4) **Map score + gate → verdict**. (5) **Structural Impact Analysis** — assess downstream impact by grep/read (optional graph hint: blast-radius, `tests_for`, downstream trace when `graph.db` exists; a stale-able hint, never required). (6) **Validated Fix + Full Re-Review** loop only while current-round blocking findings remain: Round 1 = all validated severities; Round 2 = CRITICAL/HIGH/MEDIUM; LOW-only is deferred; failed binary gates always block; not run under `--report-only`. (7) **Emit the SRE Review Results report** — `file:line` evidence per score and per gate item. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
 - Score 12 criteria 0-2 across four dimensions (Observability/8, Reliability/8, Data Integrity/4, DB Performance/4) for an advisory /24 readiness rating (strong 19-24 / needs work 13-18 / low 0-12), separate from overall PASS/FAIL — every score needs `file:line` evidence or it is 0.
 - The DB Performance Protocol is MANDATORY and non-advisory: ALL list queries must paginate (no unbounded GetAll/ToList) and ALL filter fields, foreign keys, and sort columns must have matching indexes.
-- The /24 rating is advisory only; overall PASS/FAIL follows the canonical round predicate and binary gates; the graph gate, validated-fix full re-review, and DB Performance Protocol are NEVER skippable regardless of change size — and when batched (≥10 files), re-score all 12 criteria holistically from combined cross-batch evidence, never by averaging per-batch scores.
+- The /24 rating is advisory only; overall PASS/FAIL follows the canonical round predicate and binary gates; the validated-fix full re-review and DB Performance Protocol are NEVER skippable regardless of change size — and when batched (≥10 files), re-score all 12 criteria holistically from combined cross-batch evidence, never by averaging per-batch scores.
 - **`--report-only`:** read-only leaf mode for a caller that owns every fix and re-review — main steps 1–5 and 7 plus the Why-Review Findings Validation Gate, no fix, no restart, no nested sub-agents, no user prompt, no writer beyond the report; returns the `/24` score, gate verdict, and severity-grouped findings; see [Report-Only Mode](#report-only-mode---report-only).
 - After applying any fix, validate findings first, then rerun the FULL review (fresh sub-agent with zero prior-round memory); a pass clearing the current round's exit bar ENDS the loop (Round 1: zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); Round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). Do not start another round for LOW-only findings; failed binary gates remain blocking.
 
@@ -30,14 +30,14 @@ description: '[Code Quality] Use when a workflow step or the user asks for a pro
 
 1. Resolve scope from arguments or uncommitted changes; review only backend service/API files.
 2. Score all 12 criteria across the four dimensions, then run the 8-item Extended SRE Readiness gate.
-3. Map score plus gate to a verdict; run Structural Impact Analysis when `graph.db` exists.
+3. Map score plus gate to a verdict; run Structural Impact Analysis (grep/read; optional graph hint).
 4. Validate every finding, fix only validated findings that block the current round, and restart a full fresh review after fixes until the exit bar is clear; Round 2 LOW-only findings are deferred without another cycle. Under `--report-only`, validate only — the caller owns fixes and re-review.
 5. Emit the SRE Review Results report with `file:line` evidence for every score and gate item.
 
 **Key Rules:**
 
 - **MUST ATTENTION** give every score and gate item `file:line` evidence; an unprovable score is `0`.
-- **NEVER** skip the DB Performance Protocol, graph gate, validated-finding gate, or full re-review. Under `--report-only` the full re-review belongs to the caller that applies the fixes; the other three still run here.
+- **NEVER** skip the DB Performance Protocol, validated-finding gate, or full re-review. Under `--report-only` the full re-review belongs to the caller that applies the fixes; the other three still run here.
 - **MUST ATTENTION** re-score all 12 criteria holistically when batching; never average per-batch scores.
 - **NEVER** let advisory technique or scenario matrices change the `/24` score, gate result, or verdict.
 
@@ -61,12 +61,13 @@ $ARGUMENTS
 
 > **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope; without it every step below applies unchanged.
 >
-> 1. **Run main steps 1–5 and 7 plus the Why-Review Findings Validation Gate.** Scope, the 12-criterion score, the Extended SRE Readiness gate, verdict mapping, the DB Performance Protocol, and the Structural Impact Analysis graph gate all run; `/why-review --validate-findings` still validates every finding. **Step 6 does not run:** no fix, no restart, no fresh re-review sub-agent. Return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
-> 2. **Resolve scope from the caller's brief — never ask.** Apply Scope Resolution to the brief's files or diff. No backend service/API file in scope → return `N/A — no service/API files in scope` with the file list as evidence. — why: a leaf cannot reach the user, so an asking branch would stall the barrier.
-> 3. **No nested fan-out.** Skip `SYNC:systematic-review-batching`; score the whole scope serially in this context (the holistic-scoring fallback above). — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
+> **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
+>
+> 1. **Run main steps 1–5 and 7 plus the Why-Review Findings Validation Gate.** Scope, the 12-criterion score, the Extended SRE Readiness gate, verdict mapping, the DB Performance Protocol, and the Structural Impact Analysis all run; `/why-review --validate-findings` still validates every finding. **Step 6 does not run:** no fix, no restart, no fresh re-review sub-agent. Return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
+> 2. **Scope.** Apply Scope Resolution to the brief's files or diff. No backend service/API file in scope → return `N/A — no service/API files in scope` with the file list as evidence.
+> 3. **No nested fan-out.** Skip `SYNC:systematic-review-batching`; score the whole scope serially in this context (the holistic-scoring fallback above).
 > 4. **Map every gap to a severity by consequence** (`SYNC:severity-rubric`): a criterion scored `0` → CRITICAL or HIGH, `1` → MEDIUM, LOW only for a polish-only gap with evidence of no material impact; emit score, consequence, and tier together. A `fail` gate item is a failed binary gate carried as a CRITICAL blocker with its named consequence; a `partial` item is an open evidence blocker, never LOW.
-> 5. **Write only the report** under `tmp/reports/`. A missing or stale project-reference doc is recorded in the report as a `NOT VERIFIABLE` assumption and returned — never a trigger to run `/scan`, `/project-init`, or any other writer. — why: a leaf that regenerates shared docs races its barrier siblings.
-> 6. **Return** the report path; the advisory `/24` score; the `{n}/8` gate result and verdict (PASS only when no failed or unresolved binary gate and no finding blocking the current round remains); validated findings grouped Critical / High / Medium / Low; and every unconfirmed material trade-off in the summary (the `SYNC:trade-off-interrogation-gate` non-asking handoff). The Workflow Recommendation and Next Steps prompts do not run.
+> 5. **Return** the advisory `/24` score, the `{n}/8` gate result and the verdict (PASS only when no failed or unresolved binary gate and no finding blocking the current round remains), in addition to the caller-mode return contract. The Next Steps prompt does not run.
 >
 > For this mode the declared step order ends at step 7 without step 6; stopping there is the mode's contract, not a skipped step.
 
@@ -180,13 +181,15 @@ Invoke `SYNC:scale-technique-gate`: derive the system's scale tier from evidence
 
 **Overall PASS/FAIL is separate from the advisory score:** PASS requires the canonical `review-policy.cjs` round predicate, all binary gates and evidence resolved, and persisted `minRounds` met; otherwise FAIL. Keep deferred LOW findings visible after round 1.
 
-> Run `python .claude/scripts/code_graph connections <file> --json` on service boundary files for cross-service impact.
+> Optional: `python .claude/scripts/code_graph connections <file> --json` on service boundary files can hint at cross-service impact (verify by reading).
 
-## Structural Impact Analysis (MANDATORY when graph.db exists)
+## Structural Impact Analysis (grep/read; optional graph hint)
 
-- `python .claude/scripts/code_graph graph-blast-radius --json` → blast radius >20 nodes = high-risk deployment
+Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.
+
+- `python .claude/scripts/code_graph graph-blast-radius --json` → blast radius >20 nodes is a rough high-risk deployment hint (confirm by reading)
 - `python .claude/scripts/code_graph query tests_for <function_name> --json` → verify test coverage on changed functions
-- `python .claude/scripts/code_graph trace <service-file> --direction downstream --json` → verify all downstream event handlers, bus consumers, cross-service calls have error handling
+- `python .claude/scripts/code_graph trace <service-file> --direction downstream --json` → hint at downstream event handlers, bus consumers, cross-service calls to check for error handling (verify by reading)
 
 ## Why-Review Findings Validation Gate (MANDATORY when findings exist)
 
@@ -298,20 +301,11 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 ## Important Notes
 
-- Advisory (final VERDICT only) — score/verdict inform team but don't block commits; MANDATORY process steps (graph gate, validated-fix full re-review, Database Performance Protocol) are NEVER advisory
+- Advisory (final VERDICT only) — score/verdict inform team but don't block commits; MANDATORY process steps (validated-fix full re-review, Database Performance Protocol) are NEVER advisory
 - Evidence-based — cite `file:line` for every score; unprovable score = 0
 - Proportional — small bug fixes need less rigor than new endpoints (applies to VERDICT interpretation, NOT to skipping MANDATORY steps)
 - Extended SRE Readiness gate is pass/fail, NOT scored — does not change `/24` math; but any failed or unresolved binary gate blocks PASS at every round, regardless of owner risk acceptance. Use `docs/project-config.json → infrastructure` to mark items `N/A` with stated reason
 - Check framework patterns — background-job base handlers, base-controller error handling
-
----
-
-## Workflow Recommendation
-
-> **MANDATORY:** If NOT already in a workflow, NOT invoked by a parent skill or as a sub-agent, and NOT under `--report-only`, use `AskUserQuestion` to ask user:
->
-> 1. **Activate `workflow-feature` workflow** (Recommended) — investigation, planning, and implementation, then the review steps that include this skill; its canonical sequence lives in `.claude/workflows.json`
-> 2. **Execute `/production-readiness-review` directly** — run standalone
 
 ---
 
@@ -323,7 +317,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 - **"/test"** — run tests before wrapping up
 - **"Skip, continue manually"** — user decides
 
-> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `/architecture-review-full` (or `/start-workflow workflow-architecture-audit`) — fans out this skill, `architecture-review`, `architecture-scalability-review` as parallel sub-agents and synthesizes one consolidated report.
+> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `/architecture --mode=full` (or `/start-workflow workflow-architecture-audit`) — fans out this skill, `architecture --mode=review`, `architecture --mode=scalability` as parallel sub-agents and synthesizes one consolidated report.
 
 ---
 
@@ -341,19 +335,15 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `double-round-trip-review` — Validated-finding fix loop: review, validate, fix, then a fresh full re-review, capped at two rounds; running a review that fixes findings and must re-review until the severity bar clears → .claude/skills/shared/protocols/double-round-trip-review.md
 - `engineering-foundation-gate` — Seven engineering-foundation dimensions judged by project profile; creating or reviewing how a project is built, run, tested or checked → .claude/skills/shared/protocols/engineering-foundation-gate.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `fresh-context-review` — Restart the full review in isolated sub-agents after fixes to avoid confirmation bias; re-reviewing after a fix cycle → .claude/skills/shared/protocols/fresh-context-review.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
-- `graph-assisted-investigation` — Run a code-graph command on the key files before concluding; investigating code while the code graph exists → .claude/skills/shared/protocols/graph-assisted-investigation.md
+- `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `review-protocol-injection` — Verbatim template and protocol blocks for every fresh sub-agent review prompt; spawning a fresh sub-agent to review → .claude/skills/shared/protocols/review-protocol-injection.md
 - `scale-technique-gate` — Which scale techniques a system warrants, and which it does not; reviewing architecture or production readiness → .claude/skills/shared/protocols/scale-technique-gate.md
@@ -380,7 +370,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
-**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding when graph.db exists. Pattern: grep → graph trace → grep verify.
+**Optional advice:** the code graph (`.code-graph/graph.db`) can hint at a high-risk blast radius grep misses; it can be stale, so verify by reading files. Never required.
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
 
@@ -390,33 +380,12 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 
@@ -490,17 +459,9 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:engineering-foundation-gate:reminder -->
 
@@ -518,21 +479,18 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready across observability, reliability, data integrity, and database performance: score each dimension with evidence and expose operational gaps.
 
-**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions (/24) → (3) Extended SRE Readiness gate — 8 pass/fail deploy/operate items; any failed or unresolved binary gate blocks PASS regardless of owner risk acceptance (gating, not scored, does not change /24) → (4) Map score + gate → verdict → (5) Structural Impact Analysis graph gate when `graph.db` exists → (6) Validated Fix + Full Re-Review only for current-round blocking findings (Round 1: all; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block; not run under `--report-only`) → (7) Emit the SRE Review Results report with `file:line` evidence per score and per gate item — why: AI repeatedly forgets the graph gate and the re-review loop and stops at scoring.
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions (/24) → (3) Extended SRE Readiness gate — 8 pass/fail deploy/operate items; any failed or unresolved binary gate blocks PASS regardless of owner risk acceptance (gating, not scored, does not change /24) → (4) Map score + gate → verdict → (5) Structural Impact Analysis (grep/read; optional graph hint) → (6) Validated Fix + Full Re-Review only for current-round blocking findings (Round 1: all; Round 2: CRITICAL/HIGH/MEDIUM; LOW-only deferred; binary gates always block; not run under `--report-only`) → (7) Emit the SRE Review Results report with `file:line` evidence per score and per gate item — why: AI repeatedly forgets the re-review loop and stops at scoring.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost — the canonical body above governs, NEVER skip one):**
 
-- **Graph-Assisted Investigation:** Run one graph command on key files before concluding.
+- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
 - **Sub-Agent Return Contract:** Sub-agents return only the summary; full report on disk.
 - **Nested Task Creation:** Child skills still create visible phase tasks under the parent.
-- **Project Reference Docs Guide:** Read required project docs first; `lessons.md` always.
 - **Task Tracking & External Report:** Bootstrap tasks; persist review findings to `tmp/reports/`.
-- **Critical Thinking Mindset:** Apply critical + sequential thinking; no guess as fact.
 - **Evidence-Based Reasoning:** Cite `file:line` for every claim; confidence >80% to act.
 - **Double Round-Trip Review:** Review → validate → fix blocking findings → full re-review; round 1 requires zero open findings, round 2 requires zero CRITICAL/HIGH/MEDIUM with LOW deferred.
 - **Fresh Context Review:** Spawn fresh zero-memory sub-agent after fixes; never reuse.
 - **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in sub-agent prompts.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Systematic Batching:** ≥10 files → size-capped parallel batches, then reduce.
 - **Severity Rubric:** Classify Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; map 0–2 scores onto it. Round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
 - **Category Review Thinking:** Derive each category's concerns from first principles, not a checklist.
@@ -540,7 +498,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION** every score requires `file:line` evidence — unprovable score = 0; assume the worst without proof — why: an unverified "looks fine" is how silent operational gaps reach production.
-**IMPORTANT MUST ATTENTION** the DB Performance Protocol, graph gate, and validated-fix full re-review are NEVER skippable regardless of change size — the /24 rating is advisory, overall PASS/FAIL and these process steps are not — why: small changes are exactly where unbounded queries and missing re-reviews slip through.
+**IMPORTANT MUST ATTENTION** the DB Performance Protocol and validated-fix full re-review are NEVER skippable regardless of change size — the /24 rating is advisory, overall PASS/FAIL and these process steps are not — why: small changes are exactly where unbounded queries and missing re-reviews slip through.
 **IMPORTANT MUST ATTENTION** validate findings BEFORE any fix, then rerun the FULL review (fresh sub-agent, zero prior-round memory) before declaring PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) — why: every fix invalidates the prior verdict.
 
 The following are all MANDATORY:
@@ -550,25 +508,24 @@ The following are all MANDATORY:
 - **MANDATORY** grep 3+ existing patterns for the changed area (base handlers, base-controller error handling, paging/index helpers) and verify pattern fit before scoring — why: closest example ≠ matching preconditions; a paging helper may not apply to this query's lifetime/scope.
 - **MANDATORY** every score, finding, and recommendation carries `file:line` proof + confidence (>80% to act, <80% verify first) — NEVER score from inference — why: scoring without trace is the #1 false-PASS source.
 - **MANDATORY** ALL list queries MUST paginate (no unbounded `GetAll`/`ToList`/`Find` without `Skip/Take` or cursor); ALL filter fields, foreign keys, and sort columns MUST have matching indexes — score `0` until each is proven.
-- **MANDATORY** run at least ONE graph command on key files before concluding when `.code-graph/graph.db` exists (blast-radius, `tests_for`, downstream trace) — why: the HARD-GATE catches cross-service consumers grep alone misses.
+- **Optional advice:** for a high-risk cross-service blast radius grep may miss, the code graph (blast-radius, `tests_for`, downstream trace) can add hints — it may be stale; verify by reading. Never required.
 - **MANDATORY** when batched (≥10 files), RE-SCORE all 12 criteria holistically from combined cross-batch evidence — NEVER average per-batch scores — why: a cross-file criterion (query in one batch, migration in another) false-flags `0` per-batch.
 - **MANDATORY** changed core logic clears the MUTATION-SCORE gate, not a coverage %; every behavior-changing finding feeds BOTH the spec (name the contract/invariant in §8) AND a guarding test — a code-only fix is INCOMPLETE.
-- **MANDATORY** in a standalone run, validate decisions with the user via `AskUserQuestion` for workflow/next-step routing — never auto-decide; a parent-invoked, sub-agent, or `--report-only` run returns them to the caller instead.
+- **MANDATORY** in a standalone run, validate decisions with the user via `AskUserQuestion` for the Next Steps hand-off — never auto-decide; a direct call asks no workflow question; a parent-invoked, sub-agent, or `--report-only` run returns them to the caller instead.
 
 **Anti-Rationalization:**
 
 | Evasion                                       | Rebuttal                                                                                      |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | "Fix was small, skip re-review"               | NEVER — fixes changed the target; validate findings, then rerun the FULL review before PASS  |
-| "Small change, skip graph gate"               | HARD-GATE applies regardless of size — run one graph command before concluding               |
 | "No explicit paging but it looks fine"        | Score 0 until proven with `file:line`. Assume worst without evidence                         |
 | "Already checked observability"               | Show `file:line` proof. No proof = no check                                                  |
-| "The score is advisory so skip MANDATORY steps" | Only the rating is advisory. Overall PASS/FAIL, binary gates, graph checks and validated-fix re-review remain mandatory |
+| "The score is advisory so skip MANDATORY steps" | Only the rating is advisory. Overall PASS/FAIL, binary gates and validated-fix re-review remain mandatory |
 | "Score it from what I remember of the code"   | Re-read and cite `file:line`; inference is not evidence — unprovable = 0                      |
 | "Batched, so average the per-batch scores"    | Re-score all 12 holistically from combined evidence; each batch sees only its own files and false-flags |
 | "Tests pass, mutation gate is covered"        | Green coverage over un-asserted behavior fails the gate; a surviving mutant is a blocker     |
 
 **IMPORTANT MUST ATTENTION** every score needs `file:line` evidence or it is `0`; assume worst without proof.
 **IMPORTANT MUST ATTENTION** `--report-only` runs steps 1–5 and 7 plus findings validation — no fix, no restart, no batching fan-out, no user question, no writer beyond the report; return the `/24` score, gate verdict, and findings grouped by severity — why: a read-only leaf that fixes, fans out, or asks races or stalls its barrier siblings.
-**IMPORTANT MUST ATTENTION** DB Performance Protocol + graph gate + validated-fix full re-review are NEVER skippable regardless of change size.
+**IMPORTANT MUST ATTENTION** DB Performance Protocol + validated-fix full re-review are NEVER skippable regardless of change size.
 **IMPORTANT MUST ATTENTION** validate findings before fixing, then rerun the FULL review before PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).

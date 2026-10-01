@@ -75,7 +75,7 @@ const DEFAULT_CONFIG = {
 };
 
 // Canonical default portability paths — single source of truth.
-// Consumers (project-config-loader, prompt-injections) reference this instead of
+// Consumers (project-config-loader) reference this instead of
 // re-hardcoding the literals, so a default change is one edit.
 // Safe to use in catch/fallback paths: it is a require-time constant, not a runtime call
 // that can throw — referencing it never re-triggers the loadConfig() failure those paths guard.

@@ -6,7 +6,7 @@
 
 A skill protocol overlay is a **named, project-specific set of extra rules layered onto a framework skill** — it does not modify the skill. The portable harness under `.claude/` stays untouched; every overlay's content lives in this project's `docs/` plane. This file is the INDEX (the skill map): it carries only what resolution needs — which skills an overlay targets, and where its body lives. Each overlay's actual rules live in their own file under the protocols directory and are read only when a matching skill is invoked.
 
-Both hosts reach these overlays without a hook: neither Claude Code nor Codex CLI can intercept a skill invocation, so the resolution rule lives in `CLAUDE.md` (mirrored to `AGENTS.md`) and names the active overlays there.
+The `skill-overlay-remind` hook names the matching overlay files when a skill starts (a typed `/command`, a `Skill` load or a `SKILL.md` read), and the hook-delivered universal bundle states the resolution rule; `CLAUDE.md` and `AGENTS.md` carry neither. A host that runs no hook is unsupported.
 
 ## Usage
 

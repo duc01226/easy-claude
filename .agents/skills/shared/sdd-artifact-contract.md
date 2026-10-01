@@ -31,7 +31,7 @@ Project-neutral shared contract for AI spec-driven development. This is the home
 
 - Shared, reusable AI-SDD principles belong in `.claude` source files, primarily this file or other `.claude/skills/shared/*` references.
 - Project-specific additions belong in the project-reference docs root (default `docs/project-reference/**`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) only when they name local paths, commands, products, modules, architecture decisions, naming conventions, evidence formats, or ownership rules.
-- Generated agent mirrors receive shared rules through sync. In this repository, those mirrors include `.agents/skills/**`, `.codex/CODEX_CONTEXT.md`, and `AGENTS.md`. Edit the `.claude` source instead and let sync propagate; never edit those mirrors directly — why: the next sync overwrites direct mirror edits.
+- Generated agent mirrors receive shared rules through sync. In this repository, those mirrors include `.agents/skills/**`, `.codex/agents/*.toml`, and `AGENTS.md`. Edit the `.claude` source instead and let sync propagate; never edit those mirrors directly — why: the next sync overwrites direct mirror edits.
 - In generated mirrors, `.claude` means this repository's upstream skill source; standalone consumers should apply the same rule to their own authoritative source directory.
 - If a rule can be reused unchanged by another repository, keep it out of project-reference docs and place it in `.claude`.
 - If a project-reference doc needs a reusable rule, reference `shared/sdd-artifact-contract.md` and add only the local extension.
@@ -588,7 +588,7 @@ This contract defines generic artifact mechanics. Before applying it in a reposi
 2. Read `docs-index-reference.md` in the project-reference docs root (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides the path) to discover the relevant reference docs.
 3. Read only the reference docs needed for the active task.
 4. Follow the target repository's canonical spec/test/doc owners.
-5. If `docs/project-config.json` or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before applying project-specific rules.
+5. If `docs/project-config.json` or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-manager --mode=init`, `$scan-all`, or `$scan --target=<key>`) before applying project-specific rules.
 
 ## Source Practices
 

@@ -5,7 +5,7 @@
  *   advisory   one note per crossed multiple of `hooks.tokenBudget.checkpointTokens`, each
  *              threshold once, exit 0 always, never a block decision;
  *   metric     non-cached tokens (input + cache writes + output) of main + sub-agent
- *              transcripts; cache reads alone never trigger a note (plan-review R2-03);
+ *              transcripts; cache reads alone never trigger a note (plan review R2-03);
  *   off        `enabled: false` (or a malformed section) reads nothing and prints nothing;
  *   SEC-09     the note's only variable values are the total, the threshold and the step count;
  *   cost       a task event with no transcript growth reads zero transcript bytes;

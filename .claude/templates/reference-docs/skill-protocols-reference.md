@@ -8,7 +8,7 @@ This is the default project-root-relative body directory. A project may change i
 
 A skill protocol overlay is a **named, project-specific set of extra rules layered onto a framework skill** — it does not modify the skill. The portable harness under `.claude/` stays untouched; every overlay's content lives in this project's `docs/` plane. This file is the INDEX (the skill map): it carries only what resolution needs — which skills an overlay targets, and where its body lives. Each overlay's actual rules live in their own file under the protocols directory and are read only when a matching skill is invoked.
 
-Both hosts reach these overlays without a hook: neither Claude Code nor Codex CLI can intercept a skill invocation, so the resolution rule lives in `CLAUDE.md` (mirrored to `AGENTS.md`) and names the active overlays there.
+Every supported host reaches these overlays through hooks: when a skill starts, the `skill-overlay-remind` hook names the body files that match it, and the universal `project-protocol-overlay` protocol tells the assistant how to resolve and apply them. No root file lists them.
 
 ## Usage
 

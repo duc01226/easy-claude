@@ -9,7 +9,7 @@
  * load-bearing phrases, not "file is non-empty").
  *
  * Coverage (what THIS suite asserts today):
- *   TC-CP-001 — CLAUDE.md carries the workflow route gate and path→reference-doc pointer table.
+ *   TC-CP-001 — CLAUDE.md carries the path→reference-doc pointer tables (no route text: the route hook delivers it).
  *   TC-CP-008 — tracked context surfaces carry the route gate without a duplicated catalog.
  *   TC-CP-015 — the canonical route gate carries the brief complexity assessment, the >80%
  *               catalog-fit rule, table precedence, downgrade guards (investigation, spec/doc sync,
@@ -23,11 +23,12 @@
  *   TC-CP-004 — design-system-canonical-guide hook's "read the canonical design-system
  *               doc first for tokens/components/BEM" guidance relocated into the design skill.
  *   TC-CP-006 — ba-refinement-context hook's DoR / hypothesis-validation BA guidance
- *               relocated into the refine skill.
- *   TC-CP-007 — graph-grep-suggester hook's post-grep "run a graph trace, grep can't find
- *               callers/consumers/events" mandate relocated into the investigate skill.
+ *               relocated into the pbi refine mode reference.
+ *   TC-CP-007 — graph-grep-suggester hook's post-grep graph hint ("a graph trace can hint at
+ *               callers/consumers/events grep may not reveal") relocated into the investigate
+ *               skill as OPTIONAL advice, never a mandate.
  *   TC-CP-009 — the integration-test execution-discipline rules (verify the WHOLE system,
- *               never hack seed data / drive through real use-case paths, /debug-investigate
+ *               never hack seed data / drive through real use-case paths, /investigate --mode=debug
  *               the root cause on failure, 60s runtime cap, loop until green) are present in
  *               EVERY integration-test-family skill (write / review / verify / workflow), so the
  *               family runs/diagnoses/clears a suite identically regardless of entry point.
@@ -51,8 +52,8 @@
  *   TC-CP-016 — the UI-review surface obligations stay wired end to end: the checklist owns the
  *               surface-scope/composition rule, surface-load (B12-B15), container-fit (E9-E11),
  *               forms (§R), dialog-focus (I15) and non-working-control (K10) checks plus the single
- *               severity map; ui-review runs Surface Composition + Surface UX passes and writes
- *               per-surface reports; plan + plan-review bind the UI checklist to front-end plans;
+ *               severity map; ui-design --mode=review runs Surface Composition + Surface UX passes and writes
+ *               per-surface reports; plan (incl. its review mode) binds the UI checklist to front-end plans;
  *               design-spec carries information priority; the calibration set exists. Each phrase
  *               is load-bearing — dropping any one silently lets an overloaded or ancestor-broken
  *               surface pass review again.
@@ -77,7 +78,7 @@
  *               claims a sensor or a mandatory trailer (opt-in via `commit.fixOriginTrailer`).
  *   TC-ADS-007 — the commit skill names `commit.fixOriginTrailer`, limits the trailer to new commits only
  *               and never advises rewording existing commits.
- *   TC-ADS-004 — graph-build installs the graph tooling with the cross-OS node `ensurePythonDeps` command
+ *   TC-ADS-004 — graph-code build mode installs the graph tooling with the cross-OS node `ensurePythonDeps` command
  *               before any graph CLI call, and stops when the install fails.
  *
  *   TC-ADS-008 — the command-only utility skills (decision D-2) each declare exactly one
@@ -85,8 +86,8 @@
  *               model-callable. Framework-repo guarded (synchronous signal + parity tripwire):
  *               it asserts this repo's own skill defaults, which an adopting project may change.
  *
- *   TC-HTMLX-052 — the three skills that run html-export's script by path (presentation-builder,
- *               pbi-mockup, feature-presentation) and the design motion-storyboard reference carry one
+ *   TC-HTMLX-052 — the skills that run html-export's script by path (presentation-builder,
+ *               feature-presentation), the pbi mockup mode reference and the design motion-storyboard reference carry one
  *               identical `**html-export exit rule:**` line whose codes (0, 4, 3, 1/2 + NOT
  *               VERIFIABLE) are exactly the values of `EXIT` in html-export/scripts/lib/exit-codes.cjs;
  *               the design explore workflow's `| Exit |` table routes exactly those codes with the
@@ -153,7 +154,8 @@ function familyRuleGaps(skillsDir, familySkills, tag, rules) {
     const projection = fs.existsSync(projectionFile) ? readFile(projectionFile) : '';
     const missing = [];
     for (const skill of familySkills) {
-        const body = readFile(path.join(skillsDir, skill, 'SKILL.md'));
+        // An entry ending in `.md` names a mode reference (relative to the skills root) that holds the family rules for one mode of a skill.
+        const body = readFile(skill.endsWith('.md') ? path.join(skillsDir, ...skill.split('/')) : path.join(skillsDir, skill, 'SKILL.md'));
         const guided = guideCarrier.hasGuideEntry(body, tag);
         for (const [rule, phrase] of Object.entries(rules)) {
             if (!body.includes(phrase) && !(guided && projection.includes(phrase))) {
@@ -186,9 +188,9 @@ const COMMAND_ONLY_UTILITIES = [
 const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve', 'sync-codex'];
 
 // TC-HTMLX-052. Skills that run html-export's script by path and restate its exit rule in prose.
-const HTML_EXPORT_CALLERS = ['presentation-builder', 'pbi-mockup', 'feature-presentation'];
+const HTML_EXPORT_CALLERS = ['presentation-builder', 'feature-presentation'];
 // Skill reference files (relative to the skills root) that carry the same one-line rule.
-const HTML_EXPORT_CALLER_REFERENCES = ['ui-design/references/lane-marketing/motion-storyboard.md'];
+const HTML_EXPORT_CALLER_REFERENCES = ['ui-design/references/lane-marketing/motion-storyboard.md', 'pbi/references/mode-mockup.md'];
 // Skill reference files that restate the rule as a `| Exit | ... |` table with their own actions.
 const HTML_EXPORT_EXIT_TABLES = ['ui-design/references/explore/workflow.md'];
 const HTML_EXPORT_EXIT_RULE = /\*\*html-export exit rule:\*\*[^\r\n]*/g;
@@ -235,13 +237,15 @@ function htmlExportExitTableDefects(markdown, EXIT) {
 // workflows (feature, bugfix, refactor, big-feature: top five by markers per KB of own body),
 // each with the emphasis-marker counts its two anchors held when selected. An anchors-only (G2) edit
 // changes body prose only; lowering a floor is a deliberate anchor change, never a side effect.
+// The floors count the skill's OWN closing text: the universal protocols are hook-delivered and no skill carries
+// their reminders or a protocols-in-force digest, so their markers are not part of a skill's anchor.
 const EMPHASIS_MARKERS = /\b(?:MUST|NEVER|CRITICAL|IMPORTANT|BLOCKING)\b/g;
 const EMPHASIS_ANCHOR_FLOORS = {
-    'source-deep-dive': { top: 12, closing: 47 },
+    'source-deep-dive': { top: 12, closing: 45 },
     'web-research': { top: 7, closing: 35 },
-    'business-evaluation': { top: 9, closing: 41 },
+    'business-evaluation': { top: 9, closing: 39 },
     test: { top: 11, closing: 38 },
-    'dor-gate': { top: 6, closing: 35 },
+    'pbi/references/mode-dor.md': { top: 6, closing: 35 },
 };
 // Returns one line per anchor that lost markers (or is missing). Frontmatter and SYNC bodies are
 // excluded: they are not the skill's own anchor text.
@@ -273,7 +277,7 @@ const modelInvocationValues = body => {
     return [...frontmatter[1].matchAll(/^disable-model-invocation:[ \t]*(.*?)[ \t]*$/gm)].map(m => m[1]);
 };
 
-// The graph-build first step (TC-ADS-004 Test Data): one install command, identical on Windows, macOS and Linux.
+// The graph-code build-mode first step (TC-ADS-004 Test Data): one install command, identical on Windows, macOS and Linux.
 const GRAPH_TOOLING_INSTALL_COMMAND =
     'node -e "const r=require(\'./.claude/hooks/lib/graph-utils.cjs\').ensurePythonDeps(); process.exit(r && r.ok ? 0 : 1)"';
 // Text from `start` up to (not including) the next `end` after it; '' when `start` is absent.
@@ -387,11 +391,16 @@ function pdMutate(html, label, mutate) {
     return next;
 }
 // OS essentials a spawned node child needs on Windows, macOS or Linux (the same allow-list as the presentation-builder
-// and html-export skill tests). Every other inherited key — framework feature switches, provider keys,
-// CLAUDE_PROJECT_DIR — is dropped, so nothing on a developer machine reaches the child (Portable Test Contract).
+// and html-export skill tests, and as tests/lib/os-essentials-env.cjs). Every other inherited key — framework feature
+// switches, provider keys, CLAUDE_PROJECT_DIR — is dropped, so nothing on a developer machine reaches the child
+// (Portable Test Contract). The Windows well-known folder keys (SYSTEMDRIVE, PROGRAMDATA, ...) stay: without them a
+// child that touches the shell writes its cache files under its working directory.
 const PD_CHILD_ENV_ALLOWLIST = new Set([
-    'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PROCESSOR_ARCHITECTURE',
-    'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
+    'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'COMSPEC',
+    'SYSTEMDRIVE', 'PROGRAMDATA', 'ALLUSERSPROFILE', 'PUBLIC',
+    'PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMW6432',
+    'COMMONPROGRAMFILES', 'COMMONPROGRAMFILES(X86)', 'COMMONPROGRAMW6432',
+    'PROCESSOR_ARCHITECTURE', 'PROCESSOR_ARCHITEW6432', 'NUMBER_OF_PROCESSORS', 'OS', 'LANG', 'LC_ALL', 'TZ',
 ]);
 // A scrubbed child environment for a PD script run: the allow-listed OS keys only (Windows spells `Path`, so names
 // compare upper-cased), with home and every temp key at the fixture dir (Node reads TEMP first on Windows, TMPDIR
@@ -571,21 +580,20 @@ function pdRunDeckEngine(engineSource, { heights = [900, 900, 900], viewport = 5
 // verbatim load-bearing fragment of the deleted hook's output — NOT a tautology. Fails loudly
 // (naming the deleted hook) if the relocation is dropped, so static parity can't silently rot.
 const assertRelocated = (deletedHook, skill, phrases) => {
-    const body = readSkill(skill);
+    const body = skill.includes('/') ? readFile(path.join(SKILLS_DIR, ...skill.split('/'))) : readSkill(skill);
     const missing = phrases.filter(p => !body.includes(p));
     assertTrue(missing.length === 0,
-        `${deletedHook} guidance lost from ${skill}/SKILL.md (relocation regressed):\n  ${missing.join('\n  ')}`);
+        `${deletedHook} guidance lost from ${skill} (relocation regressed):\n  ${missing.join('\n  ')}`);
 };
 
 module.exports = {
     name: 'content-presence',
     tests: [
         {
-            name: '[content-presence] TC-CP-001 CLAUDE.md carries the route gate and path→doc pointers',
+            name: '[content-presence] TC-CP-001 CLAUDE.md carries the path→doc pointers',
             fn: () => {
                 const claudeMd = readFile(path.resolve(PROJECT_DIR, 'CLAUDE.md'));
                 const missing = [];
-                if (!claudeMd.includes('<!-- CK:WORKFLOW-GATE -->')) missing.push('workflow route gate');
                 if (!/Path Pattern/.test(claudeMd)) missing.push('Path Pattern routing table');
                 if (!/Read first/.test(claudeMd)) missing.push('prompt → reference-doc lookup table');
                 // The path→doc pointer rows — each names the reference doc a hook used to inject.
@@ -603,12 +611,14 @@ module.exports = {
             },
         },
         {
-            name: '[content-presence] TC-CP-008 tracked contexts carry routing without duplicated catalogs',
+            name: '[content-presence] TC-CP-008 tracked contexts carry no route text: no pointer, gate or catalog',
             fn: () => {
-                for (const relative of ['CLAUDE.md', 'AGENTS.md', '.codex/CODEX_CONTEXT.md']) {
+                for (const relative of ['CLAUDE.md', 'AGENTS.md']) {
                     const body = readFile(path.resolve(PROJECT_DIR, relative));
-                    assertTrue(body.includes('<!-- CK:WORKFLOW-GATE -->'),
-                        `${relative} omits the workflow route gate`);
+                    assertTrue(!body.includes('<!-- CK:WORKFLOW-ROUTE-POINTER -->'),
+                        `${relative} carries a route pointer; the route hook is the only carrier`);
+                    assertTrue(!body.includes('<!-- CK:WORKFLOW-GATE -->') && !body.includes('**Workflow question**'),
+                        `${relative} carries route rules; the route hook is their only carrier`);
                     assertTrue(!body.includes('<!-- CK:WORKFLOW-SKILLS -->'),
                         `${relative} carries the runtime workflow catalog`);
                     assertTrue(!/###\s+Workflows Index \(\d+\)/.test(body),
@@ -671,30 +681,38 @@ module.exports = {
                 assertTrue(guardGaps.length === 0,
                     `downgrade guards diverge across routing surfaces:\n  ${guardGaps.join('\n  ')}`);
 
-                // Mid-session guard: auto-activation is a first-task-of-session behavior only. Losing
-                // it lets a follow-up or correction mid-work restart a full workflow over work already
-                // under way. Every routing surface the model reads must carry the same rule.
+                // Mid-session guard: the workflow question is a first-task-of-session behavior only. Losing
+                // it lets a follow-up or correction mid-work start — or re-ask about — a full workflow over
+                // work already under way. Every routing surface the model reads must carry the same rule.
                 // Required gates stay outside the skill cap, and continuing a running workflow is not
                 // activation — without these the cap silently drops investigation, test, review or
                 // doc sync, or cuts an active workflow short.
                 const MID_SESSION = [
-                    'Mid-session: never auto-activate a workflow.',
-                    'Auto-activation applies only to the first task of a session (its first user prompt; compaction or resume does not reset it).',
+                    'Mid-session: never auto-activate a workflow or ask to start one.',
+                    'The workflow question applies only to the first task of a session (its first user prompt; compaction or resume does not reset it).',
                     'a lean chain of at most 3 skills',
                     'required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap',
                     'continuing a workflow already running is not activating one',
                     'An explicit workflow request always runs, mid-session included',
                     'or the user asking in words to use a workflow; follow it.',
                 ];
-                // Generated root contexts carry the same gate; check each one this project has.
-                const generatedCopies = ['CLAUDE.md', 'AGENTS.md', path.join('.codex', 'CODEX_CONTEXT.md')]
-                    .map(rel => [rel, path.join(PROJECT_DIR, rel)])
-                    .filter(([, abs]) => fs.existsSync(abs))
-                    .map(([rel, abs]) => [rel, readFile(abs)]);
-                const midSessionGaps = [['workflow-first-gate.md', gate], ['Routing Decision Guide', guide], ['start-workflow/SKILL.md', skill], ...generatedCopies]
+                // The route hook is the only carrier of the gate: its ask payload must carry the same rule. The
+                // generated roots carry no route text (TC-CP-008).
+                const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'workflow-route-inject.cjs'));
+                const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask');
+                const midSessionGaps = [['workflow-first-gate.md', gate], ['Routing Decision Guide', guide], ['start-workflow/SKILL.md', skill], ['route hook payload (ask)', hookPayload]]
                     .flatMap(([label, body]) => MID_SESSION.filter(p => !body.includes(p)).map(p => `${label} → "${p}"`));
                 assertTrue(midSessionGaps.length === 0,
                     `mid-session no-auto-activation rule diverges across routing surfaces:\n  ${midSessionGaps.join('\n  ')}`);
+                // Mode auto carries the same guard in its own words: a matched workflow starts only on the first task.
+                const autoPayload = routeHook.buildInjection(PROJECT_DIR, '', 'auto');
+                const autoGaps = [
+                    'Mid-session: never auto-activate a workflow.',
+                    'A matched workflow starts only on the first task of a session',
+                    'a lean chain of at most 3 skills',
+                    'An explicit workflow request always runs, mid-session included'
+                ].filter(phrase => !autoPayload.includes(phrase));
+                assertTrue(autoGaps.length === 0, `route hook auto payload lost the mid-session guard:\n  ${autoGaps.join('\n  ')}`);
 
                 // Negative guard spans the WHOLE skill: no step may propose a route or ask the user
                 // to pick one. (Prohibitions like "do not use AskUserQuestion to choose" stay legal.)
@@ -731,52 +749,109 @@ module.exports = {
             },
         },
         {
-            // Guards activation-tier INTENT: the model never starts a `manual` workflow on its own
-            // selection, asks exactly once before a `confirm` workflow, and an explicit request runs every
-            // tier. A surface that loses the rule lets that surface auto-start a heavy workflow again.
-            name: '[content-presence] TC-CP-017 activation tiers reach every routing surface',
+            // Guards the workflow-question INTENT (BR-WFR-06): a workflow the model matched on its own —
+            // whatever its tier — never starts before the user answers ONE question offering the full
+            // workflow, a slimmer custom route that keeps the required gates, or direct execution; an
+            // explicit request runs every tier with no question. The route hook is the only carrier of the gate
+            // (Claude, Codex and OpenCode all run it); the gate file is its source text. A surface that loses the
+            // rule lets the default `ask` mode auto-start a workflow again.
+            name: '[content-presence] TC-CP-017 TC-WFR-012 every routing surface asks the workflow question before any tier starts',
             fn: () => {
                 // Given every surface the model routes from
                 const gate = readFile(path.join(SKILLS_DIR, 'shared', 'workflow-first-gate.md'));
                 const { buildWorkflowSkillsCatalog } = require(path.resolve(PROJECT_DIR, '.claude', 'scripts', 'lib', 'workflow-skills-catalog.cjs'));
                 const guide = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['routing'] });
+                const legend = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['workflows'], compact: true });
                 const skill = readSkill('start-workflow');
-                const generatedCopies = ['CLAUDE.md', 'AGENTS.md', path.join('.codex', 'CODEX_CONTEXT.md')]
-                    .map(rel => [rel, path.join(PROJECT_DIR, rel)])
-                    .filter(([, abs]) => fs.existsSync(abs))
-                    .map(([rel, abs]) => [rel, readFile(abs)])
-                    .filter(([, body]) => body.includes('<!-- CK:WORKFLOW-GATE -->'));
+                const readIfPresent = rel => [[rel, path.join(PROJECT_DIR, rel)]]
+                    .filter(([, abs]) => fs.existsSync(abs)).map(([r, abs]) => [r, readFile(abs)]);
+                // The roots carry no route text (TC-CP-008); the route hook's ask payload carries the gate.
+                const routeHook = require(path.resolve(PROJECT_DIR, '.claude', 'hooks', 'workflow-route-inject.cjs'));
+                const hookPayload = routeHook.buildInjection(PROJECT_DIR, '', 'ask');
+                const generatedCopies = [['route hook payload (ask)', hookPayload]];
+                const mirrorPaths = [path.join('.agents', 'skills', 'start-workflow', 'SKILL.md')];
+                const skillMirrors = mirrorPaths.flatMap(readIfPresent);
+                assertTrue(skillMirrors.length === mirrorPaths.filter(rel => fs.existsSync(path.join(PROJECT_DIR, rel))).length,
+                    'every existing workflow-start mirror must reach the routing-surface assertions');
                 // The always-loaded gate is byte-budgeted, so it carries the compact rule; start-workflow and the
-                // runtime catalog carry the full procedure (question contents, best non-manual route).
+                // runtime catalog carry the full procedure. Phrases avoid host-rewritten tokens so the Codex /
+                // OpenCode projections are checked with the same strings.
                 const GATE = [
-                    'never ask the user to choose the execution path (`confirm` tier excepted)',
-                    '**Tiers** (workflow `activation`)',
-                    'never self-start a `manual` workflow — name it in your route',
-                    'ask once before self-starting a `confirm` one',
-                    'explicit requests run any tier',
+                    'a direct, single-skill or custom-simple route (a Catalog-fit downgrade included) proceeds without asking',
+                    'ask the workflow question (below) only when YOUR route is to start a catalog workflow',
+                    'it NEVER starts before the answer',
+                    '**Workflow question** (every tier): only when your route is to start a catalog workflow (never for direct or custom-simple)',
+                    "your host's question tool, else plain text, then stop until the user answers",
+                    'the recommended one first with a one-line reason',
+                    '(a) the full workflow `<id>`',
+                    '(b) a slimmer custom route listing its steps, keeping every required gate',
+                    '(c) execute directly, no workflow or skill',
+                    'runs any tier with no question',
+                ];
+                const START = [
+                    '**Workflow question**',
+                    'asked ONLY when your route is to start a catalog workflow; a direct, single-skill or custom-simple route (a Catalog-fit downgrade included) asks nothing',
+                    'whatever its tier, is NEVER activated before the user answers ONE question',
+                    '(c) execute directly, no workflow or skill',
+                    'activates any tier with no question',
+                    'ask no other route question',
                 ];
                 const surfaces = [
                     ['workflow-first-gate.md', gate, GATE],
                     ...generatedCopies.map(([rel, body]) => [rel, body, GATE]),
                     ['Routing Decision Guide', guide, [
-                        'except the one question a `confirm`-tier workflow requires',
-                        'ask ONCE with its step count and your lean custom-simple alternative',
-                        'a `manual` workflow is never selected or started by you',
-                        'An explicit user request runs every tier directly',
+                        'when your route is to start a catalog workflow (never for a direct, single-skill or custom-simple route), never start it on your own',
+                        '(c) execute directly, no workflow or skill',
+                        'An explicit user request runs every tier directly, with no question',
                     ]],
-                    ['start-workflow/SKILL.md', skill, [
-                        '**Activation tier**',
-                        'never on your own selection — take the best non-manual route and name the manual workflow in the route declaration',
-                        'ask ONCE before activating',
-                        'an explicit request skips the question',
-                        'Never auto-activate a `manual`-tier workflow.',
+                    ['runtime tier legend', legend, [
+                        'before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing',
+                        'An explicit request runs every tier with no question',
                     ]],
+                    ['start-workflow/SKILL.md', skill, START],
+                    ...skillMirrors.map(([rel, body]) => [rel, body, START]),
                 ];
-                // When each surface is checked for its tier phrases
+                // When each surface is checked for the rule, and for the tier semantics it replaced
                 const gaps = surfaces.flatMap(([label, body, phrases]) =>
                     phrases.filter(phrase => !body.includes(phrase)).map(phrase => `${label} → "${phrase}"`));
-                // Then none has lost the rule
-                assertTrue(gaps.length === 0, `activation-tier rule diverges across routing surfaces:\n  ${gaps.join('\n  ')}`);
+                const STALE = [
+                    /the route gate may select and start it/,
+                    /never self-start a `manual` workflow/,
+                    /ask once before self-starting a `confirm`/,
+                    /except the (?:one|single) question a `confirm`-tier workflow requires/,
+                    /Auto-select the best path for auto-detected workflows/,
+                    // ask-mode scope: only a route that STARTS a catalog workflow asks; direct/custom-simple never do
+                    /a route that matches a catalog workflow, whatever its tier, NEVER starts on your own/,
+                    /every tier asks the workflow question/,
+                    /never start a catalog workflow you matched on your own/,
+                    /(?:direct|custom-simple)[^.;|]{0,80}\b(?:must|MUST|always) ask\b/,
+                ];
+                const stale = surfaces.flatMap(([label, body]) =>
+                    STALE.filter(pattern => pattern.test(body)).map(pattern => `${label} → ${pattern}`));
+                // Then every surface carries the question and none lets a tier start on its own
+                assertTrue(gaps.length === 0, `workflow-question rule diverges across routing surfaces:\n  ${gaps.join('\n  ')}`);
+                assertTrue(stale.length === 0, `a routing surface still lets a tier self-start:\n  ${stale.join('\n  ')}`);
+            },
+        },
+        {
+            // Guards the SINGLE-ASK intent: only the root route gate offers a workflow. A step skill that
+            // carries its own "use AskUserQuestion to pick a workflow" block asks a second, divergent
+            // question (and has named workflows that do not exist), overriding the gate's direct route.
+            name: '[content-presence] TC-CP-017b no skill carries its own workflow-recommendation question',
+            skip: IS_FRAMEWORK_REPO ? false : 'asserts the framework repo\'s own skills; an adopter\'s custom skills are theirs (framework-repo signal)',
+            fn: () => {
+                // Given every shipped skill body
+                const offenders = [];
+                for (const entry of fs.readdirSync(SKILLS_DIR, { withFileTypes: true })) {
+                    const file = path.join(SKILLS_DIR, entry.name, 'SKILL.md');
+                    if (!entry.isDirectory() || !fs.existsSync(file)) continue;
+                    const body = readFile(file);
+                    // When it is scanned for a per-skill workflow question
+                    if (/^## Workflow Recommendation\b/m.test(body)) offenders.push(`${entry.name}: "## Workflow Recommendation" section`);
+                    if (/\*\*Activate `workflow-[^`]+`(?: workflow)?\*\*/.test(body)) offenders.push(`${entry.name}: "Activate \`workflow-…\`" ask option`);
+                }
+                // Then none asks on its own — the gate's workflow question is the only one
+                assertTrue(offenders.length === 0, `skills ask a second workflow question:\n  ${offenders.join('\n  ')}`);
             },
         },
         {
@@ -1040,14 +1115,14 @@ module.exports = {
                 const [escalation] = paragraphsMentioning(lean, /\[ESCALATION/);
                 const description = body => (/^description:[ \t]*(.*)$/m.exec(body) || [])[1] || '';
                 // Then the lean route stops at its gap review, which runs before planning
-                assertTrue(Boolean(escalation) && escalation.includes('`/spec-clarify` runs as a gap review of the supplied spec against the request'),
-                    'workflow-implement-spec must run /spec-clarify as the gap review that can stop the route');
-                assertTrue(/IMPORTANT MANDATORY Steps:\*\* \/investigate -> \/spec-clarify -> \/plan ->/.test(lean),
+                assertTrue(Boolean(escalation) && escalation.includes('`/spec [mode=clarify]` runs as a gap review of the supplied spec against the request'),
+                    'workflow-implement-spec must run /spec [mode=clarify] as the gap review that can stop the route');
+                assertTrue(/IMPORTANT MANDATORY Steps:\*\* \/investigate -> \/spec \[mode=clarify\] -> \/plan ->/.test(lean),
                     'the gap review must run between /investigate and /plan');
                 // And each description sends the other case to the other route
-                assertTrue(description(lean).includes('A spec that lacks the requested behavior goes to workflow-feature'),
+                assertTrue(/\bworkflow-feature\b/.test(description(lean)),
                     'the lean description must route a spec gap to workflow-feature');
-                assertTrue(description(feature).includes('Spec-complete work goes to workflow-implement-spec'),
+                assertTrue(/\bworkflow-implement-spec\b/.test(description(feature)),
                     'the feature description must route spec-complete work to workflow-implement-spec');
             },
         },
@@ -1114,17 +1189,17 @@ module.exports = {
             ]),
         },
         {
-            name: '[content-presence] TC-CP-006 ba-refinement DoR/hypothesis guidance relocated into refine skill',
-            fn: () => assertRelocated('ba-refinement-context', 'refine', [
+            name: '[content-presence] TC-CP-006 ba-refinement DoR/hypothesis guidance relocated into the pbi refine mode',
+            fn: () => assertRelocated('ba-refinement-context', 'pbi/references/mode-refine.md', [
                 'Definition of Ready',
                 'hypothesis validation',
             ]),
         },
         {
-            name: '[content-presence] TC-CP-007 graph-grep post-grep trace mandate relocated into investigate skill',
+            name: '[content-presence] TC-CP-007 graph-grep post-grep graph hint relocated into investigate skill as optional advice',
             fn: () => assertRelocated('graph-grep-suggester', 'investigate', [
-                'Post-Grep Trace Trigger',
-                'grep CANNOT find',
+                'Post-Grep Graph Hint (optional)',
+                'grep may not reveal',
             ]),
         },
         {
@@ -1137,18 +1212,17 @@ module.exports = {
                 const rules = {
                     'verify-configured-suite': 'Verify the configured relevant suite',
                     'no-shortcut-that-skips-invariant': 'Never use a shortcut that skips the behavior the assertion is meant to protect',
-                    'debug-investigate-on-failure': '`/debug-investigate` the root cause',
+                    'investigate-debug-on-failure': '`/investigate --mode=debug` the root cause',
                     'timeouts-are-budgets': 'Use project timeouts as budgets, not as fixes',
                     'configured-repeat-policy': 'Follow the configured repeat policy',
                 };
-                // Every integration-test-family skill — write (integration-test), review, verify,
-                // and the workflow that chains them. Adding a family skill without these rules
-                // (or dropping one here) must surface as a failure, not a silent gap.
+                // Every integration-test-family skill — integration-test (write, plus its `--mode=review`
+                // and `--mode=verify` modes, which load under the same skill) and the workflow that chains
+                // them. Adding a family skill without these rules (or dropping one here) must surface as a
+                // failure, not a silent gap.
                 const familySkills = [
                     'integration-test',
-                    'integration-test-review',
-                    'integration-test-verify',
-                    'workflow-write-integration-test',
+                    'workflow-integration-test',
                 ];
                 const missing = familyRuleGaps(SKILLS_DIR, familySkills, 'integration-test-execution-discipline', rules);
                 assertTrue(missing.length === 0,
@@ -1175,16 +1249,14 @@ module.exports = {
                     'ask-user-when-unclear': 'Ask the user when intended behavior is unclear',
                 };
                 // Every debug/fix/test-family skill — investigate, fix, the test runner,
-                // the integration-test trio, e2e, and the bugfix workflow.
+                // integration-test (incl. its review and verify modes), e2e, and the bugfix workflow.
                 // Adding a family skill without these rules (or dropping one here) must surface as
                 // a failure, not a silent gap.
                 const familySkills = [
-                    'debug-investigate',
+                    'investigate/references/mode-debug.md',
                     'fix',
                     'test',
                     'integration-test',
-                    'integration-test-review',
-                    'integration-test-verify',
                     'e2e-test',
                     'workflow-bugfix',
                 ];
@@ -1662,7 +1734,7 @@ module.exports = {
                         '## C1 — The overloaded creation dialog',
                         '**NOT a finding.**',
                     ]],
-                    ['skills/ui-review/SKILL.md', readSkill('ui-review'), [
+                    ['skills/ui-design/references/mode-review.md', readFile(path.join(SKILLS_DIR, 'ui-design', 'references', 'mode-review.md')), [
                         '**Expand files → surfaces (MANDATORY when UI files match).**',
                         '## Phase 2B: Surface Composition',
                         '**Style-origin map.**',
@@ -1670,7 +1742,7 @@ module.exports = {
                         '**Stacking-context trap**',
                         '/surfaces/{surface}.md',
                     ]],
-                    ['skills/plan-review/SKILL.md', readSkill('plan-review'), [
+                    ['skills/plan/references/mode-review.md', readFile(path.join(SKILLS_DIR, 'plan', 'references', 'mode-review.md')), [
                         '**User-facing UI:** apply journey, design-system, accessibility, state, and container-fit plan checks.',
                     ]],
                     ['skills/plan/SKILL.md', readSkill('plan'), [
@@ -1734,21 +1806,21 @@ module.exports = {
         {
             // Guards BR-ADS-02: sessions no longer install the graph tooling, so the explicit build installs it
             // first, with one command that is the same on every OS, and stops on failure.
-            name: '[content-presence] TC-ADS-004 graph-build installs the graph tooling as its first step',
+            name: '[content-presence] TC-ADS-004 graph-code build mode installs the graph tooling as its first step',
             fn: () => {
-                // Given the graph-build skill
-                const body = readSkill('graph-build');
+                // Given the graph-code build-mode reference
+                const body = readFile(path.join(SKILLS_DIR, 'graph-code', 'references', 'mode-build.md'));
                 const steps = body.slice(body.indexOf('## Steps'));
                 // When its Steps section is read
                 const installAt = steps.indexOf(GRAPH_TOOLING_INSTALL_COMMAND);
                 const firstGraphCallAt = steps.indexOf('python .claude/scripts/code_graph');
                 // Then the node install command is present and precedes every graph CLI call
-                assertTrue(body.includes('## Steps') && installAt !== -1, 'graph-build lost the node ensurePythonDeps install step');
+                assertTrue(body.includes('## Steps') && installAt !== -1, 'graph-code build mode lost the node ensurePythonDeps install step');
                 assertTrue(firstGraphCallAt === -1 || installAt < firstGraphCallAt,
-                    'graph-build runs a graph CLI command before installing the graph tooling');
+                    'graph-code build mode runs a graph CLI command before installing the graph tooling');
                 // And a failed install stops the build with a message
                 const step0 = sectionBetween(steps, '### Step 0', '### ');
-                assertTrue(/Non-zero exit:\*\*\s*stop\./.test(step0), 'graph-build Step 0 no longer stops when the install fails');
+                assertTrue(/Non-zero exit:\*\*\s*stop\./.test(step0), 'graph-code build mode Step 0 no longer stops when the install fails');
             },
         },
         {
@@ -1902,7 +1974,7 @@ module.exports = {
                 const gaps = [];
                 // When each SKILL.md is read
                 for (const [name, floors] of Object.entries(EMPHASIS_ANCHOR_FLOORS)) {
-                    for (const gap of emphasisAnchorGaps(readSkill(name), floors)) gaps.push(`${name}: ${gap}`);
+                    for (const gap of emphasisAnchorGaps(name.includes('/') ? readFile(path.join(SKILLS_DIR, ...name.split('/'))) : readSkill(name), floors)) gaps.push(`${name}: ${gap}`);
                 }
                 // Then no anchor lost emphasis markers
                 assertTrue(gaps.length === 0, `emphasis anchors stripped:\n  ${gaps.join('\n  ')}`);

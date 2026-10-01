@@ -208,14 +208,15 @@ test("TC-WSC-007 the real catalog carries no YAML escape artifacts", () => {
   );
 });
 
-test("TC-WSC-008 tracked context carries the route gate and the runtime builder remains complete", (t) => {
+test("TC-WSC-008 tracked context carries no route text and the runtime builder remains complete", (t) => {
   const claudeMdPath = path.join(repoRoot, "CLAUDE.md");
   if (!fs.existsSync(claudeMdPath)) {
     t.skip("root CLAUDE.md is not part of a .claude-only adopter copy");
     return;
   }
   const claudeMd = normalizeEol(fs.readFileSync(claudeMdPath, "utf8"));
-  assert.equal(claudeMd.includes("<!-- CK:WORKFLOW-GATE -->"), true, "CLAUDE.md must carry routing");
+  assert.equal(claudeMd.includes("<!-- CK:WORKFLOW-ROUTE-POINTER -->"), false, "the route is delivered by the route hook only, never by a root pointer");
+  assert.equal(claudeMd.includes("<!-- CK:WORKFLOW-GATE -->"), false, "the gate is delivered by the route hook only, never by the root file");
   assert.equal(claudeMd.includes(CK_SKILLS_START), false, "CLAUDE.md must omit the runtime catalog");
   assert.equal(
     fs.existsSync(path.join(repoRoot, ".agents", "skills", "shared", "workflow-first-gate.md")),
@@ -239,8 +240,8 @@ test("TC-WSC-009 framework guide carries the current workflow count and conditio
 
   const workflowCount = Object.keys(workflowsDoc.workflows).length;
   assert.match(guide, new RegExp(`Workflow Catalog \\(${workflowCount} Workflows\\)`));
-  assert.match(guide, /workflow-integration-test-green/);
-  assert.match(guide, /scan --target=domain-entities → docs-update/);
+  assert.match(guide, /workflow-integration-test[^\n]*--mode=green/);
+  assert.match(guide, /scan --target=domain-entities → docs-manager --mode=update/);
   assert.match(guide, /only when the final diff changes an entity\/model, DTO\/data contract, persistence schema\/migration, or entity-sync evidence/i);
   assert.match(guide, /otherwise complete the scan task with a cited skip reason/i);
 });
@@ -389,7 +390,9 @@ test("TC-WSC-012 activation tiers render per row and agree with the wrapper skil
   // flag, so a developer's local tier settings must not reach it (the effective tier is TC-WFR-009).
   const out = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows"], activation: null });
   assert.match(out, /\| Workflow \| Activation \| When to use \| Steps \|/);
-  assert.match(out, /\*\*Activation:\*\* `auto` = .*`confirm` = .*`manual` = never select or start it yourself/);
+  // Every tier asks the workflow question before a catalog-workflow start (direct, single-skill and custom-simple routes ask nothing); the tier only orders the recommendation.
+  assert.match(out, /\*\*Activation:\*\* ask the workflow question .*before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing; the tier only orders the recommendation.*`auto` by catalog fit.*`confirm` the full workflow only when no leaner route would do.*`manual` never the full workflow first/);
+  assert.doesNotMatch(out, /may select and start it|never select or start it yourself/);
   const mismatches = [];
   for (const [workflowId, workflow] of Object.entries(workflowsDoc.workflows)) {
     if (workflow.activation !== undefined) {

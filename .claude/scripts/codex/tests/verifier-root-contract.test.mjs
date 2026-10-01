@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
@@ -31,10 +30,7 @@ function seed(root, bad) {
     write(root, '.claude/skills/root-sentinel/SKILL.md', bad ? 'AppBaseComponent\n' : 'Project-neutral fixture.\n');
     write(root, '.claude/skills/code-quality-review/SKILL.md', bad ? '# Review\nReport findings.\n' : '# Review\nReport findings; /why-review --validate-findings\n');
     write(root, '.claude/docs/architecture-knowledge.md', `# Catalog\n\n${[3, 8, 9, 10].map(n => `## ${n}. Section\n> **Provenance — default basis for this section:** \`[textbook]\`\n`).join('\n')}\n${bad ? '`[texbook: ROOT-SENTINEL]`' : '`[textbook: ROOT-SENTINEL]`'}\n`);
-    const context = 'Root fixture context.\n';
-    write(root, '.codex/CODEX_CONTEXT.md', context);
-    const fingerprint = createHash('sha256').update(context).digest('hex');
-    write(root, 'AGENTS.md', bad ? 'x'.repeat(OVERSIZE_AGENTS_BYTES) : `<!-- CK:CODEX-ROOT-PROJECTION -->\nRoot fixture.\n<!-- /CK:CODEX-ROOT-PROJECTION -->\n<!-- CODEX-CONTEXT-MIRROR:START -->\nRead .codex/CODEX_CONTEXT.md\nContext fingerprint (SHA-256): ${fingerprint}\n<!-- CODEX-CONTEXT-MIRROR:END -->\n`);
+    write(root, 'AGENTS.md', bad ? 'x'.repeat(OVERSIZE_AGENTS_BYTES) : `<!-- CK:CODEX-ROOT-PROJECTION -->\nRoot fixture.\n<!-- /CK:CODEX-ROOT-PROJECTION -->\n`);
     for (const dir of ['.agents/skills', '.claude/agents', '.codex/agents']) fs.mkdirSync(path.join(root, dir), { recursive: true });
     write(root, '.claude/scripts/inject_review_skill_blocks.py', 'ALPHA = ["skill-a"]\nMATRIX = [\n ("SYNC:alpha", ALPHA),\n]\n');
     write(root, '.claude/skills/shared/sync-inline-versions.md', '## SYNC:alpha\n\n> Alpha body.\n\n---\n\n## SYNC:alpha:reminder\n\n- Alpha reminder.\n');

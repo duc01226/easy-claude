@@ -423,14 +423,14 @@ test('skill instructions follow conventions and require KPI synthesis', () => {
   const skill = fs.readFileSync(path.join(__dirname, '..', 'SKILL.md'), 'utf8');
   const lines = skill.split(/\r?\n/);
   const quickSummaryLine = lines.findIndex((line) => line.trim() === '## Quick Summary');
-  const isGeneratedCodexMirror = skill.includes('Codex compatibility note') || skill.includes('CODEX:SYNC-PROMPT-PROTOCOLS');
-  const hasFrameworkProtocolExpansion = skill.includes('<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->') || skill.includes('<!-- SYNC:ai-mistake-prevention -->');
+  const isGeneratedCodexMirror = skill.includes('Codex compatibility note');
+  const hasFrameworkProtocolExpansion = skill.includes('<!-- PROTOCOL-GUIDES:START -->') || skill.includes('<!-- SYNC:');
 
   if (!isGeneratedCodexMirror && !hasFrameworkProtocolExpansion) assert.ok(lines.length < 100);
   assert.ok(quickSummaryLine >= 0);
   if (!isGeneratedCodexMirror) assert.ok(quickSummaryLine < 30);
-  assert.match(skill, /^description: '\[Git\].*developer KPI.*story point.*man-day.*code-quality.*git commit history\.'/m);
-  assert.match(skill, /<!-- SYNC:critical-thinking-mindset -->/);
+  assert.match(skill, /^description: '\[Git\].*developer KPI.*story point.*man-day.*code-quality.*git (?:commit )?history\.'/m);
+  assert.doesNotMatch(skill, /^> \*\*Root-carried protocols\*\* — /m);
   assert.match(skill, /trigger `(?:\/|\$)plan`/);
   assert.match(skill, /one todo task per contributor/);
   assert.match(skill, /quality-work-summary\.md/);

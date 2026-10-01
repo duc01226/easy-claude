@@ -52,27 +52,26 @@ AI skips steps via these evasions. Recognize and reject:
 - "Code is self-explanatory" → Future readers need evidence trail. Document anyway.
 - "Combine steps to save time" → Combined steps dilute focus. Each step has distinct purpose.
 
-### Graph-Assisted Investigation
-MANDATORY when .code-graph/graph.db exists.
-HARD-GATE: MUST run at least ONE graph command on key files before concluding any investigation.
-Pattern: Grep finds files → trace --direction both reveals full system flow → Grep verifies details.
-- Investigation: trace --direction both on 2-3 entry files
-- Fix/Debug: callers_of on buggy function + tests_for
-- Feature/Enhancement: connections on files to be modified
-- Code Review: tests_for on changed functions
-- Blast Radius: trace --direction downstream
+### Graph-Assisted Investigation (optional advice)
+Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (.code-graph/graph.db) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes. An absent or stale graph is never a finding.
+Pattern (when used): grep/read finds files → optional graph query suggests extra callers/dependents → grep/read verifies details.
+- High-risk investigation: trace --direction both on 2-3 entry files
+- Fix/debug with wide reach: callers_of on buggy function + tests_for
+- Feature touching a shared contract: connections on files to be modified
+- Review of a high-risk change: tests_for on changed functions
+- Blast radius: trace --direction downstream
 CLI: python .claude/scripts/code_graph {command} --json. Use --node-mode file first (10-30x less noise), then --node-mode function for detail.
 
 ### Understand Code First
 HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 1. Search 3+ similar patterns (grep/glob) — cite file:line evidence.
 2. Read existing files in target area — understand structure, base classes, conventions.
-3. Run python .claude/scripts/code_graph trace <file> --direction both --json when .code-graph/graph.db exists.
-4. Map dependencies via connections or callers_of — know what depends on your target.
+3. Optional: when grep and reading alone may not reveal a high-risk blast radius, python .claude/scripts/code_graph trace <file> --direction both --json (when .code-graph/graph.db exists) can add callers and dependents — a hint that may be stale, verified by reading the files.
+4. Map dependencies via grep/read callers (an optional graph connections or callers_of query may add hints) — know what depends on your target.
 5. Write investigation to tmp/analysis/ for non-trivial tasks (3+ files).
 6. Re-read analysis file before implementing — never work from memory alone.
 7. NEVER invent new patterns when existing ones work — match exactly or document deviation.
-BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
+BLOCKED until: Read target files; Grep 3+ patterns; Assumptions verified with evidence. (The code graph is optional advice, never a gate.)
 
 ## Reference Docs (READ before reviewing)
 Read only the docs resolved for this lane — every doc costs context before any review work; do not re-resolve the whole doc set.

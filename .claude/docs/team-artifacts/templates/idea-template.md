@@ -101,4 +101,4 @@ pbi_references: [] # Links to generated PBIs
 
 ---
 
-_To refine this idea into a PBI, run: `/refine {this-file}`_
+_To refine this idea into a PBI, run: `/pbi --mode=refine {this-file}`_

@@ -18,40 +18,40 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', '..', '..', '..');
 const canonicalPath = path.join(root, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
 // Carriers that embed the canonical multi-round `SYNC:review-policy` body byte-exact.
-// `plan-review` and `integration-test-review` are bounded read-only specialists instead: each owns a
+// `plan --mode=review` and `integration-test --mode=review` are bounded read-only specialists instead: each owns a
 // one-pass contract and deliberately carries no multi-round review-policy body or override.
 const consumers = [
     '.claude/skills/changes-review/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md'
 ];
-const planReviewPath = '.claude/skills/plan-review/SKILL.md';
+const planModeReviewPath = '.claude/skills/plan/references/mode-review.md';
 // These are the canonical carriers that embed the shared severity-rubric
 // block. Keep this inventory explicit: adding a review-family consumer without
 // adding it here would allow a locally-reworded severity scale to drift.
 const severityConsumers = [
-    '.claude/skills/architecture-review-full/SKILL.md',
-    '.claude/skills/architecture-review/SKILL.md',
-    '.claude/skills/artifact-review/SKILL.md',
+    '.claude/skills/architecture/references/mode-full.md',
+    '.claude/skills/architecture/references/mode-review.md',
     '.claude/skills/changes-review/SKILL.md',
     '.claude/skills/code-quality-review/SKILL.md',
     '.claude/skills/code-simplifier/SKILL.md',
-    '.claude/skills/domain-entities-review/SKILL.md',
-    '.claude/skills/architecture-scalability-review/SKILL.md',
+    '.claude/skills/domain-analysis/references/mode-review.md',
+    '.claude/skills/architecture/references/mode-scalability.md',
     '.claude/skills/feature-implement/SKILL.md',
-    '.claude/skills/plan-execute/SKILL.md',
+    '.claude/skills/plan/references/mode-execute.md',
     '.claude/skills/fix/SKILL.md',
-    '.claude/skills/integration-test-review/SKILL.md',
+    '.claude/skills/integration-test/references/mode-review.md',
     '.claude/skills/knowledge-review/SKILL.md',
+    '.claude/skills/pbi/references/mode-review.md',
     '.claude/skills/performance-review/SKILL.md',
-    '.claude/skills/plan-review/SKILL.md',
+    '.claude/skills/plan/references/mode-review.md',
     '.claude/skills/production-readiness-review/SKILL.md',
     '.claude/skills/security-audit/SKILL.md',
-    '.claude/skills/spec-clarify/SKILL.md',
-    '.claude/skills/ui-review/SKILL.md',
+    '.claude/skills/spec/references/mode-clarify.md',
+    '.claude/skills/ui-design/references/mode-review.md',
     '.claude/skills/why-review/SKILL.md',
     '.claude/skills/workflow-bugfix/SKILL.md',
     '.claude/skills/workflow-feature/SKILL.md',
-    '.claude/skills/workflow-write-integration-test/SKILL.md',
+    '.claude/skills/workflow-integration-test/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md'
 ];
 // A severity consumer may carry the rubric as a guide entry (shared P25 recognizer, never a copied
@@ -175,8 +175,8 @@ test('TC-HARNESS-006: all canonical review consumers use exact policy body and r
     }
 });
 
-test('TC-HARNESS-006: plan-review is a one-round read-only reviewer', async () => {
-    const text = await fs.readFile(path.join(root, planReviewPath), 'utf8');
+test('TC-HARNESS-006: plan --mode=review is a one-round read-only reviewer', async () => {
+    const text = await fs.readFile(path.join(root, planModeReviewPath), 'utf8');
     assert.match(text, /maximum one review round per invocation/i);
     assert.match(text, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
     assert.match(text, /Review once, report once, stop/);
@@ -223,7 +223,7 @@ test('TC-PDL-065: a severity consumer passes with a guide entry backed by a cano
 });
 
 test('TC-HARNESS-006: consumer-specific anchors preserve loop ownership', async () => {
-    const [changes, workflow, plan] = [...consumers, planReviewPath].map(relative => readSkillContract(relative));
+    const [changes, workflow, plan] = [...consumers, planModeReviewPath].map(relative => readSkillContract(relative));
     assert.match(changes, /Phase 6.*Why-Review Findings Validation/s);
     assert.match(workflow, /all-return barrier/i);
     assert.match(workflow, /--fix-loop[\s\S]*zero fixes/i);
@@ -260,21 +260,21 @@ test('TC-HARNESS-006: simplifier loop uses the shared round floor', async () => 
     assert.doesNotMatch(simplifier, /Self-Recursive Check.*until no simplification findings remain/);
 });
 
-test('TC-HARNESS-006: plan-execute does not collapse review acceptance to critical-only', async () => {
-    const planExecute = await fs.readFile(path.join(root, '.claude', 'skills', 'plan-execute', 'SKILL.md'), 'utf8');
-    assert.match(planExecute, /current severity bar/);
-    assert.match(planExecute, /Round 1[^\n]*zero (?:open )?validated findings/);
-    assert.match(planExecute, /Round 2[^\n]*zero validated CRITICAL\/HIGH\/MEDIUM/);
-    assert.match(planExecute, /LOW findings (?:recorded|deferred)/i);
-    assert.doesNotMatch(planExecute, /Repeat until no critical issues/);
-    assert.doesNotMatch(planExecute, /Critical issues must be 0 \(Step 4 gate\)/);
-    assert.doesNotMatch(planExecute, /tests 100% · 0 critical · explicit approval/);
+test('TC-HARNESS-006: plan --mode=execute does not collapse review acceptance to critical-only', async () => {
+    const executeMode = await fs.readFile(path.join(root, '.claude', 'skills', 'plan', 'references', 'mode-execute.md'), 'utf8');
+    assert.match(executeMode, /current severity bar/);
+    assert.match(executeMode, /Round 1[^\n]*zero (?:open )?validated findings/);
+    assert.match(executeMode, /Round 2[^\n]*zero validated CRITICAL\/HIGH\/MEDIUM/);
+    assert.match(executeMode, /LOW findings (?:recorded|deferred)/i);
+    assert.doesNotMatch(executeMode, /Repeat until no critical issues/);
+    assert.doesNotMatch(executeMode, /Critical issues must be 0 \(Step 4 gate\)/);
+    assert.doesNotMatch(executeMode, /tests 100% · 0 critical · explicit approval/);
 });
 
 test('TC-HARNESS-006: integration-test review is capped at one review round', async () => {
-    const review = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test-review', 'SKILL.md'), 'utf8');
+    const review = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test', 'references', 'mode-review.md'), 'utf8');
     const discipline = await fs.readFile(path.join(root, '.claude', 'skills', 'shared', 'protocols', 'integration-test-execution-discipline.md'), 'utf8');
-    const verify = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test-verify', 'SKILL.md'), 'utf8');
+    const verify = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test', 'references', 'mode-verify.md'), 'utf8');
     assert.match(review, /ONE ROUND MAXIMUM per invocation/);
     assert.match(review, /`round = 1`, `maxRounds = 1`, `minRounds = 1`/);
     assert.match(review, /Review once, validate\/deduplicate findings, report, stop/);
@@ -282,15 +282,15 @@ test('TC-HARNESS-006: integration-test review is capped at one review round', as
     assert.match(review, /Test reruns used to diagnose a failure are verification\/recovery, not review rounds/);
     assert.doesNotMatch(review, /double-round-trip-review|extendable ONCE|fresh full re-review/i);
     assert.match(discipline, /performs one read-only adjudication pass and the caller fixes the test at the root/);
-    assert.doesNotMatch(discipline, /integration-test-review` to fix the test/);
+    assert.doesNotMatch(discipline, /integration-test --mode=review` to fix the test/);
     assert.doesNotMatch(verify, /fixes\/re-reviews|P5 fix|P6 re-review|already applied its P5 fixes/);
 });
 
-test('TC-HARNESS-006: write-integration-test workflow invokes one review pass without an internal review loop', async () => {
+test('TC-HARNESS-006: the write variant of the integration-test workflow invokes one review pass without an internal review loop', async () => {
     const workflows = JSON.parse(await fs.readFile(path.join(root, '.claude', 'workflows.json'), 'utf8'));
-    const workflow = workflows.workflows['workflow-write-integration-test'];
+    const workflow = workflows.workflows['workflow-integration-test'];
     const context = workflow.preActions.injectContext;
-    const reviewGate = workflow.outcomeGates.find(gate => gate.satisfiedBy.includes('integration-test-review'));
+    const reviewGate = workflow.variants.write.outcomeGates.find(gate => gate.satisfiedBy.includes('integration-test --mode=review'));
     assert.equal(reviewGate.id, 'review-converged');
     assert.match(context, /performs one evidence-backed review pass over all eight gates/);
     assert.match(context, /later review.*new explicit invocation/i);
@@ -391,7 +391,7 @@ test('R3-PROMPT-031: visual review consumers persist one artifact result before 
 
     const visualConsumers = [
         '.claude/skills/experience-review/SKILL.md',
-        '.claude/skills/e2e-test-verify/SKILL.md',
+        '.claude/skills/e2e-test/references/mode-verify.md',
         '.claude/skills/workflow-e2e/SKILL.md',
     ];
     const projection = projectionTextOf('incremental-persistence');
@@ -422,8 +422,8 @@ test('TC-PDL-065 visual-consumer check (R3-PROMPT-031) accepts a guide entry bac
 });
 
 test('R3-PROMPT-023: multi-round specialist overrides preserve role and durable budget', async () => {
-    for (const [name, role] of [['architecture-review', /`architect` subagent_type/], ['ui-review', /UI\/UX-specialized subagent_type/]]) {
-        const source = await fs.readFile(path.join(root, '.claude', 'skills', name, 'SKILL.md'), 'utf8');
+    for (const [name, file, role] of [['architecture --mode=review', ['architecture', 'references', 'mode-review.md'], /`architect` subagent_type/], ['ui-design --mode=review', ['ui-design', 'references', 'mode-review.md'], /UI\/UX-specialized subagent_type/]]) {
+        const source = await fs.readFile(path.join(root, '.claude', 'skills', ...file), 'utf8');
         const override = source.match(/<!-- OVERRIDE:fresh-context-review -->([\s\S]*?)<!-- \/OVERRIDE:fresh-context-review -->/);
         assert.ok(override, `${name} keeps specialist override`);
         assertDurableReview(override[1]);
@@ -432,15 +432,16 @@ test('R3-PROMPT-023: multi-round specialist overrides preserve role and durable 
         const mutant = override[1].replace(/> - Persist completed rounds[^\n]+/, '> - Track iteration count in conversation context (session-scoped, no persistent files)');
         assert.throws(() => assertDurableReview(mutant), { code: 'ERR_ASSERTION' });
     }
-    const singlePass = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test-review', 'SKILL.md'), 'utf8');
+    const singlePass = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test', 'references', 'mode-review.md'), 'utf8');
     assert.doesNotMatch(singlePass, /OVERRIDE:fresh-context-review|persisted `minRounds`|completed rounds/,
         'single-pass integration review must not inherit a multi-round durable budget');
 });
 
 test('R3-PROMPT-023: local clean-pass summaries cannot override an explicit minimum', async () => {
     const files = [
-        ...['code-quality-review', 'domain-entities-review', 'knowledge-review', 'production-readiness-review', 'security-audit', 'seed-test-data']
+        ...['code-quality-review', 'knowledge-review', 'production-readiness-review', 'security-audit', 'seed-test-data']
             .map(name => `.claude/skills/${name}/SKILL.md`),
+        '.claude/skills/domain-analysis/references/mode-review.md',
         // Leaf reviewer agents (code-reviewer) are not listed: they no longer carry the round loop,
         // so they state no clean-pass termination of their own; the orchestrating skills above own it.
     ];

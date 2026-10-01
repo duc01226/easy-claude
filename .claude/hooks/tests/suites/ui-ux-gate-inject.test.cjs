@@ -29,6 +29,7 @@ const ledger = require(path.join(HOOKS_DIR, 'lib', 'convention-ledger.cjs'));
 const merge = require(path.join(HOOKS_DIR, 'lib', 'convention-merge.cjs'));
 const schema = require(path.join(HOOKS_DIR, 'lib', 'project-config-schema.cjs'));
 const { childEnv } = require('../lib/hook-runner.cjs');
+const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 
 const NOW = Math.floor(Date.now() / 1000) * 1000;
 const MINUTE = 60 * 1000;
@@ -37,6 +38,7 @@ const WINDOW_BYTES = GATE.reinjectAfterTokens * conventions.BYTES_PER_TOKEN;
 const TAG = 'ui-ux-gate@';
 const CHECKLIST = '.claude/docs/design-review-checklist.md';
 const KNOWLEDGE = '.claude/docs/design-knowledge.md';
+const JOURNEY = '.claude/docs/ux-journey-process.md';
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
@@ -134,7 +136,7 @@ const tests = [
                 const text = await deliver(fx, gateConfig(), input);
                 // Then the gate is delivered, compact, and names the rule sets and the docs to read
                 assert.ok(gateDelivered(text), `${rel}: gate delivered`);
-                for (const needle of ['UI-1.1', 'UI-9.4', 'SYNC:ui-ux-design-principles', 'DD-1', 'DD-8', 'CL-1', 'CL-6', '§0.5', 'B12', 'E9', '§R', 'I15', 'K10',
+                for (const needle of ['UX-1', 'UX-11', 'SYNC:ux-journey-gate', JOURNEY, 'UI-1.1', 'UI-9.4', 'SYNC:ui-ux-design-principles', 'DD-1', 'DD-8', 'CL-1', 'CL-6', '§0.5', 'B12', 'E9', '§R', 'I15', 'K10',
                     CHECKLIST, KNOWLEDGE, '.claude/docs/design-review-calibration.md', 'sync-inline-versions.md']) {
                     assert.ok(text.includes(needle), `${rel}: digest names ${needle}`);
                 }
@@ -226,8 +228,11 @@ const tests = [
             // Only the checklist read: DD-* is still missing -> deliver
             fx.append(toolUse('Read', { file_path: fx.abs(CHECKLIST) }));
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.scss', { session_id: 'one-doc' }))), 'one doc is not the whole gate');
-            // Both docs read (Windows-style path for the second) -> no delivery, recorded as evidence
+            // Checklist + knowledge read (Windows-style path for the second): the UX journey doc is still missing -> deliver
             fx.append(toolUse('Read', { file_path: fx.abs(KNOWLEDGE).replace(/\//g, '\\') }));
+            assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.scss', { session_id: 'no-journey-doc' }))), 'UI/DD/CL docs alone do not cover the UX journey-first gate');
+            // All three evidence docs read -> no delivery, recorded as evidence
+            fx.append(toolUse('Read', { file_path: fx.abs(JOURNEY) }));
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.scss', { session_id: 'both-docs' })), '');
             const record = ledger.readRecord(fx.store, 'both-docs', 'main', 'ui-ux-gate');
             assert.equal(record && record.form, 'evidence', 'evidence recorded so later triggers skip on the record');
@@ -241,7 +246,7 @@ const tests = [
             const config = gateConfig();
             fx.append(toolUse('Skill', { skill: 'commit' }));
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'other-skill' }))));
-            fx.append(toolUse('Skill', { skill: 'ui-review' }));
+            fx.append(toolUse('Skill', { skill: 'design-spec' }));
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'skill-tool' })), '');
             fs.writeFileSync(fx.transcript, `${JSON.stringify({ type: 'user', timestamp: new Date(NOW - MINUTE).toISOString(), message: { content: '<command-name>/ui-design</command-name>' } })}\n`);
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'slash' })), '');
@@ -253,22 +258,22 @@ const tests = [
         fn: async () => withFixture(async fx => {
             const config = gateConfig();
             // Before an in-transcript condensation mark
-            fx.append(toolUse('Skill', { skill: 'ui-review' }, NOW - 2 * MINUTE));
+            fx.append(toolUse('Skill', { skill: 'ui-design' }, NOW - 2 * MINUTE));
             fx.append(boundary(NOW - MINUTE));
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.less', { session_id: 'before-mark' }))));
 
             // Positioned before a condensation mark, even when its clock reads later: position in the history wins
-            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-review' }, NOW - MINUTE)}\n${boundary(NOW - 2 * MINUTE)}\n`);
+            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-design' }, NOW - MINUTE)}\n${boundary(NOW - 2 * MINUTE)}\n`);
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.less', { session_id: 'skewed-mark' }))));
 
             // Before a host-reported condensation (no mark in the transcript)
-            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-review' }, NOW - 2 * MINUTE)}\n`);
+            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-design' }, NOW - 2 * MINUTE)}\n`);
             await hook.run({ hook_event_name: 'SessionStart', source: 'compact', session_id: 'host-report' },
                 { env: { CK_CONVENTIONS_DIR: fx.store }, config, now: NOW - MINUTE });
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.less', { session_id: 'host-report' }))));
 
             // Scrolled out of the class window
-            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-review' })}\n`);
+            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-design' })}\n`);
             fx.grow(WINDOW_BYTES + 100);
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.less', { session_id: 'out-of-window' }))));
         })
@@ -303,14 +308,17 @@ const tests = [
     },
     {
         // INTENT: the maintained project class stays a working copy of the framework gate.
-        name: 'TC-UIG-011 the project config gate (when declared) keeps the framework rules, docs, window and evidence',
+        name: 'TC-UIG-011 (framework repo) the project config gate keeps the framework rules, docs, trigger, priority, window and evidence',
         fn: () => {
-            const configFile = path.resolve(HOOKS_DIR, '..', '..', 'docs', 'project-config.json');
+            // Authoring-repo self-check only: an adopting project may customise or lag its own copy.
+            const repoRoot = path.resolve(HOOKS_DIR, '..', '..');
+            if (!isFrameworkRepo(repoRoot)) return;
+            const configFile = path.join(repoRoot, 'docs', 'project-config.json');
             if (!fs.existsSync(configFile)) return;
             const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
             const group = (config.contextGroups || []).find(g => g && g.name === 'ui-ux-gate');
-            if (!group) return;
-            for (const field of ['rules', 'referenceDocs', 'reinjectAfterTokens', 'evidenceDocs', 'evidenceSkills', 'fileNameRegexes', 'pathRegexes']) {
+            assert.ok(group, 'tripwire: the framework repo declares the ui-ux-gate group');
+            for (const field of ['on', 'priority', 'rules', 'referenceDocs', 'reinjectAfterTokens', 'evidenceDocs', 'evidenceSkills', 'fileNameRegexes', 'pathRegexes']) {
                 assert.deepEqual(group[field], GATE[field], `ui-ux-gate.${field} drifted from the framework definition`);
             }
         }
@@ -352,7 +360,7 @@ const tests = [
 
             // The protocol already loaded by a UI skill counts as delivered (evidence), and is remembered
             const evidence = { session_id: 'evidence-session' };
-            fx.append(toolUse('Skill', { skill: 'ui-review' }, Date.now() - MINUTE));
+            fx.append(toolUse('Skill', { skill: 'ui-design' }, Date.now() - MINUTE));
             assert.equal(spawnNoConfig(fx, edit('web/a.tsx', evidence)), '', 'skill evidence counts as present');
             const record = ledger.readRecord(fx.store, 'evidence-session', 'main', 'ui-ux-gate');
             assert.equal(record && record.form, 'evidence', 'evidence skip recorded so later triggers skip on the record');
@@ -365,6 +373,33 @@ const tests = [
             const detectedEntry = conventions.injectableEntries({ contextGroups: [detected] })[0];
             assert.equal(conventions.groupHash(fallbackEntry), conventions.groupHash(detectedEntry), 'fallback and detected gate share one content version');
         })
+    },
+    {
+        // INTENT: the journey-first rule (UX-1..UX-11) binds every UI-file edit, not only the design skills —
+        // a real hook process on a plain .tsx edit must put the UX line and its doc in context.
+        name: 'TC-UIG-013 a real hook process on a .tsx edit delivers the UX journey-first gate and its doc',
+        fn: async () => withFixture(async fx => {
+            assert.equal(fs.existsSync(path.join(fx.project, 'docs', 'project-config.json')), false, 'no project config');
+            const text = spawnNoConfig(fx, post(fx, 'Edit', 'web/Settings.tsx', { session_id: 'ux-journey' }));
+            assert.ok(gateDelivered(text), 'gate delivered');
+            assert.ok(/UX-1\S*UX-11 journey-first/.test(text), 'the journey-first rule line is delivered');
+            assert.ok(text.includes('SYNC:ux-journey-gate'), 'names the protocol');
+            assert.ok(/MUST read first: [^\n]*ux-journey-process\.md/.test(text), 'the journey doc is a mandatory pre-edit read');
+            assert.ok(conventions.UI_UX_GATE.referenceDocs.includes(JOURNEY) && conventions.UI_UX_GATE.evidenceDocs.includes(JOURNEY), 'doc is both read list and evidence');
+            assert.ok(fs.existsSync(path.resolve(HOOKS_DIR, '..', '..', JOURNEY)), 'the named doc ships with the framework');
+        })
+    },
+    {
+        // INTENT: a skill counts as "gate already delivered" ONLY if it carries every rule set the digest
+        // names — otherwise loading it silences the digest and a rule set (UX journey-first) never arrives.
+        name: 'TC-UIG-014 every evidence skill of the gate carries the journey-first protocol it stands in for',
+        fn: () => {
+            const skillsDir = path.resolve(HOOKS_DIR, '..', 'skills');
+            for (const skill of conventions.UI_UX_GATE.evidenceSkills) {
+                const body = fs.readFileSync(path.join(skillsDir, skill, 'SKILL.md'), 'utf8');
+                assert.ok(body.includes('SYNC:ux-journey-gate'), `evidence skill ${skill} must carry SYNC:ux-journey-gate`);
+            }
+        }
     }
 ];
 

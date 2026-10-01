@@ -1,4 +1,4 @@
-<!-- Canonical home of the Spec-Loop Discipline. Tailored instances live in: the 9 `workflow-*` injectContext blocks (`.claude/workflows.json`) and the code-mutating / review skills (e.g. `plan-execute`, `fix`, `spec`, `integration-test`, review skills). Those instances are TAILORED to each consumer's job, not verbatim copies, so they are NOT `<!-- SYNC:spec-loop-discipline -->`-marked. Edit this canonical first, then propagate the tailored wording. -->
+<!-- Canonical home of the Spec-Loop Discipline. Tailored instances live in: the 9 `workflow-*` injectContext blocks (`.claude/workflows.json`) and the code-mutating / review skills (e.g. `plan --mode=execute`, `fix`, `spec`, `integration-test`, review skills). Those instances are TAILORED to each consumer's job, not verbatim copies, so they are NOT `<!-- SYNC:spec-loop-discipline -->`-marked. Edit this canonical first, then propagate the tailored wording. -->
 
 > **Spec-Loop Discipline (spec→code→tests→review→re-review).** When changing or reviewing behavior-bearing code, specs, or tests, enforce the loop:
 >

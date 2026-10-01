@@ -1,7 +1,7 @@
 ---
 name: scenario
 version: 1.0.0
-description: '[Planning] Use when a workflow step or the user asks for adversarial scenarios. Enumerates failure modes, data-integrity risks, state boundaries, access risks or pre-plan edge cases.'
+description: '[Planning] Use when a workflow step or the user asks for adversarial scenarios: failure modes, data integrity, state boundaries, access risks.'
 argument-hint: '[owning artifact, scope brief, or explicit milestone]'
 disable-model-invocation: false
 ---
@@ -103,7 +103,7 @@ Otherwise mark `BLOCKED`, name the missing decision/evidence, and stop before `/
 
 ## Phase 6: Handoff
 
-Pass the scenario artifact path and scenario IDs to `/plan`. The implementation plan must map phases to the selected slice, explicit milestone, framework boundary, or EXEMPT scope, plus non-goals, scenario IDs, TC IDs, commands, and evidence. `/plan-validate` asks the owner to confirm remaining material choices when that gate is selected.
+Pass the scenario artifact path and scenario IDs to `/plan`. The implementation plan must map phases to the selected slice, explicit milestone, framework boundary, or EXEMPT scope, plus non-goals, scenario IDs, TC IDs, commands, and evidence. `/plan --mode=validate` asks the owner to confirm remaining material choices when that gate is selected.
 
 ## Output
 
@@ -115,26 +115,6 @@ Report:
 - confirmed/deferred/open decisions;
 - Scenario Gate status;
 - plan handoff or blocker.
-
-<!-- PROTOCOL-GUIDES:START -->
-
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
-
-<!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 ## Closing Reminders
 

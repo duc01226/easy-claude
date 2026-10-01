@@ -1,7 +1,7 @@
 ---
 name: security-audit
 version: 2.2.0
-description: '[Code Quality] Use when a workflow step or the user asks for a security review or audit. OWASP Top 10, secrets exposure, dependency/supply-chain malware, infrastructure, CI/CD, AI-agent risks, host compromise.'
+description: '[Code Quality] Use when a workflow step or the user asks for a security review or audit: OWASP Top 10, secrets, supply-chain, infrastructure, CI/CD, AI-agent risks.'
 disable-model-invocation: false
 execution-mode: subagent
 context-budget: high
@@ -55,11 +55,11 @@ context-budget: high
 
 > **Use when** a caller runs this skill as a read-only leaf — e.g. a workflow parallel review barrier over a plan or design, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` is an execution flag, not a scope mode; without it every step below applies unchanged.
 >
-> 1. **Run steps 1–4 only.** Step 5, Phase 2, the Recursive Quality Loop restart, the fresh `security-auditor` spawn, the Workflow Recommendation and Next Steps questions, and the fix-approval prompt do not run: return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
+> **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
+>
+> 1. **Run steps 1–4 only.** Step 5, Phase 2, the Recursive Quality Loop restart, the fresh `security-auditor` spawn, the Next Steps question, and the fix-approval prompt do not run: return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
 > 2. **Resolve the scope mode from the caller's brief — never ask.** Record the chosen mode and domains in the report. A plan or design target is audited at design altitude: each in-scope domain checks the designed controls and trust boundaries, cites the plan/design section as `file:line`, and labels an unprovable risk "potential risk, not confirmed". D2 still always runs. — why: a leaf cannot reach the user, so an "else ask" branch would stall the barrier.
-> 3. **No nested fan-out.** Skip Systematic Review Batching; review sequentially in this context. — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
-> 4. **Write only the report** under `tmp/reports/`. A missing or stale project-reference doc is recorded in the report as a `NOT VERIFIABLE` assumption and returned — never a trigger to run `/scan`, `/project-init`, or any other writer. — why: a leaf that regenerates shared docs races its barrier siblings.
-> 5. **Return** the report path, validated findings by severity, and every unconfirmed material trade-off in the summary (the trade-off gate's non-asking handoff).
+> 3. **No nested fan-out.** Skip Systematic Review Batching; review sequentially in this context.
 >
 > For this mode the declared step order ends at step 4; stopping there is the mode's contract, not a skipped step.
 
@@ -236,7 +236,7 @@ pip-audit                                             # python, if present
 
 - [ ] Typosquatting: new dependency names one edit away from popular packages (`lodahs`, `plain-crypto-js`)
 - [ ] Compromise signals: maintainer published many packages within seconds, `latest` dist-tag jumped majors abruptly, package repo link dead or code mismatch with GitHub source
-- [ ] Outdated packages with known exploits prioritized by reachability (is the vulnerable API actually called? — use graph `callers_of`)
+- [ ] Outdated packages with known exploits prioritized by reachability (is the vulnerable API actually called? — grep/read the callers; an optional graph `callers_of` may add hints)
 
 ### D4 — Third-Party Repository / Package Vetting (BEFORE INSTALL — MANDATORY GATE)
 
@@ -408,11 +408,11 @@ Every finding: `[severity] [confidence %] [file:line OR command+output] [finding
 4. **Repeat:** if issues remain, validate the new findings before more fixes, then restart the full review after fixes with a brand-new task breakdown
 5. **Stop:** A clean review pass ENDS the review once the persisted `minRounds` is met. If the same blocker repeats across 2 full invocations with no progress, escalate via `AskUserQuestion`.
 
-> Run `python .claude/scripts/code_graph query callers_of <function> --json` to trace all entry points into sensitive functions.
+> Optional: `python .claude/scripts/code_graph query callers_of <function> --json` can hint at entry points into sensitive functions (verify by reading).
 
-## Graph Intelligence — Security-Specific Queries
+## Graph Intelligence — Security-Specific Queries (optional advice)
 
-> When `.code-graph/graph.db` exists, the canonical **Graph-Assisted Investigation** hard-gate (below) is MANDATORY — run ≥1 graph command before concluding. These security-specific queries extend it:
+> Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes. These security-specific queries extend the canonical **Graph-Assisted Investigation** advice (below):
 
 - **Trace data flow to sensitive functions:** `python .claude/scripts/code_graph query callers_of <function> --json`
 - **What does this function call?** `python .claude/scripts/code_graph query callees_of <function> --json`
@@ -421,22 +421,12 @@ Every finding: `[severity] [confidence %] [file:line OR command+output] [finding
 
 ### Graph-Trace for Data Flow Analysis
 
-When graph DB available, use `trace` to analyze data flow paths for security review:
+Optionally, when a graph DB exists, `trace` can hint at data flow paths for security review (confirm every path by reading the code):
 
 - `python .claude/scripts/code_graph trace <entry-point> --direction downstream --json` — trace data flow from input to all consumers (find where untrusted data travels)
 - `python .claude/scripts/code_graph trace <sensitive-file> --direction upstream --json` — find all entry points that reach sensitive code
-- **Blast-radius / exploitability reachability:** `python .claude/scripts/code_graph trace <vulnerable-file> --direction downstream --json` (or `/graph-blast-radius`) — size the exploitability fan-out of a finding: which callers, consumers, and trust boundaries a vulnerable function reaches. A finding with a large reachable blast-radius is higher severity; one with no reachable untrusted entry point may be unexploitable.
+- **Blast-radius / exploitability reachability:** `python .claude/scripts/code_graph trace <vulnerable-file> --direction downstream --json` (or `/graph-code --mode=blast-radius`) — size the exploitability fan-out of a finding: which callers, consumers, and trust boundaries a vulnerable function reaches. A finding with a large reachable blast-radius is higher severity; one with no reachable untrusted entry point may be unexploitable.
 - Trace reveals cross-service MESSAGE_BUS flows where data crosses trust boundaries
-
----
-
-## Workflow Recommendation
-
-> **MANDATORY — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
->
-> 1. **Run audit chain** (Recommended for audits) — /investigate → /security-audit → /watzup
-> 2. **Activate `workflow-review-changes` workflow** — full review → fix → test loop
-> 3. **Execute `/security-audit` directly** — run this skill standalone
 
 ---
 
@@ -474,7 +464,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 2. Fix only findings that survived `/why-review --validate-findings`; if this skill is running inside a workflow, hand the validated report to the caller's fix step (standalone: `/fix --target=review`).
 3. Run targeted verification for the changed security-sensitive paths.
 4. Restart the full `/security-audit` from Scope over the complete current target, not only the fixed files.
-5. The restarted pass MUST create brand-new review tasks, reload local security context, rerun graph/caller traces where applicable, and analyze the full target from the beginning.
+5. The restarted pass MUST create brand-new review tasks, reload local security context, rerun caller traces (grep/read, plus any optional graph hint) where applicable, and analyze the full target from the beginning.
 6. Repeat validate → fix → full security re-review until a complete pass clears the current round's exit bar (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
 7. If the same validated blocker repeats across 2 full invocations with no progress, stop and ask the user for a decision.
 
@@ -519,18 +509,14 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `double-round-trip-review` — Validated-finding fix loop: review, validate, fix, then a fresh full re-review, capped at two rounds; running a review that fixes findings and must re-review until the severity bar clears → .claude/skills/shared/protocols/double-round-trip-review.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
-- `graph-assisted-investigation` — Run a code-graph command on the key files before concluding; investigating code while the code graph exists → .claude/skills/shared/protocols/graph-assisted-investigation.md
+- `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
@@ -550,21 +536,9 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
-**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding when graph.db exists. Pattern: grep → graph trace → grep verify.
+**Optional advice:** the code graph (`.code-graph/graph.db`) can hint at a high-risk blast radius grep misses; it can be stale, so verify by reading files. Never required.
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
@@ -572,15 +546,6 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 - **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 
@@ -653,17 +618,9 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:review-principle-awareness:reminder -->
 
@@ -680,16 +637,13 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Sub-Agent Selection:** Route specialized domains to matching specialist agent; NEVER `code-reviewer`.
-- **Graph-Assisted Investigation:** Run ≥1 graph command on key files before concluding.
+- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
 - **Incremental Persistence:** Append findings to `tmp/reports/` per file; NEVER hold in memory.
 - **Subagent Return Contract:** Sub-agents return summary only; full detail lives on disk.
 - **Nested Task Creation:** Expand child phases and link parent workflow row when nested.
-- **Project Reference Docs Guide:** Read required project docs before target work; cite them.
 - **Task Tracking External Report:** Bootstrap tasks; persist findings to report incrementally.
-- **Critical Thinking:** Apply critical + sequential thinking; traced proof, confidence >80% to act.
 - **Evidence:** Cite `file:line` for EVERY claim; speculation forbidden.
 - **Source Test Drift Check:** When source behavior changes, reconcile affected tests from evidence.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Systematic Batching:** Large changeset → size-capped parallel batches, then reduce.
 - **Severity Rubric:** Classify by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, LOW is recorded/deferred, and failed binary gates always block.
 - **Category Review Thinking:** Derive each category's concerns from first principles, NEVER a fixed checklist.
@@ -705,8 +659,8 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 **IMPORTANT MUST ATTENTION** `--report-only` declares steps 1–4 only — scope resolved from the brief, no fix, no restart, no batching fan-out, no user question, no writer beyond the report; return the validated report — why: a read-only leaf that fixes, fans out, or regenerates docs races its barrier siblings.
 **IMPORTANT MUST ATTENTION** confirmed host compromise → isolate first, rotate EVERY credential that touched the host, rebuild from a clean image — NEVER trust an in-place "cleaned" rooted box — why: rootkits hide from the tools you would clean with.
 **IMPORTANT MUST ATTENTION** every confirmed finding that changes intended behavior feeds BOTH the spec (§4/§5 invariant) AND a guarding negative test — a code-only fix is INCOMPLETE — why: undocumented + untested security rules become tribal knowledge that regresses silently.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; persist findings incrementally to `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo; validate workflow choice via `AskUserQuestion` — never auto-decide.
-**IMPORTANT MUST ATTENTION** when `.code-graph/graph.db` exists, run ≥1 graph command (`callers_of` on sensitive functions, `trace --direction downstream` for blast-radius) before concluding — why: reachability proves or rules out exploitability and drives severity.
+**IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; persist findings incrementally to `tmp/reports/security-audit-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo.
+**Optional advice:** to size exploitability reachability across a wide call graph, `callers_of` / `trace --direction downstream` can add hints — the graph may be stale, so confirm reachability by reading the code. Never required.
 
 **Anti-Rationalization:**
 

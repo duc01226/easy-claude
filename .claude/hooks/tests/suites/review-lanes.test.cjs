@@ -125,9 +125,11 @@ const tests = [
             // The effective context counts: a skill an agent preloads (Claude `skills:` frontmatter) that carries
             // review-loop orchestration must tell a leaf that the loop belongs to its caller.
             let preloadsChecked = 0;
+            let preloadingAgents = 0;
             for (const name of agents) {
                 const front = fs.readFileSync(path.join(agentsDir, name), 'utf8').replace(/\r\n?/g, '\n').split('\n---\n')[0];
                 const line = front.match(/^skills:\s*(.+)$/m);
+                if (line) preloadingAgents += 1;
                 for (const skill of line ? line[1].split(',').map(s => s.trim()).filter(Boolean) : []) {
                     const skillText = read('.claude', 'skills', skill, 'SKILL.md');
                     if (!ORCHESTRATION.some(tag => skillText.includes(`<!-- SYNC:${tag} -->`))) continue;
@@ -135,7 +137,9 @@ const tests = [
                     assert.match(skillText, /Dispatched as a leaf reviewer[^\n]*belong to your caller/, `${name} preloads ${skill}, which must bound a leaf reviewer`);
                 }
             }
-            assert.ok(preloadsChecked > 0, 'the effective-context check is non-vacuous');
+            // No reviewer agent preloads an orchestration-carrying skill by design (preloads were removed so a leaf never inherits a loop);
+            // the boundary above still binds any future preload. Non-vacuous means the scan really parses agent frontmatter.
+            assert.ok(preloadingAgents > 0, 'the effective-context check is non-vacuous: the scan reads agent skills: frontmatter');
         }
     },
     {

@@ -15,14 +15,16 @@ skills + the two quality-tooling owners), so this uses explicit SKILL_NAMES /
 AGENT_NAMES lists rather than the inject_review_skill_blocks.py review-batch
 matrix. Structure mirrors inject_scenario_stress_gate.py.
 
-Deliberately NOT a carrier: `plan` / `plan-review`. The obligation reaches planning
+Deliberately NOT a carrier: `plan` (any mode). The obligation reaches planning
 through `SYNC:plan-quality` clause 11 (conditional — only when a plan creates or
 changes how the project is built, run, tested, or checked), so an ordinary bugfix
 plan is not taxed with a seven-dimension foundation gate it cannot act on.
-Deliberately NOT a carrier: `architecture-review` — it is the DIFF-scope reviewer
+Deliberately NOT a carrier: `architecture --mode=review` — it is the DIFF-scope reviewer
 (default scope is the uncommitted change set; it catches boundary drift inside a
 change), while this gate judges the project's foundation as a whole. The
-project-scope sibling `architecture-review-full` carries the gate instead.
+project-scope sibling `architecture --mode=full` carries the gate instead.
+The `architecture` skill keeps its bodies inline in its mode references (`design`, `full`,
+`scalability`), so `architecture` is not an injector target; `sync-update-blocks.py` keeps them in sync.
 """
 from __future__ import annotations
 
@@ -38,9 +40,6 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 AGENTS_DIR = PROJECT_ROOT / ".claude" / "agents"
 
 SKILL_NAMES = [
-    "architecture-design",             # "do" — design-time foundation decisions (BLOCKING when creating)
-    "architecture-review-full",        # review — whole-project audit orchestrator (brownfield entry point)
-    "architecture-scalability-review", # review — owns F6 depth (G2 build/CI, G4 boundary enforcement)
     "production-readiness-review",     # review — release readiness; owns F2 deployment-parity depth
     "scaffold",                        # "do" — greenfield foundation creation (BLOCKING context)
     "harness-setup",                   # "do" — owns F4 sensor design + F7 control split
@@ -49,7 +48,7 @@ SKILL_NAMES = [
 ]
 
 AGENT_NAMES = [
-    "architect",                       # agent — twin of architecture-design / architecture-review-full
+    "architect",                       # agent — twin of `architecture --mode=design` / `architecture --mode=full`
     "solution-architect",              # agent — greenfield inception; foundation chosen up front
 ]
 

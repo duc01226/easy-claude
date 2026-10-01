@@ -15,7 +15,7 @@ const os = require('os');
 const path = require('path');
 
 // Ensure CLAUDE_PROJECT_DIR is set BEFORE any suite/library is required.
-// Suite-load-time code (test-fixture-generator, dedup-constants) reads project
+// Suite-load-time code (test-fixture-generator) reads project
 // config from this env var; without it they fall back to generic paths and
 // stale dedup windows that diverge from the hook subprocess (which receives
 // the env), producing false-negative test failures (e.g. fixture path doesn't

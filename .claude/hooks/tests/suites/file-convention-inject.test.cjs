@@ -2170,7 +2170,7 @@ const tests = [
                 delete require.cache[siblingLib];
                 fs.writeFileSync(siblingLib, fs.readFileSync(LOOKUP_CLI, 'utf8').replace(`const LOOKUP_COMMAND = '${conventions.LOOKUP_COMMAND}'`, "const LOOKUP_COMMAND = 'sibling-lookup'"));
                 const preferred = require(mirror).buildSkillActivation(enabled([guided]), fx.project) || '';
-                assert.ok(preferred.includes('(no hook: `sibling-lookup <path>`)'), preferred);
+                assert.ok(preferred.includes('(a shell read or edit gets no digest: `sibling-lookup <path>`)'), preferred);
                 delete require.cache[siblingLib];
             } finally {
                 if (savedRoot === undefined) delete process.env.CLAUDE_PROJECT_DIR;

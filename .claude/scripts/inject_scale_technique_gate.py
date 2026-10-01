@@ -7,7 +7,7 @@ Inserts:
               the reminders region below the main authored content. When a host
               has NO SYNC region (find_sync_region_start returns EOF), the block
               appends at EOF, creating the host's first SYNC region (acceptable —
-              e.g. architecture-scalability-review).
+              e.g. a skill with only a bottom reminder).
   BOTTOM:     a SYNC:...:reminder block immediately BEFORE `## Closing Reminders`,
               or appended at EOF when no such heading exists.
 
@@ -28,9 +28,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 SKILL_NAMES = [
-    "architecture-design",            # "do" — design-time technique consideration
-    "architecture-review",            # review — Cat 11 scalability & coupling
-    "architecture-scalability-review",# review — scalability scorecard (no SYNC region → EOF append)
     "production-readiness-review",    # review — SRE readiness
     "tech-stack-research",            # research — technique-aware stack selection
 ]

@@ -51,7 +51,7 @@ Connected contracts:
 > **[IMPORTANT — TOP 3, READ FIRST]**
 >
 > 1. **EDIT SOURCE, NEVER MIRRORS.** `.claude/**` + root `CLAUDE.md` are the ONLY hand-editable surfaces. `.agents/`, `.codex/`, `AGENTS.md` are GENERATED — the next sync overwrites any direct edit. If asked to change a mirror, change its source and re-sync.
-> 2. **SYNC PROTOCOLS FOLLOW THE HYBRID POLICY.** Shared protocols are authored once in `.claude/skills/shared/sync-inline-versions.md`; every other copy is a projection (`SYNC:shared-protocol-duplication-policy`). Converted skills carry one guide line per protocol and a hook delivers the full text from `.claude/skills/shared/protocols/`; the four converging review-family skills, `references/*.md` bodies, agents and reviewer prompts keep the verbatim body between paired `SYNC:{tag}` HTML-comment fences. Single-pass `plan-review` uses guides. To change one: edit the canonical, then propagate (`sync-update-blocks.py <tag>` via the `sync-skills-shared-protocols` skill), rebuild the projection (`node .claude/scripts/build-protocol-projection.cjs`) and grep `SYNC:{tag}` for copies outside the tool's scope. NEVER hand-extract, deduplicate or replace a body outside those rules — a reader with no hook and no body loses the rule.
+> 2. **SYNC PROTOCOLS FOLLOW THE HYBRID POLICY.** Shared protocols are authored once in `.claude/skills/shared/sync-inline-versions.md`; every other copy is a projection (`SYNC:shared-protocol-duplication-policy`). Converted skills carry one guide line per protocol and a hook delivers the full text from `.claude/skills/shared/protocols/`; the four converging review-family skills, `references/*.md` bodies, agents and reviewer prompts keep the verbatim body between paired `SYNC:{tag}` HTML-comment fences. Single-pass `plan --mode=review` uses guides. To change one: edit the canonical, then propagate (`sync-update-blocks.py <tag>` via the `sync-skills-shared-protocols` skill), rebuild the projection (`node .claude/scripts/build-protocol-projection.cjs`) and grep `SYNC:{tag}` for copies outside the tool's scope. NEVER hand-extract, deduplicate or replace a body outside those rules — a reader with no hook and no body loses the rule.
 > 3. **RUN `/sync-codex` ONCE, AFTER the source is final.** The explicit `/ai-context-refresh` completion calls the standalone runner with `--skip=claude-md` after final source verification; for independent edits run the full `/sync-codex` yourself. Never hand-edit a mirror. Keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on any hardcoded project name/symbol.
 >
 > **Evidence Gate:** Every claim, change, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first). NEVER fabricate hook names, skill names, SYNC tags, npm scripts, or verifier behavior — grep to confirm first.
@@ -78,7 +78,7 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 
 ### Hook lifecycle + exit codes (when editing hooks)
 
-- Events (9 registered): `SessionStart → UserPromptSubmit → PreToolUse → (tool) → PostToolUse → SessionEnd`; plus `Notification`, `Stop`, `SubagentStart`, `UserPromptExpansion`. There is NO `PreCompact` hook (compaction-state recovery is static — see §74). `SubagentStart` and `UserPromptExpansion` carry ONLY the six `protocol-inject-<group>.cjs` handlers (full protocol texts for skill-preloading agents / typed `/command` skills); standing sub-agent guidance stays static in `.claude/agents/*.md`.
+- Events (9 registered): `SessionStart → UserPromptSubmit → PreToolUse → (tool) → PostToolUse → SessionEnd`; plus `Notification`, `Stop`, `SubagentStart`, `UserPromptExpansion`. There is NO `PreCompact` hook (compaction-state recovery is static — see §74). `SubagentStart` carries ONLY the five `protocol-inject-<group>.cjs` handlers (full protocol texts for skill-preloading agents) and the four `protocol-inject-universal-<n>.cjs` bins (the universal bundle, once per spawn; the bins are also registered on `UserPromptSubmit` and on `SessionStart` with matcher `compact|clear`, which re-delivers the bundle right after a compaction or clear); `UserPromptExpansion` carries the five group handlers and `skill-overlay-remind.cjs` (typed `/command` skills); standing sub-agent guidance stays static in `.claude/agents/*.md`. A host with no hooks is unsupported.
 - Exit codes: `0` = allow + inject context via stdout · `1` = block, user-overridable (`APPROVED:` prefix) · `2` = security block, NON-overridable.
 - Registered in `.claude/settings.json`. Large hooks split into chained part-files (`-p2.cjs`, `-p3.cjs`) for single-responsibility; the harness chains them at runtime.
 - Hooks are project-agnostic — they read project specifics from `docs/project-config.json` at runtime. NEVER hardcode project paths/names in a hook.
@@ -86,13 +86,14 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 ### Context engineering invariants (do not break these when editing)
 
 - **Static JIT guidance:** per-edit context routing is authored statically — `project-config.json` `pathRegexes` map paths to the `patternsDoc` a reader should open, and `CLAUDE.md` / `SKILL.md` carry the routing as prose so Claude and Codex read identically. Hooks may accelerate a lookup on either host, but static routing remains the source of truth. Keep path routing in config, not hardcoded.
-- **Marker-based dedup:** runtime hooks may emit a bounded pointer or dedup marker, but they never own protocol content. The `dedup-constants.cjs` keys remain the canonical key set. The canonical protocol source is `.claude/skills/shared/sync-inline-versions.md` (composed by the legacy-named `.claude/scripts/lib/hookless-prompt-protocol.cjs`); `prompt-injections.cjs` is a SYNC-verified downstream compat wrapper that delegates to that source, with the delegation guarded by `protocol-text-parity.test.cjs`.
-- **External memory / recovery:** state persists in the OS-temp `CK_TMP_DIR` namespaces (`todo/todo-state-{sessionId}.json`, `workflow/{sessionId}.json`), plus swap files and durable artifacts in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), so it survives compaction without becoming repository source; recovery is model-driven and static — re-reading `CLAUDE.md` re-anchors protocol, `TaskList` resumes the persisted todo state, and `/start-workflow` re-resolves the workflow and matches its recorded fingerprint + ordered occurrence IDs before restoring task state (`.claude/skills/start-workflow/SKILL.md:210`). `autoMemoryEnabled: false` — never re-enable Claude's built-in memory; the framework owns state.
+- **Ledger-based dedup:** runtime hooks deliver protocol text from the generated projection `.claude/skills/shared/protocols/` and de-duplicate through the session ledger `lib/convention-ledger.cjs` (store `<project>/tmp/protocol-delivery`, distance in tokens × `BYTES_PER_TOKEN`, compaction marks re-arm). The canonical protocol source is `.claude/skills/shared/sync-inline-versions.md`; `build-protocol-projection.cjs` publishes it and `protocol-text-parity.test.cjs` guards the carriers.
+- **External memory / recovery:** state persists in the OS-temp `CK_TMP_DIR` namespaces (`todo/todo-state-{sessionId}.json`, `workflow/{sessionId}.json`), plus swap files and durable artifacts in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), so it survives compaction without becoming repository source; recovery is model-driven — the universal bundle re-delivers after a compaction, `TaskList` resumes the persisted todo state, and `/start-workflow` re-resolves the workflow and matches its recorded fingerprint + ordered occurrence IDs before restoring task state (`.claude/skills/start-workflow/SKILL.md:210`). `autoMemoryEnabled: false` — never re-enable Claude's built-in memory; the framework owns state.
 
 ### SYNC-tag mechanism (hybrid: bodies and guides)
 
 - ~100 shared protocols (plus `:reminder` variants) authored ONCE under `## SYNC:{tag}` headings in `.claude/skills/shared/sync-inline-versions.md`.
 - Carried verbatim between paired `SYNC:{tag}` open/close HTML-comment fences by the review-family skills, `references/*.md` and agents; every other skill carries a guide line in its `PROTOCOL-GUIDES` block (written only by `sync-update-blocks.py --mode=guide`). Condensed `SYNC:{tag}:reminder` variants stay near the bottom of every carrier (primacy-recency).
+- The `universal` group of `protocol-groups.json` is hook-delivered only, in the authored `bins` layout (each bin one message of at most 9,500 characters, delivered on the first prompt, after 200K tokens or a compaction — at once when `SessionStart` reports source `compact` or `clear` — and to every sub-agent): no skill, agent, `CLAUDE.md` or `AGENTS.md` carries a body, reminder, guide line or pointer for it (`sync-update-blocks.py --mode=strip-root-pointer` removes any that reappear). Never add one back to a skill, agent or tier list.
 - Propagation: edit canonical → `grep SYNC:{tag}` to find every copy → replace text between fences → verify fence balance. Bulk inserts across ~286 skill/agent files go through `.claude/scripts/sync-hooks-to-skills.py`, never by hand. The `sync-skills-shared-protocols` skill drives this.
 - Policy `SYNC:shared-protocol-duplication-policy` (hybrid): skills keep guides, hooks deliver the full text, and the listed carriers keep full bodies. Never hand-extract, deduplicate or replace a body outside those rules.
 
@@ -104,15 +105,15 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 
 ### Codex mirror sync (19-stage pipeline, 9 verifier scripts)
 
-- Source of truth → generated mirrors: `.claude/skills/**`, `.claude/agents/*.md`, `.claude/workflows.json`, `.claude/skills/shared/sync-inline-versions.md` (canonical protocol bodies, composed by `.claude/scripts/lib/hookless-prompt-protocol.cjs`), `CLAUDE.md` → `.agents/skills/**`, `.codex/CODEX_CONTEXT.md`, `.codex/agents/*.toml`, `.codex/hooks.json`, root `AGENTS.md`.
-- Cross-host parity: Claude and Codex may both run hooks, but the mirror TRANSFORM relays the same static contract (workflow catalog written inline; the lessons/project-reference read contract → a `CODEX:PROJECT-REFERENCE-LOADING` gate; `/skill` → `$skill`; `Agent(...)` → `spawn_agent`; `subagent_type` → `agent_type`; Claude-only frontmatter keys like `version` stripped, `disable-model-invocation` preserved). Hooks are optional accelerators, never a semantic dependency.
+- Source of truth → generated mirrors: `.claude/skills/**`, `.claude/agents/*.md`, `.claude/workflows.json`, `.claude/skills/shared/sync-inline-versions.md` (canonical protocol bodies), `CLAUDE.md` → `.agents/skills/**`, `.codex/agents/*.toml`, `.codex/hooks.json`, root `AGENTS.md` (the project-information projection of `CLAUDE.md`).
+- Cross-host parity: Claude and Codex may both run hooks, but the mirror TRANSFORM relays the same contract (hooks regenerated from `settings.json` so Codex runs the same handlers; no protocol text is written into a mirror; `/skill` → `$skill`; `Agent(...)` → `spawn_agent`; `subagent_type` → `agent_type`; Claude-only frontmatter keys like `version` stripped, `disable-model-invocation` preserved). Hooks deliver the shared protocols and the workflow route; a host that runs no hooks is unsupported.
 - `/sync-codex` = `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — **19 sequential stages** (1 may reconcile `CLAUDE.md`, 2–4 mutate mirrors, 5–19 read-only; configured stages fail-fast, optional capability stages explicitly skip when their contract is absent): `claude-md → migrate → hooks → context → tests → scripts-tests → tech-spec-freshness → feature-registry → hooks-count-drift → hooks-parity → hooks-doc-sync → wf-cycle → sk-proto → residue → sdd → review-validate-coverage → sync-adoption-parity → provenance-markers → sync-divergence`. The feature-registry stage reads the project's configured canonical roots and includes their continuation parts.
 - **9 verifier scripts** (`.claude/scripts/codex/verify-*.mjs`, each with a unit test): workflow-cycle · skill-protocol · no-project-residue · SDD semantics · review-validate coverage · SYNC adoption parity · provenance markers · feature registry · sync divergence. The tech-spec freshness stage calls the generator's tested read-only `--check` mode directly.
 - Read-only validation without mutating: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,tech-spec-freshness,feature-registry,hooks-count-drift,hooks-parity,hooks-doc-sync,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-adoption-parity,provenance-markers,sync-divergence`. You MAY run these read-only verifiers at any time; run the full mutating sync (no `--only`) once, after the source is final and verified.
 
 ### Design principles (the DNA — preserve them in every edit)
 
-Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when in doubt) · Convention over configuration (config-driven, no hardcoding) · Enforce at the boundary (hooks outside the LLM loop) · Learn from mistakes (`lessons.md`) · Plan before implement (TaskCreate-gated edits) · State survives amnesia · Stateless-per-turn invariants (re-inject every prompt) · Self-contained skill units (hybrid SYNC: guide line + hook delivery, full bodies in review-family skills and agents) · Structural intelligence first (code graph hard-gate). Meta-principle: _don't make the model smarter — make its environment smarter._
+Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when in doubt) · Convention over configuration (config-driven, no hardcoding) · Enforce at the boundary (hooks outside the LLM loop) · Learn from mistakes (`lessons.md`) · Plan before implement (TaskCreate-gated edits) · State survives amnesia · Stateless-per-turn invariants (re-inject every prompt) · Self-contained skill units (hybrid SYNC: guide line + hook delivery, full bodies in review-family skills and agents) · Structural intelligence where risk warrants (the code graph is optional advice and can be stale). Meta-principle: _don't make the model smarter — make its environment smarter._
 
 ## Workflow
 
@@ -123,7 +124,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 5. **Execute against conventions:**
     - **Skill** — `SKILL.md` with valid frontmatter (`name`, `description`; optional `allowed-tools`, `disable-model-invocation`); body uses inline SYNC blocks + Closing Reminders; register via catalog regeneration if required.
     - **Agent** — `.claude/agents/{name}.md`; frontmatter (`name`, `description`, optional `tools`/`model`/`memory`/`skills`); body `## Role → ## Workflow → ## Key Rules → ## Output` + the common SYNC blocks + `:reminder` variants.
-    - **Workflow** — edit `workflows.json`; every step name MUST be an existing skill in BOTH `.claude/skills` and (after sync) `.agents/skills`; keep ordered gates intact (e.g. integration→review→verify; docs-update→workflow-end).
+    - **Workflow** — edit `workflows.json`; every step name MUST be an existing skill in BOTH `.claude/skills` and (after sync) `.agents/skills`; keep ordered gates intact (e.g. integration→review→verify; docs-manager --mode=update→workflow-end).
     - **Hook** — edit `.cjs`; register in `settings.json`; unique dedup marker+window; read project specifics from `project-config.json`; add/extend a test under `.claude/hooks/tests/`.
     - **Config/portability** — keep generic surfaces project-neutral; project specifics go to `project-config.json` / `project-reference/**`.
     - **SYNC protocol** — edit canonical `sync-inline-versions.md` FIRST, then propagate to every copy (grep + `sync-hooks-to-skills.py` / `sync-skills-shared-protocols`); verify fence balance.
@@ -173,50 +174,11 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 > 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
 > 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
 > 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
-> 4. **Producing a report?** Persist it incrementally to `tmp/reports/` and start the final message with its path.
+> 4. **Producing a report?** Create the `tmp/reports/` file path BEFORE the first finding, append findings incrementally, synthesize from the file, and start the final message with `Full report: <path>`.
 >
 > **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
 
 <!-- /SYNC:agent-bootstrap -->
-
-<!-- SYNC:task-tracking-external-report -->
-
-> **Task Tracking & External Report Persistence** — Bootstrap this before execution; then run project-reference doc prefetch before target/source work.
->
-> 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
-> 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
-> 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: tmp/reports/{filename}`.
->
-> **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
-
-<!-- /SYNC:task-tracking-external-report -->
-
-<!-- SYNC:project-reference-docs-guide -->
-
-> **Project Reference Docs Gate (static JIT)** — Run after task-tracking bootstrap, immediately before target/source reads, grep, edits, tests, or analysis. Project docs override generic framework assumptions; hooks may remind or accelerate this gate but never prove it ran.
->
-> 1. **Scope** — identify file types, domain area, and operation.
-> 2. **Project config is OPTIONAL.** Read the configured project-config file via its loader (default `docs/project-config.json`) when it exists. Absent is a supported state, not an error: run on portable defaults, derive project facts (paths, commands, conventions, architecture, test/spec layout) from repository evidence (manifests, lockfiles, scripts, CI, layout, root instruction files), state material assumptions, never block, and at most OFFER `/project-init` or `/project-config` once. Present → minimum valid shape is a non-empty `project.name`; omitted optional capabilities use neutral defaults or skip. A DECLARED section left malformed or incomplete is a configuration error: fail closed on it and run `/project-init` or `/project-config` before relying on it — why: silent defaults would present wrong facts as authoritative. Verify material config hints against repository evidence; generic defaults are never project facts.
-> 3. **Select docs.** Always-on: the project-init-owned `lessons.md` and docs-index inputs at their configured owner paths — read independently, never appended to `referenceDocs`. Task-specific: an explicit `referenceDocs` array is the exact selection, subsets and `[]` included; absent → the runtime capability-aware resolver (portable baseline plus configuration- or repository-evidenced capabilities; may be empty). The scan-target manifest is a registry, not a default selection. Filenames resolve under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides it). Custom-doc schema, ownership, and path-safety rules: `.claude/skills/scan/references/targets.md`.
-> 4. **Route by phase.** Just in time, read the selected docs the table names for the phase you are ABOUT to enter, plus any selected custom doc whose `purpose` covers that phase. An unmatched row is `Not applicable`, never a blocker.
->
-> | About to… | Read first (when selected and present) |
-> | --- | --- |
-> | investigate, explain, plan, design, estimate | `project-structure-reference.md`, `domain-entities-reference.md`, plus the edit-row docs for every file type the plan will touch |
-> | edit or write code | `code-review-rules.md`, plus server-side / non-UI code → `backend-patterns-reference.md`; UI → `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md` |
-> | write, run, fix, or review tests or test data | the matching kind: `integration-test-reference.md` · `e2e-test-reference.md` · `seed-test-data-reference.md` |
-> | author or change specs, test cases, or docs | `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`; `workflow-spec-test-code-cycle-reference.md` when specs, tests, and code must stay in sync |
-> | review a diff, plan, spec, or artifact | `code-review-rules.md`, plus the edit/test/spec-row docs for every file type under review |
->
-> 5. **Per-file conventions** (`contextGroups[]` in the project config) add rules for the exact file read or edited: hooks deliver them where they run; elsewhere run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` before the first edit of an unfamiliar path class.
-> 6. **Cite and repair.** State `Reference docs read: ... | Not applicable: ...` (record an explicit empty selection); still honor references the active skill or task requires. A missing/stale always-on input or selected/required doc, or a malformed declared config section → `/project-init` or the narrow owner route (`/project-config`, `/docs-init`, `/scan --target=<key>`, `/ai-context-refresh`) before relying on it.
-> 7. **Dedup within ~200K tokens.** A doc counts as loaded only when its full content came back to THIS context from your own read, after the last compaction and within roughly the last 200K tokens, and it has not changed since — list it in `Reference docs read:` as `<doc> (loaded)` and skip the re-read. Everything else is not loaded: a hook reminder, a summary, a doc merely named in the conversation, or a read by another agent. Re-select and re-read after compaction, resume, a material context change, or ~200K tokens of growth (= the file-convention hook default). A delegated sub-agent starts empty: name the resolved doc paths in its brief.
->
-> **Ready when:** scope set · config read or its absence recorded · always-on inputs confirmed · selection applied (may be empty) · phase docs read or cited `(loaded)` · citation emitted.
-
-<!-- /SYNC:project-reference-docs-guide -->
 
 <!-- SYNC:understand-code-first -->
 
@@ -224,8 +186,8 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 >
 > 1. Search for relevant existing implementations and cite `file:line`; aim for 3+ comparable examples when they exist, and record when the project has fewer or none.
 > 2. Read the target area and its configured project references; identify actual structure, owners, and conventions without assuming a framework, layer model, or base class.
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists and the task concerns code relationships.
-> 4. Map affected dependencies and callers with available repository tools; do not block on an absent graph or unsupported tool.
+> 3. Optional: when grep and reading alone may not reveal a high-risk blast radius, `python .claude/scripts/code_graph trace <file> --direction both --json` (when `.code-graph/graph.db` exists) can add callers and dependents — a hint that may be stale, verified by reading the files.
+> 4. Map affected dependencies and callers with available repository tools (grep, reading); an absent, stale or unsupported graph never blocks or fails the task.
 > 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files).
 > 6. Re-read the analysis before implementing; update it when evidence changes.
 > 7. Follow a fitting local pattern, or state why no suitable pattern exists and justify a project-appropriate choice.
@@ -292,13 +254,6 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- /SYNC:fix-layer-accountability -->
 
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
 <!-- SYNC:sequential-thinking-protocol -->
 
 > **Sequential Thinking Protocol** — Structured multi-step reasoning for complex/ambiguous work. Use when planning, reviewing, debugging, or refining ideas where one-shot reasoning is unsafe.
@@ -315,31 +270,11 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via AskUserQuestion · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <60% on any critical decision → stop and escalate via AskUserQuestion (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
 <!-- /SYNC:sequential-thinking-protocol -->
-
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Project applicability gate.** Before applying a stack, layer, style, tool, or architecture rule, read the project's config and relevant references, then check local implementations. Treat framework examples as examples; honor explicit N/A and do not require a technology or convention the project does not use.
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Compaction, resume, or long-running work makes memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts; check the source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Map the docs, generated mirrors, configs, and callers a removal can stale.
-> **Trace the full impact chain after edits, and verify ALL affected outputs.** A changed definition reaches derived outputs and consumers; one green check is not all green checks.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never delivery/retry bookkeeping in shared infrastructure that any co-running process can write; such a check passes alone and flakes once anything shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Judge the environment before judging the code.** A bug report, failed test, error, or unexpected output is not proof of a code defect. Weigh environment causes as a competing hypothesis — setup, config, version and dependency state, service dependencies, stale artifacts or leftover state, and transient resource pressure (RAM, CPU, disk, handles, network). State the discriminator you ran; fix an environment cause in the environment, never by editing product code or weakening a test to absorb it.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->
 
 <!-- SYNC:context-engineering-principles -->
 
@@ -372,13 +307,14 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 >
 > - **Skills keep guides.** A converted skill's `SKILL.md` carries one guide line per protocol in its `PROTOCOL-GUIDES` block (tag, summary, when it applies, path of the published text) instead of the full `<!-- SYNC:tag -->` body.
 > - **Hooks deliver the full text** where the host runs hooks, from the generated projection `.claude/skills/shared/protocols/`. The guide path is the fallback: when a protocol's text is not in your context, read its file before you act on it.
-> - **`:reminder` digests stay** in every carrier for must-never-miss rules.
-> - **The four converging review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry. Single-pass `plan-review` uses protocol guides and loads only triggered depth.
-> - **Agents keep full protocol text.** `.claude/agents/*.md` are never converted to guides.
+> - **`:reminder` digests stay** in every carrier for a role protocol's must-never-miss rules.
+> - **The universal bundle is hook-delivered only.** The `universal` group in `.claude/skills/shared/protocol-groups.json` holds the framework rules every task follows (critical thinking, AI mistake prevention, project-reference loading, overlays, task planning, workflow advancement, git discipline and the rest). Its bins (`bins` in that file, each at most 9,500 characters) are delivered on the first prompt of a session and again after about 200K tokens of growth or a compaction, and at every sub-agent start. No skill, agent, root instruction file or mirror carries a body, reminder, guide line or pointer for them; the root file holds project information only. Hosts that run no hooks are not supported.
+> - **The four converging review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry. Single-pass `plan --mode=review` uses protocol guides and loads only triggered depth.
+> - **Agents keep full protocol text.** `.claude/agents/*.md` are never converted to guides; only the universal bundle is absent from them (the sub-agent start hook delivers it).
 > - **Reviewer prompts carry protocol bodies inline.** The orchestrator copies ONE template (`SYNC:review-protocol-injection`) wholesale into each fresh reviewer prompt; a reviewer is never handed a path to go read.
 > - **`references/`:** a mode-only section of a skill may live in `references/*.md`, read at the point of use as that mode's first action; a SYNC body inside `references/*.md` stays inline.
 >
-> Never hand-extract, deduplicate or replace a SYNC body outside these rules. To update a protocol: edit the canonical file first; run `.claude/scripts/sync-update-blocks.py <tag>` (Windows `py -3`, macOS/Linux `python3`), which rewrites every skill AND agent carrier; convert skills to guides only with its `--mode=guide --tags <tag>`; rebuild the projection with `node .claude/scripts/build-protocol-projection.cjs`; then grep `SYNC:<tag>` for copies outside the tool's scope, such as `.claude/docs/development-rules.md`.
+> Never hand-extract, deduplicate or replace a SYNC body outside these rules. To update a protocol: edit the canonical file first; run `.claude/scripts/sync-update-blocks.py <tag>` (Windows `py -3`, macOS/Linux `python3`), which rewrites every skill AND agent carrier; convert skills to guides only with its `--mode=guide --tags <tag>` (never a universal tag); rebuild the projection with `node .claude/scripts/build-protocol-projection.cjs`; then grep `SYNC:<tag>` for copies outside the tool's scope, such as `.claude/docs/development-rules.md`.
 
 <!-- /SYNC:shared-protocol-duplication-policy -->
 
@@ -414,39 +350,11 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- /SYNC:core-engineering-principles -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
-<!-- SYNC:task-tracking-external-report:reminder -->
-
-- **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
-
-<!-- /SYNC:task-tracking-external-report:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 <!-- SYNC:cross-service-check:reminder -->
 
@@ -456,7 +364,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 
-**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
+**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline; the universal bundle is delivered by hooks and no carrier holds any part of it.
 
 <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
 
@@ -474,15 +382,11 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 - **Agent Code Standards:** YAGNI/KISS/DRY, lowest-layer logic; read dev-rules + pattern docs first.
 - **Agent Bootstrap:** plan into small tasks; progress file when task exceeds size threshold.
-- **Task Tracking & External Report:** one task in-progress; persist plan/review findings to `tmp/reports/`.
-- **Project Reference Docs:** read required project docs (always `lessons.md`) before target work.
-- **Understand Code First:** NEVER write before reading code + grep 3+ patterns + graph-trace.
+- **Understand Code First:** NEVER write before reading code + grep 3+ patterns (the code graph is optional advice for high-risk blast radius).
 - **Evidence:** cite `file:line` for every claim; <60% confidence NEVER recommend.
 - **Cross-Service Check:** scan producers/consumers/sagas/contracts; missing consumer = silent regression.
 - **Fix-Layer Accountability:** fix at the invariant-owning layer, NEVER the crash site.
-- **Critical Thinking:** traced proof per claim; NEVER present guess as fact.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS, confidence-% closer.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Context Engineering:** primacy-recency, high-signal density, structured-over-prose, rationale-carrying rules.
 - **Sub-Agent Selection:** route specialized domains to the matching specialist, NEVER `code-reviewer`.
 
@@ -495,7 +399,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 **IMPORTANT MUST ATTENTION** bootstrap task tracking before edits — one task `in_progress` at a time, mark `completed` immediately after evidence; for multi-file/audit work persist findings incrementally to `tmp/reports/` — why: context exhaustion silently loses all findings without an external memory file.
 **IMPORTANT MUST ATTENTION** SYNC integrity — any change to inline protocol text applies to EVERY copy in the same change; regenerate catalogs (`generate_catalogs.py`) and extend hook/codex tests when behavior changes — why: a divergent copy fails the `verify-sync-divergence` oracle and a stale catalog fails the build.
 **IMPORTANT MUST ATTENTION** no meta-log in AI-facing files (`CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`) — state the current truth only; never write change-history or provenance ("formerly", "removed in the … refactor", "now embedded"). History → git / `CHANGELOG.md` / the ADR root (default `docs/adr`; a `docsRoots.adr.path` entry in `docs/project-config.json` overrides the path) / `tmp/reports/**`
-**IMPORTANT MUST ATTENTION** apply sequential-thinking on ambiguous/multi-file framework work — state confidence %, list assumptions, surface open questions; escalate via `AskUserQuestion` when confidence <80% on any critical decision.
+**IMPORTANT MUST ATTENTION** apply sequential-thinking on ambiguous/multi-file framework work — state confidence %, list assumptions, surface open questions; escalate via `AskUserQuestion` when confidence <60% on any critical decision (60-80% verify first).
 
 **Anti-Rationalization:**
 

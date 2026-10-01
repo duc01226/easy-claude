@@ -119,7 +119,7 @@ Analyze user request, not only literal argument shape. Determine target, then ch
 | ---------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Explicit plan directory, `plan.md`, phase files      | Plan-rationale review               | Read `plan.md` and all `phase-*.md` files.                                                                                          |
 | PBI/story/spec planning artifact, rationale request  | PBI/artifact rationale review       | Read the named artifact and related acceptance/design/risk sections; if it references plan files, read those too.                    |
-| Commit SHA, `Commit: ...`, PR/merge commit, git diff | Code-change review                  | Establish the diff range, read changed files, run graph impact when available, and apply code-review/adversarial review protocols.  |
+| Commit SHA, `Commit: ...`, PR/merge commit, git diff | Code-change review                  | Establish the diff range, read changed files, assess impact (an optional graph hint may help), and apply code-review/adversarial review protocols.  |
 | Branch comparison or uncommitted changes             | Code-change review                  | Use the requested branch/diff or `git diff`; read changed files and tests/docs touched by the diff.                                  |
 | Docs/spec/report/findings path                       | Artifact review                     | Read the target artifact and verify claims against source evidence; use rationale checklist only where the artifact is a plan/PBI.   |
 | Ambiguous request                                    | Infer from evidence; ask if unsafe  | Prefer a reasonable target from the request and repo evidence. Ask only when two plausible review paths would produce different work. |
@@ -138,7 +138,7 @@ Analyze user request, not only literal argument shape. Determine target, then ch
 | Detected concern                 | Primary focus / sub-agent route                                                                 |
 | -------------------------------- | ------------------------------------------------------------------------------------------------ |
 | Source code / diff               | `code-reviewer` + embedded code-review protocols.                                                |
-| Integration/E2E tests in the target, OR a behavior change whose code has covering integration tests | Apply the **Integration-Test-Review Linkage** below — `$integration-test-review` owns the 8 test-quality gates; this skill reads its protocol (Mode A) or delegates to it (Mode B), never re-derives them. |
+| Integration/E2E tests in the target, OR a behavior change whose code has covering integration tests | Apply the **Integration-Test-Review Linkage** below — `$integration-test --mode=review` owns the 8 test-quality gates; this skill reads its protocol (Mode A) or delegates to it (Mode B), never re-derives them. |
 | Auth, secrets, permissions, data | `security-auditor` if available; otherwise `code-reviewer` with explicit security pass.          |
 | Latency, scale, memory, queries  | `performance-optimizer` if available; otherwise `code-reviewer` with explicit performance pass.  |
 | Plan / PBI / doc / spec          | `general-purpose` with rationale/artifact dimensions.                                            |
@@ -157,28 +157,28 @@ When target is code changes:
 3. Read the changed files and any nearby tests/docs required to prove behavior.
 4. **Integration-test detection (CONDITIONAL).** If the target contains integration/E2E test files, OR changes behavior-bearing code that has covering integration tests, run the **Integration-Test-Review Linkage** below before judging the `Test/spec/doc sync` dimension. State `No integration tests in target — linkage N/A` when neither holds.
 5. Read project reference docs based on changed file types before judging patterns.
-6. If `.code-graph/graph.db` exists, run graph blast-radius or trace on key changed files before concluding.
-7. Apply embedded code-review protocols by serial focused pass: bug detection, design patterns quality, logic/intention, test/spec verification, graph investigation, Easy-to-Change.
+6. Optional: for a high-risk change and when `.code-graph/graph.db` exists, graph blast-radius or trace can hint at impacted files — a stale-able hint; verify by reading.
+7. Apply embedded code-review protocols by serial focused pass: bug detection, design patterns quality, logic/intention, test/spec verification, optional graph hint, Easy-to-Change.
 8. Output findings first, with `file:line` evidence, severity, confidence, and tests/docs gaps.
 
 ### Integration-Test-Review Linkage (CONDITIONAL — advisory, guarded)
 
-> **Purpose:** this skill's `Test/spec/doc sync` dimension asks *"does evidence prove tests/specs/docs protect the intended invariant?"* — but the 8 gates answering it (assertion value · data state · repeatability · domain logic · spec traceability · three-way sync · change coverage · scenario fidelity) belong to `$integration-test-review`. Route to that owner; NEVER re-derive a weaker copy here. — why: a rationale review judging test quality by eye endorses assertions it never mutation-tested.
+> **Purpose:** this skill's `Test/spec/doc sync` dimension asks *"does evidence prove tests/specs/docs protect the intended invariant?"* — but the 8 gates answering it (assertion value · data state · repeatability · domain logic · spec traceability · three-way sync · change coverage · scenario fidelity) belong to `$integration-test --mode=review`. Route to that owner; NEVER re-derive a weaker copy here. — why: a rationale review judging test quality by eye endorses assertions it never mutation-tested.
 
 **Recursion guard — SKIP entirely when ANY row holds.** Record the deferral line, then proceed; NEVER invoke or read:
 
 | Suppressing context | Evidence | Deferral line to record |
 | --- | --- | --- |
 | Mode is `validate-findings` | Terminal mode — no sub-skill calls at all | `Linkage N/A — validate-findings is terminal.` |
-| Invoked by `$integration-test-review` Phase 9 | `integration-test-review/SKILL.md` → "Phase 9: Why-Review Self-Validation Gate" calls this skill in `validate-findings` mode, and that section's skip conditions guard the reverse edge | `Linkage deferred — invoked by $integration-test-review Phase 9.` |
+| Invoked by `$integration-test --mode=review` finding validation | `integration-test/references/mode-review.md` → "Finding Validation and Verdict" calls this skill in `validate-findings` mode, and that section's terminal rule guards the reverse edge | `Linkage deferred — invoked by $integration-test --mode=review finding validation.` |
 | Invoked by `changes-review` in ANY phase — 0.8 parallel rationale dimension, 6 validate-findings, or 7.5 holistic — or inside `$workflow-review-changes` | `changes-review/SKILL.md` → "Phase 0.8: Whole-Target Rationale Pass" (its brief states this deferral as a binding constraint), "Phase 6: Why-Review Findings Validation", "Phase 7.5: Holistic Full-Mode Why-Review"; its "Phases 3.5–3.9: Conditional Gates" → Phase 3.7 already owns the gate | `Linkage deferred to changes-review Phase 3.7 / parent workflow step.` |
-| Invoked by `$debug-investigate`'s Root Cause Validation gate | `debug-investigate/SKILL.md` → "Root Cause Validation (`$why-review` Gate)"; inside `integration-test-verify --fix-loop` that gate fires in a round already running `$integration-test-review` (`integration-test-verify/SKILL.md` → Fix-Loop Key Rules, FL-0b nested gates, FL-1 step 5) | `Linkage deferred — debug-investigate gate; the verify loop owns the audit.` |
+| Invoked by `$investigate --mode=debug`'s Root Cause Validation gate | `investigate/references/mode-debug.md` → "Root Cause Validation (`$why-review` Gate)"; inside `integration-test --mode=verify --fix-loop` that gate fires in a round already running `$integration-test --mode=review` (`integration-test/references/fix-loop.md` → Fix-Loop Key Rules, FL-0b nested gates, FL-1 step 5) | `Linkage deferred — investigate --mode=debug gate; the verify loop owns the audit.` |
 
-> — why: unguarded, this edge closes a cycle (`why-review` → `integration-test-review` → Phase 9 → `why-review`) and re-creates the duplicate-ownership defect that `integration-test-verify --fix-loop` removes (`integration-test-verify/SKILL.md` → "Why this mode exists").
+> — why: unguarded, this edge closes a cycle (`why-review` → `integration-test --mode=review` → finding validation → `why-review`) and re-creates the duplicate-ownership defect that `integration-test --mode=verify --fix-loop` removes (`integration-test/references/fix-loop.md` → "Why this mode exists").
 
-**Mode A — READ the protocol (DEFAULT).** Read `.claude/skills/integration-test-review/SKILL.md` §"The 8 Quality Gates"; apply Gates 1-8 as review lenses over target tests. Cheap — no recursion, no sub-skill call. Findings enter this review's normal finding set with `file:line` evidence + severity.
+**Mode A — READ the protocol (DEFAULT).** Read `.claude/skills/integration-test/references/mode-review.md` §"Single Review Pass — Eight Gates"; apply Gates 1-8 as review lenses over target tests. Cheap — no recursion, no sub-skill call. Findings enter this review's normal finding set with `file:line` evidence + severity.
 
-**Mode B — DELEGATE to `$integration-test-review` (ESCALATION).** Invoke ONLY when ALL hold: no guard row fired · standalone full-mode review · target diff itself contains integration test files. Its GAP / SPEC-GAP verdicts become ordinary findings for this review's Findings Validation Gate.
+**Mode B — DELEGATE to `$integration-test --mode=review` (ESCALATION).** Invoke ONLY when ALL hold: no guard row fired · standalone full-mode review · target diff itself contains integration test files. Its GAP / SPEC-GAP verdicts become ordinary findings for this review's Findings Validation Gate.
 
 **Advisory, NEVER blocking** — matches this skill's `Enforcement: Advisory` scope; mandatory coverage lives in `changes-review` Phase 3.7. — why: without this linkage a standalone rationale review silently skips test quality.
 

@@ -26,7 +26,7 @@ A file that matches two buckets goes in the **lower-numbered** one — meaning o
 Deterministic: the same change set always yields the same stage order.
 
 1. **Seed with meaning.** The route starts at the lowest-numbered non-empty layer among L1-L2. If both are empty, start at the lowest-numbered non-empty layer overall.
-2. **Walk outward.** `python .claude/scripts/code_graph trace <seed> --direction both --json` (Windows: `py -3`; macOS/Linux: `python3`). Order files *within* a stage by call-graph dependency — callees before callers.
+2. **Walk outward.** Grep/read of imports/references (optionally `python .claude/scripts/code_graph trace <seed> --direction both --json` as a stale-able hint) (Windows: `py -3`; macOS/Linux: `python3`). Order files *within* a stage by call-graph dependency — callees before callers.
 3. **Break ties by blast radius, descending.** Where two files are peers, the higher-reach file goes first. This reuses the signal `changes-review/SKILL.md` Phase 0 (blast radius) already establishes ("prioritize file review order, highest-impact files first") — the route **adopts** it as the tie-break rather than replacing it, so the two skills never disagree on the same diff.
 4. **Tests last.** L7 is always the final substantive stage — it is the verification pass, read once you know what should be true.
 5. **Skim bucket.** L8 plus generated/boilerplate files collapse into a single final "skim" stage. Never distribute them through the route.
@@ -106,7 +106,7 @@ This is the single most actionable line the report produces. It is never omitted
 Per stage, walk the ladder and stop at the first rung that yields rules:
 
 1. `code-review-rules.md`, in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — the repo's own codified rules
-2. The repo's review skills (`changes-review`, `architecture-review`, `security-audit`, `domain-entities-review`) for rules matching the stage's layer
+2. The repo's review skills (`changes-review`, `architecture --mode=review`, `security-audit`, `domain-analysis --mode=review`) for rules matching the stage's layer
 3. `docs/project-config.json` → `referenceDocs` for the layer's pattern doc
 4. **STATE THE FALLBACK.** No codified rules exist → say so — *"no project review rules found; red flags below are general-practice, not repo doctrine"* — and give general-practice flags labelled as such.
 

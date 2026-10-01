@@ -7,8 +7,7 @@ Inserts:
               below the main authored content.
   BOTTOM:     a SYNC:...:reminder block immediately BEFORE `## Closing Reminders`
 
-TODO (follow-up): the inject_*.py family (this + inject_task_tracking_sync.py +
-inject_project_reference_prefetch.py) is ~85% identical. Extract a shared
+TODO (follow-up): the inject_*.py family (this + inject_task_tracking_sync.py) is ~85% identical. Extract a shared
 inject_sync_block(skills, tag, top, bottom) helper. Tracked as MEDIUM DRY finding
 in tmp/reports/workflow-review-changes-260504-0353-tooling-changeset.md.
 """
@@ -28,31 +27,33 @@ SKILL_NAMES = [
     # ---- Child skills (multi-phase work that nests under workflow steps) ----
     # Plan family
     "plan",
-    "plan-review", "plan-validate",
     # Review family
-    "security-audit", "ai-engineering-review", "code-quality-review", "integration-test-review",
-    "knowledge-review", "architecture-review",
-    "artifact-review", "changes-review", "domain-entities-review",
-    "production-readiness-review", "architecture-review-full",
+    "security-audit", "ai-engineering-review", "code-quality-review",
+    "knowledge-review",
+    # `architecture` (review and full modes) keeps its nested-task-creation body inline in
+    # architecture/references/mode-*.md, so it is not an injector target.
+    # `pbi` keeps its nested-task-creation body inline in pbi/references/mode-review.md, so it is not an injector target.
+    "changes-review",
+    "production-readiness-review",
     "why-review",
     # Cook family
     "feature-implement",
-    # Code family
-    "plan-execute",
     # Fix family (ci/issue/logs/test/ui folded into /fix --target=*)
     "fix",
     # Investigate family
-    "investigate", "debug-investigate",
-    # Spec authoring quality family (idea → spec gates)
-    "spec-discovery", "spec-clarify",
+    "investigate",
+    # Spec authoring quality gates (discovery / clarify) are `spec` modes: their bodies carry
+    # these blocks inline in spec/references/mode-*.md, so `spec` is intentionally not a target.
     # Refactor / migration / scaffold
     "db-migrate", "scaffold",
     # Workflow step skills (inner phases)
     # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —
     # it carries task-tracking via STEP-TASK-ANCHOR and inherits feature-spec's
     # lean SYNC set; injecting here would duplicate existing coverage.
-    "integration-test", "integration-test-verify",
-    "docs-update", "watzup",
+    "integration-test",
+    # `docs-manager` modes carry these blocks inline in docs-manager/references/mode-*.md,
+    # so `docs-manager` is intentionally not a target.
+    "watzup",
     # ---- Orchestrator skills (workflow-*) ----
     "workflow-big-feature",
     "workflow-bugfix",
@@ -62,15 +63,13 @@ SKILL_NAMES = [
     "workflow-idea-to-pbi",
     "workflow-idea-to-spec",
     "workflow-implement-spec",
-    "workflow-integration-test-green",
+    "workflow-integration-test",
     "workflow-refactor", "workflow-research",
     "workflow-review-changes",
     "workflow-architecture-audit",
     "workflow-seed-test-data", "workflow-code-to-spec", "workflow-spec-to-pbi",
     "workflow-spec-to-mockup",
     "workflow-spec-sync",
-    "workflow-visualize",
-    "workflow-write-integration-test",
     # workflow-end + start-workflow intentionally excluded — they are state-only,
     # no multi-phase internal work.
 ]

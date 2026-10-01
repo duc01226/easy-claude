@@ -139,7 +139,7 @@ function assertFixLoopMode(parts) {
     assert.match(section, /NEVER the `Agent` tool/);
     // Read-only callers never enable it; no specific caller can silently opt into the loop.
     assert.match(source, /These callers NEVER pass `--fix-loop`/);
-    assert.doesNotMatch(source, /`\/plan-review`'s Parallel Review Wave|`\/plan-review` wave member/);
+    assert.doesNotMatch(source, /`\/plan --mode=review`'s Parallel Review Wave|`\/plan --mode=review` wave member/);
     assert.match(closing, /NEVER let a read-only caller pass the flag/);
 }
 

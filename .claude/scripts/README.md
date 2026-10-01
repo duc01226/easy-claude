@@ -163,7 +163,7 @@ By default, outputs YAML to stdout. Use `--output PATH` to write to a file inste
 ## doc-impact-map.cjs
 
 Routes the current code changes to the `docs/project-reference/**` docs and `docs/project-config.json`
-sections those changes can make stale. Backs the impact-scoped freshness pass in `/docs-update` Phase 1,
+sections those changes can make stale. Backs the impact-scoped freshness pass in `/docs-manager --mode=update` Phase 1,
 so a post-change freshness check costs a few targeted verifications instead of a full `/scan-all`.
 
 Routing is derived from `docs/project-config.json` (`contextGroups`, `modules`, `testing`, `e2eTesting`,
@@ -218,8 +218,8 @@ Run every command from the project root; each works the same on Windows, macOS a
 
 | Script | Command | Purpose |
 | --- | --- | --- |
-| `build-protocol-projection.cjs` | `node .claude/scripts/build-protocol-projection.cjs [--check]` | Generates `.claude/skills/shared/protocols/` (one `<tag>.md` per shared protocol, `<tag>.part-<n>.md` for a tag over the bin, and `index.json`) from `.claude/skills/shared/sync-inline-versions.md` and `.claude/skills/shared/protocol-groups.json`. Rebuild in the same change as any canonical protocol edit; `--check` is read-only and exits 1 when the output is stale or the group data is invalid |
-| `lib/protocol-guide-carrier.cjs` | `require` only | JavaScript recognizer of the `PROTOCOL-GUIDES` guide-line format (twin of `format_guide_line` in `sync_blocks.py`); sensors and injectors call it instead of copying the regex |
+| `build-protocol-projection.cjs` | `node .claude/scripts/build-protocol-projection.cjs [--check]` | Generates `.claude/skills/shared/protocols/` (one `<tag>.md` per shared protocol, `<tag>.part-<n>.md` for a tag over the bin, and `index.json`) from `.claude/skills/shared/sync-inline-versions.md` and `.claude/skills/shared/protocol-groups.json`. Also validates the `universal` group's authored `bins` layout (every universal tag in exactly one bin, each rendered bin within the 9,500-character limit). Rebuild in the same change as any canonical protocol edit; `--check` is read-only and exits 1 when the output is stale or the group data is invalid |
+| `lib/protocol-guide-carrier.cjs` | `require` only | JavaScript recognizer of the `PROTOCOL-GUIDES` guide-line format and of the retired `Root-carried protocols` pointer line that guards must not find (twins of `format_guide_line` and `root_pointer_lines` in `sync_blocks.py`; `sync-update-blocks.py --mode=strip-root-pointer` removes one); sensors and injectors call it instead of copying the regex |
 | `sync-skill-profile.cjs` | `node .claude/scripts/sync-skill-profile.cjs [--check]` | Applies `skillProfile` from `docs/project-config.json` to `.claude/settings.json` `skillOverrides` (owned keys only, ledger `.claude/skill-profile.generated.json`); exports `resolveProfile`, which the Codex and OpenCode syncs use for the called-skill set (workflow steps, agent skills, `calledByOthers`, `entrySkills`) and refusals, plus the crash-consistent writers `writeTextAtomic` and `writePairCrashConsistent` they share. Read `.claude/config/README.md#skill-profile` for the contract |
 | `session-usage-report.cjs` | `node .claude/scripts/session-usage-report.cjs --transcript <path> [--compare <path>] [--run <runId>] [--json]` | Offline token usage of one Claude session (main + sub-agents, each response once; non-cached total apart from cache reads), an A/B comparison, and a run's deviation log (step id and kind only, never evidence text) |
 | `open-report.cjs` | `node .claude/scripts/open-report.cjs <path>` | Opens a generated report under the project `tmp/` or `temp/` in the default viewer with a literal argv — only report file types (`.html`, `.htm`, `.md`, `.txt`, `.pdf`, `.png`, `.jpg`, `.jpeg`, `.svg`, `.json`, checked case-insensitively on the resolved file); opens nothing under `CI` or `CK_NO_AUTO_OPEN=1`, or on Linux without a display, and always prints the path |

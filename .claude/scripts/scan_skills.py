@@ -188,7 +188,7 @@ DESCRIPTION_PREFIX_TO_CATEGORY = {
 def name_matches(lower_name: str, keyword: str) -> bool:
     """Match a category keyword against a hyphen/underscore-delimited skill name.
 
-    A bare keyword must match a whole name token, so 'ui' matches `ui-review` but
+    A bare keyword must match a whole name token, so 'ui' matches `ui-design` but
     not `demo-guide`. Keywords that are themselves prefixes ('ai-') or already
     hyphenated ('skill-creator') keep substring semantics.
     """

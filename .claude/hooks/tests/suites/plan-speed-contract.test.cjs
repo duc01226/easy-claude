@@ -10,9 +10,9 @@
  * Invariants guarded:
  *   - plan/SKILL.md § Plan Artifact Contract: decision/boundary altitude, bounded discovery, one artifact,
  *     metadata-gated waves and verify-last final gates;
- *   - plan-execute/SKILL.md: Step 3 = static review, Step 4 = the one verify, both once over the whole
+ *   - plan/references/mode-execute.md (plan --mode=execute): Step 3 = static review, Step 4 = the one verify, both once over the whole
  *     changeset; workflow-nested runs stop after implementation;
- *   - plan-review/SKILL.md: checks verify-last order and real dependency boundaries in one pass;
+ *   - plan/references/mode-review.md: checks verify-last order and real dependency boundaries in one pass;
  *   - the verify-last protocol reaches every owner skill and the review workflow defers its tests.
  *
  * Portability: reads only files that ship inside `.claude/`, resolved from this file's own
@@ -78,10 +78,10 @@ const tests = [
         }
     },
     {
-        name: 'TC-PSC-004 plan-execute reviews statically first, then verifies once; nested runs leave both to the parent workflow',
+        name: 'TC-PSC-004 plan --mode=execute reviews statically first, then verifies once; nested runs leave both to the parent workflow',
         fn: () => {
-            // Given plan-execute
-            const text = read('plan-execute/SKILL.md');
+            // Given the plan skill's execute mode
+            const text = read('plan/references/mode-execute.md');
             // When a multi-phase run executes
             // Then per phase only compile runs, no test run of any kind
             assert.match(text, /\*\*Multi-phase run\*\*[^\n]*per phase, run only type-check\/compile — no test run of any kind/);
@@ -106,10 +106,10 @@ const tests = [
         }
     },
     {
-        name: 'TC-PSC-005 plan-review checks verify-last order and dependency-shaped phases',
+        name: 'TC-PSC-005 plan --mode=review checks verify-last order and dependency-shaped phases',
         fn: () => {
-            // Given plan-review's one-pass core review
-            const text = read('plan-review/SKILL.md');
+            // Given the plan skill's review-mode one-pass core review
+            const text = read('plan/references/mode-review.md');
             // Then it guards both the final verification order and phase/dependency ceremony
             assert.match(text, /Verify-last \| Are tests authored with implementation and executed only after all implementation and static review\?/);
             assert.match(text, /Dependency order \| Do phases reflect real dependencies or disjoint ownership rather than ceremony\?/);
@@ -131,11 +131,13 @@ const tests = [
             assert.match(read('integration-test/SKILL.md'), /Verify-last exception[\s\S]*WRITES the tests and does NOT run them/);
             assert.match(read('code-simplifier/SKILL.md'), /verify statically instead[\s\S]*run none/);
             // And every owner skill carries it (guide line or inline body)
-            for (const skill of ['plan', 'plan-execute', 'feature-implement', 'fix', 'test', 'integration-test-verify',
+            for (const skill of ['plan', 'feature-implement', 'fix', 'test', 'integration-test',
                 'workflow-review-changes', 'workflow-feature', 'workflow-bugfix', 'workflow-refactor',
                 'workflow-implement-spec', 'workflow-big-feature', 'workflow-greenfield-init', 'start-workflow']) {
                 assert.match(read(`${skill}/SKILL.md`), /verify-last-order/, `${skill} must reference the verify-last protocol`);
             }
+            // And the plan skill's execute mode keeps the verify-last order in its own reference
+            assert.match(read('plan/references/mode-execute.md'), /SYNC:verify-last-order/, 'plan --mode=execute must reference the verify-last protocol');
             // And the review workflow can defer its own test run to the parent's single verify
             assert.match(read('workflow-review-changes/SKILL.md'), /`--tests=\{prove\|defer\}` \(default `prove`\)/);
             // And the close refuses a green run older than the last edit
@@ -157,9 +159,9 @@ const tests = [
             // And integration-test carries the same characterization exception
             assert.match(read('integration-test/SKILL.md'), /characterization tests written BEFORE a refactor moves code get ONE targeted run/);
             // And the mutation result is part of the verify report and of the close evidence
-            assert.match(read('integration-test-verify/SKILL.md'), /mutation-check result \(mutants killed n\/n/);
+            assert.match(read('integration-test/references/mode-verify.md'), /mutation-check result \(mutants killed n\/n/);
             assert.match(read('workflow-end/SKILL.md'), /cite the mutation-check result/);
-            // And the approval prompt at the close keys on a nested plan-execute in the task list, never on the deviation log
+            // And the approval prompt at the close keys on a nested plan --mode=execute in the task list, never on the deviation log
             assert.match(read('workflow-end/SKILL.md'), /ran nested in this run[^\n]*NOT the deviation log/);
             // And standalone /fix orders the verify after the reviews in every place it states the order
             const fix = read('fix/SKILL.md');
@@ -167,7 +169,7 @@ const tests = [
             assert.match(fixLine(/^- \*\*No-flag spine:\*\*/), /verify once/, 'fix no-flag spine states the verify-once step');
             assert.match(fixLine(/\*\*Final standalone order:\*\*/), /verify once/, 'fix final standalone order states the verify-once step');
             assert.match(fixLine(/^> \*\*Standalone Review Gate/), /verify once/, 'fix standalone review gate states the verify-once step');
-            assert.match(fixLine(/standalone \(no parent workflow\) self-assembles the spine/), /verify once/, 'fix closing reminder states the verify-once step');
+            assert.match(fixLine(/standalone \(not `nested=true`[^)]*\) self-assembles the spine/), /verify once/, 'fix closing reminder states the verify-once step');
             // And the numbered standalone todo spine ends with the verify-once item after the reviews
             assert.match(fixLine(/^> 6\. \*\*Verify once\*\*/), /final todo, after every review[^\n]*regression tests once, then the mutation check/, 'fix numbered spine has a verify-once item');
             // And the review-fix step re-runs its tests only when no later verify step exists
@@ -175,8 +177,8 @@ const tests = [
             // And the custom-simple route examples put the review before the test
             assert.doesNotMatch(read('start-workflow/SKILL.md'), /investigate → fix → test → changes-review/);
             assert.doesNotMatch(read('shared/workflow-first-gate.md'), /investigate → fix → test → changes-review/);
-            // And plan-execute maps the plan's final gate phase onto Steps 3-4 instead of running a second review/verify in Step 2
-            assert.match(read('plan-execute/SKILL.md'), /ONE final gate phase[^\n]*never a second run inside Step 2/);
+            // And plan --mode=execute maps the plan's final gate phase onto Steps 3-4 instead of running a second review/verify in Step 2
+            assert.match(read('plan/references/mode-execute.md'), /ONE final gate phase[^\n]*never a second run inside Step 2/);
         }
     },
     {

@@ -1,7 +1,7 @@
 ---
 name: watzup
 version: 1.3.0
-description: '[Utilities] Use when a workflow step or the user asks for a session wrap-up. Summarizes what was done, key changes, why and how in an HTML report, then flags stale docs and lessons.'
+description: '[Utilities] Use when a workflow step or the user asks for a session wrap-up: HTML report of what was done, changes, why; flags stale docs and lessons.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -41,6 +41,7 @@ description: '[Utilities] Use when a workflow step or the user asks for a sessio
 - READ-ONLY: only flag findings, never implement or fix anything.
 - Scope covers the whole session: uncommitted changes plus this session's commits.
 - The Session summary always runs and comes first, with all four parts: Done, Key changes, Why, How it works.
+- Recap ownership: this Session summary is the run's recap whenever `watzup` runs; `workflow-end` prints the recap itself exactly when no `watzup` will run after it, and a nested workflow skips its own `watzup` because its parent's tail owns the recap.
 - Doc-staleness and spec-health gates are REQUIRED when code changed; with no code changed each records `skipped — no code changed` with evidence.
 - Lesson-learned analysis is REQUIRED on every run.
 - Write the HTML session report on every run, open it with `open-report.cjs`, and post a short chat summary plus its path.
@@ -135,7 +136,7 @@ git log --since="30 days ago" --name-only -- "$SPEC_ROOT"/ | head -10
 
 | Result                                               | Action                                                                                  |
 | ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| No commits in last 30 days AND business code changed | ⚠️ Flag: `"Business feature docs may be stale. Consider running /docs-update to sync."` |
+| No commits in last 30 days AND business code changed | ⚠️ Flag: `"Business feature docs may be stale. Consider running /docs-manager --mode=update to sync."` |
 | Recent commits found                                 | ✅ Feature docs are being maintained                                                    |
 
 **Output only flags that apply.** When no code changed, record `Spec health: skipped — no code changed` with the evidence; when code changed but none of it is business code, record `Spec health: skipped — no business code changed` with the changed-path list.
@@ -235,7 +236,7 @@ Runs on every invocation after the lesson analysis. It is the detailed, readable
 
 After the report is written, MUST ATTENTION use `AskUserQuestion` to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
 
-- **"/workflow-end (Recommended)"** — Complete and close the active workflow
+- **"/workflow-end (Recommended)"** — Complete and close the active workflow. **Offer it only when `/workflow-end` has not already run**: when this session's task list or the workflow's Tier-2 manifest shows a completed `workflow-end` occurrence (or its `Workflow [name] completed` announcement), leave this option out and make `/commit` the first option. A standalone wrap-up with no such evidence keeps this option.
 - **"/commit"** — Commit changes if not using workflow
 - **"Skip, continue manually"** — user decides
 
@@ -249,12 +250,8 @@ After the report is written, MUST ATTENTION use `AskUserQuestion` to present the
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -265,33 +262,12 @@ After the report is written, MUST ATTENTION use `AskUserQuestion` to present the
 
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 
@@ -311,12 +287,6 @@ After the report is written, MUST ATTENTION use `AskUserQuestion` to present the
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Hand the developer an evidence-backed wrap-up of the session — a **Session summary** first (Done · Key changes · Why · How it works), then the detail, doc/spec staleness flags and root-cause lessons — delivered as a self-contained HTML report opened for them, WITHOUT changing any repository file, so they understand the work and decide the next step from full context.
@@ -324,11 +294,8 @@ After the report is written, MUST ATTENTION use `AskUserQuestion` to present the
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Nested Task Creation:** Expand child phases, link parent, one task in_progress.
-- **Project Reference Docs Guide:** Read required project-reference docs (always lessons.md) before work.
 - **Task Tracking External Report:** Bootstrap task tracking; persist findings to tmp/reports/ incrementally.
-- **Critical Thinking:** Critical + sequential thinking; traced proof, no guess-as-fact.
 - **Evidence:** Cite file:line for every claim; never speculate.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **IMPORTANT MUST ATTENTION** stay READ-ONLY — only FLAG findings; NEVER edit, fix, implement, or update the docs or specs you flag — why: watzup is a review/handoff, not an edit pass; flagging-then-fixing silently breaks the read-only contract.
 **IMPORTANT MUST ATTENTION** scope the whole session (uncommitted changes plus this session's commits) and write the Session summary first — Done, Key changes, Why, How it works — then run the gates: doc-staleness, spec health (business code only), lesson extraction. Never skip a gate because the change "looks small"; with no code changed, doc-staleness and spec health record `skipped — no code changed` with evidence — why: stale docs and missed lessons compound silently, while a code gate on a no-code session is noise.

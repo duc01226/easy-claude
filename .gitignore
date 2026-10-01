@@ -13,6 +13,7 @@ plans/
 /temp/
 .claude/scheduled_tasks.lock
 node_modules/
+**/.venv/
 .claude/scripts/codex/tests/fixtures/
 !.claude/scripts/codex/tests/fixtures/
 !.claude/scripts/codex/tests/fixtures/*.md

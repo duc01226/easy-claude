@@ -6,9 +6,12 @@
  * `.claude/scripts/sync-hooks-to-skills.py`. Without this, an agent silently
  * drops a rule on edit, or a NEW agent is added with no tier decision.
  *
+ * The universal protocols (the `universal` group of protocol-groups.json) are NOT tier blocks:
+ * the universal hook delivers them and no agent carries any part of them (TC-UAR-011). `task-tracking-external-report` is folded into agent-bootstrap.
+ *
  * Tiers (MUST mirror the inserter's constants exactly — single invariant, two
  * enforcers: sync-hooks-to-skills.py and this suite):
- *   - CORE          : 6 blocks — every agent.
+ *   - CORE          : 2 blocks — every agent.
  *   - READONLY_CODE : CORE + 2 reading-discipline blocks (understand-code-first,
  *                     evidence-based-reasoning) — read-only/design agents that
  *                     locate/read/design code but never fix a layer or cross a
@@ -23,7 +26,7 @@
  *                    code-standards (researcher/ui-ux-designer don't author/review code).
  *
  * Tests:
- *   A (TC-UAR-003) — every agent carries all Core-6 open+close tags.
+ *   A (TC-UAR-003) — every agent carries all Core-2 open+close tags.
  *   B (TC-UAR-004) — each CODE agent carries all 4 code tags; each READONLY_CODE
  *                    agent carries the 2 reading-discipline tags but NEITHER
  *                    mutation tag; each core-only agent carries NONE of the 4.
@@ -47,11 +50,12 @@
  *   H (TC-UAR-010) — web-research domain block: web-research/SKILL.md MUST carry its
  *                    own SYNC:web-research block (regression guard — the skill's
  *                    primary-behavior protocol must not silently drop on edit).
- *   I (TC-UAR-011) — canonical reminder parity: files carrying managed reminder
- *                    blocks match sync-inline-versions.md exactly.
- *   J (TC-UAR-012) — universal AI mistake prevention blocks/digests stay
- *                    role-neutral; code/debug/fix wording belongs in code-tier
- *                    protocols, not the universal block.
+ *   I (TC-UAR-011) — universal contract: no skill or agent holds a body, `:reminder`,
+ *                    guide line or pointer line of a universal tag (agents also none of
+ *                    the agent-folded tags).
+ *   J (TC-UAR-012) — universal AI mistake prevention text (canonical body, reminder
+ *                    and any surviving digest) stays role-neutral; code/debug/fix
+ *                    wording belongs in code-tier protocols, not the universal block.
  *   K (TC-UAR-013) — protocol digest aliases must not claim absent managed
  *                    SYNC blocks are in force.
  *   L (TC-UAR-014) — scaffold production-readiness wording stays aligned to
@@ -60,7 +64,7 @@
  *                    includes review/fix-cycle validation.
  *   N (TC-UAR-016) — off-role protocol trim pins: architect carries NO
  *                    source-test-drift-check / scaffold-production-readiness;
- *                    refine carries NO scaffold-production-readiness /
+ *                    the pbi refine mode reference carries NO scaffold-production-readiness /
  *                    cross-cutting-quality.
  *                    Confirms the user-validated KEEPS survive: architect &
  *                    solution-architect keep fix-layer-accountability; architect &
@@ -86,16 +90,16 @@ const { assertEqual, assertTrue } = require('../lib/assertions.cjs');
 const AGENTS_DIR = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'agents');
 const SKILLS_DIR = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'skills');
 const SYNC_INLINE_PATH = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
+const GROUPS_PATH = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'skills', 'shared', 'protocol-groups.json');
 
 // ── Tier constants — mirror sync-hooks-to-skills.py tier sets verbatim ────────
 const CORE_TAGS = [
-    'critical-thinking-mindset',
-    'ai-mistake-prevention',
     'sequential-thinking-protocol',
-    'task-tracking-external-report',
-    'project-reference-docs-guide',
     'agent-bootstrap',
 ];
+// Never on an agent: task-tracking-external-report is folded into agent-bootstrap (mirror of
+// sync_blocks.AGENT_FOLDED_TAGS); the universal tags come from the universal group (TC-UAR-011).
+const AGENT_FOLDED_TAGS = ['task-tracking-external-report'];
 // CODE_TAGS splits into two axes for the readonly-code sub-tier:
 //   READONLY_CODE_TAGS — shared by CODE and READONLY_CODE agents (reading discipline).
 //   MUTATION_CODE_TAGS — CODE agents ONLY; readonly-code agents must NOT carry them.
@@ -143,6 +147,7 @@ const AGENT_ADOPTION_EXEMPT = new Set([
     'parallel-subagent-dispatch',  // orchestrator partitions ITS task list into PAR/SEQ waves and spawns them; a leaf agent runs one brief and (per the block's own rule 7) must not fan out
     'sub-agent-selection',         // a dispatcher choosing which sub-agents to spawn
     'goal-contract-satisfaction-loop', // session goal file + convergence loop + user escalation
+    'task-tracking-external-report', // folded into agent-bootstrap: an agent keeps one statement of the task and report rules (sync_blocks.AGENT_FOLDED_TAGS)
     'project-protocol-overlay',    // overlay resolution is performed by whoever INVOKES the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the dispatching orchestrator already resolved
     'session-goal-ledger',         // tracks the USER's session prompts; a headless leaf never sees the user conversation (its brief already carries the goal) and the prompt-ledger hook injects nothing inside a helper agent
     'verify-last-order',           // orders test runs ACROSS a task's steps (build, static review, one verify); the orchestrator owns it, and the leaf rules are written into fullstack-developer.md / frontend-developer.md (agent_protocol_matrix.py EXCLUDED_ORCHESTRATION)
@@ -159,11 +164,11 @@ const AGENT_ADOPTION_EXEMPT = new Set([
 const AGENT_SKILL_CONNECTIONS_OPEN = '<!-- AGENT-SKILL-CONNECTIONS:START -->';
 const AGENT_SKILL_CONNECTIONS_CLOSE = '<!-- AGENT-SKILL-CONNECTIONS:END -->';
 const TEST_ARCHITECTURE_SKILLS = [
-    'architecture-design', 'architecture-scalability-review', 'architecture-review-full',
+    'architecture',
     'scaffold', 'harness-setup', 'workflow-greenfield-init',
-    'integration-test', 'integration-test-review', 'integration-test-verify',
+    'integration-test',
     'e2e-test', 'workflow-e2e',
-    'workflow-write-integration-test', 'workflow-integration-test-green', 'test',
+    'workflow-integration-test', 'test',
     'seed-test-data',
 ];
 // agent-code-standards audience — SEPARATE axis (mirror sync-hooks-to-skills.py
@@ -300,7 +305,7 @@ module.exports = {
     name: 'agent-universal-rules',
     tests: [
         {
-            name: '[agent-universal-rules] TC-UAR-003 every agent carries all Core-6 open+close tags',
+            name: '[agent-universal-rules] TC-UAR-003 every agent carries all Core-2 open+close tags',
             fn: () => {
                 const missing = [];
                 for (const name of diskAgents) {
@@ -309,7 +314,7 @@ module.exports = {
                         if (!hasBlock(body, tag)) missing.push(`${name} → ${tag}`);
                     }
                 }
-                assertEqual(missing.length, 0, `agents missing Core-6 blocks:\n  ${missing.join('\n  ')}`);
+                assertEqual(missing.length, 0, `agents missing Core-2 blocks:\n  ${missing.join('\n  ')}`);
             },
         },
         {
@@ -433,22 +438,34 @@ module.exports = {
             },
         },
         {
-            name: '[agent-universal-rules] TC-UAR-011 managed reminder bodies match canonical sync-inline source',
+            name: '[agent-universal-rules] TC-UAR-011 the universal bundle is hook-delivered only: no skill or agent holds a body, reminder, guide line or pointer line for it',
             fn: () => {
-                const checkedTags = ['SYNC:critical-thinking-mindset:reminder', 'SYNC:ai-mistake-prevention:reminder'];
+                // Given the universal group (the hook-delivered bundle)
+                const groups = JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8'));
+                const universalTags = Object.keys((groups.groups && groups.groups.universal && groups.groups.universal.tags) || {});
+                assertTrue(universalTags.length >= 4, `the universal group holds the bundle, found ${JSON.stringify(universalTags)}`);
+                const escapeTag = tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const problems = [];
-                for (const tag of checkedTags) {
-                    const expected = canonicalBody(tag);
-                    for (const doc of instructionDocs()) {
-                        const actual = blockBody(doc.body, tag);
-                        if (actual === null) continue;
-                        if (actual !== expected) problems.push(`${doc.kind}:${doc.name} ${tag}`);
+                const docs = instructionDocs();
+                assertTrue(docs.length > 0, 'no skill or agent found (vacuous scan)');
+                // When every skill and agent is scanned
+                for (const doc of docs) {
+                    // Then no universal body, reminder or guide line is left (agents also none of the agent-folded tags)
+                    const banned = doc.kind === 'agent' ? [...universalTags, ...AGENT_FOLDED_TAGS] : universalTags;
+                    for (const tag of banned) {
+                        for (const variant of [tag, `${tag}:reminder`]) {
+                            if (new RegExp(`^<!-- SYNC:${escapeTag(variant)} -->`, 'm').test(doc.body)) problems.push(`${doc.kind}:${doc.name} carries SYNC:${variant}`);
+                        }
+                        if (guideCarrier.hasGuideEntry(doc.body, tag)) problems.push(`${doc.kind}:${doc.name} carries a guide line for ${tag}`);
                     }
+                    // And no retired pointer line stands in their place
+                    const lines = guideCarrier.rootPointerLines(doc.body);
+                    if (lines.length !== 0) problems.push(`${doc.kind}:${doc.name} has ${lines.length} retired pointer line(s)`);
                 }
                 assertEqual(
                     problems.length,
                     0,
-                    `managed reminder block(s) drift from canonical sync-inline source:\n  ${problems.join('\n  ')}`,
+                    `universal-bundle contract violations:\n  ${problems.join('\n  ')}\n  Fix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`,
                 );
             },
         },
@@ -456,6 +473,11 @@ module.exports = {
             name: '[agent-universal-rules] TC-UAR-012 universal AI mistake prevention stays role-neutral',
             fn: () => {
                 const problems = [];
+                // The canonical body is the only text of the protocol (the universal hook delivers it); a
+                // carrier that reappears with an embed is checked as before.
+                for (const tag of ['SYNC:ai-mistake-prevention']) {
+                    if (codeSpecificAiMistakePattern.test(canonicalBody(tag))) problems.push(`canonical ${tag}`);
+                }
                 for (const doc of instructionDocs()) {
                     for (const tag of ['SYNC:ai-mistake-prevention', 'SYNC:ai-mistake-prevention:reminder']) {
                         const actual = blockBody(doc.body, tag);
@@ -580,11 +602,11 @@ module.exports = {
                 const removed = [
                     { kind: 'agent', name: 'architect', tag: 'source-test-drift-check', labels: ['Source-Test Drift Check', 'Source Test Drift'] },
                     { kind: 'agent', name: 'architect', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
-                    { kind: 'skill', name: 'refine', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
-                    { kind: 'skill', name: 'refine', tag: 'cross-cutting-quality', label: 'Cross-Cutting Quality' },
+                    { kind: 'skill-file', name: 'pbi/references/mode-refine.md', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
+                    { kind: 'skill-file', name: 'pbi/references/mode-refine.md', tag: 'cross-cutting-quality', label: 'Cross-Cutting Quality' },
                 ];
                 for (const { kind, name, tag, label, labels } of removed) {
-                    const body = kind === 'agent' ? read(name) : readSkill(name);
+                    const body = kind === 'agent' ? read(name) : kind === 'skill-file' ? fs.readFileSync(path.join(SKILLS_DIR, name), 'utf8') : readSkill(name);
                     // A guide entry is a carrier too: a trimmed protocol must not come back as a guide line.
                     if (body.includes(`SYNC:${tag}`) || guideCarrier.hasGuideEntry(body, tag)) {
                         problems.push(`${kind}:${name} still carries SYNC:${tag} (must be trimmed)`);

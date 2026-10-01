@@ -104,8 +104,8 @@ async function run() {
     // THE GATE IS IRREVERSIBILITY, NOT AUTHORITY. This hook blocks what cannot be undone —
     // commands that destroy uncommitted work, and destructive history rewrites. `add`, `commit` and
     // `push` are recoverable (unstage, revert, force-push back) and are NO LONGER hook-enforced;
-    // CLAUDE.md rule 1 still forbids them without an explicit request, as a MODEL-BEHAVIORAL rule
-    // that binds on hookless hosts too. Both halves are asserted here: what must still deny, and —
+    // rule 1 of the universal `git-discipline` protocol still forbids them without an explicit request,
+    // as a MODEL-BEHAVIORAL rule the hook never enforces. Both halves are asserted here: what must still deny, and —
     // load-bearing — what must NOT, because an over-blocked routine path is what drives a user to
     // disable the hook and lose the destructive gate with it.
     console.log('\n--- Irreversible-operation policy ---');

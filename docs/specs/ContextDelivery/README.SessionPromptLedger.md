@@ -35,25 +35,25 @@ roadmap_status: null
 
 ## 1. Overview
 
-In long working sessions an AI assistant loses track of what the user originally asked for: early prompts are pushed far back, condensed away when the host shortens the conversation, or never passed to helper agents, so the final result drifts from the request. This capability makes the assistant pin the original request before it starts, keep a running list of every prompt the user gives in the session, re-read both at each step, and check the final result against all of them. A durable session record captures every prompt verbatim (with secrets removed) and puts a short reminder of the original request and the prompts back in front of the assistant only when it may have been lost — after a condensation, after the conversation has grown very long, or at a task-list checkpoint. The same rule lives in the always-loaded instructions and in every workflow skill, so assistants without automation follow it too.
+In long working sessions an AI assistant loses track of what the user originally asked for: early prompts are pushed far back, condensed away when the host shortens the conversation, or never passed to helper agents, so the final result drifts from the request. This capability makes the assistant pin the original request before it starts, keep a running list of every prompt the user gives in the session, re-read both at each step, and check the final result against all of them. A durable session record captures every prompt verbatim (with secrets removed) and puts a short reminder of the original request and the prompts back in front of the assistant only when it may have been lost — after a condensation, after the conversation has grown very long, or at a task-list checkpoint. The same rule is delivered to every session by the universal task-planning protocol and carried by every workflow skill, so an assistant whose session record is switched off follows it too.
 
 ---
 
 ## 2. Glossary
 
-| Term              | Definition                                                                                   | Context                                                  |
-| ----------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Prompt            | One message the user submits to the assistant                                                | Every prompt in a session is tracked                     |
-| Original Request  | The first prompt of a session, or of a conversation after a clear                            | Pinned; never evicted from the record                    |
-| Goal Line         | A one-line summary of a prompt, at most 160 characters                                       | Shown in reminders                                       |
-| Prompt Entry      | One recorded prompt: sequence number, time, goal line, redacted bounded text                 | Kept in the session record                               |
-| Session Record    | The ordered list of prompt entries for one session                                           | Stored in the project's disposable workspace             |
-| Ledger Digest     | The short reminder of the original request and recent goal lines                             | Delivered only when not present                          |
-| Condensation      | The host shortening a long conversation                                                      | Makes earlier reminders absent                           |
-| Reminder Distance | Conversation growth, or elapsed time when growth cannot be measured, since the last delivery | Large distance means the reminder faded                  |
-| Task Checkpoint   | The assistant creating or updating its task list                                             | A natural re-anchoring moment                            |
-| Helper Agent      | A delegated assistant conversation with its own brief                                        | Receives the goal through its brief, not from the record |
-| Static Protocol   | The goal-tracking rule written in always-loaded instructions and workflow skills             | Works without any automation                             |
+| Term              | Definition                                                                                              | Context                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Prompt            | One message the user submits to the assistant                                                           | Every prompt in a session is tracked                     |
+| Original Request  | The first prompt of a session, or of a conversation after a clear                                       | Pinned; never evicted from the record                    |
+| Goal Line         | A one-line summary of a prompt, at most 160 characters                                                  | Shown in reminders                                       |
+| Prompt Entry      | One recorded prompt: sequence number, time, goal line, redacted bounded text                            | Kept in the session record                               |
+| Session Record    | The ordered list of prompt entries for one session                                                      | Stored in the project's disposable workspace             |
+| Ledger Digest     | The short reminder of the original request and recent goal lines                                        | Delivered only when not present                          |
+| Condensation      | The host shortening a long conversation                                                                 | Makes earlier reminders absent                           |
+| Reminder Distance | Conversation growth, or elapsed time when growth cannot be measured, since the last delivery            | Large distance means the reminder faded                  |
+| Task Checkpoint   | The assistant creating or updating its task list                                                        | A natural re-anchoring moment                            |
+| Helper Agent      | A delegated assistant conversation with its own brief                                                   | Receives the goal through its brief, not from the record |
+| Static Protocol   | The goal-tracking rule delivered by the universal task-planning protocol and carried by workflow skills | Works without the session record                         |
 
 ---
 
@@ -106,15 +106,15 @@ In long working sessions an AI assistant loses track of what the user originally
 - **AC-SPL-21** — **Given** a payload the host generated (a background task notification, a system reminder, a command echo) **When** it arrives on the prompt channel **Then** it is not recorded and never becomes the pinned request
 - **AC-SPL-22** — **Given** the record was created while the conversation was already long **When** any reminder is shown **Then** it says the first entry is only the first recorded prompt and the original request may be earlier
 
-### US-SPL-04: Same discipline without automation
+### US-SPL-04: Same discipline without the session record
 
-**As a** developer using a host without automation
-**I want** the assistant instructions to require pinning, tracking and verifying against my request
-**So that** goal tracking never depends on automation
+**As a** developer who switched the session record off
+**I want** the instructions the assistant receives to require pinning, tracking and verifying against my request
+**So that** goal tracking never depends on the session record
 
 **Acceptance Criteria:**
 
-- **AC-SPL-18** — **Given** the always-loaded instructions and every workflow skill **When** an assistant reads them **Then** they require pinning the original request, keeping the prompt list, re-reading both at each step and verifying the result against every prompt
+- **AC-SPL-18** — **Given** the universal task-planning protocol (delivered by the universal hook) and every workflow skill **When** an assistant receives or reads them **Then** they require pinning the original request, keeping the prompt list, re-reading both at each step and verifying the result against every prompt
 - **AC-SPL-19** — **Given** the canonical protocol **When** any carrier is inspected **Then** its copy equals the canonical text
 
 ---
@@ -174,7 +174,7 @@ In long working sessions an AI assistant loses track of what the user originally
 
 ### BR-SPL-12: Static parity [HARD]
 
-**Statement:** The goal-tracking protocol — pin the original request before the first action, keep the running prompt list, re-read both at each step, after condensation and before delegation, and map the final result to every prompt — is carried by the always-loaded instructions, by every workflow skill, and by the shared prompt protocol used for mirrored skills, each identical to one canonical text. Automation is an accelerator, never the only carrier.
+**Statement:** The goal-tracking protocol — pin the original request before the first action, keep the running prompt list, re-read both at each step, after condensation and before delegation, and map the final result to every prompt — is carried by the universal task-planning protocol that the universal hook delivers and by every workflow skill (inline, or as a guide entry whose published text equals the canonical text), each identical to one canonical text. No root instruction file carries a copy, and a host that runs no hook is unsupported. The session record is an accelerator, never the only carrier.
 
 ### BR-SPL-13: Only genuine user input is recorded [HARD]
 
@@ -246,7 +246,7 @@ SessionRecord 1──N LedgerDigest       (rendered on demand)
 
 ## 6. Process Flows
 
-> No screen exists: the interaction surface is the reminder text the assistant receives, the session record, and the static instructions.
+> No screen exists: the interaction surface is the reminder text the assistant receives, the session record, and the delivered protocol text.
 
 ### Flow: Record a prompt
 
@@ -264,14 +264,14 @@ SessionRecord 1──N LedgerDigest       (rendered on demand)
 | 1    | Host      | Reports a condensation                         | Condensation time recorded; digest shown     | end  |
 | 2    | Assistant | Updates its task list in the main conversation | Presence evaluated; digest shown when absent | end  |
 
-### Flow: Follow the protocol without automation
+### Flow: Follow the protocol without the session record
 
-| Step | Actor     | Action                                                    | System Response                                             | Next |
-| ---- | --------- | --------------------------------------------------------- | ----------------------------------------------------------- | ---- |
-| 1    | Assistant | Reads the always-loaded instructions or a workflow skill  | Pins the original request before the first action           | 2    |
-| 2    | Assistant | Receives further prompts                                  | Appends each to its prompt list with its effect on the goal | 3    |
-| 3    | Assistant | Starts each step, delegates or resumes after condensation | Re-reads the goal and the list; passes the goal in briefs   | 4    |
-| 4    | Assistant | Finishes                                                  | Maps the result to the original request and every prompt    | end  |
+| Step | Actor     | Action                                                        | System Response                                             | Next |
+| ---- | --------- | ------------------------------------------------------------- | ----------------------------------------------------------- | ---- |
+| 1    | Assistant | Receives the task-planning protocol or reads a workflow skill | Pins the original request before the first action           | 2    |
+| 2    | Assistant | Receives further prompts                                      | Appends each to its prompt list with its effect on the goal | 3    |
+| 3    | Assistant | Starts each step, delegates or resumes after condensation     | Re-reads the goal and the list; passes the goal in briefs   | 4    |
+| 4    | Assistant | Finishes                                                      | Maps the result to the original request and every prompt    | end  |
 
 ---
 
@@ -295,7 +295,7 @@ SessionRecord 1──N LedgerDigest       (rendered on demand)
 
 ## 8. Test Specifications
 
-> Business-readable acceptance scenarios. The "user" of this capability is the developer or the AI assistant; the observable surface is the reminder text, the session record and the static instructions (no screen exists, so the UI dimension is stated as not applicable).
+> Business-readable acceptance scenarios. The "user" of this capability is the developer or the AI assistant; the observable surface is the reminder text, the session record and the delivered protocol text (no screen exists, so the UI dimension is stated as not applicable).
 
 ### Test Summary
 
@@ -345,7 +345,7 @@ And a short note naming entry 1 as the original request is shown
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Record created; one short pin note shown                                                                                                                           |
 | **Business data state** | Session record with one entry marked original                                                                                                                      |
 | **Data shown on UI**    | One-line pin note naming the record location and a version tag                                                                                                     |
@@ -405,7 +405,7 @@ And nothing is shown for either follow-up
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Entries appended; presence rule suppresses output                                                                                                                  |
 | **Business data state** | Three ordered entries                                                                                                                                              |
 | **Data shown on UI**    | Empty output for the follow-ups                                                                                                                                    |
@@ -465,7 +465,7 @@ And that entry is the pinned request
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Host-generated payload ignored; wrapper content stripped from a real prompt                                                                                        |
 | **Business data state** | One entry, holding the user's words                                                                                                                                |
 | **Data shown on UI**    | Nothing for the notification; a pin note for the real prompt                                                                                                       |
@@ -526,7 +526,7 @@ Then the note calls the first prompt the original goal
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Conversation length at creation decides the wording                                                                                                                |
 | **Business data state** | Record remembers that it started mid-session                                                                                                                       |
 | **Data shown on UI**    | Honest first line in the pin note, the digest and the full record                                                                                                  |
@@ -586,7 +586,7 @@ And the reminder counts as delivered after that condensation
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Condensation time recorded; digest delivered at session start                                                                                                      |
 | **Business data state** | Delivery record newer than the condensation                                                                                                                        |
 | **Data shown on UI**    | Digest: original request first, verify line and tag last                                                                                                           |
@@ -644,7 +644,7 @@ Then the digest is shown with the original request and every goal line
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | History scanned incrementally; presence fails; digest delivered                                                                                                    |
 | **Business data state** | New delivery record                                                                                                                                                |
 | **Data shown on UI**    | Digest text                                                                                                                                                        |
@@ -702,7 +702,7 @@ Then the digest is shown
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Distance compared with the limit                                                                                                                                   |
 | **Business data state** | Delivery record updated only on delivery                                                                                                                           |
 | **Data shown on UI**    | Digest only at the limit                                                                                                                                           |
@@ -761,7 +761,7 @@ Then the digest is shown
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Age compared with the time limit                                                                                                                                   |
 | **Business data state** | Delivery record refreshed on delivery                                                                                                                              |
 | **Data shown on UI**    | Digest only after the limit                                                                                                                                        |
@@ -820,7 +820,7 @@ Then nothing is shown
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Checkpoint evaluated with the presence rule; helper scope skipped                                                                                                  |
 | **Business data state** | Delivery record for the main conversation only                                                                                                                     |
 | **Data shown on UI**    | Digest once in main; nothing in the helper                                                                                                                         |
@@ -880,7 +880,7 @@ And no session-level report was ever needed
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Distance rules alone decide re-delivery                                                                                                                            |
 | **Business data state** | Delivery record refreshed; no condensation report stored                                                                                                           |
 | **Data shown on UI**    | Full digest on the next prompt                                                                                                                                     |
@@ -941,7 +941,7 @@ And the entry records how many values were redacted
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Redaction before truncation, storage and rendering                                                                                                                 |
 | **Business data state** | Entry text with redaction markers and a redaction count                                                                                                            |
 | **Data shown on UI**    | Only redacted goal lines                                                                                                                                           |
@@ -999,7 +999,7 @@ Then none of those values appears in the session record or in any reminder
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | A redaction marker written by the prompt is neutralised before redaction runs, so it can never shield a value                                                      |
 | **Business data state** | Record contains redaction markers only                                                                                                                             |
 | **Data shown on UI**    | No credential value                                                                                                                                                |
@@ -1057,7 +1057,7 @@ And the quotation characters in the reminder stay balanced
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Quotation characters inside recorded text are neutralised before the text is quoted                                                                                |
 | **Business data state** | Goal line free of the reminder's own quotation characters                                                                                                          |
 | **Data shown on UI**    | One balanced quoted span per prompt                                                                                                                                |
@@ -1114,7 +1114,7 @@ And the goal line is at most 160 characters
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Truncation after redaction                                                                                                                                         |
 | **Business data state** | Truncated entry flagged as truncated                                                                                                                               |
 | **Data shown on UI**    | Goal line only                                                                                                                                                     |
@@ -1173,7 +1173,7 @@ And sequence numbers stay unique and increasing
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Eviction preserves the original entry                                                                                                                              |
 | **Business data state** | Five entries, dropped count 3, total 8                                                                                                                             |
 | **Data shown on UI**    | Digest lists original and newest goal lines                                                                                                                        |
@@ -1234,7 +1234,7 @@ Then nothing is recorded and nothing is shown
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Records keyed by session identity                                                                                                                                  |
 | **Business data state** | Separate records                                                                                                                                                   |
 | **Data shown on UI**    | Only own-session content                                                                                                                                           |
@@ -1290,7 +1290,7 @@ Then no record is created and nothing is shown
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Capability inert                                                                                                                                                   |
 | **Business data state** | No record                                                                                                                                                          |
 | **Data shown on UI**    | Empty output                                                                                                                                                       |
@@ -1356,7 +1356,7 @@ And the new session's own record is marked as this capability's, so it can be cl
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Age decides removal only after ownership does; an unmarked item is never aged and never removed                                                                    |
 | **Business data state** | Stale own record gone; recent own record kept; the foreign item and its contents intact; the new record marked as owned                                            |
 | **Data shown on UI**    | Empty output                                                                                                                                                       |
@@ -1416,7 +1416,7 @@ Then the prompt proceeds, nothing is shown and no error surfaces
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Fail-open, success exit                                                                                                                                            |
 | **Business data state** | Unchanged                                                                                                                                                          |
 | **Data shown on UI**    | Empty output                                                                                                                                                       |
@@ -1475,7 +1475,7 @@ And it is at most 1600 characters and does not start with a bracket or brace
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Bounded rendering                                                                                                                                                  |
 | **Business data state** | Version tag derived from digest content                                                                                                                            |
 | **Data shown on UI**    | Digest text                                                                                                                                                        |
@@ -1533,7 +1533,7 @@ Then it is entry 1 of a new record
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Archive then restart                                                                                                                                               |
 | **Business data state** | Archived record kept until pruning                                                                                                                                 |
 | **Data shown on UI**    | Pin note for the new entry 1                                                                                                                                       |
@@ -1565,11 +1565,11 @@ Then it is entry 1 of a new record
 
 ### Static Parity Tests
 
-#### TC-SPL-041: The goal-tracking protocol is carried without any automation [P1]
+#### TC-SPL-041: The goal-tracking protocol is carried without the session record [P1]
 
-**Objective:** Prove that the always-loaded instructions, every workflow skill, and the shared prompt protocol used for mirrored skills carry the goal-tracking rule identical to its canonical text.
+**Objective:** Prove that the universal task-planning protocol and every workflow skill carry the goal-tracking rule identical to its canonical text (that no root instruction file carries a copy is proven by TC-CTXP-031 and TC-CTXP-032).
 
-**Business Intent / Invariant Guarded:** Assistants on hosts without automation still pin, track and verify against the original request (US-SPL-04, BR-SPL-12).
+**Business Intent / Invariant Guarded:** Assistants whose session record is switched off still pin, track and verify against the original request (US-SPL-04, BR-SPL-12).
 
 **Traces:** AC-SPL-18 / AC-SPL-19 / BR-SPL-12
 
@@ -1577,13 +1577,13 @@ Then it is entry 1 of a new record
 
 - Canonical protocol text defined once
 
-**Real-World Reachability:** A host without automation runs any workflow.
+**Real-World Reachability:** A session with the session record switched off runs any workflow.
 
-**Demo Flow:** Inspect root instructions, each workflow skill and the mirrored prompt protocol.
+**Demo Flow:** Inspect the universal task-planning protocol and each workflow skill.
 
 ```gherkin
 Given the canonical goal-tracking protocol
-When the root instructions, every workflow skill and the shared prompt protocol are inspected
+When the universal task-planning protocol and every workflow skill are inspected
 Then each carries the rule
 And every carried copy equals the canonical text
 ```
@@ -1592,21 +1592,21 @@ And every carried copy equals the canonical text
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
-| **System behavior**     | Static carriers present                                                                                                                                            |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
+| **System behavior**     | Protocol carriers present                                                                                                                                           |
 | **Business data state** | Carrier copies equal canonical                                                                                                                                     |
 | **Data shown on UI**    | Rule text in every carrier                                                                                                                                         |
 
 **Acceptance Criteria:**
 
-- ✅ Every carrier present and identical
+- ✅ Every carrier present and identical; the universal task-planning protocol carries the rule
 - ❌ A workflow skill without the rule, or a drifted copy
 
 **Test Data:**
 
 ```json
 {
-    "carriers": "root instructions, all workflow skills, start and end of workflow, mirrored prompt protocol"
+    "carriers": "universal task-planning protocol, all workflow skills, start and end of workflow"
 }
 ```
 
@@ -1618,7 +1618,7 @@ And every carried copy equals the canonical text
 
 > **Evidence:** `[Source: rule/hooks/static-parity]`
 > **Related Behaviors:** `rule/hooks/static-parity` · `test/hooks/prompt-ledger`
-> **CoveredBy:** `.claude/hooks/tests/suites/prompt-ledger.test.cjs::TC-SPL-041 static carriers` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/prompt-ledger.test.cjs::TC-SPL-041 protocol carriers` · **Status:** Tested
 
 ---
 
@@ -1649,7 +1649,7 @@ And a directory that is not a session record is never removed
 
 | Dimension               | Expectation                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the static instructions |
+| **UI**                  | Not applicable — the capability has no screen; the observable surface is the reminder text the assistant receives, the session record, and the delivered protocol text |
 | **System behavior**     | Bounded pruning at session start                                                                                                                                   |
 | **Business data state** | Only recent records remain                                                                                                                                         |
 | **Data shown on UI**    | Empty output                                                                                                                                                       |

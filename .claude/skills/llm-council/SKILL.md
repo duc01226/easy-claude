@@ -5,7 +5,7 @@ description: '[Decision Support] Use when pressure-testing an irreversible, high
 
 > **[IMPORTANT]** MUST ATTENTION use council only for multi-option, hard-to-reverse, high-stakes decisions. NEVER council trivial, factual, reversible, or single-option questions.
 > **[IMPORTANT]** MUST ATTENTION spawn 5 advisors in parallel, then 5 fresh peer reviewers in parallel, then chairman synthesis.
-> **[IMPORTANT]** MUST ATTENTION require evidence for code/architecture claims: `file:line`, graph trace, or explicit "insufficient evidence."
+> **[IMPORTANT]** MUST ATTENTION require evidence for code/architecture claims: `file:line` (an optional graph trace is only a hint), or explicit "insufficient evidence."
 
 # LLM Council
 
@@ -17,8 +17,8 @@ description: '[Decision Support] Use when pressure-testing an irreversible, high
 
 **Key Rules:**
 
-- MUST ATTENTION use cheaper ladder first: `/why-review` → `/plan-validate` → `/llm-council`.
-- MUST ATTENTION graph-trace code/architecture questions when `.code-graph/graph.db` exists.
+- MUST ATTENTION use cheaper ladder first: `/why-review` → `/plan --mode=validate` → `/llm-council`.
+- Optional: for a high-risk code/architecture blast radius, a graph trace (when `.code-graph/graph.db` exists) can add hints; it may be stale — verify by reading.
 - NEVER let earlier advisor responses bleed into later advisors; parallel spawn required.
 - ALWAYS mark verdict degraded if fewer than 5 usable advisor responses return.
 - ALWAYS regenerate mirrors with `/sync-codex` after editing this skill — NEVER hand-edit `.agents/` or `.codex/` (they are generated artifacts).
@@ -67,13 +67,13 @@ When user says "council this", enrich then frame.
 
 **Search order:** `CLAUDE.md` / `AGENTS.md`; `docs/project-config.json`; `docs/project-reference/project-structure-reference.md`; matching `docs/project-reference/*{domain-entities,backend-patterns,frontend-patterns,code-review-rules}*`; `docs/specs/`; `memory/`; user-referenced files; `tmp/reports/council-*`; domain data (pricing -> revenue, architecture -> service map, tech stack -> dependencies).
 
-**Code/architecture gate:** If question references existing code, services, files, or blast radius, run before framing:
+**Code/architecture evidence:** If question references existing code, services, files, or blast radius, read the files (grep/read) before framing; optionally a graph trace can add hints:
 
 ```bash
 python .claude/scripts/code_graph trace <key-file> --direction both --json
 ```
 
-Skip graph only when `.code-graph/graph.db` missing or question is non-code.
+Skip the graph when `.code-graph/graph.db` is missing, the question is non-code, or the blast radius is low-risk.
 
 **Framed question includes:** core decision, user context, workspace evidence, stakes, constraints, known unknowns. Keep the framing neutral and opinion-free. Ask exactly one clarifying question only if prompt is too vague.
 
@@ -93,11 +93,11 @@ Question:
 ---
 
 EVIDENCE RULES:
-- Code/architecture claims require `file:line`, graph trace, or "I don't have enough evidence yet."
-- If existing code context is needed, run:
+- Code/architecture claims require `file:line` (graph output is only a hint), or "I don't have enough evidence yet."
+- If existing code context is needed, read the files; optionally (stale-able hints):
   python .claude/scripts/code_graph trace <file> --direction both --json
   python .claude/scripts/code_graph connections <file> --json
-- Cite trace output for blast radius, callers, downstream impact.
+- Cite file evidence for blast radius, callers, downstream impact; label graph output as a hint.
 - Confidence: 95-100% full trace | 80-94% main paths | 60-79% partial | <60% do not recommend.
 - Do NOT speculate. Name missing evidence instead.
 
@@ -214,7 +214,7 @@ Opt-in escalation hook from host skills. NEVER wire into `workflow-bugfix`, `wor
 
 | Host skill                       | Mode                                       | Default                  | Gate                                                             |
 | -------------------------------- | ------------------------------------------ | ------------------------ | ---------------------------------------------------------------- |
-| `architecture-design`            | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
+| `architecture --mode=design`            | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
 | `tech-stack-research`            | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
 | `domain-analysis`                | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                     |
 | `why-review`                     | Conditional on active plan/PBI frontmatter | Escalate when gate fires | Step A workflow blacklist suppression THEN 8-OR frontmatter gate |
@@ -235,37 +235,16 @@ Gate fires when ANY field true. Absent fields default no-fire; gate opt-in via f
 | `performance_critical` | bool                                   | true                                        |
 | `cost_high`            | bool                                   | true                                        |
 
-Host prompt copy MUST cite cheaper rungs: `/why-review`, `/plan-validate`, `/llm-council`.
+Host prompt copy MUST cite cheaper rungs: `/why-review`, `/plan --mode=validate`, `/llm-council`.
 
 ---
-
-<!-- PROTOCOL-GUIDES:START -->
-
-> **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
-
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-
-<!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** use council only for multi-option, hard-to-reverse, high-stakes decisions.
 
-**Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **Critical Thinking:** apply critical + sequential thinking; traced `file:line` proof, confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-
 **IMPORTANT MUST ATTENTION** spawn 5 advisors in parallel, then 5 fresh peer reviewers in parallel, then chairman synthesis.
-**IMPORTANT MUST ATTENTION** require evidence for code/architecture claims: `file:line`, graph trace, or explicit "insufficient evidence."
+**IMPORTANT MUST ATTENTION** require evidence for code/architecture claims: `file:line` (graph output is only a hint), or explicit "insufficient evidence."
 **IMPORTANT MUST ATTENTION** mark verdict degraded if fewer than 5 usable advisor responses return.
 **IMPORTANT MUST ATTENTION** write paired HTML + Markdown artifacts under `tmp/reports/` and open HTML.
 **IMPORTANT MUST ATTENTION** after editing this skill, run `/sync-codex` to regenerate mirrors — NEVER hand-edit `.agents/` or `.codex/` (generated).
@@ -278,14 +257,4 @@ Host prompt copy MUST cite cheaper rungs: `/why-review`, `/plan-validate`, `/llm
 | "One advisor can handle it"     | Council value comes from independent angles + anonymous peer review.                                     |
 | "Sequential spawn is simpler"   | Sequential spawn contaminates independence. Parallel spawn required.                                     |
 | "Four advisors is close enough" | Missing angle changes verdict quality. Mark degraded.                                                    |
-| "Evidence would slow us down"   | Unsupported code/architecture claims are speculation. Use graph/file proof or say insufficient evidence. |
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
+| "Evidence would slow us down"   | Unsupported code/architecture claims are speculation. Use file proof or say insufficient evidence. |

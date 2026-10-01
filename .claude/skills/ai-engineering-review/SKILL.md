@@ -1,7 +1,7 @@
 ---
 name: ai-engineering-review
 version: 1.0.0
-description: '[Code Quality] Use when a workflow step or the user asks for an AI-feature review: LLM calls, prompts, agents, RAG, tool use, evals, guardrails, cost and safety. Flags: --mode={code|plan} (default code), --report-only.'
+description: '[Code Quality] Use when a workflow step or the user asks for an AI-feature review: LLM calls, prompts, agents, RAG, evals, guardrails. --mode={code|plan}, --report-only.'
 execution-mode: subagent
 context-budget: high
 ---
@@ -31,10 +31,10 @@ context-budget: high
 >
 > - **`ai-engineering-review` (this skill)** — the AI-specific lens: does the feature need a model, is it contained, bounded, evaluated, observable and correctable. When the local agent catalog provides the `ai-engineering-reviewer` sub-agent, a workflow dispatches this skill to it; otherwise the skill runs inline.
 > - **`security-audit`** — owns exploit-class security and OWASP generally (D10 covers AI-agent workflow risks). This skill owns the AI-specific lens (`AE-2`, checklist §B) and calls `security-audit` for depth on injection classes, secrets, dependencies and supply chain. Report a defect ONCE.
-> - **`architecture-review`** — layering, boundaries and structure. This skill judges only AI-specific architecture: autonomy level, trust boundaries, tool and agent design.
-> - **`integration-test-review`** — assertion quality of tests in general. This skill judges what tests of an AI feature must contain (checklist §N, `AE-6`) and leaves assertion-value gates to it.
+> - **`architecture --mode=review`** — layering, boundaries and structure. This skill judges only AI-specific architecture: autonomy level, trust boundaries, tool and agent design.
+> - **`integration-test --mode=review`** — assertion quality of tests in general. This skill judges what tests of an AI feature must contain (checklist §N, `AE-6`) and leaves assertion-value gates to it.
 > - **`production-readiness-review`** — general release readiness. This skill covers the AI-specific parts (`AE-5` reliability and cost, `AE-7` operations).
-> - **`plan-review`** — runs an inline AI-feature dimension over every plan. This skill goes deep when a plan is AI-heavy (`--mode=plan`) or the user asks for a dedicated AI review.
+> - **`plan --mode=review`** — runs an inline AI-feature dimension over every plan. This skill goes deep when a plan is AI-heavy (`--mode=plan`) or the user asks for a dedicated AI review.
 > - **`changes-review`** — general diff review. This skill is the dedicated AI dimension that complements it.
 
 > **MANDATORY MUST ATTENTION** Plan tasks to READ the protocol and docs BEFORE reviewing:
@@ -76,11 +76,11 @@ $ARGUMENTS
 
 > **Use when** a caller runs this skill as a read-only leaf — a workflow parallel review barrier, a review dimension of another review skill, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every phase applies unchanged.
 >
+> **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
+>
 > 1. **Run Phases 0–8 only.** Phase 8 validation (`/why-review --validate-findings`, else the self-validation pass) still validates every finding. **Phase 9 does not run** — no fix of any size, including a narrow self-fix inside a workflow: return the validated report; the caller owns fixes and any re-review. — why: two writers of one artifact inside a barrier race each other.
-> 2. **No nested fan-out.** Review every surface sequentially in this context; spawn no sub-agent and no fresh-context reviewer. — why: this skill is already a leaf of the caller's fan-out; a second level breaks the caller's barrier.
-> 3. **No user questions.** Skip the Workflow Recommendation and Next Steps questions. An owner decision or material trade-off goes UNANSWERED into the returned summary for the caller to ask (the `SYNC:trade-off-interrogation-gate` non-asking handoff). — why: a leaf cannot reach the user, so a question would stall the barrier.
-> 4. **Write only the report** under `tmp/reports/`. Run the AI-signal scan and read-only provider lookups; never execute the feature, install a dependency or call a paid model. A missing or stale project-reference doc is a `NOT VERIFIABLE` assumption — never a trigger to run `/scan`, `/project-init` or any other writer. — why: a leaf that regenerates shared docs or spends provider money races or surprises its barrier siblings.
-> 5. **Return** the report path, the round verdict (PASS/FAIL per Phase 7), and the validated findings grouped Critical / High / Medium / Low, mapped from the P-levels by the single map in checklist §0.3:
+> 2. **Write only the report** under `tmp/reports/`. Run the AI-signal scan and read-only provider lookups; never execute the feature, install a dependency or call a paid model. — why: a leaf that spends provider money races or surprises its barrier siblings.
+> 3. **Return** the report path, the round verdict (PASS/FAIL per Phase 7), and the validated findings grouped Critical / High / Medium / Low, mapped from the P-levels by the single map in checklist §0.3:
 >
 > | P-level | Returned group |
 > | --- | --- |
@@ -148,7 +148,7 @@ git status && git diff && git diff --cached                          # the chang
 - A branch or PR review (a review base exists) MUST pass `--base <the review base>`; without a base the scan sees only the working tree. Read the JSON `status`: `surface` → the `aiSurface` list is the objective answer to "is an AI feature in scope"; `clean` → a complete scan found none; `unknown` (git error, rejected or empty base, truncated at the file cap, or the script is absent) → NOT VERIFIABLE: run the signal-grep fallback of checklist §0.1 ONCE (search the changed files with the Grep tool or `rg` for provider SDK imports and hosts, model-ID literals, `messages` / `completions` / `responses` / `embeddings` calls, `tool_use` / `tool_calls`, vector-store and MCP names, and directories named `prompts`, `llm`, `rag`, `agents`, `evals`, `mcp`, `guardrails`); if that is also inconclusive, treat the AI review as required and say why.
 - The scan is content-based on the changed files: a changed prompt template, tool schema, retriever config, model constant or eval dataset with no SDK import may not match. Also treat those as AI surface when a matched file consumes them.
 - Only `status: clean` (or an empty fallback grep after `unknown`) means ZERO AI surface → announce `No AI-feature surface detected — ai-engineering-review skipped` and report clean (honor the CONDITIONAL skip).
-- If `.code-graph/graph.db` exists, run a graph trace on the key files (`python .claude/scripts/code_graph trace <file> --direction both --json`, `--node-mode file` first) to find every caller of a changed call site, prompt or tool, and the tests that cover them (`tests_for`). Graph absent → note it and proceed.
+- Optional: when a changed call site, prompt or tool has a high-risk blast radius grep may miss and `.code-graph/graph.db` exists, `python .claude/scripts/code_graph trace <file> --direction both --json` (`--node-mode file` first) can hint at callers and covering tests (`tests_for`). The graph can be stale or incomplete — verify by reading; an absent graph is never a finding.
 
 **Expand files → surfaces (MANDATORY).** A file does not behave; a surface does. For every matched file find the call site → prompt → tools → sinks → data sources it belongs to and review the surface WHOLE, including its unchanged parts. A shared prompt, tool schema, model constant or retriever config changes every call site that reads it: review the highest-fan-out consumers and state the sample. Record `surface → changed files` at the top of the report.
 
@@ -271,19 +271,12 @@ Group files by AI SURFACE first (one sub-agent owns a surface end to end so no s
 
 **Non-negotiable:** never fix a finding before validation · never call the review clean after a targeted check only · never review only the fixed files · never reuse old task items.
 
-## Workflow Recommendation
-
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, NOT invoked by a parent skill or as a sub-agent, and NOT under `--report-only`, MUST use `AskUserQuestion` to ask the user — the user decides, not you:
->
-> 1. **Activate `workflow-review-changes`** (Recommended for a code change) — the canonical review workflow from `.claude/workflows.json`
-> 2. **Execute `/ai-engineering-review` directly** — run this skill standalone
-
 ## Next Steps
 
 **MANDATORY — NO EXCEPTIONS:** after completing, use `AskUserQuestion` to present (skip under `--report-only`, when invoked by a parent skill, or as a sub-agent — return the report and next-step recommendations instead):
 
 - **"/security-audit" (Recommended when a P0/P1 touches injection, secrets or authorization)** — exploit-class depth
-- **"/integration-test-review"** — assertion quality of the AI feature's tests
+- **"/integration-test --mode=review"** — assertion quality of the AI feature's tests
 - **"Skip, continue manually"** — user decides
 
 ## AI Agent Integrity Gate (NON-NEGOTIABLE)
@@ -308,20 +301,16 @@ Before reporting ANY work done:
 
 - `ai-engineering-gate` — Thirty-eight AI-engineering clauses, AE-1.1 to AE-9.4: prompt contract, security, agents, retrieval, reliability, evals, operations, governance, UX; planning, building or reviewing a feature that calls a model → .claude/skills/shared/protocols/ai-engineering-gate.md
 - `ai-feature-framing-gate` — Plan-time AI-feature framing AF-1 to AF-6: job and fit, eval first, blast radius, autonomy, data boundaries, operations; planning or specifying a feature that uses an LLM, agent, RAG or ML model → .claude/skills/shared/protocols/ai-feature-framing-gate.md
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
 - `ai-review-checklist` — Executable AI-feature review protocol AR-1 to AR-6: context, evidence, severity, sweeps, report, triage; reviewing a plan or code that calls a model → .claude/skills/shared/protocols/ai-review-checklist.md
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `double-round-trip-review` — Validated-finding fix loop: review, validate, fix, then a fresh full re-review, capped at two rounds; running a review that fixes findings and must re-review until the severity bar clears → .claude/skills/shared/protocols/double-round-trip-review.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
-- `graph-assisted-investigation` — Run a code-graph command on the key files before concluding; investigating code while the code graph exists → .claude/skills/shared/protocols/graph-assisted-investigation.md
+- `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
@@ -342,15 +331,9 @@ Before reporting ANY work done:
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
-**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding when graph.db exists. Pattern: grep → graph trace → grep verify.
+**Optional advice:** the code graph (`.code-graph/graph.db`) can hint at a high-risk blast radius grep misses; it can be stale, so verify by reading files. Never required.
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
@@ -358,27 +341,12 @@ Before reporting ANY work done:
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 
@@ -447,17 +415,9 @@ Before reporting ANY work done:
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:review-principle-awareness:reminder -->
 

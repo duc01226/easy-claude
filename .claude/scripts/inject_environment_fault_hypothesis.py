@@ -14,11 +14,12 @@ failing test, error, or unexpected output means the code is wrong. That is exact
 where "environment is a competing hypothesis" has to bind, and it is a strict subset
 of the SYNC:test-failure-fault-adjudication / SYNC:root-cause-debugging carriers:
 
-  9 skills — debug-investigate + investigate + fix (root-cause carriers), test +
-             integration-test-verify + e2e-test-verify (runner verdicts, where
-             resource pressure and leftover state actually bite), experience-review
+  6 skills — investigate (incl. --mode=debug) + fix (root-cause carriers), test
+             (runner verdict; the `integration-test --mode=verify` and `e2e-test --mode=verify`
+             runner verdicts, where resource pressure and leftover state actually bite, carry
+             the body inline in their mode references), experience-review
              (runs the real app; a broken local environment reads as a regression),
-             workflow-bugfix + workflow-integration-test-green (the two workflows
+             workflow-bugfix + workflow-integration-test (the two workflows
              whose whole job is turning a red signal into a verdict).
   4 agents — debugger, tester, integration-tester, e2e-runner. Sub-agents inherit
              nothing from the parent conversation, so a leaf that renders a failure
@@ -46,15 +47,12 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 AGENTS_DIR = PROJECT_ROOT / ".claude" / "agents"
 
 SKILL_NAMES = [
-    "debug-investigate",              # root-cause hunt — env is a competing hypothesis from frame 0
-    "investigate",                    # explain/diagnose existing behavior
+    "investigate",                    # explain/diagnose existing behavior; --mode=debug root-cause hunt — env is a competing hypothesis from frame 0
     "fix",                            # the mutating step — must not absorb an env fault into code
     "test",                           # local runner verdict
-    "integration-test-verify",        # runner verdict under shared infra (leftover state, pools)
-    "e2e-test-verify",                # runner verdict under browser/resource pressure
     "experience-review",              # runs the real app; broken env reads as a regression
     "workflow-bugfix",                # workflow whose job is red signal -> verdict
-    "workflow-integration-test-green",# workflow driving a suite to green — highest force-green risk
+    "workflow-integration-test",      # its green variant drives a suite to green — highest force-green risk
 ]
 
 AGENT_NAMES = [

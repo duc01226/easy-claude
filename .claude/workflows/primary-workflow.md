@@ -6,13 +6,13 @@
 
 **Core Phases (all workflows follow subsets of these):**
 
-1. **Discover** — Use `/investigate` to locate files and inspect patterns; run graph traces when the project's graph database is available
-2. **Plan** — `/plan` (add `/plan-validate` when decisions need user confirmation; `/plan-review` only on explicit request or inside the big workflows), save in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
+1. **Discover** — Use `/investigate` to locate files and inspect patterns
+2. **Plan** — `/plan` (add `/plan --mode=validate` when decisions need user confirmation; `/plan --mode=review` only on explicit request or inside the big workflows), save in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
 3. **Design Review** — `/why-review`; spec and test-spec work follows the project's configured spec-artifact profile or documented native spec contract
-4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
+4. **Implement** — `/feature-implement` or `/plan --mode=execute`, compile-check after every file change
 5. **Verify** — `/test`, `/integration-test`, and any spec reconciliation step defined by the selected project profile
 6. **Quality** — Use `workflow-review-changes` for the canonical review and repair cycle; follow its registered sequence in `.claude/workflows.json`. It invokes the `changes-review` skill as one part of the workflow.
-7. **Ship** — `/production-readiness-review`, `/security-audit`, `/docs-update`, `/watzup`, `/workflow-end`
+7. **Ship** — `/production-readiness-review`, `/security-audit`, `/docs-manager --mode=update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
 
@@ -30,7 +30,7 @@
 ## Phase 0: Understand Code First (MANDATORY)
 
 > **Understand-Code-First** — Do NOT write code, create plans, or attempt fixes until you READ existing code.
-> Search 3+ similar implementations first. Run graph on key files when the project's graph database exists; when it is absent, use source search and direct tracing.
+> Search 3+ similar implementations first. Optional: for a high-risk blast radius that grep may miss, the code graph (when its database exists) can add callers and dependents; it may be stale, so verify by reading the files.
 
 - Read existing code before modifying. Validate assumptions with evidence. Search before creating.
 
@@ -38,21 +38,21 @@
 
 - Use `/plan` skill to create an implementation plan with tasks in the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path)
 - Use `/web-research` → `/source-deep-dive` for investigating technical topics before planning
-- Confirm plan decisions via `/plan-validate` (critical questions) when needed; `/plan-review` is a single pass, never automatic, and only `workflow-big-feature` and `workflow-greenfield-init` include it
+- Confirm plan decisions via `/plan --mode=validate` (critical questions) when needed; `/plan --mode=review` is a single pass, never automatic, and only `workflow-big-feature` and `workflow-greenfield-init` include it
 - **DO NOT** create new enhanced files — update existing files directly
 
 ## Phase 2: Design Review
 
 - Use `/why-review` to validate design rationale before implementation
 - Before spec or test-spec work, resolve the project's configured spec-artifact profile or documented native spec contract
-- Use `/spec [mode=tests]`, `/artifact-review --type=spec-tests`, and a Feature Spec Section 8 CREATE-before-implementation / UPDATE-after lifecycle only when the selected profile defines that format; otherwise follow its native artifact, identifier, and review contract
+- Use `/spec [mode=tests]`, `/pbi --mode=review --type=spec-tests`, and a Feature Spec Section 8 CREATE-before-implementation / UPDATE-after lifecycle only when the selected profile defines that format; otherwise follow its native artifact, identifier, and review contract
 - Every assertion-bearing test uses explicit `Given` → `When` → `Then` phases, names the guarded business intent/invariant or technical contract, and asserts an owned outcome; framework-native BDD, named helpers, or comments are valid, while bare Arrange/Act/Assert is insufficient unless all three GWT phases are also labeled
 - Every `changes-review` skill invocation or specialist review first applies `SYNC:review-principle-awareness`; route only contextually applicable scale-ready foundation, GWT test, AI-agent-as-user, and UI/component obligations to their detailed skill protocols, recording evidence-backed N/A/defer/block/unverified status rather than inventing findings or expanding scope
 - Large features (`workflow-big-feature`): two plans — PLAN1 (architecture) then PLAN2 (incorporating test strategy); other feature routes use one plan
 
 ## Phase 3: Implementation
 
-- Use `/feature-implement` or `/plan-execute` skill to implement the plan
+- Use `/feature-implement` or `/plan --mode=execute` skill to implement the plan
 - Write clean, readable, maintainable code
 - Follow the project's documented architecture, state-management, and styling conventions; load the project references that apply to the changed area
 - Handle edge cases and error scenarios
@@ -70,7 +70,7 @@
 ## Phase 5: Quality
 
 - Use `workflow-review-changes` for the canonical review and repair workflow; follow its registered sequence and severity bar. Use the standalone `changes-review` skill only when a standalone review is the selected task.
-- Alternatively use individual skills: `/code-simplifier`, `/code-quality-review`, `/architecture-review`, `/performance-review`
+- Alternatively use individual skills: `/code-simplifier`, `/code-quality-review`, `/architecture --mode=review`, `/performance-review`
 - Follow coding standards and conventions
 - Optimize for performance and maintainability
 
@@ -78,13 +78,13 @@
 
 - Use `/production-readiness-review` for production readiness (service-layer/API changes)
 - Use `/security-audit` for security review
-- Use `/docs-update` to update documentation if needed
+- Use `/docs-manager --mode=update` to update documentation if needed
 - Use `/watzup` for summary report of all changes
 - Use `/workflow-end` to clear workflow state
 
 ## Phase 7: Debugging (when issues arise)
 
-- Use `/debug-investigate` skill for systematic debugging when issues are reported
+- Use `/investigate --mode=debug` for systematic debugging when issues are reported
 - For non-trivial bugs, failed verification, or stale/incorrect final outputs, start from the observed end state and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/origin before proposing a fix
 - Enumerate every feeder path and root-cause hypothesis; a fix is blocked until the owning fix layer and forward convergence proof are written
 - Use `/fix` skill to apply fixes after root cause is identified
@@ -126,15 +126,8 @@
 | Workflow ID                       | Purpose                                                                                   |
 | --------------------------------- | ----------------------------------------------------------------------------------------- |
 | `workflow-e2e`                    | Write, update, and verify end-to-end tests through the configured lifecycle.              |
-| `workflow-write-integration-test` | Author or update integration tests for existing code.                                     |
-| `workflow-integration-test-green` | Verify and adjudicate an existing integration-test suite, fixing only validated failures. |
+| `workflow-integration-test`       | Write or update integration tests for existing code (`--mode=write`, default), or verify and adjudicate a failing suite, fixing only validated failures (`--mode=green`). |
 | `workflow-seed-test-data`         | Create or improve idempotent test-data seeders.                                           |
-
-### Design & Visualization Workflows
-
-| Workflow ID          | Purpose                                                         |
-| -------------------- | --------------------------------------------------------------- |
-| `workflow-visualize` | Create visual diagrams from codebase investigation or research. |
 
 ### Research & Content Workflows
 
@@ -146,9 +139,9 @@
 
 ## Closing Reminders
 
-**MANDATORY IMPORTANT MUST ATTENTION** understand existing code FIRST (read and search 3+ patterns; use graph tracing when the project graph database exists) before ANY code modification
+**MANDATORY IMPORTANT MUST ATTENTION** understand existing code FIRST (read and search 3+ patterns) before ANY code modification
 **MANDATORY IMPORTANT MUST ATTENTION** compile-check after every code file change
 **MANDATORY IMPORTANT MUST ATTENTION** never use fake data/mocks/cheats just to pass tests — fix real issues
 **MANDATORY IMPORTANT MUST ATTENTION** activate relevant skills from catalog during the process
-**MANDATORY IMPORTANT MUST ATTENTION** auto-select the best-matching workflow from the catalog and activate it via `/start-workflow <workflowId>` — selection is model-driven; do not ask the user to confirm activation
-**MANDATORY IMPORTANT MUST ATTENTION** when graph tooling and its configured database are available, run at least ONE graph command on key files before concluding investigation/plan/fix; otherwise use direct source tracing and record that graph analysis was unavailable
+**MANDATORY IMPORTANT MUST ATTENTION** match the best-fitting workflow from the catalog; only when your route is to start it, ask the one workflow question (full workflow · slimmer custom route · execute directly, recommended first) and activate the user's pick via `/start-workflow <workflowId>`; an explicit workflow request skips the question
+**Optional advice:** for a high-risk blast radius grep may miss, the code graph (when its database exists) can add callers, dependents and impacted tests; it may be stale, so verify by reading the files. Never required; an absent graph is never a finding.

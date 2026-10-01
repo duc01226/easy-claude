@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import { frameworkPkg, readFrameworkRootFile } from "./framework-repo.helper.mjs";
 
 // Regression lock for the cross-surface mirror-drift class fixed this session:
-//   1. A standalone `prettier --write` reformatted AGENTS.md and drifted its mirror block off
-//      .codex/CODEX_CONTEXT.md, FAILing verify-skill-protocol-compliance.
+//   1. A standalone `prettier --write` reformatted AGENTS.md and drifted its projection off
+//      CLAUDE.md, FAILing the sync-divergence oracle.
 //   2. There was no single entrypoint to sync+verify the codex surfaces, so a one-surface sync
 //      left the others silently stale.
 // These tests fail loudly if either guard is removed — keeping the sync pipeline the sole writer

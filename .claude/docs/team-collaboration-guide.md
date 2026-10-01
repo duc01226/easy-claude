@@ -27,18 +27,20 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 
 | Pillar                        | What It Does                                                          | Count                                                      |
 | ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->25<!-- /COUNT --> top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->129<!-- /COUNT --> skills             |
-| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->21<!-- /COUNT --> workflows        |
+| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->29<!-- /COUNT --> top-level hook files |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->102<!-- /COUNT --> skills             |
+| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->19<!-- /COUNT --> workflows        |
 
 ### Workflow Detection
 
 When you describe the first task of a session, Claude automatically:
 
 1. **Detects** the best-matching workflow from the catalog
-2. **Auto-selects** the best path and activates it (no confirmation step)
+2. **Asks the workflow question** by default, only when it decides to start a catalog workflow (a direct or custom-simple route proceeds without asking) — the full workflow, a slimmer custom route, or direct execution, with a recommended option first — and follows your answer
 3. **Creates tasks** for every step and tracks progress
 4. **Executes** each step in sequence
+
+Each person sets how this works: route mode `ask` (default), `auto` (a matched workflow starts without asking, by its tier) or `off` (nothing starts without an explicit request). See [Workflow route mode](configuration/README.md#workflow-route-mode-per-person); change it with `/workflow-mode`.
 
 Mid-session (follow-ups, corrections, new asks), Claude does the work directly, with the best-fit skill, or with a lean chain of at most 3 skills instead of auto-activating a workflow. An explicit workflow request — `/start-workflow <id>`, `/workflow-*`, or asking in words — always runs.
 
@@ -46,7 +48,7 @@ You never need to memorize workflow names — just describe your intent.
 
 ### Project Knowledge (Static Embedding)
 
-Project knowledge — backend/frontend patterns, design tokens, code-review rules, learned lessons — lives **statically** in `CLAUDE.md`, the agent definitions, and the skills, plus the reference docs under the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Skills and agents read the relevant doc on demand. Because the guidance is embedded rather than requiring runtime injection, every harness — Claude, Codex — sees identical instructions even when hooks are disabled; hooks may accelerate discovery but do not change the contract.
+Project knowledge — backend/frontend patterns, design tokens, code-review rules, learned lessons — lives in the reference docs under the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path — and is routed from the project-only `CLAUDE.md` Doc Lookup table. Skills and agents read the relevant doc on demand. The universal rules every task follows are delivered by the universal hook, so every supported harness — Claude, Codex, OpenCode — receives identical rules; a host that runs no hooks is unsupported.
 
 ---
 
@@ -76,7 +78,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 2. **Refine to PBI**
 
     ```
-    /refine {idea-file-path}
+    /pbi --mode=refine {idea-file-path}
     ```
 
     Creates PBI with GIVEN/WHEN/THEN acceptance criteria
@@ -98,13 +100,13 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 1. **Refine idea into PBI**
 
     ```
-    /refine {idea-file-path}
+    /pbi --mode=refine {idea-file-path}
     ```
 
 2. **Create user stories**
 
     ```
-    /story {pbi-file-path}
+    /pbi --mode=story {pbi-file-path}
     ```
 
     Slices PBI into vertical stories meeting INVEST criteria
@@ -133,10 +135,10 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
 3. **Run quality gate**
     ```
-    /artifact-review --type=spec-tests {pbi-or-feature-doc}
+    /pbi --mode=review --type=spec-tests {pbi-or-feature-doc}
     ```
 
-**Workflow trigger:** Say "test cases from PBI" → runs `/spec [mode=tests]` directly (the former pbi-to-tests workflow was merged into the `spec` skill); for full test authoring with generated test code, use the **write-integration-test** workflow
+**Workflow trigger:** Say "test cases from PBI" → runs `/spec [mode=tests]` directly (the former pbi-to-tests workflow was merged into the `spec` skill); for full test authoring with generated test code, use the **workflow-integration-test** workflow (`--mode=write`)
 
 ---
 
@@ -166,17 +168,17 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 1. **Run the gate for the transition you are at**
 
     ```
-    /dor-gate {pbi-path}                             # pre-dev: PBI ready for grooming
-    /artifact-review --type=spec-tests {spec-path}   # pre-qa: test specs ready for QA
+    /pbi --mode=dor {pbi-path}                             # pre-dev: PBI ready for grooming
+    /pbi --mode=review --type=spec-tests {spec-path}   # pre-qa: test specs ready for QA
     /production-readiness-review                     # pre-release: service/API readiness
     ```
 
 2. **Review artifact quality** (includes the PO acceptance checks)
     ```
-    /artifact-review {artifact-path}
+    /pbi --mode=review {artifact-path}
     ```
 
-**Workflow trigger:** Say "quality check" → run the gate for the current transition: `/dor-gate` (pre-dev), `/artifact-review --type=spec-tests` (pre-qa), `/production-readiness-review` (pre-release)
+**Workflow trigger:** Say "quality check" → run the gate for the current transition: `/pbi --mode=dor` (pre-dev), `/pbi --mode=review --type=spec-tests` (pre-qa), `/production-readiness-review` (pre-release)
 
 ---
 
@@ -187,10 +189,10 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 | Skill         | Purpose                                  | Example                    |
 | ------------- | ---------------------------------------- | -------------------------- |
 | `/idea`       | Capture raw idea                         | `/idea "Dark mode toggle"` |
-| `/refine`     | Transform idea into PBI with AC          | `/refine {idea-file}`      |
-| `/story`      | Break PBI into user stories (INVEST)     | `/story {pbi-file}`        |
+| `/pbi --mode=refine`     | Transform idea into PBI with AC          | `/pbi --mode=refine {idea-file}`      |
+| `/pbi --mode=story`      | Break PBI into user stories (INVEST)     | `/pbi --mode=story {pbi-file}`        |
 | `/prioritize` | Order backlog (RICE/MoSCoW/Value-Effort) | `/prioritize rice`         |
-| `/dor-gate`   | Validate PBI against Definition of Ready | `/dor-gate {pbi-file}`     |
+| `/pbi --mode=dor`   | Validate PBI against Definition of Ready | `/pbi --mode=dor {pbi-file}`     |
 
 ### Testing & Quality
 
@@ -199,7 +201,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 | `/spec [mode=tests]` | Generate test specs (TC-{FEATURE}-{NNN}) | `/spec [mode=tests] {feature-doc}`   |
 | `/integration-test`  | Generate integration tests from specs    | `/integration-test`                  |
 | `/e2e-test`          | Generate E2E tests                       | `/e2e-test`                          |
-| `/artifact-review`   | Gate artifact quality before handoff     | `/artifact-review --type=spec-tests` |
+| `/pbi --mode=review`   | Gate artifact quality before handoff     | `/pbi --mode=review --type=spec-tests` |
 | `/test`              | Run and analyze tests                    | `/test`                              |
 
 ### Design & Frontend
@@ -233,26 +235,26 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
 **Trigger:** "new idea", "feature request", "backlog item"
 **Roles:** Product Owner, Business Analyst
-**IMPORTANT MANDATORY Steps:** `/idea` → `/refine` → `/story` → `/prioritize`
+**IMPORTANT MANDATORY Steps:** `/idea` → `/pbi --mode=refine` → `/pbi --mode=story` → `/prioritize`
 
 ```
 PO:  /idea ──→ [idea captured] ──→ /prioritize ──→ [backlog ordered]
                      │
-BA:             /refine ──→ [PBI with AC] ──→ /story ──→ [user stories]
+BA:             /pbi --mode=refine ──→ [PBI with AC] ──→ /pbi --mode=story ──→ [user stories]
 ```
 
 ---
 
-### Workflow 2: PBI to Tests (`/spec [mode=tests]` + `/artifact-review --type=spec-tests`)
+### Workflow 2: PBI to Tests (`/spec [mode=tests]` + `/pbi --mode=review --type=spec-tests`)
 
 **Trigger:** "test cases from PBI", "qa this"
 **Roles:** QA Engineer, QC Specialist
-**IMPORTANT MANDATORY Steps:** `/spec [mode=tests]` → `/artifact-review --type=spec-tests` (skill chain — for generated test code, use the **write-integration-test** workflow)
+**IMPORTANT MANDATORY Steps:** `/spec [mode=tests]` → `/pbi --mode=review --type=spec-tests` (skill chain — for generated test code, use the **workflow-integration-test** workflow, `--mode=write`)
 
 ```
 QA:  [PBI] ──→ /spec [mode=tests] → [test spec with TC-{FEATURE}-{NNN}]
                                         │
-QC:                    /artifact-review --type=spec-tests ──→ [PASS/FAIL report]
+QC:                    /pbi --mode=review --type=spec-tests ──→ [PASS/FAIL report]
 ```
 
 **Quality gate criteria (pre-QA):**
@@ -292,7 +294,7 @@ Dev:                             /code-quality-review ──→ Implementation
 
 **Trigger:** "test-first", "TDD", "spec-driven" (the former tdd-feature workflow was merged into `feature`)
 **Roles:** Developer, QA
-**IMPORTANT MANDATORY Steps (abridged):** `/investigate` → `/plan` → `/spec [mode=tests]` → `/feature-implement` → `/integration-test` → `/test` → `/docs-update`
+**IMPORTANT MANDATORY Steps (abridged):** `/investigate` → `/plan` → `/spec [mode=tests]` → `/feature-implement` → `/integration-test` → `/test` → `/docs-manager --mode=update`
 
 Test specs are written **before** implementation, then code is written to satisfy them.
 
@@ -304,7 +306,7 @@ Claude provides end-to-end workflows that span multiple roles:
 
 | Workflow              | Roles | Trigger          | Steps                                                                        |
 | --------------------- | ----- | ---------------- | ---------------------------------------------------------------------------- |
-| `idea-to-pbi` (PO→BA) | PO→BA | "hand off to BA" | `/idea` → `/artifact-review` → `/refine` → `/story` (conditional first step) |
+| `idea-to-pbi` (PO→BA) | PO→BA | "hand off to BA" | `/idea` → `/pbi --mode=review` → `/pbi --mode=refine` → `/pbi --mode=story` (conditional first step) |
 
 Each workflow tracks progress across roles so the next role has full visibility into upstream artifacts.
 
@@ -337,7 +339,7 @@ Claude creates a structured idea document with problem statement, target users, 
 **Tom (BA):**
 
 ```
-/refine {idea-file}
+/pbi --mode=refine {idea-file}
 ```
 
 Claude generates PBI with GIVEN/WHEN/THEN acceptance criteria:
@@ -362,7 +364,7 @@ Scenario: Invalid format rejected
 Then Tom creates stories:
 
 ```
-/story {pbi-file}
+/pbi --mode=story {pbi-file}
 ```
 
 | Story                              | Points | Slice                       |
@@ -415,7 +417,7 @@ Each case includes an Evidence field using `[Source: namespace/service/id]` abst
 **Jordan (QC):**
 
 ```
-/dor-gate {pbi-file}
+/pbi --mode=dor {pbi-file}
 ```
 
 | Criterion                              | Status |
@@ -437,16 +439,16 @@ Each case includes an Evidence field using `[Source: namespace/service/id]` abst
 ```
 CAPTURE & REQUIREMENTS
   /idea [title]              Capture new idea
-  /refine {source}           Idea -> PBI with AC
-  /story {pbi}               PBI -> User stories
+  /pbi --mode=refine {source}           Idea -> PBI with AC
+  /pbi --mode=story {pbi}               PBI -> User stories
   /prioritize [framework]    Order backlog (rice|moscow|value-effort)
 
 TESTING & QUALITY
   /spec [mode=tests] {source}  Generate test specs (TC-{FEATURE}-{NNN})
   /integration-test          Generate integration tests
   /e2e-test                  Generate E2E tests
-  /dor-gate {pbi}            Pre-dev gate: PBI vs Definition of Ready
-  /artifact-review --type=spec-tests {spec}   Pre-QA gate: test-spec quality
+  /pbi --mode=dor {pbi}            Pre-dev gate: PBI vs Definition of Ready
+  /pbi --mode=review --type=spec-tests {spec}   Pre-QA gate: test-spec quality
   /production-readiness-review                Pre-release gate: service/API readiness
   /test                      Run and analyze tests
 
@@ -466,19 +468,19 @@ PLANNING
 | Role | Primary Skills                                                  | Workflow               |
 | ---- | --------------------------------------------------------------- | ---------------------- |
 | PO   | `/idea`, `/prioritize`                                          | idea-to-pbi            |
-| BA   | `/refine`, `/story`                                             | idea-to-pbi            |
-| QA   | `/spec [mode=tests]`, `/integration-test`, `/test`              | write-integration-test |
-| QC   | `/dor-gate`, `/artifact-review`, `/production-readiness-review` | —                      |
+| BA   | `/pbi --mode=refine`, `/pbi --mode=story`                                             | idea-to-pbi            |
+| QA   | `/spec [mode=tests]`, `/integration-test`, `/test`              | workflow-integration-test |
+| QC   | `/pbi --mode=dor`, `/pbi --mode=review`, `/production-readiness-review` | —                      |
 | UX   | `/design-spec`, `/ui-design`                                       | —                      |
 
-Plan status tracking is not a separate role here: `/plan-execute` updates `plan.md` and phase status inline as it runs.
+Plan status tracking is not a separate role here: `/plan --mode=execute` updates `plan.md` and phase status inline as it runs.
 
 ### Workflow Quick Triggers
 
 | Say This                       | Activates                    | Sequence                                                |
 | ------------------------------ | ---------------------------- | ------------------------------------------------------- |
-| "new idea" / "feature request" | idea-to-pbi                  | /idea → /refine → /story → /prioritize                  |
-| "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /artifact-review --type=spec-tests |
+| "new idea" / "feature request" | idea-to-pbi                  | /idea → /pbi --mode=refine → /pbi --mode=story → /prioritize                  |
+| "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /pbi --mode=review --type=spec-tests |
 | "design spec for"              | `/design-spec`               | /design-spec → /ui-design --lane=product                   |
 | "TDD" / "test-first"           | feature                      | /plan → /spec [mode=tests] → /feature-implement → /test |
 
@@ -487,13 +489,13 @@ Plan status tracking is not a separate role here: `/plan-execute` updates `plan.
 **Feature from scratch:**
 
 ```
-/idea → /refine → /story → /design-spec → /spec [mode=tests] → /plan → /feature-implement → /test
+/idea → /pbi --mode=refine → /pbi --mode=story → /design-spec → /spec [mode=tests] → /plan → /feature-implement → /test
 ```
 
 **Sprint prep:**
 
 ```
-/prioritize rice → /dor-gate {pbi-file}
+/prioritize rice → /pbi --mode=dor {pbi-file}
 ```
 
 **End of day:**
@@ -520,7 +522,7 @@ Plan status tracking is not a separate role here: `/plan-execute` updates `plan.
 
 1. Use explicit skill command: `/idea "..."` instead of natural language
 2. Check `workflows.json`: `cat .claude/workflows.json`
-3. On the first task of a session, Claude should auto-detect and activate the matching workflow — if it doesn't, remind it: "Check workflow catalog". Mid-session it deliberately does not auto-activate one; call it (`/start-workflow <id>`, `/workflow-*`) or ask for it in words and it runs
+3. On the first task of a session, Claude should detect the matching workflow and ask whether to run it in full, run a slimmer custom route, or execute directly — if it doesn't, remind it: "Check workflow catalog". Mid-session it deliberately neither starts one nor asks; call it (`/start-workflow <id>`, `/workflow-*`) or ask for it in words and it runs
 
 ---
 
@@ -545,7 +547,7 @@ Plan status tracking is not a separate role here: `/plan-execute` updates `plan.
 
 1. Verify `docs/project-config.json` exists and points at the reference docs
 2. Confirm the relevant project-reference root docs are populated — run the matching `/scan-*` if stale or empty
-3. Project guidance is read on demand from those docs + `CLAUDE.md`; there is no runtime injection, so a missing or empty doc means the agent won't see it
+3. Project guidance is read on demand from those docs, routed by the `CLAUDE.md` Doc Lookup table; a missing or empty doc means the agent won't see it
 
 ---
 
@@ -556,8 +558,8 @@ Plan status tracking is not a separate role here: `/plan-execute` updates `plan.
 **Fix:**
 
 1. Ensure the sending role's artifacts (idea, PBI, story, design spec, test spec) are complete and saved before the next role picks up
-2. Run the gate for that transition to verify artifact completeness — `/dor-gate` (pre-dev), `/artifact-review --type=spec-tests` (pre-QA), `/production-readiness-review` (pre-release)
-3. Use `/artifact-review` to validate quality of the upstream artifact (it also carries the PO acceptance checks)
+2. Run the gate for that transition to verify artifact completeness — `/pbi --mode=dor` (pre-dev), `/pbi --mode=review --type=spec-tests` (pre-QA), `/production-readiness-review` (pre-release)
+3. Use `/pbi --mode=review` to validate quality of the upstream artifact (it also carries the PO acceptance checks)
 
 ---
 

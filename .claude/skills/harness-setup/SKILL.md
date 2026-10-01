@@ -1,7 +1,7 @@
 ---
 name: harness-setup
 version: 1.2.1
-description: '[Quality] Use when a workflow step or the user asks for an agent quality harness. Sets up feedforward guides and feedback sensors.'
+description: '[Quality] Use when a workflow step or the user asks for an agent quality harness: feedforward guides and feedback sensors.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -26,10 +26,10 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 **Main steps (run in order — each BLOCKS the next):**
 
 1. **Guards** — verify `/linter-setup` (linter config + pre-commit hook + CI gate); detect existing inventory and enhance it, never skip it.
-2. **Phase A — Stack Detection** — read plan / architecture-design / tech-stack reports; write `stack-profile.md`; use `AskUserQuestion` for undetectable fields.
+2. **Phase A — Stack Detection** — read plan / `architecture --mode=design` / tech-stack reports; write `stack-profile.md`; use `AskUserQuestion` for undetectable fields.
 3. **Phase B — Feedforward Guides** — author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, boundaries), skill-activation rules, `docs/architecture/*` notes, and pattern catalog; confirm via `AskUserQuestion`.
 4. **Phase C — Computational Sensors** — confirm `/linter-setup` outputs and list config paths; invoke it if any are missing.
-5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`/why-review` pre-impl · `/code-quality-review` pre-commit · `/domain-entities-review` post-impl · `/production-readiness-review` + `/security-audit` pre-release · `/scan-codebase-health` recurring · `/integration-test-review` feature-area TC audit BOTH pre-release AND recurring, catching orphaned Section-8 TCs and uncovered behavior); record under `## Review Gates`.
+5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`/why-review` pre-impl · `/code-quality-review` pre-commit · `/domain-analysis --mode=review` post-impl · `/production-readiness-review` + `/security-audit` pre-release · `/scan-codebase-health` recurring · `/integration-test --mode=review` feature-area TC audit BOTH pre-release AND recurring, catching orphaned Section-8 TCs and uncovered behavior); record under `## Review Gates`.
 6. **Phase E — Behaviour Harness** — choose spec format, test pyramid, fixtures, mutation/property/behavior coverage, and `test-strategy.md`; NEVER gate on line `%`.
 7. **Phase F — Inventory Report** — append `harness-inventory.md` with all sensors and gaps; present it via `AskUserQuestion`.
 8. **Next Steps** — use `AskUserQuestion` to choose `/feature-implement` (recommended), `/why-review`, or skip.
@@ -57,7 +57,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 
 ## Phase A — Stack Detection
 
-Read, in order: `plan.md` frontmatter → architecture-design report → tech-stack-comparison report. Extract:
+Read, in order: `plan.md` frontmatter → `architecture --mode=design` report → tech-stack-comparison report. Extract:
 
 - Primary language(s) and framework(s)
 - Test framework and test runner
@@ -75,10 +75,10 @@ If any field is undetectable → `AskUserQuestion` before proceeding.
 
 For each guide type, check existence; create it or enhance an existing guide:
 
-1. **CLAUDE.md / AGENTS.md — Architecture conventions:** add "Architecture Patterns" (choices from `/architecture-design`, e.g., Clean Architecture, CQRS, Repository), "Anti-Patterns" (stack-specific), "Naming Conventions" (language-idiomatic), and "Module Boundaries" (allowed imports and dependency direction).
-2. **Skill activation rules:** document CLAUDE.md auto-activation for common stack tasks, e.g., domain-entity changes → `/domain-entities-review`; before commits → `/code-quality-review`.
+1. **CLAUDE.md / AGENTS.md — Architecture conventions:** add "Architecture Patterns" (choices from `/architecture --mode=design`, e.g., Clean Architecture, CQRS, Repository), "Anti-Patterns" (stack-specific), "Naming Conventions" (language-idiomatic), and "Module Boundaries" (allowed imports and dependency direction).
+2. **Skill activation rules:** document CLAUDE.md auto-activation for common stack tasks, e.g., domain-entity changes → `/domain-analysis --mode=review`; before commits → `/code-quality-review`.
 3. **Architecture notes:** create `docs/architecture/` with `bounded-contexts.md` (boundaries/ownership), `dependency-rules.md` (allowed layer imports), and `naming-conventions.md` (project-specific file/class/function names).
-4. **Pattern catalog:** create `docs/architecture/pattern-catalog.md`, document each `/architecture-design` choice with DO/DON'T examples, and anchor examples to actual project files once scaffolding produces them.
+4. **Pattern catalog:** create `docs/architecture/pattern-catalog.md`, document each `/architecture --mode=design` choice with DO/DON'T examples, and anchor examples to actual project files once scaffolding produces them.
 5. **Discovery gate (`SYNC:ai-discovery-doc-quality`):** every created or enhanced guide leads with its purpose, when to read it and its critical rules, ends with closing reminders when long, and is routed from the root instruction file or docs index by a `read <path> when <situation>` trigger — a guide nothing routes to is never read. Put generated root-context changes through `/ai-context-refresh`, not a hand-edit of a generated section; run `/prompt-enhance` on each hand-owned guide that changed.
 
 Present created/updated guides via `AskUserQuestion`: "Feedforward guides above will be created/enhanced. Confirm or adjust?"
@@ -97,9 +97,9 @@ Configure AI review skills by lifecycle stage. Present via `AskUserQuestion`: "W
 
 - **Pre-implementation:** `/why-review` validates design rationale before the implementation approach is committed.
 - **Pre-commit:** document in CLAUDE.md that significant changes run `/code-quality-review`.
-- **Post-implementation:** `/domain-entities-review` when domain entity files are in the changeset.
+- **Post-implementation:** `/domain-analysis --mode=review` when domain entity files are in the changeset.
 - **Pre-release (mandatory):** `/production-readiness-review` for reliability/operations and `/security-audit` for production security.
-- **Recurring drift:** schedule `/scan-codebase-health` quarterly or on CI schedule. Also wire `/integration-test-review`'s Missing Integration Test / Spec-Coverage Gate feature-area TC audit (Phase 3 addendum), which catches orphaned Section-8 TCs and uncovered behavior, both pre-release alongside the two mandatory gates and on the same recurring cadence; a diff-scoped run cannot catch a Section-8 TC whose test regressed outside the current changeset.
+- **Recurring drift:** schedule `/scan-codebase-health` quarterly or on CI schedule. Also wire `/integration-test --mode=review`'s Missing Integration Test / Spec-Coverage Gate feature-area TC audit (Phase 3 addendum), which catches orphaned Section-8 TCs and uncovered behavior, both pre-release alongside the two mandatory gates and on the same recurring cadence; a diff-scoped run cannot catch a Section-8 TC whose test regressed outside the current changeset.
 
 Add the agreed sensor configuration to CLAUDE.md under "## Review Gates".
 
@@ -115,7 +115,7 @@ Define the project behaviour harness:
 
 ### Testability & Execution Matrix (write to `test-strategy.md`)
 
-Copy the architecture-design contract into `test-strategy.md`; resolve every tier from verified project/configuration evidence before choosing tools:
+Copy the `architecture --mode=design` contract into `test-strategy.md`; resolve every tier from verified project/configuration evidence before choosing tools:
 
 | Tier | Applicability + evidence | Owner | Runner/framework + config | Test root | Data/fixture policy | Full command | Focused/partial command | Zero-match behavior | CI gate | Simple Windows/macOS/Linux entry point | Repeat proof |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -134,7 +134,7 @@ For each applicable persistent-state tier, record run/test identity generation a
 - **Line coverage is a diagnostic only — NEVER gate a build on it.** Low coverage is a useful NEGATIVE signal (an area is untested → investigate); high coverage is NOT evidence of quality (lines can execute with no meaningful assertion). Report it as a diagnostic; do not fail CI on a coverage %.
 - **Mutation score is the real test-strength metric — gate on this.** `AskUserQuestion`: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" A surviving mutant = a fault your tests did not catch = a missing/weak assertion. Add a minimum mutation-score threshold to CI as the computational test-strength sensor.
 - **Property coverage (optional second sensor):** each named business invariant guarded by ≥1 property/metamorphic test. Track which invariants have a property test; an unguarded invariant is a gap to fill.
-- **Keep behavior/change-coverage (meaningful, not a %):** every behavior-changing file must have a test that asserts the changed outcome — see `/integration-test-review` Gate 7. This is the right notion of "coverage"; the line-% is not.
+- **Keep behavior/change-coverage (meaningful, not a %):** every behavior-changing file must have a test that asserts the changed outcome — see `/integration-test --mode=review` Gate 7. This is the right notion of "coverage"; the line-% is not.
 
 Document the agreed strategy in `docs/architecture/test-strategy.md`.
 
@@ -190,10 +190,10 @@ Missing/placeholder evidence is an open gap, not a PASS. The inventory must pres
 | ------------------- | ----------------------- | ------------------------------ |
 | Pre-implementation  | /why-review             | Design rationale gaps          |
 | Pre-commit          | /code-quality-review            | Convention drift, logic errors |
-| Post-implementation | /domain-entities-review | Domain model quality           |
+| Post-implementation | /domain-analysis --mode=review | Domain model quality           |
 | Pre-release         | /production-readiness-review             | Operational readiness          |
 | Pre-release         | /security-audit               | Security vulnerabilities       |
-| Pre-release + Recurring | /integration-test-review (feature-area TC audit) | Orphaned Section-8 TCs, uncovered changed behavior |
+| Pre-release + Recurring | /integration-test --mode=review (feature-area TC audit) | Orphaned Section-8 TCs, uncovered changed behavior |
 
 ## Open Gaps
 
@@ -223,12 +223,8 @@ Present inventory to user for review via `AskUserQuestion`.
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `ai-discovery-doc-quality` — Keep AI-read docs discoverable: rules first, routed pointers, closing reminders; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `engineering-foundation-gate` — Seven engineering-foundation dimensions judged by project profile; creating or reviewing how a project is built, run, tested or checked → .claude/skills/shared/protocols/engineering-foundation-gate.md
 - `harness-setup` — Agent quality harness: feedforward guides and feedback sensors; setting up an agent quality harness → .claude/skills/shared/protocols/harness-setup.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -244,12 +240,6 @@ Present inventory to user for review via `AskUserQuestion`.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
 **MUST ATTENTION** Each assertion-bearing test names the behavior or technical contract it protects and asserts an outcome it owns. Use the project's configured/native test format — Given/When/Then is one valid format, never a framework-wide requirement. When `specArtifacts` is valid, link configured owner/case/variant identity and `intent/contracts` evidence; when absent, name the guarded business intent or technical contract. A malformed declared profile BLOCKS without fallback. Broad test-format migration → assign an owner and next step, never rewrite cases outside scope.
@@ -264,15 +254,6 @@ Present inventory to user for review via `AskUserQuestion`.
 
 <!-- /SYNC:engineering-foundation-gate:reminder -->
 
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
-
 <!-- SYNC:ai-discovery-doc-quality:reminder -->
 
 **MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
@@ -286,18 +267,16 @@ Present inventory to user for review via `AskUserQuestion`.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **Critical Thinking:** critical + sequential thinking; every claim traced, confidence >80% to act.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Harness Engineering:** feedforward + feedback loops; gate on mutation score, never line-coverage %, keep quality left.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `/linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `/why-review`, `/code-quality-review`, `/domain-entities-review`, `/production-readiness-review`, `/security-audit`, `/scan-codebase-health`, `/integration-test-review` missing-test/spec-coverage gate to gates) → E Behaviour Harness (spec format + test pyramid + mutation-score gate + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
+**IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `/linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `/why-review`, `/code-quality-review`, `/domain-analysis --mode=review`, `/production-readiness-review`, `/security-audit`, `/scan-codebase-health`, `/integration-test --mode=review` missing-test/spec-coverage gate to gates) → E Behaviour Harness (spec format + test pyramid + mutation-score gate + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
 
 **IMPORTANT MUST ATTENTION** BLOCK on the `/linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
 **IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm via `AskUserQuestion` — why: harness conventions bind every future agent; silent choices propagate to all later sessions
 **IMPORTANT MUST ATTENTION** write `tmp/harness/harness-inventory.md` incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings
 **IMPORTANT MUST ATTENTION** walk phases A→F as a hard barrier sequence — NEVER skip or reorder; each phase BLOCKS the next until its guard passes — why: a later phase consumes the prior phase's verified output
 **IMPORTANT MUST ATTENTION** gate the behaviour harness on mutation score + property coverage — NEVER fail a build on a line-coverage % — why: lines execute without asserting intent, so coverage % is a diagnostic only, never a quality gate
-**IMPORTANT MUST ATTENTION** wire `/integration-test-review`'s feature-area-wide TC audit as a Phase D sensor BOTH pre-release AND on the SAME recurring cadence as `/scan-codebase-health` — never pre-release only — why: a diff-scoped-only run cannot see a §8 TC whose covering test regressed outside the current change set; only a periodic feature-area sweep catches it
+**IMPORTANT MUST ATTENTION** wire `/integration-test --mode=review`'s feature-area-wide TC audit as a Phase D sensor BOTH pre-release AND on the SAME recurring cadence as `/scan-codebase-health` — never pre-release only — why: a diff-scoped-only run cannot see a §8 TC whose covering test regressed outside the current change set; only a periodic feature-area sweep catches it
 **IMPORTANT MUST ATTENTION** research tool choices per detected stack — NEVER hardcode a linter/formatter/mutation tool — present top 2-3 options, enforce strictest defaults, loosen only with explicit approval — why: harnessability depends on the actual stack, not a default
 **IMPORTANT MUST ATTENTION** harness inventory is a LIVING document — update it when new sensors are added later — why: a stale inventory misrepresents the active feedback loop
 **IMPORTANT MUST ATTENTION** grep 3+ existing guides/sensors before authoring a new one; verify fit (same stack, gate stage, lifecycle) before copying a nearby pattern — why: closest example ≠ matching preconditions

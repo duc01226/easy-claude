@@ -486,9 +486,18 @@ function writeFileAtomic(file, content) {
     }
 }
 
+/** Distinguish legitimate absence from a source that cannot supply its recorded prompts. */
+function readLedgerStatus(dir) {
+    try {
+        const ledger = JSON.parse(fs.readFileSync(path.join(dir, 'ledger.json'), 'utf8').replace(/^\uFEFF/, ''));
+        return isLedger(ledger) ? { status: 'ok', ledger } : { status: 'unreadable', ledger: null };
+    } catch (error) {
+        return { status: error && error.code === 'ENOENT' ? 'missing' : 'unreadable', ledger: null };
+    }
+}
+
 function readLedger(dir) {
-    const value = readJsonFile(path.join(dir, 'ledger.json'));
-    return isLedger(value) ? value : null;
+    return readLedgerStatus(dir).ledger;
 }
 
 /** ledger.json first (source of truth), then ledger.md. True only when the JSON record landed. */
@@ -684,6 +693,7 @@ module.exports = {
     storeRoot,
     sessionDir,
     readLedger,
+    readLedgerStatus,
     writeLedger,
     readDelivery,
     writeDelivery,

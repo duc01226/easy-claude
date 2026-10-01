@@ -4,7 +4,7 @@
  * doc-impact-map — which project-reference docs and `project-config.json`
  * sections can the CURRENT code changes have made stale?
  *
- * The `/docs-update` skill uses this to run an IMPACT-SCOPED freshness pass
+ * The `/docs-manager --mode=update` skill uses this to run an IMPACT-SCOPED freshness pass
  * (Phase 1) instead of a full `/scan-all` + `/project-config` rebuild: the
  * routing is deterministic and derived from `docs/project-config.json`, so the
  * model spends its budget verifying the few docs a diff can actually rot
@@ -19,7 +19,7 @@
  *   node .claude/scripts/doc-impact-map.cjs claims [--json] [doc...]
  *
  * With no explicit file list, `map` collects the changed set exactly the way
- * docs-update Phase 0 does: uncommitted -> last commit -> branch diff, plus
+ * docs-manager --mode=update Phase 0 does: uncommitted -> last commit -> branch diff, plus
  * untracked files (new files are the top source of doc COVERAGE gaps).
  *
  * Fail-open by contract: every unreadable config, bad regex, or git failure
@@ -163,7 +163,7 @@ function ext(relPath) {
 }
 
 // ---------------------------------------------------------------------------
-// Changed-file collection (mirrors docs-update Phase 0, Step 0.1)
+// Changed-file collection (mirrors docs-manager --mode=update Phase 0, Step 0.1)
 // ---------------------------------------------------------------------------
 
 // `git ls-files` on a large monorepo runs to megabytes, well past execFileSync's
@@ -266,7 +266,7 @@ function plainDoc(relPath) {
  * The index filename is configurable — an explicit `.claude/.ck.json` `portability.docsIndexPath`
  * (a full path to the index FILE) or a relocated `docsRoots.projectReference.path`. Spelling the
  * framework default alias here reaches the WRONG file for a custom-named index: the map would
- * report a missing default sibling while `/docs-update` treats `exists: false` as work to repair,
+ * report a missing default sibling while `/docs-manager --mode=update` treats `exists: false` as work to repair,
  * so verification keeps targeting a file the scan owner never writes. `project-config-loader`
  * already owns the precedence; ask it instead of re-deriving the path.
  */
@@ -602,7 +602,7 @@ function docMeta(relDocPath, config) {
  * A command is emitted ONLY for a doc the scan contract actually owns: a member of the exact
  * task-specific selection, or the always-on docs index. A config-owned `contextGroups` route may
  * legitimately NAME an unselected built-in filename, but that must stay a reader-impact route —
- * inheriting a command from its basename would hand `/docs-update` a scan the exact-selection
+ * inheriting a command from its basename would hand `/docs-manager --mode=update` a scan the exact-selection
  * gate is guaranteed to block. Always-on docs are resolved separately from `referenceDocs`.
  */
 function resolveDocScanTarget(filename, config) {
@@ -1098,7 +1098,7 @@ if (require.main === module) {
     try {
         process.exit(main(process.argv));
     } catch (err) {
-        // Fail-open: a mapper crash must never block the docs-update run.
+        // Fail-open: a mapper crash must never block the docs-manager --mode=update run.
         process.stdout.write(JSON.stringify({ mode: 'error', error: err.message, warnings }, null, 2) + '\n');
         process.exit(0);
     }

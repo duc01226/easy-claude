@@ -106,7 +106,7 @@ node scripts/validate-skills.cjs --path <dir> # Scan a specific directory
 
 Full validation-rules table (frontmatter exists, single-line description, name format, category prefix, file size, Quick Summary presence, SYNC-tag balance, official-field check) is in `references/schema-reference.md`.
 
-> **Naming order — subject-first.** When a new skill belongs to a subject family, name it `<subject>-<verb>` (e.g. `architecture-review`, `changes-review`), NOT `<verb>-<subject>`. Pure single-action commands with no subject family stay verb-first (`fix`, `investigate`, `refine`). See the Canonical Order Rule in `.claude/docs/skill-naming-conventions.md`.
+> **Naming order — subject-first.** When a new skill belongs to a subject family, name it `<subject>-<verb>` (e.g. `architecture --mode=review`, `changes-review`), NOT `<verb>-<subject>`. Pure single-action commands with no subject family stay verb-first (`fix`, `investigate`, `prioritize`). See the Canonical Order Rule in `.claude/docs/skill-naming-conventions.md`.
 
 ## Mode 4: Package & Distribute
 
@@ -176,7 +176,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 2. Identify which protocols apply. Common: `understand-code-first` (reads/modifies code), `evidence-based-reasoning` (investigation/review/planning), `output-quality-principles` (produces reports/docs), `graph-assisted-investigation` (analyzes code relationships).
 3. Copy the checklist between `<!-- SYNC:tag -->` open/close tags at the TOP (after frontmatter).
 4. Add 1-line `:reminder` versions at the BOTTOM inside Closing Reminders.
-5. NEVER hand-write a `MUST ATTENTION READ .claude/skills/shared/` reference. Outside the four converging review-family skills, convert a body to its guide line with `py -3 .claude/scripts/sync-update-blocks.py --mode=guide --tags <tag>` (`python3` on macOS/Linux); a hook delivers the full text and the guide path is the fallback. Single-pass `plan-review` uses guides.
+5. NEVER hand-write a `MUST ATTENTION READ .claude/skills/shared/` reference. Outside the four converging review-family skills, convert a body to its guide line with `py -3 .claude/scripts/sync-update-blocks.py --mode=guide --tags <tag>` (`python3` on macOS/Linux); a hook delivers the full text and the guide path is the fallback. Single-pass `plan --mode=review` uses guides.
 
 ## Scripts
 
@@ -201,43 +201,22 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 - `shared-protocol-duplication-policy` — Protocol copies in carriers are intentional: edit the canonical source, then propagate; editing a shared protocol or its carriers → .claude/skills/shared/protocols/shared-protocol-duplication-policy.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 
-**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline.
+**IMPORTANT MUST ATTENTION** follow the hybrid duplication policy: edit `.claude/skills/shared/sync-inline-versions.md` first, then propagate to skills AND agents and rebuild the projection. Skills keep guide lines (a hook delivers the full text; the file path is the fallback); the four converging review-family skills, SYNC bodies in `references/*.md`, agents and reviewer prompts keep full bodies inline; the universal bundle is delivered by hooks and no carrier holds any part of it.
 
 <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
 
 <!-- SYNC:output-quality-principles:reminder -->
 
-**IMPORTANT MUST ATTENTION** follow output quality principles: token efficiency, lead with answer, no filler
+**IMPORTANT MUST ATTENTION** output quality: no counts/trees/TOCs, 1 example per pattern, lead with the answer, no filler, >=8 rules per 100 lines, critical rules in the first and last 5 lines, tables over prose; a skill's own stated exceptions override this.
 
 <!-- /SYNC:output-quality-principles:reminder -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 ## Closing Reminders
 
@@ -247,10 +226,8 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **Critical Thinking:** Sequential thinking, traced `file:line` proof, confidence >80% to act.
 - **Shared Protocol Duplication:** follow the hybrid duplication policy (`SYNC:shared-protocol-duplication-policy`) — skills keep guide lines, the review-family skills and agents keep full bodies, and only the sync tool converts or propagates them.
 - **Output Quality:** Token efficiency, lead with answer, no filler.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** carry shared protocols as `<!-- SYNC:tag -->` blocks or tool-written guide lines per the hybrid policy — NEVER hand-written file references

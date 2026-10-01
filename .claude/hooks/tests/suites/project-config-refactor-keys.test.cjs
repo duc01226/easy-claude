@@ -236,7 +236,7 @@ module.exports = {
                 const config = base({
                     contextGroups: [{ name: 'code', pathRegexes: ['\\.cjs$'], priority: 500, rules: ['r1'] }],
                     conventionInjection: { enabled: true, maxChars: 4000 },
-                    portability: { workflowAutoDetect: true, requireUniversalGuides: true },
+                    portability: { workflowAutoDetect: true, inlinePathRules: true },
                     hooks: { startupInstall: { enabled: true, packageManager: 'auto' }, windowsGit: { autoRepair: false } }
                 });
                 // When validated

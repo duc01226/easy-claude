@@ -21,6 +21,10 @@
 // workflow-skills-catalog suite); kept local so this validator loads without the larger schema.
 const WORKFLOW_ACTIVATION_TIERS = ["auto", "confirm", "manual"];
 
+// Workflow route modes. Lockstep with WORKFLOW_ROUTE_MODES in project-config-schema.cjs and ROUTE_MODES
+// in .claude/scripts/lib/workflow-routing-config.cjs (asserted by the workflow-routing-switch suite).
+const WORKFLOW_ROUTE_MODES = ["ask", "auto", "off"];
+
 const CK_SCHEMA = {
   locale: {
     type: "object",
@@ -109,6 +113,10 @@ const CK_SCHEMA = {
       projectConfigPath: { type: "string", required: false },
       docsIndexPath: { type: "string", required: false },
       workflowAutoDetect: { type: "boolean", required: false },
+      // Per-person workflow route mode (ask | auto | off). Read from the project config (team default),
+      // the personal ~/.claude/.ck.json, git-ignored .claude/.ck.local.json and env CK_WORKFLOW_ROUTE_MODE;
+      // the later layer wins (owner: .claude/scripts/lib/workflow-routing-config.cjs).
+      workflowRouteMode: { type: "string", required: false, enum: WORKFLOW_ROUTE_MODES },
       // Optional custom protocol appended to the runtime workflow-route reminder. A string is
       // inline markdown; an object carries inline `text` and/or a repo-relative `path`. The
       // tracked team value lives in the project-config file; a developer overrides it in
@@ -127,7 +135,6 @@ const CK_SCHEMA = {
           },
         ],
       },
-      requireUniversalGuides: { type: "boolean", required: false },
       // Per-project workflow activation tiers (auto < confirm < manual). The tracked team value
       // lives in the project-config file; a developer overrides it in git-ignored
       // `.claude/.ck.local.json` (a later valid `default` / per-workflow override wins).
@@ -354,7 +361,7 @@ function formatCkValidationResult(result) {
   return lines.join("\n");
 }
 
-module.exports = { CK_SCHEMA, WORKFLOW_ACTIVATION_TIERS, validateCkConfig, formatCkValidationResult };
+module.exports = { CK_SCHEMA, WORKFLOW_ACTIVATION_TIERS, WORKFLOW_ROUTE_MODES, validateCkConfig, formatCkValidationResult };
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLI ENTRY POINT

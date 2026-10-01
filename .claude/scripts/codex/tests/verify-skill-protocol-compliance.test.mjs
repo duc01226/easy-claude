@@ -1,6 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
@@ -17,7 +16,7 @@ const {
     formatMirrorRemediation,
     countOccurrences,
     checkCompactAgentsProjection,
-    checkProtocolBodySignatureCounts,
+    checkNoUniversalProtocolText,
     checkManualOnlyPolicy,
     AGENTS_ROOT_LIMIT_BYTES,
     CODEX_IMPLICIT_OFF_RE,
@@ -33,9 +32,7 @@ const guideCarrier = createRequire(import.meta.url)('../../lib/protocol-guide-ca
 
 const joinLines = (...lines) => lines.join('\n');
 
-const FENCED_CLAUDE = joinLines('<!-- CK:CRITICAL-THINKING -->', '<!-- CK:AI-MISTAKE-PREVENTION -->');
 const BOTH_BODIES = joinLines('[CRITICAL-THINKING-MINDSET]', '## Common AI Mistake Prevention (System Lessons)');
-const FENCELESS_CLAUDE = '# Portable project\n';
 
 // A lower-case filename works on Windows but makes a portable export fail on Linux, where the
 // canonical skill manifest is `SKILL.md`. Keep the verifier's explicit trace list case-exact.
@@ -221,72 +218,62 @@ test('TC-CTXP-035l: .md guide carriers inside a skill-local node_modules are not
 // whose CLAUDE.md carries no CK fence — this repo's own PORT-013 fixture is exactly that shape —
 // because the whitelist has nothing to project. Drive every branch here: the gate itself reads real
 // repo paths, so only the extracted predicate can be fixture-driven.
-test('TC-CTXP-035f: the bounded-root occurrence contract follows what CLAUDE.md can source', () => {
-    // Fenced CLAUDE.md → exactly one deduped copy of each block is required, and satisfies it.
-    assert.deepEqual(checkProtocolBodySignatureCounts(BOTH_BODIES, FENCED_CLAUDE), []);
+test('TC-CTXP-035f: no mirror carries universal protocol text; every signature is reported', () => {
+    // Project-only text passes.
+    assert.deepEqual(checkNoUniversalProtocolText('# Portable project\n\nOur module map.\n', 'AGENTS.md'), []);
 
-    // Fenced but ZERO copies → Codex lost the guardrail. This is the regression the guard exists for.
-    const lost = checkProtocolBodySignatureCounts('', FENCED_CLAUDE);
-    assert.equal(lost.length, 2, 'both blocks must be reported missing');
-    assert.match(lost[0], /found 0×.*expected exactly 1/);
+    // Both protocol bodies present → each is reported with its count, so Codex never gets a static copy back.
+    const both = checkNoUniversalProtocolText(BOTH_BODIES, 'AGENTS.md');
+    assert.equal(both.length, 2, 'both blocks must be reported');
+    assert.match(both[0], /AGENTS\.md: universal protocol text .*found 1×.*expected 0/);
 
-    // Fenced with a second copy → de-duplication regressed and the root pays for the block twice.
-    const dupe = checkProtocolBodySignatureCounts(joinLines(BOTH_BODIES, BOTH_BODIES), FENCED_CLAUDE);
-    assert.equal(dupe.length, 2);
-    assert.match(dupe[0], /found 2×.*de-duplication regressed/);
+    // A second copy is counted, not collapsed.
+    const dupe = checkNoUniversalProtocolText(joinLines(BOTH_BODIES, BOTH_BODIES), 'AGENTS.md');
+    assert.match(dupe[0], /found 2×/);
 
-    // Fence-less CLAUDE.md (the PORT-013 adopter shape) → zero copies is CORRECT, not a failure.
-    // Regressing this to an unconditional >=1 turns every such adopter's `verify:all` red.
-    assert.deepEqual(checkProtocolBodySignatureCounts(FENCELESS_CLAUDE, FENCELESS_CLAUDE), []);
-
-    // A missing CLAUDE.md is treated the same way — its absence is the agent-files bootstrap gate's
-    // failure to report, not this gate's.
-    assert.deepEqual(checkProtocolBodySignatureCounts('', ''), []);
-
-    // …but a fence-less root that somehow gained a copy is still wrong: nothing could have sourced it.
-    const unsourced = checkProtocolBodySignatureCounts(BOTH_BODIES, FENCELESS_CLAUDE);
-    assert.equal(unsourced.length, 2);
-    assert.match(unsourced[0], /found 1×.*expected 0.*cannot source/);
+    // The task-planning and git-discipline leads are signatures too.
+    assert.equal(checkNoUniversalProtocolText('Create a small task per change before edits', 'x').length, 1);
+    assert.equal(checkNoUniversalProtocolText('Never commit, push, or stage (`git add`) unless the user explicitly asks', 'x').length, 1);
 });
 
-test('TC-CTXP-035g: loosening the bounded-root occurrence check is killed by its own contract', async () => {
+test('TC-CTXP-035g: loosening the universal-text absence check is killed by its own contract', async () => {
     const source = await fs.readFile(verifierPath, 'utf8');
-    const guard = 'if (n === expected) continue;';
+    const guard = 'if (n > 0) {';
     assert.equal(source.split(guard).length, 2, 'mutation anchor must be unique');
-    const mutated = source.replace(guard, 'if (true) continue;').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(verifierPath).href));
+    const mutated = source.replace(guard, 'if (false) {').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(verifierPath).href));
     const verifier = await import(`data:text/javascript;base64,${Buffer.from(mutated).toString('base64')}`);
-    const oracle = fn => assert.equal(fn('', FENCED_CLAUDE).length, 2);
-    oracle(checkProtocolBodySignatureCounts);
-    assert.throws(() => oracle(verifier.checkProtocolBodySignatureCounts), assert.AssertionError);
+    const oracle = fn => assert.equal(fn(BOTH_BODIES, 'AGENTS.md').length, 2);
+    oracle(checkNoUniversalProtocolText);
+    assert.throws(() => oracle(verifier.checkNoUniversalProtocolText), assert.AssertionError);
 });
 
-test('TC-CTXP-035d: deleting malformed-marker rejection is killed by the ordered-pair assertion', async () => {
+test('TC-CTXP-035d: deleting the retired-block rejection is killed by the retired-marker assertion', async () => {
     const source = await fs.readFile(verifierPath, 'utf8');
-    const guard = "failures.push('AGENTS.md managed context mirror markers must form an ordered pair');";
+    const guard = 'if (agents.includes(marker))';
     assert.equal(source.split(guard).length, 2, 'mutation anchor must be unique');
-    const mutated = source.replace(guard, '').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(verifierPath).href));
+    const mutated = source.replace(guard, 'if (false)').replaceAll('import.meta.url', JSON.stringify(pathToFileURL(verifierPath).href));
     const verifier = await import(`data:text/javascript;base64,${Buffer.from(mutated).toString('base64')}`);
-    const agents = joinLines('<!-- CK:CODEX-ROOT-PROJECTION -->', '<!-- /CK:CODEX-ROOT-PROJECTION -->',
-        '<!-- CODEX-CONTEXT-MIRROR:END -->', '<!-- CODEX-CONTEXT-MIRROR:START -->');
-    const oracle = fn => assert.deepEqual(fn(agents, 'context'), ['AGENTS.md managed context mirror markers must form an ordered pair']);
+    const agents = joinLines('<!-- CK:CODEX-ROOT-PROJECTION -->', '<!-- /CK:CODEX-ROOT-PROJECTION -->', '<!-- CODEX-CONTEXT-MIRROR:START -->', '<!-- CODEX-CONTEXT-MIRROR:END -->');
+    const oracle = fn => assert.equal(fn(agents).length, 1);
     oracle(checkCompactAgentsProjection);
     assert.throws(() => oracle(verifier.checkCompactAgentsProjection), assert.AssertionError);
 });
 
-test('TC-CTXP-035c: reversed context markers cannot bypass pointer and fingerprint checks', () => {
+test('TC-CTXP-035c: a retired context or protocol mirror block in AGENTS.md is a failure', () => {
     const agents = joinLines(
         '<!-- CK:CODEX-ROOT-PROJECTION -->',
         '<!-- /CK:CODEX-ROOT-PROJECTION -->',
-        '<!-- CODEX-CONTEXT-MIRROR:END -->',
-        '<!-- CODEX-CONTEXT-MIRROR:START -->'
+        '<!-- CODEX-CONTEXT-MIRROR:START -->',
+        'Read `.codex/CODEX_CONTEXT.md` before non-trivial work.',
+        '<!-- CODEX-CONTEXT-MIRROR:END -->'
     );
-    assert.deepEqual(checkCompactAgentsProjection(agents, 'context'), [
-        'AGENTS.md managed context mirror markers must form an ordered pair'
-    ]);
+    const failures = checkCompactAgentsProjection(agents);
+    assert.equal(failures.length, 1);
+    assert.match(failures[0], /retired block CODEX-CONTEXT-MIRROR:START/);
 });
 
 // TC-SKILLFIX-001 — orphan: heading immediately followed by a SAME-level heading, no body.
-// This is the exact class removed from plan-review/why-review (`## X` -> `## Your mission`).
+// This is the exact class removed from the plan review mode and why-review (`## X` -> `## Your mission`).
 test('TC-SKILLFIX-001: flags `##` immediately followed by `##` with no body', () => {
     const content = joinLines(
         '## Behavioral Delta Matrix (MANDATORY for bugfixes)',
@@ -329,7 +316,7 @@ test('TC-SKILLFIX-003: passes legitimate `##` -> `###` nesting', () => {
 });
 
 // TC-SKILLFIX-004 — output-format templates document stacked `##` headers inside fenced code
-// blocks (e.g. domain-entities-review, planning). Fenced headings must be skipped.
+// blocks (e.g. the domain-analysis review mode, planning). Fenced headings must be skipped.
 test('TC-SKILLFIX-004: skips stacked headings inside a fenced code block', () => {
     const content = joinLines(
         '## Output Format',
@@ -348,7 +335,7 @@ test('TC-SKILLFIX-004: skips stacked headings inside a fenced code block', () =>
 });
 
 // TC-SKILLFIX-005 — unfenced output templates use `{placeholder}` heading syntax
-// (e.g. architecture-review/ui-review `## Verdict: {PASS | WARN | BLOCKED}`). These are
+// (e.g. the architecture review mode and ui-design --mode=review `## Verdict: {PASS | WARN | BLOCKED}`). These are
 // intentional and must be skipped.
 test('TC-SKILLFIX-005: skips `{placeholder}` output-template headings', () => {
     const content = joinLines(
@@ -542,9 +529,9 @@ test('TC-REMEDIATE-001: remediation names the sync entrypoints and forbids hand-
 });
 
 // TC-REMEDIATE-002 — a mirror-drift failure adds the drift-specific explainer (the exact failure
-// string verify-skill-protocol emits: "context mirror content drifted from ...").
+// string the mirror verifiers emit: "... content drifted from ...").
 test('TC-REMEDIATE-002: mirror-drift failures add the drift-specific explainer', () => {
-    const drift = formatMirrorRemediation(['AGENTS.md context mirror content drifted from .codex/CODEX_CONTEXT.md']);
+    const drift = formatMirrorRemediation(['AGENTS.md projection content drifted from CLAUDE.md']);
     assert.match(drift, /reformatted/);
     assert.match(drift, /byte-for-byte/);
     // Non-drift failures must NOT carry the drift-specific lines (keeps the message scoped).
@@ -552,9 +539,9 @@ test('TC-REMEDIATE-002: mirror-drift failures add the drift-specific explainer',
     assert.doesNotMatch(nonDrift, /byte-for-byte/);
 });
 
-// TC-CTXP-034 — P6/P7 protocol-body-signature parity primitive. The mirrors term-rewrite tool nouns,
-// so the gate counts a rewrite-invariant signature instead of byte-comparing. These lock the count
-// primitive: a single deduped copy reads as 1; a stray duplicate (2) and a missing copy (0) both fail.
+// TC-CTXP-034 — the signature count primitive. The mirrors term-rewrite tool nouns, so the gate counts
+// a rewrite-invariant signature instead of byte-comparing. These lock the count primitive: any copy (1 or
+// more) of universal protocol text in a mirror is a failure, and zero copies is the contract.
 test('TC-CTXP-034a: countOccurrences counts non-overlapping matches, CRLF-normalized', () => {
     const sig = '## Common AI Mistake Prevention (System Lessons)';
     // One copy (the deduped, baked-once case the gate expects to PASS).
@@ -576,36 +563,26 @@ test('TC-CTXP-034b: countOccurrences is non-overlapping and empty-needle safe', 
 // TC-CTXP-035 — AGENTS.md is a bounded pointer/projection, while the full protocol remains in
 // CODEX_CONTEXT.md. This prevents a host-size optimisation from silently accepting a truncated
 // second copy or a pointer whose context content has changed since generation.
-test('TC-CTXP-035: compact AGENTS projection passes with a matching target and fingerprint', () => {
-    const context = '## Full static context\n\n[CRITICAL-THINKING-MINDSET]\n';
-    const fingerprint = createHash('sha256').update(context.trim(), 'utf8').digest('hex');
+test('TC-CTXP-035: compact AGENTS projection passes with its root projection markers and project information only', () => {
     const agents = joinLines(
         '# Codex Project Instructions',
         '<!-- CK:CODEX-ROOT-PROJECTION -->',
         '## Claude Instructions Mirror (Compact Auto-Synced Projection)',
-        '<!-- /CK:CODEX-ROOT-PROJECTION -->',
-        '<!-- CODEX-CONTEXT-MIRROR:START -->',
-        '## Codex Context Mirror (Auto-Synced)',
-        'Read `.codex/CODEX_CONTEXT.md` before non-trivial work.',
-        `Context fingerprint (SHA-256): ${fingerprint}`,
-        '<!-- CODEX-CONTEXT-MIRROR:END -->'
+        '## Doc Lookup — What to Read When',
+        '<!-- /CK:CODEX-ROOT-PROJECTION -->'
     );
-    assert.deepEqual(checkCompactAgentsProjection(agents, context), []);
+    assert.deepEqual(checkCompactAgentsProjection(agents), []);
 });
 
-test('TC-CTXP-035b: compact AGENTS projection rejects stale fingerprints, missing markers and overflow', () => {
-    const context = 'full context';
+test('TC-CTXP-035b: compact AGENTS projection rejects missing markers, universal text and overflow', () => {
     const agents = joinLines(
-        '<!-- CODEX-CONTEXT-MIRROR:START -->',
-        'Read `.codex/CODEX_CONTEXT.md`.',
-        'Context fingerprint (SHA-256): 0000000000000000000000000000000000000000000000000000000000000000',
-        '<!-- CODEX-CONTEXT-MIRROR:END -->',
+        BOTH_BODIES,
         // Derived from the constant, not a second copy of the number: pinning the literal here is
         // what made a deliberate budget change look like a test failure instead of a doc update.
         'x'.repeat(AGENTS_ROOT_LIMIT_BYTES + 1)
     );
-    const failures = checkCompactAgentsProjection(agents, context);
+    const failures = checkCompactAgentsProjection(agents);
     assert.ok(failures.some((failure) => new RegExp(`above the ${AGENTS_ROOT_LIMIT_BYTES}-byte`).test(failure)));
     assert.ok(failures.some((failure) => /bounded root projection markers/.test(failure)));
-    assert.ok(failures.some((failure) => /fingerprint does not match/.test(failure)));
+    assert.ok(failures.some((failure) => /universal protocol text/.test(failure)));
 });

@@ -5,15 +5,16 @@
  * Registration Tests" under the business spec root (default `docs/specs`; `specRoots.business.path`
  * in `docs/project-config.json` overrides it).
  *
- * Guards: the primary host (Claude) registers every group's entry file, with no arguments, on all
- * four load paths (BR-PDL-15); only its file-read registrations carry the skill-file condition, so an
- * ordinary read starts no protocol process (BR-PDL-09); the agent-start filter equals the
- * skill-preloading agents plus Explore and Plan (BR-PDL-08); the second host (Codex) maps delivery to
- * its prompt, shell-read and agent-start events without changing any existing step (BR-PDL-06) and
- * starts delivery steps without the version-control lookup (BR-PDL-09); the third host (OpenCode)
- * bridges every group on its skill tool and file read, carries the file-read condition into its table
- * and reports the other load paths as skipped (BR-PDL-15), and resolves a skill named in its own field
- * (BR-PDL-10); the second-host skill copy carries full text only for protocols on the inline list,
+ * Guards: the primary host (Claude) registers every skill-load group's entry file and the skill overlay
+ * reminder, with no arguments, on the skill-use, skill-file-read, command-expansion and agent-start
+ * load paths, and the universal bins on the prompt and agent-start events (BR-PDL-15); only its
+ * file-read registrations carry the skill-file condition, so an ordinary read starts no protocol
+ * process (BR-PDL-09); the agent-start registration carries no agent-type filter, so every agent type
+ * reaches the steps (BR-PDL-08); the second host (Codex) maps delivery to its prompt, shell-read and
+ * agent-start events without changing any existing step (BR-PDL-06) and starts delivery steps without
+ * the version-control lookup (BR-PDL-09); the third host (OpenCode) bridges every group on its skill
+ * tool and file read, carries the file-read condition into its table and reports the other load
+ * paths as skipped (BR-PDL-15), and resolves a skill named in its own field (BR-PDL-10); the second-host skill copy carries full text only for protocols on the inline list,
  * which is decided empty, and a listed protocol is never also delivered there (BR-PDL-06). Each test
  * name starts with its TC id (spec join key).
  *
@@ -43,8 +44,12 @@ const CODEX_SYNC = path.join(CLAUDE_DIR, 'scripts', 'codex', 'sync-hooks.mjs');
 const OPENCODE_SYNC = path.join(CLAUDE_DIR, 'scripts', 'opencode', 'sync-hooks.mjs');
 const GUIDE_CARRIER_REL = path.join('.claude', 'scripts', 'lib', 'protocol-guide-carrier.cjs');
 
-const GROUPS = ['review', 'evidence-trace', 'workflow-task', 'spec-test', 'design', 'universal'];
-const ROOT_SKIPPING_AGENT_TYPES = ['Explore', 'Plan'];
+// The five skill-load groups have an entry file each; the universal bundle is delivered by bins (universal-hook-delivery.test.cjs).
+const ENTRY_GROUPS = ['review', 'evidence-trace', 'workflow-task', 'spec-test', 'design'];
+const INDEX_GROUPS = [...ENTRY_GROUPS, 'universal'];
+const BIN_COUNT = 4;
+const BINS = Array.from({ length: BIN_COUNT }, (_, i) => i + 1);
+const OVERLAY_FILE = 'skill-overlay-remind.cjs';
 const READ_CONDITION = 'Read(**/SKILL.md)';
 const CONTEXT_LIMIT = 3000;
 const PROTOCOLS_DIR = '.claude/skills/shared/protocols';
@@ -55,7 +60,14 @@ const LIVE_SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'asserts the framework re
 
 const entryCommand = group => `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/protocol-inject-${group}.cjs`;
 const entryRel = group => `.claude/hooks/protocol-inject-${group}.cjs`;
-const isProtocolCommand = command => /protocol-inject-[a-z0-9-]+\.cjs/.test(String(command || ''));
+const binName = n => `universal-${n}`;
+const overlayCommand = `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/${OVERLAY_FILE}`;
+const overlayRel = `.claude/hooks/${OVERLAY_FILE}`;
+/** A skill-load entry, the overlay reminder or a universal bin: the handlers the host mapping treats as delivery steps. */
+const isProtocolCommand = command => /(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs/.test(String(command || ''));
+/** The commands of one skill-load registration: the five groups, then the overlay reminder. */
+const skillLoadCommands = () => [...ENTRY_GROUPS.map(entryCommand), overlayCommand];
+const skillLoadRels = () => [...ENTRY_GROUPS.map(entryRel), overlayRel];
 
 // ── the second-host launcher as it rendered BEFORE protocol delivery (literal, never re-derived) ──
 // Pinning the pre-change string is what proves an existing step is byte-identical: a render
@@ -127,10 +139,11 @@ function mirrorWithoutProtocol(mirror) {
     return withoutProtocol(mirror).hooks;
 }
 
-/** The settings a temp copy of the framework ships: existing steps plus the four protocol kinds. */
+/** The settings a temp copy of the framework ships: existing steps plus the delivery registrations. */
 function fixtureSettings() {
     const cmd = rel => `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/${rel}`;
-    const protocol = (extra = {}) => GROUPS.map(group => ({ command: entryCommand(group), ...extra, type: 'command' }));
+    const protocol = (extra = {}) => skillLoadCommands().map(command => ({ command, ...extra, type: 'command' }));
+    const bins = BINS.map(n => ({ command: entryCommand(binName(n)), type: 'command' }));
     return {
         hooks: {
             PostToolUse: [
@@ -145,9 +158,10 @@ function fixtureSettings() {
                 }
             ],
             SessionEnd: [{ hooks: [{ command: cmd('notifications/notify.cjs'), timeout: 3, type: 'command' }] }],
-            SubagentStart: [{ hooks: protocol(), matcher: 'Explore|Plan|code-reviewer' }],
+            SessionStart: [{ hooks: bins, matcher: 'compact|clear' }],
+            SubagentStart: [{ hooks: [...ENTRY_GROUPS.map(group => ({ command: entryCommand(group), type: 'command' })), ...bins] }],
             UserPromptExpansion: [{ hooks: protocol() }],
-            UserPromptSubmit: [{ hooks: [{ command: cmd('workflow-route-inject.cjs'), type: 'command' }] }]
+            UserPromptSubmit: [{ hooks: bins }, { hooks: [{ command: cmd('workflow-route-inject.cjs'), type: 'command' }] }]
         }
     };
 }
@@ -213,11 +227,11 @@ function writeDeliveryFixture(root, tags = ['review-alpha']) {
         writeFile(path.join(root, ...PROTOCOLS_DIR.split('/'), `${spec.tag}.md`), `> **${spec.tag}** — fixture protocol ${marker(spec.tag)}\n`);
         return { ...spec, summary: `Fixture summary for ${spec.tag}`, when: 'when it applies', file: `${PROTOCOLS_DIR}/${spec.tag}.md`, parts: [{ file: `${PROTOCOLS_DIR}/${spec.tag}.md` }] };
     });
-    writeFile(path.join(root, ...PROTOCOLS_DIR.split('/'), 'index.json'), JSON.stringify({ binChars: 9500, groups: GROUPS, tags: rows }, null, 2));
+    writeFile(path.join(root, ...PROTOCOLS_DIR.split('/'), 'index.json'), JSON.stringify({ binChars: 9500, groups: INDEX_GROUPS, tags: rows }, null, 2));
     writeFile(path.join(root, '.claude', 'skills', 'shared', 'protocol-groups.json'), JSON.stringify({
         version: 1,
         binChars: 9500,
-        groups: Object.fromEntries(GROUPS.map(group => [group, { description: `${group} fixture`, tags: {} }])),
+        groups: Object.fromEntries(INDEX_GROUPS.map(group => [group, { description: `${group} fixture`, tags: {} }])),
         inlineSkills: []
     }, null, 2));
     const skill = `---\nname: conv-a\ndescription: fixture skill\n---\n\n# conv-a\n\n${guideBlock(tags)}\n`;
@@ -331,41 +345,56 @@ function generateInlineMirror(root, inlineTags) {
 function planCodexReviewDelivery(root) {
     const { planDelivery } = require(path.join(HOOKS_DIR, 'lib', 'protocol-delivery.cjs'));
     return planDelivery({ hook_event_name: 'UserPromptSubmit', prompt: 'please use $conv-a here', turn_id: 't1', session_id: 's1', cwd: root },
-        'review', { projectRoot: root, host: 'codex', requireUniversalGuides: true });
+        'review', { projectRoot: root, host: 'codex' });
 }
 
 // ── tests ───────────────────────────────────────────────────────────────────
 
 const tests = [
     {
-        name: 'TC-PDL-021 the primary host registers every group, with no arguments, on skill use, skill-file read, command expansion and agent start',
+        name: 'TC-PDL-021 the primary host registers every skill-load group and the overlay reminder on skill use, skill-file read and command expansion, and the universal bins on prompt, agent start and the compact session start',
         skip: LIVE_SKIP,
         fn: () => {
             // Given the shipped primary-host settings and the protocol group data
             const settings = readLiveSettings();
             const groupData = JSON.parse(fs.readFileSync(path.join(CLAUDE_DIR, 'skills', 'shared', 'protocol-groups.json'), 'utf8'));
-            assert.deepEqual(Object.keys(groupData.groups), GROUPS, 'the six delivery groups');
-            const paths = [
+            assert.deepEqual(Object.keys(groupData.groups), INDEX_GROUPS, 'the six delivery groups');
+            assert.equal(groupData.groups.universal.bins.length, BIN_COUNT, 'the shipped universal layout has the bins this suite expects');
+            const loadPaths = [
                 ['PostToolUse', 'Skill'],
                 ['PostToolUse', 'Read'],
-                ['UserPromptExpansion', null],
-                ['SubagentStart', 'any']
+                ['UserPromptExpansion', null]
             ];
-            for (const [event, matcher] of paths) {
+            for (const [event, matcher] of loadPaths) {
                 // When the registrations of one load path are listed
-                const handlers = protocolHandlers(settings, event).filter(entry => matcher === 'any' || entry.matcher === matcher);
+                const handlers = protocolHandlers(settings, event).filter(entry => entry.matcher === matcher);
                 const commands = handlers.map(entry => entry.handler.command);
-                // Then each group's entry file is registered exactly once, with no arguments, and exists
-                assert.deepEqual(commands, GROUPS.map(entryCommand), `${event} ${matcher || '(no matcher)'}: one bare registration per group, in group order`);
-                for (const group of GROUPS) assert.ok(fs.existsSync(path.join(HOOKS_DIR, `protocol-inject-${group}.cjs`)), `${group} entry file exists`);
-                // And all six share one registration group per load path
+                // Then each group's entry file and the overlay reminder are registered exactly once, with no arguments, and exist
+                assert.deepEqual(commands, skillLoadCommands(), `${event} ${matcher || '(no matcher)'}: one bare registration per group, then the overlay reminder`);
+                for (const rel of skillLoadRels()) assert.ok(fs.existsSync(path.join(REPO_ROOT, ...rel.split('/'))), `${rel} exists`);
+                // And all share one registration group per load path
                 assert.equal(new Set(handlers.map(entry => entry.matcher)).size, 1, `${event}: one registration group`);
             }
+            // And the agent start carries the five groups and then the four bins, in one registration group
+            const agentStart = protocolHandlers(settings, 'SubagentStart');
+            assert.deepEqual(agentStart.map(entry => entry.handler.command), [...ENTRY_GROUPS, ...BINS.map(binName)].map(entryCommand), 'SubagentStart: groups then bins');
+            assert.equal(new Set(agentStart.map(entry => entry.matcher)).size, 1, 'SubagentStart: one registration group');
+            // And the prompt event carries the bins, one bare registration each, in a registration group of their own that comes first
+            const prompt = protocolHandlers(settings, 'UserPromptSubmit');
+            assert.deepEqual(prompt.map(entry => entry.handler.command), BINS.map(binName).map(entryCommand), 'UserPromptSubmit: the bins only');
+            assert.equal(settings.hooks.UserPromptSubmit[0].hooks.length, BIN_COUNT, 'the bins are the first prompt registration group');
+            for (const n of BINS) assert.ok(fs.existsSync(path.join(HOOKS_DIR, `protocol-inject-${binName(n)}.cjs`)), `bin ${n} entry file exists`);
+            assert.equal(fs.existsSync(path.join(HOOKS_DIR, 'protocol-inject-universal.cjs')), false, 'the retired single universal entry file is gone');
+            // And the bins are also registered on the session start of a compaction or a clear (the `compact|clear` sources only), so a
+            // compaction that no prompt follows still re-delivers the bundle; nothing else protocol-related sits there
+            const sessionStart = protocolHandlers(settings, 'SessionStart');
+            assert.deepEqual(sessionStart.map(entry => entry.handler.command), BINS.map(binName).map(entryCommand), 'SessionStart: the bins only');
+            assert.deepEqual([...new Set(sessionStart.map(entry => entry.matcher))], ['compact|clear'], 'SessionStart: the compact and clear sources only, never startup or resume');
             // And no protocol entry is registered anywhere else
-            const elsewhere = Object.keys(settings.hooks).filter(event => !['PostToolUse', 'UserPromptExpansion', 'SubagentStart'].includes(event))
+            const elsewhere = Object.keys(settings.hooks).filter(event => !['PostToolUse', 'UserPromptExpansion', 'SubagentStart', 'UserPromptSubmit', 'SessionStart'].includes(event))
                 .filter(event => protocolHandlers(settings, event).length > 0);
             assert.deepEqual(elsewhere, [], 'protocol entries on an unexpected event');
-            assert.equal(protocolHandlers(settings, 'PostToolUse').length, GROUPS.length * 2, 'PostToolUse: Skill and Read only');
+            assert.equal(protocolHandlers(settings, 'PostToolUse').length, (ENTRY_GROUPS.length + 1) * 2, 'PostToolUse: Skill and Read only');
         }
     },
     {
@@ -376,10 +405,11 @@ const tests = [
             const settings = readLiveSettings();
             // When every protocol handler is listed with its event and matcher
             const all = Object.keys(settings.hooks).flatMap(event => protocolHandlers(settings, event).map(entry => ({ event, ...entry })));
-            assert.equal(all.length, GROUPS.length * 4, 'six groups on four load paths');
+            const perLoadPath = ENTRY_GROUPS.length + 1;
+            assert.equal(all.length, perLoadPath * 3 + (ENTRY_GROUPS.length + BIN_COUNT) + BIN_COUNT + BIN_COUNT, 'three skill-load paths, the agent start, the prompt event and the compact session start');
             // Then each handler under PostToolUse `Read` has exactly the skill-file condition
             const reads = all.filter(entry => entry.event === 'PostToolUse' && entry.matcher === 'Read');
-            assert.equal(reads.length, GROUPS.length);
+            assert.equal(reads.length, perLoadPath);
             for (const entry of reads) assert.equal(entry.handler.if, READ_CONDITION, `${entry.handler.command}: file-read condition`);
             // And no other protocol handler carries a condition (on a non-tool event it would never run)
             for (const entry of all.filter(item => !(item.event === 'PostToolUse' && item.matcher === 'Read'))) {
@@ -388,18 +418,22 @@ const tests = [
         }
     },
     {
-        name: 'TC-PDL-060 the agent-start filter equals the skill-preloading agents plus Explore and Plan, sorted',
+        name: 'TC-PDL-060 the agent-start registration admits every agent type (skill preloaders, Explore, Plan, general-purpose and any custom agent: each receives the universal bins)',
         skip: LIVE_SKIP,
         fn: () => {
-            // Given the shipped agent definitions and settings
-            const expected = [...skillPreloadingAgents(path.join(CLAUDE_DIR, 'agents')), ...ROOT_SKIPPING_AGENT_TYPES].sort();
-            assert.ok(expected.length > ROOT_SKIPPING_AGENT_TYPES.length, 'at least one agent preloads skills');
+            // Given the shipped agent definitions and settings; the hooks decide per agent whether to deliver
+            // (skill preload for the group entries, every agent for the universal bins)
+            const preloaders = skillPreloadingAgents(path.join(CLAUDE_DIR, 'agents'));
+            const required = [...preloaders, 'Explore', 'Plan', 'general-purpose'];
             // When the agent-start registrations are read
             const handlers = protocolHandlers(readLiveSettings(), 'SubagentStart');
-            assert.equal(handlers.length, GROUPS.length);
-            // Then every protocol handler's matcher is exactly that list, sorted
+            assert.equal(handlers.length, ENTRY_GROUPS.length + BIN_COUNT);
+            // Then no matcher narrows them: an agent-name list would miss a general-purpose or custom agent,
+            // and every agent type must receive the universal bundle
             for (const entry of handlers) {
-                assert.deepEqual(String(entry.matcher).split('|'), expected, `SubagentStart matcher for ${entry.handler.command}`);
+                const admitted = name => entry.matcher === null || entry.matcher === '*' || String(entry.matcher).split('|').includes(name);
+                for (const name of required) assert.ok(admitted(name), `SubagentStart registration for ${entry.handler.command} must admit ${name}`);
+                assert.equal(entry.matcher, null, `SubagentStart registration for ${entry.handler.command} carries no agent-type matcher`);
             }
         }
     },
@@ -415,18 +449,21 @@ const tests = [
                 const report = renderCodex(fs.mkdtempSync(path.join(temp, 'report-')), settings, temp).report;
                 const hooks = mirror.hooks;
                 const protocolGroups = event => (hooks[event] || []).filter(group => group.hooks.some(handler => isProtocolCommand(handler.command)));
-                const expectEntries = (group, label) => {
-                    assert.deepEqual(group.hooks.map(handler => handler.command), GROUPS.map(g => leanRender(entryRel(g))), `${label}: the six entries, lean launcher, no arguments`);
+                const expectEntries = (group, label, rels = skillLoadRels()) => {
+                    assert.deepEqual(group.hooks.map(handler => handler.command), rels.map(leanRender), `${label}: the entries, lean launcher, no arguments`);
                     for (const handler of group.hooks) {
                         assert.equal(handler.additionalContextLimit, CONTEXT_LIMIT, `${label}: allowance`);
                         assert.equal(Object.hasOwn(handler, 'if'), false, `${label}: no condition on the second host`);
                     }
                 };
-                // Then each group maps to the prompt event with an allowance of 3,000
+                // Then the native bins keep their place on the prompt event and the remapped load-path group follows every native group, each with an allowance of 3,000
                 const prompt = protocolGroups('UserPromptSubmit');
-                assert.equal(prompt.length, 1, 'one prompt-event protocol group');
-                expectEntries(prompt[0], 'UserPromptSubmit');
-                assert.equal(hooks.UserPromptSubmit.at(-1), prompt[0], 'the remapped group follows every native prompt group');
+                assert.equal(prompt.length, 2, 'the bins group and the remapped load-path group');
+                const binRels = BINS.map(n => entryRel(binName(n)));
+                expectEntries(prompt[0], 'UserPromptSubmit bins', binRels);
+                assert.equal(hooks.UserPromptSubmit[0], prompt[0], 'the bins are the first prompt group');
+                expectEntries(prompt[1], 'UserPromptSubmit remapped');
+                assert.equal(hooks.UserPromptSubmit.at(-1), prompt[1], 'the remapped group follows every native prompt group');
                 // And each group has a shell-read step (the confirmation run kept the shell mapping on)
                 const post = protocolGroups('PostToolUse');
                 assert.deepEqual(post.map(group => group.matcher), ['Bash'], 'PostToolUse protocol steps sit on the shell tool only');
@@ -434,8 +471,15 @@ const tests = [
                 // And agent start mirrors with the filter anchored for the second host's regex matcher
                 const agent = protocolGroups('SubagentStart');
                 assert.equal(agent.length, 1);
-                assert.equal(agent[0].matcher, '^(?:Explore|Plan|code-reviewer)$');
-                expectEntries(agent[0], 'SubagentStart');
+                assert.equal(agent[0].matcher, undefined, 'no agent-type filter: every agent type reaches the steps');
+                expectEntries(agent[0], 'SubagentStart', [...ENTRY_GROUPS.map(entryRel), ...binRels]);
+                // And the bins' compact|clear session start mirrors verbatim (the second host's SessionStart accepts both sources), alone on that event
+                const start = protocolGroups('SessionStart');
+                assert.equal(start.length, 1);
+                assert.equal(start[0].matcher, 'compact|clear', 'SessionStart keeps the compact and clear sources');
+                expectEntries(start[0], 'SessionStart compact|clear', binRels);
+                assert.equal(hooks.SessionStart.length, 1, 'no other step mirrors on SessionStart in this fixture');
+                assert.equal(report.skipped_events.some(entry => entry.event === 'SessionStart'), false, 'session start is not skipped');
                 // And no delivery step is keyed to file read or skill use
                 for (const [event, groups] of Object.entries(hooks)) {
                     for (const group of groups.filter(item => item.hooks.some(handler => isProtocolCommand(handler.command)))) {
@@ -450,7 +494,7 @@ const tests = [
                 const dropped = report.skipped_groups.filter(entry => entry.reason === 'matcher-names-no-codex-tool');
                 assert.deepEqual(dropped.map(entry => `${entry.event}:${entry.matcher}`), ['PostToolUse:Skill', 'PostToolUse:Read']);
                 assert.deepEqual(report.codex_only_groups.map(entry => [entry.event, entry.matcher, entry.hooks, entry.derived_from.matcher]),
-                    [['PostToolUse', 'Bash', GROUPS.length, 'Read']]);
+                    [['PostToolUse', 'Bash', ENTRY_GROUPS.length + 1, 'Read']]);
                 assert.equal(report.skipped_events.some(entry => entry.event === 'SubagentStart'), false, 'agent start is not skipped');
                 // And, in the framework repo, the shipped settings keep every existing step byte-identical too
                 if (!LIVE_SKIP) assertExistingStepsUnchanged(readLiveSettings(), temp, 'shipped settings');
@@ -471,10 +515,10 @@ const tests = [
                 const { mirror } = renderCodex(fixture, settings, temp);
                 const protocolCommands = Object.values(mirror.hooks).flat().flatMap(group => group.hooks)
                     .map(handler => handler.command).filter(isProtocolCommand);
-                assert.equal(protocolCommands.length, GROUPS.length * 3, 'prompt, shell-read and agent-start steps');
+                assert.equal(protocolCommands.length, (ENTRY_GROUPS.length + 1) * 2 + (ENTRY_GROUPS.length + BIN_COUNT) + BIN_COUNT + BIN_COUNT, 'prompt, shell-read, agent-start, native bin and compact session-start steps');
                 // Then every second-host step is the launcher plus exactly one existing entry file
                 for (const command of protocolCommands) {
-                    const match = /^node -e "[^"]+" -- "(\.claude\/hooks\/protocol-inject-[a-z0-9-]+\.cjs)"$/.exec(command);
+                    const match = /^node -e "[^"]+" -- "(\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs)"$/.exec(command);
                     assert.ok(match, `not a bare launcher command: ${command.slice(-80)}`);
                     assert.ok(fs.existsSync(path.join(fixture, ...match[1].split('/'))), `${match[1]} exists`);
                 }
@@ -497,9 +541,9 @@ const tests = [
                 const { buildHooksConfig } = await import(pathToFileURL(OPENCODE_SYNC).href);
                 const bridged = Object.values(buildHooksConfig(settings).hooks).flat().flatMap(group => group.hooks)
                     .map(handler => handler.command).filter(isProtocolCommand);
-                assert.ok(bridged.length >= GROUPS.length, 'the bridge carries protocol steps');
+                assert.ok(bridged.length >= ENTRY_GROUPS.length, 'the bridge carries protocol steps');
                 for (const hookRel of bridged) {
-                    assert.match(hookRel, /^\.claude\/hooks\/protocol-inject-[a-z0-9-]+\.cjs$/, 'one bare path, no arguments');
+                    assert.match(hookRel, /^\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs$/, 'one bare path, no arguments');
                     assert.ok(fs.existsSync(path.join(fixture, ...hookRel.split('/'))), `${hookRel} exists`);
                 }
             } finally {
@@ -545,7 +589,7 @@ const tests = [
         }
     },
     {
-        name: 'TC-PDL-023 the third-host bridge lists every group on the skill tool and file read, conditions only the file read, and reports the rest as skipped',
+        name: 'TC-PDL-023 the third-host bridge lists every group and the overlay reminder on the skill tool and file read, conditions only the file read, and reports the rest as skipped',
         fn: async () => {
             const fixture = makeHookTreeProject('pdl023');
             try {
@@ -561,10 +605,10 @@ const tests = [
                 const post = hooks.PostToolUse;
                 const byMatcher = matcher => post.filter(group => group.matcher === matcher);
                 assert.equal(byMatcher('Skill').length, 1, 'one skill-tool group');
-                assert.deepEqual(byMatcher('Skill')[0].hooks, GROUPS.map(group => ({ type: 'command', command: entryRel(group) })));
+                assert.deepEqual(byMatcher('Skill')[0].hooks, skillLoadRels().map(command => ({ type: 'command', command })));
                 // And once on the file read, each entry carrying the skill-file condition
                 assert.equal(byMatcher('Read').length, 1, 'one file-read group');
-                assert.deepEqual(byMatcher('Read')[0].hooks, GROUPS.map(group => ({ type: 'command', command: entryRel(group), if: READ_CONDITION })));
+                assert.deepEqual(byMatcher('Read')[0].hooks, skillLoadRels().map(command => ({ type: 'command', command, if: READ_CONDITION })));
                 // And every other step keeps its earlier two-key shape
                 for (const [event, groups] of Object.entries(hooks)) {
                     for (const handler of groups.flatMap(group => group.hooks).filter(item => !isProtocolCommand(item.command))) {

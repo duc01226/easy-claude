@@ -312,7 +312,7 @@ function buildGoldenRules(config, projectDir) {
             `**Path-scoped project rules** — delivered just in time, not inlined here. Groups with rules: ${names}.`,
             '',
             "- The convention hook injects each matching group's full rule text and required docs when a matching file is read or edited, per the group's trigger, through the host's file tools.",
-            `- A shell read or edit, or a host without hooks, gets no digest: run \`${delivery.conventions.LOOKUP_COMMAND} <path>\` before the first read, edit or test of that path.`,
+            `- A shell read or edit gets no digest: run \`${delivery.conventions.LOOKUP_COMMAND} <path>\` before the first read, edit or test of that path.`,
             "- Before planning a change, run the lookup for each target path; the Skill Activation table below indexes every group's matchers and pre-read docs.",
             "- Apply a group's rules only to files it matches; never promote a path-scoped rule to a global reminder."
         ].join('\n');
@@ -679,7 +679,7 @@ function buildSkillActivation(config, projectDir) {
         const docCell = entry.docs.map(d => `\`${tableCell(d)}\``).concat(`\`${conventions.conventionTag(entry)}\``).join(', ');
         return `| ${patternCell} | ${skillCell} | ${docCell} |`;
     });
-    return `${SKILL_ACTIVATION_INTRO} (no hook: \`${conventions.LOOKUP_COMMAND} <path>\`)\n\n${header}\n${rows.join('\n')}`;
+    return `${SKILL_ACTIVATION_INTRO} (a shell read or edit gets no digest: \`${conventions.LOOKUP_COMMAND} <path>\`)\n\n${header}\n${rows.join('\n')}`;
 }
 
 function buildDocIndex(config, projectDir) {
@@ -868,7 +868,7 @@ function buildDocLookup(config, projectDir) {
         ? `\n\nDeclared not applicable in \`referenceDocs\` (skip unless the project adds that stack): ${notApplicable.join(', ')}.`
         : '';
     // Never render a header-only table: say what to do instead.
-    if (allRows.length === 0) return `No project docs exist yet — run \`/project-init\` or \`/docs-init\` before project work.${skip}`;
+    if (allRows.length === 0) return `No project docs exist yet — run \`/project-init\` or \`/docs-manager --mode=init\` before project work.${skip}`;
     const intro = 'Match the question or task to a row and read that doc before answering, planning, or editing; ' +
         'every row names a file or folder that exists in this repo.';
     return `${intro}\n\n| If user prompt mentions... | Read first |\n|---|---|\n${allRows.join('\n')}${skip}`;

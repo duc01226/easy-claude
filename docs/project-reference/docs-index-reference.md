@@ -13,7 +13,7 @@
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 433 unique authored Markdown files across 11 categories; `docs/` contains 40 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 465 unique authored Markdown files across 11 categories; `docs/` contains 40 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Workflow
 
@@ -29,7 +29,7 @@
 
 ## Documentation System
 
-433 unique authored markdown files across 11 indexed categories. Last scanned: 2026-09-30.
+465 unique authored markdown files across 11 indexed categories. Last scanned: 2026-09-30.
 
 **Relocatable roots.** Four of the categories below are anchored on a configurable root. Resolve each one before running its glob:
 
@@ -52,7 +52,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Framework Docs         |             41 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            349 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         |            381 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -120,7 +120,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 349 authored/tracked markdown assets
+└── .claude/skills/                                # 381 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -178,7 +178,7 @@ docs/specs/WorkflowExecution/INDEX.md
 └── README.GuidedWorkflow.md
 ```
 
-Evidence: `README.md:386-396` (Further Reading); `CLAUDE.md:206-213,231-248` (hook, skill, agent, test, and feature-spec lookup rows), `:250` (backend, frontend, SCSS, and E2E references are not applicable), `:325` (active integration-test reference), `:423-424` (spec/test auto-context relationships), and `:461` (ADR-0002 pointer); `.claude/docs/README.md:9-18,88-98,146-150`; `Adoption/INDEX.md:7-11`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-11`; `Presentation/INDEX.md:7-11`; and `WorkflowExecution/INDEX.md:7-11`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
+Evidence: `README.md:386-396` (Further Reading); `CLAUDE.md` (Doc Lookup rows for hook, skill, agent, test, and feature-spec docs; the not-applicable reference note; the integration-test reference; the Automatic Skill Activation spec/test rows; the ADR pointer); `.claude/docs/README.md:9-18,88-98,146-150`; `Adoption/INDEX.md:7-11`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-11`; `Presentation/INDEX.md:7-11`; and `WorkflowExecution/INDEX.md:7-11`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
 
 ## Doc Lookup Guide
 

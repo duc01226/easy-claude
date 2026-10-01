@@ -17,7 +17,7 @@
  *
  * "Every skill injector" is discovered, not listed: each `inject_*.py` next to this suite, minus
  * the agent-only injectors (agents keep full protocol text) and one that inserts no protocol tag,
- * plus `sync-hooks-to-skills.py` and the refresher `sync_project_reference_block.py`. A new
+ * plus `sync-hooks-to-skills.py`. A new
  * injector joins the loop automatically; if it targets none of FIXTURE_SKILLS, the control run
  * fails and names it.
  *
@@ -46,11 +46,11 @@ const EXCLUDED = {
     'inject_agent_skill_connections.py': 'agent-only: agents keep full protocol text'
 };
 /** Skill writers that are not named `inject_*.py`. */
-const EXTRA = ['sync-hooks-to-skills.py', 'sync_project_reference_block.py'];
-/** A refresher never inserts, so its body-carrier fixture comes from the injector that does. */
-const SEEDED_BY = { 'sync_project_reference_block.py': 'inject_project_reference_prefetch.py' };
+const EXTRA = ['sync-hooks-to-skills.py'];
+/** A refresher never inserts, so its body-carrier fixture would come from the injector that does (none today). */
+const SEEDED_BY = {};
 /** Every in-scope injector must target at least one of these names. */
-const FIXTURE_SKILLS = ['workflow-review-changes', 'architecture-design', 'fix'];
+const FIXTURE_SKILLS = ['workflow-review-changes', 'production-readiness-review', 'fix'];
 /** The registry-binding injector targets the workflow ids in this registry. */
 const WORKFLOWS = { workflows: { 'workflow-review-changes': {} } };
 

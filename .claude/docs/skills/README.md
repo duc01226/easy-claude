@@ -1,10 +1,12 @@
 # Skills Reference
 
-> <!-- COUNT:skills -->129<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
+
+> <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->14<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
-Skills are **automatically activated** based on context keywords in your conversation. Unlike commands (which require `/` prefix), skills enhance Claude's responses without explicit invocation.
+Skills can be selected from conversation context or explicitly invoked: `/skill-name` in Claude Code, `$skill-name` in Codex. Selection loads instructions; execution follows their required steps through the active host.
 
 ```
 User: "I need to fix a bug in the employee validation"
@@ -16,19 +18,21 @@ Skills Activated: fix, investigate
 
 ## How Skills Work
 
+Skill loading activates instructions; execution performs their steps through the active host. Claude Code uses its `Skill` tool. Codex loads the registered `.agents/skills/<name>/SKILL.md` and follows it with available tools; OpenCode uses its native skill loader. A canonical `.claude/**` source read never changes the session's host. Read `.claude/docs/troubleshooting.md` when a discovered skill is incorrectly blocked on a foreign-host tool name.
+
 1. **Detection**: Claude analyzes your message for trigger keywords
 2. **Activation**: Matching skills are loaded into context
 3. **Enhancement**: Skill knowledge guides the response
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->129<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
 | [Development - Backend](#development---backend)   | 0      | Project-specific backend patterns              |
 | [Development - Frontend](#development---frontend) | 2      | Components, forms, state, styling, design      |
-| [Architecture](#architecture)                     | 3      | Architecture, performance, security            |
+| [Architecture](#architecture)                     | 4      | Architecture, performance, security            |
 | [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                    |
 | [Documentation](#documentation)                   | 3      | Docs, feature docs, release notes              |
 | [Git/Workflow](#gitworkflow)                      | 5      | Commits, pull requests, code review, gates     |
@@ -40,7 +44,7 @@ Skills Activated: fix, investigate
 | [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
 | [Utility](#utility)                               | 1      | Skill creation                                 |
 
-**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->12<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
+**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->14<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
 
 ---
 
@@ -54,7 +58,7 @@ See `backend-patterns-reference.md` in the project-reference docs root — defau
 
 | Skill                   | Triggers                           | Description                         |
 | ----------------------- | ---------------------------------- | ----------------------------------- |
-| `ui-design`                | UI, design, screenshot             | UI implementation (multi-mode/lane) |
+| `ui-design`                | UI, design, screenshot, UI review  | UI implementation (multi-mode/lane) and `--mode=review` UI review |
 | `web-design-guidelines` | accessibility, WCAG, visual review | UI compliance review                |
 
 See `frontend-patterns-reference.md` in the project-reference docs root for project-specific frontend patterns.
@@ -65,6 +69,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill                | Triggers                              | Description                                       |
 | -------------------- | ------------------------------------- | ------------------------------------------------- |
+| `architecture` | architecture design, architecture review, scalability grade, architecture audit | Modes `--mode=design` (solution architecture + ADRs), `--mode=review` (compliance review), `--mode=scalability` (`/20` scale grade), `--mode=full` (whole-project audit) |
 | `performance-review` | performance, optimization, bottleneck | Performance tuning + architecture-altitude review |
 | `security-audit`    | security, vulnerabilities             | Security analysis                                 |
 | `ai-engineering-review` | AI feature review, LLM review, prompt review, agent review, RAG review | Review a plan or change that calls a model against the AI-engineering protocol (`--mode=code\|plan`, `--report-only`) |
@@ -79,8 +84,8 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                               |
 | `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                         |
 | `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to the business spec root (sync mode retires when dashboards are removed in Phase 7) |
-| `integration-test-review` | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                                  |
-| `integration-test-verify` | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                                 |
+| `integration-test --mode=review` | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                                  |
+| `integration-test --mode=verify` | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                                 |
 
 ---
 
@@ -110,11 +115,8 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill                | Triggers                                                                                                                        | Description                                                                                                      |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `graph-build`        | build graph, code graph, knowledge graph, sync graph, update graph, working tree, uncommitted changes, refresh graph after pull | Build, update, or sync the code review knowledge graph via `--scope={full\|update\|sync}` (Tree-sitter + SQLite); installs the Python graph tooling on first use; refused while `hooks.codeGraph.enabled` is `off` |
-| `graph-blast-radius` | blast radius, impact analysis, structural impact                                                                                | Analyze structural impact of current changes using knowledge graph                                               |
+| `graph-code`         | build graph, sync graph, update graph, refresh graph after pull, who calls, what imports, tests for, graph query, trace flow, blast radius, impact analysis, connect api | Code knowledge graph via `--mode={build\|query\|trace\|blast-radius\|connect-api}`: build/update/sync (`--scope={full\|update\|sync}`, Tree-sitter + SQLite; installs the Python graph tooling on first use; refused while `hooks.codeGraph.enabled` is `off`), relationship queries, system-flow traces, blast radius of current changes, frontend-to-backend API matching |
 | `graph-export`       | export graph, JSON dump, mermaid, diagram, visualize                                                                            | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                  |
-| `graph-query`        | graph query, callers, tests_for                                                                                                 | Natural language graph relationship queries                                                                      |
-| `graph-connect-api`  | connect api, api connections, frontend backend                                                                                  | Detect frontend-to-backend API connections via knowledge graph                                                   |
 | `linter-setup`       | linter setup, formatter setup, pre-commit, quality gate                                                                         | Configure stack-appropriate lint/format/type-check quality tooling                                               |
 | `harness-setup`      | harness setup, quality harness, feedback sensors                                                                                | Set up feedforward guides and feedback sensors for coding workflows                                              |
 
@@ -124,8 +126,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 | Skill         | Triggers                           | Description                                                           |
 | ------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| `plan`        | plan, strategy, approach, research | Implementation planning (includes research phase + engine references) |
-| `plan-review` | analyze plan, review plan          | Plan review                                                           |
+| `plan`        | plan, strategy, approach, research, review plan, analyze plan, validate plan, execute plan | Implementation planning (includes research phase + engine references; every plan carries a task-derived Quality Gates & Concerns Checklist that review audits, validate probes and execute walks before completion); `--mode=review` one-pass plan review, `--mode=validate` critical-questions validation, `--mode=execute` code and test an existing plan |
 | `feature`     | implement, add, create, build      | Feature development                                                   |
 | `investigate` | how does, explain, trace           | Code exploration                                                      |
 
@@ -136,7 +137,8 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill             | Triggers                                         | Description                  |
 | ----------------- | ------------------------------------------------ | ---------------------------- |
 | `code-simplifier` | simplify, refine, clarity                        | Code cleanup                 |
-| `learn`           | remember this, always do, patterns, list learned, rule for a skill, when doing X always | Pattern learning and viewing; skill-specific rules route to `project-skill-protocol` overlays |
+| `learn`           | remember this, always do, patterns, list learned, rule for a skill, when doing X always | Pattern learning and viewing; skill-specific rules route to `project-skill-protocol` overlays; broad short project rules route to the root `CLAUDE.md` project-rules section (then `sync-codex`) |
+| `workflow-mode`   | workflow mode, route mode, workflows auto, turn workflows off, ask before workflow | Show or set this person's workflow route mode (`ask` · `auto` · `off`); personal, never a project setting |
 
 ---
 
@@ -147,8 +149,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `spec [mode=tests]` | test plan, test cases, coverage, automation                                                      | Test specification and case generation    |
 | `design-spec`       | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
 | `idea`              | capture idea, new idea, add to backlog                                                           | Idea capture and structuring              |
-| `refine`            | refine idea, convert to PBI, acceptance criteria                                                 | Idea-to-PBI transformation                |
-| `story`             | user story, vertical slice, split story                                                          | PBI-to-story breakdown                    |
+| `pbi`               | refine idea, convert to PBI, acceptance criteria, user story, vertical slice, split story, interactive mockup, PBI challenge, artifact review, Definition of Ready | PBI lifecycle by `--mode`: refine, story, mockup, challenge, review, dor |
 | `prioritize`        | RICE score, MoSCoW, value-effort matrix                                                          | Backlog prioritization frameworks         |
 
 ---
@@ -181,7 +182,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 ## Shared Protocols (SYNC bodies and guides)
 
-Shared protocols follow the hybrid policy (`SYNC:shared-protocol-duplication-policy`). A converted skill carries one guide line per protocol in its `PROTOCOL-GUIDES` block, and a hook delivers the full text from the generated projection `.claude/skills/shared/protocols/` (the guide path is the fallback). The four converging review-family skills (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`), SYNC bodies in `references/*.md` and agents keep full `<!-- SYNC:tag -->` bodies. Single-pass `plan-review` uses guides. The canonical source for all SYNC content is `.claude/skills/shared/sync-inline-versions.md`.
+Shared protocols follow the hybrid policy (`SYNC:shared-protocol-duplication-policy`). A converted skill carries one guide line per protocol in its `PROTOCOL-GUIDES` block, and a hook delivers the full text from the generated projection `.claude/skills/shared/protocols/` (the guide path is the fallback). The four converging review-family skills (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`), SYNC bodies in `references/*.md` and agents keep full `<!-- SYNC:tag -->` bodies. Single-pass `plan --mode=review` uses guides. The protocols of the `universal` group are delivered by the universal hook and carried by no skill: a skill holds no body, reminder, guide line or pointer for them. The canonical source for all SYNC content is `.claude/skills/shared/sync-inline-versions.md`.
 
 **Why hybrid?** A rule in context is followed more reliably than one the model must choose to read, so hooks put the full text in context when the skill loads; full bodies stay only where hook delivery cannot reach the reader or carry the text.
 
@@ -203,6 +204,7 @@ Each skill is located at `.claude/skills/{skill-name}/`:
 .claude/skills/shared/          # SYNC canonical source (hybrid: guide lines + hook delivery, full bodies in review-family skills and agents)
 |-- affirmative-rewrite-rubric.md
 |-- e2e-quality-protocol.md
+|-- m1-m7-gates.md
 |-- product-roadmap-contract.md
 |-- protocol-groups.json       # Hook delivery groups + inlineSkills (review-family skills keeping full bodies)
 |-- protocols/                 # GENERATED projection the protocol-inject hooks deliver (build-protocol-projection.cjs)
@@ -212,6 +214,7 @@ Each skill is located at `.claude/skills/{skill-name}/`:
 |-- sync-inline-versions.md    # Single source of truth for all SYNC protocol content
 |-- tc-format.md
 |-- ui-state-capture-protocol.md
+|-- verify-convergence-loop.md
 +-- workflow-first-gate.md
 ```
 
@@ -261,16 +264,16 @@ Skills are often activated alongside commands:
 | Command              | Primary Skills Activated               |
 | -------------------- | -------------------------------------- |
 | `/feature-implement` | `feature`, `plan`, `spec [mode=tests]` |
-| `/fix`               | `debug-investigate`                    |
-| `/plan`              | `plan` (`plan-review` is explicit opt-in) |
+| `/fix`               | `investigate --mode=debug`             |
+| `/plan`              | `plan` (`--mode=review` is explicit opt-in) |
 | `/review`            | `code-quality-review`                          |
 | `/test`              | `spec [mode=tests]`, `e2e-test`        |
 | `/idea`              | `idea`                                 |
-| `/refine`            | `refine`                               |
-| `/story`             | `story`                                |
+| `/pbi --mode=refine` | `pbi --mode=refine`                    |
+| `/pbi --mode=story`  | `pbi --mode=story`                     |
 | `/design-spec`       | `design-spec`                          |
 | `/spec [mode=tests]` | `spec [mode=tests]`                    |
-| `/dor-gate`          | `dor-gate`                             |
+| `/pbi --mode=dor`          | `pbi --mode=dor`                             |
 | `/prioritize`        | `prioritize`                           |
 
 ---
@@ -299,4 +302,8 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->129<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->12<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->14<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+
+## Closing Reminders
+
+**MUST** discover the selected skill, load its instructions and execute its required steps through the active host. **MUST** edit canonical `.claude/**` source and regenerate mirrors; a source read never changes hosts. **MUST** keep gates intact and evidence any genuinely missing capability; a foreign-host tool name alone is not a blocker.

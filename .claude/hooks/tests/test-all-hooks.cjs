@@ -686,21 +686,8 @@ async function testSessionEnd() {
 
 async function testInitPromptGate() {
     logSection('UserPromptSubmit: init-prompt-gate.cjs (project-context router)');
-    const completeAgentFileStub = [
-        '<!-- CK:UNIVERSAL-GUIDES v6 -->',
-        '<!-- CK:CRITICAL-THINKING -->',
-        '<!-- CK:AI-MISTAKE-PREVENTION -->',
-        '[CRITICAL-THINKING-MINDSET]',
-        'Common AI Mistake Prevention (System Lessons)',
-        '## First Action Decision',
-        '## Workflow Step Advancement',
-        '## IMPORTANT: Task Planning Rules',
-        '## Code Responsibility Hierarchy',
-        '## Evidence-Based Reasoning',
-        '## Continuous Improvement — Lesson Extraction Gate',
-        '## Git & Version-Control Discipline',
-        ''
-    ].join('\n');
+    // A project-owned root is complete as it stands: the gate checks that the root files exist, not what they hold.
+    const completeAgentFileStub = '# TestProject\n\nProject notes.\n';
     const setupPopulatedPromptGateProject = tmpDir => {
         const docsDir = path.join(tmpDir, 'docs');
         const srcDir = path.join(tmpDir, 'src');
@@ -1096,7 +1083,7 @@ async function testInitPromptGate() {
             // No .code-graph/graph.db, no dismiss flag
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X', session_id: 'test-13' }, { env: graphGateEnv(tmpDir) });
             logResult('Graph gate warns/allows when mode on + config populated + no graph.db', result.code === 0);
-            logResult('Graph guidance mentions /graph-build', result.stdout.includes('/graph-build'));
+            logResult('Graph guidance mentions /graph-code --mode=build', result.stdout.includes('/graph-code --mode=build'));
             logResult('Graph guidance avoids skip prompt', !result.stdout.includes('skip graph'));
         } finally {
             cleanupTempDir(tmpDir);
@@ -1111,7 +1098,7 @@ async function testInitPromptGate() {
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X', session_id: 'test-13b' }, { env: graphGateEnv(tmpDir) });
             logResult('Graph gate allows when default auto mode + no graph.db', result.code === 0);
             logResult('Default auto mode without a graph shows no graph note', !result.stdout.includes('Knowledge graph not built'));
-            logResult('Default auto mode without a graph does not route to /graph-build', !result.stdout.includes('/graph-build'));
+            logResult('Default auto mode without a graph does not route to /graph-code --mode=build', !result.stdout.includes('/graph-code --mode=build'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1129,7 +1116,7 @@ async function testInitPromptGate() {
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
             const decision = JSON.parse(result.stdout);
             logResult('Invalid config blocks before graph guidance', decision.decision === 'block');
-            logResult('Block reason is config repair (not graph setup)', decision.reason.includes('/project-config') && !decision.reason.includes('/graph-build'));
+            logResult('Block reason is config repair (not graph setup)', decision.reason.includes('/project-config') && !decision.reason.includes('/graph-code --mode=build'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1197,7 +1184,7 @@ async function testMapSkillToStepId() {
     logResult('[TC-IDENTITY-001] bare name maps to itself', mapSkillToStepId('plan') === 'plan');
     logResult('[TC-IDENTITY-002] leading slash stripped', mapSkillToStepId('/plan') === 'plan');
     logResult('[TC-IDENTITY-003] uppercase normalized', mapSkillToStepId('Changes-Review') === 'changes-review');
-    logResult('[TC-IDENTITY-004] trailing whitespace trimmed', mapSkillToStepId('plan-review ') === 'plan-review');
+    logResult('[TC-IDENTITY-004] trailing whitespace trimmed', mapSkillToStepId('workflow-end ') === 'workflow-end');
     logResult('[TC-IDENTITY-004b] leading space before slash is NOT stripped (replace runs before trim)', mapSkillToStepId('  /plan ') === '/plan');
     logResult('[TC-IDENTITY-005] multi-segment id preserved', mapSkillToStepId('/workflow-review-changes') === 'workflow-review-changes');
     logResult('[TC-IDENTITY-006] null returns null (fallback)', mapSkillToStepId(null) === null);
@@ -1209,55 +1196,26 @@ async function testMapSkillToStepId() {
 // half of the identity invariant survives in testMapSkillToStepId above.
 
 // testDevRulesReminder REMOVED — it drove the deleted UserPromptSubmit inject hook
-// prompt-context-assembler.cjs. The lesson-reminder invariant survives via
-// lib/prompt-injections.cjs, covered by testLessonLearnedReminder below.
+// prompt-context-assembler.cjs. The lesson-extraction invariant lives in the universal
+// `lesson-extraction-gate` protocol, covered by testLessonExtractionGate below.
 
-async function testLessonLearnedReminder() {
-    logSection('lib/prompt-injections: injectLessonReminder');
-
-    // Test 1: Returns reminder when no transcript
-    {
-        const { injectLessonReminder } = require('../lib/prompt-injections.cjs');
-        const result = injectLessonReminder(null);
-        logResult('Returns reminder with no transcript', result !== null && result.includes('[LESSON-LEARNED-REMINDER]'));
-        logResult('Contains task tracking instruction', result.includes('task tracking'));
-        logResult('Contains $learn instruction', result.includes('$learn'));
-        // Invariant: /learn is recommended only for everyday-valuable lessons — a project convention or a
-        // universal best-practice protocol — and only when all three gates pass, never for rare agent quirks.
-        logResult('Value gate precedes the $learn recommendation',
-            /\*\*Value gate:\*\*[^\n]*project convention[^\n]*universal best-practice protocol[^\n]*everyday work/.test(result) &&
-            result.indexOf('**Value gate:**') < result.indexOf('ALL three gates pass'));
-        logResult('Value gate rejects rare AI-agent quirks and current-task details',
-            /Value gate:[^\n]*rare AI-agent quirks[^\n]*current task[^\n]*skip/i.test(result));
-    }
-
-    // Test 2: Dedup — returns null when marker in recent transcript
-    {
-        const { injectLessonReminder } = require('../lib/prompt-injections.cjs');
-        const tempDir = createTempDir();
-        const transcriptPath = path.join(tempDir, 'transcript.jsonl');
-        fs.writeFileSync(transcriptPath, '[LESSON-LEARNED-REMINDER] Task Planning\n'.repeat(5));
-        try {
-            const result = injectLessonReminder(transcriptPath);
-            logResult('Dedup: returns null when marker in transcript', result === null);
-        } finally {
-            cleanupTempDir(tempDir);
-        }
-    }
-
-    // Test 3: No dedup when transcript has no marker
-    {
-        const { injectLessonReminder } = require('../lib/prompt-injections.cjs');
-        const tempDir = createTempDir();
-        const transcriptPath = path.join(tempDir, 'transcript.jsonl');
-        fs.writeFileSync(transcriptPath, 'Some other content\nNo marker here\n');
-        try {
-            const result = injectLessonReminder(transcriptPath);
-            logResult('Returns reminder when no marker', result !== null && result.includes('[LESSON-LEARNED-REMINDER]'));
-        } finally {
-            cleanupTempDir(tempDir);
-        }
-    }
+async function testLessonExtractionGate() {
+    logSection('Universal protocol: lesson-extraction-gate');
+    const { extractSyncBody } = require(path.join(HOOKS_DIR, '..', 'scripts', 'lib', 'extract-sync-block.cjs'));
+    const canonical = fs.readFileSync(path.join(HOOKS_DIR, '..', 'skills', 'shared', 'sync-inline-versions.md'), 'utf-8');
+    const body = extractSyncBody(canonical, 'lesson-extraction-gate');
+    logResult('Canonical protocol exists', typeof body === 'string' && body.length > 0);
+    logResult('Adds the lessons task to non-trivial tasks', body.includes('Analyze AI mistakes & lessons learned'));
+    logResult('Routes the durable capture through /learn', body.includes('/learn'));
+    // Invariant: /learn is recommended only for everyday-valuable lessons — a project convention or a
+    // universal best-practice protocol — and never for rare agent quirks or one-off incidents.
+    logResult('Value gate names project conventions and universal best-practice protocols worth reading on everyday work',
+        /project convention or a universal best-practice protocol worth reading on everyday work/.test(body));
+    logResult('Value gate rejects rare AI-agent quirks, one-off incidents and current-task details',
+        /skip rare AI-agent quirks, one-off incidents and details of the current task/.test(body));
+    logResult('Recurrence and auto-fix gates come before the /learn request',
+        body.indexOf('Skip nonrecurring lessons') >= 0 && body.indexOf('Skip nonrecurring lessons') < body.indexOf('ask the user to run'));
+    logResult('Never self-edits instruction files', body.includes('never silently self-edit instructions'));
 }
 
 // ============================================================================
@@ -1377,46 +1335,6 @@ async function testLibModules() {
         } catch (err) {
             logResult(`${libFile} loads without error`, false, err.message);
         }
-    }
-}
-
-// ============================================================================
-// Dedup Constants Consistency Tests
-// ============================================================================
-
-async function testDedupConstants() {
-    logSection('Dedup Constants Consistency');
-
-    // Test 1: Module loads and exports expected keys
-    let constants;
-    try {
-        constants = require(path.join(HOOKS_DIR, 'lib', 'dedup-constants.cjs'));
-        logResult('Module loads without error', true);
-    } catch (err) {
-        logResult('Module loads without error', false, err.message);
-        return;
-    }
-
-    logResult('Exports CODE_PATTERNS (non-empty string)', typeof constants.CODE_PATTERNS === 'string' && constants.CODE_PATTERNS.length > 0);
-    logResult('Exports LESSON_LEARNED (non-empty string)', typeof constants.LESSON_LEARNED === 'string' && constants.LESSON_LEARNED.length > 0);
-
-    // Test 2: All surviving consumers of the dedup markers import from
-    // dedup-constants (no inline definitions) — the "single source of truth"
-    // invariant for the marker strings.
-    //
-    // The Phase-05 inject-hook removal deleted the former consumers
-    // (pretooluse-context-builders.cjs, prompt-context-assembler.cjs). The
-    // invariant survives in the modules that STILL own dedup-marker usage after
-    // the removal — repointed here so the same "imports dedup-constants" check
-    // guards live code (verified via `grep dedup-constants .claude/hooks/**`).
-    const dedupConsumers = [
-        { label: 'lib/prompt-injections.cjs', file: 'lib/prompt-injections.cjs' },
-    ];
-
-    for (const { label, file } of dedupConsumers) {
-        const content = fs.readFileSync(path.join(HOOKS_DIR, file), 'utf-8');
-        const usesSharedModule = content.includes('dedup-constants');
-        logResult(`${label} imports dedup-constants`, usesSharedModule);
     }
 }
 
@@ -1546,7 +1464,7 @@ async function runAllTests() {
     if (!FILTER || 'user'.includes(FILTER) || 'prompt'.includes(FILTER) || 'init'.includes(FILTER)) {
         await testInitPromptGate();
         await testMapSkillToStepId();
-        await testLessonLearnedReminder();
+        await testLessonExtractionGate();
     }
 
     // PostToolUse
@@ -1566,7 +1484,6 @@ async function runAllTests() {
 
     // Dedup Constants
     if (!FILTER || 'dedup'.includes(FILTER) || 'lib'.includes(FILTER)) {
-        await testDedupConstants();
     }
 
     // Edge Cases

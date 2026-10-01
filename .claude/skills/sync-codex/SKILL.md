@@ -1,6 +1,6 @@
 ---
 name: sync-codex
-description: '[Codex] Use when running the full Codex mirror sync and verify pipeline (migrate, hooks, context, verify), or when `.claude/**` source edits leave `.agents/`, `.codex/` or `AGENTS.md` stale.'
+description: '[Codex] Use when running the full Codex mirror sync and verify pipeline, or when `.claude/**` edits leave `.agents/`, `.codex/` or `AGENTS.md` stale.'
 ---
 
 ## Quick Summary
@@ -23,7 +23,7 @@ description: '[Codex] Use when running the full Codex mirror sync and verify pip
 
 - Run the 19-stage orchestrator in order; stage 1 reconciles `CLAUDE.md`, stages 2-4 generate the Codex mirrors, and stages 5-19 run tests and read-only release gates.
 - Keep `.claude` canonical and source-owned; never hand-edit `.agents`, `.codex`, or `AGENTS.md`, and expect Claude slash invocations to become Codex dollar invocations only in generated mirrors.
-- Keep `AGENTS.md` discoverable under Codex's read budget: Doc Lookup and Git discipline project first; fix a discovery defect in `CLAUDE.md`, its template, or the projection script, then re-sync.
+- Keep `AGENTS.md` discoverable under Codex's read budget: it is the project-information projection of `CLAUDE.md` (Doc Lookup and project rules first; universal rules arrive by hook, never through this file); fix a discovery defect in `CLAUDE.md`, its template, or the projection script, then re-sync.
 - If a stage fails, rerun that stage with `--only=<stage> --verbose`, then rerun the full pipeline and inspect the generated diff before handoff.
 
 > **Renamed:** formerly `/codex-sync` — that name no longer resolves as a slash command; use `/sync-codex`.
@@ -32,7 +32,7 @@ Also upserts the TUI notification and status-line keys into `.codex/config.toml`
 
 **Workflow:**
 
-1. **Preflight** — The runner checks `CLAUDE.md`; it initializes a missing file, updates a marker-managed stale file, honors an explicit universal-guide opt-out, and stops before mutation for a markerless file that needs AI smart-merge.
+1. **Preflight** — The runner checks `CLAUDE.md`; it initializes a missing file, updates a marker-managed stale file, and leaves a markerless file untouched as project-owned (run `/ai-context-refresh --mode update` to add generated sections around it).
 2. **Run** — `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`
 3. **Verify** — Exit code `0` = pass; check stdout summary
 4. **Inspect** — On failure, re-run the failing stage manually with `--only=<stage>` and `--verbose`
@@ -42,16 +42,16 @@ Also upserts the TUI notification and status-line keys into `.codex/config.toml`
 - MUST evaluate all 19 stages in order — configured stages fail fast on the first non-zero exit;
   optional stages emit an explicit `SKIP (not configured)` when the adopter has not declared their contract
 - NEVER edit `.agents/skills/sync-codex/**` (auto-mirror) — edit `.claude/skills/sync-codex/**` source instead
-- `.claude` is the source for skills/workflows/hooks; generated acceptance targets are `.agents/skills/**`, `.codex/CODEX_CONTEXT.md`, and `AGENTS.md`
+- `.claude` is the source for skills/workflows/hooks; generated acceptance targets are `.agents/skills/**`, `.codex/agents/*.toml`, `.codex/hooks.json`, and `AGENTS.md`
 - Stage 1 may mutate `CLAUDE.md`; stages 2-4 mutate `.agents/skills/`, `.codex/`, `AGENTS.md`; stages 5-19 are read-only (tooling tests,
   optional tech-spec freshness and feature-registry validation, 3 hook-suite gates, the other Codex
   verifiers, and the cross-surface divergence oracle)
 - Stage 2 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
 - Stage 2 never upserts `model_auto_compact_token_limit`; it retires the top-level key only when its value equals the formerly bundled `500000` and keeps any other value. No host pins a compaction budget — any compaction default change goes here AND in the other two surfaces, never in one alone
-- Stage 2 also raises top-level `project_doc_max_bytes` to 98304 (never lowers a larger value): Codex silently stops reading `AGENTS.md` at 32 KiB by default, which cut the generated root mid-file. The projection still emits Doc Lookup and Git discipline first, so they survive a host that ignores the project value; there, set the key in `~/.codex/config.toml` instead. The budget covers every `AGENTS.md` concatenated from the project root to the working directory, not the root alone.
-- Stage 4 generates the bounded `AGENTS.md` projection and `.codex/CODEX_CONTEXT.md` quality-protocol mirror. Automatic route selection is deliberately absent; the opt-in `UserPromptSubmit` hook owns runtime routing.
-- Stage 2 must not inline `lessons.md` content — it lives in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — into `.agents/skills/**`; generated skill mirrors reference the project-reference loading gate instead
-- The `SYNC:ai-sdd-artifact-contract` marker must appear after sync in `.codex/CODEX_CONTEXT.md` and `AGENTS.md`
+- Stage 2 also raises top-level `project_doc_max_bytes` to 98304 (never lowers a larger value): Codex silently stops reading `AGENTS.md` at 32 KiB by default, which cut the generated root mid-file. The projection still emits Doc Lookup and the project rules first, so they survive a host that ignores the project value; there, set the key in `~/.codex/config.toml` instead. The budget covers every `AGENTS.md` concatenated from the project root to the working directory, not the root alone.
+- Stage 4 generates the bounded `AGENTS.md` projection of `CLAUDE.md` (project information only) and removes the retired `.codex/CODEX_CONTEXT.md`. The framework's shared protocols and the workflow route reach Codex through the mirrored hooks (`.codex/hooks.json`), never through a generated file; a Codex host that runs no hook is unsupported. Review the new handlers in Codex `/hooks` after the first sync and after any handler change: until they are reviewed, Codex receives no universal rules and no workflow route, and no static fallback exists (`.claude/docs/hooks/README.md#hook-only-delivery-host-requirements`).
+- Stage 2 must not inline `lessons.md` content — it lives in the project-reference docs root (default `docs/project-reference/`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — into `.agents/skills/**`; generated skill mirrors carry no project content
+- `AGENTS.md` and the skill mirrors carry no shared-protocol text: the universal hook delivers it (`verify-skill-protocol-compliance.mjs` fails on any copy)
 - No npm dependency — pure `node` + spawned subprocesses
 - Idempotent — safe to re-run; second run produces only timestamp diffs
 - **opencode handoff:** when the project has a local `.opencode/` directory, the runner hands off to `/sync-opencode` after all 19 stages pass (its `--verify-only` form under `--verify-only`). The handoff is an integration step, NOT a 20th stage — the 19-stage roster stays fixed
@@ -75,24 +75,18 @@ node .claude/skills/sync-opencode/scripts/run-opencode-sync.mjs
 - A handoff failure fails the codex run with the opencode stage's exit code — a green `/sync-codex` never hides a red opencode surface.
 - opencode discovers skills directly from `.claude/skills` and `.agents/skills`, so the handoff syncs **hooks + recommended config + the sub-agent mirror** — no skill mirror is produced (sub-agents are not auto-discovered, so `.claude/agents/*.md` is mirrored into `.opencode/agent/*.md`).
 
-## Bootstrap Gate (when AGENTS.md is missing or incomplete)
+## Bootstrap Gate (when AGENTS.md is missing)
 
-This skill is the route the agent-files bootstrap gate offers for a missing — **or incomplete** —
-root `AGENTS.md`, the generated Codex mirror of `CLAUDE.md`. Claude and Codex may both support hooks,
-and the workflow gate plus universal guides must remain available statically; stage 4 produces
-the bounded root projection (with the `<!-- CK:UNIVERSAL-GUIDES v7 -->` sentinel when present) plus the
-quality-protocol context. The runtime hook may refresh routing context, while tracked carriers retain the default gate.
+This skill is the route the agent-files bootstrap gate offers for a missing root `AGENTS.md`, the
+generated Codex projection of `CLAUDE.md`. The projection holds project information only (Doc Lookup,
+project rules, naming, development commands, skill activation); the framework rules every agent follows
+are delivered by the universal hook, and the workflow route only by the `workflow-route-inject` hook (in
+each person's route mode). Stage 4 writes the projection; no protocol text and no route pointer is stamped.
 
-"Incomplete" means the file exists but lacks the universal guides — same three-state detection as the
-CLAUDE.md route (`missing` → init, `incomplete` → update smart-merge preserving project content, `ok`
-→ no block), decided by the shared sentinel-then-anchors check.
-
-Detection is shared with
-the CLAUDE.md route via `.claude/hooks/lib/agent-files-state.cjs`. Opt out of completeness enforcement
-with `portability.requireUniversalGuides: false` in `docs/project-config.json` (default `true`);
+Detection is existence-only and shared with the CLAUDE.md route via `.claude/hooks/lib/agent-files-state.cjs`;
 `skip init` dismisses both hooks for 24h. The stage-1 preflight generates or updates `CLAUDE.md` before
-the mirror stages. A markerless root remains a manual `/ai-context-refresh --mode update` smart-merge boundary
-unless that explicit opt-out is configured. When `/ai-context-refresh` has just completed source editing, it
+the mirror stages. A markerless root is project-owned and is left as it is; `/ai-context-refresh --mode update`
+adds generated sections around it through an AI smart-merge. When `/ai-context-refresh` has just completed source editing, it
 calls this same runner with `--skip=claude-md` so the root is not processed twice.
 
 ## Coordination with ai-context-refresh
@@ -101,7 +95,7 @@ calls this same runner with `--skip=claude-md` so the root is not processed twic
 the user-facing skills separate, but use this runner as their one portable executable coordinator:
 
 - A full `/sync-codex` run performs the `CLAUDE.md` preflight first. Missing roots are initialized;
-  marker-managed roots are updated; markerless roots are preserved and reported for AI smart-merge.
+  marker-managed roots are updated; markerless roots are project-owned and preserved.
 - After an explicit `/ai-context-refresh` init/update/refactor, that skill calls
   `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=claude-md` after its final AI edits.
 - Do not recursively invoke the other skill or hand-edit mirrors. If `.claude` (and optionally stale
@@ -131,10 +125,10 @@ continues; if declared but malformed, their direct verifier fails closed:
 
 | #   | Stage           | Script                                                       | Effect                                                                                              |
 | --- | --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 1   | claude-md       | `.claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --check` | Preflight `CLAUDE.md`; init missing, update marker-managed stale, or stop for markerless smart-merge |
+| 1   | claude-md       | `.claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs --check` | Preflight `CLAUDE.md`; init missing or update marker-managed stale; a markerless root is left as written |
 | 2   | migrate         | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Migrate Claude agents → `.codex/agents/`; mirror skills → `.agents/skills/`; setup Codex notifications |
 | 3   | hooks           | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                           |
-| 4   | context         | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate `.codex/CODEX_CONTEXT.md` + `AGENTS.md` with workflow context and shared AI-SDD markers   |
+| 4   | context         | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate the `AGENTS.md` project projection of `CLAUDE.md`; remove the retired `.codex/CODEX_CONTEXT.md`   |
 | 5   | tests           | Runner discovers `.claude/scripts/codex/tests/*.test.{mjs,cjs}` | Run Codex tooling tests; missing or empty discovery fails |
 | 6   | scripts-tests   | Runner discovers `.claude/scripts/tests/*.test.{mjs,cjs}` | Run repo-script tests, including review and experience policies; missing or empty discovery fails |
 | 7   | tech-spec-freshness | `.claude/skills/tech-spec/scripts/generate-tech-specs.mjs --check` | Verify configured derived technical views; explicit skip when `techSpecScan` is absent |
@@ -149,7 +143,7 @@ continues; if declared but malformed, their direct verifier fails closed:
 | 16  | review-validate-coverage | `.claude/scripts/codex/verify-review-validate-coverage.mjs` | Verify every review-family skill carries the `/why-review --validate-findings` route; graders never embed the fix-loop (Self-Review Convergence Loop sensor) |
 | 17  | sync-adoption-parity | `.claude/scripts/codex/verify-sync-adoption-parity.mjs` | Verify SYNC tag ↔ carrier adoption parity: declared carriers carry both main + `:reminder` blocks, no undeclared skill carries a matrix tag, every injected body byte-matches canonical |
 | 18  | provenance-markers | `.claude/scripts/codex/verify-provenance-markers.mjs`     | Verify provenance-marker discipline in `architecture-knowledge.md`: declared tags only · `— VERIFY` only on a declared tag · §3/§8/§9/§10 each carry a default-basis banner · no banner enumerates row-level exceptions · a `[model-knowledge]` marker carries `— VERIFY`. Fail-soft when the catalog is absent |
-| 19  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle over FOUR mirrors: `.agents/skills`, `.codex/agents/*.toml`, the context mirror (`AGENTS.md` + `.codex/CODEX_CONTEXT.md`), and `.codex/hooks.json` — each re-materialized by the REAL writer into a temp dir, then diffed |
+| 19  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle over FOUR mirrors: `.agents/skills`, `.codex/agents/*.toml`, the context mirror (`AGENTS.md`; a leftover `.codex/CODEX_CONTEXT.md` is an orphan), and `.codex/hooks.json` — each re-materialized by the REAL writer into a temp dir, then diffed |
 
 ## Usage
 
@@ -191,31 +185,17 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `ai-discovery-doc-quality` — Keep AI-read docs discoverable: rules first, routed pointers, closing reminders; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 ## Closing Reminders
-
-**Protocols in force** (concise digest of the SYNC/shared blocks this skill carries) — **MUST ATTENTION** each canonical body below still binds:
-
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act, never guess.
 
 **MUST ATTENTION** `/sync-codex` is model-invocable: run it once, after the `.claude/**` source edits are final and verified, when they leave mirrors stale — why: the pipeline rewrites every generated surface, so a run over half-finished source has to be repeated. An `/ai-context-refresh` completion calls the runner with `--skip=claude-md`; `/project-skill-protocol` may run its documented completion handoff. Never call it from inside its own stages, and never hand-edit a mirror instead.
 **MUST ATTENTION** edit source `.claude/skills/sync-codex/**`, NEVER the `.agents/skills/sync-codex/**` mirror
 **MUST ATTENTION** never reinstall a Codex legacy `notify` command — it runs for every thread, subagents included; alerts belong to the main-thread `Stop`/`SessionEnd` hooks
 **MUST ATTENTION** keep Codex config upserts surgical; preserve unrelated `.codex/config.toml` keys and tables while updating the managed notification/status-line keys; retire the old compaction budget only on an exact bundled-value match
-**MUST ATTENTION** keep `AGENTS.md` sync comprehensive; mirror full `CLAUDE.md` plus generated hook/context blocks, and preserve unmanaged `AGENTS.md` preface text
-**MUST ATTENTION** keep `AGENTS.md` discoverable under Codex's read budget — Doc Lookup and Git discipline project first; a discovery defect in `AGENTS.md` is fixed in `CLAUDE.md`, its template or the projection script, then re-synced
+**MUST ATTENTION** keep `AGENTS.md` sync comprehensive for project information: mirror the project projection of `CLAUDE.md` (never framework or universal rules — hooks deliver those) and preserve unmanaged `AGENTS.md` preface text
+**MUST ATTENTION** keep `AGENTS.md` discoverable under Codex's read budget — Doc Lookup and the project rules project first; a discovery defect in `AGENTS.md` is fixed in `CLAUDE.md`, its template or the projection script (never by adding a framework or universal rule to the root), then re-synced
 **MUST ATTENTION** keep learned-lessons content out of `.agents/skills/**`; skills may point to `lessons.md` in the project-reference docs root (default `docs/project-reference/`; path from `docsRoots.projectReference.path` in `docs/project-config.json`) but must not embed its entries
 **MUST ATTENTION** orchestrator fails fast — re-run single failing stage with `--only=<id> --verbose` to debug
 **MUST ATTENTION** working directory auto-resolves to repo root from script path — do not pass `--cwd`
@@ -232,19 +212,8 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 > **[FAILS FAST]** First non-zero stage exit aborts chain. Re-run failing stage manually to debug.
 > **[REPO ROOT]** Orchestrator auto-resolves repo root from its own path. NEVER pass `--cwd`.
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
 <!-- SYNC:ai-discovery-doc-quality:reminder -->
 
 **MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
 
 <!-- /SYNC:ai-discovery-doc-quality:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->

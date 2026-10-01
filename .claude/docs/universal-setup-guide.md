@@ -20,7 +20,7 @@ Copy the entire `.claude/` directory to your target project. This includes:
 - `skills/` — planning, implementation, review, testing, setup, and sync skills
 - `agents/` — specialized agents (code-reviewer, debugger, architect, etc.)
 - `hooks/` — context injection, workflow routing, enforcement, and setup gates
-- `workflows/` + `workflows.json` — <!-- COUNT:workflows -->21<!-- /COUNT --> workflow definitions (feature, bugfix, refactor, E2E verification, etc.)
+- `workflows/` + `workflows.json` — <!-- COUNT:workflows -->19<!-- /COUNT --> workflow definitions (feature, bugfix, refactor, E2E verification, etc.)
 - `scripts/` — Catalog generators, audit scripts, Codex sync/verification tooling
 - `docs/` — Framework documentation
 
@@ -35,10 +35,10 @@ Run the `/project-init` skill as the canonical setup and re-evaluation entry poi
 This assesses the folder state and routes the required lower-level setup steps:
 
 - `/project-config` for `docs/project-config.json`
-- `/docs-init`, `/scan-all`, or targeted `/scan --target=<key>` for project-reference docs
+- `/docs-manager --mode=init`, `/scan-all`, or targeted `/scan --target=<key>` for project-reference docs
 - `/ai-context-refresh` for the root AI context and its Codex mirror handoff
-- `/sync-codex` for `AGENTS.md`, `.agents`, and `.codex` mirrors
-- `/graph-build` after config/docs are populated
+- `/sync-codex` for `AGENTS.md`, `.agents`, and `.codex` mirrors — on Codex, trust the project and review the new handlers in `/hooks` afterwards, because the universal rules and the workflow route arrive only through hooks (see `hooks/README.md#hook-only-delivery-host-requirements`; OpenCode sub-agent delivery is unverified; a host that runs no hooks is unsupported)
+- `/graph-code --mode=build` after config/docs are populated
 
 `/project-init` is idempotent. Run it again after pulling changes, changing project structure, or noticing missing/stale setup files.
 
@@ -79,7 +79,9 @@ Optional scans (run if applicable):
 - Key file locations (from modules[].pathRegex)
 - Development commands, service ports, infrastructure
 - Documentation index and lookup guide
-- Static framework sections (search-first, task planning, evidence-based reasoning, etc.)
+- The skill-activation table (path-scoped conventions)
+
+The universal framework rules (search-first, task planning, evidence-based reasoning, git discipline, etc.) are not written into `CLAUDE.md`: the universal hook delivers them to every session and sub-agent.
 
 **Modes:** `init` (first-time), `update` (sync marked sections), `refactor` (optimize token efficiency).
 
@@ -94,7 +96,7 @@ The framework is ready. Use workflows:
 - `/plan` — Create implementation plans
 - `/code-quality-review` — Review code changes
 
-The workflow router injects the catalog; on the first task of a session the model auto-selects and activates the best-matching workflow (no confirmation step). Mid-session it never auto-activates a workflow — it works directly or with a lean chain of skills unless you call a workflow skill or ask for one in words, which always runs.
+The workflow router injects the catalog; on the first task of a session, when the prompt matches a workflow, the model asks you one question before starting it — the full workflow, a slimmer custom route, or direct execution, recommended option first. Mid-session it never starts a workflow or asks to — it works directly or with a lean chain of skills unless you call a workflow skill or ask for one in words, which always runs.
 
 ## What's Project-Agnostic vs Project-Specific
 

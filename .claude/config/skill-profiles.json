@@ -10,11 +10,7 @@
       "db-migrate",
       "ui-design",
       "feature-implement",
-      "graph-blast-radius",
-      "graph-build",
-      "graph-connect-api",
-      "graph-query",
-      "graph-trace",
+      "graph-code",
       "learn",
       "llm-council",
       "package-upgrade",
@@ -33,7 +29,7 @@
       "commit",
       "project-init",
       "project-config",
-      "docs-init",
+      "docs-manager",
       "ai-context-refresh",
       "scan-all"
     ]

@@ -2,7 +2,7 @@
 
 /**
  * Shared builder for the concise Workflow & Skills catalog delivered by the default-on
- * UserPromptSubmit routing hook. Static CLAUDE/AGENTS/Codex context carries the gate only.
+ * UserPromptSubmit routing hook. Static CLAUDE/AGENTS/Codex context carries only a pointer to that hook.
  *
  * Single source of truth: .claude/workflows.json (+ each step-skill's SKILL.md
  * `description:` frontmatter). Emits a markdown BODY (no wrapping) — callers wrap:
@@ -25,8 +25,15 @@ const DEFAULT_SECTIONS = ["routing", "workflows", "skills"];
 // Values of `activation` in .claude/workflows.json (schema: WorkflowEntry.activation), in
 // strictness order; owned by the tier resolver.
 const ACTIVATION_TIERS = routingConfig.ACTIVATION_TIERS;
-const ACTIVATION_LEGEND =
-  "**Activation:** `auto` = the route gate may select and start it; `confirm` = on your own selection, ask the user once (its step count vs. the lean route you would take) before starting it, only when that lean route would also satisfy the request; `manual` = never select or start it yourself — name it in your route declaration and run it only when the user asks. An explicit request runs every tier. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
+const ACTIVATION_LEGEND_ASK =
+  "**Activation:** ask the workflow question (full workflow · slimmer custom route · execute directly) before you start a catalog workflow, in every tier; a direct, single-skill or custom-simple route asks nothing; the tier only orders the recommendation — `auto` by catalog fit, `confirm` the full workflow only when no leaner route would do, `manual` never the full workflow first. An explicit request runs every tier with no question. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
+// Route mode `auto`: a matched workflow starts without asking, by its tier (the route mode owner is workflow-routing-config.cjs).
+const ACTIVATION_LEGEND_AUTO =
+  "**Activation (mode auto):** start a workflow you matched without asking, by its tier — `auto` starts it; `confirm` asks ONE question (full workflow · slimmer custom route · execute directly) only when a leaner route would also do, otherwise it starts; `manual` never starts on your own: name it in your route declaration; it runs on explicit request only. An explicit request runs every tier with no question. Rows show the effective tier: project config may tighten a workflow's `.claude/workflows.json` tier or override it.";
+/** The tier legend for a route mode; `ask` (the default) for any other value. */
+function activationLegend(mode) {
+  return mode === "auto" ? ACTIVATION_LEGEND_AUTO : ACTIVATION_LEGEND_ASK;
+}
 // The barrier legend carries the advancement rule (wf-cycle W5 reads it); every form renders it.
 const BARRIER_LEGEND =
   "`[a ∥ b]` = one parallel phase (all-return barrier): start every member together and advance only after ALL return; `*` marks a conditional member.";
@@ -39,7 +46,7 @@ const POINTER_ROWS = Object.freeze(["groups", "tiers", "none"]);
 const POINTER_NOTE =
   "Index only — the full catalog exceeds the hook output cap. Read `.claude/workflows.json` for when-to-use and steps; `start-workflow <id>` resolves a workflow's full sequence before creating tasks. A workflow's `activation` tier there may be tightened or overridden by `portability.workflowActivation` in the project config; `start-workflow` resolves the effective tier.";
 const ACTIVATION_RULE =
-  "**Activation tiers** (`activation` in `.claude/workflows.json`) bind the first-task auto-selection above: `auto` workflows follow it unchanged; for a `confirm` workflow, ask ONCE with its step count and your lean custom-simple alternative, then follow the answer without re-asking — ask only when that lean alternative would also satisfy the request, otherwise start it; a `manual` workflow is never selected or started by you — take the best non-manual route and name the manual workflow in the route declaration so the user can run it. An explicit user request runs every tier directly.";
+  "**Workflow question** (first task, every tier): when your route is to start a catalog workflow (never for a direct, single-skill or custom-simple route), never start it on your own. First ask the user ONE question — your host's question tool, else plain text, then stop until the user answers — with three options, the recommended one first with a one-line reason: (a) the full workflow `<id>` with its step count; (b) a slimmer custom route listing its steps, keeping every required gate (root-cause investigation for bugs, tests, review, spec/doc sync on behavior change); (c) execute directly, no workflow or skill. Follow the answer without re-asking. The `activation` tier (`.claude/workflows.json`) only orders the recommendation: `auto` by catalog fit; `confirm` recommends the full workflow only when no leaner route would do; `manual` never recommends it first. An explicit user request runs every tier directly, with no question.";
 
 // R8 LOCKSTEP. The loader (.claude/hooks/lib/project-config-loader.cjs) owns the portability token
 // table; this module only runs its own resolution when that require FAILS (a stripped portable tree
@@ -169,7 +176,7 @@ function condenseWhenToUse(
   return out.replace(/\|/g, "\\|");
 }
 
-// The base skill token of a sequence step ("artifact-review --type=pbi" -> "artifact-review").
+// The base skill token of a sequence step ("pbi --mode=review --type=pbi" -> "pbi").
 function baseSkill(step) {
   return String(step).split(/\s+/)[0];
 }
@@ -286,11 +293,11 @@ function renderRoutingSection() {
     "| Non-trivial feature or enhancement changing behavior or a contract across modules | **`workflow-feature`** (when large/ambiguous/research-heavy, select `workflow-big-feature` instead — confirm tier) |",
     "| Matches a skill's or workflow's \"Use\" clause | that skill / workflow |",
     "",
-    "The table route is the default. Keep a catalog workflow only when >80% of its unconditional steps would do real work for the request; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take, except the one question a `confirm`-tier workflow requires.",
+    "The table route is the default. Keep a catalog workflow only when >80% of its unconditional steps would do real work for the request; otherwise downgrade to custom-simple, trimming only steps that would do no real work. A behavior change keeps its test and review steps; a downgraded route also keeps root-cause investigation for bugs and spec/doc sync when behavior or a public contract changes. An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it. Otherwise select the route yourself and never ask which path to take, except the workflow question below, asked only when your route is to start a catalog workflow; a direct, single-skill or custom-simple route (a Catalog-fit downgrade included) proceeds without asking.",
     "",
     ACTIVATION_RULE,
     "",
-    "**Mid-session: never auto-activate a workflow.** Auto-activation applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `/start-workflow <id>` call, or the user asking in words to use a workflow; follow it.",
+    "**Mid-session: never auto-activate a workflow or ask to start one.** The workflow question applies only to the first task of a session (its first user prompt; compaction or resume does not reset it). Once work is under way (follow-up, correction, next step, or a new ask), do it directly or with the best-fit skill or a lean chain of at most 3 skills; required gates (root-cause investigation for a bug, test, review, spec/doc sync, and any other required quality gate) still run and do not count toward that cap, and continuing a workflow already running is not activating one. An explicit workflow request always runs, mid-session included — a `/workflow-*` or `/start-workflow <id>` call, or the user asking in words to use a workflow; follow it.",
   ].join("\n");
 }
 
@@ -324,7 +331,7 @@ function renderWorkflowsSection(entries, rootDir, config, opts = {}) {
     "",
     BARRIER_LEGEND,
     "",
-    ACTIVATION_LEGEND,
+    activationLegend(opts.mode),
     "",
     ...(compact
       ? [COMPACT_STEPS_NOTE, "", "| Workflow | Activation | When to use | Parallel phases |"]
@@ -402,6 +409,7 @@ function renderSkillsSection(skills, rootDir, cache, config, opts = {}) {
  * @param {object} [opts.config] parsed project-config.json; the loader loads + caches it when omitted
  * @param {boolean} [opts.compact] runtime-hook form: barrier tokens instead of step lists, capped
  *   hints, and a names-only step-skill line
+ * @param {"ask"|"auto"} [opts.mode] route mode the tier legend describes (default `ask`)
  * @param {object|null} [opts.activation] resolved tier settings (`resolveWorkflowActivation`);
  *   `null` renders framework tiers. Omitted: read from `opts.config` when given (team scope),
  *   otherwise from the team config and local override under `rootDir` (effective scope).
@@ -410,7 +418,7 @@ function renderSkillsSection(skills, rootDir, cache, config, opts = {}) {
 function buildWorkflowSkillsCatalog(opts = {}) {
   const rootDir = opts.rootDir || defaultRootDir();
   const config = opts.config;
-  const render = { compact: opts.compact === true, activation: catalogActivation(rootDir, config, opts) };
+  const render = { compact: opts.compact === true, mode: opts.mode, activation: catalogActivation(rootDir, config, opts) };
   const sections = opts.sections || DEFAULT_SECTIONS;
   const doc = readWorkflowsDoc(rootDir);
 
@@ -463,6 +471,7 @@ function buildWorkflowSkillsCatalog(opts = {}) {
  *   (`groups`), with tier only (`tiers`), or no workflow rows (`none`)
  * @param {object} [opts.config] parsed project config (team-scope tier settings)
  * @param {object|null} [opts.activation] resolved tier settings; see buildWorkflowSkillsCatalog
+ * @param {"ask"|"auto"} [opts.mode] route mode the tier legend describes (default `ask`)
  * @returns {string} markdown body (no CK markers)
  */
 function buildWorkflowPointerCatalog(opts = {}) {
@@ -487,7 +496,7 @@ function buildWorkflowPointerCatalog(opts = {}) {
     });
     blocks.push(
       "",
-      ACTIVATION_LEGEND,
+      activationLegend(opts.mode),
       "",
       `### Workflows (${entries.length})`,
       "",

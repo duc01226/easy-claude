@@ -123,7 +123,7 @@ Glob semantics: **shell-style and fully anchored.** The pattern must match the E
 
 ### Resolution algorithm (normative)
 
-Phases 04 and 05, the SKILL.md procedure, and the Plane-3 hook all implement THIS algorithm; none of them re-derive it.
+The SKILL.md procedure, the `skill-overlay-remind` hook (`lib/skill-protocol-overlay.cjs`) and the universal `project-protocol-overlay` protocol all implement THIS algorithm; none of them re-derive it.
 
 ```
 resolve(skillName):
@@ -170,7 +170,7 @@ Registry:
 | Resolving | Tier reached | Applied | Suppressed |
 | --- | --- | --- | --- |
 | `plan` | `exact` | `plan-context-tags` | `house-style` (`*` never reached; `*-review` did not match) |
-| `plan-review` | `glob` | `review-evidence` | `house-style`; `plan-context-tags` does not match (`plan` ≠ `plan-review`) |
+| `code-quality-review` | `glob` | `review-evidence` | `house-style`; `plan-context-tags` does not match (`plan` ≠ `code-quality-review`) |
 | `commit` | `all` | `house-style` | — nothing else matched |
 | any skill, registry holds only `*` | `all` | `house-style` | — |
 
@@ -220,7 +220,7 @@ An overlay can only **NARROW** what happens; it can never **WIDEN** what the ses
 
 ### Self-targeting overlays (the overlay skill governing itself)
 
-`project-skill-protocol` carries the same `SYNC:project-protocol-overlay` block as every other skill, so an overlay whose `Target` is `*` — or `project-skill-protocol` exactly — also governs the skill that authors overlays. Treat that case explicitly:
+`project-skill-protocol` is governed by the same universal overlay rule as every other skill, so an overlay whose `Target` is `*` — or `project-skill-protocol` exactly — also governs the skill that authors overlays. Treat that case explicitly:
 
 **An overlay may never relax how overlays are authored.** Specifically, it may not change the default target, waive or soften the proposal gate, waive the additive-only screen, alter the target-collision or contradiction pre-checks, or widen the scope the skill would otherwise ask about. Any such rule is refused and the refusal is reported, exactly as an authority-carve-out violation is.
 
@@ -230,27 +230,19 @@ Why this needs its own rule rather than falling out of the general one: the blun
 
 ## 5. Token bound
 
-The index is read on every matched invocation, and `AGENTS.md` — the Codex-side carrier of the overlay list — is truncated by Codex's `project_doc_max_bytes`. Both make overlay text a recurring, capped cost rather than a free one.
+The index is read on every matched invocation, and the reminder the hook emits names at most eight body files. Both make overlay text a recurring, capped cost rather than a free one.
 
 | Bound | Cap | Enforcement |
 | --- | --- | --- |
 | Index rows | **~30 (soft)** | Past the cap, warn and propose promoting stable, project-independent overlays to real skills via `$skill-creator` |
 | Body size | **~4 KB (soft)** | Past the cap, propose splitting the overlay or narrowing its target |
 | Bodies read per invocation | **One per matched candidate** | Non-matching rows are never opened; step 3 resolves the tier from the index alone |
-| `CLAUDE.md` / `AGENTS.md` block — the **`Active overlays:` line only** | **Names + targets only** | Never bodies, never rule text — the overlay LIST exists to say *which* overlays exist, not what they say. This cap applies ONLY to that one line; the block's fixed directive prose above it is framework text and is never rewritten (see below) |
 
 Both soft caps are advisory by design, matching the established `custom-prompt` convention (`.claude/skills/custom-prompt/references/registry.md:86`): the skill warns and proposes, the user decides.
 
-### The block has one mutable line (BLOCKING)
+### No root-file carrier
 
-The `CK:PROJECT-PROTOCOLS` block in `CLAUDE.md` has two parts, and only one of them is data:
-
-| Part | Status | Who writes it |
-| --- | --- | --- |
-| The `[PROJECT-PROTOCOL-OVERLAY]` directive prose — resolution rule, precedence clarifier, ADDITIVE-ONLY paragraph, authority carve-out, contradiction rule | **FIXED framework text. Never rewritten, never summarized, never trimmed** | The framework. A write mode reproduces it byte-for-byte |
-| The final `Active overlays:` line | **Mutable data** — the overlay list, or `_(none)_` when the registry is empty | Every ADD / UPDATE / DELETE |
-
-"Names + targets only" describes **the `Active overlays:` line**, not the block. Replacing the block body with a bare overlay list deletes the ADDITIVE-ONLY invariant from Plane 1 — the plane that both hosts always read — and because `AGENTS.md` is generated FROM `CLAUDE.md`, the next `$sync-codex` propagates the deletion to Codex. After that, an overlay body saying *"skip step 4 of that review"* is applied rather than refused, because the rule that refuses it no longer exists on the plane doing the resolving. The overlay list is worth ~1 line; the directive is worth the whole mechanism.
+No root file (`CLAUDE.md`, `AGENTS.md`) carries the overlay list or the resolution rule. The resolution rule is the universal `project-protocol-overlay` protocol, delivered by the universal hook; the list is the index itself, read at runtime by `skill-overlay-remind.cjs`, which names the matched body files when a skill starts. A `CK:PROJECT-PROTOCOLS` block left in a root file by an earlier version is stale and is removed by `$ai-context-refresh --mode update --strip-legacy-universal`.
 
 ---
 

@@ -21,8 +21,7 @@
  *
  * On by default; off with `.claude/.ck.json` promptLedger.enabled:false or CK_PROMPT_LEDGER=0.
  * Missing session id, disabled, or ANY failure → no record, no output, exit 0 (BR-SPL-08/09/10).
- * Hookless fallback: SYNC:session-goal-ledger (workflow skills, CLAUDE.md Task Planning Rules,
- * hookless prompt protocol mirrored into every Codex skill).
+ * Rule source: SYNC:session-goal-ledger (workflow skills and the universal `task-planning-rules` protocol).
  */
 
 const path = require('path');

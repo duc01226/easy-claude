@@ -209,14 +209,14 @@ A reusable task-automation capability. Each skill is a directory with a `SKILL.m
 
 | Pattern               | Example                                         | Purpose                                                |
 | --------------------- | ----------------------------------------------- | ------------------------------------------------------ |
-| Simple                | `.claude/skills/debug-investigate/SKILL.md`     | Single markdown entry point                            |
+| Simple                | `.claude/skills/prioritize/SKILL.md`            | Single markdown entry point                            |
 | With scripts          | `.claude/skills/pdf-convert/scripts/`           | Has helper scripts alongside SKILL.md                  |
 | Shared protocol owner | `.claude/skills/shared/sync-inline-versions.md` | Canonical reusable protocol bodies and parity contract |
 
 ### Key Properties
 
 - **`$ARGUMENTS`:** Placeholder in SKILL.md replaced with user-provided arguments at invocation
-- **Workflow recommendation:** Most skills suggest activating a full workflow if not already in one
+- **Workflow routing:** Only the route gate, delivered by the route hook, offers a workflow (one question before a self-matched start in the default `ask` mode; a person's `auto` or `off` mode changes that); skills never ask on their own
 - **Evidence gate:** Implementation skills require `file:line` proof for all claims
 - **Task tracking:** Multi-step skills create and synchronize task items before executing their steps
 

@@ -28,7 +28,7 @@
 
 | You are reviewing or building… | Read | Clause family |
 | --- | --- | --- |
-| A plan for any AI feature (should it exist, how do we know it works) | This doc's critical rules, the **Anti-pattern gallery**, then §A–§I skimming detection signals; checklist plan-review questions | `AF-1`–`AF-6` |
+| A plan for any AI feature (should it exist, how do we know it works) | This doc's critical rules, the **Anti-pattern gallery**, then §A–§I skimming detection signals; checklist questions for a plan review | `AF-1`–`AF-6` |
 | A model call site, prompt, output parser, model config | §A, §E, §G | `AE-1`, `AE-5`, `AE-7` |
 | Anything that ingests external text, renders model output, holds credentials or calls tools | §B, §C (+ §K for MCP servers, sandboxes, multi-agent) | `AE-2`, `AE-3` |
 | Context assembly, caching, memory, retrieval or citations | §D (+ §J when a vector index or RAG pipeline exists) | `AE-4` |

@@ -80,7 +80,7 @@ large_idea_decomposition:
 
 ### Existing Business Rules (from feature docs)
 
-<!-- Auto-extracted by `/refine` or BA skill -->
+<!-- Auto-extracted by `/pbi --mode=refine` or BA skill -->
 
 - **BR-{MOD}-XXX**: {Description of existing rule}
     - Source: `{module}/{feature}.md` in the business spec root
@@ -259,7 +259,7 @@ See Section 8 (Test Specifications) in primary feature doc for patterns:
 
 ### Frontmatter Fields
 
-- **module**: Auto-populated from idea or detected by `/refine`. Critical for domain PBIs.
+- **module**: Auto-populated from idea or detected by `/pbi --mode=refine`. Critical for domain PBIs.
 - **related_features**: Helps navigate feature documentation during implementation.
 - **primary_feature_doc**: Primary reference for business rules and test patterns.
 
@@ -284,5 +284,5 @@ See Section 8 (Test Specifications) in primary feature doc for patterns:
 
 ---
 
-_To create user stories, run: `/story {this-file}`_
+_To create user stories, run: `/pbi --mode=story {this-file}`_
 _To create test spec, run: `/spec [mode=tests] {this-file}`_

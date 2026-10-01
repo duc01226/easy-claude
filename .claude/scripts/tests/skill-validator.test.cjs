@@ -22,7 +22,8 @@ function fixture(t, source = fs.readFileSync(script, 'utf8')) {
   fs.mkdirSync(scan);
   fs.writeFileSync(exported, source);
   const env = { CLAUDE_PROJECT_DIR: root };
-  for (const key of ['SystemRoot', 'WINDIR', 'PATH', 'TEMP', 'TMP']) {
+  // OS essentials only; the Windows well-known folder keys stay so a child never writes shell caches under its cwd.
+  for (const key of ['SystemRoot', 'WINDIR', 'PATH', 'PATHEXT', 'COMSPEC', 'SystemDrive', 'ProgramData', 'ALLUSERSPROFILE', 'TEMP', 'TMP']) {
     if (process.env[key]) env[key] = process.env[key];
   }
   return {

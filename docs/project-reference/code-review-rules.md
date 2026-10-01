@@ -3,7 +3,7 @@
 # Code Review Rules
 
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
-<!-- Read by review skills and agents through the project-reference-docs gate in CLAUDE.md. -->
+<!-- Read by review skills and agents through the universal project-reference-docs-guide protocol and the Doc Lookup table in CLAUDE.md. -->
 
 <!-- PROMPT-ENHANCE:QUICK-SUMMARY:START -->
 
@@ -95,7 +95,7 @@ Not applicable to this repository: Phase-0 detection found no frontend applicati
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | Canonical → generated     | Edit `.claude` owners, then run sync + parity/provenance verification (`.claude/skills/shared/sync-inline-versions.md:3-7`; `package.json:2`)                                        | Hand-edit `.agents`, `.codex`, or `AGENTS.md`; those consumers are overwritten                |
 | Entrypoints → libraries   | Register lifecycle handlers declaratively and import reusable helpers inward (`.claude/settings.json:44-138`; `.claude/hooks/session-end.cjs:15-48`)                                 | Import top-level hooks from libraries or duplicate reusable infrastructure inside entrypoints |
-| One protocol owner        | Own shared protocol bodies in `sync-inline-versions.md`; compose verified carriers (`.claude/scripts/lib/hookless-prompt-protocol.cjs:5-39`)                                         | Maintain standalone or copy-pasted protocol bodies without a canonical owner/parity check     |
+| One protocol owner        | Own shared protocol bodies in `sync-inline-versions.md`; publish them through `build-protocol-projection.cjs` and verify every carrier                                         | Maintain standalone or copy-pasted protocol bodies without a canonical owner/parity check     |
 | Narrow security blocking  | Prefilter untrusted input; exit `2` on a verified policy breach, or fail closed where a tested deny-closed model owns the input (`.claude/hooks/review-commit-gate.cjs:288-327`) | Treat advisory/context gates as security violations, or fail closed on input the gate does not own |
 | Isolated tests            | Use temp directories and restore environment state (`.claude/hooks/tests/lib/test-utils.cjs:11-20,156-192`)                                                                          | Leak cwd, environment variables, or shared temp state across suites                           |
 | Schema-driven config/docs | Keep config shape in the shared schema and doc impact in the shared classifier (`.claude/hooks/lib/project-config-schema.cjs:517-674`; `.claude/hooks/lib/doc-sync-classify.cjs:24`) | Hardcode module/spec roots, credentials, or doc-impact rules in individual hooks              |
@@ -134,7 +134,7 @@ description: '...' # Include trigger keywords for discoverability
 | ----------------------------- | ----------------------------------------------- | -------------------------------------- |
 | lowercase-hyphen-case only    | `code-review`                                   | `CodeReview`, `code_review`            |
 | Max 64 characters             | `arch-security-review`                          | `angular-19-nx-component-review-skill` |
-| Characters: `a-z`, `0-9`, `-` | `plan-validate`                                 | `plan_validate`, `Plan Validate`       |
+| Characters: `a-z`, `0-9`, `-` | `code-simplifier`                               | `code_simplifier`, `Code Simplifier`   |
 | `name` field = directory name | `name: <skill-name>` in `<skill-name>/SKILL.md` | Mismatch between name and directory    |
 | No redundant suffixes         | `debug`                                         | `debugging-skill`                      |
 
@@ -352,10 +352,10 @@ If any of these are detected during review, the review must flag them as **CRITI
 
 ## Cross-Reference
 
-- **Read by:** review skills and agents through the project-reference-docs gate in `CLAUDE.md`
+- **Read by:** review skills and agents through the universal `project-reference-docs-guide` protocol and the Doc Lookup table in `CLAUDE.md`
 - **Consumed by:** `/code-quality-review`, `/changes-review`, and the `code-reviewer` agent
 - **Canonical shared protocol source:** `.claude/skills/shared/sync-inline-versions.md`
-- **Hookless protocol composer:** `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+- **Protocol projection builder:** `.claude/scripts/build-protocol-projection.cjs`
 - **Hook docs:** `.claude/docs/hooks/README.md`, `.claude/docs/hooks/extending-hooks.md`, `.claude/docs/hooks/architecture.md`
 - **Skill docs:** `.claude/docs/skill-naming-conventions.md`
 - **Agent docs:** `.claude/docs/agents/agent-patterns.md`

@@ -89,7 +89,7 @@ test("TC-DEC-003 runtime workflow catalog carries no YAML escape artifacts", () 
   const body = buildWorkflowSkillsCatalog({ rootDir: repoRoot, sections: ["workflows", "skills"] });
   const offenders = body.split("\n").filter((line) => line.startsWith("| `") && /''|\\"/.test(line));
   assert.deepEqual(offenders, [], `runtime catalog rows carry YAML escape artifacts:\n${offenders.join("\n")}`);
-  for (const rel of ["CLAUDE.md", "AGENTS.md", path.join(".codex", "CODEX_CONTEXT.md")]) {
+  for (const rel of ["CLAUDE.md", "AGENTS.md"]) {
     const abs = path.join(repoRoot, rel);
     if (fs.existsSync(abs)) assert.doesNotMatch(fs.readFileSync(abs, "utf8"), /<!-- CK:WORKFLOW-SKILLS -->/);
   }

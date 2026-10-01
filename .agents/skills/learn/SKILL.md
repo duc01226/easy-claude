@@ -1,11 +1,14 @@
 ---
 name: learn
-description: '[Utilities] Use when teaching Claude a lesson that persists across sessions, including an extra rule or lesson for one skill or for the kind of task a skill owns (routed to project-skill-protocol).'
+description: '[Utilities] Use when teaching Claude a lesson that persists across sessions, including an extra rule for one skill or task kind (routes to project-skill-protocol).'
 disable-model-invocation: false
 ---
 
 > Codex compatibility note:
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
+> - Host-native execution: Codex runs a skill by loading its `SKILL.md` instructions and executing the required steps with available tools. No separate `Skill` tool is required; a loaded skill is already activated.
+> - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
+> - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
@@ -14,52 +17,20 @@ disable-model-invocation: false
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (Hook-Independent)
-
-Claude and Codex use static project-reference loading as the authority; hooks may accelerate discovery but never replace the explicit read.
-When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
-
-**Always read:**
-- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
-- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
-- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
-
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$ai-context-refresh`) before ordinary project-specific work. A full `$sync-codex` run preflights `CLAUDE.md`; a completed `$ai-context-refresh` run may invoke the standalone runner with `--skip=claude-md` after final source edits. Markerless roots need AI smart-merge unless `portability.requireUniversalGuides: false` is explicit.
-
-**Situation-based docs** (pick by the phase you are about to enter — plan/investigate, edit, test, spec/doc, review — and read only docs the project selects in `referenceDocs` that exist):
-- Planning, investigation, or design: `project-structure-reference.md`, `domain-entities-reference.md`, plus the docs below for every file type the plan touches
-- Editing or writing code: `code-review-rules.md` plus the backend or frontend docs below for the file type
-- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
-- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
-- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md` (or the configured styling reference), `design-system/README.md`
-- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
-- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
-- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
-- Integration test implementation/review: `integration-test-reference.md`
-- E2E test implementation/review: `e2e-test-reference.md`
-- Test-data seeders: `seed-test-data-reference.md`
-- Code review/audit work: `code-review-rules.md` plus the docs above for every file type under review
-- Per-file conventions (`contextGroups[]`): before editing an unfamiliar path class, run `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`
-
-**Dedup:** a doc counts as loaded only when your own read returned its full content to this context after the last compaction and within roughly the last 200K tokens, and it has not changed since — cite it `(loaded)` instead of re-reading. A hook reminder, a summary, or a prior mention never counts; a delegated sub-agent starts empty, so name the resolved doc paths in its brief.
-
-Never read all docs blindly: route from `docs-index-reference.md` and open only what the task needs.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
-
 ## Quick Summary
 
-**Goal:** Teach Claude lessons that persist across sessions by generalizing each lesson to its failure mode and routing it to the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc or `docs/project-config.json` when the lesson is really a machine-readable project fact.
+**Goal:** Teach Claude lessons that persist across sessions by generalizing each lesson to its failure mode and routing it to the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc, `docs/project-config.json` when the lesson is really a machine-readable project fact, or the root `CLAUDE.md` project-rules section when it is a short, broad, project-specific rule or context note every task benefits from.
 
 **Summary:** read-this-if-nothing-else digest of the main steps —
 
 - **Generalize before anything else** — climb from the incident to the reusable failure mode; a lesson naming this ticket's files/services/tools is not a lesson yet.
 - **Triage (value + recurrence + auto-fix) BEFORE routing** — persist only a project convention or a universal best-practice protocol worth reading on everyday work; a rare AI-agent quirk, a one-off incident or a detail of the current task is noise, and so is a lesson a review skill already catches.
 - **Skill-specific lessons use the project protocol route:** when the lesson is an extra rule for a skill — learned during an active skill invocation, during a task whose route matched a skill, naming a skill, or about the kind of task one skill mainly owns (e.g. "when writing integration tests…" → `integration-test`) — treat it as a candidate overlay for that skill, compare it against the project-reference docs (`docs/project-reference` by default) and `docs/project-config.json` before recommending, ask the Carrier Choice question, and on an overlay pick call `$project-skill-protocol` with `add` for a new overlay or `update <exact-name>` only after exact-name resolution; save to a reference doc or config field only when the user picks that carrier.
+- **Root-context route (CLAUDE.md):** a lesson that is a general project rule/convention or project context info (architecture constraint, naming rule, domain term, tool quirk of THIS project) is a candidate for the hand-owned `## Project Rules & Context` section of the root `CLAUDE.md` — only when ALL of: applies to most tasks, ≤ 3 lines, project-specific (a universal framework rule is never a project note), not better served by a reference doc / overlay / config field, and size headroom exists (root ≤ 32768 bytes). Show the exact line + target section and get the user's confirmation, write only that section, then run `sync-codex` so `AGENTS.md` and the mirrors follow. Otherwise keep today's routing. Full gate: [Project Root Context Route](#project-root-context-route-claudemd-blocking).
 - **Ask which carrier, with a recommendation:** present the carrier options by asking the user directly — recommended option first, labelled `(Recommended)` — before any write; never pick the carrier silently.
 - **Keep ordinary routing for ordinary lessons:** when the lesson is not skill-specific or no active/matching skill exists, use the existing FACT/RULE carrier route and confirmation flow.
 - **Classify the carrier, don't default to prose:** a lesson stating a project FACT (path, run-command, module map, convention, tooling choice) belongs in `docs/project-config.json`, the machine-readable map every skill reads first; a lesson stating a RULE or pattern belongs in the matching `docs/project-reference/` doc. Both can apply — write the fact to config AND the rule to prose. To learn what the config holds and its exact field names, read the file or use `$project-config` (it runs `--describe`).
-- **Delegate overlay correctness:** `$project-skill-protocol` retains its mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror-sync rule; Learn must not bypass or replace it.
+- **Delegate overlay correctness:** `$project-skill-protocol` retains its mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate and two-write contract; Learn must not bypass or replace it.
 - **Assess prevention depth** — doc/config update, prompt rule, static protocol lesson, hook, test, or skill update.
 - **Confirm target with the user, save, then run the 3 mandatory end tasks** — Learn Review → `$why-review` → `$prompt-enhance`, then the AI-discovery gate on each modified carrier.
 
@@ -67,7 +38,7 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 
 1. **Capture** -- Identify the lesson from user instruction or experience
 2. **Route** -- Analyze lesson content against any active/matching skill, the Reference Doc Catalog, AND `docs/project-config.json`; select the project-protocol route for skill-specific lessons, otherwise the best target carrier (prose doc, config field, or both)
-3. **Save** -- After the applicable confirmation gates, delegate a skill-specific lesson the user placed in an overlay to `$project-skill-protocol`; otherwise append the lesson to the selected file
+3. **Save** -- After the applicable confirmation gates, delegate a skill-specific lesson the user placed in an overlay to `$project-skill-protocol`; otherwise append the lesson to the selected file (a CLAUDE.md pick writes only the hand-owned `## Project Rules & Context` section, and `sync-codex` runs after the end tasks)
 4. **Confirm** -- Acknowledge what was saved and where
 5. **Learn Review** -- Run the mandatory 2-step end gate (`Learn Review` + `$why-review`)
 6. **Enhance** -- Run `$prompt-enhance` on modified file(s) to optimize AI attention anchoring, then the AI-discovery gate (carrier reachable from the docs index; anchors not padded)
@@ -86,6 +57,8 @@ Never read all docs blindly: route from `docs-index-reference.md` and open only 
 - **Protocol authority:** Preserve `$project-skill-protocol`'s mode resolution, target/scope resolution, additive-only constraint, target-collision and contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror-sync rule. Learn must not bypass or replace any of them.
 - **Confirmation remains required:** Keep Learn's existing user confirmation and mandatory end-task flow; delegating a skill-specific candidate does not waive the project protocol's own proposal/user-confirmation gate.
 - **Ordinary-route fallback:** When no active/matching skill exists or the lesson is not skill-specific, keep the existing FACT/RULE classification, carrier routing, confirmation, save, and end-task flow.
+- **CLAUDE.md is a destination, not a default:** offer it only when every Root-Context condition holds (broad + ≤ 3 lines + project-specific + no better carrier + headroom); a detailed, lookup-style or niche lesson stays in its reference doc, a one-skill rule in an overlay, a machine-readable fact in config, a universal framework rule in a shared protocol. — why: CLAUDE.md is loaded into every session, so each byte costs every task.
+- **CLAUDE.md consent + sync:** NEVER silently self-edit an instruction file — show the exact proposed line and target section, ask by asking the user directly, write only after confirmation, then run `sync-codex` (after the end tasks) and report which mirrors changed.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -104,6 +77,13 @@ $learn prefer async/await over .then() chains
 ```
 $learn when reviewing changes, always check that migration scripts are idempotent
 $learn $plan should always include a rollback step
+```
+
+### Add a project-wide rule or context note (routes to the root `CLAUDE.md` when it qualifies)
+
+```
+$learn in this repo every new module needs an entry in the module registry before any other change
+$learn the term "tenant" always means the billing account here, never a user group
 ```
 
 ### List lessons
@@ -211,13 +191,53 @@ When any trigger holds:
     - *Overlay + reference doc* — only when the lesson also carries a project-wide rule beyond the skill; name the doc path
     - *Reference doc only* — name the path, e.g. `integration-test-reference.md` or `lessons.md` under the reference-docs root
     - *Project config field* — when the lesson is a machine-readable FACT (see FACT vs RULE)
+    - *Root `CLAUDE.md` project note + `sync-codex`* — only when the lesson also passes the Project Root Context Route candidate test (C1–C5) despite being skill-related; each question holds 2–4 options, so drop the weakest
 
     State a one-line reason for the recommendation. When the Prevention Depth Assessment applies, ask it as a SECOND question in the same ask the user directly call (each question holds 2–4 options), so the user answers once. — why: the user owns where a persistent rule lives; a silent carrier choice is the main way lessons land where no future run reads them.
 5. **MUST ATTENTION** On an overlay choice, call `$project-skill-protocol add ...` for a new overlay or `$project-skill-protocol update <exact-name> ...` only after exact-name resolution identifies an existing overlay (run its `list` first when unsure).
-6. **MUST ATTENTION** Let `$project-skill-protocol` perform its own mode resolution, target/scope resolution, additive-only screen, target-collision and contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror sync. Do not write overlay bodies, index rows, or the `CLAUDE.md` protocol block directly from Learn.
+6. **MUST ATTENTION** Let `$project-skill-protocol` perform its own mode resolution, target/scope resolution, additive-only screen, target-collision and contradiction handling, proposal/user-confirmation gate and two-write contract. Do not write overlay bodies or index rows directly from Learn.
 7. On a *Reference doc only* or *Project config field* pick, continue with Routing Decision Process steps 9–10 (append to the doc, or route the config value through `$project-config`). On *Overlay + reference doc*, do both. Do not save the candidate only to `lessons.md` or another generic prose carrier unless the user picked that option.
 
 If no trigger holds, continue with the generic Routing Table — the carrier confirmation there still offers the options with a recommendation.
+
+---
+
+### Project Root Context Route (CLAUDE.md) (BLOCKING)
+
+The root `CLAUDE.md` is loaded into EVERY session automatically, so a line there reaches every task with no read step — and costs tokens in every session. It is the right carrier for a short, broad, project-specific rule or context note, and the wrong one for anything detailed. Evaluate this route for every lesson that passed the Triage Gate, alongside the FACT-vs-RULE classification and (when a T1–T4 trigger holds) the skill-specific route.
+
+**Candidate test — ALL five must hold, otherwise use today's routing:**
+
+| # | Condition | Fails when → fall back to |
+| --- | --- | --- |
+| C1 | **Broad** — applies to most tasks in this project, not one file type, phase or skill | one area → its reference doc; one skill → overlay |
+| C2 | **Short** — states as ≤ 3 lines / ≤ ~300 characters, one rule or fact per entry | detailed, example-heavy or lookup-style → a project reference doc |
+| C3 | **Project-specific** — a convention, architecture constraint, naming rule, domain term, or tool quirk of THIS project | universal framework rule → the Static Protocol Lesson route (shared protocols, framework maintainers) — never a CLAUDE.md note |
+| C4 | **No better carrier** — no reference doc whose Read Trigger already fires for this work, no skill overlay, no `docs/project-config.json` field (a FACT such as a path or run-command is config data; the generator renders it into `CLAUDE.md`) | that carrier |
+| C5 | **Headroom** — `CLAUDE.md` exists and stays ≤ 32768 bytes after the edit (the generator's `ROOT_OVERFLOW` threshold in `generate-claude-md.cjs`), and the `## Project Rules & Context` section stays ≤ ~2 KiB / ≤ ~12 entries | a project reference doc (or condense the section first — never add beyond budget) |
+
+**Which destination fits:**
+
+| The lesson is… | Destination | Why |
+| --- | --- | --- |
+| Broad + short + project-specific rule, convention or context with no schema field | root `CLAUDE.md` → `## Project Rules & Context`, then `sync-codex` | always in context, AGENTS.md follows |
+| Machine-readable project fact the config models (path, run-command, module map, tooling) | `docs/project-config.json` via `$project-config` | every skill reads it first; generators render it into the root |
+| Detailed, niche or lookup-style rule, pattern, anti-pattern or checklist for one kind of work | matching project reference doc (Read Trigger) | read only when that work starts |
+| Rule bound to one skill's own steps | skill overlay via `$project-skill-protocol` | fires exactly when that skill runs |
+| General catch-all lesson that is not broad or short enough for the root | `lessons.md` | dated catch-all, budgeted |
+| Universal framework rule (any project, silent failure, high recurrence) | NOT a project note — Static Protocol Lesson promotion to the shared protocols, reviewed by framework maintainers | project notes must not carry framework rules |
+
+**Durable home (write ONLY here):** a hand-owned `## Project Rules & Context` section placed outside every `<!-- SECTION:key -->` fence and every `CK:*` managed block. `ai-context-refresh --mode update` rewrites only fence bodies and keeps everything outside them verbatim (`updateMarkedSections` in `generate-claude-md.cjs`), and the Codex projection is a heading whitelist (`AGENTS_PROJECTION_HEADINGS` in `sync-context-workflows.mjs`) that includes this heading. A note inside a fence is overwritten by the next regeneration; a note under a heading the whitelist omits never reaches `AGENTS.md`. If the section is absent, create it (heading + bullets) immediately after the `## Doc Lookup — What to Read When` section, so it projects early into `AGENTS.md` and reads before the generated rules. No `CLAUDE.md` yet → not a candidate: run `$ai-context-refresh` first or route elsewhere. A path-scoped rule that the project already renders from `contextGroups[].rules` belongs in config via `$project-config` (regenerated by `ai-context-refresh --mode update`), not in this section.
+
+**Procedure when C1–C5 hold:**
+
+1. **Measure** — read `CLAUDE.md` byte size (`node -e "console.log(require('fs').statSync('CLAUDE.md').size)"`, platform-neutral) and the section's current size; C5 fails → say so and fall back.
+2. **Draft** — one generic bullet, ≤ 3 lines, no incident nouns (Lesson Quality Gate; the project-convention exception keeps the convention's own terms). Check the section for an existing entry on the same rule — update it instead of adding a duplicate.
+3. **Confirm (BLOCKING)** — ask the user directly with the recommended option first, labelled `(Recommended)`. Show the exact proposed line, the target section, and `size before → after / 32768`. Options: *Root CLAUDE.md project note (+ sync-codex)* · *Reference doc (name the path)* · *lessons.md* · *Skill overlay / config field* when one applies (2–4 options; drop the weakest). A rejected or unanswered question writes nothing.
+4. **Write** — Edit only the hand-owned section; never touch a fence, a `CK:*` block, or generated text.
+5. **End tasks** — Learn Review → `$why-review` → `$prompt-enhance` scoped to the section (never the generated fences) → AI-discovery gate.
+6. **Sync (after the final CLAUDE.md edit)** — when `AGENTS.md` or `.codex/` exists, run `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=claude-md` (the same root-source handoff `ai-context-refresh` uses; Windows/macOS/Linux neutral). If the runner fails, keep the task open, report the failing stage and the recovery command, and do not claim the mirrors are current. No Codex mirrors in the project → record "no mirrors" and skip.
+7. **Verify, read-only** — (a) re-measure `CLAUDE.md` bytes ≤ 32768; (b) the new line lies outside every `<!-- SECTION:… -->` fence (fence open/close lines above it balance), which is what guarantees `update` preserves it; (c) the line appears in `AGENTS.md`; (d) `git status --short AGENTS.md .codex .agents .opencode` lists the mirrors that changed — report them, never stage or commit.
 
 ---
 
@@ -239,6 +259,7 @@ Route to the **most relevant file** based on lesson content. Every bare `*.md` f
 | Feature documentation, doc templates, doc structure conventions, app-to-service doc mapping                                              | `feature-spec-reference.md`      | Add to relevant conventions section                             |
 | Documentation indexing, doc organization, doc-to-code relationships, doc lookup patterns                                                 | `docs-index-reference.md`        | Add to relevant section                                         |
 | **Project FACTS the config models:** source/module paths, globs, service or app maps, framework + search keywords, test / E2E / integration run-commands, system startup or health-check commands, doc roots, design-system or styling locations, tooling choices | `docs/project-config.json` **via `$project-config`**    | Existing schema field, exact name from `--describe` — NEVER an invented key |
+| **Broad + short (≤ 3 lines) project rule, convention or context** that passes all five conditions of the [Project Root Context Route](#project-root-context-route-claudemd-blocking) | root `CLAUDE.md` `## Project Rules & Context`, then `sync-codex` | Bullet in the hand-owned section; user confirmation first |
 | General lessons, workflow tips, tooling, AI behavior, project conventions, anything not matching above                                   | `lessons.md`                     | Append as dated list entry                                      |
 
 ---
@@ -251,9 +272,10 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 | ------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | **Doc update only**                         | Team convention or rule needed only when doing that kind of work (the lesson already passed the Value gate) | "Always use fluent validation API" → `backend-patterns-reference.md` |
 | **Project config field** (`docs/project-config.json`) | The lesson is a machine-readable project FACT every skill should ground on before acting | "Integration tests need the system started first" → `integrationTestVerify.startupScript` / `systemCheckCommand` via `$project-config` |
+| **Root project note** (`CLAUDE.md` `## Project Rules & Context`) | A short, broad, project-specific rule or context note every task benefits from (Root Context Route C1–C5) | "Every new module is registered in the module registry first" → root `CLAUDE.md` + `sync-codex` |
 | **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task                                | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
 | **Static protocol lesson** (`sync-inline-versions.md`) | Universal AI mistake, high recurrence, silent failure, any project | "Re-read files after context compaction" → `.claude/skills/shared/sync-inline-versions.md` |
-| **Hook** (`.claude/hooks/`)                 | Automated enforcement, must never be forgotten                                | "Dedup markers must match" → `lib/dedup-constants.cjs` + consistency test                   |
+| **Hook** (`.claude/hooks/`)                 | Automated enforcement, must never be forgotten                                | "Marker strings must match across producer and consumer" → a shared constants module + consistency test |
 | **Test** (`.claude/hooks/tests/`)           | Regression prevention, verifiable invariant                                   | "All hooks import from shared module" → test in `test-all-hooks.cjs`                        |
 | **Skill update** (`.claude/skills/`)        | Workflow step that should always include this check                           | "Review changes must check doc staleness" → skill SKILL.md update                           |
 
@@ -272,7 +294,7 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 
 ### Static Protocol Lesson Promotion (MANDATORY evaluation)
 
-After generalizing a lesson, evaluate whether it qualifies as a **Static Protocol Lesson** in `.claude/skills/shared/sync-inline-versions.md`. Static protocol lessons are baked into `CLAUDE.md`, mirrored into `AGENTS.md`, and synced to Codex carriers through project-init/sync tooling.
+After generalizing a lesson, evaluate whether it qualifies as a **Static Protocol Lesson** in `.claude/skills/shared/sync-inline-versions.md`. Static protocol lessons live in that canonical file and reach every session through the universal hook (the `universal` group of `protocol-groups.json`); the root `CLAUDE.md` and `AGENTS.md` carry none of them.
 
 **Qualification criteria (ALL must be true):**
 
@@ -281,10 +303,10 @@ After generalizing a lesson, evaluate whether it qualifies as a **Static Protoco
 3. **Silent failure** — The mistake produces no error/warning; it silently degrades output quality
 4. **Not already covered** — No existing Static Protocol Lesson addresses the same root cause
 
-> **Static Protocol Lessons** — Universal AI mistake prevention rules baked into static carriers. Stored in `.claude/skills/shared/sync-inline-versions.md` under the `ai-mistake-prevention` and `ai-mistake-prevention:full` SYNC blocks. Each must be universal, high-recurrence, and silent-failure.
+> **Static Protocol Lessons** — Universal AI mistake prevention rules delivered by the universal hook. Stored in `.claude/skills/shared/sync-inline-versions.md` under the `ai-mistake-prevention` SYNC block (published to `.claude/skills/shared/protocols/ai-mistake-prevention.md`). Each must be universal, high-recurrence, and silent-failure.
 > READ `.claude/skills/shared/sync-inline-versions.md` to check for duplicates before adding.
 
-**If qualified:** Recommend "Doc + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run the project-init / sync pipeline so `CLAUDE.md`, `AGENTS.md`, and Codex carriers regenerate from the shared source.
+**If qualified:** Recommend "Doc + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run `node .claude/scripts/build-protocol-projection.cjs` so the hook-delivered projection regenerates from the canonical source. The build fails when the protocol's universal bin exceeds its character budget: condense existing bullets before adding one.
 
 **If NOT qualified:** Explain why (e.g., "A project convention, not universal", "Already covered by existing Static Protocol Lesson about X", "Not silent — the failure is already visible"). Proceed with doc-only or prompt-rule option. (A rare or one-off lesson never reaches this step — the Value gate already rejected it.)
 
@@ -320,7 +342,7 @@ Does this failure mode apply to ≥3 different contexts or codebases? If only on
 
 **Anti-pattern examples:**
 
-- BAD: "Always check `lib/dedup-constants.cjs` for marker strings" → project-specific path
+- BAD: "Always check `src/shared/markers.ts` for marker strings" → project-specific path
 - GOOD: "When consolidating modules, ensure shared constants are imported from a single source of truth — never define inline duplicates."
 - BAD: "Update `.claude/docs/hooks/README.md` after deleting hooks" → project-specific file
 - GOOD: "Deleting components causes documentation staleness cascades — map all referencing docs before removal."
@@ -360,9 +382,9 @@ Run these 2 tasks at the end of every `$learn` operation:
 4. **Detect skill-specific route.** If any trigger T1–T4 holds, follow the Skill-Specific Project-Protocol Route: it runs step 5 (FACT vs RULE) and step 6 (Prevention Depth) as part of its carrier comparison and Carrier Choice question, then replaces steps 7–8 (steps 9–10 still save a doc or config pick); otherwise continue.
 5. **Classify the carrier — FACT vs RULE (do this BEFORE the generic Routing Table).** Ask: *"Is this a machine-readable project fact, or a rule an agent must reason with?"* Fact → `docs/project-config.json`; rule → a prose reference doc; both → both. To decide, read the config or use `$project-config` (`--describe`) so the judgment rests on the real schema, never on a guess about what the config holds. — why: skipping this step is how a project fact ends up as prose that no tooling reads and the next regeneration contradicts.
 6. **Run Prevention Depth Assessment** — determine if doc/config-only or deeper prevention needed
-7. **Match against the generic Routing Table** — pick the best-fit file (or config field)
-8. **Ask the user with a recommendation:** ask the user directly with the best-fit carrier first as `(Recommended)` plus the one-line reason, then the viable alternatives (another doc, config field, a skill overlay if a weak T4 owner exists)
-9. **On confirm** — read target file, find the right section, append the lesson (config target → route through `$project-config`)
+7. **Match against the generic Routing Table** — pick the best-fit file (or config field); run the [Project Root Context Route](#project-root-context-route-claudemd-blocking) candidate test (C1–C5) — when all five hold, `CLAUDE.md` joins the options
+8. **Ask the user with a recommendation:** ask the user directly with the best-fit carrier first as `(Recommended)` plus the one-line reason, then the viable alternatives (another doc, config field, the root `CLAUDE.md` note when C1–C5 hold, a skill overlay if a weak T4 owner exists)
+9. **On confirm** — read target file, find the right section, append the lesson (config target → route through `$project-config`; `CLAUDE.md` target → follow the Root Context Route procedure: write only the hand-owned section, end tasks, `sync-codex`, verify)
 10. **On reject** — ask user which file to use instead
 
 ### Format by Target File
@@ -372,6 +394,17 @@ Run these 2 tasks at the end of every `$learn` operation:
 ```markdown
 - [YYYY-MM-DD] <lesson text>
 ```
+
+**For root `CLAUDE.md`** (project rules and context):
+
+```markdown
+## Project Rules & Context
+
+- <rule or context note, ≤ 3 lines, present tense, no incident nouns>
+```
+
+- Hand-owned section outside every `<!-- SECTION:… -->` fence; bullets only, no dates, no headings inside
+- Budget: ≤ ~2 KiB / ≤ ~12 entries; over budget → condense or merge entries first, or route the lesson to a reference doc
 
 **For pattern/rules files** (code-review-rules, backend-patterns, frontend-patterns, integration-test):
 
@@ -414,11 +447,12 @@ Run these 2 tasks at the end of every `$learn` operation:
 ## Behavior
 
 1. **`$learn <text>`** — Run the existing triage and quality gates; for a skill-specific lesson, follow the Skill-Specific Project-Protocol Route (an overlay pick calls `$project-skill-protocol add ...` or `update <exact-name> ...`), otherwise route and append to the best-fit file (check budget if target is `lessons.md`)
-2. **`$learn list`** — Read and display lessons from ALL 12 target files (show file grouping + char count for `lessons.md`)
+2. **`$learn list`** — Read and display lessons from ALL 12 target files (show file grouping + char count for `lessons.md`), plus the `## Project Rules & Context` entries of the root `CLAUDE.md` when that section exists (show its byte size and the root size against 32768)
 3. **`$learn remove <N>`** — Remove lesson from `lessons.md` by line number
 4. **`$learn clear`** — Clear all lessons from `lessons.md` only (confirm first)
 5. **`$learn trim`** — Manually trigger Budget Trim on `lessons.md`
-6. **File creation** — If target file doesn't exist, create with header only
+6. **File creation** — If target file doesn't exist, create with header only (never create a root `CLAUDE.md` here — that is `$ai-context-refresh`)
+7. **Removing a root-note entry** — `$learn remove` still targets `lessons.md` by line number; removing a `## Project Rules & Context` entry follows the same confirm → edit that section only → `sync-codex` flow
 
 ## Auto-Inferred Activation
 
@@ -426,12 +460,13 @@ When Claude detects correction phrases in conversation (e.g., "always use X", "r
 
 ## How Lessons Reach the AI
 
-Lessons and pattern references are read statically, per the project-reference-docs gate in `CLAUDE.md`:
+Lessons and pattern references are read per the universal `project-reference-docs-guide` protocol (delivered by the universal hook) and the Doc Lookup table in `CLAUDE.md`:
 
 - `lessons.md` — read on **every** task (the gate always includes it).
 - Pattern/rule references (`backend-patterns-reference.md`, `code-review-rules.md`, etc.) — read by their matching trigger (see the Reference Doc Catalog table above).
+- Root `CLAUDE.md` `## Project Rules & Context` — in context from session start on every task; `AGENTS.md` carries it after `sync-codex`.
 
-Because the routing is static prose, Claude and Codex load the same lessons and patterns whether their hooks are enabled, unavailable, or stale.
+Claude and Codex load the same lessons and patterns: the protocol comes from the universal hook, the routing table from the root file.
 
 ## Prompt Enhancement (MANDATORY final step)
 
@@ -456,6 +491,8 @@ After saving a lesson to any target file, run `$prompt-enhance` on the modified 
 $prompt-enhance <reference-docs root>/<modified-file>.md
 ```
 
+For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Context` section only — never rewrite a generated `SECTION:*` fence or `CK:*` block — and run `sync-codex` AFTER it, so the mirrors capture the final root.
+
 **Skip conditions (do NOT run prompt-enhance if):**
 
 - The save was to `lessons.md` AND the file is under 1500 chars (too small to benefit)
@@ -478,17 +515,8 @@ $prompt-enhance <reference-docs root>/<modified-file>.md
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `ai-discovery-doc-quality` — Keep AI-read docs discoverable: rules first, routed pointers, closing reminders; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-discovery-doc-quality:reminder -->
 
@@ -496,34 +524,19 @@ $prompt-enhance <reference-docs root>/<modified-file>.md
 
 <!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** GENERALIZE FIRST — extract the generic, many-cases rule; NEVER persist the specific incident as written. Strip all ticket/file/service/tool names before saving.
 
 **IMPORTANT MUST ATTENTION** Skill-specific route: when the lesson is learned during an active skill or a skill-matched route, names a skill, or concerns the kind of task one skill mainly owns (T1–T4), compare the overlay with the project-reference docs and config, ask the Carrier Choice question with the best carrier as `(Recommended)`, then save to the picked carrier: an overlay through `$project-skill-protocol` — `add` for a new overlay, `update <exact-name>` only after exact-name resolution — or a reference doc / config field through Routing Decision Process steps 9–10.
 
-**IMPORTANT MUST ATTENTION** Preserve `$project-skill-protocol`'s mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate, three-write contract, and mirror-sync rule; Learn must not bypass or replace that protocol. Keep ordinary carrier routing when no active/matching skill exists or the lesson is not skill-specific.
+**IMPORTANT MUST ATTENTION** Root-context route: a lesson that is a general project rule/convention or project context info qualifies for the root `CLAUDE.md` ONLY when it is broad (most tasks), short (≤ 3 lines), project-specific, not better served by a reference doc / overlay / config field, and the root stays ≤ 32768 bytes; write only the hand-owned `## Project Rules & Context` section (outside every `SECTION:*` fence) after ask the user directly confirmation showing the exact line, then run `sync-codex` (`node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=claude-md`), re-check the size and report the changed mirrors — otherwise fall back to a reference doc / `lessons.md` / overlay / config — why: CLAUDE.md is in every session's context, so it carries only what every task needs, and a note inside a generated fence is overwritten by the next regeneration.
 
-**MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries — full bodies above are canonical):**
-
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** critical + sequential thinking, traced proof, confidence >80%, NEVER guess as fact.
+**IMPORTANT MUST ATTENTION** Preserve `$project-skill-protocol`'s mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate and two-write contract; Learn must not bypass or replace that protocol. Keep ordinary carrier routing when no active/matching skill exists or the lesson is not skill-specific.
 
 **IMPORTANT MUST ATTENTION Goal:** Persist each lesson at its failure-mode level into the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc or `docs/project-config.json` when the lesson is really a machine-readable project fact.
 
-**IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**compare carriers; an overlay pick delegates to `$project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `$why-review` → `$prompt-enhance` → AI-discovery gate (lesson reachable from a top/bottom anchor and from the docs index).
+**IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**compare carriers; an overlay pick delegates to `$project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `$why-review` → `$prompt-enhance` → AI-discovery gate (lesson reachable from a top/bottom anchor and from the docs index) → `sync-codex` + size/mirror verification (root `CLAUDE.md` saves only).
 **IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if the lesson is not a project convention or a universal best-practice protocol worth reading on everyday work, OR recurrence is low, OR review skills can catch it, skip `$learn` entirely
 **IMPORTANT MUST ATTENTION** check Reference Doc Catalog to find the best target file — NOT always `lessons.md`
 **IMPORTANT MUST ATTENTION** consider `docs/project-config.json` as a candidate carrier on EVERY routing decision, alongside the prose docs — read it directly or use `$project-config` to learn its sections and exact field names first — why: a project fact written only as prose is invisible to the tooling that reads the config and is contradicted the next time the generated docs regenerate from it.
@@ -542,88 +555,7 @@ $prompt-enhance <reference-docs root>/<modified-file>.md
 | "No field fits, I'll add a sensible key"         | Unknown keys only warn. Surface a proposed schema addition to the user — never invent one silently.   |
 | "Saving the user's exact words is most faithful" | Verbatim is the default failure mode. Climb to the failure mode; strip this ticket's nouns.           |
 | "Small lesson, skip the end gate"                | Learn Review → `$why-review` → `$prompt-enhance` run on every save, no exceptions.                    |
+| "Every agent should see it — put it in CLAUDE.md" | Only a broad, ≤ 3-line, project-specific note with size headroom qualifies; detail goes to a reference doc, a one-skill rule to an overlay, a universal framework rule to the shared protocols. |
+| "I'll drop it into a generated CLAUDE.md block"  | Fences are regenerated from config and template. Write only the hand-owned `## Project Rules & Context` section, after user confirmation, then `sync-codex`. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Static Prompt Protocol Mirror (Auto-Synced)
-
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs` (static quality-protocol composer)
-
-## Shared AI-SDD Protocol Markers
-
-Source: `.claude/skills/shared/sync-inline-versions.md`
-
-## SYNC:ai-sdd-artifact-contract
-
-> **AI-SDD Artifact Contract** — Shared spec-driven development rules stay portable and source-owned.
->
-> 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
-> 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
-> 3. Resolve `specArtifacts` before selecting identity or carrier: use a valid profile, use strict-default TC/test identity only when the profile is absent, and block a malformed or unsupported declaration. Trace every requirement or invariant through decision, task, configured case/test identity and inspected assertion evidence, then carry it through source evidence and canonical docs/spec updates.
-> 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
-> 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
-> 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
-> 7. If `docs/project-config.json`, root instruction files, or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
->
-> **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
-
----
-
-## SYNC:ai-sdd-artifact-contract:reminder
-
-- **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
-- **MANDATORY** Resolve and validate `specArtifacts`: use valid native owner/case/variant identity and assertion-bearing evidence; use strict-default TC/TestSpec only when the profile is absent; block a malformed or unsupported declaration without fallback.
-- **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
-- **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
-- **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, analyze the task graph (output dependencies, shared write targets) into ordered parallel waves per PARALLELIZE before starting any task, then keep it synchronized as each step starts/completes. Preserve fixed ordering when a skill or workflow explicitly fixes it.
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
-## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
-
-Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
-
-**Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does it apply to ≥3 contexts (codebases for a universal lesson, everyday tasks here for a project convention)? If not, abstract one level up.
-3. Write as a durable rule — a universal lesson strips project-specific names/paths/classes; a project convention states the convention itself, never this session's incident.
-4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Value gate:** is it a project convention or a universal best-practice protocol worth reading on everyday work? Rare AI-agent quirks, one-off incidents and details of the current task → No → skip `$learn`.
-6. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-7. **Auto-fix gate:** "Could `$code-quality-review`/`$code-simplifier`/`$security-audit`/a linter catch this?" — Yes → improve review skill instead.
-8. ALL three gates pass → ask user to run `$learn`.
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-**Core engineering principles:** Every plan, implementation and review must lower future change cost. **Easy to change** — reuse before writing, one owner per rule, purpose-named interfaces/adapters at volatile boundaries. **Easy to scale** — extend by addition with bounded growth, sized to the project's real profile. **Easy to maintain** — intent-named tests that fail when a behavior breaks, mechanical harness green. Before done, answer: next change → how many edit sites? 10× → what breaks? which test goes red? (`SYNC:core-engineering-principles`).
-**Judgement integrity:** For theory checks, judgements, evaluations and gap hunts, the prompt's premise is a hypothesis — test it AND its opposite with one evidence bar (web-verify external facts), why-review the draft as an inline self-check (run the `why-review` skill only for a formal review/audit/gap-hunt deliverable or a MEDIUM+/consequential issue the inline pass cannot settle), never invent findings or manufacture disagreement ("no material issues" is a valid verdict); end with a `Bias check:` line (`SYNC:judgement-integrity`).
-## Common AI Mistake Prevention (System Lessons)
-
-- **Resolve project applicability before using framework examples.** Read the project config and relevant references, then inspect local evidence; honor explicit N/A and never impose a language, framework, architecture layer, styling method, tool, or runtime surface the project does not use.
-- **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-- **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-- **Re-read and re-verify after context compaction or resume.** Compaction wipes read state and memory; summaries describe intent, not environment state. Re-read before editing, audit current state (git status, files) before creating anything new, grep-verify sub-agent output — every "completed" claim is a hypothesis until evidence confirms it.
-- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
-- **Trace every consumer before and after a change.** Map referencing files before deleting; after bulk replacements, renames, or extractions, grep ALL consumer file types (templates, configs, catalogs and generated files fail silently) for every old or removed name; trace the full dependency chain of an edited definition; update docs that embed canonical data alongside their source.
-- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
-- **Sub-agents: inherit, cover, persist.** Sub-agents know only their agent .md definition — use custom agent types, not built-in Explore. Reconcile the union of assignments against the full target list — category splits miss boundary items. Make the report write the first deliverable, appended per file/section with bounded scope; a truncated run with no report → spawn a narrower scope, never the same prompt.
-- **Ownership before action.** When investigating a failure, ask which part owns the behavior before changing anything. Trace the wrong state to the component responsible for its invariant, then make one authoritative correction there.
-- **Test failure → record a provisional verdict before trace/edit, then investigate.** Use the full five-way taxonomy: SOURCE-WRONG (production violates intent), TEST-WRONG (assertion/setup is stale), TEST-NOT-OPTIMAL (valid but fragile or low-signal test), ENVIRONMENT-BLOCKED (external state prevents a verdict), or AMBIGUOUS (intent/evidence cannot choose safely). Then trace root cause and triangulate against the governing spec if one exists (the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) AND source. NEVER weaken an assertion, add a skip, relax a timeout, or change source merely to force green.
-- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting any constant/limit/flag/cutoff, read comments, git blame, the CALLER's ordering (the guarantee usually runs immediately BEFORE the cited line), and 2+ sibling call sites. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and an accurate `file:line` citation proves the transcription, never the defect.
-- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
-- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
-- **Holistic analysis — resist the nearest-attention trap.** Do not dive into the first plausible cause. List every precondition (configuration, environment, inputs, dependencies, versions, permissions, state) and verify each against evidence. Ask "what would falsify this?" — if nothing, it is not a hypothesis.
-- **Minimal changes — apply the relevance test.** Every change must trace to the reported problem: "Would this change exist if I were not addressing this request?" — if not, remove or disclose it; never silently expand scope.
-- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort ("(1) [N h], (2) [N h]. Which matters?"), list assumptions, name a simpler path when one exists.
-- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC: steel-man a rejected alternative, invert each reason ("what does it sacrifice?"), stress-test the top 2-3 assumptions, run a pre-mortem. Quality = causal reasoning + mitigations + evidence, not section presence.
-- **OOM/memory: check row count before row size.** An unbounded query (no DB filter for the trigger) → push the filter to the DB; then large rows → projection. Row reduction > projection in ROI.
-- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** For async work (queues, retries, background jobs, caches, replication) assert the final business/entity state — NEVER delivery bookkeeping (consume/send status, attempt counts, last-error, broker/scheduler/outbox rows) that ANY co-running process can write: green alone, flaky once anything shares that broker + database. Gate: "would this hold no matter WHICH process did the work?" Process-local fault injection is a stress amplifier (arm → bounded window → disarm → assert convergence), never a precondition.
-- **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, the plans root (default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path), the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in the same config overrides the path), or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-- **Judge the environment before judging the code — a competing hypothesis, not a fallback.** A bug, failed test, error, or odd output is NOT proof of a code defect. Before any verdict, sweep environment preconditions (toolchain/lockfile state, stale build/cache artifacts, env vars and config, service dependencies, ports/clock, OS path/locale, permissions, leftover processes/test data) AND transient resource pressure (RAM/OOM, CPU, disk/temp, handle and connection-pool limits, network, a timeout that is really slowness). Tell-tale: non-deterministic, fails only in parallel, on one machine or only on CI, or an error naming resources. Cite the discriminator you ran (clean environment? path changed? concurrency 1?) — a verdict without one is a guess. Fix an environment cause in the environment; NEVER edit product code or weaken/skip a test to absorb it; a failure that vanishes on retry stays unexplained until its mechanism is named.
-- **Cross-platform execution is a required contract.** Before authoring or changing a tool, script, process launcher, path assertion, or filesystem test, name the supported Windows, macOS, and Linux behaviors. Use platform-neutral APIs and literal argv vectors; never infer shell, temp-path, executable-extension, ACL, or symlink semantics from the current host. A documented command gives its Windows, macOS, and Linux form (Python: `py -3` on Windows, `python3` on macOS/Linux; shell: PowerShell/`.cmd` beside POSIX `sh`) or one platform-neutral runner such as `node <script>`. Canonicalize existing paths before identity, hashing, or equality checks; test native Windows and POSIX seams when behavior differs; keep CI platform matrices authoritative. Preserve fail-closed security boundaries — repair the fixture or platform branch, never weaken the guard just to make one OS green.
-- **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer must reference NO consumer-specific domain concept (tenant/customer/product IDs, business entities, feature rules); such a leak compiles, runs, and passes review while coupling the layer to one consumer. Push domain fields/logic down into the consumer via subclass/composition.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

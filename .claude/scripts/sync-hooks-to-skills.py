@@ -6,20 +6,22 @@ SKILL.md and agent .md files. Idempotent: skips files that already contain a blo
 A guide entry (`sync_blocks.has_guide_entry`) counts as the block, so a skill converted
 to guide lines never gets its body back. Files keep their own line-ending style.
 
+The universal bundle (the `universal` group of `protocol-groups.json`) is never inserted here: the
+universal hook delivers it and no skill or agent carries any part of it (`sync_blocks.strip_universal`;
+`sync-update-blocks.py --mode=strip-root-pointer` applies it to the whole tree). `main()` also
+brings each target to that contract.
+
 Tiered blocks (agents):
-  Core-6 (every agent):
-    - SYNC:critical-thinking-mindset
-    - SYNC:ai-mistake-prevention
+  Core-2 (every agent):
     - SYNC:sequential-thinking-protocol
-    - SYNC:task-tracking-external-report
-    - SYNC:project-reference-docs-guide
     - SYNC:agent-bootstrap
-  Code-10 (Core-6 + 4, for code/review agents in CODE_AGENTS):
+    (`task-tracking-external-report` is folded into agent-bootstrap and never inserted.)
+  Code-6 (Core-2 + 4, for code/review agents in CODE_AGENTS):
     - SYNC:understand-code-first
     - SYNC:evidence-based-reasoning
     - SYNC:cross-service-check
     - SYNC:fix-layer-accountability
-  Readonly-Code-8 (Core-6 + 2, for read-only/design agents in READONLY_CODE_AGENTS):
+  Readonly-Code-4 (Core-2 + 2, for read-only/design agents in READONLY_CODE_AGENTS):
     - SYNC:understand-code-first
     - SYNC:evidence-based-reasoning
     (EXCLUDES cross-service-check + fix-layer-accountability — those two are
@@ -29,8 +31,8 @@ Tiered blocks (agents):
   same set as CODE_AGENTS): dev-rules + coding-pattern pointers for agents that
   write/modify/review/debug/optimize/test code. Appended on top of whichever tier
   (Core or Code) the agent already has. Non-code-standards agents never receive it.
-Skills keep the original 2-block SKILL_BLOCK_ORDER; skills named in
-ORCHESTRATOR_SKILLS additionally receive parallel-subagent-dispatch
+Skills carry no inserted block by default (SKILL_BLOCK_ORDER is empty); skills named in
+ORCHESTRATOR_SKILLS receive parallel-subagent-dispatch
 (ORCHESTRATOR_SKILL_BLOCK_ORDER). `--prune` removes a PRUNABLE_BLOCKS block from
 any file whose tier no longer grants it — without it, leaving a tier is a one-way
 door.
@@ -62,257 +64,32 @@ from sync_blocks import has_guide_entry  # noqa: E402
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ─── Canonical block content ────────────────────────────────────────────────
+# Every body and reminder this script inserts is read from the canonical file
+# (`.claude/skills/shared/sync-inline-versions.md`) at import time, so a newly tiered file never
+# receives a stale copy. The universal bundle (the `universal` group of
+# `protocol-groups.json`) and the agent-folded `task-tracking-external-report` are never inserted:
+# `sync_blocks.strip_universal` owns them.
 
-BLOCKS = {
-    "parallel-subagent-dispatch": """\
-<!-- SYNC:parallel-subagent-dispatch -->
+from sync_blocks import (  # noqa: E402  (path set up above: runs from any cwd)
+    AGENT_FOLDED_TAGS,
+    load_wrapped_sync_block,
+    strip_universal,
+)
 
-> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — running provably independent tasks sequentially wastes wall-clock. Applies to every multi-step job: workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync. **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
->
-> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`. Else `SEQ` — MUST ATTENTION name the dependency forcing it.
-> 2. **Group `PAR` into waves.** No edge between members. Two writers of one file NEVER share a wave. Read-only work (search, investigation, review, research) parallelizes freely.
-> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
-> 4. **Spawn each wave in ONE message** — every `Agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
-> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
-> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
->
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · an order a workflow explicitly fixes · gates awaiting user approval.
->
-> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
+BODY_TAGS = (
+    "parallel-subagent-dispatch",
+    "sequential-thinking-protocol",
+    "understand-code-first",
+    "evidence-based-reasoning",
+    "cross-service-check",
+    "fix-layer-accountability",
+    "agent-bootstrap",
+    "agent-code-standards",
+)
+REMINDER_TAGS = ("parallel-subagent-dispatch", "sequential-thinking-protocol", "cross-service-check")
 
-<!-- /SYNC:parallel-subagent-dispatch -->""",
-
-    "critical-thinking-mindset": """\
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->""",
-
-    "ai-mistake-prevention": """\
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **ROOT-CAUSE GATE — INVESTIGATE FIRST.** Before applying any project-related correction, always use the project's root-cause investigation protocol and establish the cause; the failure site may be only a symptom.
-> **FAILED-TEST GATE.** For any failed or unstable test, use the project's test-investigation protocol before editing source or tests; never change either side merely to force green.
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
-> **Store disposable generated output in the project workspace.** If an output can be regenerated and is not source code, a canonical source-of-truth, or an intentionally versioned projection, write it under the project-root `tmp/` or `temp/` directory (prefer `tmp/`), scoped to the run. This includes temporary state, integration/E2E results, reports, logs, screenshots, traces, videos, coverage, dumps, and candidate evidence. Never put these outputs in source, docs, `plans/`, `team-artifacts/`, or mirror directories; the project-root `.gitignore` must ignore `/tmp/` and `/temp/` by default. Committed fixtures, accepted baselines, canonical specs/docs, and explicitly versioned generated mirrors remain at their declared owner paths.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->""",
-
-    "sequential-thinking-protocol": """\
-<!-- SYNC:sequential-thinking-protocol -->
-
-> **Sequential Thinking Protocol** — Structured multi-step reasoning for complex/ambiguous work. Use when planning, reviewing, debugging, or refining ideas where one-shot reasoning is unsafe.
->
-> **Trigger when:** complex problem decomposition · adaptive plans needing revision · analysis with course correction · unclear/emerging scope · multi-step solutions · hypothesis-driven debugging · cross-cutting trade-off evaluation.
->
-> **Format (explicit mode — visible thought trail):**
->
-> 1. `Thought N/M: [aspect]` — one aspect per thought, state assumptions/uncertainty
-> 2. `Thought N/M [REVISION of Thought K]: ...` — when prior reasoning invalidated; state Original / Why revised / Impact
-> 3. `Thought N/M [BRANCH A from Thought K]: ...` — explore alternative; converge with decision rationale
-> 4. `Thought N/M [HYPOTHESIS]: ...` then `[VERIFICATION]: ...` — test before acting
-> 5. `Thought N/N [FINAL]` — only when verified, all critical aspects addressed, confidence >80%
->
-> **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
->
-> **Stop conditions:** confidence <80% on any critical decision → escalate via AskUserQuestion · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
->
-> **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
-
-<!-- /SYNC:sequential-thinking-protocol -->""",
-
-    "task-tracking-external-report": """\
-<!-- SYNC:task-tracking-external-report -->
-
-> **Task Tracking & External Report Persistence** — Bootstrap this before execution; then run project-reference doc prefetch before target/source work.
->
-> 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
-> 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `tmp/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
-> 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: tmp/reports/{filename}`.
->
-> **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
-
-<!-- /SYNC:task-tracking-external-report -->""",
-
-    "project-protocol-overlay": """\
-<!-- SYNC:project-protocol-overlay -->
-
-> **Project Protocol Overlay** — Before executing this skill, resolve any PROJECT overlay rules layered onto it: match this skill's name against the `Target` column of the project's skill-protocol index (`docs/project-reference/skill-protocols-reference.md` by default; a `referenceDocs` entry in `docs/project-config.json` overrides the path), taking the most specific matching tier ONLY — exact name > glob > `*`. **That precedence orders overlays against EACH OTHER, never against this skill.** Read ONLY the matched bodies, resolved as `<protocols-dir>/<Name>.md`; a row's Body link is display text, never a read path. A matched body that is missing or malformed is REPORTED and skipped — never reconstructed from the index Description. No index, or no match -> proceed with no overlay, silently. Full contract: `.claude/skills/project-skill-protocol/references/registry.md`.
->
-> Overlays are **ADDITIVE ONLY**: they ADD rules on top of this skill's own protocol and NEVER replace, override, disable, or reinterpret a rule it already states — removing every overlay must return this skill to exactly its documented behavior. An overlay is a BRIEF, not an authority escalation: it can NEVER waive a workflow gate, git discipline, a review gate, or a user-confirmation gate. A genuine overlay-vs-skill conflict, or two equally-specific overlays that directly contradict -> surface both to the user; NEVER resolve silently.
-
-<!-- /SYNC:project-protocol-overlay -->""",
-
-    "understand-code-first": """\
-<!-- SYNC:understand-code-first -->
-
-> **Understand Existing Code First** — For code changes, read and trace the target before planning or editing; do not apply a code workflow to work with no code surface.
->
-> 1. Search for relevant existing implementations and cite `file:line`; aim for 3+ comparable examples when they exist, and record when the project has fewer or none.
-> 2. Read the target area and its configured project references; identify actual structure, owners, and conventions without assuming a framework, layer model, or base class.
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists and the task concerns code relationships.
-> 4. Map affected dependencies and callers with available repository tools; do not block on an absent graph or unsupported tool.
-> 5. Write investigation to `tmp/analysis/` for non-trivial tasks (3+ files).
-> 6. Re-read the analysis before implementing; update it when evidence changes.
-> 7. Follow a fitting local pattern, or state why no suitable pattern exists and justify a project-appropriate choice.
->
-> **BLOCKED until:** target and relevant existing patterns are inspected, applicable dependencies are traced, and material assumptions have evidence. If an item does not apply or the repository has no comparable implementation, record that fact rather than fabricating a gate result.
-
-<!-- /SYNC:understand-code-first -->""",
-
-    "evidence-based-reasoning": """\
-<!-- SYNC:evidence-based-reasoning -->
-
-> **Evidence-Based Reasoning** — Do not present inference as fact; ground material claims in evidence appropriate to the task.
->
-> 1. Cite `file:line` for repository claims, configuration or reference paths for project rules, and URLs or artifact locations for external or observed claims.
-> 2. State confidence when a conclusion is uncertain; verify material assumptions before acting and withhold recommendations when evidence is insufficient.
-> 3. Trace the consumers, boundaries, or dependencies that exist in the affected path; do not assume services, modules, or architectural styles that the project does not use.
-> 4. "I don't have enough evidence" is valid and expected output.
->
-> **BLOCKED until:** material claims have traceable evidence, relevant searches are complete, and uncertainties are stated. Search comparable patterns when the task has existing implementations; record when none are available.
->
-> **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
-> **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
-
-<!-- /SYNC:evidence-based-reasoning -->""",
-
-    "cross-service-check": """\
-<!-- SYNC:cross-service-check -->
-
-> **Cross-Service Check** — Microservices/event-driven: MANDATORY before concluding investigation, plan, spec, or feature doc. Missing downstream consumer = silent regression.
->
-> | Boundary            | Grep terms                                                                      |
-> | ------------------- | ------------------------------------------------------------------------------- |
-> | Event producers     | `Publish`, `Dispatch`, `Send`, `emit`, `EventBus`, `outbox`, `IntegrationEvent` |
-> | Event consumers     | `Consumer`, `EventHandler`, `Subscribe`, `@EventListener`, `inbox`              |
-> | Sagas/orchestration | `Saga`, `ProcessManager`, `Choreography`, `Workflow`, `Orchestrator`            |
-> | Sync service calls  | HTTP/gRPC calls to/from other services                                          |
-> | Shared contracts    | OpenAPI spec, proto, shared DTO — flag breaking changes                         |
-> | Data ownership      | Other service reads/writes same table/collection → Shared-DB anti-pattern       |
->
-> **Per touchpoint:** owner service · message name · consumers · risk (NONE / ADDITIVE / BREAKING).
->
-> **BLOCKED until:** Producers scanned · Consumers scanned · Sagas checked · Contracts reviewed · Breaking-change risk flagged
-
-<!-- /SYNC:cross-service-check -->""",
-
-    "fix-layer-accountability": """\
-<!-- SYNC:fix-layer-accountability -->
-
-> **Fix-Layer Accountability** — Do not assume the crash site owns the defect. Trace the actual execution and data flow, then fix the component that owns the violated contract.
->
-> AI default behavior: see error at Place A → fix Place A without tracing. This can treat a symptom while leaving its cause in place.
->
-> **MANDATORY before ANY fix:**
->
-> 1. **Trace the affected path** — Map the real origin, transformations, boundaries, and observed failure in the surfaces this project uses. Do not invent absent layers.
-> 2. **Identify the contract owner** — Use project architecture and code evidence to find which component is responsible for the invalid state or behavior.
-> 3. **Choose the correction point** — Fix the authoritative owner and retain validation required at untrusted boundaries. A multi-file correction can be valid; justify it by the contracts each file owns rather than a file-count threshold.
-> 4. **Check bypass paths** — Inspect relevant constructors, adapters, parsers, caches, persistence, or other entry points that actually exist in the affected flow.
->
-> **BLOCKED until:** `- [ ]` The affected path is traced `- [ ]` Contract owner supported by `file:line` evidence `- [ ]` Relevant consumers and bypass paths checked `- [ ]` Correction point fits the project's architecture
->
-> **Anti-patterns (REJECT these):**
->
-> - "Fix it where it crashes" without tracing — the observed failure site may not own the violated contract.
-> - "Add defensive checks at every consumer" without evidence — scattered workarounds can hide an uncorrected source defect.
-> - "Always fix at the lowest layer" — a lower layer may not own the contract; prove ownership from this project's architecture.
-
-<!-- /SYNC:fix-layer-accountability -->""",
-
-    "agent-bootstrap": """\
-<!-- SYNC:agent-bootstrap -->
-
-> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
->
-> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
->
-> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
-> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
-> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
-> 4. **Producing a report?** Persist it incrementally to `tmp/reports/` and start the final message with its path.
->
-> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
-
-<!-- /SYNC:agent-bootstrap -->""",
-
-    "agent-code-standards": """\
-<!-- SYNC:agent-code-standards -->
-
-> **Development rules.** YAGNI / KISS / DRY. Place behavior with the owner established by the project's architecture and evidence; do not assume a fixed layer order or mapping/constant location. Follow local file naming and layout conventions. Search relevant existing patterns before changing code, and check their fit before reusing them. Read `.claude/docs/development-rules.md` for shared coding standards and quality gates (when present).
->
-> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
->
-> **Blocked until:** relevant project pattern docs have been read, when configured or present; if none apply, record the observed local conventions before coding.
-
-<!-- /SYNC:agent-code-standards -->""",
-}
-
-REMINDERS = {
-    "parallel-subagent-dispatch": """\
-  <!-- SYNC:parallel-subagent-dispatch:reminder -->
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-  <!-- /SYNC:parallel-subagent-dispatch:reminder -->""",
-
-    "critical-thinking-mindset": """\
-  <!-- SYNC:critical-thinking-mindset:reminder -->
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
-  <!-- /SYNC:critical-thinking-mindset:reminder -->""",
-
-    "ai-mistake-prevention": """\
-  <!-- SYNC:ai-mistake-prevention:reminder -->
-**MUST ATTENTION** ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-  <!-- /SYNC:ai-mistake-prevention:reminder -->""",
-
-    "sequential-thinking-protocol": """\
-  <!-- SYNC:sequential-thinking-protocol:reminder -->
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
-  <!-- /SYNC:sequential-thinking-protocol:reminder -->""",
-
-    "task-tracking-external-report": """\
-  <!-- SYNC:task-tracking-external-report:reminder -->
-- **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `tmp/reports/` incrementally and synthesize from disk.
-  <!-- /SYNC:task-tracking-external-report:reminder -->""",
-
-    "project-protocol-overlay": """\
-  <!-- SYNC:project-protocol-overlay:reminder -->
-
-  **MUST ATTENTION** resolve project protocol overlays for this skill BEFORE executing — most specific matching tier only (exact > glob > `*`, which ranks overlays against each other, NEVER against this skill), read only matched bodies at `<protocols-dir>/<Name>.md`; a missing or malformed body is reported, never reconstructed. Overlays are ADDITIVE ONLY (they never replace this skill's own rules) and are a brief, NEVER an authority escalation; an equal-specificity contradiction goes to the user.
-
-  <!-- /SYNC:project-protocol-overlay:reminder -->""",
-
-    "cross-service-check": """\
-  <!-- SYNC:cross-service-check:reminder -->
-**IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
-  <!-- /SYNC:cross-service-check:reminder -->""",
-}
-
-# project-reference-docs-guide is single-sourced from the canonical file (not a
-# hardcoded copy) so a newly tiered agent never receives a stale phase-routing /
-# dedup gate; sync_project_reference_block.py refreshes existing carriers.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from sync_blocks import load_wrapped_sync_block  # noqa: E402
-
-BLOCKS["project-reference-docs-guide"] = load_wrapped_sync_block("SYNC:project-reference-docs-guide").rstrip()
-REMINDERS["project-reference-docs-guide"] = load_wrapped_sync_block("SYNC:project-reference-docs-guide:reminder").rstrip()
+BLOCKS = {tag: load_wrapped_sync_block(f"SYNC:{tag}").rstrip() for tag in BODY_TAGS}
+REMINDERS = {tag: load_wrapped_sync_block(f"SYNC:{tag}:reminder").rstrip() for tag in REMINDER_TAGS}
 
 # ─── Tier ordering ───────────────────────────────────────────────────────────
 # Skills: the original 2 universal blocks + parallel-subagent-dispatch.
@@ -338,36 +115,32 @@ REMINDERS["project-reference-docs-guide"] = load_wrapped_sync_block("SYNC:projec
 # `.claude/skills/shared/sync-inline-versions.md` ("Universal guidance must help
 # every receiving skill or agent"), which is the same lesson the agent tiers below
 # already encode. Keep the two-tier split.
-# project-protocol-overlay is universal across SKILLS and skill-only, for the SAME reason
-# parallel-subagent-dispatch is skill-only: overlay resolution is performed by whoever INVOKES
-# the skill; a headless leaf sub-agent receives one already-scoped brief whose overlay the
-# dispatching orchestrator already resolved. It IS role-relevant to every skill though — any
-# skill can be an overlay Target — so it belongs in SKILL_BLOCK_ORDER, not the orchestrator tier.
-# Mirrored — by convention, no automated cross-check — in agent_protocol_matrix.py
-# EXCLUDED_ORCHESTRATION and in the TC-UAR-017 AGENT_ADOPTION_EXEMPT set. Do NOT add it to
-# CORE_BLOCK_ORDER, any *_AGENTS set, or PRUNABLE_BLOCKS.
-SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention", "project-protocol-overlay"]
+# The universal bundle (project-protocol-overlay among it) is absent from every tier order: the
+# universal hook delivers it and no file carries any part of it.
+SKILL_BLOCK_ORDER = []
 
-# Orchestrator skills: SKILL_BLOCK_ORDER + the parallel-dispatch protocol.
+# Orchestrator skills: the parallel-dispatch protocol.
 ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatch"]
 
 # Membership is evidence-derived, not taste: every name below either already
 # dispatched sub-agents before this tier existed (`git grep -lE
 # "subagent_type|in ONE message|spawn .*sub-?agent" HEAD -- '.claude/skills/*/SKILL.md'`)
 # or orchestrates a multi-step task list that the protocol governs (plan,
-# plan-execute, investigate, scan). A skill that never spawns and never partitions
+# investigate, scan). A skill that never spawns and never partitions
 # a task list does NOT belong here — it cannot act on the protocol.
 ORCHESTRATOR_SKILLS = {
-    "architecture-design", "architecture-review", "architecture-review-full", "artifact-review",
+    # `pbi` carries the parallel-dispatch block inline in pbi/references/mode-review.md, so it is not a target.
     "changes-review", "code-quality-review", "code-simplifier", "commit",
-    "db-migrate", "debug-investigate", "ui-design", "docs-update",
-    "demo-guide", "domain-entities-review", "e2e-test", "feature-presentation", "integration-test",
-    "integration-test-review", "investigate", "knowledge-review",
-    "performance-review", "plan", "plan-execute", "plan-review",
+    "db-migrate", "ui-design",
+    # `docs-manager` modes carry the parallel-dispatch block inline in docs-manager/references/mode-*.md,
+    # so `docs-manager` is intentionally not a target.
+    "demo-guide", "e2e-test", "feature-presentation", "integration-test",
+    "investigate", "knowledge-review",
+    "performance-review", "plan",
     "production-readiness-review", "project-init", "scan",
     "scan-codebase-health", "security-audit", "seed-test-data",
-    "spec-clarify", "spec-discovery", "spec-index", "start-workflow",
-    "tech-spec", "test", "ui-review", "ai-engineering-review", "understand", "why-review",
+    "start-workflow",
+    "tech-spec", "test", "ai-engineering-review", "understand", "why-review",
     "workflow-code-to-spec", "workflow-idea-to-pbi", "workflow-idea-to-spec",
     "workflow-spec-to-mockup",
     "workflow-review-changes",
@@ -382,20 +155,16 @@ ORCHESTRATOR_SKILLS = {
 # exist in a file is tier membership.
 PRUNABLE_BLOCKS = {"parallel-subagent-dispatch"}
 
-# Core: every agent. (critical-thinking + ai-mistake already present in agents.)
-# agent-bootstrap (Phase 03): self-contained subagent startup contract for hosts whose
-# SubagentStart hook is unavailable. Regenerated from canonical
-# via sync-update-blocks.py agent-bootstrap.
+# Core: every agent. agent-bootstrap is the self-contained subagent startup contract for hosts
+# whose SubagentStart hook is unavailable; it also carries the task-tracking and report rules
+# (task-tracking-external-report is folded into it). The universal protocols come from the
+# universal hook. Regenerated from canonical via sync-update-blocks.py <tag>.
 CORE_BLOCK_ORDER = [
-    "critical-thinking-mindset",
-    "ai-mistake-prevention",
     "sequential-thinking-protocol",
-    "task-tracking-external-report",
-    "project-reference-docs-guide",
     "agent-bootstrap",
 ]
 
-# Code-10: Core-6 + 4 code-investigation blocks for agents that read/review code.
+# Code-6: Core-2 + 4 code-investigation blocks for agents that read/review code.
 CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + [
     "understand-code-first",
     "evidence-based-reasoning",
@@ -403,7 +172,7 @@ CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + [
     "fix-layer-accountability",
 ]
 
-# Readonly-Code-8: Core-6 + understand-code-first + evidence-based-reasoning for
+# Readonly-Code-4: Core-2 + understand-code-first + evidence-based-reasoning for
 # read-only/design agents that locate/read/design code but never fix a layer or
 # cross a service boundary. EXCLUDES cross-service-check + fix-layer-accountability
 # (mutation-oriented — over-propagating them to these agents wastes tokens).
@@ -654,6 +423,21 @@ def process_file(path, block_order, dry_run=False, prune=False):
     return "updated"
 
 
+def process_strip(path, dry_run=False):
+    """Bring one target to the universal-bundle contract: no universal body or reminder and no
+    retired pointer line (agents also drop the agent-folded tags). Idempotent."""
+    original, newline = read_text(path)
+    is_agent = os.path.basename(os.path.dirname(path)) == "agents"
+    content, _removed, errors = strip_universal(original, list(AGENT_FOLDED_TAGS) if is_agent else None)
+    if errors:
+        raise ValueError("; ".join(errors))
+    if content == original:
+        return "skip"
+    if not dry_run:
+        write_text(path, content, newline)
+    return "updated"
+
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main():
@@ -676,6 +460,10 @@ def main():
         rel = os.path.relpath(path, PROJECT_DIR)
         try:
             result = process_file(path, block_order, dry_run=dry_run, prune=prune)
+            # process_file's write is already on disk (unless dry-run), so the strip step reads it back.
+            strip_result = process_strip(path, dry_run=dry_run)
+            if "updated" in (result, strip_result):
+                result = "updated"
             if result == "updated":
                 updated += 1
                 if verbose:

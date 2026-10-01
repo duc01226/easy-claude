@@ -111,7 +111,7 @@
             "type": "command"
           },
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal.cjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-overlay-remind.cjs",
             "type": "command"
           }
         ],
@@ -145,7 +145,7 @@
             "type": "command"
           },
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal.cjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-overlay-remind.cjs",
             "if": "Read(**/SKILL.md)",
             "type": "command"
           }
@@ -260,6 +260,27 @@
           }
         ],
         "matcher": "compact|resume|clear"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-1.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-2.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-3.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-4.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "compact|clear"
       }
     ],
     "Stop": [
@@ -296,11 +317,22 @@
             "type": "command"
           },
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal.cjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-1.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-2.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-3.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-4.cjs",
             "type": "command"
           }
-        ],
-        "matcher": "Explore|Plan|architect|code-reviewer|code-simplifier|docs-manager|fullstack-developer|git-manager|tester"
+        ]
       }
     ],
     "UserPromptExpansion": [
@@ -327,13 +359,33 @@
             "type": "command"
           },
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal.cjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-overlay-remind.cjs",
             "type": "command"
           }
         ]
       }
     ],
     "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-1.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-2.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-3.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-4.cjs",
+            "type": "command"
+          }
+        ]
+      },
       {
         "hooks": [
           {

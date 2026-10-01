@@ -14,12 +14,12 @@ Test prompts to verify skills activate correctly. Each section contains prompts 
 
 ## Interactive Skills
 
-### debug-investigate
+### investigate --mode=debug
 
 Direct invocation:
 
 ```
-$debug-investigate
+$investigate --mode=debug
 ```
 
 Inference test prompts:

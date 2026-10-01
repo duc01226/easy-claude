@@ -82,7 +82,7 @@ test("TC-CLG-005 unmanaged sections (no builder content) never warn", () => {
   assert.equal(warns.length, 0, "sections without builder output are preserved, not dropped");
 });
 
-test("TC-CLG-007 init mode carries canonical workflow routing in CLAUDE.md", async () => {
+test("TC-CLG-007 init mode writes a project-only root with no routing text", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "ai-context-refresh-hookless-"));
 
   try {
@@ -133,16 +133,11 @@ test("TC-CLG-007 init mode carries canonical workflow routing in CLAUDE.md", asy
     });
 
     const claudeMd = await fs.readFile(path.join(tempRoot, "CLAUDE.md"), "utf8");
-    for (const expected of [
-      "<!-- CK:UNIVERSAL-GUIDES v7 -->",
-      "<!-- CK:CRITICAL-THINKING -->",
-      "<!-- CK:AI-MISTAKE-PREVENTION -->",
-      "## Continuous Improvement — Lesson Extraction Gate",
-      "docs/project-reference/lessons.md",
-    ]) {
-      assert.ok(claudeMd.includes(expected), `CLAUDE.md init output must include ${expected}`);
-    }
-    assert.match(claudeMd, /<!-- CK:WORKFLOW-GATE -->/);
+    // The root holds project information only: the universal hook delivers every framework rule, the
+    // route hook delivers the workflow route, so the root carries neither a pointer nor a gate.
+    assertRootContract(claudeMd);
+    assert.ok(claudeMd.includes("Hookless Test"), "the project name is written");
+    assert.doesNotMatch(claudeMd, /<!-- CK:WORKFLOW-ROUTE-POINTER -->|<!-- CK:WORKFLOW-GATE -->|\*\*Workflow question\*\*/);
     assert.doesNotMatch(claudeMd, /CK:WORKFLOW-SKILLS|MANDATORY FIRST ACTION/);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
@@ -282,32 +277,34 @@ test("TC-HARNESS-015 ownership and type-check mutants fail the same preservation
   }
 });
 
-const ROOT_SENTINELS = [
-  /Never commit, push, or stage.*unless the user explicitly asks/i,
-  /`git commit --amend` and `git reset --soft HEAD~1` \+ commit produce the same commit/,
-  /Branch before committing on the default branch/,
-  /Preserve unrelated\/user work/,
-  /Never hand-edit.*\.agents\/.*\.codex\/.*AGENTS\.md/,
-  /Generated Artifact Storage/,
-  /completed `\/ai-context-refresh` run invokes the same standalone runner.*skip=claude-md/,
-  /required quality gates.*cannot be waived/i,
-  /before investigating, planning, or coding/,
-  /docs\/project-reference\/lessons\.md/,
+// What the universal hook delivers now: none of it may live in the root. Each entry is the lead of a
+// retired managed block or universal section.
+const UNIVERSAL_ROOT_ABSENT = [
+  /CK:UNIVERSAL-GUIDES/,
+  /<!-- CK:CRITICAL-THINKING -->/,
+  /<!-- CK:AI-MISTAKE-PREVENTION -->/,
+  /<!-- CK:WORKFLOW-ROUTE-POINTER -->/,
+  /<!-- CK:WORKFLOW-GATE -->/,
+  /\[WORKFLOW-GATE\]/,
+  /^## Task Planning Rules/m,
+  /^## Generated Artifact Storage/m,
+  /^## Workflow Step Advancement/m,
+  /^## Search Existing Code First/m,
+  /^## Code Responsibility Hierarchy/m,
+  /^## Evidence-Based Reasoning/m,
+  /^## Git & Version-Control Discipline/m,
+  /^## Canonical Ownership/m,
+  /^## Project Protocol Overlays/m,
+  /^## Continuous Improvement/m,
+  /Never commit, push, or stage/,
   /all-return barrier/,
-  /workflow-review-changes.*INLINE/,
-  /Graph Intelligence/,
+  /ask.*whether to activate|MANDATORY FIRST ACTION|invoke.*Skill tool/i,
 ];
 
 function assertRootContract(text) {
-  for (const sentinel of ROOT_SENTINELS) assert.match(text, sentinel);
-  assert.equal((text.match(/\[WORKFLOW-GATE\]/g) || []).length, 1);
-  assert.doesNotMatch(text, /<!-- CK:WORKFLOW-SKILLS -->/);
-  assert.equal((text.match(/<!-- CK:CRITICAL-THINKING -->/g) || []).length, 1);
-  assert.equal((text.match(/<!-- CK:AI-MISTAKE-PREVENTION -->/g) || []).length, 1);
-  assert.doesNotMatch(text, /ask.*whether to activate|MANDATORY FIRST ACTION|invoke.*Skill tool/i);
-  // Amend parity: the retired unconditional ban must not survive beside the parity rule.
-  assert.doesNotMatch(text, /Never `git commit --amend`|amend[^\n.]{0,80}forbidden/i);
-  assert.ok(Buffer.byteLength(text) <= 32768, "operational root fits 32 KiB without truncating");
+  for (const absent of UNIVERSAL_ROOT_ABSENT) assert.doesNotMatch(text, absent);
+  assert.match(text, /<!-- SECTION:tldr -->/, "the generated project sections are kept");
+  assert.ok(Buffer.byteLength(text) <= 32768, "the project-only root fits 32 KiB without truncating");
 }
 
 async function fixture(t, config = {}) {
@@ -347,8 +344,8 @@ test("TC-CLG-009 Given a missing root, When the read-only preflight runs, Then i
   await assert.rejects(fs.stat(path.join(f.root, ".claude-md.backup")), { code: "ENOENT" });
 });
 
-test("TC-CLG-010 Given a markerless root, When preflight runs, Then it fails closed and preserves custom bytes", async t => {
-  // Given a project-only CLAUDE.md and the default requirement for portable guides.
+test("TC-CLG-010 Given a markerless root, When preflight runs, Then it is accepted as project-owned and its bytes are preserved", async t => {
+  // Given a project-only CLAUDE.md: the root holds project information, so an existing root is complete.
   const f = await fixture(t);
   const original = "# Project-owned instructions\n\nKeep this exact λ text.\n";
   await fs.writeFile(path.join(f.root, "CLAUDE.md"), original, "utf8");
@@ -356,26 +353,27 @@ test("TC-CLG-010 Given a markerless root, When preflight runs, Then it fails clo
   // When the generator's coordination probe runs.
   const result = await runCheck(f);
 
-  // Then AI smart-merge is required and neither the root nor a backup is mutated.
-  assert.equal(result.code, 12);
-  assert.match(result.stderr, /markerless.*manual smart-merge required/i);
+  // Then the root is accepted, nothing is generated into it, and neither the root nor a backup is mutated.
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /markerless.*project-owned/i);
   assert.equal(await fs.readFile(path.join(f.root, "CLAUDE.md"), "utf8"), original);
   await assert.rejects(fs.stat(path.join(f.root, ".claude-md.backup")), { code: "ENOENT" });
 });
 
-test("TC-CLG-011 Given an explicit guide opt-out, When a markerless root is probed, Then sync may continue", async t => {
-  // Given a project-only root and an explicit portability opt-out.
-  const f = await fixture(t, { portability: { requireUniversalGuides: false } });
-  const original = "# Project-only instructions\n";
-  await fs.writeFile(path.join(f.root, "CLAUDE.md"), original, "utf8");
+test("TC-CLG-011 Given a marker-managed root from an older framework, When preflight runs, Then it is reported stale and a read-only probe preserves its bytes", async t => {
+  // Given a root that still carries the retired managed blocks and the completeness sentinel.
+  const f = await fixture(t);
+  await f.run(["--mode", "init"]);
+  const legacy = ["<!-- CK:UNIVERSAL-GUIDES v7 -->", "", "<!-- CK:WORKFLOW-ROUTE-POINTER -->", "> pointer", "<!-- /CK:WORKFLOW-ROUTE-POINTER -->", "", await f.read()].join("\n");
+  await fs.writeFile(path.join(f.root, "CLAUDE.md"), legacy, "utf8");
 
   // When the generator's coordination probe runs.
   const result = await runCheck(f);
 
-  // Then the root is accepted without changing its bytes.
-  assert.equal(result.code, 0);
-  assert.match(result.stdout, /markerless.*opted out/i);
-  assert.equal(await fs.readFile(path.join(f.root, "CLAUDE.md"), "utf8"), original);
+  // Then update is required (the update strips the blocks) and the probe wrote nothing.
+  assert.equal(result.code, 11);
+  assert.match(result.stdout, /marker-managed update/);
+  assert.equal(await fs.readFile(path.join(f.root, "CLAUDE.md"), "utf8"), legacy);
 });
 
 test("TC-CLG-012 Given a marker-managed root, When content is current or stale, Then preflight distinguishes both states", async t => {
@@ -399,18 +397,21 @@ test("TC-CLG-012 Given a marker-managed root, When content is current or stale, 
   assert.equal(await fs.readFile(path.join(f.root, "CLAUDE.md"), "utf8"), drifted);
 });
 
-test("TC-HARNESS-008 root preserves inline authority, routing, and quality", async t => {
+test("TC-HARNESS-008 root holds project information only: no universal protocol text, every rule delivered by hook", async t => {
   const f = await fixture(t);
   await f.run(["--mode", "init"]);
   assertRootContract(await f.read());
   const { extractSyncBody } = require(path.join(repoRoot, ".claude/scripts/lib/extract-sync-block.cjs"));
   const canonical = await fs.readFile(path.join(repoRoot, ".claude/skills/shared/sync-inline-versions.md"), "utf8");
-  for (const tag of ["critical-thinking-mindset:full", "ai-mistake-prevention:full"]) {
-    const expected = extractSyncBody(canonical, tag).split("\n")
-      .filter(line => !line.includes("[MANDATORY FIRST ACTION]")).join("\n");
-    assert.ok((await f.read()).includes(expected), `${tag}: every non-routing invariant remains inline`);
+  const groups = JSON.parse(await fs.readFile(path.join(repoRoot, ".claude/skills/shared/protocol-groups.json"), "utf8"));
+  const tags = Object.keys(groups.groups.universal.tags);
+  assert.ok(tags.length >= 4, "the universal bundle is authored");
+  const root = await f.read();
+  for (const tag of tags) {
+    const lead = extractSyncBody(canonical, tag).split("\n").find(line => line.trim()).trim();
+    assert.ok(!root.includes(lead), `${tag}: the protocol lives only in the hook-delivered bundle`);
   }
-  t.diagnostic(`minimal generated root: ${Buffer.byteLength(await f.read())} bytes`);
+  t.diagnostic(`minimal generated root: ${Buffer.byteLength(root)} bytes`);
 });
 
 test("TC-HARNESS-015 unmanaged custom domain survives update (24 bounded cases)", () => {
@@ -523,13 +524,13 @@ test("TC-HARNESS-008 R2-11 safe references and harmless prose remain readable", 
   assert.doesNotMatch(text, /REDACTED/);
 });
 
-test("TC-HARNESS-008 missing detail contract directs repair without inventing content", async t => {
+test("TC-HARNESS-008 the generated root routes through Doc Lookup, not repair prose", async t => {
   const f = await fixture(t);
   await f.run(["--mode", "init"]);
   const text = await f.read();
-  assert.match(text, /missing or stale.*\/project-init/);
-  assert.match(text, /required detail.*unavailable.*stop.*report/i);
-  assert.match(text, /docs\/project-reference\/docs-index-reference\.md/);
+  assert.match(text, /## Doc Lookup — What to Read When/);
+  assert.match(text, /<!-- SECTION:doc-lookup -->/);
+  assert.doesNotMatch(text, /missing or stale.*\/project-init|required detail.*unavailable.*stop.*report/i, "repair rules are hook-delivered protocol text");
 });
 
 test("TC-HARNESS-015 oversized custom prose survives CLI update with explicit overflow", async t => {
@@ -553,7 +554,7 @@ test("TC-HARNESS-015 malformed section boundaries refuse instead of losing custo
 test("TC-HARNESS-015 R3-01 owned backup captures pre-update bytes; legacy destination untouched (8 cases)", async t => {
   for (const mode of ["init", "update"]) for (const form of ["separated", "equals"]) for (const oldExists of [false, true]) {
     const f = await fixture(t);
-    const original = Buffer.from("# Synthetic root\r\n" + section("custom", "λ: retain") + "\r\n");
+    const original = Buffer.from("# Synthetic root\r\n" + section("tldr", "stale λ: retain") + "\r\n");
     await fs.writeFile(path.join(f.root, "CLAUDE.md"), original);
     const legacy = path.join(f.root, ".claude-md.backup");
     if (oldExists) await fs.writeFile(legacy, "old synthetic backup");
@@ -611,7 +612,7 @@ test("TC-HARNESS-015 legacy backup invocation stays compatible", async t => {
 // and ran the pipeline, with an ENOENT that named neither the cause nor the remedy. The subject
 // under test is the update/backup/router contract over whatever the live root contains, so an
 // absent config degrades to `{}` (= defaults) and an absent root skips, exactly as TC-WSC-008 does.
-test("TC-HARNESS-008 current root COPY preserves routing and owned backup; no live writes", async t => {
+test("TC-HARNESS-008 current root COPY keeps custom prose, strips retired managed blocks and owned backup; no live writes", async t => {
   const liveRoot = path.join(repoRoot, "CLAUDE.md");
   const liveBytes = await fs.readFile(liveRoot).catch(() => null);
   if (liveBytes === null) {
@@ -627,20 +628,21 @@ test("TC-HARNESS-008 current root COPY preserves routing and owned backup; no li
   const result = await f.run(["--mode", "update", "--backup-path", owned]);
   const updated = await f.read();
   assert.ok(updated.includes(custom), "genuine custom prose/whitespace preserved");
-  assert.doesNotMatch(updated, /ask via `AskUserQuestion` whether to activate/);
-  assert.equal((updated.match(/\[WORKFLOW-GATE\]/g) || []).length, 1);
-  assert.doesNotMatch(updated, /<!-- CK:WORKFLOW-SKILLS -->/);
-  assert.equal((updated.match(/<!-- CK:AI-MISTAKE-PREVENTION -->/g) || []).length, 1);
+  // Retired managed blocks never survive an update (hand-editable legacy sections are reported, not removed)
+  assert.doesNotMatch(updated, /<!-- CK:(?:UNIVERSAL-GUIDES|WORKFLOW-ROUTE-POINTER|WORKFLOW-GATE|WORKFLOW-SKILLS|CRITICAL-THINKING|AI-MISTAKE-PREVENTION|PROJECT-PROTOCOLS)/);
+  assert.doesNotMatch(updated, /CK:UNIVERSAL-GUIDES/);
   assert.deepEqual(await fs.readFile(owned), original);
   assert.deepEqual(await fs.readFile(path.join(repoRoot, "CLAUDE.md")), liveBytes, "live root untouched");
+  // The explicit strip removes the universal sections too and keeps the project ones and the custom tail
+  const stripped = path.join(f.root, "stripped-owned.md");
+  await f.run(["--mode", "update", "--strip-legacy-universal", "--backup-path", stripped]);
+  const slim = await f.read();
+  for (const absent of UNIVERSAL_ROOT_ABSENT) assert.doesNotMatch(slim, absent);
+  // The blank run that separated the custom heading from the removed section above it is the only whitespace a strip may collapse.
+  assert.ok(slim.includes(custom.trimStart()), "custom tail survives the strip");
   const hash = input => createHash("sha256").update(input).digest("hex");
-  const ckBlocks = Object.fromEntries([...updated.matchAll(/<!-- CK:([A-Z-]+) -->[\s\S]*?<!-- \/CK:\1 -->/g)]
-    .map(m => [m[1], Buffer.byteLength(m[0])]));
-  const sectionBytes = [...updated.matchAll(/<!-- SECTION:([^\s]+) -->[\s\S]*?<!-- \/SECTION:\1 -->/g)]
-    .reduce((sum, m) => sum + Buffer.byteLength(m[0]), 0);
   t.diagnostic(JSON.stringify({ liveRootBytes: liveBytes.length, fixtureInputBytes: original.length,
-    updatedBytes: Buffer.byteLength(updated), inputSha256: hash(original), updatedSha256: hash(updated),
-    ckBlocks, sectionBytes, unmarkedBytes: Buffer.byteLength(updated) - sectionBytes - Object.values(ckBlocks).reduce((a, b) => a + b, 0),
+    updatedBytes: Buffer.byteLength(updated), slimBytes: Buffer.byteLength(slim), inputSha256: hash(original), slimSha256: hash(slim),
     overflowReported: /ROOT_OVERFLOW/.test(result.stdout + result.stderr) }));
 });
 
@@ -649,9 +651,6 @@ async function copiedGenerator(f, changes = {}) {
     ".claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs",
     ".claude/skills/ai-context-refresh/scripts/section-builders.cjs",
     ".claude/skills/ai-context-refresh/references/claude-md-template.md",
-    ".claude/skills/shared/workflow-first-gate.md",
-    ".claude/skills/shared/sync-inline-versions.md",
-    ".claude/scripts/lib/extract-sync-block.cjs",
   ];
   for (const file of files) {
     let text = await fs.readFile(path.join(repoRoot, file), "utf8");
@@ -670,32 +669,7 @@ async function copiedGenerator(f, changes = {}) {
   return path.join(f.root, files[0]);
 }
 
-test("TC-HARNESS-008 missing canonical router source fails loudly without overwriting the root", async t => {
-  const f = await fixture(t);
-  const executable = await copiedGenerator(f);
-  await fs.unlink(path.join(f.root, ".claude/skills/shared/workflow-first-gate.md"));
-  const original = "# My original root\n";
-  await fs.writeFile(path.join(f.root, "CLAUDE.md"), original);
-  const owned = path.join(f.root, "owned.md");
-  await assert.rejects(
-    f.run(["--mode", "init", "--backup-path", owned], executable),
-    /Required workflow detail|ENOENT.*workflow-first-gate/,
-  );
-  assert.equal(await f.read(), original);
-  await assert.rejects(fs.stat(owned), { code: "ENOENT" });
-});
 
-test("TC-HARNESS-008 missing shared protocol cannot stamp false completeness on init/update", async t => {
-  for (const mode of ["init", "update"]) {
-    const f = await fixture(t);
-    const executable = await copiedGenerator(f);
-    await f.run(["--mode", "init"], executable);
-    await fs.unlink(path.join(f.root, ".claude/skills/shared/sync-inline-versions.md"));
-    const result = await f.run(["--mode", mode], executable);
-    assert.match(result.stderr, /Shared protocol source unavailable/);
-    assert.doesNotMatch(await f.read(), /CK:UNIVERSAL-GUIDES/);
-  }
-});
 
 test("TC-HARNESS-015 automatic update and idempotence keep custom tail and backup bytes", async t => {
   const f = await fixture(t);
@@ -749,13 +723,12 @@ test("TC-HARNESS-008 exact legacy route migration preserves changed user-owned l
 test("TC-HARNESS-008/015 semantic mutants are killed by observable output/backup assertions", async t => {
   const generator = ".claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs";
   const template = ".claude/skills/ai-context-refresh/references/claude-md-template.md";
-  for (const mutation of ["ignored-backup-option", "nonexclusive-backup", "authority-loss", "preservation-loss", "quality-gate-loss"]) {
+  for (const mutation of ["ignored-backup-option", "nonexclusive-backup", "universal-section-returns", "sentinel-returns"]) {
     const f = await fixture(t);
     const changes = mutation === "ignored-backup-option" ? { [generator]: s => s.replaceAll("createBackup(backupPath);", "createBackup();") }
       : mutation === "nonexclusive-backup" ? { [generator]: s => s.replace("fs.constants.COPYFILE_EXCL", "0") }
-      : { [template]: s => s.replace(mutation === "authority-loss"
-        ? "Never commit, push, or stage" : mutation === "preservation-loss" ? "Preserve unrelated/user work" : "Required quality gates and native host permissions cannot be waived",
-      "REMOVED INVARIANT") };
+      : mutation === "universal-section-returns" ? { [template]: s => s.replace("## Development Commands", "## Task Planning Rules\n\nCreate a small task per change.\n\n## Development Commands") }
+      : { [template]: s => `<!-- CK:UNIVERSAL-GUIDES v7 -->\n${s}` };
     const executable = await copiedGenerator(f, changes);
     await execFileAsync(process.execPath, ["--check", executable]);
     const original = "# Original synthetic root\n";
@@ -780,42 +753,32 @@ test("TC-HARNESS-008/015 semantic mutants are killed by observable output/backup
 // A text-mode writer on Windows (e.g. a count refresh) rewrites every EOL to CRLF. The re-stamp
 // strips its managed blocks and must also drop the CRLF separators they leave behind; an LF-only
 // pattern kept them, so each rewrite + update cycle appended ~10 blank lines under the header.
-test("TC-HARNESS-015 re-stamp after a CRLF text-mode rewrite is idempotent and adds no blank run", async t => {
-  const longestBlankRun = text => {
-    let best = 0, run = 0;
-    for (const line of text.replace(/\r\n/g, "\n").split("\n")) {
-      run = line.trim() === "" ? run + 1 : 0;
-      best = Math.max(best, run);
-    }
-    return best;
-  };
+test("TC-HARNESS-015 stripping the retired blocks of a CRLF root leaves no blank run and is idempotent", async t => {
   const toCrlf = text => text.replace(/\r?\n/g, "\r\n");
   const lf = text => text.replace(/\r\n/g, "\n");
+  const legacyRoot = toCrlf(["<!-- CK:UNIVERSAL-GUIDES v7 -->", "", "<!-- CK:WORKFLOW-ROUTE-POINTER -->", "> pointer", "<!-- /CK:WORKFLOW-ROUTE-POINTER -->", "",
+    "<!-- CK:CRITICAL-THINKING -->", "**[CRITICAL-THINKING-MINDSET]** ...", "<!-- /CK:CRITICAL-THINKING -->", "", "# Project", "", "<!-- SECTION:tldr -->", "> **Project:** Test", "<!-- /SECTION:tldr -->", ""].join("\n"));
   const cycle = async (f, executable) => {
-    await fs.writeFile(path.join(f.root, "CLAUDE.md"), toCrlf(await f.read()));
     await f.run(["--mode", "update"], executable);
     return f.read();
   };
 
   const f = await fixture(t);
   const executable = await copiedGenerator(f);
-  await f.run(["--mode", "init"], executable);
-  const baseline = await f.read();
-  assert.match(baseline, /CK:UNIVERSAL-GUIDES/, "fixture must stamp the managed header under test");
+  await fs.writeFile(path.join(f.root, "CLAUDE.md"), legacyRoot);
   const first = await cycle(f, executable);
+  assert.doesNotMatch(first, /CK:UNIVERSAL-GUIDES|CK:WORKFLOW-ROUTE-POINTER|CK:CRITICAL-THINKING/, "the retired blocks are stripped");
+  assert.ok(lf(first).startsWith("# Project\n"), "no separator run is left where the blocks stood (CRLF-aware strip)");
   const second = await cycle(f, executable);
-  assert.equal(longestBlankRun(first), longestBlankRun(baseline), "a CRLF rewrite must not leave a blank run behind");
-  assert.equal(lf(second), lf(first), "repeated rewrite + update cycles converge to the same content");
+  assert.equal(lf(second), lf(first), "a second update converges to the same content");
 
-  // Mutant: the LF-only strip after the sentinel. The same oracle must observe the growth.
+  // Mutant: the LF-only leading strip. The same oracle must observe the leftover separators.
   const generator = ".claude/skills/ai-context-refresh/scripts/generate-claude-md.cjs";
   const m = await fixture(t);
-  const mutant = await copiedGenerator(m, { [generator]: s => s.replace("text.slice(at).replace(/^(?:\\r?\\n)+/, '')", "text.slice(at).replace(/^\\n+/, '')") });
-  await m.run(["--mode", "init"], mutant);
-  const mutantBaseline = longestBlankRun(await m.read());
-  await cycle(m, mutant);
-  const mutantSecond = await cycle(m, mutant);
-  assert.ok(longestBlankRun(mutantSecond) > mutantBaseline, "LF-only strip mutant must accumulate blank lines");
+  const mutant = await copiedGenerator(m, { [generator]: s => s.replace(".replace(/^(?:\\r?\\n)+/, '');", ".replace(/^\\n+/, '');") });
+  await fs.writeFile(path.join(m.root, "CLAUDE.md"), legacyRoot);
+  const mutated = await cycle(m, mutant);
+  assert.ok(!lf(mutated).startsWith("# Project\n"), "LF-only strip mutant must leave leading separators behind");
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1201,7 +1164,7 @@ test("TC-DOCROOT-075 a project with no docs gets an actionable line, never a hea
   const out = freshBuilders().buildDocLookup({}, root);
   // Then it names the setup route instead of rendering an empty table.
   assert.ok(!out.includes("| If user prompt mentions..."), `no empty table; got:\n${out}`);
-  assert.ok(out.includes("run `/project-init` or `/docs-init`"));
+  assert.ok(out.includes("run `/project-init` or `/docs-manager --mode=init`"));
 });
 
 test("TC-DOCROOT-076 decision quick-ref left with only N/A docs returns a body, so update replaces stale rows", () => {

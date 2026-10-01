@@ -152,13 +152,12 @@ function listCarriers(root) {
     return carriers.filter(carrier => !(carrier.kind === 'skill' && carrier.name === OWNER_SKILL) && !(carrier.kind === 'agent' && carrier.name === OWNER_AGENT));
 }
 
-// Owner decision (2026-09-30): these two review skills MAY hold a guide line for the engineering floor, and ONLY that —
-// no SYNC body, no reminder, no other tag. A guide line is a pointer the protocol hook expands once per session when the
-// skill loads; every other skill and agent stays a non-carrier and holds a conditional pointer line instead.
-const GUIDE_LINE_ALLOWED = Object.freeze({
-    'plan-review': Object.freeze(['ai-engineering-gate']),
-    'integration-test-review': Object.freeze(['ai-engineering-gate'])
-});
+// No skill may hold a guide line for an AI protocol: a guide line is a pointer the protocol hook expands once per
+// session when the skill loads, so every skill and agent bar the reviewer pair stays a non-carrier and holds a
+// conditional pointer line instead. The plan and integration-test review modes reach the floor through that same
+// conditional pointer line in `plan/references/mode-review.md` and `integration-test/references/mode-review.md`, never a
+// guide line; TC-PMM-008 and TC-ITM-008 pin that placement. The map stays so a future owner decision can allow one line.
+const GUIDE_LINE_ALLOWED = Object.freeze({});
 const guideLineAllowed = (carrier, tag) => carrier.kind === 'skill' && (GUIDE_LINE_ALLOWED[carrier.name] || []).includes(tag);
 
 /** Invariant 1: a SYNC marker or a guide line for one of the AI protocols in a carrier that is not the reviewer pair (bar the allowed guide lines). */
@@ -215,23 +214,25 @@ const tests = [
             fx.write('.claude/skills/plan/SKILL.md', '# plan\n');
             fx.write('.claude/agents/planner.md', '  * `ai-engineering-gate` - Thirty-eight clauses\n');
             assert.deepEqual(tagViolations(fx.root), ['agent planner: guide line for ai-engineering-gate'], 'an agent guide line');
-            // The two allowed guide carriers: the floor's guide line passes, anything beyond it does not.
+            // No skill is an allowed guide carrier: the floor's guide line, another tag and a body are all flagged.
             fx.write('.claude/agents/planner.md', '# planner\n');
-            fx.write('.claude/skills/plan-review/SKILL.md', '- `ai-engineering-gate` — AI-feature planning floor → .claude/skills/shared/protocols/ai-engineering-gate.md\n');
-            fx.write('.claude/skills/integration-test-review/SKILL.md', '- `ai-engineering-gate` — reviewing tests of an AI feature → .claude/skills/shared/protocols/ai-engineering-gate.md\n');
-            assert.deepEqual(tagViolations(fx.root), [], 'the floor guide line is allowed in exactly these two skills');
-            fx.write('.claude/skills/plan-review/SKILL.md', '- `ai-review-checklist` — Executable review protocol\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill plan-review: guide line for ai-review-checklist'], 'another tag is not allowed there');
-            fx.write('.claude/skills/plan-review/SKILL.md', '<!-- SYNC:ai-engineering-gate -->\nbody\n');
-            assert.deepEqual(tagViolations(fx.root), ['skill plan-review: SYNC:ai-engineering-gate'], 'a body is not a guide line');
-            fx.write('.claude/skills/plan-review/SKILL.md', '# plan-review\n');
+            fx.write('.claude/skills/integration-test/SKILL.md', '- `ai-engineering-gate` — reviewing tests of an AI feature → .claude/skills/shared/protocols/ai-engineering-gate.md\n');
+            assert.deepEqual(tagViolations(fx.root), ['skill integration-test: guide line for ai-engineering-gate'], 'the integration-test skill carries no floor guide line: its review mode keeps it in a reference');
+            fx.write('.claude/skills/integration-test/SKILL.md', '- `ai-review-checklist` — Executable review protocol\n');
+            assert.deepEqual(tagViolations(fx.root), ['skill integration-test: guide line for ai-review-checklist'], 'another tag is not allowed there');
+            fx.write('.claude/skills/integration-test/SKILL.md', '<!-- SYNC:ai-engineering-gate -->\nbody\n');
+            assert.deepEqual(tagViolations(fx.root), ['skill integration-test: SYNC:ai-engineering-gate'], 'a body is not a guide line');
+            fx.write('.claude/skills/integration-test/SKILL.md', '# integration-test\n');
+            fx.write('.claude/skills/plan/SKILL.md', '- `ai-engineering-gate` — floor\n');
+            assert.deepEqual(tagViolations(fx.root), ['skill plan: guide line for ai-engineering-gate'], 'the plan skill carries no floor guide line: its review mode keeps it in a reference');
+            fx.write('.claude/skills/plan/SKILL.md', '# plan\n');
             fx.write('.claude/skills/fix/SKILL.md', '- `ai-engineering-gate` — floor\n');
             assert.deepEqual(tagViolations(fx.root), ['skill fix: guide line for ai-engineering-gate'], 'the allowance is per skill, not global');
         })
     },
     {
-        // INVARIANT 1 — the repository: the reviewer pair carries the protocols; plan-review and integration-test-review
-        // may hold ONLY a guide line for the engineering floor (owner decision, GUIDE_LINE_ALLOWED).
+        // INVARIANT 1 — the repository: the reviewer pair carries the protocols; no other skill holds a guide
+        // line for them (GUIDE_LINE_ALLOWED is empty).
         // Given this repository's skills and agents
         // When the carrier scan runs
         // Then no other carrier exists
@@ -432,39 +433,24 @@ const tests = [
         }
     },
     {
-        // INVARIANT 6 — static text: the template every project starts from, and this repo's generated root file.
-        // Given the template block and this repository's root-file block
-        // When their size, wording and paths are measured
-        // Then both are short, name existing paths, keep the on-demand rule, and no duplicate doc-routing row exists
-        name: 'TC-AIZ-010 the static AI block is short, names existing protocol paths, and sends nobody to a deep doc whole',
+        // INVARIANT 6 — no static copy: the gate reaches the assistant by the path-scoped class, the prompt router and
+        // the trigger-gated protocol, so neither the template every project starts from nor this repo's generated
+        // root file carries an AI-engineering block.
+        // Given the root-file template and this repository's root file
+        // When they are scanned for the gate block
+        // Then neither carries it, and the delivering carriers exist
+        name: 'TC-AIZ-010 no root file or template carries a static AI-engineering block; the class, the route and the protocol deliver it',
         fn: () => {
             const template = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', 'ai-context-refresh', 'references', 'claude-md-template.md'), 'utf8');
-            const section = /## AI-Engineering Gate\n([\s\S]*?)\n## /.exec(template);
-            assert.ok(section, 'the template carries an AI-Engineering Gate section');
-            const templateLines = section[1].split('\n').filter(line => line.trim());
-            assert.ok(templateLines.length <= 4, `template block is ${templateLines.length} lines (limit 4)`);
-            assert.ok(section[1].includes('never whole') && section[1].includes('costs nothing'), 'states the on-demand and zero-cost rules');
-            for (const p of section[1].match(PROTOCOL_PATH) || []) assert.ok(fs.existsSync(path.join(REPO_ROOT, ...p.split('/'))), `dangling: ${p}`);
+            assert.equal(/## AI-Engineering Gate/.test(template), false, 'the template carries no AI-Engineering Gate section');
+            assert.equal(template.includes('AI-ENGINEERING-GATE'), false, 'the template carries no gate block');
+            const { AI_FEATURE_GATE } = require('../../lib/file-conventions.cjs');
+            assert.equal(AI_FEATURE_GATE.name, 'ai-feature-gate', 'the path-scoped class exists');
+            assert.ok(fs.existsSync(path.join(REPO_ROOT, ...GATE_FILE.split('/'))), 'the floor protocol file exists');
+            assert.ok(fs.existsSync(path.join(REPO_ROOT, ...FRAMING_FILE.split('/'))), 'the planning protocol file exists');
             if (!isFrameworkRepo(REPO_ROOT)) return;
-            const root = fs.readFileSync(path.join(REPO_ROOT, 'CLAUDE.md'), 'utf8').split('\n');
-            const start = root.findIndex(line => line.startsWith('> **[AI-ENGINEERING-GATE]'));
-            assert.ok(start >= 0, 'tripwire: the root file carries the gate block');
-            let end = start;
-            while (end + 1 < root.length && root[end + 1].startsWith('>')) end++;
-            const block = root.slice(start, end + 1);
-            assert.ok(block.length <= 4, `the [AI-ENGINEERING-GATE] block is ${block.length} lines (limit 4)`);
-            const text = block.join('\n');
-            for (const p of text.match(PROTOCOL_PATH) || []) assert.ok(fs.existsSync(path.join(REPO_ROOT, ...p.split('/'))), `dangling: ${p}`);
-            assert.ok(text.includes('ai-engineering-gate.md') && text.includes('never whole'), 'names the one file and the on-demand rule');
-            // The block's budget, and its wording: the floor file covers the floor (AE), planning reads the framing file (AF),
-            // the review procedure (AR) lives behind the review skill or agent — no single file is claimed to cover all three.
-            assert.ok(text.length <= 700, `the [AI-ENGINEERING-GATE] block is ${text.length} chars (budget 700)`);
-            assert.ok(text.includes('ai-feature-framing-gate.md') && text.includes('ai-signal-scan.cjs'), 'planning file and the scan are named');
-            assert.ok(text.indexOf('AE-') >= 0 && text.indexOf('AE-') < text.indexOf('AF-'), 'the floor file is introduced as the floor (AE), before planning (AF)');
-            assert.ok(/review `AR-\*`: the `ai-engineering-review` skill/.test(text), 'the review procedure (AR) is routed to the review skill/agent');
-            assert.equal(/read one file/i.test(text), false, 'no claim that one file covers framing, floor and review');
-            // The block already carries the pointer: no second doc-routing row repeats it
-            assert.equal(root.some(line => line.startsWith('| AI-feature code')), false, 'no duplicate doc-routing row');
+            const root = fs.readFileSync(path.join(REPO_ROOT, 'CLAUDE.md'), 'utf8');
+            assert.equal(root.includes('[AI-ENGINEERING-GATE]'), false, 'the root file carries no gate block (run ai-context-refresh --mode update --strip-legacy-universal)');
         }
     }
 ];

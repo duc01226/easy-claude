@@ -1,5 +1,5 @@
 ---
-description: "[Document Processing] Use when converting between Word DOCX and Markdown — DOCX to Markdown with GFM support, or Markdown to DOCX with GFM and math rendering. Flag: --to={markdown|docx}."
+description: "[Document Processing] Use when converting between Word DOCX and Markdown (GFM, math rendering). --to={markdown|docx}."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/docx-convert/SKILL.md — do not hand-edit; re-run:

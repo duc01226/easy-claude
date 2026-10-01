@@ -64,7 +64,7 @@ Main Claude Session
 | Agent          | Purpose                                           | Tools                                  |
 | -------------- | ------------------------------------------------- | -------------------------------------- |
 | `git-manager`  | Stage, commit, and push with conventional commits | All tools (no frontmatter restriction) |
-| `docs-manager` | Manage technical documentation                    | All tools                              |
+| `docs-manager` | Manage technical documentation; drives `/docs-manager --mode=update` | All tools                              |
 
 ### Team Collaboration
 
@@ -162,7 +162,7 @@ Task({
 | Review an AI-feature plan or diff | `ai-engineering-reviewer` | Model calls, prompts, agents, RAG, tool use, evals; `AF`/`AE`/`AR` gates with provider facts verified |
 | Clean up code                 | `code-simplifier`      | Refactor for clarity and maintainability                    |
 | Commit changes                | `git-manager`          | Conventional commits with proper messages                   |
-| Update documentation          | `docs-manager`         | Technical docs maintenance                                  |
+| Update documentation          | `docs-manager`         | Technical docs maintenance (`/docs-manager --mode=update`)   |
 | Create test plan              | `tester`               | Test coverage, case generation                              |
 | Synthesize knowledge          | `knowledge-worker`     | Web research, structured reports, course material           |
 | Design specification          | `ui-ux-designer`       | Platform-aware visual language, layouts, and accessibility  |
@@ -182,14 +182,14 @@ Task({
 
 ## Agent Configuration
 
-### Subagent Context (static; `SubagentStart` delivers protocols only)
+### Subagent Context (static agent prompt; `SubagentStart` delivers protocols)
 
-> There is **no** portable `SubagentStart` contract shared by every host. On Claude, `SubagentStart` carries only the six
+> There is **no** portable `SubagentStart` contract shared by every host. On Claude, `SubagentStart` carries the five
 > `protocol-inject-<group>.cjs` protocol-delivery handlers, which add the full protocol texts of the skills an agent
-> preloads (`skills:` frontmatter; `Explore`/`Plan` get the universal group). Each agent's context contract — project rules,
-> reports path, naming, and the development-rules / lessons read contract — is baked
-> statically into the agent's `.md` system prompt and the shared SYNC blocks it inlines,
-> so Claude and Codex get identical guidance whether a host hook is available or not. Each agent's `.md`
+> preloads (`skills:` frontmatter; a body the agent file already inlines is not repeated), and the four `protocol-inject-universal-<n>.cjs` bins, which deliver the universal bundle to every agent type once per spawn. Each agent's context contract — project rules,
+> reports path, naming, and the development-rules / lessons read contract — is carried
+> in the agent's `.md` system prompt and the shared SYNC blocks it inlines; the universal bundle
+> is the one part no agent file carries, because the `SubagentStart` hook delivers it (a host that runs no hook is unsupported). Each agent's `.md`
 > carries, in effect:
 
 ```
@@ -367,13 +367,13 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 
 **Tier model** (enforced by `agent_protocol_matrix.py` `validate()` and the `agent-universal-rules` test suite — `TC-UAR-003..007`):
 
-- **Core-6** universal blocks → all 24 agents.
-- **Code-10** blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 18 code-touching/fixing agents; NEVER a core-only agent (docs-manager, git-manager, journal-writer, knowledge-worker).
-- **Readonly-Code** blocks (`understand-code-first`, `evidence-based-reasoning` only) → the 2 read-only/design agents (`researcher`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
+- **Core-2** universal blocks (`sequential-thinking-protocol`, `agent-bootstrap`) → all 24 agents. The protocols of the `universal` group are not blocks: the universal hook delivers them to every agent, so an agent file holds no body, reminder or pointer for them.
+- **Code-6** blocks (Core-2 plus `understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 18 code-touching/fixing agents; NEVER a core-only agent (docs-manager, git-manager, journal-writer, knowledge-worker).
+- **Readonly-Code-4** blocks (Core-2 plus `understand-code-first`, `evidence-based-reasoning` only) → the 2 read-only/design agents (`researcher`, `ui-ux-designer`) that locate/read/design code but never fix a layer or cross a service boundary; the two mutation-oriented blocks (`cross-service-check`, `fix-layer-accountability`) are deliberately excluded to save tokens.
 - **Code-standards** (`agent-code-standards`) → the 18 agents that author/review code (a separate axis — `researcher`/`ui-ux-designer` read code but don't author it, so they're excluded).
 - **Additive quality blocks** → per the matrix manifest; all 24 agents carry a quality-block row. Operational agents may have an empty additive row when their connected skill has no role-specific SYNC block; `git-manager` carries `SYNC:estimation-framework` through the manifest. Every agent also carries a generated **Connected Skill Contracts** block from `AGENT_SKILL_CONNECTIONS`, which links the prompt to its canonical task-specific skill procedures without blanket-copying orchestrator-only instructions.
 
-Partition: 18 Code-10 + 2 Readonly-Code + 4 Core-6 = 24 agents (pairwise disjoint).
+Partition: 18 Code-6 + 2 Readonly-Code-4 + 4 Core-2 = 24 agents (pairwise disjoint).
 
 > See [agent-patterns.md](./agent-patterns.md) → _Adding or changing an agent's quality protocol_ for the contributor loop and the `framework-maintainer` orchestration whitelist. Source-side edits land first; mirrors (`.agents/`, `.codex/`, `AGENTS.md`) regenerate via `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` + `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only` as a tracked follow-up.
 

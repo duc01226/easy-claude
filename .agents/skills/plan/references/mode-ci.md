@@ -32,5 +32,5 @@ Provide at least 2 implementation approaches with clear trade-offs, explain the 
 ## Key rules
 
 - PLANNING-ONLY: do not implement, only create the fix plan.
-- Preserve standard handoff: standalone asks once whether the user wants `$plan-review`; workflow invocation returns directly to its parent.
+- Preserve standard handoff: standalone asks once whether the user wants `$plan --mode=review`; workflow invocation returns directly to its parent.
 - Be skeptical; every claim needs traced proof, confidence >80% to act.

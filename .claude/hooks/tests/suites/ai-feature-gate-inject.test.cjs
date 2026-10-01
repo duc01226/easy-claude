@@ -1032,36 +1032,42 @@ const tests = [
                 throw error;
             };
 
-            conventions.resetContentGuard();
-            let attempts = 0;
-            const execute = (...args) => { attempts += 1; return timeout(...args); };
-            const source = '^/custom/(a+)+$';
-            const first = conventions.guardedPathRegexTest(source, `/custom/${'a'.repeat(40)}!`, { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
-            const second = conventions.guardedPathRegexTest(source, `/custom/${'a'.repeat(40)}!`, { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
-            assert.deepEqual(first, { matched: false, incomplete: true });
-            assert.deepEqual(second, { matched: false, incomplete: true });
-            assert.equal(attempts, 1, 'a timed-out source is skipped on every later file in the process');
+            try {
+                conventions.resetContentGuard();
+                let attempts = 0;
+                const execute = (...args) => { attempts += 1; return timeout(...args); };
+                const source = '^/custom/(a+)+$';
+                const first = conventions.guardedPathRegexTest(source, `/custom/${'a'.repeat(40)}!`, { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
+                const second = conventions.guardedPathRegexTest(source, `/custom/${'a'.repeat(40)}!`, { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
+                assert.deepEqual(first, { matched: false, incomplete: true });
+                assert.deepEqual(second, { matched: false, incomplete: true });
+                assert.equal(attempts, 1, 'a timed-out source is skipped on every later file in the process');
 
-            conventions.resetContentGuard();
-            attempts = 0;
-            for (let i = 0; i <= conventions.MAX_TIMED_OUT_SOURCES; i++) {
-                conventions.guardedPathRegexTest(`^/custom-${i}/(a+)+$`, `/custom-${i}/${'a'.repeat(40)}!`,
+                conventions.resetContentGuard();
+                attempts = 0;
+                for (let i = 0; i <= conventions.MAX_TIMED_OUT_SOURCES; i++) {
+                    conventions.guardedPathRegexTest(`^/custom-${i}/(a+)+$`, `/custom-${i}/${'a'.repeat(40)}!`,
+                        { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
+                }
+                const saturated = conventions.contentGuardStats();
+                assert.equal(saturated.isPathGuardSaturated, true, 'the guard saturates instead of clearing timeout protection');
+                assert.equal(attempts, conventions.MAX_TIMED_OUT_SOURCES + 1, 'each source runs at most once before saturation');
+                conventions.guardedPathRegexTest('^/after-saturation/(a+)+$', '/after-saturation/aaaa!',
                     { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
-            }
-            const saturated = conventions.contentGuardStats();
-            assert.equal(saturated.isPathGuardSaturated, true, 'the guard saturates instead of clearing timeout protection');
-            assert.equal(attempts, conventions.MAX_TIMED_OUT_SOURCES + 1, 'each source runs at most once before saturation');
-            conventions.guardedPathRegexTest('^/after-saturation/(a+)+$', '/after-saturation/aaaa!',
-                { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute });
-            assert.equal(attempts, conventions.MAX_TIMED_OUT_SOURCES + 1, 'no untrusted source runs after saturation');
+                assert.equal(attempts, conventions.MAX_TIMED_OUT_SOURCES + 1, 'no untrusted source runs after saturation');
 
-            const shipped = conventions.AI_FEATURE_GATE.pathRegexes[0];
-            const direct = conventions.guardedPathRegexTest(shipped, '/prompts/system.txt',
-                { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute: () => { throw new Error('trusted source entered VM seam'); } });
-            assert.deepEqual(direct, { matched: true, incomplete: false });
-            const finalStats = conventions.contentGuardStats();
-            assert.equal(finalStats.pathDirectRuns, 1, 'an exact shipped source retains the direct fast path even after saturation');
-            assert.equal(finalStats.pathSkipped, 2, 'the repeated source and the post-saturation source were skipped');
+                const shipped = conventions.AI_FEATURE_GATE.pathRegexes[0];
+                const direct = conventions.guardedPathRegexTest(shipped, '/prompts/system.txt',
+                    { remainingMs: conventions.PATH_REGEX_BUDGET_MS }, { execute: () => { throw new Error('trusted source entered VM seam'); } });
+                assert.deepEqual(direct, { matched: true, incomplete: false });
+                const finalStats = conventions.contentGuardStats();
+                assert.equal(finalStats.pathDirectRuns, 1, 'an exact shipped source retains the direct fast path even after saturation');
+                // The second phase starts from resetContentGuard(), which zeroes the counters, so only the post-saturation source is counted.
+                assert.equal(finalStats.pathSkipped, 1, 'the post-saturation source was skipped');
+            } finally {
+                // The guard is process-global: a saturated state must never leak into the next suite of the same runner process.
+                conventions.resetContentGuard();
+            }
         }
     }
 ];

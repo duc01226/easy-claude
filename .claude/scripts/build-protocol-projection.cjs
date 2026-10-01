@@ -14,7 +14,7 @@
  *     every tag, the bin size and the `inlineSkills` list. Authored once; this tool never writes it.
  *
  * Output (`.claude/skills/shared/protocols/`, fully generated, LF line endings, no timestamps):
- *   - `<tag>.md`: the tag's full condensed body. Guide lines point here, and hookless hosts read it.
+ *   - `<tag>.md`: the tag's full condensed body. Guide lines point here, and a reader whose context lacks the text reads it.
  *   - `<tag>.part-<n>.md`: only for a tag over the bin. The body is cut at section starts (a
  *     markdown heading, or a line that opens with a bold lead such as `> **Rule:**` or
  *     `> 3. **Assign**`), and the sections are packed greedily so every part stays within the bin.
@@ -25,9 +25,10 @@
  *     (`file` itself) for a tag within the bin. Paths are project-root-relative POSIX paths.
  *
  * Failures (non-zero exit, nothing written): a tag with no group, a group entry naming an unknown
- * tag, a tag in two groups, an unknown group name, `universal` not exactly the four root-carried
- * tags, a bad summary or `when` line, an `inlineSkills` entry that is not a skill name or has no
- * `SKILL.md`, and a section that alone exceeds the bin.
+ * tag, a tag in two groups, an unknown group name, a `universal` group whose `bins` layout omits a
+ * tag, repeats one, names a tag outside the group or renders over the bin, a bad summary or
+ * `when` line, an `inlineSkills` entry that is not a skill name or has no `SKILL.md`, and a section
+ * that alone exceeds the bin.
  *
  * `--check` builds in memory and compares with the files on disk; stale, missing or extra files
  * fail it. `.claude/scripts/tests/build-protocol-projection.test.cjs` runs `--check` over the real
@@ -35,8 +36,8 @@
  * `run-codex-sync.mjs --verify-only` (its `scripts-tests` stage).
  *
  * PORTABILITY CONTRACT: `node:` built-ins + `.cjs` modules inside `.claude/scripts/lib`, plus the
- * delivery lib `.claude/hooks/lib/protocol-delivery.cjs` (built-ins only at load) for the one
- * continuation-label format. The project root comes from CLAUDE_PROJECT_DIR or the working
+ * delivery libs `.claude/hooks/lib/protocol-delivery.cjs` (the continuation-label format) and
+ * `.claude/hooks/lib/universal-delivery.cjs` (the universal bin format), both built-ins only at load. The project root comes from CLAUDE_PROJECT_DIR or the working
  * directory (`lib/project-root.cjs`).
  */
 
@@ -47,6 +48,7 @@ const { extractSyncBody, normalizeEol } = require('./lib/extract-sync-block.cjs'
 // The delivery lib owns the continuation-label format a split part is delivered with; it requires
 // only Node built-ins at load (BR-PDL-09), so this costs no project module.
 const { continuationLabel } = require('../hooks/lib/protocol-delivery.cjs');
+const { UNIVERSAL_GROUP, renderBin } = require('../hooks/lib/universal-delivery.cjs');
 
 const SHARED_RELATIVE = '.claude/skills/shared';
 const CANONICAL_RELATIVE = `${SHARED_RELATIVE}/sync-inline-versions.md`;
@@ -57,14 +59,6 @@ const SKILLS_RELATIVE = '.claude/skills';
 
 /** The six delivery groups, in index order (P20 confirmed the count). */
 const GROUP_NAMES = Object.freeze(['review', 'evidence-trace', 'workflow-task', 'spec-test', 'design', 'universal']);
-const UNIVERSAL_GROUP = 'universal';
-/** The tags the root instruction file carries for every task; `universal` must hold exactly these (BR-PDL-04). */
-const ROOT_CARRIED_TAGS = Object.freeze([
-    'critical-thinking-mindset',
-    'ai-mistake-prevention',
-    'project-reference-docs-guide',
-    'project-protocol-overlay'
-]);
 /** Default bin when the groups file names none: the largest hook string every host delivers whole (P20). */
 const DEFAULT_BIN_CHARS = 9500;
 const NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
@@ -100,17 +94,38 @@ function checkLine(tag, field, value, problems) {
     if (field === 'summary' && value.includes(';')) problems.push(`tag "${tag}": summary must not contain ";" (it ends the summary in a guide line)`);
 }
 
+/** The authored `bins` layout of the universal group: ordered tag lists, one message each. */
+function checkUniversalBins(group, universal, problems) {
+    const bins = isPlainObject(group) ? group.bins : undefined;
+    if (!universal.length) problems.push('group "universal" holds no tags');
+    if (!Array.isArray(bins) || !bins.length || bins.some(bin => !Array.isArray(bin) || !bin.length || bin.some(tag => typeof tag !== 'string'))) {
+        problems.push('group "universal" needs a non-empty "bins" array of non-empty tag lists');
+        return null;
+    }
+    const listed = bins.flat();
+    for (const tag of listed) {
+        if (!universal.includes(tag)) problems.push(`universal bins name tag "${tag}", which is not in the universal group`);
+        if (listed.indexOf(tag) !== listed.lastIndexOf(tag)) problems.push(`universal bins list tag "${tag}" more than once`);
+    }
+    for (const tag of universal) {
+        if (!listed.includes(tag)) problems.push(`universal tag "${tag}" is in no bin`);
+    }
+    return bins;
+}
+
 /**
  * Validate the groups data against the canonical tags and the skill tree.
- * @returns {{assignments: Map<string, {group: string, summary: string, when: string}>, binChars: number, problems: string[]}}
+ * @returns {{assignments: Map<string, {group: string, summary: string, when: string}>, binChars: number, bins: string[][]|null, problems: string[]}}
  */
 function resolveGroups(data, tags, skillExists) {
     const problems = [];
     const assignments = new Map();
-    if (!isPlainObject(data)) return { assignments, binChars: DEFAULT_BIN_CHARS, problems: ['the groups file must be a JSON object'] };
+    if (!isPlainObject(data)) return { assignments, binChars: DEFAULT_BIN_CHARS, bins: null, problems: ['the groups file must be a JSON object'] };
 
     const binChars = data.binChars === undefined ? DEFAULT_BIN_CHARS : data.binChars;
-    if (!Number.isInteger(binChars) || binChars < 1) problems.push('binChars must be a positive integer');
+    if (!Number.isInteger(binChars) || binChars < 1 || binChars > DEFAULT_BIN_CHARS) {
+        problems.push(`binChars must be a positive integer no greater than ${DEFAULT_BIN_CHARS}`);
+    }
 
     const groups = isPlainObject(data.groups) ? data.groups : {};
     if (!isPlainObject(data.groups)) problems.push('groups must be an object keyed by group name');
@@ -144,15 +159,7 @@ function resolveGroups(data, tags, skillExists) {
     }
 
     const universal = [...assignments].filter(([, a]) => a.group === UNIVERSAL_GROUP).map(([tag]) => tag);
-    const missing = ROOT_CARRIED_TAGS.filter(tag => !universal.includes(tag));
-    const extra = universal.filter(tag => !ROOT_CARRIED_TAGS.includes(tag));
-    if (missing.length || extra.length) {
-        problems.push(
-            `group "universal" must hold exactly the root-carried tags ${ROOT_CARRIED_TAGS.join(', ')}` +
-                (missing.length ? `; missing: ${missing.join(', ')}` : '') +
-                (extra.length ? `; not root-carried: ${extra.join(', ')}` : '')
-        );
-    }
+    const bins = checkUniversalBins(groups[UNIVERSAL_GROUP], universal, problems);
 
     if (!Array.isArray(data.inlineSkills)) problems.push('inlineSkills must be an array of skill names');
     else {
@@ -161,7 +168,7 @@ function resolveGroups(data, tags, skillExists) {
             else if (!skillExists(name)) problems.push(`inlineSkills entry "${name}" has no ${SKILLS_RELATIVE}/${name}/SKILL.md`);
         }
     }
-    return { assignments, binChars, problems };
+    return { assignments, binChars, bins, problems };
 }
 
 // ─── Section split ─────────────────────────────────────────────────────────
@@ -283,11 +290,13 @@ function buildProjection({ canonicalText, groupsData, skillExists }) {
     problems.push(...resolved.problems);
     if (problems.length) return { files, problems, stats: { tags: tags.length, split: 0 } };
 
-    const { assignments, binChars } = resolved;
+    const { assignments, binChars, bins } = resolved;
     const rows = [];
+    const bodies = new Map();
     let split = 0;
     for (const tag of [...tags].sort(byCodeUnit)) {
         const body = extractSyncBody(canonicalText, tag);
+        if (body) bodies.set(tag, body);
         if (!body) {
             problems.push(`tag "${tag}" has an empty body in ${CANONICAL_RELATIVE}`);
             continue;
@@ -313,6 +322,13 @@ function buildProjection({ canonicalText, groupsData, skillExists }) {
         const { group, summary, when } = assignments.get(tag);
         rows.push({ tag, group, summary, when, chars: body.length, file: `${OUTPUT_RELATIVE}/${fileName}`, parts });
     }
+    bins.forEach((bin, i) => {
+        if (!bin.every(tag => bodies.has(tag))) return;
+        const length = renderBin(i + 1, bins.length, bin.map(tag => bodies.get(tag))).length;
+        if (length > binChars) {
+            problems.push(`universal bin ${i + 1} (${bin.join(', ')}) renders ${length} chars, over the ${binChars}-char bin; move a tag to another bin in ${GROUPS_RELATIVE}`);
+        }
+    });
     if (problems.length) return { files: new Map(), problems, stats: { tags: tags.length, split } };
 
     const index = {
@@ -450,7 +466,6 @@ module.exports = {
     DEFAULT_BIN_CHARS,
     GROUP_NAMES,
     OUTPUT_RELATIVE,
-    ROOT_CARRIED_TAGS,
     buildFromRoot,
     buildProjection,
     canonicalTags,

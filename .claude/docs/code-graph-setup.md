@@ -1,8 +1,8 @@
 # Code Review Graph — Setup Guide
 
-Structural code intelligence for easy-claude. Parses your codebase with Tree-sitter into a knowledge graph (functions, classes, imports, calls, inheritance) stored in SQLite. Enables graph-blast-radius analysis, dependency tracing, and graph-powered code reviews.
+Structural code intelligence for easy-claude. Parses your codebase with Tree-sitter into a knowledge graph (functions, classes, imports, calls, inheritance) stored in SQLite. Enables blast-radius analysis, dependency tracing, and graph-powered code reviews.
 
-**Optional feature** — everything works without it. When installed, skills and hooks automatically use the graph for richer context.
+**Optional feature** — everything works without it. When installed, the graph is an optional advisory source: a hint that can be stale or incomplete, never a requirement, and verified by reading the files.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ Structural code intelligence for easy-claude. Parses your codebase with Tree-sit
 
 ## Installation
 
-Python 3.10+ required; `/graph-build` installs the rest into the hooks' environment (`tree-sitter`, `tree-sitter-language-pack`, `networkx`, on first use). Do not `pip install` them into the system Python.
+Python 3.10+ required; `/graph-code --mode=build` installs the rest into the hooks' environment (`tree-sitter`, `tree-sitter-language-pack`, `networkx`, on first use). Do not `pip install` them into the system Python.
 
 ## Enable or disable
 
@@ -18,7 +18,7 @@ Python 3.10+ required; `/graph-build` installs the rest into the hooks' environm
 
 ## First Build
 
-Run `/graph-build` (installs the tooling, then builds). The CLI build it runs:
+Run `/graph-code --mode=build` (installs the tooling, then builds). The CLI build it runs:
 
 ```bash
 python .claude/scripts/code_graph build --json
@@ -46,13 +46,13 @@ The tool auto-creates `.code-graph/.gitignore` with `*` content (prevents commit
 
 | Command                     | Description                                                                                     |
 | --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `/graph-build`              | Build or update the knowledge graph                                                             |
-| `/graph-blast-radius`       | Analyze impact of current changes                                                               |
+| `/graph-code --mode=build`              | Build or update the knowledge graph                                                             |
+| `/graph-code --mode=blast-radius`       | Analyze impact of current changes                                                               |
 | `/graph-export`             | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
-| `/graph-query`              | Natural language queries (callers, imports, tests)                                              |
-| `/graph-connect-api`        | Detect frontend-backend API connections                                                         |
-| `/graph-trace`              | Trace full system flow (upstream/downstream/both)                                               |
-| `/graph-build --scope=sync` | Sync graph with git state after pull/checkout                                                   |
+| `/graph-code --mode=query`              | Natural language queries (callers, imports, tests)                                              |
+| `/graph-code --mode=connect-api`        | Detect frontend-backend API connections                                                         |
+| `/graph-code --mode=trace`              | Trace full system flow (upstream/downstream/both)                                               |
+| `/graph-code --mode=build --scope=sync` | Sync graph with git state after pull/checkout                                                   |
 
 ### CLI Commands
 
@@ -129,9 +129,9 @@ The graph maintains itself through 2 automatic hooks (plus a manual rebuild):
 | ----------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | **Claude edits a file** | `graph-auto-update.cjs` (PostToolUse)   | Re-parses the edited file, updates nodes/edges. 3s debounce + atomic lock prevents duplicates.                       |
 | **New session starts**  | `graph-session-init.cjs` (SessionStart) | Diffs `last_synced_commit` vs current HEAD. Re-parses all files changed since last sync (git pull, checkout, merge). |
-| **Manual rebuild**      | `/graph-build`                          | Full rebuild from scratch. Safety net if graph gets out of sync.                                                     |
+| **Manual rebuild**      | `/graph-code --mode=build`                          | Full rebuild from scratch. Safety net if graph gets out of sync.                                                     |
 
-> Blast radius, trace CLI hints, and grep-to-graph suggestions are pulled on demand by the `graph-*` skills and the Graph Intelligence gate in `CLAUDE.md` — not injected by a hook.
+> Blast radius, trace CLI hints, and grep-to-graph suggestions can be pulled on demand by the `graph-*` skills per the hook-delivered graph advice (`.claude/skills/shared/protocols/graph-assisted-investigation.md`) — optional, not injected by a hook.
 
 **After `git pull`:** The next Claude session automatically syncs. No manual action needed.
 
@@ -255,9 +255,9 @@ Python, TypeScript, JavaScript, Vue, Go, Rust, Java, C#, Ruby, Kotlin, Swift, PH
 | Issue                                 | Fix                                                                      |
 | ------------------------------------- | ------------------------------------------------------------------------ |
 | `Python not found`                    | Install Python 3.10+. Windows: `py -3` launcher; macOS/Linux: `python3`. |
-| `No module named 'tree_sitter'`       | Run `/graph-build`: it installs the tooling into the hooks' environment. A direct CLI call must use that environment's Python (`/graph-build` Step 0 prints how to find it) |
+| `No module named 'tree_sitter'`       | Run `/graph-code --mode=build`: it installs the tooling into the hooks' environment. A direct CLI call must use that environment's Python (`/graph-code --mode=build` Step 0 prints how to find it) |
 | `tree-sitter compile error`           | Ensure a C compiler. Windows: VS Build Tools; macOS: `xcode-select --install`; Linux: `build-essential`/`gcc`. |
-| `graph.db not found`                  | Run `/graph-build` first                                                 |
+| `graph.db not found`                  | Run `/graph-code --mode=build` first                                                 |
 | `Incremental update finds no changes` | Run `build` (full) instead of `update` after branch switches             |
 
 ## Attribution

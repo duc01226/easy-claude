@@ -55,12 +55,16 @@ async function makeFixture(claudeText) {
   return tempRoot;
 }
 
-test('TC-HARNESS-008a: normal sync emits a bounded UTF-8 root projection with a full-context pointer', async () => {
+test('TC-HARNESS-008a: normal sync emits a bounded UTF-8 project-only projection and removes the retired context file', async () => {
   const claude = [
     '<!-- CK:UNIVERSAL-GUIDES v7 -->',
     '# Claude Source Instructions',
     '',
-    'Static contract for Claude and Codex. Unicode sentinel: 🚦.',
+    'Project identity. Unicode sentinel: 🚦.',
+    '',
+    '## Doc Lookup — What to Read When',
+    '',
+    'DOC_LOOKUP_SENTINEL',
     '',
     '## Workflow Step Advancement & Parallel Phases',
     '',
@@ -79,17 +83,16 @@ test('TC-HARNESS-008a: normal sync emits a bounded UTF-8 root projection with a 
   try {
     await execFileAsync(process.execPath, [syncContextScript], { cwd: tempRoot });
     const agents = await fs.readFile(path.join(tempRoot, 'AGENTS.md'), 'utf8');
-    const context = await fs.readFile(path.join(tempRoot, '.codex', 'CODEX_CONTEXT.md'), 'utf8');
     assert.ok(Buffer.byteLength(agents, 'utf8') <= ROOT_LIMIT_BYTES);
     assert.match(agents, /<!-- CK:CODEX-ROOT-PROJECTION -->/);
     assert.match(agents, /<!-- \/CK:CODEX-ROOT-PROJECTION -->/);
-    assert.match(agents, /<!-- CODEX-CONTEXT-MIRROR:START -->/);
-    assert.match(agents, /\.codex\/CODEX_CONTEXT\.md/);
-    assert.match(agents, /Context fingerprint \(SHA-256\): [a-f0-9]{64}/);
     assert.match(agents, /user-owned sentinel/);
     assert.match(agents, /Unicode sentinel: 🚦/);
-    assert.doesNotMatch(context, /Workflow Protocol \(Hook-Independent\)|Workflow Catalog/);
-    assert.doesNotMatch(context, /Use \$test for local test execution\./);
+    assert.match(agents, /DOC_LOOKUP_SENTINEL/);
+    // Only project information is projected: universal sections are delivered by the universal hook.
+    assert.doesNotMatch(agents, /Workflow Step Advancement|Task Planning Rules|Evidence-Based Reasoning/);
+    assert.doesNotMatch(agents, /CODEX-CONTEXT-MIRROR|CODEX_CONTEXT\.md|Context fingerprint|CK:UNIVERSAL-GUIDES/);
+    assert.equal(await fs.access(path.join(tempRoot, '.codex', 'CODEX_CONTEXT.md')).then(() => true, () => false), false);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -100,7 +103,7 @@ test('TC-HARNESS-008b: oversized projection is reported and preserved without tr
   const claude = [
     '# Claude Source Instructions',
     '',
-    '## Evidence-Based Reasoning & Investigation',
+    '## Doc Lookup — What to Read When',
     '',
     // Sized from the budget (3 UTF-8 bytes per char, plus margin) so the case always overflows it.
     '界'.repeat(Math.ceil(ROOT_LIMIT_BYTES / 3) + 1024),
@@ -121,47 +124,43 @@ test('TC-HARNESS-008b: oversized projection is reported and preserved without tr
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
-test("TC-HARNESS-008c: the projection emits Doc Lookup, then Git discipline, ahead of every other section", async () => {
+
+test('TC-HARNESS-008c: the projection emits Doc Lookup, then the hand-owned project rules, ahead of every other project section', async () => {
   // Source order is deliberately reversed: projection order must come from priority, not position,
-  // so discovery and the irreversible-action guardrail stay inside Codex's 32 KiB default window.
-  // Given a CLAUDE.md whose Workflow, Git and Doc Lookup sections appear in reverse priority order.
+  // so discovery and the hand-owned project rules stay inside Codex's 32 KiB default window.
+  // Given a CLAUDE.md whose sections appear in reverse priority order, plus a universal section.
   const claude = [
-    "# Claude Source Instructions",
-    "",
-    "## Workflow Step Advancement & Parallel Phases",
-    "",
-    "WORKFLOW_SENTINEL",
-    "",
-    "## Git & Version-Control Discipline",
-    "",
-    "GIT_SENTINEL",
-    "",
-    "## Doc Lookup — What to Read When",
-    "",
-    "DOC_LOOKUP_SENTINEL",
-    "",
-  ].join("\n");
+    '# Claude Source Instructions',
+    '',
+    '## Naming Conventions',
+    '',
+    'NAMING_SENTINEL',
+    '',
+    '## Git & Version-Control Discipline',
+    '',
+    'GIT_SENTINEL',
+    '',
+    '## Project Rules & Context',
+    '',
+    'RULES_SENTINEL',
+    '',
+    '## Doc Lookup — What to Read When',
+    '',
+    'DOC_LOOKUP_SENTINEL',
+    '',
+  ].join('\n');
   const tempRoot = await makeFixture(claude);
   try {
     // When the context sync projects it into AGENTS.md.
-    await execFileAsync(process.execPath, [syncContextScript], {
-      cwd: tempRoot,
-    });
-    const agents = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
+    await execFileAsync(process.execPath, [syncContextScript], { cwd: tempRoot });
+    const agents = await fs.readFile(path.join(tempRoot, 'AGENTS.md'), 'utf8');
     const at = (marker) => agents.indexOf(marker);
-    // Then Doc Lookup comes first, Git discipline second, and every other section after them.
-    assert.ok(
-      at("DOC_LOOKUP_SENTINEL") > -1,
-      "Doc Lookup is projected into AGENTS.md",
-    );
-    assert.ok(
-      at("DOC_LOOKUP_SENTINEL") < at("GIT_SENTINEL"),
-      "Doc Lookup precedes Git discipline",
-    );
-    assert.ok(
-      at("GIT_SENTINEL") < at("WORKFLOW_SENTINEL"),
-      "Git discipline precedes the remaining sections",
-    );
+    // Then Doc Lookup comes first, the project rules second, the remaining project sections after them,
+    // and the universal Git section (delivered by the universal hook) never appears.
+    assert.ok(at('DOC_LOOKUP_SENTINEL') > -1, 'Doc Lookup is projected into AGENTS.md');
+    assert.ok(at('DOC_LOOKUP_SENTINEL') < at('RULES_SENTINEL'), 'Doc Lookup precedes the project rules');
+    assert.ok(at('RULES_SENTINEL') < at('NAMING_SENTINEL'), 'the project rules precede the remaining sections');
+    assert.equal(at('GIT_SENTINEL'), -1, 'universal protocol sections are not projected');
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }

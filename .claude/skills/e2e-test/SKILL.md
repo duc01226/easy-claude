@@ -1,7 +1,9 @@
 ---
 name: e2e-test
-description: '[Testing] Use when a workflow step or the user asks for E2E test work. Selects, generates, updates or maintains E2E tests from a prompt, current context, recordings, specs or code changes.'
+description: '[Testing] Use when a workflow step or the user asks for E2E test work: select, generate or update tests, or --mode=verify (run with runner evidence; --fix-loop, --visual-review={true|false}).'
 ---
+
+> **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=verify` selects verification; no mode is default E2E test authoring (everything below, unchanged). `/e2e-test --mode=verify` is the former `/e2e-test-verify`: that slash command no longer exists, and the mode works called directly with no workflow. Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)).
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -30,7 +32,7 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test w
 - When visual review is requested or required by the project contract for an applicable visual surface, capture the required state × viewport matrix. Add transition captures only when `uiStateCapture.mode` is explicitly `every-action` and a source-verified shared boundary supports them; `declared-only` records transition gaps and `off` records transition coverage as `N/A`. Send configured evidence to `/experience-review` for case-by-case adjudication. An explicit false value cannot waive a project-required gate. Do not update snapshots, baselines, or assertions automatically.
 - **Shared quality gate:** Before authoring, apply `.claude/skills/shared/e2e-quality-protocol.md` to the scenario and preserve its Given/When/Then, invariant, gate-row, evidence, and owner records; this skill owns test selection/generation, not the detailed cross-skill checklist.
 - For browser E2E, prefer accessible semantics (role plus accessible name, associated label, or the platform's accessibility identifier); use an explicit stable test hook next. Use visible text or another project-configured stable locator only when needed. Styling classes, including BEM or utility classes, are not semantic locators; avoid generated or positional selectors and XPath unless the project documents a reviewed exception.
-- Use the project's fixture/data strategy and isolate mutable test state; choose unique run data when concurrency or shared state requires it. NEVER delete or reset persistent, reference, seeded, additive, or shared data. If the project declares opt-in cleanup, remove only current-run ephemeral resources after evidence capture and never use cleanup as repeat-proof. Auto-select the appropriate workflow when not already in one. If the requested prompt/context scope has no suitable test, generate a scenario in the project's declared format; if a suitable test exists, reuse it and report why it covers the scope.
+- Use the project's fixture/data strategy and isolate mutable test state; choose unique run data when concurrency or shared state requires it. NEVER delete or reset persistent, reference, seeded, additive, or shared data. If the project declares opt-in cleanup, remove only current-run ephemeral resources after evidence capture and never use cleanup as repeat-proof. Workflow routing follows the route gate; this skill starts no workflow itself (the hand-off is suggested in Next Steps). If the requested prompt/context scope has no suitable test, generate a scenario in the project's declared format; if a suitable test exists, reuse it and report why it covers the scope.
 
 **Workflow:**
 
@@ -47,6 +49,18 @@ description: '[Testing] Use when a workflow step or the user asks for E2E test w
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION apply the shared E2E quality protocol before writing and carry every applicable gate verdict into the report.
 - NEVER skip mandatory workflow or skill gates.
+
+## Mode Dispatch
+
+Detect the mode from the invocation arguments before any other work; do not load a mode file the invocation did not select.
+
+| Mode | Purpose | Read in full FIRST |
+| --- | --- | --- |
+| _(none)_ | Default E2E test authoring — this file | — |
+| `--mode=verify [--fix-loop] [--visual-review={true\|false}] [scope]` | Verify an existing configured E2E scope with exact runner evidence: a report-only default pass, or with `--fix-loop` the bounded convergence engine (`workflow-e2e` calls it). Formerly `/e2e-test-verify` | `references/mode-verify.md` |
+
+- **[BLOCKING]** When `--mode=verify`, read `references/mode-verify.md` in full FIRST; it replaces test authoring for the invocation and owns `--fix-loop` and `--visual-review={true|false}` (no flag is set by default: no `--fix-loop` = one report-only pass that edits nothing). Workflow invocation and standalone both run it; report-only callers never pass `--fix-loop`.
+- `--mode=verify` is a separate invocation over existing tests; authoring never chains into it on its own. The `verify` row of the Workflow Modes table below names the same intent.
 
 ## ⚠️ MANDATORY: Read Project E2E Reference (FIRST)
 
@@ -202,7 +216,7 @@ default TC identity.
 | `update-ui`      | Git diff of UI changes     | Candidate evidence plus an explicit acceptance decision; accepted baseline changes only after approval |
 | `from-changes`   | Changed test specs or code | Updated test implementations |
 | `from-spec`      | Configured owner-qualified case/variant IDs and intent references | Tests mapped to accepted intent |
-| `verify` | Existing configured suite and current context | Exact run result, evidence, adjudication, and blocker/escalation record |
+| `verify` | Existing configured suite and current context — run it with `--mode=verify` | Exact run result, evidence, adjudication, and blocker/escalation record |
 
 ---
 
@@ -342,11 +356,9 @@ Spawn `e2e-runner` sub-agent for:
 - Updating visual screenshot baselines after UI changes, but only after an explicit accepted experience record
 - Maintaining configured owner-qualified case-to-executor/assertion traceability (the strict default uses `TC-{MODULE}-E2E-{NNN}`)
 
----
+## Next Steps
 
-## Workflow Recommendation
-
-> When invoked standalone, auto-select the canonical route from the request and current context; do not ask the user to choose a workflow. Use `workflow-e2e` for every E2E source: it conditionally writes or updates the artifact, then delegates configured verification and bounded fix/retest convergence to `e2e-test-verify --fix-loop`. Honor an explicit workflow or source invocation. Ask the user only when the product intent or owner is genuinely ambiguous, not to choose between equivalent execution routes.
+Standalone (no parent workflow): after writing or updating E2E tests, suggest `/e2e-test --mode=verify --fix-loop` to run them with runner evidence and converge failures, or `/start-workflow workflow-e2e` for the full write → verify route. Inside a workflow, the next step is the workflow's own.
 
 ---
 
@@ -368,13 +380,9 @@ Generate and maintain E2E tests using project's configured testing framework.
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `ai-discovery-doc-quality` — Keep AI-read docs discoverable: rules first, routed pointers, closing reminders; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `e2e-visual-design-contract` — Evidence and baseline rules for visual review in E2E and human QC; handling visual-review evidence or visual baseline updates → .claude/skills/shared/protocols/e2e-visual-design-contract.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
@@ -383,23 +391,11 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- PROTOCOL-GUIDES:END -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
 <!-- SYNC:ai-discovery-doc-quality:reminder -->
 
 **MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `/prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
 
 <!-- /SYNC:ai-discovery-doc-quality:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
@@ -414,17 +410,9 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
@@ -436,18 +424,9 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- SYNC:e2e-visual-design-contract:reminder -->
 
-**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system and frontend decisions plus applicable `UI-*`/`DD-*`/`CL-*` roles, records component ownership using the project's taxonomy or observed boundaries, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, captures states and transitions required by the configured evidence contract, reloads the convention docs then reads and records each required capture before synthesizing findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system and frontend decisions plus applicable `UI-*`/`DD-*`/`CL-*` roles, records component ownership using the project's taxonomy or observed boundaries, sends static source findings to `/ui-design --mode=review` and runtime image evidence to `/experience-review`, captures states and transitions required by the configured evidence contract, reloads the convention docs then reads and records each required capture before synthesizing findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 ## Closing Reminders
 
@@ -459,8 +438,6 @@ Generate and maintain E2E tests using project's configured testing framework.
 - **Sub-Agent Selection:** Route specialized domains to the matching specialist agent, NEVER `code-reviewer`.
 - **Source/Test Drift Check:** On source change, decide from evidence whether tests or source is wrong.
 - **Real-World Fidelity Gate:** only test flows, pacing, and data production can actually reach; use the configured runner's native waits or project helper for control readiness and postconditions; action delays apply only when configured; wait on a real settle signal in ARRANGE — never a widened assertion.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** Traced `file:line` proof per claim, confidence >80% to act, NEVER guess as fact.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **IMPORTANT MUST ATTENTION — Main steps (execute in order, track each):** (1) detect E2E framework from project files; (2) read `e2e-test-reference.md` and project config FIRST; (3) resolve `specRoots.business.path` and optional `specArtifacts`, then load owner-qualified case IDs, evidence sections, and carriers from that root; use TC/§8/Test Specifications only when no native profile is declared; (4) pass the Real-World Fidelity Gate BEFORE writing test code; (5) generate/update tests using the configured project organization through the `e2e-runner` sub-agent; (6) run tests with the configured command; (7) update `e2e-test-reference.md` with learnings — why: AI keeps dropping the skill's own step sequence under long context.

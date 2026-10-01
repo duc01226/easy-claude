@@ -44,7 +44,7 @@
 // INTENTIONAL divergence — two review skills copy the review-protocol-injection template
 // only to route their fresh-review sub-agent to a domain specialist instead of canonical's
 // generic code-reviewer. The single-pass integration-test reviewer no longer starts a fresh
-// review sub-agent, so only architecture-review and ui-review retain this override. They are
+// review sub-agent, so only the architecture review mode (architecture/references/mode-review.md) and the ui-design review mode (ui-design/references/mode-review.md) retain this override. They are
 // (correctly) excluded from the equality property and
 // untouched by sync-update-blocks.py. But "intentional divergence on routing" must not become
 // "silent staleness on substance": the GUARD test pins each OVERRIDE copy to canonical's
@@ -132,6 +132,16 @@ const extractHtmlOverrideBody = (content, tag) => extractHtmlMarkedBody(content,
 
 function carrierFiles() {
     const out = [];
+    // The skill template (`_templates/<name>/SKILL.md`) is the file every new skill is cloned from: a SYNC block that
+    // drifts there ships to every skill created from it, so it is a carrier like any SKILL.md. sync-update-blocks.py
+    // `find_target_files()` globs the same set (asserted by the PARITY test below).
+    const templatesDir = path.join(SKILLS_DIR, '_templates');
+    if (fs.existsSync(templatesDir)) {
+        for (const t of fs.readdirSync(templatesDir, { withFileTypes: true })) {
+            const tp = path.join(templatesDir, t.name, 'SKILL.md');
+            if (t.isDirectory() && fs.existsSync(tp)) out.push(tp);
+        }
+    }
     for (const d of fs.readdirSync(SKILLS_DIR, { withFileTypes: true })) {
         if (!d.isDirectory()) continue;
         const p = path.join(SKILLS_DIR, d.name, 'SKILL.md');
@@ -176,7 +186,7 @@ for (const t of TAGS) {
 
 // --- OVERRIDE-substance contract (review-protocol-injection) ---------------------
 // Canonical's review-protocol-injection template tells a fresh review sub-agent to embed
-// N protocol blocks VERBATIM. Two review skills (architecture-review and ui-review) copy that
+// N protocol blocks VERBATIM. Two review carriers (the architecture review mode reference and the ui-design review mode reference) copy that
 // template inside an <!-- OVERRIDE:review-protocol-injection --> block ONLY to swap canonical's
 // generic `code-reviewer` for a domain specialist (architect / ui-ux-designer). The single-pass
 // integration-test reviewer validates findings in its sole main-session pass and does not spawn
@@ -221,7 +231,7 @@ function parseProtocolContract(text) {
 // body, OR when it is a skill SKILL.md with a guide entry (shared recognizer, never a copied regex)
 // whose projection equals canonical. A guide anywhere else (an agent, a references/*.md file) is a
 // problem, not a carrier: agents and references keep full text (owner answer, BR-PDL-12).
-const SKILL_MD_REL_RE = /^\.claude\/skills\/[^/]+\/SKILL\.md$/;
+const SKILL_MD_REL_RE = /^\.claude\/skills\/(?:_templates\/)?[^/]+\/SKILL\.md$/;
 function coverageCarriers(carriers, tag, projectionText, canonBody) {
     const out = { body: [], guided: [], problems: [] };
     const projectionOk = projectionText != null && canonBody != null && norm(projectionText) === norm(canonBody);
@@ -292,117 +302,32 @@ function policySections() {
     };
 }
 
-// --- Root-carried conversion (TC-PDL-035, TC-PDL-036, TC-PDL-037) ---------------------------------
-// The four root-carried protocols (the `universal` group of protocol-groups.json) are converted in every
-// skill outside `inlineSkills`: each body becomes one guide line, the `:reminder` digests stay, and the
-// root instruction file carries the text (hooks deliver it when a project switches that reliance off).
-// Inline skills and agents keep the full bodies. These cases read the shipped `.claude/` tree, which
-// travels with the bundle; only TC-PDL-037 reads this repository's own root files, so only it is guarded.
-const os = require('os');
-const { spawnSync } = require('child_process');
+// --- Universal bundle (TC-PDL-035) ----------------------------------------------------------------
+// The `universal` group of protocol-groups.json is the framework rules every task follows, delivered by
+// the universal hook (`protocol-inject-universal-<n>.cjs`); no root file, skill or agent carries any part of
+// it: no body, no `:reminder`, no guide line, no pointer line. The fixture cases of
+// `sync-update-blocks --mode=strip-root-pointer` live in `.claude/scripts/tests/sync-update-blocks-guide.test.cjs`,
+// the delivery cases in `universal-hook-delivery.test.cjs`, and the root-file absence check (framework repo
+// only) in `protocol-text-parity.test.cjs`. These cases read the shipped `.claude/` tree, which travels with
+// the bundle.
 const guideCarrier = require(path.join(REPO, '.claude', 'scripts', 'lib', 'protocol-guide-carrier.cjs'));
 const { guideEntries, guideTags } = guideCarrier;
 const PROJECTION_INDEX_PATH = path.join(REPO, '.claude', 'skills', 'shared', 'protocols', 'index.json');
-// Agents carry the root-carried rules as full text, except the overlay: resolving project overlays is the
-// job of whoever invokes a skill, so no agent carries it (agent-universal-rules.test.cjs, the
-// project-protocol-overlay entry of its excluded list).
-const AGENT_EXEMPT_ROOT_CARRIED = new Set(['project-protocol-overlay']);
-const ROOT_FILES_SKIP = isFrameworkRepo(REPO) ? false : "asserts the framework repo's own root files";
 
 /** Read lazily so a missing file fails the case that needs it, not the whole suite at load time. */
-function rootCarriedContext() {
+function universalContext() {
     const groups = JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8'));
-    const tags = Object.keys((groups.groups && groups.groups.universal && groups.groups.universal.tags) || {}).sort();
-    const inline = new Set(Array.isArray(groups.inlineSkills) ? groups.inlineSkills : []);
+    const universal = (groups.groups && groups.groups.universal) || {};
+    const fileOrder = Object.keys(universal.tags || {});
+    const tags = [...fileOrder].sort();
     const index = JSON.parse(fs.readFileSync(PROJECTION_INDEX_PATH, 'utf8'));
     const rows = new Map((Array.isArray(index.tags) ? index.tags : []).filter((r) => tags.includes(r.tag)).map((r) => [r.tag, r]));
-    const skills = fs
-        .readdirSync(SKILLS_DIR, { withFileTypes: true })
-        .filter((d) => d.isDirectory() && fs.existsSync(path.join(SKILLS_DIR, d.name, 'SKILL.md')))
-        .map((d) => ({ name: d.name, text: fs.readFileSync(path.join(SKILLS_DIR, d.name, 'SKILL.md'), 'utf8') }));
-    const agents = fs
-        .readdirSync(AGENTS_DIR)
-        .filter((f) => f.endsWith('.md'))
-        .map((f) => ({ name: f, text: fs.readFileSync(path.join(AGENTS_DIR, f), 'utf8') }));
-    return { tags, inline, rows, skills, agents, converted: skills.filter((s) => !inline.has(s.name)) };
+    return { tags, fileOrder, rows, bins: universal.bins };
 }
 
-/** The guide line the conversion must write for a root-carried tag, built by the format owner from the published row. */
+/** The guide line the conversion must write for a tag, built by the format owner from the published row. */
 function expectedGuideLine(row) {
     return guideCarrier.formatGuideLine({ tag: row.tag, summary: row.summary, when: row.when, path: row.file });
-}
-
-/** Lines shaped like a guide line for `tag`, anywhere in the text (a duplicate or malformed copy counts). */
-function guideLikeLines(text, tag) {
-    return String(text).replace(/\r\n?/g, '\n').match(new RegExp(`^- \`${escapeRe(tag)}\` — .*$`, 'gm')) || [];
-}
-
-/** First interpreter that runs Python 3 here: `python`, `py -3`, then `python3` (a Windows `python3` is often a Store stub). */
-function findPython3(env) {
-    for (const c of [{ command: 'python', args: [] }, { command: 'py', args: ['-3'] }, { command: 'python3', args: [] }]) {
-        const r = spawnSync(c.command, [...c.args, '-c', 'import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)'], { env, encoding: 'utf8' });
-        if (r.status === 0) return c;
-    }
-    return null;
-}
-
-/**
- * Run the real guide conversion over a temp project: one skill carrying the four root-carried bodies and
- * reminders, one inline skill and one agent carrying the same. Uses the shipped tool, groups file and
- * projection index. Returns the files before and after, plus the tool's result.
- */
-function runRootCarriedConversion(ctx) {
-    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pdl-rootcarried-')));
-    const home = path.join(root, 'home');
-    const project = path.join(root, 'project');
-    fs.mkdirSync(home, { recursive: true });
-    const write = (rel, content) => {
-        const file = path.join(project, ...rel.split('/'));
-        fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, content);
-        return file;
-    };
-    const copy = (rel) => write(rel, fs.readFileSync(path.join(REPO, ...rel.split('/'))));
-    // A clean child: no inherited framework/host switches or Python overrides, and HOME/TMP inside the fixture.
-    const env = {};
-    for (const [key, value] of Object.entries(process.env)) {
-        if (!/^(CLAUDE_|CK_|CODEX_|OPENCODE_|PYTHON)/i.test(key)) env[key] = value;
-    }
-    Object.assign(env, { HOME: home, USERPROFILE: home, TMPDIR: home, TEMP: home, TMP: home });
-    try {
-        copy('.claude/scripts/sync-update-blocks.py');
-        copy('.claude/scripts/sync_blocks.py');
-        copy('.claude/scripts/line_endings.py');
-        copy('.claude/skills/shared/protocol-groups.json');
-        copy('.claude/skills/shared/protocols/index.json');
-        const bodies = ctx.tags.map((tag) => `<!-- SYNC:${tag} -->\n\n${readCanonicalBody(tag)}\n\n<!-- /SYNC:${tag} -->\n`).join('\n');
-        const reminders = ctx.tags.map((tag) => `<!-- SYNC:${tag}:reminder -->\n\n${readCanonicalBody(`${tag}:reminder`)}\n\n<!-- /SYNC:${tag}:reminder -->\n`).join('\n');
-        const doc = (name) => `---\nname: ${name}\ndescription: fixture\n---\n\n# ${name}\n\n${bodies}\n## Steps\n\n1. Work.\n\n## Closing Reminders\n\n${reminders}`;
-        const inlineName = [...ctx.inline].sort()[0];
-        const files = {
-            carrier: write('.claude/skills/fx-former-carrier/SKILL.md', doc('fx-former-carrier')),
-            inline: write(`.claude/skills/${inlineName}/SKILL.md`, doc(inlineName)),
-            agent: write('.claude/agents/fx-agent.md', doc('fx-agent')),
-        };
-        const before = Object.fromEntries(Object.entries(files).map(([k, f]) => [k, fs.readFileSync(f, 'utf8')]));
-        const python = findPython3(env);
-        if (!python) return { python: null };
-        const run = spawnSync(
-            python.command,
-            [...python.args, path.join(project, '.claude', 'scripts', 'sync-update-blocks.py'), '--mode=guide', '--tags', ctx.tags.join(',')],
-            { cwd: project, env, encoding: 'utf8' }
-        );
-        const after = Object.fromEntries(Object.entries(files).map(([k, f]) => [k, fs.readFileSync(f, 'utf8')]));
-        return { python, run, before, after };
-    } finally {
-        fs.rmSync(root, { recursive: true, force: true });
-    }
-}
-
-/** Body between `<!-- CK:<name> -->` and its close marker in a root instruction file, or null. */
-function ckBlock(text, name) {
-    const m = new RegExp(`<!-- CK:${escapeRe(name)} -->\\n([\\s\\S]*?)<!-- /CK:${escapeRe(name)} -->`).exec(text);
-    return m ? m[1] : null;
 }
 
 module.exports = {
@@ -413,6 +338,12 @@ module.exports = {
             fn() {
                 assertTrue(TAGS.length > 0, 'no canonical ## SYNC tags parsed — parser broken (fail-closed)');
                 assertTrue(PAIRS.length > 0, 'no carrier SYNC embeds parsed — parser broken (fail-closed)');
+                // The skill template is a carrier: every new skill is cloned from it, so a divergent block there would ship to each of them.
+                // Non-vacuous: the template is in the swept set and contributes at least one (tag × carrier) pair, so a block that drifts
+                // inside it fails the loop below instead of staying invisible.
+                const templateCarriers = CARRIERS.filter((c) => /^\.claude\/skills\/_templates\/[^/]+\/SKILL\.md$/.test(c.rel));
+                assertTrue(templateCarriers.length > 0, 'the skill template (_templates/*/SKILL.md) is missing from the carrier sweep (fail-closed)');
+                assertTrue(PAIRS.some((p) => /^\.claude\/skills\/_templates\//.test(p.carrier)), 'the skill template carries no SYNC block the sweep checks (vacuous template coverage)');
                 const drift = [];
                 for (const p of PAIRS) {
                     const canon = CANON_BODY.get(p.tag);
@@ -434,15 +365,15 @@ module.exports = {
         },
         {
             // Pinned carrier count (no silent cap): review-protocol-injection reaches 8 carriers =
-            // 8 converging review SKILLs (code-quality-review, changes-review, artifact-review,
-            // knowledge-review, production-readiness-review, why-review, spec-clarify,
-            // architecture-review-full). Single-pass plan-review does not spawn a reviewer.
+            // 8 converging review carriers (code-quality-review, changes-review, pbi (mode-review reference),
+            // knowledge-review, production-readiness-review, why-review, spec (mode-clarify reference),
+            // architecture (mode-full reference)). Single-pass plan --mode=review does not spawn a reviewer.
             // (the 4 review AGENTS that once carried it are leaves now: they receive the template in their
-            // brief, and code-reviewer also through its preloaded code-quality-review skill).
-            // spec-clarify (the post-spec clarification gate) joined as the 8th skill: it runs INLINE for
+            // brief, and code-reviewer loads code-quality-review on demand).
+            // spec's clarify mode (the post-spec clarification gate; body in spec/references/mode-clarify.md) is the 8th carrier: it runs INLINE for
             // its AskUserQuestion gate but performs the SAME validate→fix→fresh-full-re-review cycle as its
             // review-family peers, so it carries the trio (double-round-trip / fresh-context / protocol-injection)
-            // at parity with artifact-review. architecture-review-full (the whole-project architecture-health
+            // at parity with pbi --mode=review. architecture/references/mode-full.md (the whole-project architecture-health
             // audit) joined as the 9th skill: it is an adoption-matrix review skill (BATCHING + SEVERITY in
             // inject_review_skill_blocks.py) that synthesizes a consolidated report, so it carries the plain
             // review-protocol trio at parity. A 9th appearing — or one of the 8 vanishing — must surface loudly here
@@ -455,7 +386,7 @@ module.exports = {
                 const cov = coverageCarriers(CARRIERS, RPI, projectionTextFor(SKILLS_DIR, RPI), canon);
                 assertEqual(cov.problems.length, 0, `review-protocol-injection guide problems:\n  ${cov.problems.join('\n  ')}`);
                 const carriers = [...cov.body, ...cov.guided];
-                // 8 = the converging review skills (body or guide). Single-pass plan-review and leaf reviewer agents do not
+                // 8 = the converging review skills (body or guide). Single-pass plan --mode=review and leaf reviewer agents do not
                 // carry it: they receive the template's rules in their brief (agent_protocol_matrix.py,
                 // review-loop orchestration exclusion), so 4 agent copies were removed on purpose.
                 assertEqual(
@@ -521,7 +452,7 @@ module.exports = {
                 assertEqual(
                     OVERRIDE_CARRIERS.length,
                     2,
-                    `expected 2 OVERRIDE:${RPI} carriers (architecture-review, ui-review), found ${OVERRIDE_CARRIERS.length}: ` +
+                    `expected 2 OVERRIDE:${RPI} carriers (architecture/references/mode-review.md, ui-design/references/mode-review.md), found ${OVERRIDE_CARRIERS.length}: ` +
                         `${OVERRIDE_CARRIERS.map((o) => o.carrier).join(', ') || '(none)'}`
                 );
                 const drift = [];
@@ -662,135 +593,36 @@ module.exports = {
             },
         },
         {
-            name: 'TC-PDL-035: after conversion only the inline skills and the agents carry the four root-carried bodies',
+            name: 'TC-PDL-035: the universal bundle is published and delivered by bins; no carrier holds a body, reminder, guide line or pointer line of it',
             fn() {
-                // Given every skill and agent, and the root-carried tags of the universal group
-                const ctx = rootCarriedContext();
-                assertEqual(ctx.tags.length, 4, `the universal group must hold exactly the four root-carried tags, found ${JSON.stringify(ctx.tags)}`);
-                assertTrue(ctx.inline.size > 0 && ctx.converted.length > 0 && ctx.agents.length > 0, 'no inline skill, converted skill or agent found (vacuous scan)');
-                for (const tag of AGENT_EXEMPT_ROOT_CARRIED) assertTrue(ctx.tags.includes(tag), `agent exemption names ${tag}, which is not a root-carried tag`);
-                const hasBody = (text, tag) => extractHtmlSyncBody(text, tag) != null;
-                // When each is scanned for the four bodies
-                const leaked = ctx.converted.flatMap((s) => ctx.tags.filter((t) => hasBody(s.text, t)).map((t) => `${s.name}: ${t}`));
-                const inlineGaps = [...ctx.inline].flatMap((name) => {
-                    const skill = ctx.skills.find((s) => s.name === name);
-                    if (!skill) return [`${name}: inline skill has no SKILL.md`];
-                    return ctx.tags.filter((t) => !hasBody(skill.text, t)).map((t) => `${name}: ${t}`);
-                });
-                const agentGaps = ctx.agents.flatMap((a) => [
-                    ...ctx.tags.filter((t) => !AGENT_EXEMPT_ROOT_CARRIED.has(t) && !hasBody(a.text, t)).map((t) => `${a.name}: no ${t} body`),
-                    ...guideTags(a.text).map((t) => `${a.name}: carries a guide entry for ${t}`),
-                ]);
-                // Then no converted skill carries one
-                assertEqual(
-                    leaked.length,
-                    0,
-                    `converted skill(s) still carry a root-carried body:\n  ${leaked.join('\n  ')}\n` +
-                        'Fix: py -3 .claude/scripts/sync-update-blocks.py --mode=guide --tags <tag> (python3 on macOS/Linux)'
-                );
-                // And every inline skill carries all four
-                assertEqual(inlineGaps.length, 0, `inline skill(s) lost a root-carried body:\n  ${inlineGaps.join('\n  ')}`);
-                // And every agent keeps them as full text, never as a guide entry
-                assertEqual(agentGaps.length, 0, `agent(s) lost a root-carried body or gained a guide entry:\n  ${agentGaps.join('\n  ')}`);
-            },
-        },
-        {
-            name: 'TC-PDL-036: every former carrier of a root-carried protocol keeps one current guide line per protocol and its reminder',
-            fn() {
-                // Given the converted skills and the published index row of each root-carried tag
-                const ctx = rootCarriedContext();
-                assertEqual(ctx.tags.length, 4, `expected the four root-carried tags, found ${JSON.stringify(ctx.tags)}`);
-                const expected = new Map();
+                // Given the universal group, its authored bins and its published rows
+                const ctx = universalContext();
+                assertTrue(ctx.tags.length >= 4, `the universal group holds the bundle, found ${JSON.stringify(ctx.tags)}`);
+                assertTrue(Array.isArray(ctx.bins) && ctx.bins.length >= 1, 'the universal group authors its bins');
+                assertEqual(JSON.stringify([...ctx.bins.flat()].sort()), JSON.stringify(ctx.tags), 'the bins cover the universal group exactly once');
                 for (const tag of ctx.tags) {
                     const row = ctx.rows.get(tag);
                     assertTrue(row != null, `${tag}: no row in the projection index (build it: node .claude/scripts/build-protocol-projection.cjs)`);
-                    assertTrue(fs.existsSync(path.join(REPO, ...row.file.split('/'))), `${tag}: the guide path ${row.file} does not exist`);
-                    assertTrue(/carried by the root instruction file/.test(row.when), `${tag}: the guide line does not say the root file carries it (when: "${row.when}")`);
-                    expected.set(tag, expectedGuideLine(row));
+                    assertTrue(fs.existsSync(path.join(REPO, ...row.file.split('/'))), `${tag}: the published file ${row.file} does not exist`);
+                    assertEqual(row.group, 'universal', `${tag}: published in the universal group`);
                 }
-                // When every converted skill is scanned for its guide lines
+                const skillMd = (rel) => SKILL_MD_REL_RE.test(rel);
+                const agentMd = (rel) => rel.startsWith('.claude/agents/');
+                assertTrue(CARRIERS.some((c) => skillMd(c.rel)) && CARRIERS.some((c) => agentMd(c.rel)), 'no skill or agent carrier found (vacuous scan)');
+                // When every carrier (skills, references and agents) is scanned
                 const problems = [];
-                const formerCarriers = new Map(ctx.tags.map((t) => [t, 0]));
-                for (const s of ctx.converted) {
-                    const entries = guideEntries(s.text);
+                for (const c of CARRIERS) {
                     for (const tag of ctx.tags) {
-                        const lines = guideLikeLines(s.text, tag);
-                        if (lines.length > 1) problems.push(`${s.name}: ${lines.length} guide lines for ${tag}`);
-                        if (!entries.has(tag)) {
-                            if (lines.length) problems.push(`${s.name}: a ${tag} guide line outside a guide block or malformed`);
-                            continue;
+                        for (const variant of [tag, `${tag}:reminder`]) {
+                            if (extractHtmlSyncBody(c.text, variant) != null) problems.push(`${c.rel}: carries SYNC:${variant}`);
                         }
-                        formerCarriers.set(tag, formerCarriers.get(tag) + 1);
-                        if (entries.get(tag) !== expected.get(tag)) problems.push(`${s.name}: stale ${tag} guide line: ${entries.get(tag)}`);
+                        if (guideCarrier.hasGuideEntry(c.text, tag)) problems.push(`${c.rel}: carries a guide line for ${tag}`);
                     }
+                    // Then none holds a pointer line
+                    const lines = guideCarrier.rootPointerLines(c.text);
+                    if (lines.length) problems.push(`${c.rel}: ${lines.length} retired pointer line(s)`);
                 }
-                // Then each tag has former carriers, each with exactly one current guide line
-                const none = [...formerCarriers].filter(([, n]) => n === 0).map(([t]) => t);
-                assertEqual(none.length, 0, `no converted skill carries a guide entry for: ${none.join(', ')} (conversion not run?)`);
-                assertEqual(problems.length, 0, `guide-line problems:\n  ${problems.join('\n  ')}\nFix: re-run guide mode for the tag (it refreshes existing lines)`);
-
-                // And the conversion itself keeps the reminder: the shipped tool over a fixture carrier
-                const result = runRootCarriedConversion(ctx);
-                assertTrue(result.python !== null, 'no Python 3 interpreter found (tried: python, py -3, python3); the conversion case cannot run');
-                assertEqual(result.run.status, 0, `sync-update-blocks.py --mode=guide failed: ${result.run.stderr || result.run.stdout}`);
-                const carried = result.after.carrier;
-                const lost = ctx.tags.filter((t) => extractHtmlSyncBody(carried, t) != null);
-                assertEqual(lost.length, 0, `the fixture carrier still has body(ies): ${lost.join(', ')}`);
-                assertEqual(JSON.stringify(guideTags(carried).sort()), JSON.stringify(ctx.tags), 'the fixture carrier has one guide entry per root-carried tag');
-                const entries = guideEntries(carried);
-                for (const tag of ctx.tags) {
-                    assertEqual(entries.get(tag), expected.get(tag), `${tag}: the tool wrote a guide line other than the published one`);
-                    const reminder = `${tag}:reminder`;
-                    assertEqual(guideLikeLines(carried, tag).length, 1, `${tag}: exactly one guide line`);
-                    assertEqual(
-                        extractHtmlSyncBody(carried, reminder),
-                        extractHtmlSyncBody(result.before.carrier, reminder),
-                        `${tag}: the conversion changed or dropped the reminder digest`
-                    );
-                    assertTrue(extractHtmlSyncBody(carried, reminder) != null, `${tag}: reminder digest missing after conversion`);
-                }
-                // Boundary: the inline skill and the agent are left byte-identical
-                assertEqual(result.after.inline, result.before.inline, 'the conversion changed an inline skill');
-                assertEqual(result.after.agent, result.before.agent, 'the conversion changed an agent');
-            },
-        },
-        {
-            name: 'TC-PDL-037: the framework root instruction files carry all four root-carried rules',
-            skip: ROOT_FILES_SKIP,
-            fn() {
-                // Given the framework repository's root instruction files and the root-carried tags
-                const ctx = rootCarriedContext();
-                const checks = {
-                    'critical-thinking-mindset': (text) => {
-                        const body = ckBlock(text, 'CRITICAL-THINKING');
-                        return body != null && norm(body) === norm(readCanonicalBody('critical-thinking-mindset:full'));
-                    },
-                    'ai-mistake-prevention': (text) => {
-                        const body = ckBlock(text, 'AI-MISTAKE-PREVENTION');
-                        return body != null && norm(body) === norm(readCanonicalBody('ai-mistake-prevention:full'));
-                    },
-                    'project-protocol-overlay': (text) => {
-                        const body = ckBlock(text, 'PROJECT-PROTOCOLS');
-                        return body != null && body.includes('[PROJECT-PROTOCOL-OVERLAY]') && /Overlays are ADDITIVE ONLY/.test(body);
-                    },
-                    'project-reference-docs-guide': (text) =>
-                        text.includes('**By task phase**') && text.includes('**Dedup:**') && text.includes('Canonical gate: `SYNC:project-reference-docs-guide`'),
-                };
-                // A fifth root-carried tag without a root check must fail here, not pass silently.
-                assertEqual(JSON.stringify(Object.keys(checks).sort()), JSON.stringify(ctx.tags), 'every root-carried tag needs a root-file check');
-                // When each root file is scanned
-                const missing = [];
-                for (const file of ['CLAUDE.md', 'AGENTS.md']) {
-                    const full = path.join(REPO, file);
-                    if (!fs.existsSync(full)) {
-                        missing.push(`${file}: file missing`);
-                        continue;
-                    }
-                    const text = fs.readFileSync(full, 'utf8').replace(/\r\n?/g, '\n');
-                    for (const [tag, holds] of Object.entries(checks)) if (!holds(text)) missing.push(`${file}: ${tag}`);
-                }
-                // Then all four rules are present in both
-                assertEqual(missing.length, 0, `root instruction file(s) lost a root-carried rule:\n  ${missing.join('\n  ')}\nFix: regenerate them (/ai-context-refresh, then the Codex sync)`);
+                assertEqual(problems.length, 0, `universal-bundle contract violations:\n  ${problems.join('\n  ')}\nFix: py -3 .claude/scripts/sync-update-blocks.py --mode=strip-root-pointer (python3 on macOS/Linux)`);
             },
         },
         {
@@ -799,7 +631,7 @@ module.exports = {
                 // Given the canonical base tags, the inline skills and every carrier
                 const inline = new Set(JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8')).inlineSkills || []);
                 const baseTags = TAGS.filter((t) => !t.includes(':'));
-                const skillOf = (rel) => (/^\.claude\/skills\/([^/]+)\/SKILL\.md$/.exec(rel) || [])[1] || null;
+                const skillOf = (rel) => (/^\.claude\/skills\/(?:_templates\/)?([^/]+)\/SKILL\.md$/.exec(rel) || [])[1] || null;
                 const leaked = [];
                 const fullCarrierProblems = [];
                 let fullCarriers = 0;

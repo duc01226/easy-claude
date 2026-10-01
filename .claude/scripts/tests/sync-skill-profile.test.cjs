@@ -128,12 +128,14 @@ function withProject(options, fn) {
     }
 }
 
-test('[skill-profile] TC-ADS-016 preset standard makes the 20 skills other skills or hooks start name-only', () => withProject({ profile: { preset: 'standard' } }, root => {
+test('[skill-profile] TC-ADS-016 preset standard makes the curated skills other skills or hooks start name-only', () => withProject({ profile: { preset: 'standard' } }, root => {
     // Given a project on the standard preset / When synced
     const result = run(root);
     // Then exactly the curated called skills are name-only in skillOverrides
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(CALLED_BY_OTHERS.length, 20, 'the curated list holds the 20 skills the plan names');
+    assert.ok(CALLED_BY_OTHERS.length > 0, 'the curated list names at least one called skill');
+    assert.equal(new Set(CALLED_BY_OTHERS).size, CALLED_BY_OTHERS.length, 'the curated list has no duplicates');
+    for (const name of CALLED_BY_OTHERS) assert.ok(fs.existsSync(path.resolve(__dirname, '..', '..', 'skills', name, 'SKILL.md')), `curated skill ${name} ships as a skill`);
     const overrides = readSettings(root).skillOverrides;
     assert.deepEqual(Object.keys(overrides).sort(), [...CALLED_BY_OTHERS].sort());
     for (const name of CALLED_BY_OTHERS) assert.equal(overrides[name], 'name-only', name);

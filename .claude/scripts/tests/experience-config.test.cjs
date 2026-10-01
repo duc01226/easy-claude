@@ -619,7 +619,7 @@ const CAPTURE_CARRIER_FLOOR = [
     '.claude/skills/shared/ui-state-capture-protocol.md',
     '.claude/skills/shared/e2e-quality-protocol.md',
     '.claude/skills/e2e-test/SKILL.md',
-    '.claude/skills/e2e-test-verify/SKILL.md',
+    '.claude/skills/e2e-test/references/mode-verify.md',
     '.claude/skills/workflow-e2e/SKILL.md',
     '.claude/skills/experience-review/SKILL.md',
     '.claude/agents/e2e-runner.md'
@@ -713,7 +713,7 @@ test('TC-E2E-CONFIG-024: every capture-every-action imperative is qualified by u
         for (const wording of OFF_DROPS_MATRIX) assert.doesNotMatch(text, wording, carrier);
     }
     // The consumer that grades the contract must say what the non-default modes record.
-    const verify = fs.readFileSync(path.join(repoRoot, '.claude/skills/e2e-test-verify/SKILL.md'), 'utf8');
+    const verify = fs.readFileSync(path.join(repoRoot, '.claude/skills/e2e-test/references/mode-verify.md'), 'utf8');
     assert.match(verify, /Under `declared-only`[^.]*blind spot — never a FAIL/);
     assert.match(verify, /Under `off`, verify the matrix rows, manifest, and reads exactly as under `declared-only`, and record transition coverage once as `N\/A — uiStateCapture off: \{reason\}`/);
     assert.match(verify, /a missing (?:required )?matrix capture still fails it/);

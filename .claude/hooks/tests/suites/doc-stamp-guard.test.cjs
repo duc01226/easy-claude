@@ -41,7 +41,7 @@ const STAMPED_DOC = [
     '# Backend Patterns Reference',
     '',
     '<!-- Last scanned: 2026-01-01 -->',
-    '<!-- Last verified: 2026-01-01 (docs-update, impact-scoped) -->',
+    '<!-- Last verified: 2026-01-01 (docs-manager, impact-scoped) -->',
     '',
     'Handlers live under `src/handlers`.',
     '',
@@ -325,7 +325,7 @@ const tests = [
             // read as a no-op and the cleanup could never be written.
             const withStamp = STAMPED_DOC;
             const withoutStamp = STAMPED_DOC.replace(
-                '<!-- Last verified: 2026-01-01 (docs-update, impact-scoped) -->\n',
+                '<!-- Last verified: 2026-01-01 (docs-manager, impact-scoped) -->\n',
                 ''
             );
             assertTrue(withStamp !== withoutStamp, 'Test setup is vacuous — the stamp line was not removed.');
@@ -344,11 +344,11 @@ const tests = [
             // Without this, the helper ships correct and unused.
             const carriers = [
                 ['.claude/skills/scan/SKILL.md', 'scan writes every reference doc'],
-                ['.claude/skills/docs-update/SKILL.md', 'docs-update patches reference docs'],
+                ['.claude/skills/docs-manager/references/mode-update.md', 'docs-manager --mode=update patches reference docs'],
                 ['.claude/skills/commit/SKILL.md', 'commit is the publish boundary'],
                 ['.claude/agents/git-manager.md', 'git-manager is the second commit path'],
                 ['.claude/agents/docs-manager.md', 'docs-manager performs the doc writes'],
-                ['.claude/skills/spec-index/SKILL.md', 'spec-index regenerates derived spec aids']
+                ['.claude/skills/spec/references/mode-index.md', 'spec [mode=index] regenerates derived spec aids']
             ];
             const missing = [];
             for (const [relPath, why] of carriers) {

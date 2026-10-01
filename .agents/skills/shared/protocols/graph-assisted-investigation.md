@@ -1,15 +1,15 @@
-> **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
+> **Graph-Assisted Investigation (optional advice)** — Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.
 >
-> **HARD-GATE:** MUST ATTENTION run at least ONE graph command on key files before concluding any investigation.
+> An absent or stale graph is never a finding and never blocks, fails or gates work.
 >
-> **Pattern:** Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details
+> **Pattern (when used):** grep/read finds files → optional graph query suggests extra callers/dependents → grep/read verifies details
 >
-> | Task                | Minimum Graph Action                         |
-> | ------------------- | -------------------------------------------- |
-> | Investigation | `trace --direction both` on 2-3 entry files  |
-> | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
-> | Feature/Enhancement | `connections` on files to be modified        |
-> | Code Review         | `tests_for` on changed functions             |
-> | Blast Radius        | `trace --direction downstream`               |
+> | Situation                          | Optional graph query                         |
+> | ---------------------------------- | -------------------------------------------- |
+> | High-risk investigation            | `trace --direction both` on 2-3 entry files  |
+> | Fix/debug with wide reach          | `callers_of` on buggy function + `tests_for` |
+> | Feature touching a shared contract | `connections` on files to be modified        |
+> | Review of a high-risk change       | `tests_for` on changed functions             |
+> | Blast radius                       | `trace --direction downstream`               |
 >
 > **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.

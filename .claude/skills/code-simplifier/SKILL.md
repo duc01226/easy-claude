@@ -1,7 +1,7 @@
 ---
 name: code-simplifier
 version: 2.3.0
-description: '[Code Quality] Use when a workflow step or the user asks for code simplification. Improves clarity, consistency and maintainability while preserving behavior.'
+description: '[Code Quality] Use when a workflow step or the user asks for code simplification: clarity, consistency, maintainability, behavior preserved.'
 context-budget: critical
 ---
 
@@ -20,10 +20,10 @@ context-budget: critical
 
 **Summary:** (read-this-if-nothing-else digest — purpose + every main step)
 
-- **Purpose — skeptical-first MUTATOR, not a suggester:** grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` BEFORE touching anything; apply a simplification ONLY when certain it preserves behavior, never when unsure. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
+- **Purpose — skeptical-first MUTATOR, not a suggester:** grep all usages + trace consumers (grep/read; an optional graph downstream trace may hint at more) and cite `file:line` BEFORE touching anything; apply a simplification ONLY when certain it preserves behavior, never when unsure. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
 - **Main steps, run in order:** (1) **Phase 0 Detect** target + scope from project config/source; (2) **Identify Targets** — recent git changes or named files, HARD-SKIP generated/migration/vendor; (3) **Analyze** via the 5 Simplification Dimensions, marking inapplicable ones N/A with a reason; (4) **Apply** one refactoring type at a time (KISS/DRY/YAGNI, behavior-preserving); (5) **Verify** related tests after EACH change; (6) **Self-Recursive Loop** (analyze→simplify→verify) until the current round's exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) or a no-progress/unsafe/owner-decision stop hits — do NOT spawn a fresh-context reviewer for your own findings; (7) **Self-Review Gate**.
 - **The 5 Simplification Dimensions (step 3):** readability · DRY/abstraction (compare real repetition; apply YAGNI) · responsibility based on the project's documented architecture and evidenced ownership · complexity reduction · persistence/query bounds on applicable changed paths only (otherwise N/A) — every technique answers ONE test: does this make the next change cheaper?
-- **Self-Review Gate (step 7) — this skill owns review of its own output:** when it changed any file, self-invoke `/code-quality-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `/changes-review`); skip + log the reason when nothing changed. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
+- **Self-Review Gate (step 7) — this skill owns review of its own output:** when it changed any file, self-invoke `/code-quality-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `/changes-review`); skip + log the reason when nothing changed. Only an explicit `--defer=review` from a caller that runs a FULL review of the settled state afterwards skips it (see `.claude/skills/workflow-review-changes/references/caller-mode.md`); no flag means the gate runs. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
 - **`--report-only`:** read-only mode for a caller that owns every fix (e.g. a review skill's simplification dimension or a workflow review barrier) — steps 1–3 only, each finding with `file:line` + proposed change + behavior-preservation note, no edit of any file, no nested sub-agent, no user question, only the report written; see [Report-Only Mode](#report-only-mode---report-only).
 - **Read FIRST:** `code-review-rules.md` (anti-patterns/checklists) then `project-structure-reference.md`, both under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) — before any modification.
 
@@ -42,7 +42,7 @@ context-budget: critical
 4. **Apply** — One refactoring type at a time following KISS/DRY/YAGNI
 5. **Verify** — Run related tests, confirm no behavior changes; when a caller runs the tests once, last (`SYNC:verify-last-order`, e.g. a `--tests=defer` review fix loop), verify statically instead — re-read the diff against the covering tests and run none, the caller's single verify proves them
 6. **Self-Recursive Check** — Re-run this skill's simplification analysis until the current round's exit bar is clear: Round 1 requires zero validated findings at any severity (a LOW closes by a local fix plus scoped check, or by deferral — `SYNC:double-round-trip-review`); from Round 2 onward only validated CRITICAL/HIGH/MEDIUM findings reopen the loop, while LOW findings are recorded as deferred and do not justify another cycle. Failed binary gates always block.
-7. **Self-Review Gate (MANDATORY when code changed)** — If this skill modified any files, self-invoke `/code-quality-review` scoped to ONLY those changed files; skip + log if nothing changed
+7. **Self-Review Gate (MANDATORY when code changed)** — If this skill modified any files, self-invoke `/code-quality-review` scoped to ONLY those changed files; skip + log if nothing changed, or when the caller passed `--defer=review` (record `Self-review deferred to caller post-fix FULL review`)
 
 **Key Rules:**
 
@@ -57,12 +57,12 @@ context-budget: critical
 
 > **Use when** a caller needs simplification opportunities as findings without edits — e.g. a review skill running its simplification dimension, a workflow parallel review barrier, or a review batch — and another step owns every fix. `--report-only` in `$ARGUMENTS` selects it; without the flag every step applies unchanged.
 >
+> **MANDATORY — when `--report-only` is passed, read `.claude/skills/workflow-review-changes/references/caller-mode.md` § `--report-only` in full FIRST.** It holds the rules every read-only leaf shares (no fix or restart, scope from the caller's brief, no nested fan-out, no user questions, write only the report, return contract); the rules below are this skill's own.
+>
 > 1. **Run steps 1–3 only** (Phase 0 Detect → Identify Targets → Analyze). Apply, Verify, the Self-Recursive loop, and the Self-Review Gate do not run: edit NO file — source, test, config, or doc. The caller runs its own findings-validation gate and owns every fix and re-review. — why: a simplifier that edits inside a review barrier races the diff every sibling reviewer is reading.
-> 2. **Every finding carries:** `file:line` · the simplification dimension · the proposed change (concrete before → after, or the exact edit described) · a behavior-preservation note (the usages and consumers traced — grep and graph evidence — and why observable behavior stays unchanged) · severity per `SYNC:severity-rubric` · confidence. A proposal whose behavior preservation cannot be proven is reported as `behavior-change risk`, never as a safe simplification. — why: the fixer applies it later without this skill's trace, so the evidence must travel with the finding.
-> 3. **No nested fan-out.** Skip the `Agent(subagent_type="code-simplifier", ...)` execution path; analyze sequentially in this context. — why: this skill is already a leaf of the caller's fan-out.
-> 4. **No user questions.** Skip the Workflow Recommendation and Next Steps questions; an owner decision or material trade-off goes UNANSWERED into the returned summary for the caller to ask.
-> 5. **Write only the report** to `tmp/reports/code-simplifier-{date}-{slug}.md`, appended per file. A missing or stale project-reference doc is recorded as a `NOT VERIFIABLE` assumption — never a trigger to run a writer.
-> 6. **Return** the report path, findings grouped by severity, and every unconfirmed owner decision or material trade-off.
+> 2. **Every finding carries:** `file:line` · the simplification dimension · the proposed change (concrete before → after, or the exact edit described) · a behavior-preservation note (the usages and consumers traced — grep/read evidence, plus any graph hint — and why observable behavior stays unchanged) · severity per `SYNC:severity-rubric` · confidence. A proposal whose behavior preservation cannot be proven is reported as `behavior-change risk`, never as a safe simplification. — why: the fixer applies it later without this skill's trace, so the evidence must travel with the finding.
+> 3. **No nested fan-out.** Skip the `Agent(subagent_type="code-simplifier", ...)` execution path; analyze sequentially in this context.
+> 4. **Report file.** Write it to `tmp/reports/code-simplifier-{date}-{slug}.md`, appended per file.
 >
 > For this mode the declared step order ends at step 3; stopping there is the mode's contract, not a skipped step.
 
@@ -166,9 +166,11 @@ Apply this dimension only when project config/reference docs identify a persiste
 - **NEVER** infer a layer, entity/DTO, state store, styling method, or database solely from names, file extensions, or this skill's examples.
 - **ALWAYS** cite config/schema/source evidence and query/runtime behavior before recommending paging or index changes.
 
-## Graph Intelligence (MANDATORY if graph.db exists)
+## Graph Intelligence (optional advice)
 
-Before simplifying, trace what depends on target:
+Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.
+
+Before simplifying, trace what depends on the target (grep/read; optionally the graph):
 
 ```
 python .claude/scripts/code_graph trace <file> --direction downstream --json
@@ -178,7 +180,7 @@ Verify simplified code preserves the interface for every traced consumer. When t
 
 Additional queries:
 
-- Verify no callers break: `python .claude/scripts/code_graph query callers_of <function> --json`
+- Optional hint for callers: `python .claude/scripts/code_graph query callers_of <function> --json`
 - Check dependents: `python .claude/scripts/code_graph query importers_of <module> --json`
 - Batch analysis: `python .claude/scripts/code_graph batch-query file1 file2 --json`
 
@@ -225,6 +227,7 @@ After simplifications are applied, verification requires a **self-recursive simp
 
 > **This skill is a code MUTATOR. It owns the review of its own output.** Once the self-recursive simplification loop above is clean, gate the result:
 >
+> 0. **Caller deferral.** `--defer=review` in `$ARGUMENTS` means the caller runs a FULL review of the settled whole target after this skill returns (see `.claude/skills/workflow-review-changes/references/caller-mode.md`). Skip steps 1–3, record `Self-review deferred to caller post-fix FULL review`, and return the exact list of files this skill changed so that review covers them. Without the flag — including a bare invocation by another skill — run the gate.
 > 1. **Did this skill modify any files?** Determine the exact set of files this skill changed (its own edits — not the whole working tree).
 >    - **No files changed** → SKIP this gate and **log the skip reason** ("code-simplifier made no changes — no self-review needed"). Done.
 >    - **Files changed** → continue.
@@ -236,15 +239,6 @@ After simplifications are applied, verification requires a **self-recursive simp
 > **Why this gate exists:** `/code-simplifier` rewrites code after the main review batch has already run. Without this gate, the simplifier's output would ship unreviewed. This gate moves that review responsibility into the mutator itself — so the `workflow-review-changes` workflow no longer needs a separate `/code-quality-review` step after `/code-simplifier`.
 
 Used standalone (outside a review workflow), this self-review gate is sufficient for the simplifier's own changes; you may still finish with `/changes-review` or the active workflow's review gate for broader, whole-changeset coverage.
-
-## Workflow Recommendation
-
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use `AskUserQuestion` to ask user. Do NOT decide this is "simple enough to skip" — the user decides. **EXEMPT** when invoked by a parent skill or workflow step, when running as a sub-agent, or under `--report-only` — the caller owns routing; ask nothing.
->
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full changes-review restart gate → validated fix cycle (findings validation → `/fix --target=review` → simplify → post-fix re-review) → docs
-> 2. **Execute `/code-simplifier` directly** — run standalone (this skill self-reviews its own changes via the Self-Review Gate)
-
----
 
 ## Next Steps
 
@@ -301,20 +295,16 @@ Rules:
 - Do not spawn a fresh-context reviewer just because simplifications were applied.
 - Do not re-review known findings in a fresh context before fixing them.
 - Do not hand off until the self-recursive pass clears the current round bar; never silently discard deferred LOWs.
-- After the self-recursive loop is clean, run the **Self-Review Gate** — if any files were changed, self-invoke `/code-quality-review` scoped to those files (recursion-safe leaf skill); skip + log if nothing changed.
+- After the self-recursive loop is clean, run the **Self-Review Gate** — if any files were changed, self-invoke `/code-quality-review` scoped to those files (recursion-safe leaf skill); skip + log if nothing changed or the caller passed `--defer=review`.
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
 - `complexity-prevention` — Change-cost lens on complexity (Ousterhout); designing or reviewing code → .claude/skills/shared/protocols/complexity-prevention.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `design-patterns-quality` — Design quality: one owner per rule, fitted patterns, no speculative abstraction; designing or reviewing code structure → .claude/skills/shared/protocols/design-patterns-quality.md
 - `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `shared-protocol-duplication-policy` — Protocol copies in carriers are intentional: edit the canonical source, then propagate; editing a shared protocol or its carriers → .claude/skills/shared/protocols/shared-protocol-duplication-policy.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
@@ -331,23 +321,11 @@ Rules:
 
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
 <!-- SYNC:complexity-prevention:reminder -->
 
-**MUST ATTENTION** apply complexity prevention — one business change = one code change. Flag change amplification (>3 edit sites for future change), scattered type-switches, anemic models, primitive obsession, leaked technology through abstractions, shallow modules, un-extracted utility logic (paging/datetime/string/retry → helpers), and logic in the wrong higher layer (downshift to callee/entity/VM). Don't rationalize silent duplication with pure YAGNI.
+**IMPORTANT MUST ATTENTION** apply complexity prevention — one business change = one code change. Flag change amplification (>3 edit sites for future change), scattered type-switches, anemic models, primitive obsession, leaked technology through abstractions, shallow modules, un-extracted utility logic (paging/datetime/string/retry → helpers), and logic in the wrong higher layer (downshift to callee/entity/VM). Don't rationalize silent duplication with pure YAGNI.
 
 <!-- /SYNC:complexity-prevention:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:severity-rubric:reminder -->
 
@@ -372,32 +350,15 @@ Rules:
 
 <!-- SYNC:parallel-subagent-dispatch:reminder -->
 
-- **MANDATORY** After planning tasks, tag each PAR/SEQ and spawn every PAR wave as parallel sub-agents in ONE message — default parallel for workflows, batch updates, investigation, research, reviews; plan execution fans out ONLY on what the plan declares.
-- **MANDATORY** Disjoint write sets per wave · all-return barrier before the next wave · specialist routing · sub-agents NEVER fan out further unless their own agent definition authorizes it.
-- **MANDATORY** Cost check: a sub-agent's fixed load (definition + loaded skills + brief) is commonly tens of thousands of tokens — dispatch only work that clearly exceeds it; fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; prefer fewer, larger agents.
+- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 <!-- /SYNC:parallel-subagent-dispatch:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
-
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — by simplifying and refining code for clarity, consistency, and maintainability without altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
 
-**IMPORTANT MUST ATTENTION Main steps (run in declared order, never skip/merge):** (1) Phase 0 Detect target and scope from project config/source → (2) Identify Targets (skip generated/migration/vendor) → (3) Analyze the 5 Dimensions and mark inapplicable ones N/A with a reason → (4) Apply one refactoring type at a time → (5) Verify tests after EACH change → (6) Self-Recursive Loop until the current round's exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → (7) Self-Review Gate (`/code-quality-review` on changed files). — why: AI keeps forgetting the skill's own steps; surfacing them here is the recency anchor.
+**IMPORTANT MUST ATTENTION Main steps (run in declared order, never skip/merge):** (1) Phase 0 Detect target and scope from project config/source → (2) Identify Targets (skip generated/migration/vendor) → (3) Analyze the 5 Dimensions and mark inapplicable ones N/A with a reason → (4) Apply one refactoring type at a time → (5) Verify tests after EACH change → (6) Self-Recursive Loop until the current round's exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred) → (7) Self-Review Gate (`/code-quality-review` on changed files; skipped only under `--defer=review`). — why: AI keeps forgetting the skill's own steps; surfacing them here is the recency anchor.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -405,35 +366,31 @@ Rules:
 - **UI System Context:** read frontend-patterns, scss-styling-guide, design-system before touching UI files.
 - **Shared Protocol Duplication Policy:** inline SYNC duplication is intentional — NEVER extract behind file reference.
 - **Source/Test Drift Check:** when source behavior changes, decide from evidence whether tests follow or source is a bug.
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** traced proof per claim, confidence >80% to act, NEVER present guess as fact.
-- **Understand Code First:** read target + grep 3+ patterns + graph trace before writing or fixing.
+- **Understand Code First:** read target + grep 3+ patterns (graph trace is optional advice) before writing or fixing.
 - **Design Patterns Quality:** assess abstraction and responsibility using the project's evidenced architecture; do not impose a fixed object, layer, or framework convention.
 - **Complexity Prevention:** look for evidence-backed change amplification and unclear ownership using the project's actual module boundaries.
 - **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence using `SYNC:severity-rubric`; round 1 blocks on every open validated finding (Round-1 LOW closure), round 2 blocks only CRITICAL/HIGH/MEDIUM, and LOW is recorded/deferred. Failed binary gates always block.
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
-**IMPORTANT MUST ATTENTION** apply a simplification ONLY when certain it preserves behavior — grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` BEFORE touching anything; if unsure → DO NOT apply. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
+**IMPORTANT MUST ATTENTION** apply a simplification ONLY when certain it preserves behavior — grep all usages + trace consumers (grep/read; an optional graph downstream trace may hint at more) and cite `file:line` BEFORE touching anything; if unsure → DO NOT apply. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
 **IMPORTANT MUST ATTENTION** NEVER simplify generated, migration, or vendor files — HARD-SKIP them in Phase 0. — why: regenerated output overwrites edits and migrations are one-time execution paths, not core logic.
 **IMPORTANT MUST ATTENTION** run the Self-Recursive Loop (analyze → simplify → verify) until the current round's exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred); do NOT spawn a fresh-context reviewer for this skill's own findings. — why: re-reviewing your own findings in fresh context burns tokens the convergence loop already owns.
 
 - **MANDATORY** Evidence Gate — every finding/recommendation needs `file:line` proof or a traced call chain; confidence >80% to act, 60-80% verify first, <60% DO NOT recommend. NEVER use "obviously"/"I think"/"should be" without proof.
 - **MANDATORY** break work into small todo tasks via `TaskCreate` BEFORE starting (one task per file read); keep exactly one `in_progress`; mark `completed` immediately; add a final review task. On context loss, `TaskList` first — resume, never duplicate.
-- **MANDATORY** READ `code-review-rules.md` FIRST, then `project-structure-reference.md` — both under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides); search 3+ existing patterns and read the target code BEFORE modification. Run graph trace when `graph.db` exists.
+- **MANDATORY** READ `code-review-rules.md` FIRST, then `project-structure-reference.md` — both under the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides); search 3+ existing patterns and read the target code BEFORE modification. The code graph is optional advice for high-risk blast radius.
 - **MANDATORY** evaluate pattern FIT before copying nearby code — verify same scope, lifetime, base class, constraints; closest example ≠ matching preconditions. — why: a copied pattern with mismatched preconditions compiles but is wrong.
 - **MANDATORY** reason by the 5 Simplification Dimensions — readability, evidenced DRY/abstraction, responsibility according to documented architecture and actual ownership, complexity reduction, and configured persistence/query bounds when relevant (otherwise N/A with a reason); every technique answers ONE test: does this make the next change cheaper?
 - **MANDATORY IMPORTANT MUST ATTENTION** compare repeated behavior before abstraction and assign responsibility from project docs and traced code; names/suffixes are clues only. After every extraction/move/rename, grep ENTIRE scope for dangling references — zero tolerance. — why: "primary file done" ≠ secondary files clean.
 - **MANDATORY IMPORTANT MUST ATTENTION** preserve ALL invariants — NEVER weaken, delete, or trivialize a property/mutation test guarding a `[HARD]` §4 rule or §5 invariant; a behavior change is a Dual-Feedback finding (feed spec AND tests, re-review) — report and stop, never ship silently. — why: green tests on a weakened bar are not a pass.
 - **MANDATORY IMPORTANT MUST ATTENTION** verify ALL affected outputs and tests pass after EACH change (apply one refactoring type at a time) — one build green ≠ all green; when a caller runs the tests once, last (`SYNC:verify-last-order`), compile/type-check each change and leave the test run to that caller's single verify. — why: multi-stack changes regress the stack you didn't check.
-- **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `/code-quality-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `/changes-review` — it recurses into `/code-simplifier`); skip + log the reason when nothing changed. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
-- **MANDATORY** validate route decisions with the user via `AskUserQuestion` when outside a workflow — never auto-decide "simple enough to skip". EXEMPT when invoked by a parent skill, as a sub-agent, or under `--report-only` — the caller owns routing.
+- **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `/code-quality-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `/changes-review` — it recurses into `/code-simplifier`); skip + log the reason when nothing changed or when the caller passed `--defer=review`. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
 - **MANDATORY IMPORTANT MUST ATTENTION** `--report-only` runs steps 1–3 only — edit NO file, no nested sub-agent, no user question; every finding carries `file:line` + proposed change + behavior-preservation note; write only the report and return it. — why: a mutator inside a read-only review barrier races the diff its siblings are reading.
 
 **Anti-Rationalization:**
 
 | Evasion                          | Rebuttal                                                                                                                               |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| "Too simple for graph trace"     | Wrong assumptions waste more time. Run trace anyway when `graph.db` exists.                                                            |
 | "Already searched"               | Show `file:line` evidence. No proof = no search.                                                                                       |
 | "Just a small simplification"    | Small change at wrong layer cascades. Trace consumers first.                                                                           |
 | "Code is self-explanatory"       | Future readers need an evidence trail. Document non-obvious intent.                                                                    |

@@ -45,7 +45,7 @@ const { execFileSync } = require('child_process');
 const VOLATILE_PATTERNS = [
     // <!-- Last scanned: 2026-09-14 -->
     { name: 'last-scanned', re: /(<!--\s*Last scanned:\s*)\d{4}-\d{2}-\d{2}(\s*-->)/g, replace: '$1<DATE>$2' },
-    // <!-- Last verified: 2026-09-16 (docs-update, impact-scoped) -->
+    // <!-- Last verified: 2026-09-16 (docs-manager, impact-scoped) -->
     { name: 'last-verified', re: /(<!--\s*Last verified:\s*)\d{4}-\d{2}-\d{2}/g, replace: '$1<DATE>' },
     // Prose form: "... across 11 indexed categories. Last scanned: 2026-09-14."
     { name: 'last-scanned-prose', re: /(Last scanned:\s*)\d{4}-\d{2}-\d{2}/g, replace: '$1<DATE>' },

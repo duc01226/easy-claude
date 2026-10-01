@@ -30,9 +30,9 @@ git --version
 ```
 .claude/
 |-- settings.json     # Main configuration (hooks, features)
-|-- skills/           # 129 skills (invoked via / prefix, activated by context)
+|-- skills/           # 102 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 25 top-level hook files + 46 lib modules
+|-- hooks/            # 29 top-level hook files + 45 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts
@@ -108,7 +108,7 @@ Searches codebase for relevant files and explains functionality.
 
 ## Step 5: Understanding Hook Events (Optional)
 
-Claude Code intercepts these event types (`SubagentStart` and `UserPromptExpansion` carry only the protocol-delivery handlers — standing agent context is static in the agent `.md` files; `PreCompact` has no live hook — recovery is static re-anchoring from `CLAUDE.md` / `SKILL.md`):
+Claude Code intercepts these event types (`SubagentStart` and `UserPromptExpansion` carry only the protocol-delivery handlers — standing agent context is static in the agent `.md` files; `PreCompact` has no live hook — the universal bundle is re-delivered after a compaction and `TaskList` resumes the task state):
 
 | Event                 | When It Fires            | Example Hook                   |
 | --------------------- | ------------------------ | ------------------------------ |
@@ -117,7 +117,7 @@ Claude Code intercepts these event types (`SubagentStart` and `UserPromptExpansi
 | `UserPromptSubmit`    | Before each user message | `init-prompt-gate.cjs`         |
 | `PostToolUse`         | After tool execution     | `post-edit-prettier.cjs`       |
 | `PreToolUse`          | Before tool execution    | `review-commit-gate.cjs`       |
-| `SubagentStart`       | Sub-agent starts         | `protocol-inject-universal.cjs` |
+| `SubagentStart`       | Sub-agent starts         | `protocol-inject-universal-1.cjs` |
 | `UserPromptExpansion` | Typed `/command` expands | `protocol-inject-review.cjs`   |
 | `Stop`                | Response complete        | `notifications/notify.cjs`     |
 | `Notification`        | Idle/waiting events      | `notifications/notify.cjs`     |
@@ -166,8 +166,8 @@ For more troubleshooting, see [troubleshooting.md](./troubleshooting.md).
 
 The system that learns from your interactions:
 
-1. **`/learn` skill**: Appends lessons to `lessons.md` in the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path
-2. **Lessons delivery**: the read-lessons contract is carried statically in `CLAUDE.md` / `SKILL.md`; re-reading those files re-anchors the lessons after compaction (the former runtime inject/recovery hooks were removed)
+1. **`/learn` skill**: Routes each lesson to its best carrier — `lessons.md` in the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), a matching reference doc, a config field, a skill overlay, or — for a short, broad, project-specific rule — the hand-owned `## Project Rules & Context` section of the root `CLAUDE.md` (user-confirmed, then `sync-codex` refreshes `AGENTS.md`)
+2. **Lessons delivery**: the read-lessons contract arrives with the hook-delivered universal bundle (discovery order: project config, docs index, `lessons.md`), which is re-delivered after a compaction
 
 ### Workflow Detection
 

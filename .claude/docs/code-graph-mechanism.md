@@ -6,9 +6,11 @@
 
 The Code Review Graph builds a **persistent knowledge graph** of your codebase using Tree-sitter **AST (Abstract Syntax Tree)** parsing — a technique that reads source code structure (functions, classes, imports) without executing it, similar to how a compiler understands your code. It stores functions, classes, imports, calls, inheritance, and test relationships in a SQLite database. When you make changes, it can compute a **blast radius** — the set of files, functions, and tests affected by your change (borrowed from incident response: "how far does the damage spread?").
 
-> **On-demand structural context.** Structural context is obtained on demand through the `graph-*` skills (`graph-trace`, `graph-blast-radius`, `graph-query`) and the `python .claude/scripts/code_graph` CLI, which Claude/Codex invoke explicitly per the Graph Intelligence gate in `CLAUDE.md`. The graph DB is kept fresh automatically by `graph-auto-update.cjs` (PostToolUse).
+> **On-demand structural context.** Structural context is obtained on demand through the `graph-code` skill (modes `trace`, `blast-radius`, `query`, `build`, `connect-api`) and the `python .claude/scripts/code_graph` CLI, which Claude/Codex may use as optional advice (see `.claude/skills/shared/protocols/graph-assisted-investigation.md`). The graph DB is kept fresh automatically by `graph-auto-update.cjs` (PostToolUse).
 
-**Key benefit:** Claude can know what your change breaks _before_ reviewing the code. No full-project scan needed.
+> **Advisory only — never required.** Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.
+
+**Key benefit (when used):** the graph can suggest what a change may break _before_ reviewing the code, without a full-project scan — confirm by reading.
 
 ## Architecture
 
@@ -94,8 +96,8 @@ graph TB
         AU["graph-auto-update.cjs<br/>PostToolUse — 3s debounce"]
     end
 
-    subgraph "On-Demand (graph-* skills + code_graph CLI)"
-        CI["graph-blast-radius / graph-trace / graph-query<br/>invoked explicitly"]
+    subgraph "On-Demand (graph-code skill + code_graph CLI)"
+        CI["graph-code --mode=blast-radius / trace / query<br/>invoked explicitly"]
     end
 
     subgraph "Claude Context"
@@ -140,7 +142,7 @@ The graph does **NOT** scan your entire project on every update. It uses `git di
 
 | Scenario                    | Method                               | Speed              |
 | --------------------------- | ------------------------------------ | ------------------ |
-| First time (`/graph-build`) | Full build: parse ALL files          | ~10s for 500 files |
+| First time (`/graph-code --mode=build`) | Full build: parse ALL files          | ~10s for 500 files |
 | After editing a file        | Incremental: `git diff` + hash check | <2s for any size   |
 | After branch switch         | Full rebuild recommended             | ~10s               |
 | No changes detected         | Skip entirely                        | <100ms             |
@@ -239,19 +241,19 @@ Claude sees:
 
 ### When Structural Context Is Pulled
 
-The skills/gates below pull graph context on demand. Only the two graph hooks (`graph-session-init.cjs`, `graph-auto-update.cjs`) run automatically.
+The skills below can pull graph context on demand when the agent judges the blast radius high-risk (optional advice, never required). Only the two graph hooks (`graph-session-init.cjs`, `graph-auto-update.cjs`) run automatically.
 
 | Event                                  | Mechanism                                  | What's Surfaced                                                     |
 | -------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
 | Session start                          | `graph-session-init.cjs` (hook)            | Status: "Graph active. 94 files, 875 nodes" — only while the code graph is active (`hooks.codeGraph.enabled`: `on`, or `auto` with a built graph) |
-| `/code-quality-review` running                 | skill runs `code_graph graph-blast-radius` | Blast radius summary, risk level, impacted files                    |
-| `/changes-review` running              | skill runs `code_graph graph-blast-radius` | Same as above                                                       |
-| `/investigate` running                 | skill runs `code_graph` trace/connections  | Structural overview for exploration                                 |
-| `/debug-investigate` running           | skill runs `code_graph` trace/query        | Dependency context for tracing                                      |
-| `/production-readiness-review` running | skill runs `code_graph graph-blast-radius` | Impact assessment for prod readiness                                |
-| `/investigate` invoked                 | (in-skill RECOMMENDED)                     | Callers, imports, tests, inheritance queries for target             |
-| `/graph-query` invoked                 | (standalone skill)                         | Natural language graph queries, 8 patterns                          |
-| `/graph-build --scope=sync`            | (standalone skill)                         | Git-aware sync: diff last_synced_commit vs HEAD, re-parse changed   |
+| `/code-quality-review` running                 | skill may run (optional) `code_graph graph-blast-radius` | Blast radius summary, risk level, impacted files                    |
+| `/changes-review` running              | skill may run (optional) `code_graph graph-blast-radius` | Same as above                                                       |
+| `/investigate` running                 | skill may run (optional) `code_graph` trace/connections  | Structural overview for exploration                                 |
+| `/investigate --mode=debug` running    | skill may run (optional) `code_graph` trace/query        | Dependency context for tracing                                      |
+| `/production-readiness-review` running | skill may run (optional) `code_graph graph-blast-radius` | Impact assessment for prod readiness                                |
+| `/investigate` invoked                 | (in-skill, optional)                     | Callers, imports, tests, inheritance queries for target             |
+| `/graph-code --mode=query` invoked                 | (standalone skill)                         | Natural language graph queries, 8 patterns                          |
+| `/graph-code --mode=build --scope=sync`            | (standalone skill)                         | Git-aware sync: diff last_synced_commit vs HEAD, re-parse changed   |
 | Session starts                         | `graph-session-init.cjs` (hook)            | Auto-sync with git state, report stale files                        |
 | File edited                            | `graph-auto-update.cjs` (hook)             | Nothing visible — silently updates graph.db                         |
 
@@ -451,18 +453,18 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 | `graph-session-init.cjs` | SessionStart | Check graph status, inject guidance                    |
 | `graph-auto-update.cjs`  | PostToolUse  | Incremental update after edits (3s debounce)           |
 
-> Only the two hooks above run automatically. Blast-radius analysis and grep-to-graph guidance live in the `graph-*` skills and the Graph Intelligence gate in `CLAUDE.md`, invoked on demand.
+> Only the two hooks above run automatically. Blast-radius analysis and grep-to-graph guidance live in the `graph-code` skill and the graph-assisted-investigation protocol (`.claude/skills/shared/protocols/graph-assisted-investigation.md`), used only when the agent judges it worthwhile.
 
 ### Skills (`.claude/skills/`)
 
-| Skill                | Purpose                                                                                                                                                                                            |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `graph-build`        | Build, update, or sync the knowledge graph via `--scope={full\|update\|sync}` (auto-runs noise filter + resolve_bare_calls + connectors; `--scope=sync` syncs git state after pull/checkout/merge) |
-| `graph-trace`        | Trace full system flow (upstream/downstream/both) with auto-discovered edge kinds                                                                                                                  |
-| `graph-blast-radius` | Analyze structural impact of changes                                                                                                                                                               |
-| `graph-query`        | Natural language graph queries (8 query patterns)                                                                                                                                                  |
-| `graph-connect-api`  | Detect frontend-backend API connections via graph                                                                                                                                                  |
-| `graph-export`       | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
+| Skill / mode                     | Purpose                                                                                                                                                                                            |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `graph-code --mode=build`        | Build, update, or sync the knowledge graph via `--scope={full\|update\|sync}` (auto-runs noise filter + resolve_bare_calls + connectors; `--scope=sync` syncs git state after pull/checkout/merge) |
+| `graph-code --mode=trace`        | Trace full system flow (upstream/downstream/both) with auto-discovered edge kinds                                                                                                                  |
+| `graph-code --mode=blast-radius` | Analyze structural impact of changes                                                                                                                                                               |
+| `graph-code --mode=query`        | Natural language graph queries (8 query patterns)                                                                                                                                                  |
+| `graph-code --mode=connect-api`  | Detect frontend-backend API connections via graph                                                                                                                                                  |
+| `graph-export`                   | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
 
 **Skills with graph integration** (RECOMMENDED if graph.db exists):
 investigate, debug, code-quality-review, changes-review, production-readiness-review
@@ -482,7 +484,7 @@ investigate, debug, code-quality-review, changes-review, production-readiness-re
    → Incremental update: re-parses auth.py + dependents
 
 4. User: /code-quality-review
-   code-quality-review skill runs graph-blast-radius on the fix
+   code-quality-review skill may run the `blast-radius` CLI on the fix
    → "Risk: MEDIUM | Changed: 1 file, 3 nodes | Impacted: 8 nodes in 5 files"
    → "Impacted files: middleware.py, api/routes.py, test_auth.py"
    → "Changed production functions: validate_token"
@@ -573,7 +575,7 @@ sequenceDiagram
     rect rgb(230, 255, 230)
         Note over WF,Graph: Step 3: /code-quality-review
         WF->>Hook: code-quality-review skill runs blast-radius
-        Hook->>Graph: graph-blast-radius on all changes
+        Hook->>Graph: blast-radius on all changes
         Graph-->>Hook: Risk: MEDIUM, 8 impacted nodes
         Hook-->>WF: review context
         Note over WF: Claude reviews with<br/>structural awareness
@@ -585,8 +587,8 @@ sequenceDiagram
 | Workflow          | Steps Where Graph Activates                                                                                 | What Graph Provides                                                |
 | ----------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | **feature**       | /investigate, /feature-implement (auto-update), /code-quality-review, /changes-review, /production-readiness-review | Structural overview, incremental tracking, blast radius for review |
-| **bugfix**        | /investigate, /debug-investigate, /fix (auto-update), /code-quality-review                                          | Dependency tracing for root cause, impact assessment of fix        |
-| **refactor**      | /investigate, /plan-execute (auto-update), /code-quality-review, /production-readiness-review                       | Ensures refactoring doesn't break callers/dependents               |
+| **bugfix**        | /investigate --mode=debug, /fix (auto-update), /code-quality-review                                                 | Dependency tracing for root cause, impact assessment of fix        |
+| **refactor**      | /investigate, /plan --mode=execute (auto-update), /code-quality-review, /production-readiness-review                       | Ensures refactoring doesn't break callers/dependents               |
 | **hotfix**        | /investigate, /fix (auto-update), /changes-review, /production-readiness-review                             | Fast blast radius to verify minimal production impact              |
 | **investigation** | /investigate                                                                                                | Structural map for understanding code relationships                |
 
@@ -594,14 +596,14 @@ sequenceDiagram
 
 | Skill                          | How Graph Enhances It                                                                           |
 | ------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `/graph-build`                 | Builds the knowledge graph from scratch or updates incrementally                                |
-| `/graph-blast-radius`          | Direct blast radius analysis — shows impacted files, functions, test gaps                       |
-| `/graph-query`                 | Natural language queries: "who calls login?", "tests for AuthService?"                          |
+| `/graph-code --mode=build`                 | Builds the knowledge graph from scratch or updates incrementally                                |
+| `/graph-code --mode=blast-radius`          | Direct blast radius analysis — shows impacted files, functions, test gaps                       |
+| `/graph-code --mode=query`                 | Natural language queries: "who calls login?", "tests for AuthService?"                          |
 | `/graph-export`                | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
-| `/graph-connect-api`           | Detect frontend-backend API connections via graph edges                                         |
+| `/graph-code --mode=connect-api`           | Detect frontend-backend API connections via graph edges                                         |
 | `/code-quality-review`                 | Auto-receives blast radius context when graph exists                                            |
 | `/investigate`                 | Auto-receives structural overview when graph exists                                             |
-| `/debug-investigate`           | Auto-receives dependency context for tracing                                                    |
+| `/investigate --mode=debug`    | Auto-receives dependency context for tracing                                                    |
 | `/production-readiness-review` | Auto-receives impact assessment for prod readiness                                              |
 
 ## Real-World Use Cases (Angular + .NET Microservices)
@@ -641,7 +643,7 @@ my-enterprise-app/
 │           └── user-list.component.spec.ts
 ```
 
-**After `/graph-build`, the graph contains ~350 nodes and ~1,200 edges.**
+**After `/graph-code --mode=build`, the graph contains ~350 nodes and ~1,200 edges.**
 
 ---
 
@@ -772,7 +774,7 @@ A plan says: "Modify `User.cs` to add `PhoneNumber` property."
 
 **Without graph:** Plan lists 3 files. Developer discovers 2 more broken files during implementation.
 
-**With graph:** `/plan-review` runs `importers_of User.cs`:
+**With graph:** `/plan --mode=review` runs `importers_of User.cs`:
 
 ```
 $ query importers_of "Entities/User.cs" --json
@@ -878,9 +880,9 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 | Session start       | `graph-session-init.cjs` fires once          | "Graph active. 350 files, 1200 edges" (~30 tokens) | 30 tokens  | Claude knows graph exists, uses queries instead of grep |
 | `/investigate` runs | investigate skill pulls `code_graph` context | Baseline structural overview (~200 tokens)         | 200 tokens | Claude maps code area in seconds vs minutes of grepping |
 | File edited         | `graph-auto-update.cjs` fires silently       | Nothing visible — graph.db updated in background   | 0 tokens   | Graph stays current. No manual rebuild needed           |
-| `/code-quality-review`      | code-quality-review skill runs `graph-blast-radius`  | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
+| `/code-quality-review`      | code-quality-review skill may run `blast-radius` | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
 | `/investigate`      | Skill RECOMMENDED section                    | Claude runs targeted graph queries (~500 tokens)   | 500 tokens | 4 queries replace reading 47 grep matches               |
-| `/plan-review`      | Completeness checklist item                  | `importers_of` per planned file (~200 tokens)      | 200 tokens | Catches missed dependents before implementation         |
+| `/plan --mode=review`      | Completeness checklist item                  | `importers_of` per planned file (~200 tokens)      | 200 tokens | Catches missed dependents before implementation         |
 
 **How the graph prevents missed updates and stale information:**
 
@@ -889,8 +891,8 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 | Missed dependent files         | Claude greps, misses files that don't contain the search term                   | Graph traces CALLS/IMPORTS edges — finds all dependents regardless of naming           |
 | Cross-service impact invisible | Each service is a separate folder. Claude won't grep across services by default | Graph has API_ENDPOINT edges connecting frontend HTTP calls to backend routes          |
 | Tests not checked              | Claude may forget to verify test coverage                                       | Blast radius lists untested changed functions explicitly                               |
-| Plan misses files              | Developer lists 3 files, misses 4 importers                                     | `/plan-review` runs `importers_of` on each planned file, flags unlisted dependents     |
-| Stale after edits              | If Claude edits a file, relationships change but Claude doesn't re-analyze      | `graph-auto-update.cjs` re-parses after every edit — graph always matches current code |
+| Plan misses files              | Developer lists 3 files, misses 4 importers                                     | `/plan --mode=review` runs `importers_of` on each planned file, flags unlisted dependents     |
+| Stale after edits              | If Claude edits a file, relationships change but Claude doesn't re-analyze      | `graph-auto-update.cjs` re-parses after every edit — usually current, but it can lag moved HEAD, external edits and unindexed paths, so treat results as hints |
 | Refactoring breaks callers     | Rename a class, miss 3 importers in another module                              | `callers_of` and `importers_of` list every consumer before the rename starts           |
 
 ### What Gets Injected Into Claude's Context (Summary)
@@ -899,11 +901,11 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 | ------------------------ | -------------------------------------- | --------------------------------------------- |
 | Session starts           | "Graph active. 350 files, 1,200 edges" | Claude knows graph is available               |
 | `/investigate` runs      | Structural overview of target area     | Faster discovery than blind grep              |
-| File edited              | _(silent)_ graph updates in background | Always current for next query                 |
+| File edited              | _(silent)_ graph updates in background | Usually current for the next query (can lag)  |
 | `/code-quality-review` runs      | Full blast radius with risk level      | Reviews impacted files, not just changed ones |
 | `/investigate` runs      | Targeted callers/imports/tests queries | Maps call chains in seconds vs minutes        |
-| `/plan-review` runs      | Importers of planned files             | Catches missed dependents before coding       |
-| User asks "who calls X?" | `/graph-query` skill activates         | Direct answer with file:line locations        |
+| `/plan --mode=review` runs      | Importers of planned files             | Catches missed dependents before coding       |
+| User asks "who calls X?" | `/graph-code --mode=query` skill activates         | Direct answer with file:line locations        |
 
 ---
 
@@ -1038,14 +1040,14 @@ This is the anchor for the next session's sync — "what changed since I last bu
 
 ### 4. Full Rebuild as Safety Net
 
-If the graph ever gets out of sync (corrupted DB, manual file moves), `/graph-build` does a complete rebuild:
+If the graph ever gets out of sync (corrupted DB, manual file moves), `/graph-code --mode=build` does a complete rebuild:
 
 ```
 $ python code_graph build --json
 → Purges stale files from graph (deleted from disk but still in DB)
 → Re-parses every source file
 → Stores fresh last_synced_commit
-→ Auto-runs graph-connect-api and connect-implicit if configured
+→ Auto-runs connect-api and connect-implicit if configured
 ```
 
 **The maintenance is invisible:** Users never think about graph freshness. It just works.
@@ -1054,7 +1056,7 @@ $ python code_graph build --json
 
 Read [code-graph-setup.md](./code-graph-setup.md) when installing or enabling the graph.
 
-**Quick start:** Python 3.10+ required; `/graph-build` installs the rest into the hooks' environment. Run `/graph-build` to install and build. `hooks.codeGraph.enabled` in `docs/project-config.json` (`auto` default, `on`, `off`) decides whether the graph hooks run.
+**Quick start:** Python 3.10+ required; `/graph-code --mode=build` installs the rest into the hooks' environment. Run `/graph-code --mode=build` to install and build. `hooks.codeGraph.enabled` in `docs/project-config.json` (`auto` default, `on`, `off`) decides whether the graph hooks run.
 
 ## Attribution
 

@@ -1,5 +1,5 @@
 ---
-description: "[Git] Use when generating developer KPI, contribution, story point, man-day, or code-quality reports from git commit history."
+description: "[Git] Use when generating developer KPI, contribution, story point, man-day or code-quality reports from git history."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/git-developer-performance/SKILL.md — do not hand-edit; re-run:

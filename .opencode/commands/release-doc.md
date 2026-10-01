@@ -1,5 +1,5 @@
 ---
-description: "[Git] Use when creating release notes or a release document from git history at any scope (tag-to-tag, branch-to-branch, time range), producing markdown plus a standalone HTML presentation."
+description: "[Git] Use when creating release notes or a release document from git history at any scope (tag, branch, time range), as markdown plus a standalone HTML presentation."
 ---
 
 <!-- GENERATED OPENCODE COMMAND (sync-skills.mjs) for .claude/skills/release-doc/SKILL.md — do not hand-edit; re-run:

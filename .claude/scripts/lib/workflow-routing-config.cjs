@@ -3,14 +3,25 @@
 /**
  * Runtime workflow-routing preference resolver.
  *
- * Automatic route selection is enabled by default. Later valid booleans win:
- *   1. framework default: true
- *   2. tracked team config: <projectConfigPath> -> portability.workflowAutoDetect
- *   3. ignored developer config: .claude/.ck.local.json -> the same key
+ * The OWNER of the per-person route mode and its precedence. Three modes:
+ *   - `ask`  (default): the workflow question is asked only when the model's own route is to start a catalog workflow; direct, single-skill and custom-simple routes ask nothing.
+ *   - `auto`: a matched workflow starts without asking, by its own tier.
+ *   - `off`:  no workflow or workflow skill is started without an explicit user request.
+ * The hook (`workflow-route-inject.cjs`) delivers the route for the resolved mode on every host
+ * that runs it (Claude, Codex, OpenCode bridge); no other surface decides the mode.
  *
- * Missing, unreadable, malformed, and non-boolean values express no opinion. The local file
- * stays inside the portable `.claude` bundle and is ignored by `.claude/.gitignore`.
- * Static context generators carry the default gate; this resolver controls runtime refresh injection.
+ * Precedence, later wins (a missing, unreadable, malformed or invalid value expresses no opinion):
+ *   1. framework default: `ask`
+ *   2. tracked team config: <projectConfigPath> -> portability.workflowRouteMode
+ *   3. personal, every project: <home>/.claude/.ck.json -> the same key (outside the repository)
+ *   4. personal, this checkout: .claude/.ck.local.json -> the same key (git-ignored)
+ *   5. environment: CK_WORKFLOW_ROUTE_MODE
+ *   6. this session: a prompt directive (`workflow-mode: <mode>`, `/workflow-mode <mode>`), recorded by the
+ *      hook in the session's own state and passed in as `sessionMode`
+ * Within one config layer the legacy boolean `portability.workflowAutoDetect` is a fallback:
+ * `false` reads as `off`, `true` as `ask`; `workflowRouteMode` wins when both are present.
+ * Steps 3-6 are personal and never reach tracked output (scope `team` reads steps 1-2 only).
+ * The home directory comes from `os.homedir()` (HOME on POSIX, USERPROFILE on Windows).
  *
  * The same two-layer cascade resolves the OPTIONAL custom route protocol
  * (`portability.workflowRouteProtocol`): framework default (none) -> team -> local, later
@@ -28,10 +39,20 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const DEFAULT_PROJECT_CONFIG_PATH = path.join('docs', 'project-config.json');
 const LOCAL_OVERRIDE_PATH = path.join('.claude', '.ck.local.json');
+// The personal, every-project file: the same `.ck.json` the framework already reads from the user's
+// home as its global layer (`hooks/lib/ck-config-loader.cjs`). It lives outside every repository.
+const USER_CONFIG_RELATIVE_PATH = path.join('.claude', '.ck.json');
+// Route modes: what a workflow the model matched on its own does (see the header).
+const ROUTE_MODES = Object.freeze(['ask', 'auto', 'off']);
+const DEFAULT_ROUTE_MODE = 'ask';
+const ROUTE_MODE_ENV = 'CK_WORKFLOW_ROUTE_MODE';
+// Environment spellings of `off` shared with the other CK_* feature switches; the config key takes the three mode names only.
+const ROUTE_MODE_ENV_OFF_ALIASES = Object.freeze(['0', 'false', 'no', 'disabled']);
 // A protocol file is injected into model context on every prompt, so its size is bounded like
 // the convention-injection payload. Oversized files are truncated with a visible marker rather
 // than silently dropped, so a mis-sized protocol is debuggable.
@@ -42,6 +63,9 @@ const SENSITIVE_PROTOCOL_PATTERN = /(?:^|\/)\.env(?:$|\.)|credentials|secrets?\.
 const SOURCE_DEFAULT = 'default';
 const SOURCE_PROJECT_CONFIG = 'project-config';
 const SOURCE_LOCAL_OVERRIDE = 'local-override';
+const SOURCE_USER_CONFIG = 'user-config';
+const SOURCE_ENVIRONMENT = 'environment';
+const SOURCE_SESSION = 'session';
 // Tracked generators consume the team scope; runtime hooks consume the effective scope.
 const SCOPE_TEAM = 'team';
 const SCOPE_EFFECTIVE = 'effective';
@@ -52,9 +76,22 @@ const ACTIVATION_TIERS = Object.freeze(['auto', 'confirm', 'manual']);
 // A workflow without a valid `activation` in .claude/workflows.json behaves as before tiers existed.
 const DEFAULT_ACTIVATION_TIER = 'auto';
 
+/**
+ * Text of a JSON file whatever editor wrote it. Windows tools commonly save a UTF-8 byte-order mark
+ * (Notepad, `Out-File -Encoding utf8`) or UTF-16 (`>` in Windows PowerShell 5); `JSON.parse` rejects
+ * both, which made a personal file silently express no opinion.
+ */
+function decodeConfigText(buffer) {
+    if (buffer.length >= 2 && buffer[0] === 0xff && buffer[1] === 0xfe) return buffer.toString('utf16le', 2);
+    if (buffer.length >= 2 && buffer[0] === 0xfe && buffer[1] === 0xff) {
+        return Buffer.from(buffer.subarray(2)).swap16().toString('utf16le');
+    }
+    return buffer.toString('utf8').replace(/^\uFEFF/, '');
+}
+
 function readJson(filePath) {
     try {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        return JSON.parse(decodeConfigText(fs.readFileSync(filePath)));
     } catch {
         return null;
     }
@@ -75,45 +112,232 @@ function resolveLocalOverridePath(rootDir) {
     return path.join(rootDir, LOCAL_OVERRIDE_PATH);
 }
 
-function readLayer(filePath) {
-    const value = readJson(filePath)?.portability?.workflowAutoDetect;
-    return typeof value === 'boolean' ? value : undefined;
+/** The personal every-project config file under `homeDir` (default `os.homedir()`), or null without a home. */
+function resolveUserConfigPath(homeDir) {
+    let home = homeDir;
+    if (home === undefined) {
+        try {
+            home = os.homedir();
+        } catch {
+            home = '';
+        }
+    }
+    return typeof home === 'string' && home.trim() ? path.join(home, USER_CONFIG_RELATIVE_PATH) : null;
+}
+
+/** A route mode name (case-insensitive), otherwise undefined (no opinion). */
+function normalizeRouteMode(value) {
+    if (typeof value !== 'string') return undefined;
+    const name = value.trim().toLowerCase();
+    return ROUTE_MODES.includes(name) ? name : undefined;
+}
+
+/** The environment value: a mode name, or one of the shared CK_* `off` spellings; blank or unknown = no opinion. */
+function normalizeEnvRouteMode(value) {
+    if (typeof value !== 'string') return undefined;
+    // `set NAME="auto"` in cmd.exe keeps the quotes in the value.
+    const text = value.trim().replace(/^(["'])(.*)\1$/, '$2').trim();
+    const mode = normalizeRouteMode(text);
+    if (mode) return mode;
+    return ROUTE_MODE_ENV_OFF_ALIASES.includes(text.toLowerCase()) ? 'off' : undefined;
+}
+
+/** One parsed config's mode: `workflowRouteMode`, else the legacy boolean `workflowAutoDetect`, else no opinion. */
+function readRouteModeLayer(config) {
+    const portability = config?.portability;
+    const named = normalizeRouteMode(portability?.workflowRouteMode);
+    if (named) return named;
+    const legacy = portability?.workflowAutoDetect;
+    if (legacy === false) return 'off';
+    if (legacy === true) return DEFAULT_ROUTE_MODE;
+    return undefined;
+}
+
+/** The mode one parsed config expresses alone (the tracked team layer), `ask` when it expresses none. */
+function readWorkflowRouteMode(config) {
+    return readRouteModeLayer(config) || DEFAULT_ROUTE_MODE;
 }
 
 function readWorkflowAutoDetect(config) {
-    return config?.portability?.workflowAutoDetect !== false;
+    return readWorkflowRouteMode(config) !== 'off';
 }
 
-function resolveWorkflowAutoDetect(source) {
+// A directive is the prompt's FIRST non-blank line and nothing else on it: `workflow-mode: auto`,
+// `/workflow-mode auto` or `$workflow-mode auto` (Codex), optionally ending in `save` or `--save`. Prose that
+// merely mentions the words never matches, and neither does a directive on a later line or inside a code fence.
+const DIRECTIVE_RE = /^(?:[/$]workflow-mode[ \t]+|workflow-mode[ \t]*:[ \t]*)(ask|auto|off)(?:[ \t]+((?:--)?save))?[ \t]*$/i;
+
+/**
+ * The route-mode directive a prompt opens with, or null.
+ * @param {string} prompt raw user prompt
+ * @returns {{mode: 'ask'|'auto'|'off', save: boolean}|null}
+ */
+function parseRouteModeDirective(prompt) {
+    if (typeof prompt !== 'string') return null;
+    const first = prompt.split(/\r?\n/).find(line => line.trim() !== '');
+    const match = first === undefined ? null : DIRECTIVE_RE.exec(first.trim());
+    return match ? { mode: match[1].toLowerCase(), save: Boolean(match[2]) } : null;
+}
+
+/**
+ * Persist a mode in a personal file, keeping every other key: `target` `user` = the every-project
+ * `<home>/.claude/.ck.json`, `local` = this checkout's `.claude/.ck.local.json` (the caller confirms the
+ * checkout file is git-ignored). An existing file that is not a JSON object is left untouched.
+ * @param {{mode: string, target?: 'user'|'local', rootDir?: string, homeDir?: string}} options
+ * @returns {{ok: boolean, file?: string, reason?: string}}
+ */
+function writeWorkflowRouteMode(options = {}) {
+    const mode = normalizeRouteMode(options.mode);
+    if (!mode) return { ok: false, reason: 'invalid-mode' };
+    const file = options.target === 'local'
+        ? resolveLocalOverridePath(options.rootDir || process.cwd())
+        : resolveUserConfigPath(options.homeDir);
+    if (!file) return { ok: false, reason: 'no-home' };
+    let temp = null;
+    try {
+        let current = {};
+        if (fs.existsSync(file)) {
+            const parsed = JSON.parse(decodeConfigText(fs.readFileSync(file)));
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { ok: false, file, reason: 'unreadable-config' };
+            current = parsed;
+        }
+        const portability = current.portability && typeof current.portability === 'object' && !Array.isArray(current.portability)
+            ? current.portability
+            : {};
+        current.portability = { ...portability, workflowRouteMode: mode };
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        temp = `${file}.${process.pid}.tmp`;
+        fs.writeFileSync(temp, `${JSON.stringify(current, null, 2)}\n`, 'utf8');
+        fs.renameSync(temp, file);
+        return { ok: true, file };
+    } catch {
+        if (temp) {
+            try { fs.unlinkSync(temp); } catch { /* never created */ }
+        }
+        return { ok: false, file, reason: 'unreadable-config' };
+    }
+}
+
+// The hook records a prompt directive's mode in the session's own state (`_<name>.json` under
+// `<store root>/<session>/`); the `workflow-mode` CLI reads the same record, so both report one winner.
+const SESSION_MODE_STATE = 'route-mode';
+const SESSION_ENV_ID = 'CK_SESSION_ID';
+
+/** The ledger store the route hook keeps its per-session records in. */
+function resolveSessionStoreRoot(rootDir) {
+    return path.join(rootDir || process.cwd(), 'tmp', 'workflow-routing');
+}
+
+/**
+ * The mode a prompt directive set earlier in a session, or undefined (no directive, no session id,
+ * or no readable record). `ledger` and `storeRoot` are injectable (the hook passes its own).
+ * @param {{sessionId?: string, rootDir?: string, storeRoot?: string, ledger?: object}} options
+ * @returns {'ask'|'auto'|'off'|undefined}
+ */
+function readSessionRouteMode(options = {}) {
+    try {
+        if (typeof options.sessionId !== 'string' || !options.sessionId.trim()) return undefined;
+        const ledger = options.ledger || require('../../hooks/lib/convention-ledger.cjs');
+        if (typeof ledger.readSessionState !== 'function') return undefined;
+        const storeRoot = options.storeRoot || resolveSessionStoreRoot(options.rootDir);
+        const state = ledger.readSessionState(storeRoot, options.sessionId, SESSION_MODE_STATE);
+        return normalizeRouteMode(state && state.mode);
+    } catch {
+        return undefined;
+    }
+}
+
+/** The session id the host exported to tool processes (`CK_SESSION_ID`), or ''. */
+function readSessionIdFromEnv(env = process.env) {
+    const value = env && env[SESSION_ENV_ID];
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+/** A short human label for the layer that decided the mode (shown in the injected state line). */
+function describeRouteModeSource(source) {
+    switch (source) {
+        case SOURCE_PROJECT_CONFIG: return 'project config';
+        case SOURCE_USER_CONFIG: return '~/.claude/.ck.json';
+        case SOURCE_LOCAL_OVERRIDE: return '.claude/.ck.local.json';
+        case SOURCE_ENVIRONMENT: return `env ${ROUTE_MODE_ENV}`;
+        case SOURCE_SESSION: return 'set by your prompt this session';
+        default: return 'default';
+    }
+}
+
+/**
+ * Resolve the effective route mode (precedence in the file header).
+ *
+ * @param {string|object} [source] rootDir string, or { rootDir, scope, env, homeDir, sessionMode, configPath, localPath, userPath }
+ *   `env` and `homeDir` exist so a caller (a test, a hook host) can supply them; omitted, they are
+ *   `process.env` and `os.homedir()`. `sessionMode` is the mode the user set for this session by a prompt directive.
+ * @returns {{mode: 'ask'|'auto'|'off', source: string, scope: string, configPath: string, localPath: string,
+ *   userPath: string|null, teamMode: string, projectMode?: string, userMode?: string, localMode?: string,
+ *   envMode?: string, overriddenPersonally: boolean}} `*Mode` fields are what that layer alone expresses
+ *   (undefined = no opinion); `teamMode` is the mode after the framework default and the project layer.
+ */
+function resolveWorkflowRouteMode(source) {
     const options = typeof source === 'string' ? { rootDir: source } : (source || {});
     const rootDir = options.rootDir || process.cwd();
     const scope = options.scope === SCOPE_TEAM ? SCOPE_TEAM : SCOPE_EFFECTIVE;
+    const env = options.env || process.env;
     const configPath = options.configPath || resolveProjectConfigPath(rootDir);
     const localPath = options.localPath || resolveLocalOverridePath(rootDir);
+    const userPath = options.userPath !== undefined ? options.userPath : resolveUserConfigPath(options.homeDir);
 
-    let enabled = true;
+    let mode = DEFAULT_ROUTE_MODE;
     let decidedBy = SOURCE_DEFAULT;
-    const team = readLayer(configPath);
-    if (team !== undefined) {
-        enabled = team;
-        decidedBy = SOURCE_PROJECT_CONFIG;
-    }
-    const teamEnabled = enabled;
+    const apply = (value, layerSource) => {
+        if (value === undefined) return;
+        mode = value;
+        decidedBy = layerSource;
+    };
+    const projectMode = readRouteModeLayer(readJson(configPath));
+    apply(projectMode, SOURCE_PROJECT_CONFIG);
+    const teamMode = mode;
 
-    const local = scope === SCOPE_EFFECTIVE ? readLayer(localPath) : undefined;
-    if (local !== undefined) {
-        enabled = local;
-        decidedBy = SOURCE_LOCAL_OVERRIDE;
+    let userMode;
+    let localMode;
+    let envMode;
+    if (scope === SCOPE_EFFECTIVE) {
+        userMode = userPath ? readRouteModeLayer(readJson(userPath)) : undefined;
+        apply(userMode, SOURCE_USER_CONFIG);
+        localMode = readRouteModeLayer(readJson(localPath));
+        apply(localMode, SOURCE_LOCAL_OVERRIDE);
+        envMode = normalizeEnvRouteMode(env[ROUTE_MODE_ENV]);
+        apply(envMode, SOURCE_ENVIRONMENT);
+        apply(normalizeRouteMode(options.sessionMode), SOURCE_SESSION);
     }
 
     return {
-        enabled,
+        mode,
         source: decidedBy,
         scope,
         configPath,
         localPath,
+        userPath,
+        teamMode,
+        projectMode,
+        userMode,
+        localMode,
+        envMode,
+        overriddenPersonally: mode !== teamMode
+    };
+}
+
+/** The on/off view of the route mode (`off` = disabled), kept for callers of the former boolean switch. */
+function resolveWorkflowAutoDetect(source) {
+    const resolved = resolveWorkflowRouteMode(source);
+    const enabled = resolved.mode !== 'off';
+    const teamEnabled = resolved.teamMode !== 'off';
+    return {
+        enabled,
+        source: resolved.source,
+        scope: resolved.scope,
+        configPath: resolved.configPath,
+        localPath: resolved.localPath,
         teamEnabled,
-        overriddenLocally: local !== undefined && local !== teamEnabled
+        overriddenLocally: resolved.overriddenPersonally && enabled !== teamEnabled
     };
 }
 
@@ -388,11 +612,18 @@ module.exports = {
     ACTIVATION_TIERS,
     DEFAULT_ACTIVATION_TIER,
     DEFAULT_PROJECT_CONFIG_PATH,
+    DEFAULT_ROUTE_MODE,
     LOCAL_OVERRIDE_PATH,
     MAX_PROTOCOL_FILE_BYTES,
+    ROUTE_MODES,
+    ROUTE_MODE_ENV,
+    USER_CONFIG_RELATIVE_PATH,
     SOURCE_DEFAULT,
     SOURCE_PROJECT_CONFIG,
     SOURCE_LOCAL_OVERRIDE,
+    SOURCE_USER_CONFIG,
+    SOURCE_ENVIRONMENT,
+    SOURCE_SESSION,
     SCOPE_TEAM,
     SCOPE_EFFECTIVE,
     effectiveActivationTier,
@@ -401,10 +632,21 @@ module.exports = {
     readWorkflowActivation,
     resolveActivationTier,
     resolveWorkflowActivation,
+    describeRouteModeSource,
+    parseRouteModeDirective,
     readWorkflowAutoDetect,
+    readWorkflowRouteMode,
     readWorkflowRouteProtocol,
+    SESSION_MODE_STATE,
+    SESSION_ENV_ID,
+    readSessionIdFromEnv,
+    readSessionRouteMode,
+    resolveSessionStoreRoot,
     resolveLocalOverridePath,
     resolveProjectConfigPath,
+    resolveUserConfigPath,
     resolveWorkflowAutoDetect,
-    resolveWorkflowRouteProtocol
+    resolveWorkflowRouteMode,
+    resolveWorkflowRouteProtocol,
+    writeWorkflowRouteMode
 };

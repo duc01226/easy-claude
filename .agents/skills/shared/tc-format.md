@@ -3,7 +3,7 @@ title: 'Canonical TC Format'
 version: 1.4.0
 last_reviewed: 2026-07-16
 authority: spec [mode=tests]
-consumers: [spec, spec [mode=tests], spec [mode=sync], integration-test, integration-test-review, artifact-review]
+consumers: [spec, spec [mode=tests], spec [mode=sync], integration-test, pbi --mode=review]
 ---
 
 # Canonical TC Format
@@ -168,7 +168,7 @@ boundaryCounterCase: "amounts summing past the credit limit → order rejected, 
 
 > **A Section 8 TC is a business / user-story acceptance scenario — not a unit of code.** It is written tech-agnostic
 > (M1/M2/M5) and is verified by **one OR MANY** test methods. This section is the canonical cardinality contract for the default TC profile; all
-> consumer skills (`spec [mode=tests]`, `spec`, `integration-test`, `integration-test-review`, `artifact-review`) defer to it when that profile applies.
+> consumer skills (`spec [mode=tests]`, `spec`, `integration-test`, `integration-test --mode=review`, `pbi --mode=review`) defer to it when that profile applies.
 
 This one-to-many rule is authoritative when this default TC profile is selected. A project reference may instead declare a native many-to-many relation, such as one aggregate executor covering several owner-qualified scenarios while each scenario has multiple variant rows or tests. Preserve each owner + scenario + variant identity, and trace every claimed result to the executor and assertion that actually produced it. A shared aggregate pass does not prove an uninspected row. Do not create extra TC entries or another case registry to represent the native relation.
 

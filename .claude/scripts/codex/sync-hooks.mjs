@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { writeFileTransientSafe } from "../lib/write-file-transient-safe.mjs";
 
 const require = createRequire(import.meta.url);
 const { resolveMutationProjectRoot, isInvokedAsScript } = require("../lib/project-root.cjs");
@@ -25,8 +26,8 @@ const disabledCodexEvents = new Map([
 // NARROW EXCEPTION to `disabledCodexEvents`.
 //
 // The "static startup context is authoritative" rationale above holds for a
-// SessionStart hook that only RESTATES what AGENTS.md / .codex/CODEX_CONTEXT.md
-// already carry — mirroring those would duplicate context, which is exactly what
+// SessionStart hook that only RESTATES what AGENTS.md
+// already carries — mirroring those would duplicate context, which is exactly what
 // the skip exists to prevent.
 //
 // It does NOT hold for a SessionStart hook that PRODUCES a runtime signal which a
@@ -38,7 +39,9 @@ const disabledCodexEvents = new Map([
 //
 // Each row names the consumer that forces it. Adding a row asserts that the hook
 // computes something no static carrier can hold; a hook that merely reprints
-// static context does NOT belong here.
+// static context does NOT belong here. The universal bins qualify the same way:
+// the bundle exists only as hook delivery, so their compaction re-delivery has no
+// static fallback.
 const codexSessionStartMirrors = new Map([
   [
     ".claude/hooks/session-init-docs.cjs",
@@ -56,6 +59,10 @@ const codexSessionStartMirrors = new Map([
     ".claude/hooks/verify-install.cjs",
     "probes and repairs machine-native Git/Git Bash capability and publishes a child/session environment signal that static Codex context cannot represent",
   ],
+  ...[1, 2, 3, 4].map(bin => [
+    `.claude/hooks/protocol-inject-universal-${bin}.cjs`,
+    "re-delivers the universal bundle right after a compaction or clear (SessionStart compact|clear); a long autonomous run has no following prompt, and no static carrier holds the bundle",
+  ]),
 ]);
 
 /** Why this SessionStart hook must mirror despite the event-level skip, or null. */
@@ -136,14 +143,16 @@ const supportedEvents = new Set([
   "SubagentStart",
 ]);
 
-// ── Protocol delivery entries (.claude/hooks/protocol-inject-<group>.cjs) ──
+// ── Protocol delivery entries (.claude/hooks/protocol-inject-<name>.cjs, skill-overlay-remind.cjs) ──
 //
-// These six entries deliver shared protocol text when a skill loads. Their Codex
+// The five group entries deliver shared protocol text when a skill loads, the universal bins
+// (protocol-inject-universal-<n>.cjs) deliver the universal bundle on a prompt and at an agent start,
+// and skill-overlay-remind.cjs names the project overlay files when a skill activates. Their Codex
 // mapping differs from every other hook's, and ONLY theirs: each rule below keys
 // on the entry path, so every other handler renders exactly as before (a changed
 // render lands untrusted on Codex and is skipped until the user re-reviews it,
 // which would silently switch off guards such as the commit gate).
-const PROTOCOL_HOOK_PATH = /^\.claude\/hooks\/protocol-inject-[a-z0-9-]+\.cjs$/;
+const PROTOCOL_HOOK_PATH = /^\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs$/;
 
 /** True when `hookPath` (project-relative, `/` separators) is a protocol delivery entry. */
 export function isProtocolHookPath(hookPath) {
@@ -328,7 +337,7 @@ async function main(targetDir = codexDir) {
       "Hooks belong in .codex/hooks.json ONLY. Codex loads ALL matching hook sources (~/.codex and <repo>/.codex, hooks.json and config.toml) rather than letting a higher layer replace a lower one, so declaring the same hook in both .codex/config.toml and .codex/hooks.json runs it twice. Repo-level hooks load automatically but only when the project layer is trusted.",
       "SessionStart hooks are omitted from the generated Codex config by default so startup context is not duplicated; both hosts load the same static files, and an adopter may add a local startup hook as an optional accelerator.",
       "EXCEPTION: SessionStart hooks on the codexSessionStartMirrors allowlist ARE mirrored. They produce a runtime signal that a mirrored non-SessionStart hook consumes, so skipping them would leave the consumer registered and permanently unreachable rather than merely un-accelerated. The report's session_start_mirrors array names each one and the consumer that forces it.",
-      "Protocol delivery entries (.claude/hooks/protocol-inject-<group>.cjs) map differently, and only they do: UserPromptExpansion groups join UserPromptSubmit (reported as remapped-to-user-prompt-submit); groups keyed only to Read or Skill, tools Codex never emits, are not mirrored (matcher-names-no-codex-tool); the Read group's entries render once more on the Codex shell tool, Bash (codex_only_groups); a SubagentStart agent-type list is anchored because Codex matchers are unanchored regexes; each entry carries additionalContextLimit 3000 and a launcher without the Git step. Every other handler renders as before, so existing Codex hook trust holds; the new entries need review in Codex /hooks before they run.",
+      "Protocol delivery entries (.claude/hooks/protocol-inject-<name>.cjs and .claude/hooks/skill-overlay-remind.cjs) map differently, and only they do: UserPromptExpansion groups join UserPromptSubmit (reported as remapped-to-user-prompt-submit); groups keyed only to Read or Skill, tools Codex never emits, are not mirrored (matcher-names-no-codex-tool); the Read group's entries render once more on the Codex shell tool, Bash (codex_only_groups); a SubagentStart agent-type list is anchored because Codex matchers are unanchored regexes; each entry carries additionalContextLimit 3000 and a launcher without the Git step. Every other handler renders as before, so existing Codex hook trust holds; the new entries need review in Codex /hooks before they run.",
     ],
     session_start_mirrors: [...codexSessionStartMirrors].map(([hook, reason]) => ({
       hook,
@@ -501,8 +510,8 @@ async function main(targetDir = codexDir) {
 
   await fs.mkdir(targetDir, { recursive: true });
   await fs.mkdir(path.dirname(hooksReportPath), { recursive: true });
-  await fs.writeFile(hooksPath, `${JSON.stringify({ hooks: codexHooks }, null, 2)}\n`, "utf8");
-  await fs.writeFile(hooksReportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  await writeFileTransientSafe(hooksPath, `${JSON.stringify({ hooks: codexHooks }, null, 2)}\n`, "utf8");
+  await writeFileTransientSafe(hooksReportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
   if (targetDir === codexDir) {
     console.log(

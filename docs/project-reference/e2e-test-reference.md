@@ -20,14 +20,14 @@ Adopter projects may opt into an `e2eTesting.execution` profile in
 fields below describe the portable handoff and are not facts about this
 framework's own runtime:
 
-| Profile area  | Contract                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `surfaceIds`  | Links E2E execution to `experienceVerification.surfaces[]`; that surface's `localRun` owns dependencies, startup, readiness, teardown, runtime logs, and reference-only `credentialsRef`.                                                                                                                                                                                                                    |
-| `auth`        | Declares `fixture`, `storage-state`, `registration`, `manual`, or `none` plus non-secret references. Never copy credentials, cookies, tokens, headers, or storage contents into a prompt, command, test, or report.                                                                                                                                                                                          |
-| `data`        | Declares the verified seed command/working directory, `reference-only`/`idempotent`/`additive` mode, and cleanup policy. Use the project recipe; do not mutate a datastore as a UI shortcut.                                                                                                                                                                                                                 |
+| Profile area  | Contract                                                                                                                                                                                                                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surfaceIds`  | Links E2E execution to `experienceVerification.surfaces[]`; that surface's `localRun` owns dependencies, startup, readiness, teardown, runtime logs, and reference-only `credentialsRef`.                                                                                        |
+| `auth`        | Declares `fixture`, `storage-state`, `registration`, `manual`, or `none` plus non-secret references. Never copy credentials, cookies, tokens, headers, or storage contents into a prompt, command, test, or report.                                                              |
+| `data`        | Declares the verified seed command/working directory, `reference-only`/`idempotent`/`additive` mode, and cleanup policy. Use the project recipe; do not mutate a datastore as a UI shortcut.                                                                                     |
 | `browser`     | Selects the project-configured runner/engine and supported interaction mode. Use its native readiness/outcome waits or a documented helper with bounded timeouts and useful diagnostics. Action pacing is optional and applies only when configured; no fixed delay is required. |
-| `evidence`    | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them.                                                                                                                                      |
-| `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh.                                                                                                                                                                                                                                 |
+| `evidence`    | Declares the project-relative evidence root, capture kinds, and a non-empty redaction policy whenever sensitive captures are enabled. Attach console/page errors/failed requests before interaction when applicable; read screenshots/traces/video before judging them.          |
+| `convergence` | Bounds attempts, consecutive green runs, and settle timeout. Keep the same scope; classify failures before edits, fix at the owning layer, review each fix, and rerun fresh.                                                                                                     |
 
 Candidate E2E evidence and repeatable run output belong under the project-root
 `tmp/` or `temp/` directory (prefer `tmp/e2e`), which the root `.gitignore`
@@ -61,7 +61,7 @@ The canonical execution surface is `.claude/skills/workflow-e2e/`, which routes 
 
 easy-claude is a JavaScript/Python Claude Code framework whose configured modules are hooks, libraries, skills, agents, scripts, workflows, and documentation (`docs/project-config.json:4-16`, `docs/project-config.json:23-73`). It has no application UI mapping, browser test project, or configured external infrastructure (`docs/project-config.json:106-119`, `docs/project-config.json:132-161`).
 
-The project-owned test layer is the custom CJS hook harness (`docs/project-config.json:120-130`, `package.json:43-46`). Skill-local Playwright utilities are support assets for target projects and do not create an E2E dependency edge for this repository (`.claude/skills/playwright-cli/references/playwright-tests.md`, `.claude/skills/excalidraw-diagram/references/render_excalidraw.py:138-147`).
+The project-owned test layer is the custom CJS hook harness (`docs/project-config.json:120-130`, `package.json:43-46`). Skill-local Playwright utilities are support assets for target projects and do not create an E2E dependency edge for this repository (`.claude/skills/playwright-cli/references/playwright-tests.md`).
 
 ## Base Classes
 
@@ -69,7 +69,7 @@ The project-owned test layer is the custom CJS hook harness (`docs/project-confi
 
 ## Page Object Pattern
 
-**N/A.** No project page-object hierarchy, reusable UI wrapper, selector strategy, navigation abstraction, or authentication state exists. Generic selectors and `page.goto` in `.claude/skills/excalidraw-diagram/references/render_excalidraw.py:141` demonstrate a reusable skill asset, not a project convention.
+**N/A.** No project page-object hierarchy, reusable UI wrapper, selector strategy, navigation abstraction, or authentication state exists. Generic selectors and `page.goto` in the skill-local Playwright examples (`.claude/skills/playwright-cli/references/running-code.md`) demonstrate a reusable skill asset, not a project convention.
 
 ## Wait & Assertion Patterns
 
@@ -109,7 +109,7 @@ When visual review is requested or required, reconcile the declared capture inve
 
 Before judging applicable visual evidence, read `docs/project-config.json` and resolve the design-system references that actually exist (`designSystem.canonicalDoc`, `tokenFiles`, and `appMappings[]`). Use project design decisions and accepted direction first, then the relevant shared UI guidance. If the project has no design-system artifact, rely on verified existing conventions and state that limitation; never invent tokens, breakpoints, typography, CSS methodology, or component boundaries.
 
-Record component ownership using the project's declared taxonomy or observed code boundaries. Apply BEM, SCSS, Page Objects, or any other methodology only when project config, references, or code show that the project uses it. Route running-surface observations to `/experience-review` and source-only implementation findings to `/ui-review`. Never promote a baseline without the project's explicit acceptance record.
+Record component ownership using the project's declared taxonomy or observed code boundaries. Apply BEM, SCSS, Page Objects, or any other methodology only when project config, references, or code show that the project uses it. Route running-surface observations to `/experience-review` and source-only implementation findings to `/ui-design --mode=review`. Never promote a baseline without the project's explicit acceptance record.
 
 ## Configuration
 

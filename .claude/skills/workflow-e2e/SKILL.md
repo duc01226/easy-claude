@@ -1,7 +1,7 @@
 ---
 name: workflow-e2e
 version: 1.3.0
-description: '[Workflow] Use when writing, updating, and verifying E2E tests through a bounded green fix/retest loop. Flags: --source={changes|recording|update-ui|prompt|context|whole}, --visual-review={true|false} (resolve from the task request and project contract; no framework-wide default).'
+description: '[Workflow] Use when writing, updating and verifying E2E tests through a bounded green fix/retest loop. --source={changes|recording|update-ui|prompt|context|whole}, --visual-review={true|false}.'
 disable-model-invocation: false
 ---
 
@@ -18,9 +18,9 @@ disable-model-invocation: false
 
 **Goal:** One E2E lifecycle for every request — resolve the source and scope, author or update tests only when needed, then converge the fixed scope to an honest green through the configured runner. E2E quality/visual review is capped at one pass per verification attempt; execution/fix/retest rounds remain a separate bounded convergence mechanism.
 
-**Use this** to write, update, run, verify or fix E2E/browser/user-flow coverage. Use `workflow-integration-test-green` / `workflow-write-integration-test` for integration tiers, `/e2e-test-verify` alone for a one-shot report-only check, and `workflow-bugfix` when the task is a product bug whose E2E test is only the proof.
+**Use this** to write, update, run, verify or fix E2E/browser/user-flow coverage. Use `workflow-integration-test` (`--mode=green` / `--mode=write`) for integration tiers, `/e2e-test --mode=verify` alone for a one-shot report-only check, and `workflow-bugfix` when the task is a product bug whose E2E test is only the proof.
 
-**IMPORTANT MANDATORY Steps:** /investigate -> /e2e-test -> /e2e-test-verify --fix-loop -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /investigate -> /e2e-test -> /e2e-test --mode=verify --fix-loop -> /docs-manager --mode=update -> /workflow-end -> /watzup
 
 **Step contract:** steps follow `/start-workflow` → Step Execution Protocol — `gate` steps always run, a step that runs invokes its `Skill` tool, and every other deviation is logged. NEVER batch-complete validation gates.
 
@@ -39,12 +39,12 @@ The triage picks which recommended skills run and how deep. An unresolvable sour
 
 | Gate                                                                                       | Evidence that proves it                                                                                                                                                                                                                       |
 | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests-pass` — the fixed scope is green in THIS run                                        | `/e2e-test-verify --fix-loop` report: exact runner output (counts, failing names, exit status), the configured consecutive fresh green runs, Round Integrity Check pass, no scope shrink, no skipped/weakened/deleted test                    |
+| `tests-pass` — the fixed scope is green in THIS run                                        | `/e2e-test --mode=verify --fix-loop` report: exact runner output (counts, failing names, exit status), the configured consecutive fresh green runs, Round Integrity Check pass, no scope shrink, no skipped/weakened/deleted test                    |
 | Case traceability                                                                          | Each selected owner-qualified case/variant (or strict-default TC/§8 when no native `specArtifacts` profile applies) maps to an actual test, assertion and observed result; ID presence alone is not proof; unresolved links stay `UNVERIFIED` |
 | Honest verdicts                                                                            | Every failure is classified `SOURCE-WRONG` / `TEST-WRONG` / `TEST-NOT-OPTIMAL` / `ENVIRONMENT-BLOCKED` / `AMBIGUOUS` before any edit; a fix lands at the owning layer and is reviewed                                                         |
 | Explicit acceptance                                                                        | No snapshot, baseline, fixture or expectation changes without a named acceptance record; otherwise `ACCEPTANCE-PENDING`                                                                                                                       |
 | Visual (when it applies)                                                                   | One review pass per verification attempt: every required capture opened/read case by case via `/experience-review --rounds=0`; blocking findings return to the execution/fix/retest loop. A false value cannot waive a required gate            |
-| Docs synced (when the run changed tests, baselines, product source or documented behavior) | `/docs-update` triage result with terminal evidence                                                                                                                                                                                           |
+| Docs synced (when the run changed tests, baselines, product source or documented behavior) | `/docs-manager --mode=update` triage result with terminal evidence                                                                                                                                                                                           |
 | `run-closed`                                                                               | `/workflow-end` (top-level only) verifies every gate above                                                                                                                                                                                    |
 
 `N/A` needs evidence: E2E is `APPLICABLE` only with a configured framework, runner and command; a relevant but unavailable capability is `ENVIRONMENT-BLOCKED`, never green.
@@ -55,17 +55,19 @@ The triage picks which recommended skills run and how deep. An unresolvable sour
 | --------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `/investigate`                          | Scope, runner, case profile or test organization is not already evidenced in this session; M+ size | Applicability, case map, commands, data strategy           |
 | `/e2e-test` (`e2e-author`, conditional) | `--source` is `changes`, `recording` or `update-ui`                                                | Authored/updated artifact + exact scope handed to the loop |
-| `/e2e-test-verify --fix-loop` (gate)    | Always                                                                                             | `tests-pass`, verdicts, visual gate, fresh reruns          |
+| `/e2e-test --mode=verify --fix-loop` (gate)    | Always                                                                                             | `tests-pass`, verdicts, visual gate, fresh reruns          |
 | `/experience-review --rounds=0`         | Called by the loop when visual review applies                                                      | Per-capture records, blocking vs advisory findings         |
-| `/docs-update` (conditional)            | The run changed tests, baselines, product source, specs or documented behavior                     | Docs synced                                                |
-| `/workflow-end` + `/watzup`             | Always (top-level run)                                                                             | `run-closed`, handoff summary                              |
+| `/docs-manager --mode=update` (conditional)            | The run changed tests, baselines, product source, specs or documented behavior                     | Docs synced                                                |
+| `/workflow-end` (gate)                  | Always                                                                                             | `run-closed`                                               |
+| `/watzup` (`e2e-watzup`, conditional)   | Top-level run only; a nested run leaves the recap to its parent                                    | Handoff summary                                            |
 
-`/test` is not a second top-level run and no separate visual-fix loop exists — `/e2e-test-verify --fix-loop` is the single convergence and remediation owner after preparation. Skipping a recommended skill is fine when triage shows it does no real work; log it as a deviation (`intent-skip` / `when-false`) with evidence.
+`/test` is not a second top-level run and no separate visual-fix loop exists — `/e2e-test --mode=verify --fix-loop` is the single convergence and remediation owner after preparation. Skipping a recommended skill is fine when triage shows it does no real work; log it as a deviation (`intent-skip` / `when-false`) with evidence.
 
 **Conditional step notes (registry `skipReason`, verbatim):**
 
-- `/e2e-test` — skip when: Resolved --source is prompt, context, or whole; e2e-test-verify --fix-loop owns scenario selection or generation for that source.
-- `/docs-update` — skip when: Verification-only run: no test, baseline, product source, spec, or documented behavior changed, so docs-update has nothing to record; cite the unchanged diff and the terminal verify report.
+- `/e2e-test` — skip when: Resolved --source is prompt, context, or whole; e2e-test --mode=verify --fix-loop owns scenario selection or generation for that source.
+- `/docs-manager --mode=update` — skip when: Verification-only run: no test, baseline, product source, spec, or documented behavior changed, so docs-manager --mode=update has nothing to record; cite the unchanged diff and the terminal verify report.
+- `/watzup` — skip when: Nested inside a parent workflow (workflow-feature, workflow-bugfix, workflow-big-feature, workflow-greenfield-init); the parent's tail (workflow-end then watzup) owns the whole run's recap, so this nested run's workflow-end skips its recap as `covered by the parent workflow's watzup` instead of printing a second one.
 
 ## Source Dispatch (`--source`)
 
@@ -89,7 +91,7 @@ Read `.claude/skills/shared/e2e-quality-protocol.md` before authoring or verific
 
 ## Test Architecture Contract Handoff
 
-Resolve one record before the first authoring or verification step and carry it to every step (the loop owns execution evidence; `/docs-update` receives the terminal result):
+Resolve one record before the first authoring or verification step and carry it to every step (the loop owns execution evidence; `/docs-manager --mode=update` receives the terminal result):
 
 | Field                            | Required content                                                                                                                                                           |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -114,18 +116,15 @@ You choose inline vs sub-agent, batching and wave layout, optimizing wall-clock 
 
 ## Fix Path & Loop Bounds
 
-Owned by `/e2e-test-verify --fix-loop`; this workflow only enforces its bounds. Classify before editing, trace root cause with `/debug-investigate`, fix at the owning layer with `/fix`, review the round's diff with `/changes-review`, run the Round Integrity Check, then rerun fresh over the same scope. Converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3). A non-shrinking or rising failure count, a cap hit with failures open, scope shrink or test loss → `NOT-CONVERGED` and escalate via `AskUserQuestion` with exact evidence. Never weaken, skip, narrow, delete, silence or auto-accept to obtain green.
+Owned by `/e2e-test --mode=verify --fix-loop`; this workflow only enforces its bounds. Classify before editing, trace root cause with `/investigate --mode=debug`, fix at the owning layer with `/fix`, review the round's diff with `/changes-review`, run the Round Integrity Check, then rerun fresh over the same scope. Converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3). A non-shrinking or rising failure count, a cap hit with failures open, scope shrink or test loss → `NOT-CONVERGED` and escalate via `AskUserQuestion` with exact evidence. Never weaken, skip, narrow, delete, silence or auto-accept to obtain green.
+
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-mistake-prevention` — Failure modes to avoid on every task; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/ai-mistake-prevention.md
-- `critical-thinking-mindset` — Critical and sequential thinking with traced proof for every claim; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/critical-thinking-mindset.md
 - `e2e-visual-design-contract` — Evidence and baseline rules for visual review in E2E and human QC; handling visual-review evidence or visual baseline updates → .claude/skills/shared/protocols/e2e-visual-design-contract.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `project-protocol-overlay` — Resolve the additive project overlays for the running skill; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-protocol-overlay.md
-- `project-reference-docs-guide` — Read the project config and the right reference docs just in time; carried by the root instruction file; if it is absent, read → .claude/skills/shared/protocols/project-reference-docs-guide.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
@@ -133,30 +132,12 @@ Owned by `/e2e-test-verify --fix-loop`; this workflow only enforces its bounds. 
 
 <!-- PROTOCOL-GUIDES:END -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** critical + sequential thinking: every claim carries traced evidence (`file:line` for code, source URL or artifact section otherwise); confidence >80% to act, <60% do NOT recommend. Never present a guess as fact; admit uncertainty and stay skeptical of your own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** Check project config, relevant references, and local evidence before applying stack-specific conventions; honor explicit N/A. ROOT-CAUSE GATE: before any project-related correction, use the appropriate root-cause investigation protocol; failed/unstable tests require the test-investigation protocol before editing source/tests — never force green.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
-
-<!-- SYNC:project-protocol-overlay:reminder -->
-
-**MUST ATTENTION** resolve this skill's overlays from the index at `<docsRoots.projectReference.path>/skill-protocols-reference.md` (default `docs/project-reference/`; overridable in `docs/project-config.json`); an empty task `referenceDocs` does NOT disable this lookup. Read ONLY matched bodies from the directory the index header names (default `docs/project-protocols/`). Specificity (exact > glob > `*`) ranks overlays against EACH OTHER, never against the skill. Missing/malformed body → report and skip; no index or no match → proceed silently. Overlays are ADDITIVE ONLY — never an authority escalation or a gate waiver; equal-tier contradiction goes to the user.
-
-<!-- /SYNC:project-protocol-overlay:reminder -->
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
@@ -168,30 +149,20 @@ Owned by `/e2e-test-verify --fix-loop`; this workflow only enforces its bounds. 
 
 <!-- SYNC:e2e-visual-design-contract:reminder -->
 
-**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system and frontend decisions plus applicable `UI-*`/`DD-*`/`CL-*` roles, records component ownership using the project's taxonomy or observed boundaries, sends static source findings to `/ui-review` and runtime image evidence to `/experience-review`, captures states and transitions required by the configured evidence contract, reloads the convention docs then reads and records each required capture before synthesizing findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
+**MUST ATTENTION** visual E2E/QC resolves the project design authority first, applies project design-system and frontend decisions plus applicable `UI-*`/`DD-*`/`CL-*` roles, records component ownership using the project's taxonomy or observed boundaries, sends static source findings to `/ui-design --mode=review` and runtime image evidence to `/experience-review`, captures states and transitions required by the configured evidence contract, reloads the convention docs then reads and records each required capture before synthesizing findings with coverage gaps, treats `UIX`/UI/accessibility-floor findings as blocking and `UIX-POLISH`/DD identity as advisory, never invents measurements, and never auto-promotes baselines; non-visual runs state `N/A`.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
 
 
 <!-- SYNC:session-goal-ledger:reminder -->
 
-- **MANDATORY** Pin `Original goal:` before the first action and keep `User prompts this session: P1…Pn` current; re-read both at every step, before delegation, and after compaction.
-- **MANDATORY** Before claiming done, map the result to the original goal and every prompt (`P# → done | deferred | n/a`); never store secrets in them.
+- **MANDATORY** Session goal ledger per the `Task Planning Rules`: pin `Original goal:`, keep `User prompts this session: P1…Pn`, and map the result to every prompt before claiming done; full text: `.claude/skills/shared/protocols/session-goal-ledger.md`.
 
 <!-- /SYNC:session-goal-ledger:reminder -->
 
-<!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** Project config is OPTIONAL (default `docs/project-config.json`, via its loader): absent → portable defaults plus repository evidence, state material assumptions, never block; present → non-empty `project.name`, neutral defaults for omitted capabilities, fail closed on a declared malformed section.
-- **MANDATORY** An explicit `referenceDocs` array is exact, including `[]`; absent → only the capability-aware resolver output, which may be empty. `lessons.md` and docs-index are always-on, outside that selection. A missing/stale required input or malformed declared section → `/project-init` or the narrow owner route before relying on it.
-- **MANDATORY** Pick docs by the phase you are about to enter — plan/investigate, edit code, tests, specs/docs, review — from the gate's routing table, JUST IN TIME before the first target read/grep/edit/test, plus the file's `contextGroups[]` conventions before editing it; cite `Reference docs read: ...`.
-- **MANDATORY** Dedup: skip a re-read only for your own full read after the last compaction, within ~200K tokens, unchanged since — a hook reminder, summary, or prior mention is NEVER evidence; re-read after compaction or resume, and give delegated sub-agents the resolved doc paths. Project config and conventions override generic framework defaults.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
-
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** one E2E lifecycle — resolve `--source` and visual mode, author only when the source needs it, then converge the fixed scope to an honest green through `/e2e-test-verify --fix-loop` or escalate with exact evidence.
+**IMPORTANT MUST ATTENTION Goal:** one E2E lifecycle — resolve `--source` and visual mode, author only when the source needs it, then converge the fixed scope to an honest green through `/e2e-test --mode=verify --fix-loop` or escalate with exact evidence.
 
 - **MUST ATTENTION** triage first (source, size, kind, risk) and record it; size changes batching and depth, never whether the green gate runs.
 - **MUST ATTENTION** `tests-pass` = exact runner output for the fixed scope, configured consecutive fresh green runs within the round cap, Round Integrity Check pass — never weaken, skip, narrow, delete or auto-accept a test or baseline to get there.

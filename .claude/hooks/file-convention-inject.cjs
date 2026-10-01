@@ -25,8 +25,8 @@
  * unless the project opted in. With NO project config file, the built-in fallback applies:
  * delivery on, the UI/UX gate and AI-feature gate classes (file-conventions builtinFallbackConfig). An existing
  * config without the switch, or a malformed one, stays silent. On ANY failure, exit 0 with empty
- * stdout (BR-PFCI-01, BR-PFCI-10). Hookless fallback: CLAUDE.md
- * "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>`.
+ * stdout (BR-PFCI-01, BR-PFCI-10). Non-automatic carriers: the CLAUDE.md
+ * "Automatic Skill Activation" table + `node .claude/hooks/lib/file-conventions.cjs --lookup <path>` (shell read).
  *
  * Exit: always 0.
  */

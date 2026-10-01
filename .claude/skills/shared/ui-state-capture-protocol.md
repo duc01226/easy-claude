@@ -27,10 +27,10 @@ Binds when an executable visual UI surface exists **and** visual review is reque
 | Consumer | Owns |
 | --- | --- |
 | `e2e-test` / `e2e-runner` | Uses the configured/discovered shared action, helper, fixture, or object boundary when one owns the exercised actions; declares the trigger set and bounds, emits the manifest. A POM is not required. |
-| `e2e-test-verify` | Report-only: verifies the manifest exists, is complete against the journey, and that captures were read; never repairs |
-| `e2e-test-verify --fix-loop` | Runs the round, reconciles manifest vs records, feeds validated `BLOCKING` visual defects into the round's failure set, fixes the owning layer, reruns the same scope |
+| `e2e-test --mode=verify` | Report-only: verifies the manifest exists, is complete against the journey, and that captures were read; never repairs |
+| `e2e-test --mode=verify --fix-loop` | Runs the round, reconciles manifest vs records, feeds validated `BLOCKING` visual defects into the round's failure set, fixes the owning layer, reruns the same scope |
 | `experience-review` | Opens and judges each capture, owns the per-case records, the taxonomy verdicts, and the synthesis |
-| `ui-review` | Receives the static source findings the images point at (tokens, BEM/SCSS, z-index, component ownership, reuse) |
+| `ui-design --mode=review` | Receives the static source findings the images point at (tokens, BEM/SCSS, z-index, component ownership, reuse) |
 | `workflow-e2e` | Sequences the above and forwards the resolved `--visual-review` mode |
 
 ## Configuration
@@ -214,7 +214,7 @@ Map to the existing gate: `BLOCKING` findings enter the E2E round's failure set 
 
 ### 3.4 Evidence discipline
 
-Cite the image and the location, and say what **in the image** shows the defect. Never infer source architecture, tokens, or component structure from a picture — those go to `/ui-review` as static findings. Never invent a measurement: if the claim needs a number the capture cannot give, record `NOT VERIFIABLE` and name what would settle it. `NOT-VERIFIABLE` is missing capability, not a defect, and is never `BLOCKING`.
+Cite the image and the location, and say what **in the image** shows the defect. Never infer source architecture, tokens, or component structure from a picture — those go to `/ui-design --mode=review` as static findings. Never invent a measurement: if the claim needs a number the capture cannot give, record `NOT VERIFIABLE` and name what would settle it. `NOT-VERIFIABLE` is missing capability, not a defect, and is never `BLOCKING`.
 
 ---
 
@@ -235,7 +235,7 @@ AUTHORITY  <design/convention docs resolved, and any absent>
 BLOCKING   <clustered finding · code · owning component/layer · locations · proposed owning-layer fix>
 ADVISORY   <clustered finding · code · locations · rationale>
 JOURNEY    <sequence-level findings>
-ROUTED     /fix --target=ui <...> · /ui-review <static source findings> · <spec/owner escalations>
+ROUTED     /fix --target=ui <...> · /ui-design --mode=review <static source findings> · <spec/owner escalations>
 VERDICT    PASS | BLOCKING-OPEN | ENVIRONMENT-BLOCKED | UNVERIFIED
 ```
 
@@ -245,7 +245,7 @@ VERDICT    PASS | BLOCKING-OPEN | ENVIRONMENT-BLOCKED | UNVERIFIED
 
 - `PASS` requires: manifest complete, every row reviewed and read, zero open `BLOCKING` findings, and coverage gaps recorded. A green E2E command alone is **never** a visual pass.
 - `ENVIRONMENT-BLOCKED` names the missing capture, masking, viewport, or inspection capability. `UNVERIFIED` names the unreviewed captures.
-- Route: owning-layer UI defects → `/fix --target=ui` then a fresh same-scope E2E rerun · static source/token/BEM/ownership findings → `/ui-review` · runtime/log findings → `/experience-review` · spec or intent gaps → the spec owner.
+- Route: owning-layer UI defects → `/fix --target=ui` then a fresh same-scope E2E rerun · static source/token/BEM/ownership findings → `/ui-design --mode=review` · runtime/log findings → `/experience-review` · spec or intent gaps → the spec owner.
 - Never call `--update-snapshots`, replace a visual fixture, or promote a baseline from this protocol's output. Candidate evidence becomes an expectation only through an explicit `HUMAN-ACCEPTED` record.
 
 ## Required record
