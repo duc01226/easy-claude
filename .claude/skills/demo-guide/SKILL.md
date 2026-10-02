@@ -106,15 +106,15 @@ State the resolved scope and its source in one line (e.g. `Scope: <feature> — 
 
 For a native profile, **MUST ATTENTION** preserve owner-qualified scenario identity and variants exactly; map each to actual test/executor or explicitly approved manual-QC carriers and inspected assertions or observed outcomes. Derive cardinality only from the declared contract and verified artifacts. **NEVER** treat an aggregate pass as proof for uninspected rows; leave their result unknown or blocked. Test names and guide-local labels are references, not canonical IDs; never flatten namespaces, invent IDs, create a second registry, or assume one-to-one mapping. Conflicts or unknown mappings remain blockers.
 
-**0.3 Size the target into a tier (count, do not estimate).** Count in-scope **files**, user-facing **capabilities/flows**, **modules/bounded contexts** (`docs/project-config.json` → modules), and changed lines when a diff exists. Use the first matching row top-down. Announce it: `Scope: S2 · Multi — 14 files, 3 capabilities → 3 story groups`.
+**0.3 Size the target into a tier (count, do not estimate).** Count in-scope **files**, user-facing **capabilities/flows**, **modules/bounded contexts** (`docs/project-config.json` → modules), and changed lines when a diff exists. Use the first matching row top-down, highest tier first. S0 is eligible only when no larger-scope trigger matches; an explicit point request does not override measured scale. Provisional grouping is a cheap scope signal; if decomposition later exceeds the selected tier, promote and announce the tier before dispatch. Announce it: `Scope: S2 · Multi — 14 files, 3 capabilities → 3 story groups`.
 
 | Tier            | Trigger (first match wins)                             | Story groups        | How the work runs                         |
 | --------------- | ------------------------------------------------------ | ------------------- | ----------------------------------------- |
+| **S4 · Program**| Whole product · multi-service · "demo the whole thing" | Grouped per context | Group agents → context synthesis → spine  |
+| **S3 · Large**  | > 40 files **OR** > 6 story groups                     | 6–12                | One sub-agent per group, front-loaded writes |
+| **S2 · Multi**  | ≥ 10 files **OR** ≥ 2 capabilities/flows/contexts      | 2–6                 | Inline, story group by story group        |
 | **S0 · Point**  | One case, one bug fix, one screen                      | 1                   | Inline, case by case                      |
 | **S1 · Small**  | < 10 in-scope files, one capability                    | 1                   | Inline, case by case                      |
-| **S2 · Multi**  | ≥ 10 files **OR** ≥ 2 capabilities/flows/contexts      | 2–6                 | Inline, story group by story group        |
-| **S3 · Large**  | > 40 files **OR** > 6 story groups                     | 6–12                | One sub-agent per group, front-loaded writes |
-| **S4 · Program**| Whole product · multi-service · "demo the whole thing" | Grouped per context | Group agents → context synthesis → spine  |
 
 > Thresholds match the framework's map-reduce ladder (`SYNC:systematic-review-batching`: < 10 sequential · ≥ 10 batch · > 6 categories or > 40 files hierarchical) and `/understand` tiers — why: understanding and demoing must partition the feature the same way.
 
@@ -371,7 +371,6 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -396,7 +395,7 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 
 <!-- SYNC:output-quality-principles:reminder -->
 
-**IMPORTANT MUST ATTENTION** output quality: no counts/trees/TOCs, 1 example per pattern, lead with the answer, no filler, >=8 rules per 100 lines, critical rules in the first and last 5 lines, tables over prose; a skill's own stated exceptions override this.
+**IMPORTANT MUST ATTENTION** lead with the answer, remove filler and redundant counts/trees/TOCs, use an example only when non-obvious, keep reports concise without losing quality, and put unresolved questions last; honor the task's required output.
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
@@ -406,11 +405,6 @@ Block or file absent → degrade gracefully: default `outputDir` to the project'
 
 <!-- /SYNC:estimation-framework:reminder -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 

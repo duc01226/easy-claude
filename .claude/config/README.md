@@ -36,12 +36,16 @@ To keep the framework but change how workflows start, set the workflow route mod
 
 ## Adopter quick settings
 
+Ask the assistant about framework settings or request `/framework-config` (`$framework-config` on Codex). It explains options without requiring JSON keys and applies requested changes in checkout, user or team scope. Questions stay read-only.
+
+
 Common ways to make the framework lighter for one project. Team settings go in `docs/project-config.json` and are validated by its schema (`node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json`); personal settings go in `.claude/.ck.local.json`, which git ignores. Read `.claude/docs/configuration/README.md` when you need a key's full contract.
 
 | Need | Setting or action | Undo |
 | --- | --- | --- |
 | Workflows ask before they start | `portability.workflowActivation.default: "confirm"` (or `"manual"`). A default only tightens a workflow's own tier; `portability.workflowActivation.overrides` sets one workflow's tier exactly, looser included. A valid value in `.claude/.ck.local.json` wins for you alone | Remove the key |
 | No automatic workflow routing | `portability.workflowRouteMode: "off"` (team: project config; personal: `~/.claude/.ck.json`, `.claude/.ck.local.json` or env `CK_WORKFLOW_ROUTE_MODE=off`; no regeneration either way, the hook reads the setting directly); the route hook then sends a short routing-off notice instead of the catalog | Set `ask` (or `auto`) |
+| Heavy skills only by name or required operation | `portability.skillAutoTrigger: false` (team project config, personal `~/.claude/.ck.json` or `.claude/.ck.local.json`; environment `CK_SKILL_AUTO_TRIGGER=0`). Runtime instruction covers framework skills except `commit`/`pull-request`/`framework-config`; preserves commit and pull-request test/review questions with user-only Skip options and the selected gate's required dependency chain. No visibility/permission changes or regeneration. See `.claude/docs/configuration/README.md` → Skill auto-trigger for precedence and enforcement limits | Set `true` or remove the deciding preference |
 | Reading a file stops pulling authoring docs | Per convention class: `on: "edit"` on the `contextGroups[]` entry (`read`, `edit` or `both`; default `both`). For every class: `conventionInjection.onRead: false` | Remove `on` / the key |
 | Code graph only when the project wants it | `hooks.codeGraph.enabled`: `auto` (default: active only once `.code-graph/graph.db` exists, built with `/graph-code --mode=build`), `on`, or `off` (graph hooks silent, graph CLI refuses) | Remove the key |
 | No `Fix-Origin:` commit trailer | Nothing to do: it is off by default. Set `commit.fixOriginTrailer: true` to opt in; it applies to new commits only, and a check that demands it on older commits must be made forward-only rather than rewriting history | Remove the key |

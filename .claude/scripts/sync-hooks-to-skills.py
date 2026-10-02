@@ -31,9 +31,7 @@ Tiered blocks (agents):
   same set as CODE_AGENTS): dev-rules + coding-pattern pointers for agents that
   write/modify/review/debug/optimize/test code. Appended on top of whichever tier
   (Core or Code) the agent already has. Non-code-standards agents never receive it.
-Skills carry no inserted block by default (SKILL_BLOCK_ORDER is empty); skills named in
-ORCHESTRATOR_SKILLS receive parallel-subagent-dispatch
-(ORCHESTRATOR_SKILL_BLOCK_ORDER). `--prune` removes a PRUNABLE_BLOCKS block from
+Skills carry no inserted blocks (both skill tier orders are empty). `--prune` removes a PRUNABLE_BLOCKS block from
 any file whose tier no longer grants it — without it, leaving a tier is a one-way
 door.
 
@@ -77,7 +75,6 @@ from sync_blocks import (  # noqa: E402  (path set up above: runs from any cwd)
 )
 
 BODY_TAGS = (
-    "parallel-subagent-dispatch",
     "sequential-thinking-protocol",
     "understand-code-first",
     "evidence-based-reasoning",
@@ -86,74 +83,18 @@ BODY_TAGS = (
     "agent-bootstrap",
     "agent-code-standards",
 )
-REMINDER_TAGS = ("parallel-subagent-dispatch", "sequential-thinking-protocol", "cross-service-check")
+REMINDER_TAGS = ("sequential-thinking-protocol", "cross-service-check")
 
 BLOCKS = {tag: load_wrapped_sync_block(f"SYNC:{tag}").rstrip() for tag in BODY_TAGS}
 REMINDERS = {tag: load_wrapped_sync_block(f"SYNC:{tag}:reminder").rstrip() for tag in REMINDER_TAGS}
 
 # ─── Tier ordering ───────────────────────────────────────────────────────────
-# Skills: the original 2 universal blocks + parallel-subagent-dispatch.
-# parallel-subagent-dispatch is SKILL-ONLY on purpose — NOT because an agent is
-# incapable of spawning (agent files generally carry no `tools:` restriction, and
-# several agent definitions explicitly instruct their own fan-out). It is excluded
-# because an agent receives ONE already-scoped brief from an orchestrator that has
-# ALREADY done the PAR/SEQ tagging and wave partitioning; re-running that
-# partitioning protocol inside the leaf re-decides upstream's decision and spends
-# tokens on every agent for it. An agent that legitimately fans out carries that
-# instruction in its own `.claude/agents/*.md` definition, where its scope is known.
-# Mirrored — by convention, no automated cross-check — in agent_protocol_matrix.py
-# EXCLUDED_ORCHESTRATION and in the TC-UAR-017 AGENT_ADOPTION_EXEMPT set alongside
-# parallel-phase-advancement and sub-agent-selection. Do NOT add it to
-# CORE_BLOCK_ORDER.
-#
-# It is also NOT universal across skills. It reaches ONLY the ORCHESTRATOR_SKILLS
-# tier below — skills that actually dispatch sub-agents or drive a multi-step task
-# list. Measured cost of the universal alternative: ~793 tokens/skill x 163 skills
-# (~129k repo-wide, ~20k inside a single 25-step workflow), landing in lightweight
-# utilities like `ck-help` that own no task list to partition and so
-# can never act on it. That violates the role-relevance rule in
-# `.claude/skills/shared/sync-inline-versions.md` ("Universal guidance must help
-# every receiving skill or agent"), which is the same lesson the agent tiers below
-# already encode. Keep the two-tier split.
-# The universal bundle (project-protocol-overlay among it) is absent from every tier order: the
-# universal hook delivers it and no file carries any part of it.
+# No default skill or orchestrator protocol is inserted. Keep the tier names for
+# callers that use process_file; agent tiers below retain their quality protocols.
 SKILL_BLOCK_ORDER = []
-
-# Orchestrator skills: the parallel-dispatch protocol.
-ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatch"]
-
-# Membership is evidence-derived, not taste: every name below either already
-# dispatched sub-agents before this tier existed (`git grep -lE
-# "subagent_type|in ONE message|spawn .*sub-?agent" HEAD -- '.claude/skills/*/SKILL.md'`)
-# or orchestrates a multi-step task list that the protocol governs (plan,
-# investigate, scan). A skill that never spawns and never partitions
-# a task list does NOT belong here — it cannot act on the protocol.
-ORCHESTRATOR_SKILLS = {
-    # `pbi` carries the parallel-dispatch block inline in pbi/references/mode-review.md, so it is not a target.
-    "changes-review", "code-quality-review", "code-simplifier", "commit",
-    "db-migrate", "ui-design",
-    # `docs-manager` modes carry the parallel-dispatch block inline in docs-manager/references/mode-*.md,
-    # so `docs-manager` is intentionally not a target.
-    "demo-guide", "e2e-test", "feature-presentation", "integration-test",
-    "investigate", "knowledge-review",
-    "performance-review", "plan",
-    "production-readiness-review", "project-init", "scan",
-    "scan-codebase-health", "security-audit", "seed-test-data",
-    "start-workflow",
-    "tech-spec", "test", "ai-engineering-review", "understand", "why-review",
-    "workflow-code-to-spec", "workflow-idea-to-pbi", "workflow-idea-to-spec",
-    "workflow-spec-to-mockup",
-    "workflow-review-changes",
-}
-
-# Blocks whose presence is governed STRICTLY by tier membership: when a file's tier
-# order omits one of these, `--prune` deletes its fenced region (and its :reminder).
-# Deliberately an explicit allow-list rather than "every BLOCKS key absent from
-# block_order" — skills legitimately carry shared blocks that no tier order lists
-# (fresh-context-review, systematic-review-batching, ...), and a blanket rule would
-# silently delete them. Adding a block here is a commitment that its ONLY reason to
-# exist in a file is tier membership.
-PRUNABLE_BLOCKS = {"parallel-subagent-dispatch"}
+ORCHESTRATOR_SKILL_BLOCK_ORDER = []
+ORCHESTRATOR_SKILLS = set()
+PRUNABLE_BLOCKS = set()
 
 # Core: every agent. agent-bootstrap is the self-contained subagent startup contract for hosts
 # whose SubagentStart hook is unavailable; it also carries the task-tracking and report rules

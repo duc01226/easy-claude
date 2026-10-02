@@ -188,7 +188,7 @@ const tests = [
             // A grader validates and never self-converges: no fix-loop engine in the mode reference
             assert.ok(!/double-round-trip-review/.test(text), 'the scalability grader must not embed the fix-loop engine');
             assert.match(text, /why-review --validate-findings/);
-            assert.match(text, /maximum 2 passes/);
+            assert.match(text, /maximum 3 passes/);
         }
     },
     {
@@ -288,10 +288,10 @@ const tests = [
         fn: () => {
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const expected = {
-                design: ['core-engineering-principles', 'engineering-foundation-gate', 'parallel-subagent-dispatch', 'scale-technique-gate', 'scenario-stress-eval', 'sequential-thinking-protocol', 'test-architecture-execution-contract'],
-                review: ['ai-agent-as-user-access', 'category-review-thinking', 'core-engineering-principles', 'double-round-trip-review', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'nested-task-creation', 'parallel-subagent-dispatch', 'review-principle-awareness', 'scale-technique-gate', 'scenario-stress-eval', 'sequential-thinking-protocol', 'severity-rubric', 'source-test-drift-check', 'sub-agent-selection', 'systematic-review-batching', 'task-tracking-external-report', 'trade-off-interrogation-gate'],
+                design: ['core-engineering-principles', 'engineering-foundation-gate', 'scale-technique-gate', 'scenario-stress-eval', 'sequential-thinking-protocol', 'test-architecture-execution-contract'],
+                review: ['ai-agent-as-user-access', 'category-review-thinking', 'core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'scale-technique-gate', 'scenario-stress-eval', 'sequential-thinking-protocol', 'severity-rubric', 'source-test-drift-check', 'sub-agent-selection', 'systematic-review-batching', 'task-tracking-external-report', 'trade-off-interrogation-gate'],
                 scalability: ['engineering-foundation-gate', 'goal-contract-satisfaction-loop', 'review-principle-awareness', 'scale-technique-gate', 'scenario-stress-eval', 'severity-rubric', 'test-architecture-execution-contract', 'trade-off-interrogation-gate'],
-                full: ['category-review-thinking', 'double-round-trip-review', 'engineering-foundation-gate', 'evidence-based-reasoning', 'fresh-context-review', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'nested-task-creation', 'parallel-subagent-dispatch', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'subagent-return-contract', 'systematic-review-batching', 'task-tracking-external-report', 'test-architecture-execution-contract', 'trade-off-interrogation-gate']
+                full: ['category-review-thinking', 'engineering-foundation-gate', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'subagent-return-contract', 'systematic-review-batching', 'task-tracking-external-report', 'test-architecture-execution-contract', 'trade-off-interrogation-gate']
             };
             const skillText = skill();
             assert.deepEqual(guideTags(skillText), [], 'architecture/SKILL.md carries no protocol guide entry (each mode reference is self-contained)');
@@ -312,7 +312,7 @@ const tests = [
             // The scalability grader keeps the validate-only boundary: no fix-loop body or reminder
             assert.ok(!mode('scalability').includes('SYNC:double-round-trip-review'), 'the grader carries no fix-loop block');
             // The review mode keeps its routed fresh-reviewer override
-            assert.match(mode('review'), /<!-- OVERRIDE:fresh-context-review -->/);
+            assert.doesNotMatch(mode('review'), /<!-- OVERRIDE:fresh-context-review -->/);
         }
     },
     {

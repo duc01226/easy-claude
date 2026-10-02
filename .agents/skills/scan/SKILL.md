@@ -103,7 +103,7 @@ Read the full report. Apply the fresh-eyes protocol:
 
 **Round 1 (main agent):** Build section drafts from report findings, using the target entry's **Target Sections** + **Content Rules / exceptions**.
 
-**Round 2 (fresh sub-agent, zero memory of Round 1):** Sub-agent re-reads report + draft doc independently and checks (apply the target entry's Round-2 verification specifics):
+**Round 2 (only after Round 1 finds and fixes issues; fresh sub-agent, zero memory of Round 1):** Sub-agent re-reads report + draft doc independently and checks (apply the target entry's Round-2 verification specifics):
 
 - Does every code example match an actual existing file (Glob verify)?
 - Do class/token/variable names in examples match actual declarations (Grep verify)?
@@ -165,7 +165,6 @@ Read the full report. Apply the fresh-eyes protocol:
 
 - `ai-discovery-doc-quality` — Keep AI-read docs discoverable: rules first, routed pointers, closing reminders; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
 - `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `scan-and-update-reference-doc` — Surgical updates to reference docs, never full rewrites; scanning or updating a reference doc → .claude/skills/shared/protocols/scan-and-update-reference-doc.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -178,7 +177,7 @@ Read the full report. Apply the fresh-eyes protocol:
 
 <!-- SYNC:output-quality-principles:reminder -->
 
-**IMPORTANT MUST ATTENTION** output quality: no counts/trees/TOCs, 1 example per pattern, lead with the answer, no filler, >=8 rules per 100 lines, critical rules in the first and last 5 lines, tables over prose; a skill's own stated exceptions override this.
+**IMPORTANT MUST ATTENTION** lead with the answer, remove filler and redundant counts/trees/TOCs, use an example only when non-obvious, keep reports concise without losing quality, and put unresolved questions last; honor the task's required output.
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
@@ -188,11 +187,6 @@ Read the full report. Apply the fresh-eyes protocol:
 
 <!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 
@@ -216,7 +210,7 @@ Read the full report. Apply the fresh-eyes protocol:
 **IMPORTANT MUST ATTENTION** a project graph is an optional hint for code relationships; source callers remain the evidence, and an absent graph is neither a limitation nor a finding
 **IMPORTANT MUST ATTENTION** sub-agents write findings incrementally after each file — NEVER batch at end (context loss)
 **IMPORTANT MUST ATTENTION** read existing doc FIRST, diff findings, surgical update only — NEVER rewrite entire doc
-**IMPORTANT MUST ATTENTION** multi-round fresh-eyes review — main agent rationalizes its own mistakes; Round 2 sub-agent catches what main agent dismissed
+**IMPORTANT MUST ATTENTION** clean Round 1 ends the scan; after Round 1 finds and fixes issues, Round 2 fresh-eyes review is mandatory; Round 3 runs only if Round 2 finds issues (max 3 rounds)
 **IMPORTANT MUST ATTENTION** honor the target entry's Content-Rule exceptions, Special slivers, and Anti-Rationalization rows — they encode why this target differs from the others
 
 **Anti-Rationalization (shared — the target entry adds its own rows):**
@@ -227,6 +221,6 @@ Read the full report. Apply the fresh-eyes protocol:
 | "Framework/type already known, skip Phase 0 detection" | Phase 0 is BLOCKING — derive grep terms from evidence, not assumption               |
 | "Doc has content, skip re-read"                   | Show section list extracted from doc as proof of re-read                            |
 | "Examples look right"                             | Glob-verify ALL file paths + Grep-verify ALL names — looking right ≠ verified       |
-| "Round 2 review not needed for small scan"        | Main agent rationalizes own mistakes. Fresh sub-agent is non-negotiable.            |
+| "Round 2 review not needed after fixing a small scan" | Size does not waive the issue-triggered gate: corrected Round 1 requires a fresh sub-agent; a clean Round 1 ends the scan. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using task tracking.

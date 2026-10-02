@@ -32,7 +32,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech 
 **Summary:**
 
 - **Purpose:** act as solution architect—load business/domain/PBI context, derive constraints, research current options, compare fit, and record only user-confirmed decisions.
-- **Ordered path:** (1) load context → (2) derive requirements + ask the user directly confirmation → (3) WebSearch backend, frontend, database, messaging, infra, and auth (3+ options/layer; minimum 5 queries/layer) → (4) compare → (5) score/rank each layer with confidence % → (6) write `{plan-dir}/research/tech-stack-comparison.md` (<=200 lines) → (7) end interview (5-8 questions) and write `status: confirmed` to `{plan-dir}/phase-02-tech-stack.md`.
+- **Ordered path:** (1) load context → (2) derive requirements + ask the user directly confirmation → (3) classify layer applicability and WebSearch unresolved required layers (2–3 viable alternatives; bounded searches) → (4) compare → (5) score/rank each layer with confidence % → (6) write `{plan-dir}/research/tech-stack-comparison.md` (<=200 lines) → (7) end interview (5-8 questions) and write `status: confirmed` to `{plan-dir}/phase-02-tech-stack.md`.
 - **Evidence gates:** cite a URL, benchmark, or case study for every claim/recommendation; score 8 criteria with High=3x/Medium=2x/Low=1x; NEVER choose by familiarity.
 - **Follow-up modes:** after Step 7, separate ask the user directly offers `$architecture --mode=design` (Recommended), `$plan` if architecture is decided, or skip; a second council prompt offers skip (Recommended) or `$llm-council` (11 sub-agents) for close scores or unfamiliar/strategic dependencies.
 
@@ -40,16 +40,16 @@ description: '[Architecture] Use when a workflow step or the user asks for tech 
 
 1. **Load Business Context** — Read prior business evaluation, domain/ERD, refined PBI, and discovery notes from the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them).
 2. **Derive Technical Requirements** — Map signals to constraints; confirm by asking the user directly.
-3. **Research Per Layer** — WebSearch top 3 options for each layer; run minimum 5 queries per layer.
+3. **Research Per Layer** — Research only unresolved required layers; compare 2–3 viable alternatives within the agreed query budget.
 4. **Deep Compare** — Build pros/cons matrices with benchmarks, community health, and team fit.
-5. **Score & Rank** — Apply weighted scoring across 8 criteria; rank with confidence %.
+5. **Score & Rank** — Apply weighted scoring across 8 criteria to open required layers; rank with confidence %.
 6. **Generate Report** — Write the structured, <=200-line comparison report with recommendation.
 7. **User Validation** — Present findings, ask 5-8 questions, record confirmed choices; then run the separate Next Steps and council prompts.
 
 **Key Rules:**
 
 - **AI surface?** Only if the stack adds a model provider, agent framework, vector store or eval tool (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md`; verify model and provider facts against current provider docs, never memory; otherwise skip this line.
-- **MANDATORY IMPORTANT MUST ATTENTION** research minimum 3 options per stack layer
+- **MANDATORY IMPORTANT MUST ATTENTION** research 2–3 viable options per unresolved required layer; fixed or absent layers carry evidence-backed N/A
 - **MANDATORY IMPORTANT MUST ATTENTION** include confidence % with evidence for every recommendation
 - **MANDATORY IMPORTANT MUST ATTENTION** run user validation interview at end (NEVER skip)
 - All claims must cite sources (URL, benchmark, case study)
@@ -96,7 +96,11 @@ Map business signals to technical requirements:
 
 ## Step 3: Research Per Stack Layer
 
-For EACH layer, research top 3 options via WebSearch (minimum 5 queries total):
+Before searching, record an applicability table for the candidate layers below: `OPEN-REQUIRED`, `FIXED`, or `N/A`, with the requirement/decision evidence and owner. These are candidates, not mandatory product components. A CLI or library may need no frontend, database, broker, hosted infrastructure, or authentication; do not invent those requirements. Respect confirmed existing stack constraints; reopen a FIXED choice only when new evidence invalidates its premise and the owner agrees.
+
+For each OPEN-REQUIRED layer, compare 2–3 viable alternatives (include the current/simple option). If constraints leave fewer, record the eliminated candidates and evidence rather than manufacture options. FIXED and N/A layers remain in the report with rationale but need no alternatives or search quota.
+
+Set a total search cap before searching: default at most 10 queries for this pass across all open layers, prioritizing consequential uncertainty; there is no per-layer minimum. Reuse relevant verified evidence. Stop when decision-critical claims have sufficient current authoritative support; do not pad searches. If the cap leaves a consequential uncertainty, record the gap and ask the user to authorize a bounded additional pass specifying its question and cap. Never silently multiply the cap by layer or subtopic.
 
 ### Stack Layers to Evaluate
 
@@ -109,7 +113,7 @@ For EACH layer, research top 3 options via WebSearch (minimum 5 queries total):
 | **Infrastructure**     | Docker+K8s, Serverless, PaaS    | Cost, ops overhead, scaling           |
 | **Auth**               | Keycloak, Auth0, custom         | Cost, compliance, flexibility         |
 
-### WebSearch Queries (minimum 5 per layer)
+### Candidate WebSearch Queries (select only those resolving uncertainty)
 
 ```
 "{option_A} vs {option_B} {current_year} comparison"
@@ -121,7 +125,7 @@ For EACH layer, research top 3 options via WebSearch (minimum 5 queries total):
 
 ## Step 4: Deep Comparison Matrix
 
-For EACH stack layer, produce comparison table:
+For each OPEN-REQUIRED layer, produce a comparison table; record FIXED and N/A layers by rationale only:
 
 | Criteria             | Option A          | Option B | Option C | Weight |
 | -------------------- | ----------------- | -------- | -------- | ------ |
@@ -161,7 +165,7 @@ For each option, document:
 
 ## Step 5: Weighted Score & Ranking
 
-Calculate weighted total per option per layer. Present ranking:
+Calculate weighted total per option per OPEN-REQUIRED layer. Present ranking:
 
 ```markdown
 ### {Layer} Ranking
@@ -178,8 +182,8 @@ Calculate weighted total per option per layer. Present ranking:
 
 Write report to `{plan-dir}/research/tech-stack-comparison.md` with:
 
-1. Executive summary (recommended full stack in 5 lines)
-2. Technical requirements table (from Step 2)
+1. Executive summary (recommended applicable stack in 5 lines)
+2. Technical requirements and layer applicability table (from Steps 2–3), including the query cap, queries used and unresolved evidence gaps
 3. Per-layer comparison matrices (from Step 4)
 4. Per-layer rankings with recommendations (from Step 5)
 5. Combined recommended stack diagram
@@ -277,7 +281,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 <!-- SYNC:engineering-foundation-gate:reminder -->
 
-**IMPORTANT MUST ATTENTION** engineering-foundation gate — judges whether the team can build, run, test, and change the system repeatably as it grows. Derive lifecycle, scale, criticality, repository shape, and runtime from evidence; take the lower supported tier when unknown. Judge all 7 dimensions, using `N/A-by-profile` with evidence when a concern truly does not apply. **F1** reproducible build/run/test path · **F2** document and exercise each supported or required execution mode; dual host/container or other modes only when the project uses or needs them · **F3** environment portability at applicable local/CI/production-shaped targets · **F4** meaningful test-strength evidence without making one mutation tool universal · **F5** measured performance where scale/risk warrants it · **F6** change/build scalability where the repository has meaningful module boundaries · **F7** mechanical checks selected for the stack/profile. For each, judge outcomes rather than tools, and preserve anti-over-engineering. Foundation creation may block on missing warranted outcomes; brownfield audits advise and name the smallest next step. Catalog → `.claude/docs/engineering-foundation-catalog.md` (update first, then re-run `inject_engineering_foundation_gate.py`).
+**IMPORTANT MUST ATTENTION** evidence-backed lifecycle/scale/criticality/repo/runtime profile; unknowns take lower tiers. Judge all 7 outcomes: **F1** reproducible build/run/test · **F2** exercise supported/required modes; dual modes only when warranted · **F3** applicable local/CI/production-shaped test portability · **F4** test-strength proof; no universal mutation tool · **F5** measured performance at warranted scale/risk · **F6** build/change scalability at meaningful module boundaries · **F7** stack/profile-fit mechanical checks. Evidence-backed `N/A-by-profile` is valid; prevent over-engineering. Creation blocks warranted omissions; brownfield advises without score changes, with smallest next steps. Catalog: `.claude/docs/engineering-foundation-catalog.md`; update first, re-run `inject_engineering_foundation_gate.py`.
 
 <!-- /SYNC:engineering-foundation-gate:reminder -->
 
@@ -287,10 +291,10 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 **IMPORTANT MUST ATTENTION** preserve user confirmation, cited evidence, weighted scoring, and fit against scale, budget, skills, and timeline; never replace those gates with familiarity or an unverified default.
 
-**IMPORTANT MUST ATTENTION — run ALL 7 steps in declared order, none skipped:** (1) Load Business Context → (2) Derive Technical Requirements (+ ask the user directly confirm) → (3) Research Per Layer (WebSearch 3+ options each) → (4) Deep Comparison Matrix → (5) Weighted Score & Ranking (confidence %) → (6) Generate Report (<=200 lines) → (7) User Validation Interview (5-8 questions, write `status: confirmed`) — why: AI keeps collapsing this into "just pick a stack" and dropping requirements-derivation, scoring, and the confirmation gate that make the choice defensible.
+**IMPORTANT MUST ATTENTION — run ALL 7 steps in declared order, none skipped:** (1) Load Business Context → (2) Derive Technical Requirements (+ ask the user directly confirm) → (3) Research Per Layer (classify applicability; compare open choices within total cap) → (4) Deep Comparison Matrix → (5) Weighted Score & Ranking (confidence %) → (6) Generate Report (<=200 lines) → (7) User Validation Interview (5-8 questions, write `status: confirmed`) — why: AI keeps collapsing this into "just pick a stack" and dropping requirements-derivation, scoring, and the confirmation gate that make the choice defensible.
 
-**IMPORTANT MUST ATTENTION** research minimum 3 WebSearched options per stack layer (backend, frontend, database, messaging, infra, auth); every recommendation carries confidence % + cited evidence (URL, benchmark, case study) — NEVER recommend on familiarity alone — why: familiarity bias commits the team to the wrong stack that surfaces only at scale.
-**IMPORTANT MUST ATTENTION** gate on user by asking the user directly at EVERY decision point — confirm derived requirements before research (Step 2), confirm each layer recommendation in the end interview (Step 7) — NEVER auto-decide — why: the team owns the stack, not the AI.
+**IMPORTANT MUST ATTENTION** research 2–3 viable options per OPEN-REQUIRED layer only; record FIXED/N/A layers and honor the total query cap; every recommendation carries confidence % + cited evidence (URL, benchmark, case study) — NEVER recommend on familiarity alone — why: familiarity bias commits the team to the wrong stack that surfaces only at scale.
+**IMPORTANT MUST ATTENTION** gate on user by asking the user directly at EVERY decision point — confirm derived requirements before research (Step 2), confirm each open layer recommendation in the end interview (Step 7) — NEVER auto-decide — why: the team owns the stack, not the AI.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, `completed` immediately after evidence; add a final review todo.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
@@ -298,7 +302,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
 **IMPORTANT MUST ATTENTION** requirements come BEFORE research — load prior business/domain/PBI artifacts (Step 1), map business signals to technical requirements (Step 2), user-confirm them, THEN WebSearch (Step 3) — NEVER research before requirements are derived and confirmed — why: researching first picks tech then back-fits the problem, the reverse of architecture.
-**IMPORTANT MUST ATTENTION** score every layer with the weighted 8-criteria matrix (High=3x / Medium=2x / Low=1x), rank with confidence %, cap the `{plan-dir}/research/tech-stack-comparison.md` report at <=200 lines using tables over prose — why: an unscored or unbounded report hides the trade-off the decision turns on.
+**IMPORTANT MUST ATTENTION** score every OPEN-REQUIRED layer with the weighted 8-criteria matrix (High=3x / Medium=2x / Low=1x), rank with confidence %, cap the `{plan-dir}/research/tech-stack-comparison.md` report at <=200 lines using tables over prose — why: an unscored or unbounded report hides the trade-off the decision turns on.
 **IMPORTANT MUST ATTENTION** only user-confirmed decisions get written to `phase-02-tech-stack.md` as `status: confirmed` — the end interview (5-8 ask the user directly questions) is mandatory and NEVER skipped even when the choice seems "obvious" — why: an unconfirmed stack is a guess the team will pay for.
 **IMPORTANT MUST ATTENTION** every claim, finding, and recommendation requires `file:line`/URL proof or traced evidence + confidence % (>80% act, 60-80% verify first, <60% DO NOT recommend) — NEVER present a guess as fact — why: a stack chosen on speculation fails silently until production.
 **IMPORTANT MUST ATTENTION** evaluate fit before copying a reference stack from another project — verify the new context shares the same scale, budget, team skills, compliance, and timeline constraints — why: the closest example rarely matches preconditions, and a mismatched copy compiles but fails the real requirements.
@@ -307,7 +311,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 | Evasion                                          | Rebuttal                                                                                  |
 | ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| "Stack is obvious — skip the research"           | 3+ WebSearched options per layer with cited evidence anyway — familiarity is not evidence. |
+| "Stack is obvious — skip the research"           | Classify OPEN-REQUIRED/FIXED/N/A; research open consequential uncertainty with cited evidence within the total cap. |
 | "I already know this is the best framework"      | Show the weighted 8-criteria score + confidence %. No matrix = no recommendation.          |
 | "Skip the user interview, the choice is clear"   | The end interview is MANDATORY — only `status: confirmed` decisions get written.            |
 | "Just research the stack, requirements are fine" | Derive + user-confirm technical requirements FIRST (Steps 1-2), then research.              |

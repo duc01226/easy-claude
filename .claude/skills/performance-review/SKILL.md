@@ -47,10 +47,8 @@ description: '[Debugging] Use when a workflow step or the user asks for a perfor
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `category-review-thinking` — Derive review concerns per category of changed files from domain knowledge; reviewing a changeset that spans several file categories → .claude/skills/shared/protocols/category-review-thinking.md
-- `double-round-trip-review` — Validated-finding fix loop: review, validate, fix, then a fresh full re-review, capped at two rounds; running a review that fixes findings and must re-review until the severity bar clears → .claude/skills/shared/protocols/double-round-trip-review.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `scenario-stress-eval` — Judge the system under concrete failure and load scenarios; evaluating resilience or production readiness → .claude/skills/shared/protocols/scenario-stress-eval.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
@@ -102,7 +100,7 @@ description: '[Debugging] Use when a workflow step or the user asks for a perfor
 - MANDATORY ALWAYS count `call count × RTT` on a remote path, and check the timeout/retry/queue-bound before optimizing inside a call.
 - NEVER recommend caching until query shape, indexes, pagination, batching, and data volume are understood; NEVER call a cache done without its measured hit ratio and bound.
 - NEVER average percentiles, and NEVER trust a throughput number whose load model (open vs closed) is unstated.
-- Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full performance review from Phase 0. Apply the shared severity bar: Round 1 = zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); Round 2 = zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
+- Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix that blocks the current round restarts the full performance review from Phase 0. Apply the shared severity bar: Round 1 = zero open findings (Round-1 LOW closure); Round 2 = zero CRITICAL/HIGH/MEDIUM, with LOW deferred and binary gates still blocking.
 
 <target>$ARGUMENTS</target>
 
@@ -259,7 +257,7 @@ Prefer fixes: push predicates to data source, select only needed fields, bound r
 
 **Think:** Can existing indexes satisfy equality/range filters, joins, sort, grouping, and projection in the actual query order? **Sargability first:** for EVERY filter/join predicate, is the indexed COLUMN left bare, or is it wrapped in a function/transformation that the DB must compute per row (killing the index)? Then: does the query reach the data through the right partition/shard/replica?
 
-> **MUST ATTENTION — Non-sargable predicate spot-check (any ORM/SQL).** Wrapping a column in a function/cast/transformation inside a query predicate translates to `func(column) = $param` — the DB CANNOT use an index on that column and full-scans. Scan every query expression for a **transformation on the COLUMN side**, not the parameter side: `.ToLower()`/`.ToUpper()`/`.Trim()`/`.Substring()` on a column, `col1 + " " + col2 == x` (concatenation), `.Date`/date-part extraction, `Convert`/cast/collation change, leading-wildcard `LIKE '%x'`, or a computed expression compared to a value. Fix — keep the column bare and move the transformation to the in-memory PARAMETER (e.g. case-insensitive via a candidate list `col == x || col == xLower`), OR persist a normalized indexed column, OR add a functional/expression index. ALWAYS prove with `EXPLAIN`/query plan: Index Scan/Seek expected, Seq Scan = the smell confirmed.
+> **MUST ATTENTION — Non-sargable predicate spot-check (any ORM/SQL).** A function, cast, concatenation, date extraction, or leading-wildcard predicate on a column can prevent an ordinary index seek; expression indexes and optimizer support depend on the actual database. Inspect the translated query and actual collation/normalization rules before proposing a rewrite. For case-insensitive comparisons, use a database-supported collation/operator or a normalized indexed column/expression index only after proving equivalent results. Moving normalization to the parameter alone or listing a few casing variants does not preserve arbitrary mixed-case or Unicode matches. Preserve tenant/auth filters, null behavior, locale, Unicode normalization and result sets with representative fixtures before measuring performance. Verify improvement separately with `EXPLAIN`/the query plan and representative load; a sequential scan can be optimal for low selectivity and is not by itself proof of a defect.
 
 Find:
 
@@ -520,7 +518,7 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 3. Read the validation verdict path returned by why-review, expected as `tmp/reports/why-review-validate-{date}.md`.
 4. **If why-review demotes/removes any finding:** update the performance report with revised severity, removed false positives, and a `## Why-Review Validation Notes` section.
 5. **If why-review confirms all findings:** append `## Why-Review Validation` stating all findings were re-validated against measurement/static evidence.
-6. **If the report changed after validation:** re-run this validation gate, maximum 2 validation passes, until the report's remaining findings are validated or zero findings remain.
+6. **If the report changed after validation:** re-run this validation gate, maximum 3 validation passes, until the report's remaining findings are validated or zero findings remain.
 
 **Skip conditions (record explicit reason if skipping):**
 
@@ -599,16 +597,6 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 <!-- /SYNC:scenario-stress-eval:reminder -->
 
-<!-- SYNC:double-round-trip-review:reminder -->
-
-- **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `/why-review --validate-findings` pass, before it is treated as final.
-- **MANDATORY severity floor:** round 1 exits only on zero OPEN findings at any severity — a LOW closes by a local fix plus scoped check, or by deferral when it needs new code or tests, and a LOW-only fix set needs no full re-review (never a receipt); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate via `AskUserQuestion`**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
-
-<!-- /SYNC:double-round-trip-review:reminder -->
-
-
-
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 
@@ -625,11 +613,6 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 <!-- SYNC:review-principle-awareness:reminder -->
 

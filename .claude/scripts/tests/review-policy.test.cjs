@@ -148,49 +148,27 @@ test('TC-HARNESS-006: unresolved evidence is a blocking state, never a LOW escap
     assert.equal(evaluateRound({ round: 2, findings: [unresolved] }).canComplete, false);
 });
 
-test('TC-HARNESS-ROUND-EXT-001: only an open CRITICAL/HIGH at the base cap buys the extension round', () => {
-    const granted = evaluateRound({ round: 2, findings: [{ id: 'h', severity: 'HIGH' }] });
-    assert.equal(granted.extensionGranted, true);
-    assert.equal(granted.roundBudget, HARD_MAX_ROUNDS);
-    assert.equal(granted.mustEscalate, false);
-    assert.equal(granted.status, 'CONTINUE');
-    assert.deepEqual(granted.extensionFindings.map(finding => finding.id), ['h']);
-    const critical = evaluateRound({ round: 2, findings: [{ id: 'c', severity: 'CRITICAL' }] });
-    assert.equal(critical.extensionGranted, true);
-    // A failed non-test binary gate is carried as a synthetic CRITICAL review
-    // blocker, so it earns the same one extra round rather than escalating.
-    const gate = evaluateRound({ round: 2, hardGates: [{ id: 'security-must-fix', status: 'FAIL' }] });
-    assert.equal(gate.extensionGranted, true);
-    assert.deepEqual(gate.extensionFindings.map(finding => finding.id), ['security-must-fix']);
-    // A failing TEST gate is not budgeted: it never buys the extension and
-    // never escalates; the loop continues until the tests pass.
-    const tests = evaluateRound({ round: 2, hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }] });
-    assert.equal(tests.extensionGranted, false);
-    assert.equal(tests.mustEscalate, false);
-    assert.equal(tests.status, 'CONTINUE');
-    assert.equal(tests.testLoopContinues, true);
-    assert.deepEqual(tests.failingTestGates.map(gate => gate.id), ['unit']);
-    assert.throws(() => evaluateRound({ round: 2, hardGates: [{ id: 'x', kind: 'flaky', status: 'FAIL' }] }), /kind/);
-    for (const findings of [[{ id: 'm', severity: 'MEDIUM' }], [{ id: 'e', severity: 'NOT VERIFIABLE' }]]) {
-        const spent = evaluateRound({ round: 2, findings });
-        assert.equal(spent.extensionGranted, false, JSON.stringify(findings));
-        assert.equal(spent.roundBudget, MAX_ROUNDS);
-        assert.equal(spent.mustEscalate, true);
-        assert.equal(spent.status, 'ESCALATE');
+test('TC-HARNESS-ROUND-CAP-001: every blocker gets a fixed three-round ceiling', () => {
+    for (const severity of ['CRITICAL', 'HIGH', 'MEDIUM', 'NOT VERIFIABLE']) {
+        for (const round of [1, 2, 3]) {
+            const result = evaluateRound({ round, findings: [{ id: 'finding', severity }] });
+            assert.equal(result.roundBudget, 3);
+            assert.equal(result.extensionGranted, false);
+            assert.deepEqual(result.extensionFindings, []);
+            assert.equal(result.status, round < 3 ? 'CONTINUE' : 'ESCALATE');
+        }
     }
-});
-
-test('TC-HARNESS-ROUND-EXT-002: the extension never renews and round 3 is the hard cap', () => {
-    assert.equal(grantsExtension(1, [{ id: 'c', severity: 'CRITICAL' }]), false, 'round 1 has budget left already');
-    assert.equal(grantsExtension(3, [{ id: 'c', severity: 'CRITICAL' }]), false, 'round 3 never buys a round 4');
-    const exhausted = evaluateRound({ round: 3, findings: [{ id: 'c', severity: 'CRITICAL' }] });
-    assert.equal(exhausted.extensionGranted, false);
-    assert.equal(exhausted.roundBudget, HARD_MAX_ROUNDS, 'a round-3 evaluation reports the budget it runs under');
-    assert.equal(exhausted.mustEscalate, true);
-    assert.equal(exhausted.status, 'ESCALATE');
-    // A clean or LOW-only extension round still passes on its own bar.
-    assert.equal(evaluateRound({ round: 3, findings: [{ id: 'l', severity: 'LOW' }] }).status, 'PASS');
-    assert.throws(() => evaluateRound({ round: 1, minRounds: 3 }), /minRounds/);
+    for (const round of [1, 2, 3, 4]) assert.equal(grantsExtension(round, [{ id: 'c', severity: 'CRITICAL' }]), false);
+    assert.equal(evaluateRound({ round: 2, hardGates: [{ id: 'security', status: 'FAIL' }] }).status, 'CONTINUE');
+    assert.equal(evaluateRound({ round: 3, hardGates: [{ id: 'security', status: 'FAIL' }] }).status, 'ESCALATE');
+    assert.equal(evaluateRound({ round: 3, findings: [{ id: 'low', severity: 'LOW' }] }).status, 'PASS');
+    assert.equal(evaluateRound({ round: 1, minRounds: 3 }).status, 'CONTINUE');
+    assert.equal(evaluateRound({ round: 3, minRounds: 3 }).status, 'PASS');
+    assert.throws(() => evaluateRound({ round: 1, minRounds: 4 }), /minRounds/);
+    const red = evaluateRound({ round: 4, hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }] });
+    assert.equal(red.status, 'CONTINUE');
+    assert.equal(red.testLoopContinues, true);
+    assert.throws(() => evaluateRound({ round: 2, hardGates: [{ id: 'x', kind: 'flaky', status: 'FAIL' }] }), /kind/);
 });
 
 function fixture(t) {
@@ -282,50 +260,29 @@ test('TC-HARNESS-006: durable transitions are idempotent and preserve interrupti
     assert.equal(resumed.resumeCount, 1);
     const done = recordRound({ ...f, round: 2, findings: [], now: 1500 });
     assert.equal(done.status, 'ready');
-    assert.throws(() => recordRound({ ...f, round: 3, findings: [], now: 1550 }), /round/);
+    assert.throws(() => recordRound({ ...f, round: 4, findings: [], now: 1550 }), /round/);
     const accepted = acceptRun({ ...f, round: 2, now: 1600 });
     assert.equal(accepted.status, 'accepted');
     assert.equal(getRun(f).acceptedRound, 2);
 });
 
-test('TC-HARNESS-ROUND-EXT-003: a durable run spends round 3 only on recorded CRITICAL/HIGH evidence', t => {
-    const spent = fixture(t);
-    startRun({ ...spent, now: 5000 });
-    recordRound({ ...spent, round: 1, findings: [{ id: 'm', severity: 'MEDIUM' }], now: 5010 });
-    const medium = recordRound({ ...spent, round: 2, findings: [{ id: 'm', severity: 'MEDIUM' }], now: 5020 });
-    assert.equal(medium.maxRounds, MAX_ROUNDS);
-    assert.equal(medium.extension, null);
-    assert.equal(medium.rounds[1].evaluation.status, 'ESCALATE');
-    assert.throws(() => recordRound({ ...spent, round: 3, findings: [], now: 5030 }), /budget exhausted/);
-
-    const extended = fixture(t);
-    startRun({ ...extended, now: 6000 });
-    recordRound({ ...extended, round: 1, findings: [{ id: 'h', severity: 'HIGH' }], now: 6010 });
-    const second = recordRound({ ...extended, round: 2, findings: [{ id: 'h', severity: 'HIGH' }], now: 6020 });
-    assert.equal(second.maxRounds, HARD_MAX_ROUNDS);
-    assert.deepEqual(second.extension.findings, ['h']);
-    assert.equal(second.extension.grantedAtRound, 2);
-    const third = recordRound({ ...extended, round: 3, findings: [{ id: 'l', severity: 'LOW' }], now: 6030 });
-    assert.equal(third.status, 'ready');
-    assert.equal(third.rounds[2].evaluation.deferredLow.length, 1);
-    assert.equal(acceptRun({ ...extended, round: 3, now: 6040 }).acceptedRound, 3);
-    assert.throws(() => recordRound({ ...extended, round: 4, findings: [], now: 6050 }), /round/);
-});
-
-test('TC-HARNESS-ROUND-EXT-004: a granted extension survives a target change but is never re-granted', t => {
-    const f = fixture(t);
-    startRun({ ...f, now: 7000 });
-    recordRound({ ...f, round: 1, findings: [{ id: 'c', severity: 'CRITICAL' }], now: 7010 });
-    recordRound({ ...f, round: 2, findings: [{ id: 'c', severity: 'CRITICAL' }], now: 7020 });
-    const changed = invalidateRun({ ...f, targetFingerprint: 'target-b', now: 7030 });
-    assert.equal(changed.maxRounds, HARD_MAX_ROUNDS, 'a re-reviewed target keeps the bounded budget');
-    assert.equal(changed.extension.grantedAtRound, 2);
-    const third = recordRound({ ...f, targetFingerprint: 'target-b', round: 3, findings: [{ id: 'c', severity: 'CRITICAL' }], now: 7040 });
-    assert.equal(third.status, 'in_progress');
-    assert.equal(third.rounds[2].evaluation.status, 'ESCALATE');
-    assert.equal(third.extension.grantedAtRound, 2, 'round 3 evidence never re-grants the extension');
-    assert.equal(third.maxRounds, HARD_MAX_ROUNDS);
-    assert.throws(() => acceptRun({ ...f, targetFingerprint: 'target-b', round: 3, now: 7050 }), /not eligible/);
+test('TC-HARNESS-ROUND-CAP-002: durable MEDIUM/evidence runs can use round 3 but never round 4', t => {
+    for (const severity of ['MEDIUM', 'NOT VERIFIABLE', 'HIGH']) {
+        const f = fixture(t);
+        startRun({ ...f, now: 5000 });
+        recordRound({ ...f, round: 1, findings: [{ id: 'open', severity }], now: 5010 });
+        const second = recordRound({ ...f, round: 2, findings: [{ id: 'open', severity }], now: 5020 });
+        assert.equal(second.maxRounds, 3);
+        assert.equal(second.extension, null);
+        assert.equal(second.rounds[1].evaluation.status, 'CONTINUE');
+        const changed = invalidateRun({ ...f, targetFingerprint: 'target-b', now: 5030 });
+        assert.equal(changed.maxRounds, 3);
+        assert.equal(changed.roundsCompleted, 2);
+        const third = recordRound({ ...f, targetFingerprint: 'target-b', round: 3, findings: [{ id: 'open', severity }], now: 5040 });
+        assert.equal(third.rounds[2].evaluation.status, 'ESCALATE');
+        assert.throws(() => acceptRun({ ...f, targetFingerprint: 'target-b', round: 3, now: 5050 }), /not eligible/);
+        assert.throws(() => recordRound({ ...f, targetFingerprint: 'target-b', round: 4, now: 5060 }), /budget exhausted/);
+    }
 });
 
 test('TC-HARNESS-TEST-LOOP-001: failing test gates keep a durable run going past the review cap until green', t => {
@@ -355,15 +312,17 @@ test('TC-HARNESS-TEST-LOOP-002: review blockers beside failing tests still obey 
     recordRound({ ...medium, round: 1, findings: [{ id: 'm', severity: 'MEDIUM' }], now: 9010 });
     const spent = recordRound({ ...medium, round: 2, findings: [{ id: 'm', severity: 'MEDIUM' }],
         hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9020 });
-    assert.equal(spent.rounds[1].evaluation.status, 'ESCALATE', 'an open MEDIUM at the base cap escalates even with red tests');
-    assert.throws(() => recordRound({ ...medium, round: 3, now: 9030 }), /budget exhausted/);
+    assert.equal(spent.rounds[1].evaluation.status, 'CONTINUE');
+    const capped = recordRound({ ...medium, round: 3, findings: [{ id: 'm', severity: 'MEDIUM' }], hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9030 });
+    assert.equal(capped.rounds[2].evaluation.status, 'ESCALATE');
+    assert.throws(() => recordRound({ ...medium, round: 4, now: 9040 }), /budget exhausted/);
 
     const high = fixture(t);
     startRun({ ...high, now: 9100 });
     recordRound({ ...high, round: 1, findings: [{ id: 'h', severity: 'HIGH' }], now: 9110 });
     const extended = recordRound({ ...high, round: 2, findings: [{ id: 'h', severity: 'HIGH' }],
         hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9120 });
-    assert.deepEqual(extended.extension.findings, ['h'], 'only the review blocker is named as the grant');
+    assert.equal(extended.extension, null);
     const third = recordRound({ ...high, targetFingerprint: 'fixed', round: 3,
         hardGates: [{ id: 'unit', kind: 'test', status: 'FAIL' }], now: 9130 });
     assert.equal(third.rounds[2].evaluation.status, 'CONTINUE');
@@ -478,6 +437,6 @@ test('TC-HARNESS-PORT-014: project root resolves from nested cwd and copied bund
     assert.match(invalid.error, /absolute path/);
 });
 
-assert.equal(MAX_ROUNDS, 2);
+assert.equal(MAX_ROUNDS, 3);
 assert.equal(HARD_MAX_ROUNDS, 3);
-assert.equal(POLICY_VERSION, 5);
+assert.equal(POLICY_VERSION, 6);

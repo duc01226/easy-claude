@@ -119,8 +119,10 @@ module.exports = {
             fn: () => {
                 const canonical = extractSyncBody(fs.readFileSync(SYNC_PATH, 'utf8'), hook.SYNC_TAG);
                 assertTrue(Boolean(canonical), 'canonical SYNC:judgement-integrity:reminder must exist');
-                // Given a verdict ask evaluated with no switch and no settings
-                const text = hook.evaluate(event('does this plan have any gaps?'), ISOLATED);
+                // Given a verdict ask with automatic activation enabled, independent of project/personal defaults
+                const text = hook.evaluate(event('does this plan have any gaps?'), {
+                    ...ISOLATED, env: { ...CLEAN_ENV, CK_SKILL_AUTO_TRIGGER: 'true' }
+                });
                 // Then the directive carries the canonical reminder verbatim
                 assertContains(text, hook.MARKER_START);
                 assertContains(text, canonical.trim());

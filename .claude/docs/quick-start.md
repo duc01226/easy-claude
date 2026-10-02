@@ -30,9 +30,9 @@ git --version
 ```
 .claude/
 |-- settings.json     # Main configuration (hooks, features)
-|-- skills/           # 102 skills (invoked via / prefix, activated by context)
+|-- skills/           # 101 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 29 top-level hook files + 45 lib modules
+|-- hooks/            # 30 top-level hook files + 45 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts
@@ -51,10 +51,17 @@ Shows current branch, uncommitted changes, and active workflows.
 ### Get help
 
 ```bash
-/ck-help
+/framework-config --mode=help
 ```
 
 Lists all available commands with descriptions.
+
+### Configure the framework
+
+Ask “What can I configure in this .claude/.codex framework?” or “Disable automatic heavy skills for this checkout”.
+The `framework-config` skill matches these requests automatically. Questions are read-only; requested
+changes default to checkout scope. Say “for every project” or “for the team” to choose another scope.
+Explicit invocation: `/framework-config` (Claude/OpenCode) or `$framework-config` (Codex).
 
 ### Understand a feature
 

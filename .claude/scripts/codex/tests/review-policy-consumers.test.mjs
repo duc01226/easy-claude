@@ -315,45 +315,19 @@ test('TC-HARNESS-006: seeded stale-policy mutant is rejected by exact-body parit
     const expected = canonicalBody(canonical, 'review-policy');
     const mutant = '<!-- SYNC:review-policy -->\n> maxRounds=2; LOW findings are discarded\n<!-- /SYNC:review-policy -->';
     assert.notEqual(body(mutant, 'review-policy'), expected);
-    assert.match(expected, /MAX_ROUNDS.*2/);
-    assert.match(expected, /Full reports remain on disk/);
+    assert.match(expected, /MAX_ROUNDS.*3/);
+    assert.match(expected, /Keep full reports on disk/);
 });
 
-function assertDurableReview(text) {
-    assert.match(text, /Persist completed rounds, repeated blockers, findings and the explicit minimum/);
-    assert.match(text, /owning run's `review-policy\.cjs` record/);
-    assert.match(text, /Resume that record after interruption/);
-    assert.match(text, /preserve the bounded round budget/);
-    assert.match(text, /In-flight attempt IDs may be session-local/);
-    assert.doesNotMatch(text, /session-scoped, no persistent files|repeats 3 times/);
-}
-
-test('R3-PROMPT-023: canonical completed-round state is durable, distinct from attempts', async () => {
+test('retired double-round review body and reminder cannot be loaded', async () => {
     const canonical = await fs.readFile(canonicalPath, 'utf8');
-    for (const tag of ['double-round-trip-review', 'fresh-context-review']) {
-        const source = canonicalBody(canonical, tag);
-        assertDurableReview(source);
-        assert.match(source, /minRounds/);
-        const old = source.replace(/> - Persist completed rounds[^\n]+/, '> - Track iteration count in conversation context (session-scoped, no persistent files)');
-        assert.notEqual(old, source);
-        assert.throws(() => assertDurableReview(old), { code: 'ERR_ASSERTION' });
-        for (const anchor of ['Resume that record after interruption', 'preserve the bounded round budget', 'In-flight attempt IDs may be session-local']) {
-            const mutant = source.replace(anchor, 'omitted state obligation');
-            assert.notEqual(mutant, source);
-            assert.throws(() => assertDurableReview(mutant), { code: 'ERR_ASSERTION' });
-        }
-    }
-    const loop = canonicalBody(canonical, 'double-round-trip-review');
-    assert.match(loop, /minRounds=2` requires the independent second pass/);
-    assert.doesNotMatch(loop, /A clean Round 1 ENDS the review — no mandatory Round 2/);
-    const fresh = canonicalBody(canonical, 'fresh-context-review');
-    assert.match(fresh, /same validated blocker repeats across 2 full invocations/);
-    assert.match(fresh, /AND the persisted `minRounds` is met/);
+    assert.doesNotMatch(canonical, /^## SYNC:double-round-trip-review(?::reminder)?$/m);
+    await assert.rejects(fs.access(path.join(root, '.claude', 'skills', 'shared', 'protocols', 'double-round-trip-review.md')));
 });
 
 test('R3-PROMPT-023/030: every existing carrier has exact updated body and balanced fences', async () => {
     const canonical = await fs.readFile(canonicalPath, 'utf8');
-    const tags = ['double-round-trip-review', 'double-round-trip-review:reminder', 'fresh-context-review', 'incremental-persistence'];
+    const tags = ['incremental-persistence'];
     const skillsRoot = path.join(root, '.claude', 'skills');
     const agentsRoot = path.join(root, '.claude', 'agents');
     const candidates = (await fs.readdir(skillsRoot, { withFileTypes: true }))
@@ -421,20 +395,12 @@ test('TC-PDL-065 visual-consumer check (R3-PROMPT-031) accepts a guide entry bac
     assert.equal(carriesCanonicalProtocol(`${guided}\n<!-- SYNC:${tag} -->\n\n> Old.\n\n<!-- /SYNC:${tag} -->`, tag, expected, expected), false);
 });
 
-test('R3-PROMPT-023: multi-round specialist overrides preserve role and durable budget', async () => {
-    for (const [name, file, role] of [['architecture --mode=review', ['architecture', 'references', 'mode-review.md'], /`architect` subagent_type/], ['ui-design --mode=review', ['ui-design', 'references', 'mode-review.md'], /UI\/UX-specialized subagent_type/]]) {
+test('retired fresh-context overrides do not return in specialist review modes', async () => {
+    for (const file of [['architecture', 'references', 'mode-review.md'], ['ui-design', 'references', 'mode-review.md']]) {
         const source = await fs.readFile(path.join(root, '.claude', 'skills', ...file), 'utf8');
-        const override = source.match(/<!-- OVERRIDE:fresh-context-review -->([\s\S]*?)<!-- \/OVERRIDE:fresh-context-review -->/);
-        assert.ok(override, `${name} keeps specialist override`);
-        assertDurableReview(override[1]);
-        assert.match(override[1], role);
-        assert.match(override[1], /current round's exit bar and persisted `minRounds`/);
-        const mutant = override[1].replace(/> - Persist completed rounds[^\n]+/, '> - Track iteration count in conversation context (session-scoped, no persistent files)');
-        assert.throws(() => assertDurableReview(mutant), { code: 'ERR_ASSERTION' });
+        assert.doesNotMatch(source, /(?:SYNC|OVERRIDE):fresh-context-review/);
+        assert.match(source, /OVERRIDE:review-protocol-injection/);
     }
-    const singlePass = await fs.readFile(path.join(root, '.claude', 'skills', 'integration-test', 'references', 'mode-review.md'), 'utf8');
-    assert.doesNotMatch(singlePass, /OVERRIDE:fresh-context-review|persisted `minRounds`|completed rounds/,
-        'single-pass integration review must not inherit a multi-round durable budget');
 });
 
 test('R3-PROMPT-023: local clean-pass summaries cannot override an explicit minimum', async () => {

@@ -166,7 +166,7 @@ For docs containing markdown links `[text](path)` or `file:line` references:
 - Check: is the severity classification justified by the description?
 - Flag false positives (things flagged but actually acceptable)
 
-Max 2 rounds → escalate to user if review finds >30% false positive rate.
+Max 3 review rounds → escalate to user if review finds >30% false positive rate.
 
 ## Phase 9: Generate Report
 
@@ -219,21 +219,15 @@ Write to `tmp/reports/codebase-health-scan-{YYMMDD}.md`:
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:output-quality-principles:reminder -->
 
-**IMPORTANT MUST ATTENTION** output quality: no counts/trees/TOCs, 1 example per pattern, lead with the answer, no filler, >=8 rules per 100 lines, critical rules in the first and last 5 lines, tables over prose; a skill's own stated exceptions override this.
+**IMPORTANT MUST ATTENTION** lead with the answer, remove filler and redundant counts/trees/TOCs, use an example only when non-obvious, keep reports concise without losing quality, and put unresolved questions last; honor the task's required output.
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 

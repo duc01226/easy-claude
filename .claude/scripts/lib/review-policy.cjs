@@ -10,7 +10,7 @@
  * was performed by a trusted host.
  *
  * Policy:
- *   - base budget of two rounds (a ceiling, not a target);
+ *   - budget of three rounds (a ceiling, not a target);
  *   - round 1 blocks on every validated finding, except a LOW the caller
  *     closed under the round-1 LOW closure rule (`resolution`:
  *     'scoped-fix-verified' after a local fix passed its scoped check, or
@@ -19,17 +19,13 @@
  *   - from round 2 only CRITICAL/HIGH/MEDIUM findings block;
  *   - failed binary gates always block, at every round;
  *   - LOW findings deferred by the severity floor remain in the record;
- *   - a round-2 evaluation still blocked by a CRITICAL or HIGH review
- *     blocker (a finding, or a failed non-test binary gate carried as a
- *     synthetic CRITICAL) grants exactly ONE extra round (round 3, the
- *     review hard cap); blockers that are only MEDIUM or NOT VERIFIABLE
- *     grant nothing and escalate;
- *   - the extension is granted at most once per run and never renews;
+ *   - all review blockers may use up to three rounds; remaining blockers
+ *     at round 3 escalate; no conditional extension is available;
  *   - a failing TEST gate (kind: 'test') is outside the review budget: it
- *     never earns the extension and never escalates, so a run whose only
+ *     never extends the review budget and never escalates, so a run whose only
  *     blockers are failing tests keeps looping - past round 3 - until the
  *     tests pass (bounded physically only by MAX_RECORD_BYTES);
- *   - an explicit minRounds may require two rounds, but a clean
+ *   - an explicit minRounds may require up to three rounds, but a clean
  *     review still ends as soon as that minimum is reached.
  *
  * CLI (JSON stdin, real clock):
@@ -45,12 +41,9 @@ const SCHEMA_VERSION = 1;
 // Bump whenever the round eligibility predicate changes.  Existing durable
 // records are intentionally invalidated rather than interpreted under a new
 // severity floor; callers must start a fresh run with the current policy.
-const POLICY_VERSION = 5;
-// Base budget every run starts with. A round-2 evaluation still blocked by a
-// CRITICAL/HIGH review blocker (a finding, or a failed non-test binary gate
-// carried as synthetic CRITICAL) raises this run's budget to HARD_MAX_ROUNDS
-// exactly once; nothing raises it beyond that.
-const MAX_ROUNDS = 2;
+const POLICY_VERSION = 6;
+// Every run has three review rounds; failing test gates alone may continue.
+const MAX_ROUNDS = 3;
 const HARD_MAX_ROUNDS = 3;
 const SEVERITIES = Object.freeze(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
 const NON_SEVERITY_STATES = Object.freeze(['NOT VERIFIABLE']);
@@ -58,8 +51,7 @@ const LOW_FINDING_FLOOR_ROUND = 2;
 // Round-1 LOW closure: how a caller records that a validated LOW is closed
 // without another full review round. Valid only on a LOW finding.
 const LOW_RESOLUTIONS = Object.freeze(['scoped-fix-verified', 'deferred']);
-// Only these tiers can unlock the single extension round.  MEDIUM and the
-// NOT VERIFIABLE evidence state keep a round blocked without buying another.
+// Compatibility vocabulary for consumers; current policy grants no extension.
 const EXTENSION_SEVERITIES = Object.freeze(['CRITICAL', 'HIGH']);
 // Hard-gate kinds. A `test` gate (a suite that must actually pass) loops
 // until green with no round cap; every other binary gate is a review blocker
@@ -117,8 +109,7 @@ function validateRound(value, label = 'round') {
 
 function validateMinRounds(value, explicit = false) {
     const candidate = value === undefined ? 1 : value;
-    // The extension is earned by evidence, so a caller may never declare a
-    // minimum above the base budget.
+    // A declared minimum cannot exceed the three-round review ceiling.
     if (!Number.isSafeInteger(candidate) || candidate < 1 || candidate > MAX_ROUNDS) {
         throw new Error(`minRounds must be an integer from 1 to ${MAX_ROUNDS}`);
     }
@@ -228,14 +219,9 @@ function reviewBlockers(blocking = []) {
     return blocking.filter(blocker => !isFailingTestGate(blocker));
 }
 
-/**
- * The single conditional extension: a spent base budget that is still blocked
- * by a CRITICAL or HIGH review blocker (a failed non-test binary gate counts,
- * since the policy represents it as a synthetic CRITICAL) buys round 3 and
- * nothing more. A failing test gate never buys it: tests are not budgeted.
- */
-function grantsExtension(round, blocking = []) {
-    return round === MAX_ROUNDS && reviewBlockers(blocking).some(finding => EXTENSION_SEVERITIES.includes(finding.severity));
+/** Retained API: the fixed three-round policy grants no extension. */
+function grantsExtension() {
+    return false;
 }
 
 function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {}) {
@@ -256,9 +242,7 @@ function evaluateRound({ round, findings = [], hardGates = [], minRounds } = {})
     const bounded = reviewBlockers(blocking);
     const failingTestGates = blocking.filter(isFailingTestGate);
     const extensionGranted = grantsExtension(round, blocking);
-    // The review budget in force for this round: the base cap, or the hard cap
-    // once round 3 is reached (by extension or by test-gate continuation).
-    const roundBudget = (extensionGranted || round > MAX_ROUNDS) ? HARD_MAX_ROUNDS : MAX_ROUNDS;
+    const roundBudget = MAX_ROUNDS;
     // A spent review budget with review blockers left is never a pass: the
     // caller stops and escalates to a human. Failing test gates alone never
     // escalate; the loop keeps fixing until the tests pass.
@@ -494,10 +478,7 @@ function recordRound(options) {
         }
         const expected = state.roundsCompleted + 1;
         if (round !== expected) throw new Error(`Expected next round ${expected}, received ${round}`);
-        // Round 3 exists only because a recorded round 2 was still blocked by a
-        // CRITICAL/HIGH review blocker; the grant lives on the run, so a target
-        // change cannot silently re-open or re-grant it. The one way past the
-        // review budget is a previous round blocked ONLY by failing test gates.
+        // Only failing test gates may continue beyond the three-round review cap.
         if (round > state.maxRounds && !continuesOnFailingTests(state)) throw new Error('Review round budget exhausted');
         const record = {
             round,

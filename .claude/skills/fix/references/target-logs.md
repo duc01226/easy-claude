@@ -13,7 +13,7 @@
 
 **Workflow:**
 
-1. Check whether `./logs.txt` exists. If missing, set up permanent log piping in the project's script config (`package.json`, `Makefile`, `pyproject.toml`, …): **Bash/Unix** append `2>&1 | tee logs.txt`; **PowerShell** append `*>&1 | Tee-Object logs.txt`. Run the command to generate logs.
+1. Check whether `./logs.txt` exists. If missing, capture one diagnostic invocation externally without rewriting the project script/config. Preserve stdout, stderr and the producer exit status. **Bash:** in a Bash subprocess run `set -o pipefail; <command> 2>&1 | tee logs.txt; producer_status=${PIPESTATUS[0]}; exit "$producer_status"` (capture immediately after the pipeline). **PowerShell native command:** invoke `& <executable> <args> *> logs.txt`, save `$producerStatus = $LASTEXITCODE` immediately, display the file if needed, and `exit $producerStatus`; PowerShell cmdlet/script failures require their documented error/exit contract rather than assuming `$LASTEXITCODE`. A successful logging sink never proves the producer succeeded. Record command and producer status with the log. Persistent logging changes require an actual product requirement and a status-preserving stack-native wrapper, separately verified; do not add them merely for diagnostics.
 2. Use the `debugger` subagent to analyze `./logs.txt`: read with `Grep` `head_limit: 30` (last 30 lines; increase if needed — avoid loading the whole file). Write analysis to `tmp/analysis/{issue-name}.analysis.md`; re-read before fixing.
 3. Use the `/investigate` skill to locate the exact source of the issue; report back.
 4. Use the `planner` subagent to create an implementation plan; report back.

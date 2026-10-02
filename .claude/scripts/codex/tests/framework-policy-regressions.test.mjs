@@ -39,13 +39,10 @@ async function readIfExists(rel) {
   }
 }
 
-test("orchestrator tier includes every proven direct-dispatch skill (CR-089)", async () => {
+test("retired dispatch protocol is absent from skill injection tiers", async () => {
   const source = await read(".claude/scripts/sync-hooks-to-skills.py");
-  // The `architecture` skill keeps parallel-subagent-dispatch inline in its mode references, so it is not a tier member.
-  for (const skill of ["demo-guide", "feature-presentation", "test"]) {
-    assert.match(source, new RegExp(`(?:^|[,\\s])\\"${skill}\\"(?:[,\\s]|$)`));
-  }
-  assert.match(source, /ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER \+ \["parallel-subagent-dispatch"\]/);
+  assert.match(source, /ORCHESTRATOR_SKILL_BLOCK_ORDER = \[\]/);
+  assert.doesNotMatch(source, /parallel-subagent-dispatch/);
 });
 
 test("large ideas use embedded decomposition and ordinary workflows do not add a roadmap writer", async () => {
@@ -217,16 +214,12 @@ test("docs-manager follows the docs-manager --mode=update local stamp contract",
   assert.doesNotMatch(stampRule, /impact-scoped patch writes NO stamp at all/i);
 });
 
-test("parallel and adjudication contracts retain fixed-order and exact artifact semantics (CR-024, CR-099..101)", async () => {
-  const [canonical, protocol, guide, understand, scale] = await Promise.all([
+test("adjudication and scale contracts retain exact artifact semantics (CR-099..101)", async () => {
+  const [canonical, understand, scale] = await Promise.all([
     read(".claude/skills/shared/sync-inline-versions.md"),
-    read(".claude/skills/shared/protocols/parallel-subagent-dispatch.md"),
-    read(".claude/skills/shared/sub-agent-selection-guide.md"),
     read(".claude/skills/understand/SKILL.md"),
     read(".claude/skills/understand/references/scale-protocol.md"),
   ]);
-  for (const content of [canonical, protocol]) assert.match(content, /skill or workflow explicitly fixes/i);
-  assert.match(guide, /unique exact artifact/i);
   assert.match(understand, /S2.*never assigns fragment ownership/i);
   assert.match(scale, /`[^`]*G\{n\}\.\{axis\}\.md`/);
   for (const verdict of ["SOURCE-WRONG", "TEST-WRONG", "TEST-NOT-OPTIMAL", "ENVIRONMENT-BLOCKED", "AMBIGUOUS"]) {
@@ -235,11 +228,11 @@ test("parallel and adjudication contracts retain fixed-order and exact artifact 
   assert.match(canonical, /verdict before trace\/edit|provisional verdict[\s\S]{0,160}before touching/i);
 });
 
-// CR-017 carrier predicate. The one round-eligibility predicate lives in SYNC:double-round-trip-review;
+// CR-017 carrier predicate. The one round-eligibility predicate lives in SYNC:review-policy;
 // a converted skill carries that protocol as a guide line (shared P25 recognizer, never a copied
 // line format) and the text lives in its projection file `shared/protocols/<tag>.md`.
-const BLOCKING_PREDICATE_TAG = "double-round-trip-review";
-const BLOCKING_PREDICATE_RE = /blocking_findings\(round, findings\)/;
+const BLOCKING_PREDICATE_TAG = "review-policy";
+const BLOCKING_PREDICATE_RE = /blockingFindings\(round, findings, hardGates\)/;
 const guideCarrier = require("../../lib/protocol-guide-carrier.cjs");
 function carriesBlockingPredicate(content, projectionText, { acceptGuide }) {
   if (BLOCKING_PREDICATE_RE.test(content)) return true;
@@ -253,7 +246,7 @@ test("review convergence uses one blocking predicate and byte-identical low-only
     // The outer zero-fix loop is workflow-review-changes' optional `--fix-loop` mode (references/fix-loop.md).
     readSkillContract("workflow-review-changes"),
   ]);
-  assert.match(canonical, /blocking_findings\(round, findings\)/);
+  assert.match(canonical, /blockingFindings\(round, findings, hardGates\)/);
   assert.match(canonical, /binary gate/i);
   assert.match(loop, /ALL LOW/i);
   assert.match(loop, /byte-identical/i);
@@ -273,12 +266,10 @@ test("review convergence uses one blocking predicate and byte-identical low-only
     ".claude/skills/ui-design/references/mode-review.md",
     ".claude/skills/why-review/SKILL.md",
   ];
-  const projection = await readIfExists(`.claude/skills/shared/protocols/${BLOCKING_PREDICATE_TAG}.md`);
   for (const rel of reviewCarriers) {
     const content = await read(rel);
-    // Agents keep full text (owner decision); a skill may carry the protocol as a guide entry.
-    assert.ok(carriesBlockingPredicate(content, projection, { acceptGuide: rel.startsWith(".claude/skills/") }),
-      `${rel} must carry blocking_findings(round, findings) inline, or (skills only) a ${BLOCKING_PREDICATE_TAG} guide entry whose projection file carries it`);
+    assert.doesNotMatch(content, /SYNC:double-round-trip-review|^- `double-round-trip-review`/m,
+      `${rel} must not carry the retired body or guide`);
     assert.doesNotMatch(content, /Issues found \(FAIL, or any non-zero findings\)/, rel);
   }
   // Leaf reviewer agents no longer run the round loop (the orchestrating skills above own the
@@ -294,7 +285,7 @@ test("CR-017 carrier predicate accepts a guide entry backed by its projection an
   const guided = [guideCarrier.GUIDE_BLOCK_START, "",
     guideCarrier.formatGuideLine({ tag: BLOCKING_PREDICATE_TAG, summary: "Fix loop", when: "running a review", path: `.claude/skills/shared/protocols/${BLOCKING_PREDICATE_TAG}.md` }),
     "", guideCarrier.GUIDE_BLOCK_END].join("\n");
-  const projection = "> Compute blocking_findings(round, findings) once per round.";
+  const projection = "> Compute blockingFindings(round, findings, hardGates) once per round.";
   // When the skill is checked, Then it passes
   assert.equal(carriesBlockingPredicate(guided, projection, { acceptGuide: true }), true);
   // When the guide is removed too (both forms missing), Then it fails
@@ -409,7 +400,8 @@ function assertChangesReviewFixLoop(text) {
   assert.match(mode, /Run `\/why-review --validate-findings <report-path>` INLINE/);
   assert.match(mode, /Run `\/fix` on the validated blocking findings/);
   assert.match(mode, /\*\*in this order — the first matching row decides\*\*/);
-  assert.match(mode, /\*\*ONE extension round is granted\*\*/);
+  assert.match(mode, /Cap at `?\{N=3\}`? review rounds/);
+  assert.doesNotMatch(mode, /ONE extension round|N=2/);
   assert.match(mode, /\*\*Keep looping — NO round cap\.\*\*/);
   assert.match(mode, /\*\*CONVERGED on the severity floor\*\*/);
   assert.match(mode, /\*\*Increasing review blockers = STOP\.\*\*/);
@@ -578,4 +570,34 @@ test("integration-test --mode=verify --fix-loop carries the retired loop skill's
   const sequence = workflows["workflow-integration-test"].variants.green.sequence;
   assert.equal(typeof sequence[1] === "string" ? sequence[1] : [sequence[1].skill, sequence[1].args].filter(Boolean).join(" "), "integration-test --mode=verify --fix-loop");
   assert.ok(!JSON.stringify(workflows).includes(RETIRED_IT_LOOP_SKILL), "workflows.json must not name the retired loop skill");
+});
+
+
+test("retired protocols cannot be delivered by hooks or restored through guide registries", async () => {
+  const canonical = await read(".claude/skills/shared/sync-inline-versions.md");
+  const groups = JSON.parse(await read(".claude/skills/shared/protocol-groups.json"));
+  const index = JSON.parse(await read(".claude/skills/shared/protocols/index.json"));
+  for (const tag of ["nested-task-creation", "fresh-context-review", "parallel-subagent-dispatch", "double-round-trip-review"]) {
+    assert.doesNotMatch(canonical, new RegExp(`^## SYNC:${tag}(?::[^\\s]+)?$`, "m"));
+    assert.ok(Object.values(groups.groups).every(group => !Object.hasOwn(group.tags, tag)));
+    assert.ok(index.tags.every(row => row.tag !== tag));
+    assert.equal(await readIfExists(`.claude/skills/shared/protocols/${tag}.md`), null);
+  }
+});
+
+test("protocol reminders retain applicability and do not introduce automatic architecture rules", async () => {
+  const canonical = await read(".claude/skills/shared/sync-inline-versions.md");
+  const { extractSyncBody } = require("../../lib/extract-sync-block.cjs");
+  const reminder = tag => extractSyncBody(canonical, `${tag}:reminder`);
+  assert.match(reminder("ui-system-context"), /applicable UI surface.*honor N\/A/);
+  assert.doesNotMatch(reminder("ui-system-context"), /before any UI change/);
+  assert.doesNotMatch(reminder("design-patterns-quality"), /same-suffix|base class/);
+  assert.match(reminder("complexity-prevention"), /project evidence.*real owner or consumer/);
+  assert.doesNotMatch(reminder("complexity-prevention"), />3|anemic models|downshift/);
+  assert.match(reminder("plan-granularity"), /avoid microtasks and recursive sub-plans/);
+  assert.doesNotMatch(reminder("plan-granularity"), /Failing phases/);
+  assert.match(reminder("ui-wireframe-protocol"), /fitting.*actual component owners/);
+  assert.doesNotMatch(reminder("ui-wireframe-protocol"), /ASCII wireframe|with tiers/);
+  assert.match(reminder("sequential-thinking-protocol"), /implicitly when visible markers would clutter/);
+  assert.doesNotMatch(reminder("output-quality-principles"), />=8|first and last 5/);
 });

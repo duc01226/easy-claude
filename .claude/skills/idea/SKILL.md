@@ -245,7 +245,7 @@ Paths below show the default team-artifacts root; a `docsRoots.teamArtifacts.pat
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
+**MUST ATTENTION** use structured reasoning for complex or ambiguous work, implicitly when visible markers would clutter. Verify hypotheses, revise assumptions, and close with confidence, assumptions, open questions and a concrete next action.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 

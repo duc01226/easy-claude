@@ -638,7 +638,7 @@ const COMMAND_ONLY_UTILITIES = [
     'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
     'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
     'git-developer-performance', 'skill-creator', 'scan-codebase-health', 'graph-export',
-    'ck-help', 'project-help', 'custom-prompt',
+    'project-help', 'custom-prompt',
 ];
 
 test('TC-ADS-009 command-only utility skills mirror to Codex with implicit invocation off', {

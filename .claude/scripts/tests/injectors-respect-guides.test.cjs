@@ -46,7 +46,7 @@ const EXCLUDED = {
     'inject_agent_skill_connections.py': 'agent-only: agents keep full protocol text'
 };
 /** Skill writers that are not named `inject_*.py`. */
-const EXTRA = ['sync-hooks-to-skills.py'];
+const EXTRA = []; // sync-hooks-to-skills.py inserts only agent tiers; the skill no-op is tested below.
 /** A refresher never inserts, so its body-carrier fixture would come from the injector that does (none today). */
 const SEEDED_BY = {};
 /** Every in-scope injector must target at least one of these names. */
@@ -308,4 +308,15 @@ test('TC-PDL-066: no skill injector inserts a body into a guided skill; reminder
     } finally {
         project.cleanup();
     }
+});
+
+
+test('sync-hooks-to-skills leaves bare and guided skills unchanged when skill tiers are empty', () => {
+    const project = makeProject();
+    try {
+        for (const guides of [false, true]) {
+            const input = mapFiles(FIXTURE_SKILLS, name => skillText(name, { guides }));
+            assert.deepEqual(project.run('sync-hooks-to-skills.py', input), input);
+        }
+    } finally { project.cleanup(); }
 });

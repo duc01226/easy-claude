@@ -14,14 +14,14 @@
 
 **1. Protocol loop — ALWAYS binding (hook/command-independent).** You, the running agent, are personally responsible for not stopping until the loop converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
 
-> Run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run `/why-review --validate-findings` on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → when reconciliation changes the report, re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until validation returns CLEAN, or a bounded blocker escalates. At most 1 re-do round (2 full review cycles total), then escalate via `AskUserQuestion`. Do not stop with unvalidated findings or incomplete required review coverage. Retain valid target findings for handoff; their severity does not require local target fixes.
+> Run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run `/why-review --validate-findings` on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → when reconciliation changes the report, re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until validation returns CLEAN, or a bounded blocker escalates. At most 2 re-do rounds (3 full review cycles total), then escalate via `AskUserQuestion`. Do not stop with unvalidated findings or incomplete required review coverage. Retain valid target findings for handoff; their severity does not require local target fixes.
 
 Treat this as a standing obligation you re-read at the Findings Validation Gate — NOT a one-time note you can rationalize away after the first pass.
 
 **2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it in this environment, ALSO invoke it (a real command call, NOT a paraphrase, NOT a Goal Contract file substituted for it) with a condition encoding THIS skill's self-recursive loop, so a session Stop hook mechanically enforces it:
 
 ```
-/goal why-review self-recursive loop: run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run /why-review --validate-findings on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → when reconciliation changes the report, re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until validation returns CLEAN, or a bounded blocker escalates. At most 1 re-do round (2 full review cycles total), then escalate via AskUserQuestion. Do not stop with unvalidated findings or incomplete required review coverage. Retain valid target findings for handoff; their severity does not require local target fixes.
+/goal why-review self-recursive loop: run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run /why-review --validate-findings on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → when reconciliation changes the report, re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until validation returns CLEAN, or a bounded blocker escalates. At most 2 re-do rounds (3 full review cycles total), then escalate via AskUserQuestion. Do not stop with unvalidated findings or incomplete required review coverage. Retain valid target findings for handoff; their severity does not require local target fixes.
 ```
 
 The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
@@ -35,7 +35,7 @@ The `/goal` Stop hook blocks stopping until the condition holds and auto-clears 
 Before review work, `TaskCreate` phase tasks AND required closing task:
 
 - [ ] `[Why-Review] Bind self-recursive review loop — protocol-primary; optional /goal accelerator when available (full mode only)` — in_progress **(MANDATORY FIRST TASK — skip in `validate-findings` mode)**
-- [ ] `[Why-Review] Findings Validation Gate — if ANY findings exist, run /why-review --validate-findings on them; re-do validation until the findings set is reconciled (at most 1 re-do; 2 full review cycles total)` — pending **(MANDATORY CLOSING TASK)**
+- [ ] `[Why-Review] Findings Validation Gate — if ANY findings exist, run /why-review --validate-findings on them; re-do validation until the findings set is reconciled (at most 2 re-dos; 3 full review cycles total)` — pending **(MANDATORY CLOSING TASK)**
 
 > Create at START. Keep the closing task `pending` until findings exist; then execute before skill completes. In `validate-findings` mode, do NOT create either task.
 
@@ -307,7 +307,7 @@ For code-change reviews, use Code-Change Review Path instead of forcing plan che
 
 ## Round 2: Adversarial Re-Review (MANDATORY)
 
-> **Protocol:** Deep Multi-Round Review (inlined via SYNC:double-round-trip-review in `SKILL.md`)
+> **Protocol:** Deep Multi-Round Review (inlined via SYNC:review-policy in `SKILL.md`)
 
 After Round 1, execute **second full adversarial round**:
 
@@ -361,4 +361,4 @@ This skill is report-only. Shared fix/re-review guidance applies here as validat
 2. **Invoke `/why-review --validate-findings tmp/reports/why-review-{date}.md`** in SAME main-agent session, NOT sub-agent. Returns CLEAN / HAS-ISSUES. Each call terminal.
 3. **CLEAN** → append `## Findings Validation` line to report ("All N findings re-validated; correct, proof-backed, reasonable, best-practice; no changes."), gate PASSES, exit the report loop and hand off retained target findings; this is not target clearance.
 4. **HAS ISSUES** → reconcile: drop/demote unproven or inflated findings (including any finding below the **≥85% finding-survival bar** — see the Findings Validation Routine's Confidence bar in `SKILL.md`), fix proof gaps, add surfaced findings/enhancements, re-derive verdict, record `## Findings Validation Notes` citing what changed and why.
-5. **RE-DO holistically** — because the reconciled findings changed the picture, re-run the FULL review (Validation Checklist + both Adversarial Rounds) over the WHOLE target combined with the reconciled findings — NOT just re-validate the changed findings in isolation — then re-invoke `/why-review --validate-findings` on the UPDATED report. Repeat until the findings report validates CLEAN, or **at most 1 re-do round (2 full review cycles total)**. Still HAS ISSUES → record unresolved state, mark the goal-gate blocker, and escalate via `AskUserQuestion` in `## Next Steps`.
+5. **RE-DO holistically** — because the reconciled findings changed the picture, re-run the FULL review (Validation Checklist + both Adversarial Rounds) over the WHOLE target combined with the reconciled findings — NOT just re-validate the changed findings in isolation — then re-invoke `/why-review --validate-findings` on the UPDATED report. Repeat until the findings report validates CLEAN, or **at most 2 re-do rounds (3 full review cycles total)**. Still HAS ISSUES → record unresolved state, mark the goal-gate blocker, and escalate via `AskUserQuestion` in `## Next Steps`.

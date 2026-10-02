@@ -40,7 +40,7 @@ context-budget: high
 
 ## Standalone Mode Pipeline (skip entirely only when `nested=true` — a `[Workflow]` row that merely exists in `TaskList` does not count)
 
-> **MANDATORY — standalone `/feature-implement` only.** When invoked OUTSIDE a workflow, wrap the core spine in this quality loop. Detect nesting via `TaskList` FIRST: if THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation` — a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count), SKIP this section — the surrounding workflow already sequences plan/review/why-review around this skill (e.g. `workflow-feature` wraps feature-implement with exactly these steps).
+> **MANDATORY — standalone `/feature-implement` only.** When invoked OUTSIDE a workflow, wrap the core spine in this quality loop. Detect nesting via `TaskList` FIRST: if THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count), SKIP this section — the surrounding workflow already sequences plan/review/why-review around this skill (e.g. `workflow-feature` wraps feature-implement with exactly these steps).
 >
 > Create these as `TaskCreate` tasks up front, in order, then execute them:
 >
@@ -169,13 +169,13 @@ mistakes compound through later tasks.
 ### 4. Mandatory Code Review (static)
 
 - Use `code-reviewer` subagent over the whole changeset; the review reads code and tests and runs NO test suite
-- Apply the canonical review policy: Round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`);
+- Apply the canonical review policy: Round 1 exits on zero open validated findings (Round-1 LOW closure);
   Round 2 fixes only validated CRITICAL/HIGH/MEDIUM findings, while
   LOW-only findings are recorded as deferred and do not reopen the loop.
 - Failed binary gates (tests, required artifacts, security must-fix, parity)
   block at every round and are never relabeled LOW.
 - Start a fresh full review after every fix cycle; a fix may write or amend tests but does not run them.
-- Stop when the current round's severity bar is clear; cap at two rounds — plus ONE extension round when round 2 leaves a validated CRITICAL/HIGH open — and
+- Stop when the current round's severity bar is clear; cap at three review rounds and
   escalate repeated/no-progress CRITICAL/HIGH/MEDIUM findings rather than
   looping open-ended.
 
@@ -185,7 +185,7 @@ mistakes compound through later tasks.
 - Tests cover: happy path scenarios, edge cases from research, error handling paths
 - NO mocks or fake data
 - Any red test or surviving mutant: record the provisional verdict, fix at the owner, re-run until all tests pass and every mutant is killed
-- If fixing edited any source or test file, re-run the Step 4 review over the settled tree; a re-review that applies a fix sends you back here (capped at 2 turns, then escalate via `AskUserQuestion`)
+- If fixing edited any source or test file, re-run the Step 4 review over the settled tree; a re-review that applies a fix sends you back here (capped at 3 turns, then escalate via `AskUserQuestion`)
 - Done = a green verify AND no edit after the last review; an edit after the last green run invalidates it
 
 ### 6. Documentation Update
@@ -247,7 +247,6 @@ mistakes compound through later tasks.
 - `design-review-checklist` — Executable front-end design review protocol CL-1 to CL-6; reviewing, planning or building front-end work → .claude/skills/shared/protocols/design-review-checklist.md
 - `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
-- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `plan-quality` — Plans decide direction, affected owners, risks and final proof without pre-writing implementation; writing or reviewing a plan → .claude/skills/shared/protocols/plan-quality.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
@@ -289,7 +288,7 @@ mistakes compound through later tasks.
 
 <!-- SYNC:ui-system-context:reminder -->
 
-**IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
+**IMPORTANT MUST ATTENTION** applicable UI surface: read selected UI/design/styling references; honor N/A, evidenced component/styling conventions, and fitting reuse.
 
 <!-- /SYNC:ui-system-context:reminder -->
 
@@ -312,12 +311,6 @@ mistakes compound through later tasks.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 

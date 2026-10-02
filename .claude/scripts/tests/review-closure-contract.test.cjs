@@ -43,8 +43,8 @@ function assertReportClosure(text) {
     assert.match(body, /retained target findings[^\n]+handoff/i);
     assert.match(body, /Review only — do NOT modify target files/);
     assert.match(body, /both Adversarial Rounds/);
-    assert.match(body, /at most 1 re-do round/);
-    assert.doesNotMatch(body, /Max 2 re-do rounds|re-do validation until the findings set is reconciled \(max 2\)/i);
+    assert.match(body, /at most 2 re-do rounds/);
+    assert.doesNotMatch(body, /Max 3 re-do rounds|re-do validation until the findings set is reconciled \(max 3\)/i);
     assert.match(body, /TERMINAL[^\n]+NEVER[^\n]+sub-agent/);
     assert.match(body, /≥85%/);
     assert.match(body, /spec-drift verdict/);
@@ -57,7 +57,7 @@ function assertDurableBudget(text) {
     assert.match(body, /resume[^\n]+completed rounds/i);
     assert.match(body, /target[^\n]+preserve[^\n]+budget/i);
     assert.match(body, /2 full invocations with no progress/);
-    assert.match(body, /2 rounds MAX/);
+    assert.match(body, /3 rounds MAX/);
 }
 
 test('R2-14/15: local closure anchors preserve report handoff and durable rounds', () => {
@@ -131,7 +131,7 @@ function assertFixLoopMode(parts) {
     assert.match(section, /Trade-Off Gate on the blocking fix set \(BLOCKING — before any edit lands\)/);
     assert.match(section, /Fix ONLY validated findings that block this round/);
     assert.match(section, /re-run a FRESH full review pass over the CHANGED target/);
-    assert.match(section, /did not shrink across 2 consecutive rounds → STOP & escalate/);
+    assert.match(section, /still open and did \*\*not shrink\*\* across 2 consecutive rounds/);
     assert.match(section, /## Deferred LOW Findings \(severity floor, round ≥2\)/);
     assert.match(section, /### Step FL-3 — Recap/);
     // Each round is plain full mode in the main session — never a nested flag or a sub-agent.
@@ -157,7 +157,7 @@ test('R2-14/FL: why-review --fix-loop is opt-in, delimited, and carries the oute
         ['NEVER self-invoke with the flag', 'Self-invoke with the flag when helpful'],
         ['These callers NEVER pass `--fix-loop`', 'These callers may pass `--fix-loop`'],
         ['Trade-Off Gate on the blocking fix set (BLOCKING — before any edit lands)', 'Apply the fix set'],
-        ['did not shrink across 2 consecutive rounds → STOP & escalate', 'did not shrink → keep looping'],
+        ['still open and did **not shrink** across 2 consecutive rounds', 'did not shrink → keep looping'],
         ['`validate-findings` beats `--fix-loop`', '`--fix-loop` beats `validate-findings`'],
         ['## Deferred LOW Findings (severity floor, round ≥2)', 'LOW findings may be dropped'],
         ['<!-- FIX-LOOP-MODE:END -->\n\n**Workflow:**', '\n\n**Workflow:**'],
@@ -183,8 +183,7 @@ test('R2-15: CLEAN report with a retained HIGH hands off without clearing the ou
         assert.equal(policy.evaluateRound({ round, findings }).canComplete, false);
         assert.equal(policy.blockingFindings(round, findings).length, 1);
     }
-    // A retained HIGH buys the single extension round at the base cap, and
-    // nothing at the hard cap: round 3 hands off to a human instead.
+    // A retained HIGH may use round 3; remaining blockers at that cap escalate.
     assert.equal(policy.evaluateRound({ round: 2, findings }).status, 'CONTINUE');
     assert.equal(policy.evaluateRound({ round: 3, findings }).status, 'ESCALATE');
     assert.equal(policy.evaluateRound({ round: 4, findings }).status, 'ESCALATE');

@@ -233,20 +233,6 @@ After validation:
 
 The protocols below apply to this mode only; their full text is inline so this reference is self-contained. The `plan` skill already carries `core-engineering-principles`, `cross-service-check` and `plan-quality`.
 
-<!-- SYNC:nested-task-creation -->
-
-> **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
->
-> 1. Call `TaskList` first. Set `nested=true` and record `parentTaskId` ONLY when this run created its own child phase tasks linked to that parent row; a `[Workflow]` row that merely exists in `TaskList` (stale, abandoned, or belonging to another run) does not make a run nested — such a run behaves as standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
-> 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
-> 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
-> 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
-> 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
->
-> **Blocked until:** `TaskList` done, child phases created, parent linked when nested, first child marked `in_progress`.
-
-<!-- /SYNC:nested-task-creation -->
 
 <!-- SYNC:sequential-thinking-protocol -->
 
@@ -326,7 +312,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
+**MUST ATTENTION** use structured reasoning for complex or ambiguous work, implicitly when visible markers would clutter. Verify hypotheses, revise assumptions, and close with confidence, assumptions, open questions and a concrete next action.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
@@ -337,12 +323,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 ## Prompt-Enhance Closing Anchors
 

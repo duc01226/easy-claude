@@ -61,16 +61,20 @@ A skill is a required `SKILL.md` plus optional `scripts/` (executable helpers), 
 (context-loaded docs), and `assets/` (output files: templates, icons, fonts). Full anatomy and the
 three-level progressive-disclosure loading model live in `references/creation-process.md`.
 
+## Helper invocation paths
+
+Run helper commands from the project root. The examples use the canonical installed skill root `.claude/skills/skill-creator`; if the active installation resolves elsewhere, substitute that resolved skill root for the executable path only, keeping target paths project-relative. Use `python3` on macOS/Linux and `py -3` on Windows (or the host's verified Python 3 executable). Do not change into the helper directory to repair path resolution. These commands need no author-machine absolute paths.
+
 ## Mode 1: Create a New Skill
 
 1. **Clarify** — If requirements are unclear, use ask the user directly for: purpose, auto vs user-invoked, trigger keywords, tools needed. Ask the most important questions first; don't overwhelm.
 2. **Check Existing** — Glob `.claude/skills/*/SKILL.md` for similar skills. Avoid duplication; prefer extending an existing skill (Mode 2) over creating a near-duplicate.
-3. **Initialize** — Run `scripts/init_skill.py <skill-name> --path <output-dir>` to scaffold the directory with a template SKILL.md + example `scripts/`, `references/`, `assets/`.
+3. **Initialize** — Run `python3 .claude/skills/skill-creator/scripts/init_skill.py <skill-name> --path <output-dir>` to scaffold the directory with a template SKILL.md + example `scripts/`, `references/`, `assets/`.
 4. **Plan reusable contents** — For each concrete usage example, identify the scripts, references, and assets worth bundling so the workflow isn't rebuilt each time.
 5. **Write SKILL.md** — Frontmatter per `references/schema-reference.md`; `## Quick Summary` in first 30 lines; imperative/infinitive voice; progressive disclosure. Delete unused scaffold files.
 6. **Add SYNC blocks** — Add the relevant protocols as SYNC blocks, then convert them to guide lines where the hybrid policy says so (see `## SYNC Protocol Blocks`).
 7. **Add Closing Reminders** — Echo top rules at the bottom with `:reminder` SYNC blocks (recency anchoring).
-8. **Validate** — `node scripts/validate-skills.cjs --path .claude/skills/<skill-name>`.
+8. **Validate** — `node .claude/skills/skill-creator/scripts/validate-skills.cjs --path .claude/skills/<skill-name>`.
 9. **Enhance** — Call `$prompt-enhance` on the finished SKILL.md for AI attention anchoring.
 
 ### Skill Attention Structure (MUST follow)
@@ -108,9 +112,9 @@ Detailed step-by-step narrative (understanding examples, planning contents, edit
 Audit and optionally repair frontmatter across the catalog.
 
 ```bash
-node scripts/validate-skills.cjs              # Report only (scans .claude/skills)
-node scripts/validate-skills.cjs --fix        # Report + auto-fix removable/renamable fields
-node scripts/validate-skills.cjs --path <dir> # Scan a specific directory
+node .claude/skills/skill-creator/scripts/validate-skills.cjs              # Report only (scans .claude/skills)
+node .claude/skills/skill-creator/scripts/validate-skills.cjs --fix        # Report + auto-fix removable/renamable fields
+node .claude/skills/skill-creator/scripts/validate-skills.cjs --path <dir> # Scan a specific directory
 ```
 
 **Workflow:** Discover (`glob .claude/skills/*/SKILL.md`) → Parse frontmatter → Validate each rule → Report grouped by severity (Error > Warning > Info) → Fix Error-level issues on user confirmation.
@@ -122,8 +126,8 @@ Full validation-rules table (frontmatter exists, single-line description, name f
 ## Mode 4: Package & Distribute
 
 ```bash
-scripts/package_skill.py <path/to/skill-folder>          # validate then zip
-scripts/package_skill.py <path/to/skill-folder> ./dist   # custom output dir
+python3 .claude/skills/skill-creator/scripts/package_skill.py <path/to/skill-folder>          # validate then zip
+python3 .claude/skills/skill-creator/scripts/package_skill.py <path/to/skill-folder> ./dist   # custom output dir
 ```
 
 Packaging validates first (frontmatter, naming, directory structure, resource references); on success it produces `<skill>.zip` preserving structure. On validation failure it reports errors and exits without packaging — fix and rerun.
@@ -225,7 +229,7 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 <!-- SYNC:output-quality-principles:reminder -->
 
-**IMPORTANT MUST ATTENTION** output quality: no counts/trees/TOCs, 1 example per pattern, lead with the answer, no filler, >=8 rules per 100 lines, critical rules in the first and last 5 lines, tables over prose; a skill's own stated exceptions override this.
+**IMPORTANT MUST ATTENTION** lead with the answer, remove filler and redundant counts/trees/TOCs, use an example only when non-obvious, keep reports concise without losing quality, and put unresolved questions last; honor the task's required output.
 
 <!-- /SYNC:output-quality-principles:reminder -->
 

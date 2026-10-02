@@ -251,7 +251,7 @@ function assertFixLoopMode(text) {
     assert.match(mode, /\*\*2\. `\/goal` command — invoke as an accelerator WHEN AVAILABLE\.\*\*/);
     assert.match(mode, /\/goal accelerator unavailable — loop bound by protocol/);
     assert.match(mode, /\*\*Nested gates \(by design, safe\):\*\*/);
-    assert.match(mode, /\*\*in this order — the first matching row decides\*\*/);
+    assert.match(mode, /in this order/);
     assert.match(mode, /Why this mode exists \(READ FIRST/);
     assert.match(mode, /Fix-Loop Convergence Detection — Why Two Conditions/);
     assert.match(mode, /REGENERATE a fresh round task plan/);
@@ -268,7 +268,7 @@ test('TC-WFADV-023: workflow-review-changes documents the optional --fix-loop ou
     for (const [before, after] of [
         ['(default mode, WITHOUT `--fix-loop`) via the `Skill` tool (NEVER the `Agent` tool)', 'via the `Agent` tool'],
         ['working tree is byte-identical to the before-snapshot', 'reviews look clean'],
-        ['**in this order — the first matching row decides**', 'using any matching row'],
+        ['in this order', 'using any matching row'],
         ['Scope base is FIXED across rounds; the working tree grows.', 'Scope is recomputed freely.'],
         ['<!-- FIX-LOOP-MODE:END -->', ''],
     ]) {
@@ -331,7 +331,7 @@ test('TC-HARNESS-006: review consumers name the executable canonical policy', as
     const policy = await import(pathToFileURL(path.join(repoRoot, '.claude', 'scripts', 'lib', 'review-policy.cjs')).href);
     assert.match(shared, /## SYNC:review-policy/);
     assert.match(shared, /blockingFindings\(round, findings, hardGates\)/);
-    assert.equal(policy.MAX_ROUNDS, 2);
+    assert.equal(policy.MAX_ROUNDS, 3);
     assert.deepEqual(
         policy.blockingFindings(2, [{ id: 'low', severity: 'LOW' }]),
         [],

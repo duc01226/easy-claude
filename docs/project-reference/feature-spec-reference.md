@@ -153,11 +153,11 @@ No product application or service boundary is configured, so ownership maps to t
 
 | App Name                                | Backend Services | Doc Directory                                                                                                                                   | Doc Count | Evidence                                                                                                                                                                                                                                                                                                                                                                                         |
 | --------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| N/A — no configured product application | None             | `docs/specs/ContextDelivery/`, `docs/specs/WorkflowExecution/`, `docs/specs/Notifications/`, `docs/specs/Presentation/`, `docs/specs/Adoption/` |         8 | `docs/project-config.json:44-115,401-412`; six corpus specs describe hooks-module behavior (convention injection, prompt ledger, workflow routing, protocol delivery, session notifications, adoption switches), one describes workflows-module behavior (guided workflow execution) and one describes skills-module behavior (presentation decks; `Presentation/README.PresentationDecks.md:2`) |
+| N/A — no configured product application | None             | `docs/specs/ContextDelivery/`, `docs/specs/WorkflowExecution/`, `docs/specs/Notifications/`, `docs/specs/Presentation/`, `docs/specs/Adoption/` |         9 | `docs/project-config.json:44-115,401-412`; seven corpus specs describe hooks-module behavior (convention injection, prompt ledger, workflow routing, protocol delivery, session notifications, adoption switches, skill activation policy), one describes workflows-module behavior (guided workflow execution) and one describes skills-module behavior (presentation decks; `Presentation/README.PresentationDecks.md:2`) |
 
 ## Gold Standard References
 
-No spec has been ratified as a gold-standard exemplar yet. The eight corpus specs are structurally conformant and recent, so read them for shape, and keep the master template authoritative wherever a spec and the template disagree:
+No spec has been ratified as a gold-standard exemplar yet. The nine corpus specs are structurally conformant and recent, so read them for shape, and keep the master template authoritative wherever a spec and the template disagree:
 
 - `detailed-feature-spec-template.md` — project master template (authoritative on structure)
 - `ContextDelivery/README.PerFileConventionInjection.md` — conformance reference; 8 sections, 85 TCs in one file (over the forty-case split rule; a continuation part is its owner's follow-up)
@@ -169,9 +169,11 @@ No spec has been ratified as a gold-standard exemplar yet. The eight corpus spec
 - `WorkflowExecution/README.GuidedWorkflow.md` — conformance reference; 8 sections, 68 TCs in one file (over the forty-case split rule; a continuation part is its owner's follow-up)
 - `Adoption/README.AdoptionSwitches.md` — conformance reference; 8 sections, 62 TCs (Section 8 continues in `README.AdoptionSwitches-Part2.md`)
 
+- `Adoption/README.SkillActivationPolicy.md` — implemented; 8 sections, 10 TCs for configurable runtime skill selection
+
 ## Feature Code Registry
 
-Eight capability codes are registered: four in the `ContextDelivery` bucket, one each in the `WorkflowExecution`, `Notifications`, `Presentation` and `Adoption` buckets.
+Nine capability codes are registered: four in `ContextDelivery`, two in `Adoption`, and one each in `WorkflowExecution`, `Notifications` and `Presentation`.
 
 | Code | Feature                         | Module    | Status | Evidence                                                                              |
 | ---- | ------------------------------- | --------- | ------ | ------------------------------------------------------------------------------------- |
@@ -184,26 +186,28 @@ Eight capability codes are registered: four in the `ContextDelivery` bucket, one
 | NT   | Assistant Session Notifications | hooks     | draft  | `Notifications/INDEX.md:11`; `Notifications/README.AssistantSessionNotifications.md`  |
 | PD   | Presentation Decks              | skills    | draft  | `Presentation/INDEX.md:11`; `Presentation/README.PresentationDecks.md`                |
 
+| SAP | Framework Skill Activation Policy | hooks | implemented | `Adoption/README.SkillActivationPolicy.md` |
+
 ## Thin-Index Files
 
-Five bucket indexes exist, each a capability table (Capability · Feature Code · Status · Spec link): `ContextDelivery/INDEX.md` covers its four specs; `Adoption/INDEX.md` covers its one spec and links the continuation part from the same row; `Notifications/INDEX.md`, `Presentation/INDEX.md` and `WorkflowExecution/INDEX.md` each cover one spec. All five carry the derived-artifact banner (regenerate via `/spec [mode=index]`, never hand-edit). No parent cross-bucket index exists; with five buckets populated, one is now worth generating through the `/spec [mode=index]` owner. **Evidence:** `ContextDelivery/INDEX.md:1-14`; `Adoption/INDEX.md:1-11`; `Notifications/INDEX.md:1-11`; `Presentation/INDEX.md:1-11`; `WorkflowExecution/INDEX.md:1-11`.
+Five bucket indexes exist, each a capability table (Capability · Feature Code · Status · Spec link): `ContextDelivery/INDEX.md` covers its four specs; `Adoption/INDEX.md` covers two specs and links the adoption-switch continuation part from its row; `Notifications/INDEX.md`, `Presentation/INDEX.md` and `WorkflowExecution/INDEX.md` each cover one spec. All five carry the derived-artifact banner (regenerate via `/spec [mode=index]`, never hand-edit). No parent cross-bucket index exists; with five buckets populated, one is now worth generating through the `/spec [mode=index]` owner. **Evidence:** `ContextDelivery/INDEX.md:1-14`; `Adoption/INDEX.md:1-11`; `Notifications/INDEX.md:1-11`; `Presentation/INDEX.md:1-11`; `WorkflowExecution/INDEX.md:1-11`.
 
 ## Section Structure
 
-Corpus denominator: 8 Feature Specs (a continuation part is not a separate spec). All eight carry all eight prescribed sections in the prescribed order, so every section is observed at 100% (8/8) and classified standard.
+Corpus denominator: 9 Feature Specs (a continuation part is not a separate spec). All nine carry all eight prescribed sections in the prescribed order, so every section is observed at 100% (9/9) and classified standard.
 
 | Order | Prescribed Section                 | Observed Frequency |
 | ----: | ---------------------------------- | ------------------ |
-|     1 | Overview                           | 100% (8/8)         |
-|     2 | Glossary                           | 100% (8/8)         |
-|     3 | User Stories & Acceptance Criteria | 100% (8/8)         |
-|     4 | Business Rules                     | 100% (8/8)         |
-|     5 | Domain Model                       | 100% (8/8)         |
-|     6 | Process Flows                      | 100% (8/8)         |
-|     7 | Permissions & Roles                | 100% (8/8)         |
-|     8 | Test Specifications                | 100% (8/8)         |
+|     1 | Overview                           | 100% (9/9)         |
+|     2 | Glossary                           | 100% (9/9)         |
+|     3 | User Stories & Acceptance Criteria | 100% (9/9)         |
+|     4 | Business Rules                     | 100% (9/9)         |
+|     5 | Domain Model                       | 100% (9/9)         |
+|     6 | Process Flows                      | 100% (9/9)         |
+|     7 | Permissions & Roles                | 100% (9/9)         |
+|     8 | Test Specifications                | 100% (9/9)         |
 
-An 8-spec denominator confirms the prescribed order is followed but is too small to establish an independent corpus convention; the master template stays the authority. **Evidence:** `detailed-feature-spec-template.md:41-216`; `ContextDelivery/README.PerFileConventionInjection.md:36,44,76,247,507,654,728,749`; `ContextDelivery/README.SessionPromptLedger.md:36,42,60,122,185,247,278,296`; `ContextDelivery/README.WorkflowRouting.md:46,52,79,132,234,315,341,355`; `Notifications/README.AssistantSessionNotifications.md:42,48,71,112,213,256,315,327`; `Presentation/README.PresentationDecks.md:42,48,69,136,223,305,370,382`; `Adoption/README.AdoptionSwitches.md:64,70,102,207,362,472,516,536` (Section 8 continues at `README.AdoptionSwitches-Part2.md:27`); `ContextDelivery/README.ProtocolDelivery.md:68,74,110,220,369,498,538,552`; `WorkflowExecution/README.GuidedWorkflow.md:54,60,100,201,358,485,527,541`.
+A 9-spec denominator confirms the prescribed order is followed but is too small to establish an independent corpus convention; the master template stays the authority. **Evidence:** `detailed-feature-spec-template.md:41-216`; `ContextDelivery/README.PerFileConventionInjection.md:36,44,76,247,507,654,728,749`; `ContextDelivery/README.SessionPromptLedger.md:36,42,60,122,185,247,278,296`; `ContextDelivery/README.WorkflowRouting.md:46,52,79,132,234,315,341,355`; `Notifications/README.AssistantSessionNotifications.md:42,48,71,112,213,256,315,327`; `Presentation/README.PresentationDecks.md:42,48,69,136,223,305,370,382`; `Adoption/README.AdoptionSwitches.md:64,70,102,207,362,472,516,536` (Section 8 continues at `README.AdoptionSwitches-Part2.md:27`); `ContextDelivery/README.ProtocolDelivery.md:68,74,110,220,369,498,538,552`; `WorkflowExecution/README.GuidedWorkflow.md:54,60,100,201,358,485,527,541`.
 
 ## Documentation Conventions
 
@@ -223,10 +227,10 @@ An 8-spec denominator confirms the prescribed order is followed but is too small
 
 | Area                         | Current State                                                                                                                                                                                                                                                                                         | Evidence / Next Owner                                                                                                                                                                                          |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Canonical corpus             | Five buckets exist (`ContextDelivery`: 4 Feature Specs; `WorkflowExecution`: 1; `Notifications`: 1; `Presentation`: 1; `Adoption`: 1 in two parts); every other capability is still uncovered                                                                                                         | `ContextDelivery/`, `WorkflowExecution/`, `Notifications/`, `Presentation/`, `Adoption/`; create further buckets through `$spec` when a capability is ready                                                    |
-| Module distribution          | The hooks module has six Feature Specs, the workflows module one (GWF) and the skills module one (PD); the other four configured modules have zero                                                                                                                                                    | `docs/project-config.json:44-115`; corpus evidence above                                                                                                                                                       |
+| Canonical corpus             | Five buckets exist (`ContextDelivery`: 4 Feature Specs; `WorkflowExecution`: 1; `Notifications`: 1; `Presentation`: 1; `Adoption`: 2 (ADS in two parts)); every other capability is still uncovered                                                                                                         | `ContextDelivery/`, `WorkflowExecution/`, `Notifications/`, `Presentation/`, `Adoption/`; create further buckets through `$spec` when a capability is ready                                                    |
+| Module distribution          | The hooks module has seven Feature Specs, the workflows module one (GWF) and the skills module one (PD); the other four configured modules have zero                                                                                                                                                    | `docs/project-config.json:44-115`; corpus evidence above                                                                                                                                                       |
 | Worked exemplar              | No gold-standard capability document exists                                                                                                                                                                                                                                                           | Master template only: `detailed-feature-spec-template.md`                                                                                                                                                      |
-| Feature-code registry        | Eight codes registered (`PFCI`, `SPL`, `WFR`, `PDL`, `GWF`, `NT`, `ADS`, `PD`), all `draft`; no code is `stable` yet                                                                                                                                                                                  | `ContextDelivery/INDEX.md:11-14`; `WorkflowExecution/INDEX.md:11`; `Notifications/INDEX.md:11`; `Presentation/INDEX.md:11`; `Adoption/INDEX.md:11`                                                             |
+| Feature-code registry        | Nine codes registered (`PFCI`, `SPL`, `WFR`, `PDL`, `GWF`, `NT`, `ADS`, `PD`, `SAP`); SAP is `implemented`, the others `draft`; no code is `stable` yet                                                                                                                                                                                  | `ContextDelivery/INDEX.md:11-14`; `WorkflowExecution/INDEX.md:11`; `Notifications/INDEX.md:11`; `Presentation/INDEX.md:11`; `Adoption/INDEX.md:11`                                                             |
 | Thin indexes                 | Five bucket indexes exist (`ContextDelivery/INDEX.md`, `WorkflowExecution/INDEX.md`, `Notifications/INDEX.md`, `Presentation/INDEX.md`, `Adoption/INDEX.md`); no cross-bucket catalog yet — generate one through `/spec [mode=index]`                                                                        | `ContextDelivery/INDEX.md`; `Notifications/INDEX.md`; `Presentation/INDEX.md`; `Adoption/INDEX.md`                                                                                                             |
 | Forty-case split rule        | `ContextDelivery/README.PerFileConventionInjection.md` (85 TCs), `ContextDelivery/README.ProtocolDelivery.md` (75 TCs) and `WorkflowExecution/README.GuidedWorkflow.md` (68 TCs) each hold more than forty cases in one file; each records the split as an owner follow-up in its Section 8 size note | `/spec` owner; `Adoption/README.AdoptionSwitches-Part2.md` is the continuation-part precedent                                                                                                                  |
 | Local M1 tokens              | The local prose-rule section defines no banned-token list or verifier                                                                                                                                                                                                                                 | `spec-principles.md:35-39`                                                                                                                                                                                     |
@@ -236,7 +240,7 @@ An 8-spec denominator confirms the prescribed order is followed but is too small
 
 ## M1/M2 Compliance Leaks
 
-The corpus now has eight auditable specs, but no per-token M1/M2 audit has been run against them. The table below is empty because the audit is OUTSTANDING — this is an unperformed audit, not a compliance PASS.
+The corpus now has nine auditable specs, but no per-token M1/M2 audit has been run against them. The table below is empty because the audit is OUTSTANDING — this is an unperformed audit, not a compliance PASS.
 
 | File | Line | Section | Mandate | Offending Token / Identifier |
 | ---- | ---: | ------- | ------- | ---------------------------- |

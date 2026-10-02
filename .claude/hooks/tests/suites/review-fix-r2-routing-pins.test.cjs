@@ -188,8 +188,7 @@ const tests = [
                 assert.match(line, /\*\*Otherwise \(standalone, or only an unrelated `\[Workflow\]` row exists\):\*\*/, `${label} must ask when only an unrelated row exists`);
                 assert.doesNotMatch(line, /\*\*Standalone:\*\*/, `${label} must not keep the old standalone label`);
             }
-            // And the protocol the condition names exists
-            assert.ok(fs.existsSync(path.join(REPO_ROOT, '.claude', 'skills', 'shared', 'protocols', 'nested-task-creation.md')));
+
         })
     },
     {

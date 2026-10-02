@@ -55,22 +55,22 @@
 
 ## SYNC:estimation-framework
 
-> **Estimation Framework** — Bottom-up first; SP DERIVED; output min-max range when likely ≥3d. Stack-agnostic. Baseline: 3-5yr dev, 6 productive hrs/day. AI estimate assumes Claude Code + project context.
+> **Estimation Framework** — Bottom-up; derive SP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
 >
 > **Method:**
 >
-> 1. **Blast Radius pass** (below) — drives code AND test cost
+> 1. **Blast Radius pass** below — code AND test cost
 > 2. Decompose phases → hours/phase → `bottom_up_hours = Σ phase_hours`
 > 3. `likely_days = ceil(bottom_up_hours / 6) × productivity_factor`
 > 4. Sum **Risk Margin** (base + add-ons) → `max_days = likely_days × (1 + margin)`
 > 5. `min_days = likely_days × 0.9`
-> 6. Output as range when `likely_days ≥3`; single point allowed `<3` (still record margin)
+> 6. Range at `likely_days ≥3`; point allowed `<3`; always record margin
 > 7. `man_days_ai` = same range × AI speedup
-> 8. `story_points` DERIVED from `likely_days` via SP-Days — NEVER driver. Disagreement >50% → trust bottom-up
+> 8. Derive `story_points` from `likely_days` via SP-Days; NEVER driver. >50% disagreement → trust bottom-up
 >
 > **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
 >
-> **Cost Driver Heuristic (apply BEFORE work-type row):**
+> **Cost driver (BEFORE work-type row):**
 >
 > - **UI dominates** in CRUD/business apps — 1.5-3x backend (states, validation, responsive, a11y, polish)
 > - **Backend dominates ONLY:** multi-aggregate invariants, cross-service contracts, schema migrations, heavy query/perf, new event flows
@@ -95,9 +95,9 @@
 > | NEW cross-service contract OR schema migration | 2-4d each |
 > | Multi-aggregate invariant / heavy domain rule | 3-5d |
 >
-> **Rule:** Sum tiers across UI+backend+tests, apply productivity factor. Reuse short-circuits tiers — call out.
+> **Rule:** Sum UI+backend+test tiers; apply productivity factor; call out reuse shortcuts.
 >
-> **Test-Scope drivers (compute test_count EXPLICITLY — "+tests" hand-wave is #1 failure):**
+> **Test scope:** Compute `test_count` explicitly by driver; never hand-wave "+tests".
 >
 > | Driver | Count |
 > | --- | --- |
@@ -119,15 +119,15 @@
 >
 > **Test multipliers:** new fixture/seed harness +0.5d · cross-service/bus assertion +0.3d each · UI E2E ×1.5 · each new role +1-2 cases
 >
-> **Blast Radius (mandatory pre-pass — affects code AND test):**
+> **Blast Radius (mandatory; code AND tests):**
 >
-> 1. Files/components directly modified — count
-> 2. Of those, "complex" (>500 LOC, multi-handler, central, frequently-modified) — count
-> 3. Downstream consumers (callers, event subscribers, cross-service) — list
-> 4. Shared/common code touched (multi-app blast) — yes/no
+> 1. Count directly modified files/components
+> 2. Count complex touches (>500 LOC, multi-handler, central, frequently-modified)
+> 3. List downstream callers, event subscribers, cross-service consumers
+> 4. Shared/common multi-app touch — yes/no
 > 5. Regression scope — areas needing re-test
 >
-> **Rule:** Complex touch → add `risk_factors`. Each downstream consumer → +1-3 regression cases. Blast >5 areas OR >2 complex → re-evaluate SPLIT before estimating.
+> **Rule:** Complex touch → `risk_factors`; each downstream consumer → +1-3 regression cases; >5 areas OR >2 complex → reconsider SPLIT before estimating.
 >
 > **Risk Margin (drives max bound):**
 >
@@ -140,7 +140,7 @@
 > | 8-10d very large | +75% |
 > | >10d | +100% AND **flag SHOULD SPLIT** |
 >
-> **Risk-factor add-ons (additive — enumerate in `risk_factors`):**
+> **Additive risk factors — enumerate in `risk_factors`:**
 >
 > | Factor | +margin |
 > | --- | --- |
@@ -154,7 +154,7 @@
 > | `shared-common-code` (multi-consumer/multi-app) | +25% |
 > | `unclear-requirements-or-design` | +30% |
 >
-> **Collapse rule:** total margin >100% → STOP, split (padding past 2x is dishonesty). Margin <15% on `likely_days ≥5` → under-estimated, widen.
+> **Collapse:** margin >100% → STOP/split, never pad past 2x. Margin <15% at `likely_days ≥5` → widen.
 >
 > **Work-Type Caps (hard ceilings on `likely_days`):**
 > | Work type | Max SP | Max likely |
@@ -201,19 +201,19 @@
 >     Risk: base 35% + touches-complex +20% = 55% → max 3.9d → range 2.5-4d."
 > ```
 >
-> **Sanity self-check:**
+> **Reject/fix estimates failing these checks:**
 >
-> - `likely_days ≥3d` and single-point? → reject, must be range
-> - Margin <15% on `likely_days ≥5d`? → under-estimated, widen
-> - Margin >100%? → STOP, split instead of buffer
-> - Complex existing feature touched, no regression budget in `(c)`? → reject
-> - Blast `>5` areas OR `>2` complex, no split discussion? → reject
-> - Purely additive on existing model AND existing UI? → cap SP 3 unless tests >1.5d
-> - NEW UI surface (page/complex form/dashboard)? → SP 5+ even if backend one endpoint
-> - Backend cross-service / migration / multi-aggregate? → SP 8+ regardless of UI
-> - `bottom_up_hours / 6` vs SP-Days disagreement >50%? → trust bottom-up, downgrade SP
-> - Without tests, SP drops ≥1 bucket? → tests dominate; state explicitly
-> - Reasoning called out UI vs backend vs blast vs risk factors? → if missing, add
+> - `likely_days ≥3d` single-point → use range
+> - Margin <15% at `likely_days ≥5d` → widen
+> - Margin >100% → STOP/split
+> - Complex touch without regression budget in `(c)` → reject
+> - Blast `>5` areas OR `>2` complex without split discussion → reject
+> - Additive existing model AND UI → cap SP 3 unless tests >1.5d
+> - NEW page/complex form/dashboard → SP 5+ even with one backend endpoint
+> - Cross-service/migration/multi-aggregate backend → SP 8+ regardless of UI
+> - `bottom_up_hours / 6` vs SP-Days >50% disagreement → trust bottom-up, downgrade SP
+> - Without tests SP drops ≥1 bucket → state tests dominate
+> - Reasoning must cover UI/backend/blast/risk factors; add omissions
 
 ---
 
@@ -225,20 +225,20 @@
 
 ## SYNC:ui-system-context
 
-> **UI System Context** — Apply only when the changed artifact is part of a user-interface surface; a `.ts`, `.html`, `.scss`, or `.css` extension alone does not establish that.
+> **UI System Context** — Apply only to a user-interface surface; `.ts`, `.html`, `.scss`, or `.css` alone does not establish one.
 >
-> 1. Resolve applicable UI paths and conventions from `docs/project-config.json`, its configured project-reference docs, accepted decisions, and existing code. Read only references relevant to this surface (frontend patterns, styling, component system, design system, accessibility, or platform guide).
-> 2. Respect an explicit N/A or absent UI surface. Do not require BEM, SCSS, tokens, component tiers, base classes, stores, API wrappers, or teardown helpers unless this project documents or demonstrates them.
-> 3. Follow the configured/observed styling and component conventions. Use `componentSystem.layerClassification` when configured; otherwise describe the actual component owners without inventing Common/Domain-Shared/Page tiers.
-> 4. Reuse or compose an existing abstraction when its contract and platform fit. When none fits, use the project's idiomatic local pattern; do not add a shared base or wrapper just to satisfy this checklist.
+> 1. Resolve applicable paths/conventions from `docs/project-config.json`, configured project-reference docs, accepted decisions, and code. Read only relevant frontend, styling, component, design, accessibility, or platform references.
+> 2. Respect absent UI and explicit N/A. Require BEM, SCSS, tokens, component tiers, base classes, stores, API wrappers, or teardown helpers only when documented or demonstrated.
+> 3. Follow configured/observed styling and component conventions. Use configured `componentSystem.layerClassification`; otherwise describe actual owners without imposing Common/Domain-Shared/Page tiers.
+> 4. Reuse/compose abstractions whose contract and platform fit; otherwise use idiomatic local patterns. Do not create shared bases/wrappers to satisfy a checklist.
 >
-> Project config may customize these conventions through `contextGroups[].rules`, `workflowPatterns`, `styling`, `componentSystem`, and the configured reference docs.
+> Config customization: `contextGroups[].rules`, `workflowPatterns`, `styling`, `componentSystem`, and configured reference docs.
 
 ---
 
 ## SYNC:ui-system-context:reminder
 
-**IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
+**IMPORTANT MUST ATTENTION** applicable UI surface: read selected UI/design/styling references; honor N/A, evidenced component/styling conventions, and fitting reuse.
 
 ---
 
@@ -445,17 +445,17 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:output-quality-principles:reminder
 
-**IMPORTANT MUST ATTENTION** output quality: no counts/trees/TOCs, 1 example per pattern, lead with the answer, no filler, >=8 rules per 100 lines, critical rules in the first and last 5 lines, tables over prose; a skill's own stated exceptions override this.
+**IMPORTANT MUST ATTENTION** lead with the answer, remove filler and redundant counts/trees/TOCs, use an example only when non-obvious, keep reports concise without losing quality, and put unresolved questions last; honor the task's required output.
 
 ---
 
 ## SYNC:graph-assisted-investigation
 
-> **Graph-Assisted Investigation (optional advice)** — Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.
+> **Graph-Assisted Investigation (optional advice)** — Optional: for high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), `.code-graph/graph.db` may add callers, dependents and impacted tests beyond grep/read. Treat it as a hint, NOT proof: stale or incomplete graphs lag uncommitted edits and unindexed paths. verify anything that matters by reading files/grep. Skip it for low-risk or local changes.
 >
 > An absent or stale graph is never a finding and never blocks, fails or gates work.
 >
-> **Pattern (when used):** grep/read finds files → optional graph query suggests extra callers/dependents → grep/read verifies details
+> **Pattern:** grep/read → optional graph suggestions → grep/read verification.
 >
 > | Situation                          | Optional graph query                         |
 > | ---------------------------------- | -------------------------------------------- |
@@ -465,7 +465,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 > | Review of a high-risk change       | `tests_for` on changed functions             |
 > | Blast radius                       | `trace --direction downstream`               |
 >
-> **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
+> **CLI:** `python .claude/scripts/code_graph {command} --json`. Start `--node-mode file` (10-30x less noise), then `--node-mode function` for detail.
 
 ---
 
@@ -653,83 +653,21 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ---
 
-## SYNC:double-round-trip-review
-
-> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle or an explicitly declared independent-pass minimum, not by a round number alone. Review purpose: `review → validate findings → fix validated findings that block the current round → full re-review` until a complete review pass clears the round's exit bar (see **Severity floor** below). **A clean review ENDS the loop once the persisted `minRounds` is met (default 1); an explicitly declared `minRounds=2` requires the independent second pass.**
->
-> _aka **Self-Review Convergence Loop**._ "Double-round-trip" means a validated-finding fix cycle forces at least one fresh re-review. The loop is bounded by the **2-round ceiling — extendable ONCE to round 3 when CRITICAL/HIGH remain**. A failing **test gate** (a suite that must actually pass) is outside that ceiling: the loop keeps fixing and re-running until the tests pass.
->
-> **Round cap — 2 rounds MAX, extendable ONCE to round 3 (a ceiling, NEVER a target).** A clean pass ENDS the loop at ANY round once `round >= minRounds`; the cap never obliges an extra round. When round 2 completes with blocking findings still open (severity floor applied):
->
-> - **Validated CRITICAL or HIGH still open → ONE extra round is granted (round 3, the review hard cap).** A failed non-test binary gate (security must-fix, required artifact, generated parity, policy compliance) counts as a CRITICAL blocker here. The extension is earned by that evidence alone, granted at most once per run, and never renews.
-> - **Only MEDIUM (or an unresolved `NOT VERIFIABLE`) still open → NO extension.** → **STOP and escalate by asking the user directly** with the still-open findings listed.
-> - **Round 3 completes with ANY review blocker still open → STOP and escalate by asking the user directly.** No review finding or non-test gate opens a round 4.
-> - **A failing TEST gate → NO round cap, at any round.** Failing tests never escalate for budget or no-progress and never buy or spend the extension: run the failed-test investigation gate, fix at the owning layer, and re-run until the tests pass — past round 3 if needed. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
->
-> NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER loop past round 3 on review blockers. The 2-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
->
-> **Severity floor — from round 2, LOW stops blocking.** One predicate everywhere: `blocking_findings(round, findings)` returns all open validated findings in round 1 (see **Round-1 LOW closure**) and only validated CRITICAL/HIGH/MEDIUM findings from round 2 onward.
->
-> | Round | Exit bar — loop ENDS when the fresh full review has… | Must be fixed to continue |
-> | --- | --- | --- |
-> | 1 | zero OPEN validated findings at ANY severity (see **Round-1 LOW closure**) | CRITICAL · HIGH · MEDIUM · LOW |
-> | 2 | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
-> | 3 — extension, ONLY when round 2 left CRITICAL/HIGH open (or failing tests were the only blocker) | zero validated CRITICAL / HIGH / MEDIUM findings — **LOW-only clears the severity bar** | CRITICAL · HIGH · MEDIUM only |
-> | 4+ — test-gate continuation, ONLY while failing test gates were the sole blocker | the tests pass and no review blocker is open | failing tests; any review blocker here escalates |
->
-> From round 2 onward a round whose validated findings are ALL LOW **ENDS the loop once the persisted minimum is met**. Severity tiers are `SYNC:severity-rubric` (CRITICAL block-merge · HIGH must-fix · MEDIUM must clear the current round · LOW record/defer); round 1 stays strict.
->
-> **Round-1 LOW closure.** A LOW never buys a full round: a LOW with a local fix (no new code path, contract or test) is fixed and closed by a **scoped check** — re-read the edited hunks and their callers, re-run the covering tests; a LOW needing new code or tests is **deferred** (listed), not built. Mark each `resolution: scoped-fix-verified | deferred` (`review-policy.cjs`). A LOW-only round-1 fix set ends the round with no full re-review; any CRITICAL/HIGH/MEDIUM fix or simplification still requires one. A scoped check never mints a commit review receipt: a fix-loop that must mint one still ends with one final full pass over the post-fix candidate.
->
-> **Severity-floor rules:**
->
-> - **Never silently drop a deferred LOW.** List every unfixed LOW under `## Deferred LOW Findings (severity floor, round ≥2)` with file, line, and description; dropping it is a protocol violation, not a clean pass.
-> - **Never re-tier a finding to trigger the exit, or to reach or dodge the extension.** Demoting a real CRITICAL/HIGH/MEDIUM to LOW, promoting a MEDIUM to HIGH to buy round 3, or demoting a CRITICAL/HIGH to force an earlier escalation is a FALSE classification. Severity is set by consequence before the round bar and the extension test apply. — why: a bound reachable by relabeling bounds nothing.
-> - **The floor bounds the loop, not the standard.** It ends *iteration*; it never authorizes shipping a known CRITICAL/HIGH/MEDIUM, and never lowers the finding-survival bar.
-> - **The floor never applies to a hard gate.** Test-green, security must-fix, and any binary (not severity-rated) gate are unaffected — a failing test is a failure, not a LOW finding.
->
-> **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `$why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** before it is final.
->
-> **Routing invariant (author-facing):** a skill that validates findings MUST route them through `$why-review --validate-findings` (the terminal validator) — NEVER fork an inline finding-validation; the `verify-review-validate-coverage` sensor enforces this route mechanically.
->
-> **Round 1:** Main-session review; output findings + verdict (PASS / FAIL). Then:
->
-> - **No issues found (PASS, zero findings)** → review ENDS if `round >= minRounds`; otherwise perform the explicitly required independent pass. Do NOT invent a confirmation pass.
-> - **`blocking_findings(round, findings)` is non-empty** → run the active review skill's findings-validation gate first (default `$why-review --validate-findings <report-path>`). Fix only validated findings that block the current round, then restart the full review protocol with a fresh task breakdown — unless LOW-only (**Round-1 LOW closure**).
->
-> **Fresh full re-review after every fix cycle:** re-run the whole review protocol over the current full target. When it uses sub-agents, spawn NEW `spawn_agent` calls — never reuse prior agents; reviewers re-read ALL files with ZERO memory of prior rounds (`SYNC:fresh-context-review` for the spawn mechanism, `SYNC:review-protocol-injection` for the prompt template). Each pass hunts missed cross-cutting concerns, interactions between changed files, convention drift, missing pieces, rationalized edge cases, and regressions from the fixes.
->
-> **Loop termination:** after each full re-review, apply **that round's exit bar**: bar cleared and persisted minimum met → END; otherwise validate → fix → restart. Escalate by asking the user directly at whichever comes first: the same validated finding repeats for 2 full invocations with no progress · a fix requires product/owner input · round 2 completes with MEDIUM-only (or `NOT VERIFIABLE`) blocking · round 3 completes with any review blocker open. A failing test gate triggers none of these — it loops until green. NEVER convert cap exhaustion into a PASS.
->
-> **Rules:**
->
-> - Every surviving finding must also clear why-review's **finding-survival bar** (Findings Validation Routine — stricter than the generic act-gate); a finding below it is demoted or dropped
-> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict; sole exception: **Round-1 LOW closure**); NEVER reuse a sub-agent across rounds
-> - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
-> - Final verdict must incorporate ALL rounds executed
->
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 executed, plus `## Deferred LOW Findings (severity floor, round ≥2)` whenever LOWs stayed open. When round 3 ran, name the CRITICAL/HIGH findings that granted it; when rounds continued on failing tests, name each round's failing test gates.**
-
----
-
-## SYNC:double-round-trip-review:reminder
-
-- **MANDATORY IMPORTANT MUST ATTENTION** run the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated blocking findings → FULL re-review. Any newly produced output/judgment gets ≥1 self-review, and any new judgment ≥1 `$why-review --validate-findings` pass, before it is treated as final.
-- **MANDATORY severity floor:** round 1 exits only on zero OPEN findings at any severity — a LOW closes by a local fix plus scoped check, or by deferral when it needs new code or tests, and a LOW-only fix set needs no full re-review (never a receipt); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, so a LOW-only round ENDS the loop once the persisted `minRounds` is met — list every deferred LOW in the report. NEVER re-tier a real CRITICAL/HIGH/MEDIUM down to reach the exit, and NEVER apply the floor to a binary gate (test-green, security must-fix).
-- **MANDATORY round cap of 2, extendable ONCE to round 3 — a ceiling, NEVER a target.** A clean pass ends the loop once the persisted `minRounds` is met (default 1; explicit 2 requires an independent pass). Round 2 ending with a validated CRITICAL/HIGH still open (a failed non-test binary gate counts as CRITICAL) grants exactly ONE extra round; round 2 ending with only MEDIUM/`NOT VERIFIABLE` open, or round 3 ending with any review blocker open → **STOP and escalate by asking the user directly**, never a silent PASS. The 2-repeated-no-progress blocker rule escalates earlier if it trips first. A failing TEST gate has NO round cap and buys no extension — keep fixing and re-running until tests pass, never forcing green.
-
----
-
 ## SYNC:review-policy
 
-> **Executable review policy — one predicate, one durable transition model.** Review skills and their tooling MUST use the canonical helper `.claude/scripts/lib/review-policy.cjs` (policy version 5) for round eligibility. The helper's `blockingFindings(round, findings, hardGates)` predicate returns every validated finding in round 1 except a LOW closed under the round-1 LOW closure (`resolution: 'scoped-fix-verified' | 'deferred'`, accepted only on a LOW), and only CRITICAL/HIGH/MEDIUM findings from round 2 onward; `NOT VERIFIABLE` is a separate unresolved-evidence state that remains blocking at every round. Failed binary gates are synthetic CRITICAL blocking findings at every round; record a test-green gate with `kind: 'test'` and every other gate with `kind: 'binary'` (the default). `evaluateRound` retains floor-round and deferred LOWs in `deferredLow` and scoped-fixed LOWs in `scopedClosedLow` (never both), never treats a LOW-only round as blocked after the floor applies, reports `extensionGranted` plus an `ESCALATE` status when the review budget is spent with review blockers open, and reports `failingTestGates` / `testLoopContinues` when failing test gates keep the round open. Severity is assigned before the predicate and never changed to obtain a PASS.
+> **Executable review policy** — Review skills/tooling MUST use `.claude/scripts/lib/review-policy.cjs` (policy version 6) for round eligibility. Assign severity first; never change it to obtain PASS.
 >
-> **Round and minimum rules.** `MAX_ROUNDS` (the base budget) is 2 and `HARD_MAX_ROUNDS` is 3; both are ceilings, never targets. Round 3 is an EXTENSION, not part of the default budget: the helper grants it only when the recorded round-2 evaluation still has a validated CRITICAL or HIGH review blocker — a finding, or a failed non-test binary gate carried as synthetic CRITICAL — (`extensionGranted`), grants it at most once per run, and rejects any attempt to reach round 3 without that evidence, except the failing-test continuation below, when round 2's only blockers are failing test gates. **Failing test gates are outside the review budget:** they never earn the extension and never escalate, so while failing `kind: 'test'` gates are the ONLY blockers the helper keeps the run in `CONTINUE` and accepts the next round — past round 3 if needed — until the tests pass. A review blocker past the budget still escalates, and a round with no failing test gate never re-opens the run past its budget. A round-2 evaluation whose blockers are only MEDIUM or `NOT VERIFIABLE` ends the budget and escalates. A clean review ends once `round >= minRounds`; the default minimum is 1 and an explicit `minRounds` may not exceed the base budget of 2 — the extension is earned by evidence, never declared up front. The declaration is persisted and cannot be inferred from a round counter. A failing test-green, security-must-fix, required-artifact, or other binary gate is never waived by the severity floor.
+> **Blocking predicate:** `blockingFindings(round, findings, hardGates)` returns all validated round-1 findings except LOWs closed with `resolution: 'scoped-fix-verified' | 'deferred'` (valid only for LOW). From round 2, only CRITICAL/HIGH/MEDIUM findings block. `NOT VERIFIABLE` remains a separate blocking unresolved-evidence state every round. Failed binary gates are synthetic CRITICAL every round; test-green gates use `kind: 'test'`, others `kind: 'binary'` (default). No severity floor waives test-green, security-must-fix, required-artifact, or other binary gates.
 >
-> **Durable run record.** A review run MUST identify `runId`, target fingerprint, policy version, target revision, minimum/maximum rounds, completed rounds, full findings/gate evidence, interruption/resume metadata, and acceptance. Use the atomic, lock-serialized transitions in `review-policy.cjs`: `start`, `record`, `accept`, `interrupt`, `resume`, `invalidate`, and `check`. Repeating an identical completed round is idempotent and MUST NOT consume budget twice. A changed target fingerprint invalidates prior evidence and acceptance but MUST preserve the bounded round budget; stale evidence cannot be accepted. Record round 1 once, after any round-1 LOW closure: `targetFingerprint` is the post-fix target and `reviewedFingerprint` the target the full pass reviewed — required whenever a finding carries `scoped-fix-verified`, so the record never claims a full pass saw code it did not. A policy-version change (including the round-2 LOW floor, the conditional round-3 extension and the round-1 LOW closure) invalidates old records; start a new run rather than interpreting old evidence under new semantics. Interrupted/resumed runs retain completed rounds and findings. The record is bookkeeping, not consent, native permission, or proof that a host actually performed the review.
+> **Evaluation:** `evaluateRound` retains floor-round/deferred LOWs in `deferredLow`, scoped-fixed LOWs in `scopedClosedLow`, never both. LOW-only rounds do not block after the floor. It reports `extensionGranted: false`, `ESCALATE` for exhausted review budgets with review blockers, and `failingTestGates` / `testLoopContinues` for open test gates.
 >
-> **CLI boundary.** The helper CLI accepts JSON on stdin and uses its own real clock; a supplied `now` is rejected. State directories must be absolute, non-root real directories, records are size-bounded, and malformed/locked state fails closed for the transition. Full reports remain on disk; an inline result envelope is only a transport summary. Any new review policy consumer must add a semantic fixture, boundary counter-cases, a seeded mutant, and a report with the target fingerprint and command exit status.
+> **Budget/minimum:** `MAX_ROUNDS=3`, `HARD_MAX_ROUNDS=3`: ceilings, never targets. Every review blocker may use round 3; unresolved blockers at the cap escalate. No conditional extension. Clean review ends at `round >= minRounds`; default minimum 1, explicit maximum 3. Persist the declaration; never infer it from the round counter.
+>
+> **Test exception:** failing `kind: 'test'` gates are outside the review budget: they neither earn extensions nor escalate. While they are the ONLY blockers, status stays `CONTINUE`, accepting subsequent rounds beyond 3 until tests pass. Review blockers past budget still escalate; without a failing test gate, a run never reopens past budget.
+>
+> **Durable record:** MUST retain `runId`, target fingerprint/revision, policy version, minimum/maximum/completed rounds, full findings/gate evidence, interruption/resume metadata, and acceptance. Use atomic, lock-serialized `start`, `record`, `accept`, `interrupt`, `resume`, `invalidate`, `check` transitions. Identical completed rounds are idempotent and consume budget once. Changed target fingerprints invalidate evidence/acceptance while preserving bounded budget; stale evidence cannot be accepted. Record round 1 once after LOW closure: `targetFingerprint` is post-fix; `reviewedFingerprint` identifies the full-pass target and is required for `scoped-fix-verified`. Never claim the full pass reviewed later fixes. Policy-version changes (including LOW floor/closure or round budget) invalidate old records: start a new run. Interrupt/resume preserves completed rounds/findings. Records are bookkeeping, not consent, native permission, or proof of host review.
+>
+> **CLI boundary:** JSON stdin; real clock, supplied `now` rejected. State directories must be absolute non-root real directories; records size-bounded; malformed/locked state fails closed. Keep full reports on disk; inline envelopes summarize transport only. Each new consumer needs a semantic fixture, boundary counter-cases, seeded mutant, and report with target fingerprint/command exit status.
 
 ---
 
@@ -957,7 +895,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:design-patterns-quality:reminder
 
-**IMPORTANT MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility layer, SOLID. Grep for dangling refs after changes.
+**IMPORTANT MUST ATTENTION** select patterns from project evidence and real needs; keep one owner per rule, justify abstractions by change cost, and grep affected scope for dangling references after extraction, move, or rename.
 
 ---
 
@@ -988,7 +926,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:complexity-prevention:reminder
 
-**IMPORTANT MUST ATTENTION** apply complexity prevention — one business change = one code change. Flag change amplification (>3 edit sites for future change), scattered type-switches, anemic models, primitive obsession, leaked technology through abstractions, shallow modules, un-extracted utility logic (paging/datetime/string/retry → helpers), and logic in the wrong higher layer (downshift to callee/entity/VM). Don't rationalize silent duplication with pure YAGNI.
+**IMPORTANT MUST ATTENTION** assess change amplification, cognitive load, coupling, leaked detail and invariant ownership from project evidence. Extract only when a real owner or consumer lowers change cost; no universal layer order or numeric threshold.
 
 ---
 
@@ -1032,7 +970,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:plan-granularity:reminder
 
-**IMPORTANT MUST ATTENTION** verify all phases pass 5-point granularity check. Failing phases → sub-plan. "Can I start coding RIGHT NOW?"
+**IMPORTANT MUST ATTENTION** use outcome phases with owners, boundaries, bounded discovery and acceptance gates. Split only for real dependencies, independent outcomes or disjoint ownership; avoid microtasks and recursive sub-plans.
 
 ---
 
@@ -1131,21 +1069,21 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:engineering-foundation-gate
 
-> **Engineering Foundation Gate** — CONDITIONAL, evidence-gated, profile-tiered. Judges the PROJECT'S ENGINEERING FOUNDATION: _can this team build, run, test and change the system safely — anywhere, repeatably, as it grows?_ Its companions judge the running system's DESIGN (`scale-technique-gate`: is technique X present? · `scenario-stress-eval`: does it survive scenario Y?). **State OUTCOMES, never tools:** detect the stack, research current options, present 2–3, the user decides, record it.
+> **Engineering Foundation Gate** — Conditional, evidence-gated, profile-tiered: can the team build/run/test/change safely, repeatably, as it grows? Design companions: `scale-technique-gate` (techniques), `scenario-stress-eval` (scenario survival). **State OUTCOMES, never tools:** detect stack, research options, present 2–3, record user choice.
 >
-> 1. **Derive the project profile FIRST — from evidence, never assumed.** `Lifecycle` **G** greenfield (foundation being created) / **B** brownfield (foundation exists, under audit) · scale `T0`–`T3` (**reuse** `scale-technique-catalog.md`) · criticality `B0`–`B3` with its criticality-signal floor (**reuse** `scenario-stress-catalog.md`) · repo shape `R0` single module / `R1` few (2–5) / `R2` many modules, multi-team / `R3` monorepo estate · runtime surface. Cite `file:line`/config/CI + confidence. Unknown axis → state the assumption and take the **LOWER** tier; NEVER default to `T3`/`B3`/`R3`.
-> 2. **Judge all 7 dimensions — always all 7, never a filtered subset**. Depth belongs to the named owner:
->    - **F1 Reproducible environment** (ALL profiles — the floor) — one documented path takes a clean machine to a running system; toolchain versions pinned; dependencies locked; every external prerequisite declared with a way to obtain or fake it; config environment-injected, never machine-implicit; build deterministic. → `scaffold` · `architecture --mode=scalability`
->    - **F2 Supported execution modes** (the modes this project uses or requires; a second mode is not universal) — document and exercise each supported/required developer, test, and deployment path (host/container, local/managed, simulator/device) from one shared configuration source where possible. If one mode fits, verify it and mark the comparison `N/A-by-profile`; do not invent Docker, Compose, or a host path. The defect is a claimed or required mode that is broken or irreproducible. → `scaffold` · `production-readiness-review`
+> 1. **Derive profile FIRST from evidence.** `Lifecycle` **G** greenfield (foundation being created) / **B** brownfield (foundation exists, under audit) · scale `T0`–`T3` (**reuse** `scale-technique-catalog.md`) · criticality `B0`–`B3` with its criticality-signal floor (**reuse** `scenario-stress-catalog.md`) · repo shape `R0` single module / `R1` few (2–5) / `R2` many modules, multi-team / `R3` monorepo estate · runtime surface. Cite `file:line`/config/CI + confidence. Unknown axis → state the assumption and take the **LOWER** tier; NEVER default to `T3`/`B3`/`R3`.
+> 2. **Judge all 7 dimensions; none omitted.** Named owners supply depth:
+>    - **F1 Reproducible environment** (ALL profiles — the floor) — Document clean-machine-to-running path; pin toolchains, lock dependencies, declare every external prerequisite and how to obtain/fake it; environment-inject config, never machine-implicit; deterministic build. → `scaffold` · `architecture --mode=scalability`
+>    - **F2 Supported execution modes** (used/required modes only; no universal second mode) — document/exercise developer/test/deployment paths (host/container, local/managed, simulator/device), sharing config where possible. One mode fits → verify, comparison `N/A-by-profile`; invent no Docker/Compose/host path. Broken/irreproducible claimed or required modes are defects. → `scaffold` · `production-readiness-review`
 >    - **F3 Environment-portable tests** (local+CI all profiles; production-shaped `T1+`/`B2+`) — the SAME suites run against local, CI and production-like targets, **parameterized by configuration, never by forked test code**. Missing capability → `ENVIRONMENT-BLOCKED`, never a silent pass; unsafe-in-production tests are excluded by an **enforced** mechanism. _"Runs in prod"_ means a safe, declared, **NON-MUTATING** subset. → `test-architecture-execution-contract` · `integration-test --mode=review`
->    - **F4 Test-strength proof** (wherever tests exist) — evidence the suite **actually fails when the code is wrong**, strongest first: (a) **automated fault injection** scoped to CHANGED code; (b) **deliberate defect-seeding drill — the universal fallback:** break the code behind a top invariant, run the suite, record **WHICH NAMED TEST went red**, restore — nothing red ⇒ write the killing test; (c) **assertion-intent audit:** flag assertions that survive an inverted implementation, check only non-nullness/type, re-assert the input, or assert infrastructure bookkeeping. **Line coverage is a DIAGNOSTIC, never a gate.** **Scope boundary:** this gate asks only whether the PROJECT HAS a test-strength mechanism; PER-CHANGE enforcement is `integration-test --mode=review` Gate 1's Mutation Probe Ledger — report each gap once. → `harness-setup` · `integration-test --mode=review`
->    - **F5 Performance & scale-under-data** (`T1+`/`B2+` for a real tier; `T0`/`B0` = one documented largest-expected-volume check) — performance **MEASURED by something that RUNS and CAN FAIL**, not reasoned about. Requires: a runnable perf tier with a documented command; **realistic volume AND shape** (distribution, cardinality, skew); **named latency/throughput/memory budgets the run ASSERTS**; growth across **≥2 volumes ~10× apart**; resource exhaustion as a **tested, bounded** outcome (backpressure, paging or a clean error, not an OOM kill; no unbounded result-sets, accumulation or concurrency on the paths that matter). Label each number a regression signal or a capacity statement. → `performance-review` · `seed-test-data`
->    - **F6 Build & change scalability** (`R1+` declared style + boundaries; `R2+` computable affected set, enforced checks, measured incrementality) — build/test cost and blast radius **do NOT grow with the codebase**. Requires: a **COMPUTABLE** affected module set from declared inter-module dependencies; **measured** incrementality and caching; boundaries enforced **MECHANICALLY**; a **declared**, enforced architecture style; implementation behind abstraction so a technology swaps without touching business code; a fast scoped inner-loop check. **Scope boundary:** where `architecture --mode=scalability` **G2 Build & CI Scalability**/**G4** ran, cite its verdict rather than re-scoring. → `architecture --mode=scalability` · `architecture --mode=review` (diff-level boundary drift) · `complexity-prevention`
+>    - **F4 Test-strength proof** (wherever tests exist) — Prove tests **fail when code is wrong**, strongest first: (a) **automated fault injection** scoped to CHANGED code; (b) **deliberate defect-seeding drill — the universal fallback:** break the code behind a top invariant, run the suite, record **WHICH NAMED TEST went red**, restore — nothing red ⇒ write the killing test; (c) **assertion-intent audit:** flag assertions that survive an inverted implementation, check only non-nullness/type, re-assert the input, or assert infrastructure bookkeeping. **Line coverage is a DIAGNOSTIC, never a gate.** **Scope:** verify the PROJECT HAS a test-strength mechanism; PER-CHANGE enforcement belongs to `integration-test --mode=review` Gate 1's Mutation Probe Ledger. Report gaps once. → `harness-setup` · `integration-test --mode=review`
+>    - **F5 Performance & scale-under-data** (`T1+`/`B2+` for a real tier; `T0`/`B0` = one documented largest-expected-volume check) — **MEASURE performance with a runnable check that CAN FAIL** and documented command; **realistic volume AND shape** (distribution, cardinality, skew); **named latency/throughput/memory budgets the run ASSERTS**; growth across **≥2 volumes ~10× apart**; resource exhaustion as a **tested, bounded** outcome (backpressure, paging or a clean error, not an OOM kill; no unbounded result-sets, accumulation or concurrency on the paths that matter). Label each number a regression signal or a capacity statement. → `performance-review` · `seed-test-data`
+>    - **F6 Build & change scalability** (`R1+` declared style + boundaries; `R2+` computable affected set, enforced checks, measured incrementality) — build/test cost and blast radius **do NOT grow with the codebase**. Requires: a **COMPUTABLE** affected module set from declared inter-module dependencies; **measured** incrementality and caching; boundaries enforced **MECHANICALLY**; a **declared**, enforced architecture style; implementation behind abstraction so a technology swaps without touching business code; a fast scoped inner-loop check. **Scope:** cite existing `architecture --mode=scalability` **G2 Build & CI Scalability**/**G4** verdicts; do not re-score. → `architecture --mode=scalability` · `architecture --mode=review` (diff-level boundary drift) · `complexity-prevention`
 >    - **F7 Mechanical quality harness** (format + lint + type/static analysis + build/test at ALL profiles; architecture-fitness `R1+`; dependency health + secret scanning wherever real data ships, unconditional at `B2+`; complexity/duplication + drift `R1+`/`T1+`) — **account for EVERY class or record it `N/A` with a reason:** formatting · lint/correctness · type & static analysis · complexity & duplication · **executable architecture-fitness** · dependency vulnerability & license · secret scanning · build/test gates plus the **F4** signal · documentation/config drift. Local and CI run the **SAME** command, configuration and version; checks **ENFORCE**, not warn; strictest reasonable defaults, loosened only with a recorded reason; cheap checks first. Brownfield adoption uses a **ratchet** — fail on NEW violations, tolerate the baseline — which counts as `PRESENT`. → `linter-setup` · `harness-setup` · `security-audit`
-> 3. **Assign one verdict per dimension:** `PRESENT` (proven by cited evidence) · `MISSING-WARRANTED` · `PARTIAL-WITH-PATH` (gap + concrete incremental step) · `N/A-by-profile` (below the warranting profile — **a correctly-lean project is a PASS, never a deficiency**) · `OVER-ENGINEERED` (present but unwarranted → advise AGAINST, name the carrying cost) · `UNVERIFIED` (could not be checked; **NEVER score an unverified dimension `PRESENT`**).
-> 4. **Authority is context-split.** **CREATING** a foundation (greenfield init, scaffold, a plan standing up build/test/CI) → a `MISSING-WARRANTED` dimension is **BLOCKING**: omitting a warranted one must be an explicit decision. **AUDITING** an existing foundation (brownfield review, architecture audit, changes review) → **ADVISORY ONLY**: emit the matrix plus a prioritized adoption path and **NEVER mutate any score, `/20`, `/24`, verdict band, or gate PASS/FAIL**.
-> 5. **Anti-over-engineering guard (first-class, and symmetric).** Do NOT demand a container mode of a single-author utility, a distributed load platform for a small internal service, affected-set computation for a single module, or overlapping analyzers for one defect class; module splits follow real module and team count, never aesthetics. Symmetrically, never UNDER-harden a `B2+` system merely because its traffic is low.
-> 6. **Every brownfield finding names the smallest next step that is valuable on its own.** Default ladder: pin the toolchain & commit the lockfile → one local command that CI also runs → ratchet the harness on (fail-on-new) → run the defect-seeding drill on the top invariants → repair the missing execution mode → seed a realistic volume and assert ONE budget → declare the style, then enforce dependency direction. Deviate on evidence and say why.
+> 3. **One verdict per dimension:** `PRESENT` (proven by cited evidence) · `MISSING-WARRANTED` · `PARTIAL-WITH-PATH` (gap + concrete incremental step) · `N/A-by-profile` (below the warranting profile — **a correctly-lean project is a PASS, never a deficiency**) · `OVER-ENGINEERED` (present but unwarranted → advise AGAINST, name the carrying cost) · `UNVERIFIED` (could not be checked; **NEVER score an unverified dimension `PRESENT`**).
+> 4. **Authority:** **CREATING** (greenfield init/scaffold/build-test-CI plan) → `MISSING-WARRANTED` is **BLOCKING**; warranted omissions need explicit decisions. **AUDITING** (brownfield/architecture/changes review) → **ADVISORY ONLY** matrix + prioritized adoption path; **NEVER mutate any score, `/20`, `/24`, verdict band, or gate PASS/FAIL**.
+> 5. **Symmetric anti-over-engineering guard.** Do NOT demand a container mode of a single-author utility, a distributed load platform for a small internal service, affected-set computation for a single module, or overlapping analyzers for one defect class; module splits follow real module and team count, never aesthetics. Symmetrically, never UNDER-harden a `B2+` system merely because its traffic is low.
+> 6. **Every brownfield finding names a smallest independently valuable next step.** Default ladder: pin the toolchain & commit the lockfile → one local command that CI also runs → ratchet the harness on (fail-on-new) → run the defect-seeding drill on the top invariants → repair the missing execution mode → seed a realistic volume and assert ONE budget → declare the style, then enforce dependency direction. Deviate on evidence and say why.
 > 7. **Output — Foundation Readiness Matrix:** `dimension | warranted at this profile? | present? | verdict | evidence (file:line/config/CI) | smallest next step`, after the derived profile (per-axis evidence + confidence), before the adoption path (brownfield) or blocking list (greenfield). Full catalog → `.claude/docs/engineering-foundation-catalog.md`. **Drift-guard: profile axes, dimensions, verdicts and warranting tiers are AUTHORITATIVE in that catalog — update it FIRST, then re-run `.claude/scripts/inject_engineering_foundation_gate.py` to re-propagate. Scale tier stays single-sourced in `scale-technique-catalog.md`; business criticality in `scenario-stress-catalog.md`.**
 >
 > **BLOCKED until:** `- [ ]` profile derived from evidence (lifecycle + `T` + `B` + `R`, lower tier when unknown) `- [ ]` all 7 dimensions judged, none omitted `- [ ]` matrix emitted with `file:line`/config/CI evidence `- [ ]` anti-over-engineering guard applied `- [ ]` authority confirmed — creating ⇒ blocking, auditing ⇒ advisory-only with no score mutation `- [ ]` every brownfield gap carries a smallest-next-step
@@ -1154,25 +1092,25 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:engineering-foundation-gate:reminder
 
-**IMPORTANT MUST ATTENTION** engineering-foundation gate — judges whether the team can build, run, test, and change the system repeatably as it grows. Derive lifecycle, scale, criticality, repository shape, and runtime from evidence; take the lower supported tier when unknown. Judge all 7 dimensions, using `N/A-by-profile` with evidence when a concern truly does not apply. **F1** reproducible build/run/test path · **F2** document and exercise each supported or required execution mode; dual host/container or other modes only when the project uses or needs them · **F3** environment portability at applicable local/CI/production-shaped targets · **F4** meaningful test-strength evidence without making one mutation tool universal · **F5** measured performance where scale/risk warrants it · **F6** change/build scalability where the repository has meaningful module boundaries · **F7** mechanical checks selected for the stack/profile. For each, judge outcomes rather than tools, and preserve anti-over-engineering. Foundation creation may block on missing warranted outcomes; brownfield audits advise and name the smallest next step. Catalog → `.claude/docs/engineering-foundation-catalog.md` (update first, then re-run `inject_engineering_foundation_gate.py`).
+**IMPORTANT MUST ATTENTION** evidence-backed lifecycle/scale/criticality/repo/runtime profile; unknowns take lower tiers. Judge all 7 outcomes: **F1** reproducible build/run/test · **F2** exercise supported/required modes; dual modes only when warranted · **F3** applicable local/CI/production-shaped test portability · **F4** test-strength proof; no universal mutation tool · **F5** measured performance at warranted scale/risk · **F6** build/change scalability at meaningful module boundaries · **F7** stack/profile-fit mechanical checks. Evidence-backed `N/A-by-profile` is valid; prevent over-engineering. Creation blocks warranted omissions; brownfield advises without score changes, with smallest next steps. Catalog: `.claude/docs/engineering-foundation-catalog.md`; update first, re-run `inject_engineering_foundation_gate.py`.
 
 ---
 
 ## SYNC:scale-ready-foundation
 
-> **Scale-Ready Foundation & Brownfield Fit** — Use this protocol only in `workflow-greenfield-init` and `workflow-big-feature`; it supplements, never replaces, `SYNC:engineering-foundation-gate`, `SYNC:scale-technique-gate`, `SYNC:design-system-check`, and `shared/sdd-artifact-contract.md`. Optimize for a system that can grow and change safely, not for a fashionable architecture.
+> **Scale-Ready Foundation & Brownfield Fit** — Only `workflow-greenfield-init` / `workflow-big-feature`; supplements, never replaces, `SYNC:engineering-foundation-gate`, `SYNC:scale-technique-gate`, `SYNC:design-system-check`, and `shared/sdd-artifact-contract.md`. Optimize safe growth/change; avoid fashionable architecture.
 >
-> 1. **Classify lifecycle and evidence first.** Mark `G` greenfield (foundation being created) or `B` brownfield (existing project); record scale `T0`–`T3`, business criticality `B0`–`B3`, repository/module shape, user-facing surfaces, and current setup with `file:line`/config/CI evidence. Unknowns stay explicit and take the lower warranted tier; never invent a greenfield baseline for an existing project.
-> 2. **Choose the smallest architecture that satisfies measured needs.** For a greenfield business application, evaluate a modular monolith when one release boundary fits and there is no evidenced need to split deployment, scaling, compliance, availability, or runtime; select it only when its boundaries fit the domain and operating constraints. Preserve accepted decisions and architecture on brownfield work unless a requirement justifies a reviewed migration. Evaluate Clean/Hexagonal, DDD, and event-driven patterns only where their preconditions fit; add distributed services, event sourcing, sagas, or other costly machinery only for a named need. Record dependency direction, data ownership at service boundaries, and any useful decomposition trigger.
-> 3. **Make applicable module boundaries cheap to change.** When the project has modules or bounded capabilities, name their responsibilities and contracts; organize business modules around capabilities where that matches the domain, not merely tables, vendors, or technical layers. Respect the configured in-process and service boundaries; do not bypass another independently owned service's private data contract. Keep shared libraries domain-neutral, and add boundary checks when they are useful and supported by the stack.
-> 4. **Design authorization from actors, not a role enum.** For SaaS or multi-tenant scope, enumerate applicable human, organization, platform, service-account, integration, webhook, and background-job actors (for example: visitor, member, tenant administrator, support/operator, platform administrator, service identity); derive the list from the product and threat model rather than assuming it. For every actor record authentication, tenant/resource scope, actions, role assignment/delegation, deny-by-default and least privilege, separation of duties, admin/impersonation/break-glass controls, and audit evidence. Verify allowed, denied, and cross-tenant isolation paths.
-> 5. **Keep infrastructure replaceable without leaking vendors.** Put each real external boundary behind a purpose-named port/interface and provider adapter; keep SDK, framework, database, queue, and transport types out of domain/application contracts; compose implementations at the outer boundary; and add abstractions only where a real boundary or substitution need exists. A claimed swap must identify the stable contract, migration seam, and remaining provider-specific cost.
-> 6. **Research new or materially changed dependencies and enforce the cost constraint.** Compare current authoritative evidence for fit, maintenance, security, interoperability, upgrade path, license obligations, and total cost. Respect existing approved dependencies unless the change reopens them. When the requirement is free/no paid license, reject paid license or usage-fee choices unless the user explicitly approves an exception; verify upstream license text and machine-readable SPDX metadata. Record material attribution, copyleft/patent/redistribution obligations, and operating costs; do not turn dependency inventory into speculative replacement work.
-> 7. **Make the supported execution and operations reproducible.** Identify the project's required developer, test, and deployment modes from its runtime, team, CI, and target platform. Use one source of truth for shared configuration/topology; when both host and container modes are supported or required, exercise both. Use containers/Compose when they fit the project or its dependencies; document and verify the supported native, device, managed, or other mode when containerization does not fit. Plan CI/CD, migrations, rollback, observability, runbooks, and recovery according to project scale, risk, platform, and data durability; mark irrelevant capabilities `NOT-APPLICABLE` with evidence.
-> 8. **Treat each user-facing surface as part of its product.** When UI design decisions need references, use current examples appropriate to the target platform, audience, and domain; record the source, access date, observed pattern, fit, and what was rejected. Define visual language, interaction states, accessibility, and responsive behavior only where relevant to the surface. Follow the project's configured design system and component/module ownership; if none exists, document the actual owners and the smallest useful conventions without inventing tiers, wrapper contracts, tokens, or breakpoints. Reuse components when they fit; never copy a reference site's assets or code without permission.
-> 9. **Rank by ROI and reversibility.** For each principle, compare 2–3 viable approaches when the decision is hard to reverse; record benefits, sacrifices, change cost, risk if skipped, cost of delay, and measurable revisit trigger. Distinguish `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, and `BLOCKED`; a named pattern without an applicability decision is incomplete.
-> 10. **Handle brownfield gaps without scope laundering.** If the current project already has setup, inspect what can be adopted safely, what conflicts with accepted decisions, and what cannot be applied without broad refactoring. Keep the requested actor-facing outcome bounded; mark safe parts `ADAPT-IN-SLICE`, and record broad work as a separately owned architecture/refactor opportunity with scope, rationale, dependency order, trigger, smallest independently valuable next step, owner, and cost of delay. Attach only enabling work needed by the releasable outcome; if the outcome cannot be safe without the refactor, mark it `BLOCKED` and escalate instead of silently expanding the ticket.
-> 11. **Greenfield handoff is blocking for warranted foundation decisions.** Before the first implementation plan completes, carry the matrix, accepted decisions, applicable actor/permission model, dependency/license choices, module/boundary map, real external ports, supported execution commands, CI/CD and operations plan, and UI decisions when applicable into architecture, scaffold, harness, and plan artifacts. A warranted omission needs evidence and an owner-visible disposition; do not require host/Compose modes, modules, UI, or infrastructure that the project does not use.
+> 1. **Evidence-backed profile first:** `G` greenfield (foundation being created) or `B` brownfield (existing project); record scale `T0`–`T3`, business criticality `B0`–`B3`, repository/module shape, user-facing surfaces, and current setup with `file:line`/config/CI evidence. State unknowns; take lower warranted tiers; invent no greenfield baseline for existing projects.
+> 2. **Smallest architecture meeting measured needs.** For greenfield business apps, evaluate modular monoliths when one release boundary fits without evidenced deployment/scaling/compliance/availability/runtime splits; select only with fitting domain/operating boundaries. Brownfield: preserve accepted architecture/decisions unless requirements justify a reviewed migration. Evaluate Clean/Hexagonal, DDD, and event-driven patterns only where their preconditions fit; add distributed services, event sourcing, sagas, or other costly machinery only for a named need. Record dependency direction, data ownership at service boundaries, and any useful decomposition trigger.
+> 3. **Changeable module boundaries:** for modules/bounded capabilities, name responsibilities/contracts; organize business modules around capabilities where that matches the domain, not merely tables, vendors, or technical layers. Respect the configured in-process and service boundaries; do not bypass another independently owned service's private data contract. Keep shared libraries domain-neutral, and add boundary checks when they are useful and supported by the stack.
+> 4. **Actor-derived authorization, not a role enum.** For SaaS or multi-tenant scope, enumerate applicable human, organization, platform, service-account, integration, webhook, and background-job actors (visitor/member/tenant administrator/support/operator/platform administrator/service identity); derive from product/threat model, never assume. For every actor record authentication, tenant/resource scope, actions, role assignment/delegation, deny-by-default and least privilege, separation of duties, admin/impersonation/break-glass controls, and audit evidence. Verify allowed, denied, and cross-tenant isolation paths.
+> 5. **Replaceable infrastructure; no vendor leaks.** Put each real external boundary behind a purpose-named port/interface and provider adapter; keep SDK, framework, database, queue, and transport types out of domain/application contracts; compose implementations at the outer boundary; and add abstractions only where a real boundary or substitution need exists. A claimed swap must identify the stable contract, migration seam, and remaining provider-specific cost.
+> 6. **Research new/materially changed dependencies; enforce cost constraints.** Compare current authoritative evidence for fit, maintenance, security, interoperability, upgrade path, license obligations, and total cost. Keep approved dependencies unless reopened by the change. When the requirement is free/no paid license, reject paid license or usage-fee choices unless the user explicitly approves an exception; verify upstream license text and machine-readable SPDX metadata. Record material attribution, copyleft/patent/redistribution obligations, and operating costs; do not turn dependency inventory into speculative replacement work.
+> 7. **Reproducible supported execution/operations.** Identify the project's required developer, test, and deployment modes from its runtime, team, CI, and target platform. Use one source of truth for shared configuration/topology; when both host and container modes are supported or required, exercise both. Use containers/Compose when they fit the project or its dependencies; document and verify the supported native, device, managed, or other mode when containerization does not fit. Plan CI/CD, migrations, rollback, observability, runbooks, and recovery according to project scale, risk, platform, and data durability; mark irrelevant capabilities `NOT-APPLICABLE` with evidence.
+> 8. **Product-fit user-facing surfaces.** When UI decisions need references, use current platform/audience/domain-fit examples; record source, access date, observed pattern, fit, and rejections. Define visual language, interaction states, accessibility, and responsive behavior only where relevant to the surface. Follow the project's configured design system and component/module ownership; if none exists, document the actual owners and the smallest useful conventions without inventing tiers, wrapper contracts, tokens, or breakpoints. Reuse components when they fit; never copy a reference site's assets or code without permission.
+> 9. **ROI/reversibility ranking.** For each principle, compare 2–3 viable approaches when the decision is hard to reverse; record benefits, sacrifices, change cost, risk if skipped, cost of delay, and measurable revisit trigger. Distinguish `APPLY-NOW`, `ADAPT-IN-SLICE`, `DEFER-AS-OPPORTUNITY`, `NOT-APPLICABLE`, and `BLOCKED`; a named pattern without an applicability decision is incomplete.
+> 10. **Bound brownfield scope.** Inspect safe adoption, accepted-decision conflicts, and gaps requiring broad refactors. Keep the requested actor-facing outcome bounded; mark safe parts `ADAPT-IN-SLICE`, and record broad work as a separately owned architecture/refactor opportunity with scope, rationale, dependency order, trigger, smallest independently valuable next step, owner, and cost of delay. Attach only enabling work needed by the releasable outcome; if the outcome cannot be safe without the refactor, mark it `BLOCKED` and escalate instead of silently expanding the ticket.
+> 11. **Blocking greenfield handoff for warranted foundation decisions.** Before the first implementation plan completes, carry the matrix, accepted decisions, applicable actor/permission model, dependency/license choices, module/boundary map, real external ports, supported execution commands, CI/CD and operations plan, and UI decisions when applicable into architecture, scaffold, harness, and plan artifacts. Warranted omissions need evidence/owner-visible disposition; require no unused host/Compose modes, modules, UI, or infrastructure.
 >
 > **Required output:** `principle | lifecycle (G/B) | applicability evidence | current state | decision/status | selected approach | alternatives/sacrifices | ROI/change cost | owner/next step | acceptance/revisit trigger`.
 >
@@ -1182,7 +1120,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:scale-ready-foundation:reminder
 
-**IMPORTANT MUST ATTENTION** `scale-ready-foundation`: classify lifecycle/scale/criticality from evidence; choose the smallest architecture that fits; preserve brownfield decisions; make only applicable modules, authorization, external boundaries, dependencies, execution modes, CI/operations, and UI contracts explicit. Verify each supported run/test mode; dual host/container or other modes are needed only when the project supports or requires them. Greenfield warranted omissions block handoff; brownfield gaps get an owner/trigger/next step or an evidence-backed `NOT-APPLICABLE`/`BLOCKED` disposition. Do not require Docker, a database, UI, or distributed services where the project has no such capability.
+**IMPORTANT MUST ATTENTION** evidence-backed lifecycle/scale/criticality; smallest fitting architecture; preserve brownfield decisions. Make applicable module/auth/external-boundary/dependency/execution/CI-operations/UI contracts explicit. Verify supported run/test modes; require dual host/container only when supported/required. Greenfield warranted omissions block handoff; brownfield gaps need owner/trigger/next step or evidenced `NOT-APPLICABLE`/`BLOCKED`. Require no absent Docker/database/UI/distributed capability.
 
 ---
 
@@ -1290,7 +1228,7 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:graph-impact-analysis
 
-> **Graph Impact Analysis (optional advice)** — Optional: when a change looks high-risk (shared contract, many callers, cross-module/cross-service flow, public API) and `.code-graph/graph.db` exists, `blast-radius --json` can suggest files the change may affect (7 edge types: CALLS, MESSAGE_BUS, API_ENDPOINT, TRIGGERS_EVENT, PRODUCES_EVENT, TRIGGERS_COMMAND_EVENT, INHERITS). Impacted files outside the changeset are candidates to read, not proof of staleness; `<5` / `5-20` / `>20` impacted files is a rough low/medium/high hint. `trace --direction downstream` can follow deep chains. The graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify by reading the files. An absent graph is never a finding; skip it for low-risk or local changes.
+> **Graph Impact Analysis (optional advice)** — Optional: for high-risk changes (shared contract, many callers, cross-module/cross-service flow, public API), an existing `.code-graph/graph.db` can suggest affected files via `blast-radius --json` (7 edge types: CALLS, MESSAGE_BUS, API_ENDPOINT, TRIGGERS_EVENT, PRODUCES_EVENT, TRIGGERS_COMMAND_EVENT, INHERITS). Outside-changeset files are read candidates, not proof of staleness; `<5` / `5-20` / `>20` files roughly hint low/medium/high impact. Use `trace --direction downstream` for deep chains. The graph can be stale or incomplete (uncommitted edits/unindexed paths); verify by reading files. An absent graph is never a finding; skip low-risk/local changes.
 
 ---
 
@@ -1302,19 +1240,19 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:ui-wireframe
 
-> **UI Wireframe** — Inspect supplied design inputs with available tools; if they cannot be accessed, state the gap. Choose a representation that fits the task (sketch, text layout, diagram, prototype, or ASCII). Describe component owners using the project's taxonomy or observed boundaries; do not impose tiers. Reuse a component when its behavior and platform fit; explain meaningful deviations. Include only the states, tokens, and supported layouts relevant to the scope. Detail level varies by skill (idea=rough, story=full decomposition).
+> **UI Wireframe** — Inspect supplied designs with available tools; state access gaps. Choose sketch, text layout, diagram, prototype, or ASCII to fit the task. Use project component ownership or observed boundaries without imposing tiers. Reuse components when behavior/platform fit; explain deviations. Include scope-relevant states, tokens, and supported layouts. Detail: idea=rough, story=full decomposition.
 
 ---
 
 ## SYNC:ui-wireframe-protocol
 
-> **UI Wireframe Protocol** — (1) Inspect supplied design inputs using available tooling; record inaccessible sources. (2) Choose a representation that fits the work: sketch, text layout, diagram, prototype, or ASCII. (3) Inventory components using the project's documented ownership taxonomy, or describe actual owners and boundaries when none exists. (4) Capture the user states relevant to the requirements and platform. (5) Apply configured design tokens, layout rules, and supported sizes where present; otherwise record the decisions the work needs. Search for existing components and explain reuse or deviation based on fit. Progressive detail by skill level (idea=sketch, story=full decomposition).
+> **UI Wireframe Protocol** — Inspect supplied designs with available tools; record access gaps. Choose sketch, text layout, diagram, prototype, or ASCII to fit the work. Inventory components by documented ownership or actual boundaries; impose no tiers. Capture requirement/platform-relevant user states, configured tokens/layout rules/supported sizes, or necessary decisions when unconfigured. Search existing components; explain reuse/deviation by fit. Detail: idea=sketch, story=full decomposition.
 
 ---
 
 ## SYNC:ui-wireframe-protocol:reminder
 
-**IMPORTANT MUST ATTENTION** follow wireframe protocol: ASCII wireframe, component inventory with tiers, states table, design tokens, responsive breakpoints.
+**IMPORTANT MUST ATTENTION** inspect designs/access gaps; choose fitting representation; inventory actual component owners/relevant states; apply configured tokens/sizes; justify reuse/deviation. Detail: idea sketch → story decomposition.
 
 ---
 
@@ -1367,14 +1305,14 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ## SYNC:design-system-check
 
-> **Design-System Check** — Before UI work, resolve the applicable design, accessibility, platform, styling, and component references from `docs/project-config.json`, its docs index, and existing code. Read only references that exist and apply to the surface; do not assume a web, mobile, desktop, or component framework.
+> **Design-System Check** — Before UI work, resolve applicable design, accessibility, platform, styling, and component references from `docs/project-config.json`, its docs index, and code. Read existing, relevant references; assume no platform/framework.
 >
-> 1. Follow the configured project design-system docs for visual tokens, components, icons, themes, and interaction patterns where present.
-> 2. Read the frontend/UI architecture and styling references that apply to the target surface; BEM, SCSS, stores, API wrappers, and base classes are requirements only when project config or evidence establishes them.
-> 3. Use the project's component ownership taxonomy when documented; otherwise record actual owners and boundaries without imposing tiers or base abstractions.
-> 4. Reuse or compose components when their behavior and platform fit; record a concrete reason when creating a new abstraction or diverging from an existing pattern.
+> 1. Follow configured design-system tokens, components, icons, themes, and interaction patterns where present.
+> 2. Follow applicable UI architecture/styling references; require BEM, SCSS, stores, API wrappers, or base classes only with config/code evidence.
+> 3. Use documented component ownership; otherwise record actual owners/boundaries without imposing tiers or base abstractions.
+> 4. Reuse/compose components when behavior and platform fit; justify new abstractions or pattern deviations concretely.
 >
-> App-specific paths: check `docs/project-config.json` → `designSystem.appMappings[]` and `contextGroups[]`.
+> App-specific routing: `designSystem.appMappings[]` and `contextGroups[]` in project config.
 
 ---
 
@@ -1436,37 +1374,11 @@ Assess quality, error handling, async interaction, runtime/deployment, and integ
 
 ---
 
-## SYNC:fresh-context-review
-
-> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable. A report-only/read-only reviewer never edits source, generated output, or user data: it validates and records the finding/repair handoff, then returns to the caller, which owns the fix and any re-review.
->
-> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
->
-> **When:** After a validated-finding fix cycle, or to satisfy an explicitly declared independent-pass `minRounds`. A review round that finds zero issues ENDS the loop once that persisted minimum is met — do NOT invent a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
->
-> **How:**
->
-> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `spawn_agent` tool calls — use `code-reviewer` agent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
-> 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. A reviewer prompt carries every protocol body inline and is never handed a path to go read (the reviewer-prompt rule of `SYNC:shared-protocol-duplication-policy`)
-> 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
-> 4. Sub-agent writes structured report to `tmp/reports/{review-type}-round{N}-{date}.md`
-> 5. Main agent reads the report, integrates findings into its own report, DOES NOT override or filter
->
-> **Rules:**
->
-> - SKIP fresh sub-agent when the prior full review found zero issues AND the persisted `minRounds` is met (no fixes or required independent pass = nothing new to verify)
-> - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict (exception: a round-1 LOW-only fix set closed by scoped check, with no simplification landed, per `SYNC:double-round-trip-review`)
-> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass clears that round's exit bar per `SYNC:double-round-trip-review`: **round 1** → zero open findings at any severity (a LOW closed by scoped check or deferral is not open); **round 2 (and the conditional round 3)** → zero CRITICAL/HIGH/MEDIUM, so a round whose validated findings are ALL LOW ENDS the loop once the persisted minimum is met (list those LOWs as deferred instead of spawning another round). The budget is 2 rounds plus ONE extension to round 3, granted only when round 2 leaves a validated CRITICAL/HIGH open (a failed non-test binary gate counts as CRITICAL); round 3 is the review hard cap. A failing test gate is not budgeted — keep fixing and re-running until the tests pass. If the same validated blocker repeats across 2 full invocations with no progress, escalate by asking the user directly. **Read-only/report-only role boundary:** when this block is carried by a security auditor or another report-only role, “fix” means return the validated repair proposal to the parent; do not modify source, generated carriers, or user data and do not restart the review locally.
-> - Persist completed rounds, repeated blockers, findings and the explicit minimum in the owning run's `review-policy.cjs` record. Resume that record after interruption; target changes invalidate evidence and acceptance but preserve the bounded round budget. In-flight attempt IDs may be session-local; they do not replace or reset completed-round state
-
----
-
 ## SYNC:review-protocol-injection
 
-> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM, copied WHOLESALE and unmodified. They are the review-tier renderings of their canonical `SYNC:` tags, not literal copies; when a canonical protocol changes, update the matching body here in the same edit. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
+> **Review Protocol Injection** — Fresh reviewer prompts MUST embed 11 protocol blocks VERBATIM, copied WHOLESALE; these are review-tier renderings. When canonical `SYNC:` protocols change, update their renderings here in the same edit. Copy this template into the Agent `prompt`; replace only `{placeholders}` in Task / Round / Reference Docs / Target Files / Output. Never alter embedded sections at dispatch.
 >
-> **Why inline expansion:** A fresh reviewer must hold every rule it reviews against from its first token; a path or a placeholder would make it depend on a file read, or on a hook that may not fire for it. Reviewer prompts are therefore the one place the hybrid policy (`SYNC:shared-protocol-duplication-policy`) always keeps full bodies: the template carries all 11 protocol bodies pre-embedded, and the orchestrator copies it wholesale.
+> **Why inline expansion:** Fresh reviewers need every rule immediately; file pointers/placeholders depend on reads or hooks that may not fire. The hybrid policy (`SYNC:shared-protocol-duplication-policy`) therefore retains all 11 full bodies in this template, copied wholesale.
 
 ### Subagent Type Selection
 
@@ -1484,27 +1396,27 @@ spawn_agent({
 {review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
 
 ## Round
-Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
+Round {N}; ZERO prior-round memory. Re-read every target with your own tools. Trust no main-agent information beyond this prompt.
 
 ## Protocols (follow VERBATIM — these are non-negotiable)
 
 ### Spec ↔ Tests ↔ Code Triangulation
-DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone. Read `docs/project-config.json` and resolve `specArtifacts`: a valid profile selects its configured `intent/contracts/evidence` section roles, identifiers, ownership rule, and test-carrier dialects; only an absent profile selects the strict-default business-spec shape (§3 ACs / §4 BRs / §5 invariants / §8 TCs). A malformed or unsupported declaration is `BLOCKED`; never treat it as absent or fall back. Load the governing artifact, its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
-1. Locate all three faces: the canonical owner section(s), the tests that guard them, and the production code that implements them. With a native profile, preserve owner path + case/scenario ID + optional variant and resolve each through its configured carrier to the actual test. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
-2. Triangulate pairwise — every disagreement is a finding; classify which face is wrong:
-   - code vs spec: behavior the code does that no configured `intent/contracts` rule (or strict-default §3/§4/§5/§8 rule) describes → CODE-EXTRA or SPEC-STALE; a hard contract/invariant with no enforcing path → CODE-WRONG.
-   - tests vs spec: a configured native case with no executing assertion, or a test asserting behavior no native rule/case names → TEST-GAP or SPEC-SILENT. Without `specArtifacts`, check strict-default §8 TCs.
-   - tests vs code: a changed code path with no covering test → TEST-GAP; a test that still passes against a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
-3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding, added to the profile's configured `intent` or `contracts` section, and linked from its `evidence` section to a native case whose executing assertion is inspected. Without a profile, use strict-default §3/§4/§5/§8 and TC. This is the enrichment loop, never a silent pass.
-4. Only after the three faces agree — or every disagreement is logged as a finding — proceed to the per-protocol checks below; when enrichment adds spec/test content, re-review the package against the enriched spec.
-NEVER mark review PASS while any spec/test/code face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
+FIRST review the WHOLE PACKAGE. Read `docs/project-config.json`: valid `specArtifacts` profiles select configured `intent/contracts/evidence` roles, identifiers, ownership and test-carrier dialects; only absent profiles use strict-default §3 ACs / §4 BRs / §5 invariants / §8 TCs. Malformed/unsupported declarations are `BLOCKED`, never absent/fallback. Load governing artifact, tests, and changed code TOGETHER; judge mutual consistency before isolated checks.
+1. Locate canonical owner sections, guarding tests, and implementing code. Native profiles: preserve owner path + case/scenario ID + optional variant; resolve configured carriers to actual tests. Missing faces are findings (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+2. Triangulate pairwise; log every disagreement and classify its wrong face:
+   - code vs spec: behavior absent from configured `intent/contracts` (or strict-default §3/§4/§5/§8) → CODE-EXTRA or SPEC-STALE; a hard contract/invariant with no enforcing path → CODE-WRONG.
+   - tests vs spec: native case without executing assertions, or assertions absent from native rules/cases → TEST-GAP or SPEC-SILENT. Without `specArtifacts`, check strict-default §8 TCs.
+   - tests vs code: uncovered changed path → TEST-GAP; test passing a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
+3. Hidden-rule capture: enforced but unstated invariants (SPEC-SILENT) MUST become findings, additions to configured `intent`/`contracts`, and `evidence` links to native cases with inspected executing assertions. Without profiles, use strict-default §3/§4/§5/§8 and TC. Enrich; never silently pass.
+4. Proceed only after agreement or all disagreements are logged; re-review enriched spec/test packages.
+NEVER PASS unlogged spec/test/code disagreements. Diff = entry point; package = judgment unit.
 
 ### Evidence-Based Reasoning
-Speculation is FORBIDDEN. Every claim needs proof.
-1. Cite file:line, grep results, or framework docs for EVERY claim
-2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
+Speculation FORBIDDEN; prove every claim.
+1. Every claim: cite file:line, grep results, or framework docs
+2. Confidence: >80% act freely; 60-80% verify first; <60% DO NOT recommend
 3. Cross-service validation required for architectural changes
-4. "I don't have enough evidence" is valid and expected output
+4. Insufficient evidence is valid/expected output
 BLOCKED until: Evidence file path (file:line) provided; Grep search performed; 3+ similar patterns found; Confidence level stated.
 Forbidden without proof: "obviously", "I think", "should be", "probably", "this is because".
 If incomplete → output: "Insufficient evidence. Verified: [...]. Not verified: [...]."
@@ -1521,40 +1433,40 @@ Admit a finding only with a reachable trigger path (the caller, input or state t
 Classify every finding by consequence (never by effort): CRITICAL = immediate material security/safety/data-loss risk or failed binary gate → block; HIGH = material correctness, contract, privacy, or authority risk → must fix; MEDIUM = bounded consequential edge/resilience/maintainability gap → must clear the current round, or escalate with an explicit residual-risk follow-up that does not create a clean pass; LOW = non-blocking polish with no credible present impact → record/defer from round 2; `NOT VERIFIABLE` is unresolved evidence, not LOW.
 
 ### Design Patterns Quality
-Priority checks for every code change:
-1. Consistency and reuse: follow documented local patterns; extract a shared abstraction only when repetition or a demonstrated consumer need justifies its cost. Similar names alone do not require a shared base class.
-2. Responsibility: follow the architecture established by project configuration, references, accepted decisions, and existing code. Place behavior with its actual owner; do not presume an entity/service/controller hierarchy or forbid a layer without project evidence.
-3. Apply cohesion, coupling, and dependency-management principles when their assumptions fit the project's paradigm. SOLID is useful for object-oriented boundaries, not a mandatory checklist for every language or codebase.
+Every code change:
+1. Consistency/reuse: follow documented patterns; justify extraction cost by repetition or real consumer need. Similar names alone never require shared bases.
+2. Responsibility: follow config/references/accepted decisions/code; place behavior with its owner. Assume no entity/service/controller hierarchy or forbidden layer without evidence.
+3. Apply cohesion/coupling/dependency principles where paradigm assumptions fit; SOLID suits OO boundaries, not every language/codebase.
 4. After extraction/move/rename: Grep ENTIRE scope for dangling references. Zero tolerance.
-5. YAGNI gate: Treat repeated patterns as evidence to evaluate extraction, not a numeric threshold. Extract when a shared reason to change, real consumers, or an evidenced ownership/substitution boundary lowers total change cost; do not create patterns for hypothetical future use.
-6. Purpose-oriented naming: Name public or cross-layer abstractions by the capability, domain purpose, or contract consumers rely on—not the current provider, SDK, framework, database, or transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract.
-7. Contract-fit check: Read callers and every implementation before judging a name; narrow an over-broad abstraction (`IObjectStore`, `DocumentStore`) instead of rewarding a generic name that lies about behavior.
-8. Mechanism/generic-name smell: Treat `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations, and unexplained abbreviations as review signals—not automatic defects; flag them only when they hide purpose, scope, or responsibility.
-9. Concrete implementation names: Provider, strategy, transport, or test-double names are valid on concrete types when they distinguish real behavior (`AzureBlobStorage`, `InMemoryStorage`, `RetryingStorage`); keep those details out of the caller-facing contract unless the contract promises them.
-10. Language convention: Preserve local interface syntax and naming style; `.NET` `I` prefixes and Google TypeScript's unmarked interfaces are both valid local conventions.
+5. YAGNI: repetition prompts evaluation, never numeric extraction thresholds. Extract when shared change reasons, real consumers, or evidenced ownership/substitution lower total change cost; no hypothetical-use patterns.
+6. Purpose naming: public/cross-layer abstractions name consumer capability/domain/contract, not provider/SDK/framework/database/transport. `IStorage`/`Storage` → `AzureBlobStorage`; use `IAzureStorage` only when Azure-specific semantics are intentionally part of the contract.
+7. Contract-fit: read callers/all implementations; narrow over-broad abstractions (`IObjectStore`, `DocumentStore`), never reward misleading generic names.
+8. Naming signals: `Manager`, `Helper`, `Utils`, `Data`, `Thing`, `Service`, `Interface`, type decorations/unexplained abbreviations are defects only when hiding purpose/scope/responsibility.
+9. Concrete names: provider/strategy/transport/test-double names may distinguish real behavior (`AzureBlobStorage`, `InMemoryStorage`, `RetryingStorage`); exclude from caller contracts unless promised.
+10. Preserve local interface syntax/naming: `.NET` `I` prefixes and Google TypeScript unmarked interfaces are both valid.
 Anti-patterns to flag: God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 
 ### Logic & Intention Review
-Verify WHAT code does matches WHY it was changed.
-1. Change Intention Check: Every changed file MUST serve the stated purpose. Flag unrelated changes as scope creep.
-2. Happy Path Trace: Walk through one complete success scenario through changed code.
-3. Error Path Trace: Walk through one failure/edge case scenario through changed code.
-4. Acceptance Mapping: If plan context available, map every acceptance criterion to a code change.
-5. Tests Verify Intent: For test/spec changes, verify tests name the protected business rule or invariant and would fail if that intent breaks.
-6. Migration Test Exclusion: Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
-NEVER mark review PASS without completing both traces (happy + error path).
+Verify behavior matches change intent.
+1. Every changed file MUST serve stated purpose; flag unrelated scope creep.
+2. Trace one complete success scenario through changed code.
+3. Trace one failure/edge scenario through changed code.
+4. With plan context, map every acceptance criterion to code.
+5. Test/spec changes: tests name protected business rule/invariant and fail when it breaks.
+6. Migration exclusion: no migration-code tests; schema/data migrations are one-time paths, not core application logic.
+NEVER PASS without both happy/error traces.
 
 ### Test Spec Verification
-Map changed code to test specifications.
-1. Identify the project's test/spec format from existing docs, test-case files, BDD feature files, or spec folders.
-2. Every changed code path MUST map to a corresponding test case/spec (or flag as "needs test case").
-3. New functions/endpoints/handlers → flag for test spec creation.
-4. Migration files are excluded from test/spec creation; schema/data migrations are one-time execution paths, not core application logic.
-5. If spec evidence fields exist, verify they point to actual code (file:line, not stale references).
-6. Verify each meaningful test case names the business intent/invariant; flag behavior-only cases that only mirror implementation details.
+Map changed code to test specs.
+1. Discover test/spec format in docs, test cases, BDD features, or spec folders.
+2. Every changed path MUST map to a test case/spec or be flagged "needs test case".
+3. New functions/endpoints/handlers → test-spec creation flag.
+4. Exclude migrations from test/spec creation: one-time execution, not core application logic.
+5. Verify existing spec evidence resolves actual code (file:line); flag stale references.
+6. Meaningful cases name business intent/invariants; flag implementation-mirroring behavior-only cases.
 7. Auth/data changes → verify corresponding authorization and data-state test cases exist.
-8. If no specs exist for a changed path → log the gap and recommend the project's test-spec workflow.
-NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
+8. Missing changed-path specs → log gap, recommend project test-spec workflow.
+NEVER skip test mapping; uncovered paths risk production bugs.
 
 ### Behavioral Delta Matrix
 MANDATORY for any bugfix review. Produce input-state × pre-fix × post-fix × delta table BEFORE writing verdict.
@@ -1568,12 +1480,12 @@ Example rows (external-record sync fix):
 | Record missing (404)  | Error   | Recreated                 | Fixed      |
 
 ### Fix-Layer Accountability
-Do not assume the crash site owns the defect. Trace the actual execution and data flow, then fix the component that owns the violated contract.
+Trace execution/data flow; fix the violated contract's owner, never assume the crash site.
 MANDATORY before ANY fix:
-1. Trace the affected path — map the real origin, transformations, boundaries, and observed failure in the surfaces this project uses. Do not invent absent layers.
-2. Identify the contract owner — use project architecture and code evidence to find which component is responsible for the invalid state or behavior.
-3. Choose the correction point — fix the authoritative owner and retain any validation required at untrusted boundaries. A multi-file correction can be valid; justify it by the contracts each file owns rather than a file-count threshold.
-4. Check bypass paths — inspect relevant constructors, adapters, parsers, caches, persistence, or other entry points that actually exist in the affected flow.
+1. Trace actual origin, transformations, boundaries, failure; invent no absent layers.
+2. Identify invalid-state/behavior contract owner from architecture/code evidence.
+3. Fix authoritative owner; retain untrusted-boundary validation. Justify multi-file fixes by owned contracts, not file-count thresholds.
+4. Inspect relevant existing bypass entries: constructors/adapters/parsers/caches/persistence.
 BLOCKED until: The affected path is traced; the owner is supported by file:line evidence; relevant consumers and bypass paths are checked; and the correction point fits the project's architecture.
 Anti-patterns (REJECT): assuming the symptom site is the owner; scattering workarounds without tracing the contract; assuming the lowest technical layer is always authoritative; removing validation from a real trust boundary to force a single correction point.
 
@@ -1588,8 +1500,8 @@ AI skips steps via these evasions. Recognize and reject:
 - "Combine steps to save time" → Combined steps dilute focus. Each step has distinct purpose.
 
 ### Graph-Assisted Investigation (optional advice)
-Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (.code-graph/graph.db) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes. An absent or stale graph is never a finding.
-Pattern (when used): grep/read finds files → optional graph query suggests extra callers/dependents → grep/read verifies details.
+Optional: for high-risk blast radius (shared contract/many callers/cross-module/cross-service/public API), .code-graph/graph.db suggests callers/dependents/impacted tests. Treat it as a hint, NOT proof: stale/incomplete graphs lag uncommitted edits/unindexed paths. Verify important results by files/grep; skip low-risk/local changes. An absent or stale graph is never a finding.
+Pattern: grep/read → optional graph suggestions → grep/read verification.
 - High-risk investigation: trace --direction both on 2-3 entry files
 - Fix/debug with wide reach: callers_of on buggy function + tests_for
 - Feature touching a shared contract: connections on files to be modified
@@ -1601,15 +1513,15 @@ CLI: python .claude/scripts/code_graph {command} --json. Use --node-mode file fi
 HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 1. Search 3+ similar patterns (grep/glob) — cite file:line evidence.
 2. Read existing files in target area — understand structure, base classes, conventions.
-3. Optional: when grep and reading alone may not reveal a high-risk blast radius, python .claude/scripts/code_graph trace <file> --direction both --json (when .code-graph/graph.db exists) can add callers and dependents — a hint that may be stale, verified by reading the files.
-4. Map dependencies via grep/read callers (an optional graph connections or callers_of query may add hints) — know what depends on your target.
+3. Optional high-risk hints: python .claude/scripts/code_graph trace <file> --direction both --json if .code-graph/graph.db exists; verify stale-capable caller/dependent hints by files.
+4. Map dependents by grep/read callers; optional graph connections/callers_of adds hints.
 5. Write investigation to tmp/analysis/ for non-trivial tasks (3+ files).
 6. Re-read analysis file before implementing — never work from memory alone.
 7. NEVER invent new patterns when existing ones work — match exactly or document deviation.
 BLOCKED until: Read target files; Grep 3+ patterns; Assumptions verified with evidence. (The code graph is optional advice, never a gate.)
 
 ## Reference Docs (READ before reviewing)
-Read only the docs resolved for this lane — every doc costs context before any review work; do not re-resolve the whole doc set.
+Read only lane-resolved docs; do not re-resolve the whole set.
 - `code-review-rules.md`, inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
 - {lane-specific docs the orchestrator resolved — e.g., the pattern doc for the files under review, integration-test-reference.md for a test lane, the governing spec for a spec-compliance lane}
 
@@ -1661,24 +1573,24 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## SYNC:repeatable-test-principle
 
-> **Repeatable Tests** — A test suite should produce the same contract result across normal fresh runs and supported concurrency. Use the project's runner and isolation policy; a fixed no-reset database procedure does not fit every harness.
+> **Repeatable Tests** — Preserve the same contract result across fresh runs and supported concurrency using the project's runner/isolation policy; no universal no-reset database procedure.
 >
-> 1. Isolate mutable test data from other tests and runs. Use generated identities when the configured environment shares a namespace or data store; stable IDs are fine in an isolated disposable database or deterministic fixture.
-> 2. Cleanup may remove only resources created and owned by that test/run. Use transactions, ephemeral databases, namespaces, teardown, or additive fixtures according to the project's harness; never reset shared or user-owned state.
-> 3. Make shared fixture setup idempotent when the runner may repeat it. Keep schema/migration testing when it is part of the project contract; follow the project's migration harness and never use rollback assumptions that the production system does not support.
-> 4. Verify repeatability at the level required by `integrationTestVerify.guidance`. If absent, use two fresh runs when persistent/shared state or asynchronous effects make one run insufficient; stateful verification must not rely on deleting another run's data.
+> 1. Isolate mutable data across tests/runs. Generate identities in shared namespaces/stores; stable IDs are valid in isolated disposable databases or deterministic fixtures.
+> 2. Cleanup only resources created AND owned by the test/run. Use harness-supported transactions, ephemeral databases, namespaces, teardown, or additive fixtures; never reset shared/user-owned state.
+> 3. Make repeatable shared setup idempotent. Retain contract-required schema/migration tests using the migration harness; assume no rollback unsupported in production.
+> 4. Follow `integrationTestVerify.guidance`. If absent, use two fresh runs when persistent/shared state or async effects make one insufficient; never delete another run's data to verify repeatability.
 
 ---
 
 ## SYNC:test-data-isolation
 
-> **Test Data Isolation** — Tests MUST remain independent across the concurrency modes the project supports. Stateful suites should not depend on test order or mutate data another test/run owns.
+> **Test Data Isolation** — Tests MUST be independent across supported concurrency modes; stateful suites must not depend on order or mutate another test/run's data.
 >
-> 1. **Use the isolation boundary the harness supports:** transactions, per-test databases/schemas, namespaces, fixtures, or unique data as appropriate. Unique IDs are essential when tests share a namespace; stable IDs are fine inside isolated disposable fixtures.
-> 2. **Isolate mutable state when tests can observe or alter it concurrently.** Shared mutable state is safe only when the runner/project provides an explicit isolation guarantee; immutable reference data may be shared.
-> 3. **Account for cross-cutting consumers when they are relevant:** a bulk rebuild, recompute, or cascade can rewrite descendants of a shared parent; inspect that path if another test/run's work could affect the assertion.
-> 4. **On an intermittent contradiction, test contamination as a competing cause.** Trace the path first, then inspect other writers/consumers of shared state before attributing the wrong outcome to product code.
-> 5. **Prove the relevant isolation claim with a scoped search.** Inspect other tests and consumers that can touch the shared data in question; do not demand a repository-wide search when the test owns an isolated store/transaction.
+> 1. Use harness-supported transactions, per-test databases/schemas, namespaces, fixtures, or unique data. Shared namespaces require unique IDs; isolated disposable fixtures may use stable IDs.
+> 2. Isolate concurrently observable/mutable state. Share mutable state only under an explicit runner/project isolation guarantee; immutable reference data may be shared.
+> 3. Inspect relevant bulk rebuild/recompute/cascade consumers when rewriting shared-parent descendants could affect any test/run's assertions.
+> 4. For intermittent contradictions, trace the path and inspect competing writers/consumers before attributing the outcome to product code; consider contamination.
+> 5. Prove isolation through scoped searches of relevant tests/consumers; repository-wide searches are unnecessary for an owned isolated store/transaction.
 
 ---
 
@@ -2038,15 +1950,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
 > | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
 > | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never counts toward the round-3 extension | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and unlocking or forfeiting the round-3 extension never decide the tier.
+> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
 >
 > **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
 >
 > **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
 >
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate counts as CRITICAL for the round-3 extension; a failing test gate is outside the round budget and loops until the tests pass.
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
 >
 > **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
 >
@@ -2061,7 +1973,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
 > - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
 >
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; only an open CRITICAL/HIGH at round 2 (a failed non-test binary gate counts as CRITICAL) unlocks the single conditional extension round; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
 
 ---
 
@@ -2217,28 +2129,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ---
 
-## SYNC:nested-task-creation
-
-> **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
->
-> 1. Call the current task list first. Set `nested=true` and record `parentTaskId` ONLY when this run created its own child phase tasks linked to that parent row; a `[Workflow]` row that merely exists in the current task list (stale, abandoned, or belonging to another run) does not make a run nested — such a run behaves as standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
-> 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
-> 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
-> 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
-> 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
->
-> **Blocked until:** the current task list done, child phases created, parent linked when nested, first child marked `in_progress`.
-
----
-
-## SYNC:nested-task-creation:reminder
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
----
-
 ## SYNC:parallel-phase-advancement
 
 > **Parallel-Phase Advancement (model-driven)** — How to run AND advance a declared parallel batch of workflow steps. Tool-agnostic: identical under Claude and Codex — neither depends on a hook. Mirrors the universal context-file rule ("Workflow Step Advancement & Parallel Phases" in CLAUDE.md / AGENTS.md).
@@ -2251,32 +2141,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 6. **Hooks are accelerators only.** Any step-tracking hook may emit a "next step" hint as an optimization; correctness MUST NOT depend on it. Claude and Codex both advance from this static rule when hooks are absent, disabled, or stale.
 >
 > **Blocked until:** `- [ ]` all members spawned in one message `- [ ]` every member returned (incl. skipped conditional) `- [ ]` each member marked completed/skipped `- [ ]` mutating step deferred until after the barrier.
-
----
-
-## SYNC:parallel-subagent-dispatch
-
-> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — serial execution of provably independent tasks wastes wall-clock. Applies to every multi-step job (workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync). **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
->
-> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`; else `SEQ`, naming the dependency that forces it.
-> 2. **Group `PAR` into waves.** No edge between members; two writers of one file NEVER share a wave; read-only work parallelizes freely.
-> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
-> 4. **Spawn each wave in ONE message** — every `spawn_agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
-> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
-> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
->
-> **Cost check before every wave:** each sub-agent pays a fixed context load before any work — its agent definition, every skill it loads or preloads, its brief and reference docs — commonly tens of thousands of tokens, far more than one duplicated protocol block. Dispatch only a task whose own work clearly exceeds that load; otherwise do it inline, or fold it into an agent that already reads the same files as concrete questions (that agent need not load the task's whole skill) — unless the task's risk needs its full protocol: risk sets depth, file count never does. Merge tasks that read the same files or reference docs into one agent, and prefer fewer, larger agents over many small ones. Parallelism buys wall-clock time, never free tokens.
->
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · a task whose own work is smaller than its sub-agent's fixed context load (do it inline or merge it) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
->
-> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
-
----
-
-## SYNC:parallel-subagent-dispatch:reminder
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
 
 ---
 
@@ -2455,7 +2319,7 @@ Critical reminders: operate only within user authority; read the project config,
 > 2. **Review and fix, static** — one converging review fix-loop over the whole changeset, reading code and tests (TEST-GAP, WEAK-TEST by mutation thinking). It does NOT run tests (`$workflow-review-changes --tests=defer`). Fixes may write or amend tests but never run them.
 > 3. **Verify once** — run the full affected suite once through the runner (`tester`, `$integration-test --mode=verify`, `$test`), plus a mutation check on every changed core-logic line and new rule: use the project's mutation tool when configured, else temporarily break the line by hand-editing it: first copy the file to `tmp/` and restore from that copy afterwards, confirming a clean diff against the copy before green counts — NEVER `git checkout`, `restore`, `reset` or `stash` on the working tree, which can destroy the uncommitted work under test. The mutation check needs a step that may edit code — `$integration-test --mode=verify`, or the main session when no such step runs — never the read-only `tester` or `$test`. A surviving mutant is a missing test: write it, then re-run. For a bugfix the mutation check is the RED proof: reverting the fix must turn its regression test red.
 > 4. **Fix and re-run until green** — record a provisional verdict for each red test (SOURCE-WRONG · TEST-WRONG · TEST-NOT-OPTIMAL · ENVIRONMENT-BLOCKED · AMBIGUOUS) before any edit, fix at the owner, re-run the failing set, then the whole set once. NEVER weaken, skip or delete a test to force green.
-> 5. **Re-review only if step 4 edited anything** — any source or test edit after the review re-runs the review (`--tests=defer`) over the settled tree; a re-review that applies a fix sends you back to step 3. This verify ↔ re-review alternation is capped at 2 turns: a third turn, or the same failure returning, STOPS and escalates by asking the user directly (the review's own round cap does not bound it). Done = a green verify AND no edit after the last review.
+> 5. **Re-review only if step 4 edited anything** — any source or test edit after the review re-runs the review (`--tests=defer`) over the settled tree; a re-review that applies a fix sends you back to step 3. This verify ↔ re-review alternation is capped at 3 turns: a fourth turn, or the same failure returning, STOPS and escalates by asking the user directly (the review's own round cap does not bound it). Done = a green verify AND no edit after the last review.
 > 6. **Green counts only on the final tree** — an edit after the last green run invalidates it.
 >
 > **Exceptions:** a refactor's pre-change runs are allowed — the baseline run, and ONE targeted run of any characterization tests written before the code moves (they must be proven green on the unrefactored tree); neither is a per-phase run. A standalone review with no later verify step keeps its own test run (`--tests=prove`, the default).
@@ -2521,7 +2385,7 @@ Critical reminders: operate only within user authority; read the project config,
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
-> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes").
 
 ---
 
@@ -2571,7 +2435,7 @@ Critical reminders: operate only within user authority; read the project config,
 
 ## SYNC:sequential-thinking-protocol:reminder
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
+**MUST ATTENTION** use structured reasoning for complex or ambiguous work, implicitly when visible markers would clutter. Verify hypotheses, revise assumptions, and close with confidence, assumptions, open questions and a concrete next action.
 
 ---
 

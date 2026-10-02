@@ -306,10 +306,14 @@ function run(input, deps = {}) {
             }
             const ack = applyDirective(routing, directive, { ledger, storeRoot, sessionId: input.session_id, homeDir: deps.homeDir });
             const sessionMode = directive ? directive.mode : readSessionMode(ledger, storeRoot, input.session_id);
-            const { mode, source } = resolveMode(routing, { rootDir: projectDir, env, homeDir: deps.homeDir, sessionMode });
+            const routeOptions = { rootDir: projectDir, env, homeDir: deps.homeDir, sessionMode };
+            const { mode, source } = resolveMode(routing, routeOptions);
+            const skillPolicy = typeof routing.resolveSkillAutoTrigger === 'function' ? routing.resolveSkillAutoTrigger(routeOptions) : null;
 
             let content;
-            if (mode !== 'off') {
+            if (skillPolicy?.enabled === false) {
+                content = 'Framework skill auto-trigger is disabled. Do not self-route into a catalog workflow or offer the workflow-selection question. Named user requests and required hook/protocol calls remain eligible under the skill activation policy; existing workflow route restrictions still apply.';
+            } else if (mode !== 'off') {
                 const protocol = deps.protocol !== undefined ? deps.protocol : resolveProtocolText(routing, projectDir);
                 content = deps.content || buildInjectionOrNotice(projectDir, protocol, mode, source);
             } else {

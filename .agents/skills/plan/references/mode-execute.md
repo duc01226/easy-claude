@@ -14,11 +14,11 @@
 **Summary:**
 
 - **Purpose:** consume an EXISTING plan, one phase per run — Step 0 detects `*.md` plan files under the plans root (default `plans`; a `docsRoots.plans.path` entry in `docs/project-config.json` wins, else `.ck.json` `paths.plans`) + selects the next incomplete phase (prefer IN_PROGRESS, else earliest Planned). Use `$feature-implement` instead when no plan exists yet — it creates plans, this consumes them.
-- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed task tracking 0–6 → Step 2 implement every phase step-by-step, code AND its tests written together (type-check + compile only, NO test run; UI → `ui-ux-designer`) → Step 3 static review (`code-reviewer` until the current severity bar is clear: round 1 zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`), round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred; runs no tests) → Step 4 verify ONCE (`tester` full suite, then the main session's mutation check → `debugger` until 100% and every mutant killed; re-run Step 3 only if Step 4 edited anything) → **Checklist Walk (its own step — runs in standalone AND workflow-nested runs, see [Checklist Walk](#checklist-walk-own-step--standalone-and-workflow-nested))** → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
+- **Ordered execution anchor (run in declared order; emit `✓ Step N:` each):** Step 0 detect/select the plan → Step 1 read the plan fully, read the Goal Contract and Trace Gate, seed task tracking 0–6 → Step 2 implement every phase step-by-step, code AND its tests written together (type-check + compile only, NO test run; UI → `ui-ux-designer`) → Step 3 static review (`code-reviewer` until the current severity bar is clear: round 1 zero open findings (Round-1 LOW closure), round 2 zero CRITICAL/HIGH/MEDIUM with LOW deferred; runs no tests) → Step 4 verify ONCE (`tester` full suite, then the main session's mutation check → `debugger` until 100% and every mutant killed; re-run Step 3 only if Step 4 edited anything) → **Checklist Walk (its own step — runs in standalone AND workflow-nested runs, see [Checklist Walk](#checklist-walk-own-step--standalone-and-workflow-nested))** → Step 5 explicit user approval (BLOCKING — stop and wait) → Step 6 finalize (main-session status update + `docs-manager`; optional `git-manager` only for an explicit user request).
 - **Three BLOCKING gates cannot be faked-green:** Step 3 has no blocking finding under the current round bar (round 1: no open finding — Round-1 LOW closure; round 2: no CRITICAL/HIGH/MEDIUM; failed binary gates always block), Step 4 tests 100% pass with the mutation check clean and no edit after the last review, Step 5 explicit user approval before Finalize. These gates never grant Git authority. — why: quality acceptance and operation authority protect different boundaries.
 - **Two STOP-before-coding gates:** Pre-Implementation Granularity Gate (refuse planning verbs / unnamed files / unresolved decisions → sub-plan with `$plan`) + bugfix Trace Gate (require the End→Start debugger trace for any bug/regression/behavior-changing plan). Also the Spec-Loop Gate (property TC + mutation-killed test + Dual-Feedback) closes any behavior change.
 - **Step 2 is SEQUENTIAL by default; wave fan-out is OPT-IN.** `--parallel` / `--parallel=on` dispatches disjoint-write-set phases as one wave of `fullstack-developer` subagents in ONE message, barrier, then recomputes the next wave against the updated repo. `--parallel=auto` fans out ONLY when every in-scope phase carries the `## Parallel Execution` block (`PAR`/`SEQ` tag + declared write set) written by `$plan` — no block, no fan-out.
-- **Verify-last order (`SYNC:verify-last-order`):** tests run ONCE, in Step 4, after the static Step 3 review — never per phase, per wave or inside the review. **Workflow-nested** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count): run Steps 0–2, the Checklist Walk and Step 6 only; the parent's review and verify steps are Steps 3–4 (see [Workflow-Nested Mode](#workflow-nested-mode)).
+- **Verify-last order (`SYNC:verify-last-order`):** tests run ONCE, in Step 4, after the static Step 3 review — never per phase, per wave or inside the review. **Workflow-nested** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count): run Steps 0–2, the Checklist Walk and Step 6 only; the parent's review and verify steps are Steps 3–4 (see [Workflow-Nested Mode](#workflow-nested-mode)).
 - **Mode flags** add/remove ONE step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop over every incomplete phase), `--tests=off` (skip Step 4), `--parallel={auto|on|off}` (`off` default = sequential; bare `--parallel`/`on` opts in to wave dispatch; `auto` fans out only on plan-declared `PAR`/`SEQ` metadata). No flags = full 7-step spine, run sequentially.
 - **Standalone** (not `nested=true`; a `[Workflow]` row that merely exists in the current task list does not make this run nested) → ensure a plan exists → Steps 0-3 → `$changes-review` → `$why-review` (static, run BEFORE the Step 4 verify) → Steps 4-6. Plan review is never automatic; the user may request it separately.
 
@@ -56,7 +56,7 @@
 
 ## Standalone Mode Pipeline (skip entirely only when `nested=true` — a `[Workflow]` row that merely exists in the current task list does not count)
 
-> **MANDATORY — standalone `$plan --mode=execute` only.** When this skill is invoked OUTSIDE a workflow, wrap the core spine (Steps 0-6) in this quality loop; every review here is STATIC and runs before the single Step 4 verify (`SYNC:verify-last-order`). Detect nesting via the current task list FIRST: if THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count), SKIP this section — the surrounding workflow already sequences plan/review/why-review (e.g. `workflow-refactor`).
+> **MANDATORY — standalone `$plan --mode=execute` only.** When this skill is invoked OUTSIDE a workflow, wrap the core spine (Steps 0-6) in this quality loop; every review here is STATIC and runs before the single Step 4 verify (`SYNC:verify-last-order`). Detect nesting via the current task list FIRST: if THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count), SKIP this section — the surrounding workflow already sequences plan/review/why-review (e.g. `workflow-refactor`).
 >
 > Create these as task tracking tasks up front, in order, then execute them:
 >
@@ -201,7 +201,7 @@ Call `code-reviewer` subagent (multi-phase run: once, after the last wave, over 
 
 Call `tester` subagent ONCE over the whole changeset (multi-phase run: once, after Step 3) for the full affected suite. Then the main session runs the mutation check — `tester` is read-only — on every changed core-logic line and each new rule or regression test (`SYNC:verify-last-order` step 3; a bugfix's mutation check is its RED proof). ANY test fails or a mutant survives → record the provisional verdict (SOURCE-WRONG · TEST-WRONG · TEST-NOT-OPTIMAL · ENVIRONMENT-BLOCKED · AMBIGUOUS) before any edit, call `debugger` subagent, fix at the owning layer, re-run the failing set, then the whole set once. Repeat until 100% pass with every mutant killed. A surviving mutant is a missing test: write the killing test, then re-run.
 
-**Re-review loop:** if fixing in this step edited ANY source or test file, re-run Step 3 over the settled tree; a re-review that applies a fix sends you back to Step 4. This alternation is capped at 2 turns; a third turn, or the same failure returning, escalates by asking the user directly. In a standalone run, `$changes-review` and `$why-review` re-run with Step 3 whenever it does. Step 4 is complete only when a verify run is green AND no edit followed the last Step 3. An edit after the last green run invalidates that run.
+**Re-review loop:** if fixing in this step edited ANY source or test file, re-run Step 3 over the settled tree; a re-review that applies a fix sends you back to Step 4. This alternation is capped at 3 turns; a fourth turn, or the same failure returning, escalates by asking the user directly. In a standalone run, `$changes-review` and `$why-review` re-run with Step 3 whenever it does. Step 4 is complete only when a verify run is green AND no edit followed the last Step 3. An edit after the last green run invalidates that run.
 
 **Testing standards:** Unit tests may use mocks. Integration tests use test environment. Forbidden: commenting out tests, changing assertions to pass, TODO/FIXME to defer fixes.
 
@@ -322,7 +322,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ## Mode protocols
 
-The protocols below apply to this mode only; their full text is inline so this reference is self-contained. The `plan` skill already carries `core-engineering-principles`, `parallel-subagent-dispatch`, `plan-granularity` and `verify-last-order`. `design-distinctiveness-gate`, `design-review-checklist` and `ui-copywriting` are self-gating: they apply only when a phase creates or reshapes a user-facing surface.
+The protocols below apply to this mode only; their full text is inline so this reference is self-contained. The `plan` skill already carries `core-engineering-principles`, `plan-granularity` and `verify-last-order`. `design-distinctiveness-gate`, `design-review-checklist` and `ui-copywriting` are self-gating: they apply only when a phase creates or reshapes a user-facing surface.
 
 <!-- SYNC:design-distinctiveness-gate -->
 
@@ -390,20 +390,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:end-to-start-debugger-trace -->
 
-<!-- SYNC:nested-task-creation -->
-
-> **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
->
-> 1. Call the current task list first. Set `nested=true` and record `parentTaskId` ONLY when this run created its own child phase tasks linked to that parent row; a `[Workflow]` row that merely exists in the current task list (stale, abandoned, or belonging to another run) does not make a run nested — such a run behaves as standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
-> 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
-> 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
-> 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
-> 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
->
-> **Blocked until:** the current task list done, child phases created, parent linked when nested, first child marked `in_progress`.
-
-<!-- /SYNC:nested-task-creation -->
 
 <!-- SYNC:severity-rubric -->
 
@@ -418,15 +404,15 @@ The protocols below apply to this mode only; their full text is inline so this r
 > | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
 > | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
 > | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never counts toward the round-3 extension | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and unlocking or forfeiting the round-3 extension never decide the tier.
+> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
 >
 > **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
 >
 > **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
 >
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate counts as CRITICAL for the round-3 extension; a failing test gate is outside the round budget and loops until the tests pass.
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
 >
 > **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
 >
@@ -441,7 +427,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 > - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
 > - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
 >
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; only an open CRITICAL/HIGH at round 2 (a failed non-test binary gate counts as CRITICAL) unlocks the single conditional extension round; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -486,7 +472,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:plan-granularity:reminder -->
 
-**IMPORTANT MUST ATTENTION** verify all phases pass 5-point granularity check. Failing phases → sub-plan. "Can I start coding RIGHT NOW?"
+**IMPORTANT MUST ATTENTION** use outcome phases with owners, boundaries, bounded discovery and acceptance gates. Split only for real dependencies, independent outcomes or disjoint ownership; avoid microtasks and recursive sub-plans.
 
 <!-- /SYNC:plan-granularity:reminder -->
 
@@ -508,12 +494,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 
@@ -529,11 +509,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 <!-- SYNC:design-distinctiveness-gate:reminder -->
 

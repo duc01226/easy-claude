@@ -570,22 +570,22 @@ Example for a "Create Invoice" story:
 
 <!-- SYNC:estimation-framework -->
 
-> **Estimation Framework** — Bottom-up first; SP DERIVED; output min-max range when likely ≥3d. Stack-agnostic. Baseline: 3-5yr dev, 6 productive hrs/day. AI estimate assumes Claude Code + project context.
+> **Estimation Framework** — Bottom-up; derive SP; min-max range at likely ≥3d. Stack-agnostic baseline: 3-5yr dev, 6 productive hrs/day; AI assumes Claude Code + project context.
 >
 > **Method:**
 >
-> 1. **Blast Radius pass** (below) — drives code AND test cost
+> 1. **Blast Radius pass** below — code AND test cost
 > 2. Decompose phases → hours/phase → `bottom_up_hours = Σ phase_hours`
 > 3. `likely_days = ceil(bottom_up_hours / 6) × productivity_factor`
 > 4. Sum **Risk Margin** (base + add-ons) → `max_days = likely_days × (1 + margin)`
 > 5. `min_days = likely_days × 0.9`
-> 6. Output as range when `likely_days ≥3`; single point allowed `<3` (still record margin)
+> 6. Range at `likely_days ≥3`; point allowed `<3`; always record margin
 > 7. `man_days_ai` = same range × AI speedup
-> 8. `story_points` DERIVED from `likely_days` via SP-Days — NEVER driver. Disagreement >50% → trust bottom-up
+> 8. Derive `story_points` from `likely_days` via SP-Days; NEVER driver. >50% disagreement → trust bottom-up
 >
 > **Productivity factor:** 0.8 strong scaffolding+codegen+AI hooks · 1.0 mature default · 1.2 weak patterns · 1.5 greenfield
 >
-> **Cost Driver Heuristic (apply BEFORE work-type row):**
+> **Cost driver (BEFORE work-type row):**
 >
 > - **UI dominates** in CRUD/business apps — 1.5-3x backend (states, validation, responsive, a11y, polish)
 > - **Backend dominates ONLY:** multi-aggregate invariants, cross-service contracts, schema migrations, heavy query/perf, new event flows
@@ -610,9 +610,9 @@ Example for a "Create Invoice" story:
 > | NEW cross-service contract OR schema migration | 2-4d each |
 > | Multi-aggregate invariant / heavy domain rule | 3-5d |
 >
-> **Rule:** Sum tiers across UI+backend+tests, apply productivity factor. Reuse short-circuits tiers — call out.
+> **Rule:** Sum UI+backend+test tiers; apply productivity factor; call out reuse shortcuts.
 >
-> **Test-Scope drivers (compute test_count EXPLICITLY — "+tests" hand-wave is #1 failure):**
+> **Test scope:** Compute `test_count` explicitly by driver; never hand-wave "+tests".
 >
 > | Driver | Count |
 > | --- | --- |
@@ -634,15 +634,15 @@ Example for a "Create Invoice" story:
 >
 > **Test multipliers:** new fixture/seed harness +0.5d · cross-service/bus assertion +0.3d each · UI E2E ×1.5 · each new role +1-2 cases
 >
-> **Blast Radius (mandatory pre-pass — affects code AND test):**
+> **Blast Radius (mandatory; code AND tests):**
 >
-> 1. Files/components directly modified — count
-> 2. Of those, "complex" (>500 LOC, multi-handler, central, frequently-modified) — count
-> 3. Downstream consumers (callers, event subscribers, cross-service) — list
-> 4. Shared/common code touched (multi-app blast) — yes/no
+> 1. Count directly modified files/components
+> 2. Count complex touches (>500 LOC, multi-handler, central, frequently-modified)
+> 3. List downstream callers, event subscribers, cross-service consumers
+> 4. Shared/common multi-app touch — yes/no
 > 5. Regression scope — areas needing re-test
 >
-> **Rule:** Complex touch → add `risk_factors`. Each downstream consumer → +1-3 regression cases. Blast >5 areas OR >2 complex → re-evaluate SPLIT before estimating.
+> **Rule:** Complex touch → `risk_factors`; each downstream consumer → +1-3 regression cases; >5 areas OR >2 complex → reconsider SPLIT before estimating.
 >
 > **Risk Margin (drives max bound):**
 >
@@ -655,7 +655,7 @@ Example for a "Create Invoice" story:
 > | 8-10d very large | +75% |
 > | >10d | +100% AND **flag SHOULD SPLIT** |
 >
-> **Risk-factor add-ons (additive — enumerate in `risk_factors`):**
+> **Additive risk factors — enumerate in `risk_factors`:**
 >
 > | Factor | +margin |
 > | --- | --- |
@@ -669,7 +669,7 @@ Example for a "Create Invoice" story:
 > | `shared-common-code` (multi-consumer/multi-app) | +25% |
 > | `unclear-requirements-or-design` | +30% |
 >
-> **Collapse rule:** total margin >100% → STOP, split (padding past 2x is dishonesty). Margin <15% on `likely_days ≥5` → under-estimated, widen.
+> **Collapse:** margin >100% → STOP/split, never pad past 2x. Margin <15% at `likely_days ≥5` → widen.
 >
 > **Work-Type Caps (hard ceilings on `likely_days`):**
 > | Work type | Max SP | Max likely |
@@ -716,19 +716,19 @@ Example for a "Create Invoice" story:
 >     Risk: base 35% + touches-complex +20% = 55% → max 3.9d → range 2.5-4d."
 > ```
 >
-> **Sanity self-check:**
+> **Reject/fix estimates failing these checks:**
 >
-> - `likely_days ≥3d` and single-point? → reject, must be range
-> - Margin <15% on `likely_days ≥5d`? → under-estimated, widen
-> - Margin >100%? → STOP, split instead of buffer
-> - Complex existing feature touched, no regression budget in `(c)`? → reject
-> - Blast `>5` areas OR `>2` complex, no split discussion? → reject
-> - Purely additive on existing model AND existing UI? → cap SP 3 unless tests >1.5d
-> - NEW UI surface (page/complex form/dashboard)? → SP 5+ even if backend one endpoint
-> - Backend cross-service / migration / multi-aggregate? → SP 8+ regardless of UI
-> - `bottom_up_hours / 6` vs SP-Days disagreement >50%? → trust bottom-up, downgrade SP
-> - Without tests, SP drops ≥1 bucket? → tests dominate; state explicitly
-> - Reasoning called out UI vs backend vs blast vs risk factors? → if missing, add
+> - `likely_days ≥3d` single-point → use range
+> - Margin <15% at `likely_days ≥5d` → widen
+> - Margin >100% → STOP/split
+> - Complex touch without regression budget in `(c)` → reject
+> - Blast `>5` areas OR `>2` complex without split discussion → reject
+> - Additive existing model AND UI → cap SP 3 unless tests >1.5d
+> - NEW page/complex form/dashboard → SP 5+ even with one backend endpoint
+> - Cross-service/migration/multi-aggregate backend → SP 8+ regardless of UI
+> - `bottom_up_hours / 6` vs SP-Days >50% disagreement → trust bottom-up, downgrade SP
+> - Without tests SP drops ≥1 bucket → state tests dominate
+> - Reasoning must cover UI/backend/blast/risk factors; add omissions
 
 <!-- /SYNC:estimation-framework -->
 
@@ -756,20 +756,20 @@ Example for a "Create Invoice" story:
 
 <!-- SYNC:ui-system-context -->
 
-> **UI System Context** — Apply only when the changed artifact is part of a user-interface surface; a `.ts`, `.html`, `.scss`, or `.css` extension alone does not establish that.
+> **UI System Context** — Apply only to a user-interface surface; `.ts`, `.html`, `.scss`, or `.css` alone does not establish one.
 >
-> 1. Resolve applicable UI paths and conventions from `docs/project-config.json`, its configured project-reference docs, accepted decisions, and existing code. Read only references relevant to this surface (frontend patterns, styling, component system, design system, accessibility, or platform guide).
-> 2. Respect an explicit N/A or absent UI surface. Do not require BEM, SCSS, tokens, component tiers, base classes, stores, API wrappers, or teardown helpers unless this project documents or demonstrates them.
-> 3. Follow the configured/observed styling and component conventions. Use `componentSystem.layerClassification` when configured; otherwise describe the actual component owners without inventing Common/Domain-Shared/Page tiers.
-> 4. Reuse or compose an existing abstraction when its contract and platform fit. When none fits, use the project's idiomatic local pattern; do not add a shared base or wrapper just to satisfy this checklist.
+> 1. Resolve applicable paths/conventions from `docs/project-config.json`, configured project-reference docs, accepted decisions, and code. Read only relevant frontend, styling, component, design, accessibility, or platform references.
+> 2. Respect absent UI and explicit N/A. Require BEM, SCSS, tokens, component tiers, base classes, stores, API wrappers, or teardown helpers only when documented or demonstrated.
+> 3. Follow configured/observed styling and component conventions. Use configured `componentSystem.layerClassification`; otherwise describe actual owners without imposing Common/Domain-Shared/Page tiers.
+> 4. Reuse/compose abstractions whose contract and platform fit; otherwise use idiomatic local patterns. Do not create shared bases/wrappers to satisfy a checklist.
 >
-> Project config may customize these conventions through `contextGroups[].rules`, `workflowPatterns`, `styling`, `componentSystem`, and the configured reference docs.
+> Config customization: `contextGroups[].rules`, `workflowPatterns`, `styling`, `componentSystem`, and configured reference docs.
 
 <!-- /SYNC:ui-system-context -->
 
 <!-- SYNC:ui-wireframe -->
 
-> **UI Wireframe** — Inspect supplied design inputs with available tools; if they cannot be accessed, state the gap. Choose a representation that fits the task (sketch, text layout, diagram, prototype, or ASCII). Describe component owners using the project's taxonomy or observed boundaries; do not impose tiers. Reuse a component when its behavior and platform fit; explain meaningful deviations. Include only the states, tokens, and supported layouts relevant to the scope. Detail level varies by skill (idea=rough, story=full decomposition).
+> **UI Wireframe** — Inspect supplied designs with available tools; state access gaps. Choose sketch, text layout, diagram, prototype, or ASCII to fit the task. Use project component ownership or observed boundaries without imposing tiers. Reuse components when behavior/platform fit; explain deviations. Include scope-relevant states, tokens, and supported layouts. Detail: idea=rough, story=full decomposition.
 
 <!-- /SYNC:ui-wireframe -->
 
@@ -781,13 +781,13 @@ Example for a "Create Invoice" story:
 
 <!-- SYNC:ui-system-context:reminder -->
 
-**IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
+**IMPORTANT MUST ATTENTION** applicable UI surface: read selected UI/design/styling references; honor N/A, evidenced component/styling conventions, and fitting reuse.
 
 <!-- /SYNC:ui-system-context:reminder -->
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
+**MUST ATTENTION** use structured reasoning for complex or ambiguous work, implicitly when visible markers would clutter. Verify hypotheses, revise assumptions, and close with confidence, assumptions, open questions and a concrete next action.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 

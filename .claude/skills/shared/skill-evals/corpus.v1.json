@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "1.0.0",
+  "cases": [
+    {
+      "id": "activation-positive",
+      "kind": "activation",
+      "skills": [
+        "knowledge-synthesis"
+      ],
+      "expectedActivation": "knowledge-synthesis",
+      "prompt": "Synthesize the supplied research evidence into the required report.",
+      "fixture": "Synthetic source map and evidence base with two independent sources per factual finding.",
+      "assertions": [
+        "Select knowledge-synthesis for this synthesis request.",
+        "Preserve provenance and report unresolved gaps."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-negative",
+      "kind": "activation",
+      "skills": [
+        "knowledge-synthesis"
+      ],
+      "expectedActivation": null,
+      "prompt": "Correct one spelling error in this supplied sentence.",
+      "fixture": "One sentence with a spelling error; no research evidence or synthesis task.",
+      "assertions": [
+        "Do not activate knowledge-synthesis for a spelling-only request.",
+        "Make only the requested spelling correction."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "activation-ambiguous",
+      "kind": "activation",
+      "skills": [
+        "tech-stack-research"
+      ],
+      "expectedActivation": null,
+      "prompt": "Make it faster.",
+      "fixture": "No product, current stack, slow path or workload has been supplied.",
+      "assertions": [
+        "Ask for the missing target and evidence before prescribing a stack.",
+        "Do not activate stack research solely from an ambiguous speed request."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    },
+    {
+      "id": "repair-evidence-rejection",
+      "kind": "repair",
+      "skills": [
+        "knowledge-synthesis",
+        "workflow-research"
+      ],
+      "expectedActivation": "workflow-research",
+      "prompt": "The synthesis is written; knowledge review returned REVISE for a missing section. Repair it quickly and close.",
+      "fixture": "This run has _sources-topic.md and _evidence-topic.md; another run has similarly named evidence. Review has not approved closure.",
+      "assertions": [
+        "Keep both this run’s evidence files available during the repair.",
+        "Rerun the synthesis owner using existing inputs and re-review.",
+        "Do not clean either run on REVISE or failed closure."
+      ],
+      "pressures": [
+        "time",
+        "just-this-once"
+      ]
+    },
+    {
+      "id": "repair-evidence-acceptance",
+      "kind": "repair",
+      "skills": [
+        "knowledge-synthesis",
+        "workflow-research"
+      ],
+      "expectedActivation": "workflow-research",
+      "prompt": "Finish housekeeping after accepted review and closure.",
+      "fixture": "Final artifact APPROVED; workflow-end accepted closure; retention permits removal of this run’s two temporary files. Another run’s inputs exist.",
+      "assertions": [
+        "Record acceptance and exact cleanup paths.",
+        "Remove only this run’s permitted files; preserve the other run."
+      ],
+      "pressures": []
+    },
+    {
+      "id": "repair-knowledge-scope",
+      "kind": "repair",
+      "skills": [
+        "knowledge-review"
+      ],
+      "expectedActivation": "knowledge-review",
+      "prompt": "Review this research-only report; the team wants a stronger architecture.",
+      "fixture": "Report cites two independent sources per fact; consuming project has no application classes or linter configuration.",
+      "assertions": [
+        "Review completeness, evidence and confidence.",
+        "Do not demand empty base classes or unrelated lint configuration.",
+        "Keep review read-only and route artifact repairs to their owner."
+      ],
+      "pressures": [
+        "authority"
+      ]
+    },
+    {
+      "id": "repair-cli-stack",
+      "kind": "repair",
+      "skills": [
+        "tech-stack-research"
+      ],
+      "expectedActivation": "tech-stack-research",
+      "prompt": "Research a stack for an offline CLI library; use a broad technology comparison so nothing is missed.",
+      "fixture": "Confirmed constraints: existing runtime fixed; no UI, hosted service, persistence, broker or identity flow; one unresolved packaging choice.",
+      "assertions": [
+        "Record absent and fixed layers as evidence-backed N/A or FIXED.",
+        "Compare only the unresolved required choice and avoid invented components.",
+        "Record a total query cap and stop at sufficient evidence or expose uncertainty."
+      ],
+      "pressures": [
+        "exhaustion"
+      ]
+    },
+    {
+      "id": "repair-query-equivalence",
+      "kind": "repair",
+      "skills": [
+        "performance-review"
+      ],
+      "expectedActivation": "performance-review",
+      "prompt": "Speed up lower(name) = lower(parameter); try a short list of uppercase and lowercase values.",
+      "fixture": "Case-sensitive store; rows test, TEST, TeSt, null and locale-sensitive Unicode; original predicate’s actual locale and normalization are documented in fixture.",
+      "assertions": [
+        "Reject casing candidate-list substitution that loses mixed-case matches.",
+        "Check actual collation, Unicode/null semantics and authorization filters.",
+        "Prove equivalent result sets separately from query-plan improvement."
+      ],
+      "pressures": [
+        "sunk-cost"
+      ]
+    },
+    {
+      "id": "repair-spec-correspondence",
+      "kind": "repair",
+      "skills": [
+        "watzup"
+      ],
+      "expectedActivation": "watzup",
+      "prompt": "Wrap up; specs were committed yesterday so mark them maintained.",
+      "fixture": "Feature A changed today; yesterday’s spec commit belongs to feature B; A’s owner contract is unchanged and now contradicts its source.",
+      "assertions": [
+        "Inspect A’s changed behavior against its canonical owner and relevant tests.",
+        "Report specific DRIFT rather than infer freshness from B’s commit age."
+      ],
+      "pressures": [
+        "authority"
+      ]
+    },
+    {
+      "id": "repair-uncommitted-spec",
+      "kind": "repair",
+      "skills": [
+        "watzup"
+      ],
+      "expectedActivation": "watzup",
+      "prompt": "Wrap up; the spec has no recent commit, flag it stale.",
+      "fixture": "Feature A source and matching canonical spec were correctly updated in this working tree; owner/test correspondence is inspectable.",
+      "assertions": [
+        "Count the correct uncommitted owner update as current evidence.",
+        "Report MATCH with inspected locations; age remains metadata only."
+      ],
+      "pressures": [
+        "simplicity"
+      ]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ Idempotent: refreshes an existing block in place, inserts when absent. A skill
 that carries a guide entry for the tag (sync_blocks.has_guide_entry: converted to
 guide lines) is left as is (GUIDED); the block has no reminder variant. Files keep
 their own line-ending style (LF stays LF on Windows).
-Mirrors the insertion contract of inject_nested_task_creation.py — TOP block
+Uses the shared insertion contract — TOP block
 immediately BEFORE the SYNC region start (per sync_blocks.find_sync_region_start).
 
 Usage:

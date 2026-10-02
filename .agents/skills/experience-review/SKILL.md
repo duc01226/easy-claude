@@ -68,7 +68,7 @@ description: '[Testing] Use when a workflow step or the user asks for a running-
 
 ### 0. Resolve the round budget and fix authority
 
-Read `--rounds=N` from the invocation; default `3` when absent. `--rounds=0`
+Read `--rounds=N` from the invocation; default `3` when absent. Accept integers `0–3` only; larger values cannot exceed the three-round review cap. `--rounds=0`
 disables remediation and runs steps 1–4 then 6–7 as the original single-pass
 report-only review — use it when the caller has no authority to change the
 product, or when the review is an audit rather than a convergence.

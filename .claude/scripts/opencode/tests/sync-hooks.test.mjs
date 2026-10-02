@@ -332,6 +332,64 @@ test("generated bridge injects UserPromptSubmit context and SessionStart system 
   }
 });
 
+test("TC-SAP-007 real policy reaches OpenCode main/child sessions, keeps commit routing and refreshes local changes", async () => {
+  const policyCommand = hookCommand("skill-activation-inject.cjs");
+  const root = await createProject({ hooks: {
+    SessionStart: [{ matcher: "startup|resume|compact|clear", hooks: [{ type: "command", command: policyCommand }] }],
+    UserPromptSubmit: [{ hooks: [{ type: "command", command: policyCommand }, { type: "command", command: hookCommand("commit-skill-route.cjs") }] }],
+  } });
+  const savedEnv = { ...process.env };
+  try {
+    // The bridge spawns canonical hooks in-process; scrub inherited settings/provider switches and
+    // point the user config and every temporary root at this fixture, then restore them in finally.
+    for (const key of Object.keys(process.env)) {
+      if (/^(CK_|CLAUDE_|CODEX_|OPENCODE_|NODE_OPTIONS$|OPENAI_|ANTHROPIC_)/i.test(key)) delete process.env[key];
+    }
+    Object.assign(process.env, { HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root });
+    const canonical = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+    await fs.cp(path.join(canonical, "hooks", "lib"), path.join(root, ".claude", "hooks", "lib"), { recursive: true });
+    await fs.cp(path.join(canonical, "scripts", "lib"), path.join(root, ".claude", "scripts", "lib"), { recursive: true });
+    for (const name of ["skill-activation-inject.cjs", "commit-skill-route.cjs"]) {
+      await fs.copyFile(path.join(canonical, "hooks", name), path.join(root, ".claude", "hooks", name));
+    }
+    await fs.mkdir(path.join(root, "configuration"));
+    await fs.writeFile(path.join(root, ".claude", ".ck.json"), JSON.stringify({ portability: { projectConfigPath: "configuration/team.json" } }));
+    await fs.writeFile(path.join(root, "configuration", "team.json"), JSON.stringify({ portability: { skillAutoTrigger: false } }));
+    const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
+    const hooks = await (await loadBridge(pluginPath))({ directory: root });
+
+    const ordinary = userMessage("review these changes", { sessionID: "main" });
+    await hooks["chat.message"]({ sessionID: "main" }, ordinary);
+    assert.ok(ordinary.parts.some(part => part.synthetic && /generic request.*NOT permission/.test(part.text)));
+    const commit = userMessage("commit this", { sessionID: "main" });
+    await hooks["chat.message"]({ sessionID: "main" }, commit);
+    assert.ok(commit.parts.some(part => part.synthetic && /COMMIT-SKILL-ROUTE/.test(part.text)));
+    assert.ok(commit.parts.some(part => part.synthetic && /required nested reviewers/.test(part.text)));
+
+    await hooks.event({ event: { type: "session.created", properties: { info: { id: "child", parentID: "main" } } } });
+    const child = { system: ["child base"] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "child" }, child);
+    assert.equal(child.system.filter(text => /auto-trigger is DISABLED/.test(text)).length, 1);
+    // A child without a session.created/chat.message notification also gets live policy.
+    const unannounced = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "unannounced-child" }, unannounced);
+    assert.ok(unannounced.system.some(text => /auto-trigger is DISABLED/.test(text)));
+
+    await fs.writeFile(path.join(root, ".claude", ".ck.local.json"), JSON.stringify({ portability: { skillAutoTrigger: true } }));
+    const restored = { system: ["child base"] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "child" }, restored);
+    assert.ok(restored.system.some(text => /auto-trigger is enabled/.test(text)));
+    assert.ok(!restored.system.some(text => /auto-trigger is DISABLED/.test(text)), "cached startup policy must not override the local reset");
+    const next = { system: [] };
+    await hooks["experimental.chat.system.transform"]({ sessionID: "child" }, next);
+    assert.deepEqual(next.system, [], "default/auto steady state stays silent");
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in savedEnv)) delete process.env[key];
+    Object.assign(process.env, savedEnv);
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("generated bridge injects plain-text UserPromptSubmit stdout as context, keeps JSON handling, and ignores blank output", async () => {
   // Given UserPromptSubmit hooks emitting plain text, hook JSON, blank output, a JSON
   // control object without context, and plain text on a non-zero exit

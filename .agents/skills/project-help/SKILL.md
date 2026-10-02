@@ -1,6 +1,6 @@
 ---
 name: project-help
-description: '[Utilities] Use when asking what the .claude framework does for THIS project: configuration, skills/agents/workflows, reference docs, key tech/architecture/structure facts. Command keyword search: ck-help.'
+description: '[Utilities] Use when asking what the .claude framework does for THIS project: configuration, skills/agents/workflows, reference docs, key tech/architecture/structure facts. Command keyword search: framework-config --mode=help.'
 disable-model-invocation: true
 ---
 
@@ -42,7 +42,7 @@ disable-model-invocation: true
 
 **In scope:** what the framework is, what each of its layers does, which skills/agents/workflows/hooks exist here, which reference docs exist and what each is for, how the mirrors are generated, this project's stack, structure, module map, and verification commands.
 
-**Out of scope:** changing configuration (`$project-config`), initialising or re-initialising a project (`$project-init`), generic ClaudeKit command usage unrelated to this project (`$ck-help`), and any implementation work.
+**Out of scope:** changing configuration (`$project-config`), initialising or re-initialising a project (`$project-init`), generic ClaudeKit command usage unrelated to this project (`$framework-config --mode=help`), and any implementation work.
 
 ## Routing table
 
@@ -57,7 +57,7 @@ disable-model-invocation: true
 | "tell me everything" / no clear target | `node .claude/skills/project-help/scripts/project-overview.cjs --all` |
 | "what can I configure / who reads option X" | `node .claude/skills/project-config/scripts/project-config-help.cjs --overview` — then delegate to `$project-config --help` |
 | "every project-config option" / "what is inside option X, including nested and array-item fields" | `node .claude/skills/project-config/scripts/project-config-help.cjs --sections`, then `--section=<name>` (or `--search=<term>`) |
-| "what can I set in `.ck.json` / `.ck.local.json`", "which environment variables", "how do I turn X off" | `node .claude/scripts/ck-config-help.cjs` — then delegate to `$ck-help config` |
+| "what can I set in `.ck.json` / `.ck.local.json`", "which environment variables", "how do I turn X off" | `node .claude/scripts/ck-config-help.cjs` — then delegate to `$framework-config --mode=help config` |
 | "which skills consume which option" | `node .claude/skills/project-config/scripts/project-config-help.cjs --consumers` |
 | "where do specs, plans, and ADRs live" (roots and tokens) | `node .claude/skills/project-config/scripts/project-config-help.cjs --roots` |
 | "what does init decide" | `$project-init --help` |

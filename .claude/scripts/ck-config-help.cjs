@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Settings help for `/ck-help config`.
+ * Settings help for `/framework-config --mode=help config`.
  *
  * Prints, from their owning sources only, every setting a developer can change
  * outside the project config (default `docs/project-config.json`;
@@ -17,7 +17,7 @@
  * PORTABILITY CONTRACT (PORT-001): plain `node` >= 18, `node:` built-ins only.
  *
  * Usage:
- *   node .claude/scripts/ck-config-help.cjs          Markdown for /ck-help
+ *   node .claude/scripts/ck-config-help.cjs          Markdown for /framework-config --mode=help
  *   node .claude/scripts/ck-config-help.cjs --json   { options: [...], sections: {...} }
  */
 'use strict';

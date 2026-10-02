@@ -166,6 +166,7 @@ function readWorkflowAutoDetect(config) {
 // `/workflow-mode auto` or `$workflow-mode auto` (Codex), optionally ending in `save` or `--save`. Prose that
 // merely mentions the words never matches, and neither does a directive on a later line or inside a code fence.
 const DIRECTIVE_RE = /^(?:[/$]workflow-mode[ \t]+|workflow-mode[ \t]*:[ \t]*)(ask|auto|off)(?:[ \t]+((?:--)?save))?[ \t]*$/i;
+const FRAMEWORK_DIRECTIVE_RE = /^[/$]framework-config[ \t]+--mode=workflow[ \t]+(ask|auto|off)(?:[ \t]+--scope=session)?(?:[ \t]+((?:--)?save))?[ \t]*$/i;
 
 /**
  * The route-mode directive a prompt opens with, or null.
@@ -175,7 +176,7 @@ const DIRECTIVE_RE = /^(?:[/$]workflow-mode[ \t]+|workflow-mode[ \t]*:[ \t]*)(as
 function parseRouteModeDirective(prompt) {
     if (typeof prompt !== 'string') return null;
     const first = prompt.split(/\r?\n/).find(line => line.trim() !== '');
-    const match = first === undefined ? null : DIRECTIVE_RE.exec(first.trim());
+    const match = first === undefined ? null : (DIRECTIVE_RE.exec(first.trim()) || FRAMEWORK_DIRECTIVE_RE.exec(first.trim()));
     return match ? { mode: match[1].toLowerCase(), save: Boolean(match[2]) } : null;
 }
 
@@ -339,6 +340,40 @@ function resolveWorkflowAutoDetect(source) {
         teamEnabled,
         overriddenLocally: resolved.overriddenPersonally && enabled !== teamEnabled
     };
+}
+
+/**
+ * Whether framework skills may be selected by task similarity. Runtime-only: never writes host
+ * visibility or permissions, because those can also block a hook-required call. Later valid values
+ * win: default true -> team -> personal user -> checkout-local -> environment. Uses the same path
+ * and encoding owners as workflow routing, including relocated project configuration.
+ */
+function resolveSkillAutoTrigger(options = {}) {
+    const rootDir = options.rootDir || process.cwd();
+    const env = options.env || process.env;
+    const configPath = options.configPath || resolveProjectConfigPath(rootDir);
+    const userPath = options.userPath !== undefined ? options.userPath : resolveUserConfigPath(options.homeDir);
+    const localPath = options.localPath || resolveLocalOverridePath(rootDir);
+    let enabled = true;
+    let source = SOURCE_DEFAULT;
+    const apply = (value, layer) => {
+        if (typeof value !== 'boolean') return;
+        enabled = value;
+        source = layer;
+    };
+    apply(readJson(configPath)?.portability?.skillAutoTrigger, SOURCE_PROJECT_CONFIG);
+    const teamEnabled = enabled;
+    if (options.scope !== SCOPE_TEAM) {
+        apply(userPath ? readJson(userPath)?.portability?.skillAutoTrigger : undefined, SOURCE_USER_CONFIG);
+        apply(readJson(localPath)?.portability?.skillAutoTrigger, SOURCE_LOCAL_OVERRIDE);
+        const raw = env.CK_SKILL_AUTO_TRIGGER;
+        if (typeof raw === 'string') {
+            const value = raw.trim().replace(/^(["'])(.*)\1$/, '$2').trim().toLowerCase();
+            if (['1', 'true', 'on', 'yes', 'enabled'].includes(value)) apply(true, SOURCE_ENVIRONMENT);
+            if (['0', 'false', 'off', 'no', 'disabled'].includes(value)) apply(false, SOURCE_ENVIRONMENT);
+        }
+    }
+    return { enabled, source, teamEnabled, configPath, localPath, userPath };
 }
 
 /**
@@ -647,6 +682,7 @@ module.exports = {
     resolveUserConfigPath,
     resolveWorkflowAutoDetect,
     resolveWorkflowRouteMode,
+    resolveSkillAutoTrigger,
     resolveWorkflowRouteProtocol,
     writeWorkflowRouteMode
 };

@@ -145,7 +145,7 @@ function loadCanonicalReminder() {
     }
 }
 
-function buildDirective(leans, reminder = loadCanonicalReminder()) {
+function buildDirective(leans, reminder = loadCanonicalReminder(), allowSkillRouting = true) {
     const body =
         reminder ||
         '- **MANDATORY** Name premise, test it AND its opposite with one evidence bar, why-review draft before replying; never invent findings, never manufacture disagreement; end with `Bias check:` line (`SYNC:judgement-integrity`).';
@@ -154,7 +154,9 @@ function buildDirective(leans, reminder = loadCanonicalReminder()) {
         `**[JUDGEMENT-INTEGRITY]** Verdict ask (lean: ${leans.join(', ')}). Apply \`SYNC:judgement-integrity\` against confirmation bias:`,
         ...leans.map(lean => `- ${LEAN_GUIDANCE[lean]}`),
         body,
-        'Default = INLINE self-check (steps above; why-review the draft mentally) — no skill call: skill is heavy, everyday answers stay inline. Escalate to `why-review --validate-findings` only for formal review/audit/gap-hunt deliverable or MEDIUM+/consequential issue the inline pass cannot settle: Claude Code → Skill tool `why-review`; Codex → `$why-review` (`.agents/skills/why-review/SKILL.md`); OpenCode → `.claude/skills/why-review/SKILL.md`. Not a verdict ask → ignore.',
+        allowSkillRouting
+            ? 'Default = INLINE self-check (steps above; why-review the draft mentally) — no skill call: skill is heavy, everyday answers stay inline. Escalate to `why-review --validate-findings` only for formal review/audit/gap-hunt deliverable or MEDIUM+/consequential issue the inline pass cannot settle: Claude Code → Skill tool `why-review`; Codex → `$why-review` (`.agents/skills/why-review/SKILL.md`); OpenCode → `.claude/skills/why-review/SKILL.md`. Not a verdict ask → ignore.'
+            : 'Skill auto-trigger is disabled: keep this verdict self-check INLINE. This prompt classifier does not authorize a heavy review skill. Named user requests and required calls in an already authorized operation still follow the skill activation policy.',
         MARKER_END
     ].join('\n');
 }
@@ -171,7 +173,8 @@ function evaluate(input, deps = {}) {
         if (leans.length === 0) return '';
         // Checked only on a match, so most prompts never pay for the settings read.
         if (!isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, deps)) return '';
-        return `${buildDirective(leans)}\n`;
+        const { resolveHookSkillAutoTrigger } = require('./lib/prompt-route-utils.cjs');
+        return `${buildDirective(leans, undefined, resolveHookSkillAutoTrigger(deps).enabled)}\n`;
     } catch (error) {
         debugError(HOOK_NAME, error); // fail open: stay silent, diagnose under CK_DEBUG
         return '';

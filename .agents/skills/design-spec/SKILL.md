@@ -100,7 +100,7 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 
 > **[BLOCKING] Step 0a — Journey Report (`UX-1`).** Before ANY spec section, wireframe, design plan or token table, write §0a User Journeys (Output Format below; full template `.claude/docs/ux-journey-process.md` §4): frame (problem · business goal · success signal · constraints) · actors with context, expertise and frequency · one job statement per actor · the main journeys ranked by frequency × business value × risk × first-use criticality (catalog §5) · a step table per journey (intent · decision/action · information needed · business rule · system response · failure → recovery) · derived design requirements · assumptions and open questions.
 >
-> - **Evidence first:** when a governing Feature Spec exists, its §6.5 per-story flows and §6.2 View Inventory are the primary evidence — read them here (Step 0b reuses the same read), then stories/acceptance criteria, business logic in code, and the existing UI (catalog §3). Tag every claim `SOURCED (<location>)` or `INFERRED (<reason>)`.
+> - **Evidence first:** when a governing Feature Spec exists, its profile-resolved interaction flows and view inventory (strict-default §6.5 and §6.2) are the primary evidence — read them here (Step 0b reuses the same read), then stories/acceptance criteria, business logic in code, and the existing UI (catalog §3). Tag every claim `SOURCED (<location>)` or `INFERRED (<reason>)`.
 > - **Companion mockup (reuse):** when a `$pbi --mode=mockup` run for the same feature already produced a reviewed Journey Report — `tmp/design/<run>/journey-report.md` (with its `direction-approved.md` and `Design authority read:` record), the Journey Report in its report, or a path the caller supplies — that report is the starting evidence: reuse it, re-confirm only what the source changed since, and surface (never silently re-derive) any journey that disagrees. An approved `direction-approved.md` seeds the §0 Design Plan (colour · type · layout recorded `ADOPTED`, still passing the `DD-3` generic test). With no companion mockup available (standalone run) derive the report and plan as above.
 > - **Confirm before generating:** an INFERRED primary actor, main job or success outcome is confirmed with the user by asking the user directly before any spec section is authored; with no question tool, record it `INFERRED — unconfirmed (no question tool)` in §0a assumptions and continue — never block.
 > - **Depth by spec size (catalog §10):** Quick Spec → actors + 1–2 main journeys with step tables for the view(s) in scope; Full Spec → the full template, 3–5 main journeys; multi-page flow → full template plus the cross-view navigation path. Never zero for a new or reshaped view.
@@ -109,10 +109,10 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 
 > **[BLOCKING] Step 0 — Inventory existing UI + map connected flows** (per `SYNC:existing-ui-research`). Before authoring, inventory related existing screens/components/pages and every connected feature flow (links, embeds, navigates to/from); record matched UI + flows in §1 so the spec fits the live UI system. Skip only backend-only work; state that explicitly.
 
-> **[BLOCKING] Step 0b — Seed from governing Feature Spec §6 (when one exists).** Search the business spec root (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides) for a canonical spec covering this capability. If found, READ **§6 Process Flows & Interaction Surface** — **View Inventory** (§6.2), **Navigation Map** (§6.3), **Key UI States** (§6.4), and **Per-Story Interaction Flow** (§6.5) — as this design-spec's starting frame:
+> **[BLOCKING] Step 0b — Seed from governing interaction intent (when a spec exists).** Resolve `specArtifacts` through the shared SDD contract before locating the canonical owner. Search the configured business spec root for this capability. Strict-default profile: read §6.2 View Inventory, §6.3 Navigation Map, §6.4 Key UI States and §6.5 Per-Story Interaction Flow. Declared native profile: read its configured intent sections and native interaction carriers; preserve owner-qualified scenario IDs and carrier cardinality. Malformed or unsupported declarations stop without fallback. Do not require §6 headings or add duplicate strict-default registries to a valid native owner.
 >
-> - **Reuse vocabulary verbatim:** carry over the SAME UX-role view names from §6.2 and observable-state names from §6.4 (Default / Loading / Disabled / Error / Empty / Success). NEVER rename or repartition; both artifacts MUST use one language so the navigable hub works.
-> - **Deepen, never diverge:** keep the spec tech-agnostic; add visual fidelity (layout, tokens, pixel detail) on top of its intent. Map each §6.5 step and §6.4 state to visual treatment; preserve its `US-`/`OP-`/`BR-` logical-ID cross-refs.
+> - **Reuse vocabulary verbatim:** carry over the SAME view and observable-state names from the resolved owner. NEVER rename or repartition; both artifacts MUST use one language so the navigable hub works.
+> - **Deepen, never diverge:** keep intent tech-agnostic; add visual fidelity (layout, tokens, pixel detail). Map each resolved interaction step/state to visual treatment and preserve its native or strict-default logical-ID cross-refs.
 > - This coupling is the `SYNC:ui-intent-layer` contract below; use that block for the full rule instead of restating it.
 >
 > **Skip ONLY** when no governing Feature Spec exists; author the interaction frame from the source PBI/story and state which case applies.
@@ -155,11 +155,11 @@ For ANY visual input, extract design context FIRST, then generate the spec.
 6b. **Walk the journeys (`UX-8`)** — step through every §0a main journey on the spec as the named actor and answer the four walkthrough questions per step (knows the step is needed? sees the action? links it to the goal? sees progress?); fill §8 Journey Traceability. Fix every unserved step (no view/element) and orphan element (traces to no step, need or rule) before saving; record any remaining "no" in §7. Then fill §8's interaction-cost row per main journey (`UX-9`) and wayfinding check per view (`UX-10`), and close with §9 UI/UX Gate Report (`UX-11`) — every gate `PASS` / `FAIL → fixed` / `N/A` with evidence; an unresolved `FAIL` blocks saving as `Approved`.
 
 7. **Save artifact** — pick the filename variant by artifact type; every path below is relative to the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path):
-    - Design spec: `design-specs/{YYMMDD}-designspec-{feature-slug}.md`
+    - Design spec: `design-specs/{YYMMDD}-ux-designspec-{feature-slug}.md`
     - Accessibility audit: `design-specs/{YYMMDD}-ux-audit-{feature-slug}.md`
     - Single-component doc: `design-specs/{YYMMDD}-ux-component-{component-name}.md`
 
-8. **Link back to the governing Feature Spec (when one exists).** After saving the artifact, keep the spec the navigable hub: open the governing Feature Spec under the business spec root (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides) and set its frontmatter `design_spec:` key to this design-spec's saved path (add the key if absent, update it if stale). If a mockup was also produced (e.g. via `$pbi --mode=mockup`), set the `mockup:` key the same way. Edit **frontmatter only** — never touch the §1–§8 spec body. This satisfies the `pbi --mode=review --type=design` link-back gate, which fails when a design-spec exists but its path is not recorded in the spec's `design_spec:` frontmatter. Skip ONLY when no governing Feature Spec exists (the design-spec is standalone) — state that.
+8. **Link back to the governing Feature Spec (when one exists).** After saving the artifact, keep the spec the navigable hub: open the governing Feature Spec under the business spec root (default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides) and set its frontmatter `design_spec:` key to this design-spec's saved path (add the key if absent, update it if stale). If a mockup was also produced (e.g. via `$pbi --mode=mockup`), set the `mockup:` key the same way. Edit **frontmatter only** — never touch the canonical intent/contracts/evidence body (strict-default §1–§8). This satisfies the `pbi --mode=review --type=design` link-back gate, which fails when a design-spec exists but its path is not recorded in the spec's `design_spec:` frontmatter. Skip ONLY when no governing Feature Spec exists (the design-spec is standalone) — state that.
 
 ### Role Context & Artifact Path (canonical)
 
@@ -241,7 +241,7 @@ Emit this table linking each interactive component to the feature operations/rul
 ## 0a. User Journeys (`UX-1`)
 
 **Frame:** {problem} · **Business goal:** {goal} · **Success signal:** {metric} · **Constraints:** {platform, rules, legacy, budget}
-**Sources read:** {governing spec §6.5/§6.2, PBI/story, business-rule sources, existing screens} · **Confidence:** {%}
+**Sources read:** {profile-resolved interaction flows/view inventory (strict-default §6.5/§6.2), PBI/story, business-rule sources, existing screens} · **Confidence:** {%}
 
 | Actor | Context · expertise · frequency | Job statement (When…, I want to…, so I can…) | Source |
 | ----- | ------------------------------- | --------------------------------------------- | ------ |
@@ -531,7 +531,7 @@ Standalone (no parent workflow): after the spec is written, suggest `$ui-design 
 
 <!-- SYNC:ui-system-context:reminder -->
 
-**IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
+**IMPORTANT MUST ATTENTION** applicable UI surface: read selected UI/design/styling references; honor N/A, evidenced component/styling conventions, and fitting reuse.
 
 <!-- /SYNC:ui-system-context:reminder -->
 
@@ -543,7 +543,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 <!-- SYNC:ui-wireframe-protocol:reminder -->
 
-**IMPORTANT MUST ATTENTION** follow wireframe protocol: ASCII wireframe, component inventory with tiers, states table, design tokens, responsive breakpoints.
+**IMPORTANT MUST ATTENTION** inspect designs/access gaps; choose fitting representation; inventory actual component owners/relevant states; apply configured tokens/sizes; justify reuse/deviation. Detail: idea sketch → story decomposition.
 
 <!-- /SYNC:ui-wireframe-protocol:reminder -->
 

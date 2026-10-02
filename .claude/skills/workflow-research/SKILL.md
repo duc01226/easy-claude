@@ -83,29 +83,26 @@ Fixed data dependencies: inside the research step the source map exists before t
 - Sub-agent briefs carry the topic, the slug, the exact paths and the evidence bar, and make report writing the first deliverable.
 - After compaction, re-read `TaskList` and the workflow report before continuing.
 
+## Evidence Retention
+
+Retain this run’s source map and evidence base during synthesis, all review rounds, and owner repairs. Cleanup is an orchestrator lifecycle action after `/knowledge-review` returns APPROVED on the final artifact and `/workflow-end` successfully accepts closure; record the acceptance evidence and exact removed paths in the workflow report. REVISE, BLOCKED, interruption, or closure failure retains the inputs. Remove only this run’s `_sources-{slug}.md` and `_evidence-{slug}.md` if its retention policy permits; never erase another run’s evidence. Cleanup after closure is report housekeeping, not another workflow occurrence.
+
 ## Findings & Fix Path
 
 - `/knowledge-review` is read-only. Validate each REVISE/BLOCKED finding against the evidence, then fix it at its owner. An evidence gap takes a targeted `/source-deep-dive` pass over the existing source map, or a `/web-research --chain=deep-dive` pass on the gap when the map lacks the needed sources. A synthesis defect (missing section, uncited claim, miscalibrated confidence) is fixed in the artifact through its synthesis skill. Then re-run `/knowledge-review` on the fixed artifact.
-- Loop bounds: round 1 exits on zero open findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 2 rounds (+1 when a validated CRITICAL/HIGH is still open); escalate via `AskUserQuestion` when a round makes no progress.
+- Loop bounds: round 1 exits on zero open findings (Round-1 LOW closure); from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 3 review rounds; escalate via `AskUserQuestion` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
-- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- SYNC:session-goal-ledger:reminder -->
 

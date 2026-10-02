@@ -17,7 +17,6 @@
   },
   "permission": {
     "skill": {
-      "ck-help": "deny",
       "custom-agent": "deny",
       "custom-prompt": "deny",
       "docx-convert": "deny",

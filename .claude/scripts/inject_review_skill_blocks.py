@@ -6,9 +6,6 @@ Tags propagated (each with its `:reminder` sibling):
   - SYNC:category-review-thinking        -> same 10 as batching (co-paired:
         the batching block names it as each batch agent's primary thinking model,
         so it must resolve wherever batching is adopted)
-  - SYNC:double-round-trip-review       -> 13 finding-PRODUCER review skills
-        (review->validate->fix->full-re-review loop; graders + loop-orchestrators
-        excluded — see DOUBLE_ROUND_TRIP comment)
   - SYNC:goal-contract-satisfaction-loop -> converging review skills
         (save-goal-before-loop + check-goal-each-cycle; additive-safe)
   - SYNC:design-distinctiveness-gate    -> 13 visual-surface skills across FOUR roles
@@ -87,22 +84,6 @@ SEVERITY = [
 ]
 CATEGORY = list(BATCHING)  # co-paired with batching
 
-# The review->validate->fix->full-re-review convergence loop. Finding-PRODUCER review
-# skills only. EXCLUDES graders (`architecture --mode=scalability`, carried in a mode reference):
-# verify-review-validate-coverage.mjs forbids graders from carrying this fix-loop block
-# (a grader emits a grade, not a review->fix loop). EXCLUDES the loop-orchestrators
-# (workflow-review-changes, incl. its `--fix-loop` mode) — they own the
-# OUTER fix loop and each inner /why-review round self-binds this block already.
-# EXCLUDES the `plan` and `integration-test` review modes (`--mode=review`): both are one-pass, read-only reviews with
-# protocol guides and no validate/fix/re-review loop. `domain-analysis --mode=review` converges but carries its bodies inline in
-# `domain-analysis/references/mode-review.md`, so `domain-analysis` is intentionally not a target. `ui-design --mode=review` converges the same way and
-# carries its bodies inline in `ui-design/references/mode-review.md`, so `ui-design` is not a target of the review-loop tags (BATCHING, CATEGORY,
-# SEVERITY, DOUBLE_ROUND_TRIP and the ALL_REVIEW_SKILLS tags).
-DOUBLE_ROUND_TRIP = [
-    "changes-review", "code-quality-review",
-    "security-audit", "ai-engineering-review", "performance-review", "production-readiness-review",
-    "knowledge-review", "why-review",
-]
 # Review skills that own convergence, grading, or a fix-loop. The single-pass `plan` review mode and
 # `integration-test` review mode deliberately stay outside this full-body population and use only
 # the targeted guides their one-pass contracts need. Declared ONCE
@@ -133,7 +114,7 @@ GOAL_CONTRACT = list(ALL_REVIEW_SKILLS)
 # without pricing what the design sacrifices is as incomplete as a finding-producer that
 # recommends a fix without pricing it, and a fix-loop is exactly where an unpriced one-way
 # door ships silently under convergence pressure. Additive-safe: no verifier forbids extra
-# carriers of this tag (unlike DOUBLE_ROUND_TRIP, which graders must not carry per
+# carriers of this tag (unlike retired convergence blocks, which graders must not carry per
 # verify-review-validate-coverage.mjs).
 TRADE_OFF = list(ALL_REVIEW_SKILLS)
 
@@ -260,7 +241,6 @@ MATRIX = [
     ("SYNC:systematic-review-batching", BATCHING),
     ("SYNC:severity-rubric", SEVERITY),
     ("SYNC:category-review-thinking", CATEGORY),
-    ("SYNC:double-round-trip-review", DOUBLE_ROUND_TRIP),
     ("SYNC:goal-contract-satisfaction-loop", GOAL_CONTRACT),
     ("SYNC:trade-off-interrogation-gate", TRADE_OFF),
     ("SYNC:ux-journey-gate", UX_JOURNEY),

@@ -133,7 +133,8 @@ const tests = [
             assert.match(text, /\*\*Mandatory end tasks are ALWAYS \(in order\):\*\*/);
             assert.match(text, /Run \*\*Learn Review\*\*/);
             assert.match(text, /Run `\/why-review`/);
-            assert.match(text, /Run `\/prompt-enhance <modified-file>`/);
+            assert.match(text, /Run the carrier-specific final quality pass[^\n]*`\/prompt-enhance <modified-prose-file>`[^\n]*owner parser\/schema validation after the final configuration write/);
+            assert.match(text, /Machine-readable configuration[^\n]*NEVER pass it to the Markdown enhancer/);
             // Explicit commands keep working
             for (const command of ['/learn list', '/learn remove <N>', '/learn clear', '/learn trim']) assert.ok(text.includes(command), `${command} still documented`);
             // Auto-inferred activation keeps its confirmation

@@ -46,7 +46,7 @@ const PAYLOAD_CAP = 9500;
 const CATALOG_HEADING = '## Workflow & Skills Catalog';
 const ASK_QUESTION = '**Workflow question** (every tier)';
 const AUTO_START = '**Workflow start** (mode auto)';
-const SWITCHES = { CK_WORKFLOW_ROUTE_MODE: undefined, CK_SESSION_ID: undefined, CK_DEBUG: undefined, CLAUDE_HOOK_DEBUG: undefined, NODE_OPTIONS: undefined };
+const SWITCHES = { CK_SKILL_AUTO_TRIGGER: undefined, CK_WORKFLOW_ROUTE_MODE: undefined, CK_SESSION_ID: undefined, CK_DEBUG: undefined, CLAUDE_HOOK_DEBUG: undefined, NODE_OPTIONS: undefined };
 
 /**
  * A fixture project holding the real hook tree, the routing libraries, the workflow registry, the gate

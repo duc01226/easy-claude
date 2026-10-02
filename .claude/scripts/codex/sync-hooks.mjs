@@ -44,6 +44,10 @@ const disabledCodexEvents = new Map([
 // static fallback.
 const codexSessionStartMirrors = new Map([
   [
+    ".claude/hooks/skill-activation-inject.cjs",
+    "refreshes runtime personal skill-selection policy after compact/resume; static project context cannot hold a developer override or a session reset",
+  ],
+  [
     ".claude/hooks/session-init-docs.cjs",
     "sole writer of the .scan-stale flag, which is the only input to init-prompt-gate's stale-reference-doc branch (UserPromptSubmit — mirrored)",
   ],

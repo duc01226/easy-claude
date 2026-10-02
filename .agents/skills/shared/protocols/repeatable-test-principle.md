@@ -1,6 +1,6 @@
-> **Repeatable Tests** — A test suite should produce the same contract result across normal fresh runs and supported concurrency. Use the project's runner and isolation policy; a fixed no-reset database procedure does not fit every harness.
+> **Repeatable Tests** — Preserve the same contract result across fresh runs and supported concurrency using the project's runner/isolation policy; no universal no-reset database procedure.
 >
-> 1. Isolate mutable test data from other tests and runs. Use generated identities when the configured environment shares a namespace or data store; stable IDs are fine in an isolated disposable database or deterministic fixture.
-> 2. Cleanup may remove only resources created and owned by that test/run. Use transactions, ephemeral databases, namespaces, teardown, or additive fixtures according to the project's harness; never reset shared or user-owned state.
-> 3. Make shared fixture setup idempotent when the runner may repeat it. Keep schema/migration testing when it is part of the project contract; follow the project's migration harness and never use rollback assumptions that the production system does not support.
-> 4. Verify repeatability at the level required by `integrationTestVerify.guidance`. If absent, use two fresh runs when persistent/shared state or asynchronous effects make one run insufficient; stateful verification must not rely on deleting another run's data.
+> 1. Isolate mutable data across tests/runs. Generate identities in shared namespaces/stores; stable IDs are valid in isolated disposable databases or deterministic fixtures.
+> 2. Cleanup only resources created AND owned by the test/run. Use harness-supported transactions, ephemeral databases, namespaces, teardown, or additive fixtures; never reset shared/user-owned state.
+> 3. Make repeatable shared setup idempotent. Retain contract-required schema/migration tests using the migration harness; assume no rollback unsupported in production.
+> 4. Follow `integrationTestVerify.guidance`. If absent, use two fresh runs when persistent/shared state or async effects make one insufficient; never delete another run's data to verify repeatability.

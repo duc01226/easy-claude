@@ -115,21 +115,15 @@ sub-agents to a DIFFERENT specialist needs the same protocol substance with a di
 - **The carrier set is pinned — for that tag only.** The guard asserts exactly 2
   `OVERRIDE:review-protocol-injection` carriers (`sync-carrier-parity.test.cjs:440-446`), so a new
   one appearing — or an existing one vanishing — fails the suite rather than passing quietly.
-- **`OVERRIDE:fresh-context-review` has NO sensor.** It is excluded from the SYNC equality property
-  by design, is outside the substance guard above (`sync-carrier-parity.test.cjs:183` scopes the
-  whole guard to `review-protocol-injection`), and `verify-sync-divergence.mjs` does not handle
-  OVERRIDE at all. Those two copies drift silently — canonical's report-only role-boundary clause
-  is already absent from both. **Hand-merge them deliberately; nothing will tell you.**
 - **Both markers are recognized as fences.** `check-subagent-routing.cjs` treats `SYNC` and
   `OVERRIDE` openers/closers identically for balance checking.
 
-**Live carriers (2 files × 2 tags):** `architecture/references/mode-review.md` and `ui-design/references/mode-review.md` each override
-`fresh-context-review` and `review-protocol-injection`.
+**Live carriers (2 files × 1 tag):** `architecture/references/mode-review.md` and `ui-design/references/mode-review.md` each override
+`review-protocol-injection`.
 
 **Maintaining one:** edit the canonical section, run the script for the `SYNC:` carriers, then
 **hand-merge** the same substance change into each OVERRIDE block, preserving its
-`subagent_type` customization. The guard tells you if you missed a `review-protocol-injection`
-carrier — it will NOT tell you if you missed a `fresh-context-review` one.
+`subagent_type` customization. The guard detects a missed `review-protocol-injection` carrier.
 
 **Do NOT reach for OVERRIDE to avoid a sync conflict.** It is for a carrier that genuinely must
 dispatch elsewhere. Any other divergence belongs in the canonical source, so every carrier gets it.
@@ -179,14 +173,9 @@ The script reads every body and reminder it inserts from the canonical file at i
 2. Add the tag to the relevant tier list(s) (controls which targets receive it and the insertion order):
 
 ```python
-# Skills carry no inserted block by default; only orchestrator skills receive the dispatch protocol.
-# `parallel-subagent-dispatch` is deliberately SKILL-ONLY — not because an agent cannot spawn, but
-# because an agent receives ONE brief an orchestrator has ALREADY partitioned, so re-running the
-# partitioning protocol in the leaf re-decides an upstream decision. It is ALSO declared in
-# agent_protocol_matrix.py EXCLUDED_ORCHESTRATION and in the TC-UAR-017
-# AGENT_ADOPTION_EXEMPT set (see "Skill-only blocks" below).
+# Skills and orchestrators currently carry no default inserted blocks.
 SKILL_BLOCK_ORDER = []
-ORCHESTRATOR_SKILL_BLOCK_ORDER = SKILL_BLOCK_ORDER + ["parallel-subagent-dispatch"]
+ORCHESTRATOR_SKILL_BLOCK_ORDER = []
 
 # Core-2: every agent (skills/SKILL.md is unaffected).
 CORE_BLOCK_ORDER = ["sequential-thinking-protocol", "agent-bootstrap"]
@@ -222,7 +211,7 @@ An agent in **none of the three sets (or in more than one)** raises `SystemExit`
 
 > **No cross-check exists.** The two lists are enforced by two SEPARATE mechanisms and nothing verifies they agree — TC-UAR-017 never reads `EXCLUDED_ORCHESTRATION` (it appears in that test file only in a comment and a failure-message string). Keeping them in step is a **convention**, not an enforced invariant: update both by hand in the same change.
 
-The bar for that exemption is caller-side ownership: the block must drive orchestration the leaf either **cannot perform** (it has no access to the parent conversation, workflow state, or the user) or **has no basis to perform** (the decision was already made upstream before its brief was issued). Current members — `nested-task-creation`, `subagent-return-contract`, `sub-agent-selection`, `parallel-phase-advancement`, `parallel-subagent-dispatch`, `goal-contract-satisfaction-loop` — expand workflow steps, choose/brief sub-agents, partition a task list into parallel waves, or drive a user-facing convergence loop. `parallel-subagent-dispatch` is the second kind: an agent CAN spawn (agent files generally carry no `tools:` restriction), but it receives one already-partitioned brief, so re-running PAR/SEQ tagging inside it re-decides upstream's call. An agent that legitimately fans out carries that instruction in its own `.claude/agents/*.md` definition instead.
+The bar for that exemption is caller-side ownership: the block must drive orchestration the leaf either **cannot perform** (it has no access to the parent conversation, workflow state, or the user) or **has no basis to perform** (the decision was already made upstream before its brief was issued). Examples — `subagent-return-contract`, `sub-agent-selection`, `parallel-phase-advancement`, `goal-contract-satisfaction-loop` — govern caller-side briefing, routing, workflow barriers or user-facing convergence. An agent that legitimately fans out carries its scope in its own definition.
 
 #### Step B3: Run the script (dry-run first)
 

@@ -357,19 +357,26 @@ function childEnv(overrides = {}, base = process.env) {
  * @returns {string} The fixture root; remove it with `removeTempDir`
  */
 function makeHookTreeProject(prefix) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), `codex-launcher-${prefix}-`));
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), `codex-launcher-${prefix}-`)));
   const skip = new Set(['tests', 'notifications', 'node_modules']);
   fs.cpSync(HOOKS_DIR, path.join(root, '.claude', 'hooks'), {
     recursive: true,
     filter: source => !skip.has(path.basename(source)) || path.dirname(source) !== HOOKS_DIR
   });
+  // Prompt routers share the runtime preference resolver with the script surfaces.
+  fs.cpSync(path.join(REPO_ROOT, '.claude', 'scripts', 'lib'), path.join(root, '.claude', 'scripts', 'lib'), { recursive: true });
   return root;
 }
 
 /** Remove a directory created under the OS temp root; anything outside it is left untouched. */
 function removeTempDir(dir) {
-  if (dir && path.resolve(dir).startsWith(path.resolve(os.tmpdir()))) {
-    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  if (!dir) return;
+  let resolvedDir;
+  try { resolvedDir = fs.realpathSync.native(dir); } catch { return; }
+  const tempRoot = fs.realpathSync.native(os.tmpdir());
+  const relative = path.relative(tempRoot, resolvedDir);
+  if (relative && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)) {
+    fs.rmSync(resolvedDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }
 

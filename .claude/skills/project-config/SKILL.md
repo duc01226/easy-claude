@@ -66,7 +66,7 @@ node .claude/skills/project-config/scripts/project-config-help.cjs --search=<ter
 | "where do specs / plans / ADRs / templates live" | `--roots` |
 | "what is configured for this project" | `--current` |
 | anything by keyword | `--search=<term>` |
-| settings outside the project config: `.ck.json` / `.ck.local.json`, environment variables, "turn X off" switches | `node .claude/scripts/ck-config-help.cjs` (the same output `/ck-help config` shows) |
+| settings outside the project config: `.ck.json` / `.ck.local.json`, environment variables, "turn X off" switches | `node .claude/scripts/ck-config-help.cjs` (the same output `/framework-config --mode=help config` shows) |
 
 `--sections` lists every top-level option on one line. `--section=<name>` lists every field under it at any depth — nested properties as `a.b`, array-item fields as `a[].b` (for example `contextGroups[].on`), map values as `a{}`, and the fields of each `oneOf` form — and `--search=<term>` finds any field by name or help text. Every field shows its help text. That text is the field's schema `describe`, or its entry in `.claude/scripts/lib/config-option-describes.cjs`; `config-help-coverage.test.cjs` fails when a new field has neither, so a new option always appears here.
 
@@ -136,7 +136,7 @@ The configured project-config file (default `docs/project-config.json`) is **tea
 
 | The user says | Write to |
 | --- | --- |
-| "turn workflow routing off/on, or set it to ask/auto/off, **for me / on my machine / locally / just here / don't commit it**" | `/workflow-mode <mode> --save` (`~/.claude/.ck.json`, every project) or `--save --local` (`.claude/.ck.local.json`, this checkout) — **never** the team file |
+| "turn workflow routing off/on, or set it to ask/auto/off, **for me / on my machine / locally / just here / don't commit it**" | `/framework-config --mode=workflow <mode> --save` (`~/.claude/.ck.json`, every project) or `--save --local` (`.claude/.ck.local.json`, this checkout) — **never** the team file |
 | "add/change the route protocol **for me / on my machine / locally / just here / don't commit it**" | `.claude/.ck.local.json` — **never** the team file |
 | "turn workflow routing off/on **for this project / for the team / for everyone**" | The configured project-config file (the normal scan/merge path) |
 | "add/change the route protocol **for this project / for the team / for everyone**" | The configured project-config file (the normal scan/merge path) |

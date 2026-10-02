@@ -122,7 +122,7 @@ Every workflow states the goal it must reach and the quality results a finished 
 **Acceptance Criteria:**
 
 - **AC-GWF-06** — **Given** a run missing evidence for any outcome gate **When** it closes **Then** the close refuses and names each missing gate
-- **AC-GWF-07** — **Given** a run with changes, no review receipt and a cited review report **When** it closes **Then** it closes without a question, logs the report's location, and states that a commit still needs the receipt; **Given** that report's final verdict is not converged, or it is older than the run's last change **Then** the log line and the close message say so; **Given** neither a receipt nor a cited report **Then** it refuses
+- **AC-GWF-07** — **Given** a run with changes, no review receipt and a current accepted report from its satisfying review step **When** it closes **Then** it closes without a question, logs the report's location, and states that a commit still needs the receipt; **Given** a rejected, stale, incomplete or unverifiably current report **Then** it refuses and names the failed evidence; **Given** a read-only diagnostic review **Then** a current complete report with accepted report validation may finish while its negative target verdict remains visible; **Given** neither a receipt nor a cited report **Then** it refuses
 - **AC-GWF-08** — **Given** any deviation in a run, including one inside a nested workflow **When** it happens **Then** one line is added to the deviation log kept under the run's identity, and the reviewing steps read that log
 
 ### US-GWF-03: A lean route for work the spec already describes
@@ -250,17 +250,17 @@ IF an outcome gate always applies AND no gate step satisfies it
 
 ### BR-GWF-03: The close requires outcome-gate evidence [HARD]
 
-**Statement:** Before a run closes, the close step checks every outcome gate that applies to the run and refuses to close when any evidence is missing, naming each missing gate.
+**Statement:** Before a run closes, the close step checks every outcome gate that applies to the run and refuses to close when evidence is missing, rejected, stale or not verifiably current, naming each affected gate.
 
 | Outcome gate      | Accepted evidence                                                                                                                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tests pass        | The test command run in this run and its passing result, covering the changed behavior                                                                                                                  |
-| Review converged  | No change to review; or a review receipt over the current change; or, without a receipt, the cited review report written by a step that satisfies the review gate. A skip record alone is not a receipt |
+| Review converged  | No change to review; or a review receipt over the current change; or, without a receipt, a current accepted review report from a satisfying step; read-only diagnostics require complete coverage and accepted report validation without claiming the inspected target passed. A skip record alone is not a receipt |
 | Spec synced       | The spec change made in this run, or a "no behavior change" statement with the size of the change                                                                                                       |
 | Plan approved     | The recorded approval of the plan                                                                                                                                                                       |
 | Root cause traced | The cited root-cause trace for the bug                                                                                                                                                                  |
 
-Closing the review gate on a report never blocks and never asks the user: the close adds a deviation log line of the "closed on review report" category with the report's location, and states that a commit will still need a review receipt. The close also reads the report's final verdict and compares its time with the run's last change-making step: when the verdict is not converged, or the report is older than that step, the log line and the close message say so, so a weak review is visible instead of silent. If the receipt check itself fails, the close refuses. If the receipt check cannot run on the host, the cited report is the evidence, recorded the same way, and the close says so.
+A current accepted report may satisfy the review gate without a receipt: the close logs its location and states that a commit still needs a review receipt. A report whose final verdict is rejected, whose reviewed target predates the run's last change, whose target differs, or whose freshness cannot be established refuses the close and names the failed evidence. A path alone is not acceptance evidence. For a read-only diagnostic, accepted completion means the current report is finished, all required review faces are merged, and the report's own validation is accepted; findings about the inspected system remain visible and do not mean that system passed or was repaired. A failed receipt check refuses closure. A host unable to execute the check applies the same acceptance predicates manually and states the limitation.
 
 ```
 IF any applicable outcome gate lacks accepted evidence
@@ -503,7 +503,7 @@ WorkflowRun    1──N SpendCheckpoint   (at most one per threshold)
 | Step | Actor  | Action                                      | System Response                                                                                                       | Next      |
 | ---- | ------ | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
 | 1    | System | Checks each applicable outcome gate         | Collects evidence                                                                                                     | 2         |
-| 2    | System | Review gate without a receipt, report cited | Adds a "closed on review report" line, naming a not-converged or stale report; notes a commit still needs the receipt | 3         |
+| 2    | System | Review gate without a receipt, report cited | Rejects failed/stale evidence; logs only an accepted current report and notes a commit still needs the receipt | 3         |
 | 3    | System | Any gate without evidence                   | Refuses and names the gates                                                                                           | back to 1 |
 | 4    | System | All gates evidenced                         | Run closes                                                                                                            | end       |
 
@@ -1090,11 +1090,11 @@ Then the deviation log lists that step, the "condition false" category and the e
 
 ---
 
-#### TC-GWF-009: A run with changes and no review evidence refuses to close; a cited report closes it [P0]
+#### TC-GWF-009: A run with changes and no review evidence refuses to close; a current accepted report closes it [P0]
 
 **Objective:** Prove both sides of the review gate at close on a real dry run.
 
-**Business Intent / Invariant Guarded:** Unreviewed change never closes silently, and a reviewed run is never stopped for lack of a receipt (BR-GWF-03).
+**Business Intent / Invariant Guarded:** Unreviewed change never closes silently, and a current accepted review is never stopped solely for lack of a receipt (BR-GWF-03).
 
 **Traces:** AC-GWF-07 / BR-GWF-03
 
@@ -1110,7 +1110,7 @@ Then the deviation log lists that step, the "condition false" category and the e
 Given a run with changes, no receipt and no cited review report
 When the close runs
 Then it refuses and names the review gap
-Given the same run citing its review report
+Given the same run citing its current accepted review report
 When the close runs
 Then it closes without asking
 And the deviation log holds a "closed on review report" line with the report location
@@ -1123,7 +1123,7 @@ And the close states that a commit still needs a receipt
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the run's deviation log, registry validation messages and command output |
 | **System behavior**     | Refuses, then closes                                                                                                                                                               |
-| **Business data state** | Run closed after the report is cited                                                                                                                                               |
+| **Business data state** | Run closed only after current review evidence is accepted                                                                                                                                               |
 | **Data shown on UI**    | Refusal message; close message; the log line                                                                                                                                       |
 
 **Acceptance Criteria:**
@@ -1131,7 +1131,7 @@ And the close states that a commit still needs a receipt
 - ✅ Refusal without evidence
 - ✅ Close with a cited report
 - ❌ Close without evidence
-- ❌ A question asked when a report is cited
+- ❌ Closure refused solely because an accepted current report lacks a receipt
 
 **Edge Cases:**
 
@@ -1258,7 +1258,7 @@ And both reviewing skills read the log when it exists
 
 **Objective:** Prove the close step's review-gate instructions in full.
 
-**Business Intent / Invariant Guarded:** The review gate is machine-checked where a receipt exists, never blocks a reviewed run, and never lowers the commit bar (BR-GWF-03).
+**Business Intent / Invariant Guarded:** The review gate is machine-checked where a receipt exists, blocks rejected or stale evidence, accepts a current validated review, and never lowers the commit bar (BR-GWF-03).
 
 **Traces:** AC-GWF-07 / BR-GWF-03
 
@@ -1277,9 +1277,11 @@ Then it runs the receipt check and reads its reported result
 And a failed check refuses the close
 And no change passes, and a receipt over the current change passes
 And a skip record alone is not a receipt
-And without a receipt a cited review report passes and adds a "closed on review report" line
+And without a receipt a current accepted review report passes and adds a "closed on review report" line
 And the cited report must come from a step that satisfies the review gate
-And a report whose final verdict is not converged, or that predates the run's last change, is named as such in that line and in the close message
+And a rejected or stale report refuses the close and names the failed evidence
+And unknown freshness or a mismatched reviewed target refuses the close
+And a current complete diagnostic report with accepted report validation may finish without claiming the inspected system passed
 And the close states that a commit still needs the receipt
 ```
 
@@ -1297,17 +1299,17 @@ And the close states that a commit still needs the receipt
 - ✅ All clauses present
 - ❌ Receipt-only close
 - ❌ Skip record counted as a receipt
-- ❌ A stale or not-converged report closing the gate silently
+- ❌ A stale or rejected report satisfying the convergence gate, even with a warning
 
 **Edge Cases:**
 
-- A host that cannot run the check → the cited report, recorded the same way
+- A host that cannot run the check → enforce the same verdict, target, coverage and freshness checks manually and state the limitation
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/skills/workflow-end-review-gate]`
 > **Related Behaviors:** `rule/skills/workflow-end-review-gate`
-> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::TC-GWF-042`, `.claude/hooks/tests/suites/review-commit-gate.test.cjs::TC-HARNESS-GATE receipt binds exact fingerprint, repository and kind; skip is separate` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/content-presence.test.cjs:609` (passed in P13; not re-run at the final gate)
+> **CoveredBy:** `.claude/hooks/tests/suites/content-presence.test.cjs::TC-GWF-042`, `.claude/hooks/tests/suites/review-commit-gate.test.cjs::TC-HARNESS-GATE receipt binds exact fingerprint, repository and kind; skip is separate`, `.claude/scripts/codex/tests/skill-repairs-gates.test.mjs::TC-GWF-042 report acceptance`, `.claude/scripts/codex/tests/skill-repairs-gates.test.mjs::TC-GWF-042 diagnostic completion` · **Status:** Implemented — evidence: 2026-10-02 repair regression suite32/32 and full hook suite1354 passed/0 failed/6 skipped; log `tmp/workflow-skill-repairs/hooks-verified.log`. Supplied-metadata checker is not proof that a review occurred; the closing agent still inspects provenance.
 
 ---
 

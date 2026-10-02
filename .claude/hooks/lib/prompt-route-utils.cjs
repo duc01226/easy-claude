@@ -87,6 +87,13 @@ function loadRouterSettings(projectDir, section) {
 
 const isOff = value => typeof value === 'string' && OFF_VALUES.has(value.trim().toLowerCase());
 
+/** Effective runtime skill selection for a hook, with the same explicit fixture/root seams as routers. */
+function resolveHookSkillAutoTrigger(deps = {}) {
+    const env = deps.env || process.env;
+    const projectDir = deps.projectDir || require('./project-root.cjs').resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
+    return require('../../scripts/lib/workflow-routing-config.cjs').resolveSkillAutoTrigger({ rootDir: projectDir, env, homeDir: deps.homeDir });
+}
+
 /**
  * False when the router is switched off: `.ck.json` `<section>.enabled: false` (or a hand-typed
  * "false"/"0"/"no"/"off") or `<envVar>` set to one of those values. On by default.
@@ -115,5 +122,6 @@ module.exports = {
     isHostEnvelope,
     userPromptText,
     loadRouterSettings,
+    resolveHookSkillAutoTrigger,
     isRouterEnabled
 };

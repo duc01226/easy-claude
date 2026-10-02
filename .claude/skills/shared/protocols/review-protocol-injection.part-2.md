@@ -1,26 +1,4 @@
 ```
-### Logic & Intention Review
-Verify WHAT code does matches WHY it was changed.
-1. Change Intention Check: Every changed file MUST serve the stated purpose. Flag unrelated changes as scope creep.
-2. Happy Path Trace: Walk through one complete success scenario through changed code.
-3. Error Path Trace: Walk through one failure/edge case scenario through changed code.
-4. Acceptance Mapping: If plan context available, map every acceptance criterion to a code change.
-5. Tests Verify Intent: For test/spec changes, verify tests name the protected business rule or invariant and would fail if that intent breaks.
-6. Migration Test Exclusion: Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
-NEVER mark review PASS without completing both traces (happy + error path).
-
-### Test Spec Verification
-Map changed code to test specifications.
-1. Identify the project's test/spec format from existing docs, test-case files, BDD feature files, or spec folders.
-2. Every changed code path MUST map to a corresponding test case/spec (or flag as "needs test case").
-3. New functions/endpoints/handlers → flag for test spec creation.
-4. Migration files are excluded from test/spec creation; schema/data migrations are one-time execution paths, not core application logic.
-5. If spec evidence fields exist, verify they point to actual code (file:line, not stale references).
-6. Verify each meaningful test case names the business intent/invariant; flag behavior-only cases that only mirror implementation details.
-7. Auth/data changes → verify corresponding authorization and data-state test cases exist.
-8. If no specs exist for a changed path → log the gap and recommend the project's test-spec workflow.
-NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
-
 ### Behavioral Delta Matrix
 MANDATORY for any bugfix review. Produce input-state × pre-fix × post-fix × delta table BEFORE writing verdict.
 - Minimum 3 rows; include at least one row OUTSIDE the original bug report.
@@ -33,12 +11,12 @@ Example rows (external-record sync fix):
 | Record missing (404)  | Error   | Recreated                 | Fixed      |
 
 ### Fix-Layer Accountability
-Do not assume the crash site owns the defect. Trace the actual execution and data flow, then fix the component that owns the violated contract.
+Trace execution/data flow; fix the violated contract's owner, never assume the crash site.
 MANDATORY before ANY fix:
-1. Trace the affected path — map the real origin, transformations, boundaries, and observed failure in the surfaces this project uses. Do not invent absent layers.
-2. Identify the contract owner — use project architecture and code evidence to find which component is responsible for the invalid state or behavior.
-3. Choose the correction point — fix the authoritative owner and retain any validation required at untrusted boundaries. A multi-file correction can be valid; justify it by the contracts each file owns rather than a file-count threshold.
-4. Check bypass paths — inspect relevant constructors, adapters, parsers, caches, persistence, or other entry points that actually exist in the affected flow.
+1. Trace actual origin, transformations, boundaries, failure; invent no absent layers.
+2. Identify invalid-state/behavior contract owner from architecture/code evidence.
+3. Fix authoritative owner; retain untrusted-boundary validation. Justify multi-file fixes by owned contracts, not file-count thresholds.
+4. Inspect relevant existing bypass entries: constructors/adapters/parsers/caches/persistence.
 BLOCKED until: The affected path is traced; the owner is supported by file:line evidence; relevant consumers and bypass paths are checked; and the correction point fits the project's architecture.
 Anti-patterns (REJECT): assuming the symptom site is the owner; scattering workarounds without tracing the contract; assuming the lowest technical layer is always authoritative; removing validation from a real trust boundary to force a single correction point.
 
@@ -53,8 +31,8 @@ AI skips steps via these evasions. Recognize and reject:
 - "Combine steps to save time" → Combined steps dilute focus. Each step has distinct purpose.
 
 ### Graph-Assisted Investigation (optional advice)
-Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (.code-graph/graph.db) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes. An absent or stale graph is never a finding.
-Pattern (when used): grep/read finds files → optional graph query suggests extra callers/dependents → grep/read verifies details.
+Optional: for high-risk blast radius (shared contract/many callers/cross-module/cross-service/public API), .code-graph/graph.db suggests callers/dependents/impacted tests. Treat it as a hint, NOT proof: stale/incomplete graphs lag uncommitted edits/unindexed paths. Verify important results by files/grep; skip low-risk/local changes. An absent or stale graph is never a finding.
+Pattern: grep/read → optional graph suggestions → grep/read verification.
 - High-risk investigation: trace --direction both on 2-3 entry files
 - Fix/debug with wide reach: callers_of on buggy function + tests_for
 - Feature touching a shared contract: connections on files to be modified
@@ -66,15 +44,15 @@ CLI: python .claude/scripts/code_graph {command} --json. Use --node-mode file fi
 HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 1. Search 3+ similar patterns (grep/glob) — cite file:line evidence.
 2. Read existing files in target area — understand structure, base classes, conventions.
-3. Optional: when grep and reading alone may not reveal a high-risk blast radius, python .claude/scripts/code_graph trace <file> --direction both --json (when .code-graph/graph.db exists) can add callers and dependents — a hint that may be stale, verified by reading the files.
-4. Map dependencies via grep/read callers (an optional graph connections or callers_of query may add hints) — know what depends on your target.
+3. Optional high-risk hints: python .claude/scripts/code_graph trace <file> --direction both --json if .code-graph/graph.db exists; verify stale-capable caller/dependent hints by files.
+4. Map dependents by grep/read callers; optional graph connections/callers_of adds hints.
 5. Write investigation to tmp/analysis/ for non-trivial tasks (3+ files).
 6. Re-read analysis file before implementing — never work from memory alone.
 7. NEVER invent new patterns when existing ones work — match exactly or document deviation.
 BLOCKED until: Read target files; Grep 3+ patterns; Assumptions verified with evidence. (The code graph is optional advice, never a gate.)
 
 ## Reference Docs (READ before reviewing)
-Read only the docs resolved for this lane — every doc costs context before any review work; do not re-resolve the whole doc set.
+Read only lane-resolved docs; do not re-resolve the whole set.
 - `code-review-rules.md`, inside the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path)
 - {lane-specific docs the orchestrator resolved — e.g., the pattern doc for the files under review, integration-test-reference.md for a test lane, the governing spec for a spec-compliance lane}
 

@@ -1,0 +1,124 @@
+---
+name: framework-config
+version: 1.1.0
+description: '[Utilities] Use when asking about or configuring the .claude/.codex/.agents/.opencode skills framework: command discovery/help, settings, hooks, workflows, activation or framework usage. Explains options; changes only requested settings.'
+---
+
+# Framework Configuration and Help
+
+Answer framework questions and manage requested settings without requiring the user to know JSON keys.
+This lightweight entry skill remains eligible for automatic selection when heavy skill auto-trigger
+is disabled. It does not authorize unrelated heavy skills, scans or workflows.
+
+## Choose a mode
+
+`/framework-config [--mode=help|settings|workflow] <request> [options]`
+(Codex: `$framework-config`; OpenCode uses its native skill loader.) Infer the mode from natural
+language when no flag is given; no arguments shows the three modes and a few common options.
+
+| Mode | Purpose | Examples |
+| --- | --- | --- |
+| `help` | Command/category search, command details, task recommendations, framework usage | `--mode=help`, `--mode=help review`, `--mode=help "debug a login error"` |
+| `settings` | Show/explain/set/reset a framework preference | `--mode=settings show`, `--mode=settings disable heavy auto-trigger --scope=checkout` |
+| `workflow` | Show/set workflow route mode ask/auto/off, including session-only changes | `--mode=workflow --show`, `--mode=workflow off --scope=session` |
+
+- A question, “show”, “explain”, “what can I configure”, or missing arguments is read-only. Never
+  turn a question or command recommendation into a config edit or execution of that command.
+- “Set”, “enable”, “disable”, “change”, or “reset” authorizes only the requested setting change.
+- Default write scope is **checkout** for settings. Workflow mode defaults to **session** for a bare
+  ask/auto/off selection. Explicit `--scope=session|checkout|user|team` wins; session scope is supported
+  only for workflow routing. User means every project; team means the configured project default.
+- Application configuration and unrelated product/API questions are outside this skill. Project facts
+  use the configured project information; do not invent project facts from generic framework docs.
+
+## Help mode
+
+Run `.claude/scripts/ck-help.py` using the available Python interpreter (`py -3` on Windows), with the
+relevant English query (translate non-English search terms). It owns command/category search and task
+recommendations. Respect its `@CK_OUTPUT_TYPE` marker: comprehensive-docs, category-guide,
+command-details, search-results or task-recommendations. For an explicit catalog/document request,
+show the complete relevant output then examples; for a focused question, answer the relevant part with
+source pointers. Do not launch recommended heavy skills unless separately authorized.
+
+The help backend's `config/settings/options/switches/env` queries use
+`node .claude/scripts/ck-config-help.cjs` for schema-generated settings help. This is help, not mutation.
+`/plan` → `/plan --mode=execute` is the planning flow; `/feature-implement` is standalone.
+
+## Workflow mode
+
+- Show the effective mode and every layer using `node .claude/scripts/workflow-mode.cjs --show`
+  (add the actual `--session=<id>` when known). Report its source and missing-session note. Never
+  infer the current session's value from files alone.
+- For a session request, the first-line `/framework-config --mode=workflow ask|auto|off` directive
+  (optional `--scope=session`) is applied by the route hook. Old `workflow-mode:` directives remain
+  compatible. If natural language did not form a directive, run the helper with the requested mode,
+  `--set-session` and the real session id. Never fabricate an id. Without an id/hook, follow the
+  requested mode in this conversation and disclose that runtime session persistence is unavailable.
+- With `--scope=user` (or legacy `--save`), run the helper `<mode> --save`; checkout (or
+  `--save --local`) adds `--local`. It refuses unless git reports the file ignored. A prompt directive
+  ending in `--save` also sets the session and saves the user preference, with independent outcomes.
+- Team scope and reset use the scoped settings procedure below for `portability.workflowRouteMode`.
+  Do not change a tracked file for a personal/session request. Resetting a session preference removes
+  the preference using the helper `--reset-session` and the real session id, then reads the effective mode again;
+  do not remove the session directory or other hook records.
+- Report the helper's effective mode, source, saved file and any higher-precedence override verbatim.
+  Precedence: default ask → team → user → checkout → environment → session directive.
+  No gate or user choice is waived by a route-mode change. Runtime changes require no mirror sync.
+
+## Settings mode
+
+Resolve the requested preference, apply it only to the selected scope, and report the effective result.
+
+## Discover exact keys and current behavior
+
+Work from the adopting project's root; use that project's copied framework, never an authoring-repo path.
+
+1. For personal settings and common switches, run `node .claude/scripts/ck-config-help.cjs --json`.
+   For project options, run `node .claude/skills/project-config/scripts/project-config-help.cjs --search=<term>`
+   or `--section=<section>`. Read only the owning documentation relevant to the question.
+2. For commands and general framework help, run `.claude/scripts/ck-help.py` with the available Python
+   interpreter (`py -3` on Windows) and the relevant English search terms, or read `.claude/docs/README.md`
+   and its linked topic. Present the relevant answer and usable examples; no need to start another skill.
+3. Use `.claude/scripts/lib/workflow-routing-config.cjs` to resolve paths and effective runtime choices.
+   Its `resolveProjectConfigPath(root)` honors `portability.projectConfigPath` in `.claude/.ck.json`;
+   `resolveUserConfigPath()` resolves the actual home; `resolveLocalOverridePath(root)` resolves the checkout.
+   For skill activation, `resolveSkillAutoTrigger({rootDir: root})` returns `enabled`, `source` and paths.
+   For workflow routing, use `resolveWorkflowRouteMode` and report any session-specific limitation.
+4. Never guess a key or silently substitute a different setting. An unsupported option needs an explanation,
+   not invented JSON. Existing environment overrides can mask a saved choice; report that explicitly.
+
+## Apply a requested setting
+
+1. Resolve the selected destination: team → configured project config; user → `~/.claude/.ck.json`;
+   checkout → `.claude/.ck.local.json`. Verify checkout-local config is git-ignored before writing it;
+   if not, add only its ignore entry to the project's ignore file as part of the requested personal setup.
+2. Read the existing file as JSON, preserving unrelated keys. An invalid/unreadable existing file is a
+   repair issue: report it and do not replace it with an empty object. A missing personal file may be created;
+   a missing team config needs the minimum valid project identity rather than a partial invalid config.
+3. Merge only the requested key. Reset removes that key from the chosen layer and keeps every other key;
+   it exposes the next preference/default rather than forcing a hardcoded value. Do not delete other layers.
+4. Validate the candidate before saving: `validateConfig(candidate)` from
+   `.claude/hooks/lib/project-config-schema.cjs` for team config, or `validateCkConfig(candidate)` from
+   `.claude/hooks/lib/ck-config-schema.cjs` for personal config. Report validation errors without saving.
+   Use normal host file tools or a small properly quoted script; never interpolate user text into shell code.
+5. Save, reread, validate, and resolve the effective value again. Report the exact file, saved preference,
+   winning value/source, and whether regeneration is needed. Runtime switches need no mirror regeneration.
+   Native visibility/profile changes use their documented generator; never edit generated mirrors by hand.
+
+## Common language → setting
+
+| Request | Exact setting | Behavior |
+| --- | --- | --- |
+| “Don't automatically start heavy skills” | `portability.skillAutoTrigger: false` | Named requests, hook-required calls and authorized workflow steps remain allowed |
+| “Restore automatic skills” | `portability.skillAutoTrigger: true`, or reset if requested | Later valid preference wins; default true |
+| “Workflows should ask / start automatically / only run explicitly” | `portability.workflowRouteMode: "ask" / "auto" / "off"` | Separate workflow routing preference |
+
+Skill-auto-trigger precedence: default → team → user → checkout → `CK_SKILL_AUTO_TRIGGER`.
+`commit`, `pull-request` and this configuration/help entry remain eligible under restricted selection.
+An explicitly requested workflow authorizes its scoped planned skill calls, including later/resumed steps
+and required nested calls. Commit and pull-request both ask for test/review choices with explicit Skip options; configuration never answers those questions or approves a skip. Required skills selected through those choices remain callable even when auto-trigger is disabled.
+This runtime switch is model guidance, not a hard permission boundary.
+
+Examples of automatic matches: “How do these .claude skills work?”, “What can I configure in this
+.codex framework?”, “Disable heavy skill auto-trigger for me”, “Explain framework hooks”, and
+“Which setting controls workflows?”. No file is changed by the questions.

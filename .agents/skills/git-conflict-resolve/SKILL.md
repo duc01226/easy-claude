@@ -160,18 +160,11 @@ git diff --check
 git status
 ```
 
-### Step 6: Complete the operation
+### Step 6: Hand off or complete under Git authority
 
-```bash
-# For cherry-pick
-git cherry-pick --continue --no-edit
+Determine the owning caller and its authorized operation before any continuation that changes history. When invoked by `$pull-request` or another caller requiring review before commit, return the resolved/staged candidate, operation markers, exact scope, HEAD and pending continuation; leave HEAD unchanged until the caller’s review/commit gate. Conflict-resolution authorization alone never overrides that gate.
 
-# For merge
-git commit  # (merge commit is auto-prepared)
-
-# For rebase
-git rebase --continue
-```
+Standalone: confirm the existing user authorization covers the exact history-changing operation; if absent, report the ready candidate and request the missing authorization. Route a merge commit through `$commit` and its candidate-review/receipt contract, never raw `git commit`. For an authorized cherry-pick/rebase continuation, satisfy the owning review/candidate authority first; use a noninteractive editor (`GIT_EDITOR=true git cherry-pick --continue` or `GIT_EDITOR=true git rebase --continue` on POSIX; equivalent process environment on Windows), inspect exit status and operation markers after each continuation, and stop to resolve any new conflicts. Do not claim completion while an operation marker remains. Stash conflicts have no continue command; report resolved state without inventing one.
 
 ### Step 7: Generate report
 

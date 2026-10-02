@@ -281,6 +281,15 @@ const HOOKS = {
         }
       ],
       "matcher": "compact|clear"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/skill-activation-inject.cjs"
+        }
+      ],
+      "matcher": "startup|resume|compact|clear"
     }
   ],
   "Stop": [
@@ -311,6 +320,14 @@ const HOOKS = {
         {
           "type": "command",
           "command": ".claude/hooks/protocol-inject-universal-4.cjs"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": ".claude/hooks/skill-activation-inject.cjs"
         }
       ]
     },
@@ -620,7 +637,7 @@ function runHook(root, hookPath, payload) {
 
 // Run every configured hook for a Claude event whose matcher accepts `names`.
 // Returns the aggregate block/rewrite/context outcome. Never throws.
-async function runEventHooks(root, eventName, { matcher, payload } = {}) {
+async function runEventHooks(root, eventName, { matcher, payload, hookPath } = {}) {
   const groups = Array.isArray(HOOKS[eventName]) ? HOOKS[eventName] : [];
   const outcome = { code: 0, stdout: "", stderr: "", contexts: [], updatedInput: null, blocked: false, denyReason: null, ran: 0 };
   for (const group of groups) {
@@ -628,6 +645,7 @@ async function runEventHooks(root, eventName, { matcher, payload } = {}) {
     if (matcher && !matcherMatches(group.matcher, matcher)) continue;
     for (const hook of Array.isArray(group.hooks) ? group.hooks : []) {
       if (!hook || hook.type !== "command" || typeof hook.command !== "string") continue;
+      if (hookPath && hook.command.replaceAll("\\", "/") !== hookPath) continue;
       if (!hookConditionHolds(hook.if, root, payload)) continue;
       outcome.ran += 1;
       const result = await runHook(root, path.resolve(root, hook.command), payload);
@@ -882,9 +900,23 @@ export const EasyClaudeHooks = async (input) => {
     },
 
     "experimental.chat.system.transform": async (hookInput, output) => {
-      const context = sessionStartContext.get(sessionKey(hookInput && hookInput.sessionID));
+      const sessionID = hookInput && hookInput.sessionID;
+      // A developer can change skill selection between turns. Never replay the cached startup
+      // policy into the system prompt: it could outrank a newer prompt-level reset. The real hook
+      // reads effective configuration here for main AND delegated sessions, even without chat.message.
+      const policyMarker = "<!-- CK:SKILL-ACTIVATION-POLICY -->";
+      const context = (sessionStartContext.get(sessionKey(sessionID)) || []).filter(text => !text.startsWith(policyMarker));
       if (Array.isArray(context) && context.length > 0 && output && Array.isArray(output.system)) {
         output.system.push(...context);
+      }
+      if (output && Array.isArray(output.system)) {
+        const livePolicy = await runEventHooks(root, "SessionStart", {
+          matcher: ["resume"],
+          hookPath: ".claude/hooks/skill-activation-inject.cjs",
+          payload: { hook_event_name: "SessionStart", source: "resume", session_id: sessionID, cwd: seed },
+        });
+        output.system.push(...livePolicy.contexts);
+        warn("SkillActivationPolicy", livePolicy);
       }
     },
 

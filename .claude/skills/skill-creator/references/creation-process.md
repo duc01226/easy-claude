@@ -33,9 +33,11 @@ For each example, decide how to execute from scratch, then identify what to bund
 
 Scripts must have tests and respect `.env` order: `process.env` > `.claude/skills/<skill>/.env` > `.claude/skills/.env` > `.claude/.env`.
 
+Run commands from the project root; executable paths below resolve under the installed skill root (substitute only that prefix for a different installation). Use `python3` on macOS/Linux or `py -3` on Windows; target paths remain project-relative.
+
 ## Step 3 — Initialize
 
-`scripts/init_skill.py <skill-name> --path <output-dir>` scaffolds the directory, a template SKILL.md with frontmatter + TODOs, and example `scripts/`/`references/`/`assets/` dirs. Customize or delete the examples.
+`python3 .claude/skills/skill-creator/scripts/init_skill.py <skill-name> --path <output-dir>` scaffolds the directory, a template SKILL.md with frontmatter + TODOs, and example `scripts/`/`references/`/`assets/` dirs. Customize or delete the examples.
 
 ## Step 4 — Edit
 
@@ -53,7 +55,7 @@ SKILL.md answers: (1) purpose in a few sentences, (2) when to use it, (3) in pra
 
 ## Step 5 — Package
 
-`scripts/package_skill.py <skill-folder> [output-dir]` validates (frontmatter, naming, structure, resource refs) then zips. On failure it reports and exits without packaging — fix and rerun.
+`python3 .claude/skills/skill-creator/scripts/package_skill.py <skill-folder> [output-dir]` validates (frontmatter, naming, structure, resource refs) then zips. On failure it reports and exits without packaging — fix and rerun.
 
 ## Step 6 — Iterate
 

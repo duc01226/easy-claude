@@ -28,7 +28,7 @@ const { isFrameworkRepo } = require(path.join(HOOKS_DIR, 'tests', 'lib', 'framew
 
 const SKIP = isFrameworkRepo(REPO_ROOT) ? false : 'reads the framework repo\'s own shipped carriers (framework-repo signal)';
 const LANE = 'whole-diff-correctness';
-const ORCHESTRATION = ['review-protocol-injection', 'systematic-review-batching', 'double-round-trip-review', 'fresh-context-review', 'review-policy'];
+const ORCHESTRATION = ['review-protocol-injection', 'systematic-review-batching', 'review-policy'];
 // The leaf rules the reviewer template embeds. Agents that held the template before it left agent files are
 // dispatched directly too, so each keeps every one of these as its own block on every harness.
 const TEMPLATE_LEAF_TAGS = ['spec-tests-code-triangulation', 'evidence-based-reasoning', 'bug-detection', 'design-patterns-quality', 'logic-and-intention-review', 'test-spec-verification', 'behavioral-delta-matrix', 'fix-layer-accountability', 'rationalization-prevention', 'graph-assisted-investigation', 'understand-code-first'];
@@ -167,15 +167,6 @@ const tests = [
         name: '[review-lanes] TC-RL-005 agent count is sized by fixed load, and a moving target is caught before findings are trusted',
         skip: SKIP,
         fn: () => {
-            // A sub-agent's standing cost includes every skill it loads, so a small lens folds into an agent already reading its files.
-            const dispatch = canonicalBody('parallel-subagent-dispatch');
-            assert.match(dispatch, /every skill it loads or preloads/);
-            assert.match(dispatch, /commonly tens of thousands of tokens/);
-            assert.match(dispatch, /fold it into an agent that already reads the same files as concrete questions/);
-            // Folding never trades away depth that risk requires: a small high-risk change keeps its full specialist protocol.
-            assert.match(dispatch, /unless the task's risk needs its full protocol: risk sets depth, file count never does/);
-            // The closing reminder is the recency anchor agents act on, so it carries the same risk guard as the body.
-            assert.match(canonicalBody('parallel-subagent-dispatch:reminder'), /fold a small lens into an agent already reading the same files, unless its risk needs the full protocol/);
             const workflow = read('.claude', 'skills', 'workflow-review-changes', 'SKILL.md');
             // The wave is sized before the per-specialist example; lenses shrink the agent count, never the checks.
             const sizing = workflow.indexOf('size the wave before you spawn it');

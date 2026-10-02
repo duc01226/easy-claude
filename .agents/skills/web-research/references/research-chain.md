@@ -22,7 +22,7 @@ Create the `web-research` phase tasks and the `source-deep-dive` phase tasks up 
 
 | Situation | Behavior |
 | --- | --- |
-| THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation`) | Skip `web-research` Next Steps and the `source-deep-dive` Next Steps; the workflow owns routing. A `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count. |
+| THIS run is a step of a `[Workflow]` row (its own phase tasks are linked to that parent row, `nested=true`) | Skip `web-research` Next Steps and the `source-deep-dive` Next Steps; the workflow owns routing. A `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count. |
 | Standalone run with the flag (not nested, or only an unrelated `[Workflow]` row exists) | Run the chain with no routing question (the call is an explicit skill request); after the chain, ask the `source-deep-dive` Next Steps question once. |
 
 ## Boundaries

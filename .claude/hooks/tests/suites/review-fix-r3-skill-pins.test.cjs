@@ -10,7 +10,7 @@
  *                       own Next Steps hand-off prompt.
  *   chain-next-steps    the research chain skips its Next Steps only when THIS run is a step of a `[Workflow]`
  *                       row (nested=true), never because a `[Workflow]` row merely exists in the task list.
- *   nested-key          the nested-task-creation contract and the four skills that skip their standalone gates
+ *   nested-key          retired nesting protocol and the four skills that skip their standalone gates
  *                       (plan execute, fix, feature-implement, investigate debug) decide "inside a workflow" from
  *                       nested=true, never from a stale or unrelated `[Workflow]` row that merely exists.
  *   ui-lens             workflow-review-changes states the UI-review row from the real contract: step 1 runs
@@ -173,19 +173,12 @@ const tests = [
         })
     },
     {
-        name: '[review-fix-r5] TC-RF5-001 the nested-task-creation contract makes a run nested only when it linked its own phase tasks; a row that merely exists never does',
+        name: '[review-fix-r5] TC-RF5-001 retired nesting protocol and injector cannot reintroduce phase expansion',
         ...guarded(() => {
             const canonical = read('.claude', 'skills', 'shared', 'sync-inline-versions.md');
-            const start = canonical.indexOf('## SYNC:nested-task-creation\n');
-            assert.ok(start >= 0, 'canonical nested-task-creation section exists');
-            const section = canonical.slice(start, canonical.indexOf('\n---', start));
-            const projection = read('.claude', 'skills', 'shared', 'protocols', 'nested-task-creation.md');
-            for (const [label, text] of [['canonical', section], ['projection', projection]]) {
-                assert.match(text, /Set `nested=true` and record `parentTaskId` ONLY when this run created its own child phase tasks linked to that parent row/, `${label} keys nesting on this run's own linked phase tasks`);
-                assert.match(text, /a `\[Workflow\]` row that merely exists in `TaskList` \(stale, abandoned, or belonging to another run\) does not make a run nested/, `${label} says a stale row does not nest a run`);
-                assert.match(text, /such a run behaves as standalone/, `${label} says that run is standalone`);
-                assert.doesNotMatch(text, /If a matching active parent workflow row exists, set `nested=true`/, `${label} no longer nests on an ambient row`);
-            }
+            assert.doesNotMatch(canonical, /^## SYNC:nested-task-creation(?::reminder)?$/m);
+            assert.ok(!fs.existsSync(path.join(REPO_ROOT, '.claude', 'skills', 'shared', 'protocols', 'nested-task-creation.md')));
+            assert.ok(!fs.existsSync(path.join(REPO_ROOT, '.claude', 'scripts', 'inject_nested_task_creation.py')));
         })
     },
     {

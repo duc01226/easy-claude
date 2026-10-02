@@ -13,7 +13,7 @@ Inserts:
 
 Host set is hand-picked (a "do" skill + review skills + a research skill), so this
 uses an explicit SKILL_NAMES list rather than the inject_review_skill_blocks.py
-review-batch matrix. Structure mirrors inject_nested_task_creation.py.
+review-batch matrix. Structure mirrors inject_workflow_registry_binding.py.
 """
 from __future__ import annotations
 

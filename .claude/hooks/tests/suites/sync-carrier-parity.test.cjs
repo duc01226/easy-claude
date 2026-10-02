@@ -289,7 +289,7 @@ const DEV_RULES_SKIP = isFrameworkRepo(REPO)
     ? false
     : 'framework-repo self-check: compares the upstream development rules copy with the canonical policy';
 
-/** The policy sections as the assistant reads them: policy + reminder, fresh-context-review, and the
+/** The policy sections as the assistant reads them: policy + reminder and the
  * review-protocol-injection intro (the text before its template; the template is OVERRIDE-pinned). */
 function policySections() {
     const rpi = readCanonicalBody(RPI);
@@ -297,7 +297,6 @@ function policySections() {
     return {
         policy: readCanonicalBody(POLICY),
         reminder: readCanonicalBody(`${POLICY}:reminder`),
-        freshContext: readCanonicalBody('fresh-context-review'),
         injectionIntro: introEnd === -1 ? null : rpi.slice(0, introEnd),
     };
 }
@@ -372,7 +371,7 @@ module.exports = {
             // brief, and code-reviewer loads code-quality-review on demand).
             // spec's clarify mode (the post-spec clarification gate; body in spec/references/mode-clarify.md) is the 8th carrier: it runs INLINE for
             // its AskUserQuestion gate but performs the SAME validate→fix→fresh-full-re-review cycle as its
-            // review-family peers, so it carries the trio (double-round-trip / fresh-context / protocol-injection)
+            // review-family peers, so it carries the pair (double-round-trip / protocol-injection)
             // at parity with pbi --mode=review. architecture/references/mode-full.md (the whole-project architecture-health
             // audit) joined as the 9th skill: it is an adoption-matrix review skill (BATCHING + SEVERITY in
             // inject_review_skill_blocks.py) that synthesizes a consolidated report, so it carries the plain

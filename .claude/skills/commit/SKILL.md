@@ -18,8 +18,8 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 - **STEP 2.7 — IDENTIFY REVIEWERS** (pre-commit, read-only): last author per staged file vs `HEAD`, commit author EXCLUDED, grouped BY AREA with the focus each owns.
 - **STEP 2.9 — DERIVE THE ESTIMATE** via the carried `SYNC:estimation-framework` against the STAGED diff (or reuse the implemented plan/PBI/story frontmatter with `(source: <path>)`). SP is DERIVED from `likely_days`, never eyeballed; discount generated/lockfile/docs churn first.
 - **STEP 3 — GENERATE MESSAGE.** Subject `type(scope): description`; body OPENS with the Estimate line, then purpose/kind → what changed → how it works, then the Reviewers block.
-- **STEP 3.5 — TEST-VERIFY GATE (BLOCKING when code changed).** `AskUserQuestion`, default **verify** via `/workflow-integration-test --mode=green`. Only an explicit **Yes — already verified** or **Skip** proceeds; NEVER choose skip on the user's behalf. If the gate mutates the staged set, **re-stage AND re-derive the estimate**.
-- **STEP 3.6 — REVIEW GATE (BLOCKING — always).** Check the exact prepared commit candidate with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`. Proceed only for `CLEAN`, or a matching `review`/user-approved `skip` receipt; `ERROR` blocks. Otherwise `AskUserQuestion` offering all three `--fix-loop` reviews with ONE marked `(Recommended)` per **Review selection** (size and risk; heavier on a tie), plus user-approved skip using a snapshot and `issue --kind=skip` bound to this descriptor. NEVER choose skip for the user. A review receipt proves candidate identity only; it does not waive tests, spec reconciliation, other review gates, or the project CI overlay.
+- **STEP 3.5 — TEST-VERIFY GATE (USER CHOICE — always).** `AskUserQuestion`, default **verify** via `/workflow-integration-test --mode=green`. Only an explicit **Yes — already verified** or **Skip** proceeds; NEVER choose skip on the user's behalf. If the gate mutates the staged set, **re-stage AND re-derive the estimate**.
+- **STEP 3.6 — REVIEW GATE (BLOCKING — always).** Check the exact prepared commit candidate with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`. Ask the user to run review, use existing evidence, or Skip (reuse an actual same-candidate answer from this run), then proceed only for `CLEAN`, or a matching `review`/user-approved `skip` receipt; `ERROR` blocks. Otherwise `AskUserQuestion` offering all three `--fix-loop` reviews with ONE marked `(Recommended)` per **Review selection** (size and risk; heavier on a tie), plus user-approved skip using a snapshot and `issue --kind=skip` bound to this descriptor. NEVER choose skip for the user. A review receipt proves candidate identity only; it does not waive tests, spec reconciliation, other review gates, or the project CI overlay.
 - **STEP 4 — COMMIT** with the HEREDOC form (subject → blank → Estimate → body → Reviewers → footer).
 - **STEP 5 — VERIFY** via `git status` + `git log`; confirm the first body line IS the Estimate line, then re-present the reviewer assignment.
 - **STEP 6 — REFRESH THE CODE GRAPH (optional, post-commit, BACKGROUND, non-blocking).** Only when `.code-graph/` exists: fire `/graph-code --mode=build --scope=sync` in the background so the commit that just moved HEAD is re-parsed AND the graph's `last_synced_commit` advances with it. NEVER blocks or gates the commit; a failure is reported, never retried inline.
@@ -35,7 +35,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 5. **Derive Estimate** — Apply the carried `SYNC:estimation-framework` to the staged diff (or reuse the frontmatter of the plan/PBI/story this commit implements) to derive `story_points` + `man_days_ai` — computed BEFORE the message so the numbers can head the body
 6. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, open the body with the **Estimate** line from step 5, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 4
 7. **Test-Verify Gate** — When staged changes include code that might need tests, ask the user (`AskUserQuestion`, default **verify**) to verify via `/workflow-integration-test --mode=green`, confirm **Yes — already verified**, or explicitly **Skip**. Default = verify first, and verify means drive the suite to green, not merely report it
-8. **Review Gate** — Check the exact prepared commit candidate using `check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`; block on `ERROR`. A clean candidate needs no receipt; a changed candidate needs a matching full-review or explicitly user-approved skip receipt. If absent, ask the user to choose one of the three `--fix-loop` reviews, recommending one per **Review selection** (Step 3.6), or to explicitly skip using `snapshot` + `issue --kind=skip` for this exact descriptor. NEVER skip on the user's behalf. The `review-commit-gate.cjs` hook independently checks the actual commit invocation.
+8. **Review Gate** — Check the exact prepared commit candidate using `check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`; block on `ERROR`. A clean candidate needs no receipt; a changed candidate needs a matching full-review or explicitly user-approved skip receipt. Ask the user to confirm existing evidence or choose one of the three `--fix-loop` reviews, recommending one per **Review selection** (Step 3.6), or to explicitly skip using `snapshot` + `issue --kind=skip` for this exact descriptor. NEVER skip on the user's behalf. The `review-commit-gate.cjs` hook independently checks the actual commit invocation.
 9. **Commit** — Create commit with HEREDOC (title + Estimate line + detailed summary + Reviewers block + attribution footer)
 10. **Verify** — Confirm with git status and git log
 
@@ -45,7 +45,7 @@ description: '[Git] Use when asked to commit, stage and commit, or save changes.
 - Write a detailed body — **purpose/kind → what changed → how it works** — so the next human reading `git log`/`git blame` understands the change without opening the diff. As detailed as the change needs (wrap ~72 chars); no title-only commits for non-trivial changes
 - Embed a **Reviewers** block in the commit message — the per-area reviewers (last author per touched file vs `HEAD`, commit author excluded) — computed BEFORE committing so it lives in the message body, not just as a side report
 - When staged changes include code that might need tests, **gate the commit on test verification** — ask the user to verify via `/workflow-integration-test --mode=green` (default), confirm already-verified, or explicitly skip; only an explicit **Yes** or **Skip** proceeds straight to commit, and the agent NEVER chooses skip on the user's behalf
-- **Gate the commit on the exact candidate (Step 3.6, blocking — always)** — derive the descriptor from the prepared commit invocation and check it with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`. `ERROR` blocks; `CLEAN` needs no receipt; a `CHANGED` candidate needs a matching full-review receipt or an explicitly user-approved skip receipt for that descriptor. Otherwise ASK the user to choose a `--fix-loop` review — recommend exactly one per **Review selection** (Step 3.6) and state the signal that chose it — or explicitly approve Skip by capturing this descriptor and issuing kind `skip`. NEVER choose skip yourself; `review-commit-gate.cjs` independently checks the actual commit invocation.
+- **Gate the commit on the exact candidate (Step 3.6, blocking — always)** — derive the descriptor from the prepared commit invocation and check it with `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact descriptor JSON>'`. `ERROR` blocks; `CLEAN` needs no receipt; a `CHANGED` candidate needs a matching full-review receipt or an explicitly user-approved skip receipt for that descriptor. Always ASK the user to confirm existing evidence or choose a `--fix-loop` review — recommend exactly one per **Review selection** (Step 3.6) and state the signal that chose it — or explicitly approve Skip by capturing this descriptor and issuing kind `skip`. NEVER choose skip yourself; `review-commit-gate.cjs` independently checks the actual commit invocation.
 - Stop after the commit; push only when the user explicitly requests it (or passes `--push` / says "commit and push" → stage + commit + push via `git-manager`)
 - Never commit secrets, credentials, or .env files
 - Never use `--amend` or `--no-verify` unless explicitly requested
@@ -89,6 +89,10 @@ neither grants nor blocks any Git operation. The user's explicit request is the
 authority; the lease is not a substitute for that request, native host
 permissions, the test-verify gate, or the review receipt `review-commit-gate`
 checks.
+
+## User test and review choices
+
+On every commit invocation with a candidate to publish, including a commit called by `pull-request`, ask the user about tests and review with explicit Skip options. This applies whether `portability.skillAutoTrigger` is true or false. A general autonomous/finish request never answers these questions. Existing evidence or receipts do not replace the question; offer the user confirmation of that evidence. Reuse an actual answer already given for this exact candidate in the current run instead of asking twice. Record the answer and candidate scope; preserve them through compaction/resume. The chosen fix-loop authorizes its required checks and fixes through convergence. Later candidate changes after a gate completes invalidate affected answers and require a fresh choice. Never infer an answer from silence.
 
 ## Workflow
 
@@ -292,7 +296,7 @@ Three parts (omit one only when genuinely empty):
 | Normal (feature/fix, single area)    | Purpose + 2–5 "what" bullets + a short "how it works"                                    |
 | Complex (cross-cutting, subtle bug)  | Purpose + grouped "what" + a full "how it works" that spells out the key invariant / edge case / why-this-over-that |
 
-### Step 3.5: Test-Verify Gate (blocking — only when code changed)
+### Step 3.5: Test-Verify Gate (blocking user choice — always)
 
 Decide whether the staged changes carry **code that might need tests** — why: this gate is the only thing standing between an untested behaviour change and permanent history.
 
@@ -301,7 +305,7 @@ Decide whether the staged changes carry **code that might need tests** — why: 
 - **Code that might need tests** → any change to production/source code: backend service source, frontend app source, shared libraries, scripts, hooks (`.cjs`), or other executable logic (resolve concrete source roots from `docs/project-config.json` / the project structure reference).
 - **NOT a trigger (skip the gate)** → the staged set is _only_ docs (`docs/**`, `*.md`), specs (business spec root, default `docs/specs/**`; `specRoots.business.path` in `docs/project-config.json` overrides), test-spec/config text, changelog, or other non-executable content with no source-code change.
 
-**If the gate is NOT triggered:** log `Test-Verify Gate: skipped (no code changes staged)` and continue to Step 4.
+**If the gate is NOT triggered:** explain that no code changes are staged and ask the user to confirm **No tests required**, run tests, or explicitly Skip. Wait for an answer; record it before continuing to the review gate. A same-candidate answer already obtained by `pull-request` is reused.
 
 **If the gate IS triggered:** STOP and ask the user with `AskUserQuestion` (default option is **No**):
 
@@ -314,7 +318,7 @@ Decide whether the staged changes carry **code that might need tests** — why: 
 
 Rules:
 
-- **Default is option 1 (verify).** If the user does not actively choose "Yes" or "Skip", treat it as verify-first — never commit unverified code on assumption.
+- **Recommend option 1 (verify), but wait for an explicit answer.** A default selection or silence is not consent. Reuse only an actual same-candidate answer already obtained in this run.
 - **Verify routes to `workflow-integration-test --mode=green`, not to a bare verify run** — why: a bare `integration-test --mode=verify` only reports the failures, leaving the user to hand-carry each one; the workflow owns the converge-to-green loop, so choosing "verify" actually clears the suite instead of just describing it.
 - **Yes is an explicit user assertion** that the integration tests were run and passed; honour it and commit.
 - **Skip is the user's call, and it is theirs alone to make.** Offer it, never recommend it, and NEVER select it yourself — why: an agent that can skip its own gate has no gate.
@@ -327,6 +331,8 @@ Rules:
 No commit may reach Step 4 without a review fix-loop receipt over the **current changeset**. This runs after Step 3.5 so the review covers the FINAL code — never commit content no fix-loop saw.
 
 Derive the descriptor from the exact prepared `git commit` invocation. With no `-a`/`--all` and no path arguments, use `{"mode":"staged","literalPaths":[]}`; `-a`/`--all` uses `{"mode":"all","literalPaths":[]}`; explicit paths after `--` use `{"mode":"literal-paths","literalPaths":["exact/path",...]}`. Include the effective `cwd` when the commit runs below the repository root. For `git commit --amend` add `"amend":true` (e.g. `{"mode":"staged","literalPaths":[],"amend":true}`): the candidate is then measured against HEAD's parent — the same candidate `git reset --soft HEAD~1 && git commit` would produce — so the review must cover the amended commit's changes plus what is staged. For an amend, Steps 2.7 (reviewers), 2.9 (Estimate) and 3.5 (test trigger) likewise read the whole amended commit — `git diff --cached HEAD~1` (and `--name-only` / `--stat`) instead of `git diff --cached` — because the message describes the commit that results, not only the new increment. Never approximate a literal-path descriptor.
+
+**Ask about review before using evidence:** offer the three review options below and explicit Skip even when a matching receipt exists. When available, also offer **Use existing review** or **Confirm prior skip** with its evidence and scope. Wait for the user. Reuse an actual same-candidate answer from `pull-request`; never substitute the parent skill's autonomy or a receipt for consent.
 
 **Check the exact candidate:**
 
@@ -345,8 +351,8 @@ Use the descriptor matching the prepared invocation. Read the JSON:
   > Header: `Review gate`
   > Question: `No review fix-loop has covered this exact changeset. Review before committing, or skip?`
   > Options — the review chosen by [Review selection](#review-selection) first, labelled `(Recommended)`; then the other two reviews; Skip last:
-  > - `Run /workflow-review-changes --fix-loop` — do NOT commit yet; invoke the `workflow-review-changes` workflow with this exact descriptor JSON (including `"amend":true` for an amend) so its review steps measure the same candidate. It runs the required reviews, validates findings, fixes at the owning layer, and repeats the full review workflow until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files).
-  > - `Run /changes-review --fix-loop` — do NOT commit yet; activate the `changes-review` skill in `--fix-loop` mode with the same exact descriptor JSON. It reviews, validates findings, fixes at the owning layer, and runs a fresh full re-review until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files).
+  > - `Run /workflow-review-changes --fix-loop` — do NOT commit yet; invoke the `workflow-review-changes` workflow with this exact descriptor JSON (including `"amend":true` for an amend) so its review steps measure the same candidate. It runs the required reviews, validates findings, fixes at the owning layer, and repeats the full review workflow until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files). Its receipt covers the final reviewed candidate; refresh any test choice invalidated by its fixes.
+  > - `Run /changes-review --fix-loop` — do NOT commit yet; activate the `changes-review` skill in `--fix-loop` mode with the same exact descriptor JSON. It reviews, validates findings, fixes at the owning layer, and runs a fresh full re-review until it converges, then mints the receipt. Return to this step when it converges (and re-derive if it changed files). Its receipt covers the final reviewed candidate; refresh any test choice invalidated by its fixes.
   > - `Run /why-review --fix-loop` — same (pass the same exact descriptor JSON), using the rationale-review loop (`why-review` in `--fix-loop` mode); it mints the receipt on convergence.
   > - `Skip — commit without review` — the user's explicit, recorded decision. Ask them to confirm, then mint the approved skip and proceed:
 
@@ -359,7 +365,7 @@ Use the descriptor matching the prepared invocation. Read the JSON:
 
 Rules:
 
-- **Default is the recommended review.** If the user does not actively choose a skip, review first — never commit unreviewed content on assumption.
+- **Recommend one review, then wait for the user's answer.** Neither a default selection nor silence authorizes execution or Skip.
 - **Skip is the user's call alone.** Offer it, never recommend it, and NEVER select it yourself — an agent that can skip its own gate has no gate.
 - **The receipt is bound to candidate identity** — repository/storage, base tree, and candidate tree — and `check` must use the same commit descriptor the hook will evaluate. Staging identical reviewed content preserves the tree identity; staging different content, changing the base/candidate, or selecting different paths does not. After a fix-loop, any later content change requires a fresh full review of that candidate before commit.
 - **Minting is the fix-loop's job, not yours.** The three fix-loop skills mint the receipt at their terminal step; you only mint a `skip` receipt, and only after the user explicitly approves.
@@ -382,7 +388,7 @@ Recommend the review that fits the change's size and risk — why: a fixed heavi
 - Tie or unclear → recommend the heavier review.
 - Mark exactly ONE option `(Recommended)` and state the signal that chose it, e.g. `Recommended: /changes-review — behaviour change in one module, with tests`.
 - All three reviews stay offered and the user chooses. Skip stays user-only: offered, never recommended. Every option is a fix-loop that mints the receipt; receipt semantics do not change.
-- **Autonomous runs:** when the user has pre-authorised the agent to choose, run the recommended review without asking. That authorisation never extends to Skip.
+- **Autonomous runs:** general autonomy never suppresses the test/review questions. Only an explicit answer already recorded for this exact candidate in this run settles a gate; never choose Skip yourself.
 
 ### Step 4: Commit
 
@@ -478,8 +484,8 @@ Generated by AI
 
 - **This skill is the ONLY supported commit path** — a raw ad-hoc `git commit` from the agent is refused by `review-commit-gate.cjs` unless a review fix-loop receipt (or a user-approved `skip` receipt) exists for the changeset. Always run the Review Gate (Step 3.6) before committing
 - **Stage only the user-authorized paths** before committing — never use a repository-wide `git add .` when unrelated work may be present; preserve other owners' index/worktree changes
-- **Test-Verify Gate (Step 3.5):** when staged changes include code that might need tests, ask the user to verify via `/workflow-integration-test --mode=green` (default — it converges the suite to green), confirm already-verified, or explicitly skip; only an explicit **Yes** or user-chosen **Skip** commits without verifying, and the agent NEVER picks skip itself. Bypass the gate entirely only when the staged set is docs, specs, or config with no source-code change
-- **Review Gate (Step 3.6, blocking — ALWAYS):** check `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact prepared commit descriptor>'` against the exact planned commit candidate; `ERROR` blocks, `CLEAN` needs no receipt, and `CHANGED` requires a matching review or user-approved skip receipt. When needed, ask the user to choose one of the three `--fix-loop` reviews (one recommended per **Review selection**, heavier on a tie) or explicitly approve skip; after approval, capture and issue the skip against that same descriptor with the `snapshot --target=commit-descriptor` and `issue --kind=skip --scope=full-changeset --snapshot-json=...` flow above. The agent NEVER chooses skip on the user's behalf. Candidate identity changes invalidate the receipt; unrelated worktree edits outside the prepared commit candidate do not.
+- **Test-Verify Gate (Step 3.5):** when staged changes include code that might need tests, ask the user to verify via `/workflow-integration-test --mode=green` (default — it converges the suite to green), confirm already-verified, or explicitly skip; only an explicit **Yes** or user-chosen **Skip** commits without verifying, and the agent NEVER picks skip itself. For a candidate with no source-code change, ask the user to confirm No tests required, run tests, or Skip
+- **Review Gate (Step 3.6, blocking — ALWAYS):** check `node .claude/hooks/lib/review-receipt.cjs check --target=commit-descriptor --descriptor-json='<exact prepared commit descriptor>'` against the exact planned commit candidate; `ERROR` blocks, `CLEAN` needs no receipt, and `CHANGED` requires a matching review or user-approved skip receipt. Always ask the user to confirm existing evidence or choose one of the three `--fix-loop` reviews (one recommended per **Review selection**, heavier on a tie) or explicitly approve skip; after approval, capture and issue the skip against that same descriptor with the `snapshot --target=commit-descriptor` and `issue --kind=skip --scope=full-changeset --snapshot-json=...` flow above. The agent NEVER chooses skip on the user's behalf. Candidate identity changes invalidate the receipt; unrelated worktree edits outside the prepared commit candidate do not.
 - **Estimate line is MANDATORY and comes FIRST in the body** — `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per the carried `SYNC:estimation-framework` against the STAGED diff (Step 2.9), or reused from the implemented plan/PBI/story frontmatter with `(source: <path>)`. Story points and AI man-days are required; discount generated/lockfile/docs churn before estimating
 - **Stop after the commit; push** to remote only when the user explicitly requests it
 - **Refresh the code graph after committing (Step 6)** — when `.code-graph/` exists, fire `/graph-code --mode=build --scope=sync` in the BACKGROUND (`run_in_background: true`) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances with it; skip silently when the dir is absent. Non-blocking by design: it NEVER gates, delays, or fails the commit
@@ -500,10 +506,10 @@ This skill handles **commit** by default. A plain push delegates to the `git-man
 
 ### Pull-request requests → the `pull-request` skill
 
-When the user asks for a pull request — create or open a PR, finish or update the current PR, make it ready to merge, or mark a draft ready — invoke the **`pull-request` skill** (`/pull-request`) instead of this skill or `git-manager`. It takes the work all the way to ready to merge, in the main session, without asking the user:
+When the user asks for a pull request — create or open a PR, finish or update the current PR, make it ready to merge, or mark a draft ready — invoke the **`pull-request` skill** (`/pull-request`) instead of this skill or `git-manager`. It takes the work all the way to ready to merge, in the main session, asking the user about tests and review with explicit Skip options:
 
 1. branch at the latest target (the base named in the request → an open PR's base → `pullRequest.targetBranch` in `docs/project-config.json` → `main`): a branch already merged into the target is replaced by a new branch from it; an unpushed branch behind it is rebased (stash, `git-conflict-resolve` on conflicts); a pushed branch is never rebased;
-2. review the whole branch with `/workflow-review-changes --fix-loop` over `<target>...HEAD` ∪ uncommitted changes;
+2. ask about tests and whole-branch review, run the chosen fix-loop over `<target>...HEAD` ∪ uncommitted changes or record an explicit user-approved skip;
 3. commit through this skill;
 4. push, and create the PR or mark it ready;
 5. wait for CI, and fix, review and push again until every check passes.
@@ -528,7 +534,6 @@ A commit request that also mentions a PR routes to `pull-request`, which commits
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `estimation-framework` — Bottom-up estimation with derived story points and a min-max range; estimating effort → .claude/skills/shared/protocols/estimation-framework.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -539,11 +544,6 @@ A commit request that also mentions a PR routes to `pull-request`, which commits
 
 <!-- /SYNC:estimation-framework:reminder -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 
@@ -555,7 +555,7 @@ A commit request that also mentions a PR routes to `pull-request`, which commits
 
 - **Sub-Agent Selection:** route specialized domains to the matching specialist; NEVER `code-reviewer`.
 
-- **MANDATORY MUST ATTENTION — AI KEEPS FORGETTING:** code changed? `AskUserQuestion` BEFORE committing — verify via `/workflow-integration-test --mode=green` (default), **Yes — already verified**, or user-chosen **Skip**; NEVER select skip yourself — why: prevents committing unverified code, and a gate the agent can waive is not a gate
+- **MANDATORY MUST ATTENTION — AI KEEPS FORGETTING:** candidate to publish? Ask about tests AND review BEFORE committing, including Skip; for docs-only changes confirm No tests required. For code, `AskUserQuestion` — verify via `/workflow-integration-test --mode=green` (default), **Yes — already verified**, or user-chosen **Skip**; NEVER select skip yourself — why: prevents committing unverified code, and a gate the agent can waive is not a gate
 - **MANDATORY MUST ATTENTION — FIRST BODY LINE:** every commit message opens with `Estimate: <n> SP | man_days_ai: <x>d | man_days_traditional: <y>d`, derived bottom-up per `SYNC:estimation-framework` against the staged diff (Step 2.9) — SP is DERIVED never eyeballed, generated/lockfile/docs churn is discounted first, and the number covers THIS diff only — why: the estimate must travel with the commit, or velocity data has to be reconstructed from diffs after the fact
 - **OPTIONAL — AFTER THE COMMIT:** when `.code-graph/` exists, you may fire `/graph-code --mode=build --scope=sync` in the BACKGROUND (Step 6) so the commit that moved HEAD is re-parsed and `last_synced_commit` advances — why: the `graph-auto-update` hook only fires on `Edit|Write|MultiEdit` and never sees a commit; `sync` (not `update`) is the HEAD-movement verb, and it is an accelerator, so it NEVER blocks or fails the commit
 - **Estimation Framework:** bottom-up hours drive man-days; SP DERIVED from `likely_days`, never the driver.

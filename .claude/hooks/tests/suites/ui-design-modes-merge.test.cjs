@@ -125,14 +125,12 @@ function occurrencesOf(skill) {
 
 // Protocols only the review mode needs: carried as full canonical bodies inside the mode reference.
 const MODE_ONLY_TAGS = [
-    'category-review-thinking', 'core-engineering-principles', 'design-patterns-quality', 'double-round-trip-review',
-    'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'nested-task-creation',
-    'review-principle-awareness', 'sequential-thinking-protocol', 'severity-rubric', 'source-test-drift-check',
+    'category-review-thinking', 'core-engineering-principles', 'design-patterns-quality', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'sequential-thinking-protocol', 'severity-rubric', 'source-test-drift-check',
     'subagent-return-contract', 'systematic-review-batching', 'task-tracking-external-report', 'trade-off-interrogation-gate',
     'understand-code-first'
 ];
 // Protocols the design modes already carry in SKILL.md (guide line + reminder); the reference does not repeat them.
-const SHARED_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'parallel-subagent-dispatch', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate'];
+const SHARED_TAGS = ['design-distinctiveness-gate', 'design-review-checklist', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate'];
 
 const tests = [
     {
@@ -221,10 +219,11 @@ const tests = [
             assert.match(text, /design-review-checklist\.md` §0\.3/);
             assert.match(text, /\*\*AI surface\?\*\*/);
             // The specialist override blocks keep the UI/UX-specialized reviewer and the durable round budget
-            assert.match(text, /<!-- OVERRIDE:fresh-context-review -->/);
+            assert.doesNotMatch(text, /<!-- OVERRIDE:fresh-context-review -->/);
             assert.match(text, /<!-- OVERRIDE:review-protocol-injection -->/);
             assert.match(text, /subagent_type: "ui-ux-designer"/);
-            assert.match(text, /current round's exit bar and persisted `minRounds`/);
+            assert.match(text, /current round's exit bar/);
+            assert.match(text, /persisted `minRounds`/);
             // The mode ends with the standalone Next Steps prompt and closing reminders
             assert.match(text, /\n## Next Steps\n/);
             assert.match(text, /\n## Closing Reminders\n/);

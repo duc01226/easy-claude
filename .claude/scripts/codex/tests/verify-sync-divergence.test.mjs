@@ -335,6 +335,8 @@ const EXPECTED_RENDERED_GROUPS = [
     ['SessionStart', 'compact|clear', 1],
     ['SessionStart', 'compact|resume|clear', 1],
     ['SessionStart', 'compact|clear', 4],
+    // Runtime skill selection policy survives recovery and observes personal preferences.
+    ['SessionStart', 'startup|resume|compact|clear', 1],
     ['Stop', null, 1],
     // SubagentStart: Codex supports it and it mirrors — the five group entries and the four universal
     // bins, registered without an agent-type matcher so every agent type (skill preloaders,
@@ -342,9 +344,11 @@ const EXPECTED_RENDERED_GROUPS = [
     // delivers. A matcherless source group renders matcherless (an agent-name list would render
     // anchored, because Codex matchers are unanchored regexes).
     ['SubagentStart', null, 9],
+    ['SubagentStart', null, 1],
     // The universal bundle: one entry per bin, first on every prompt so its ledger records predate
     // every other prompt hook.
     ['UserPromptSubmit', null, 4],
+    ['UserPromptSubmit', null, 1],
     ['UserPromptSubmit', null, 1],
     ['UserPromptSubmit', null, 1],
     // workflow-route-inject: default-on, configurable runtime workflow router.

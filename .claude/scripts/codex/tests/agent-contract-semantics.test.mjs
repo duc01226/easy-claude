@@ -81,7 +81,7 @@ test("TC-HARNESS-005 injector reconciles excluded orchestration fences without r
     "import sys, json",
     "sys.path.insert(0, '.claude/scripts')",
     "from inject_agent_protocol_blocks import reconcile_excluded_blocks",
-    "text = 'role prose\\n<!-- SYNC:parallel-subagent-dispatch -->\\nold orchestration\\n<!-- /SYNC:parallel-subagent-dispatch -->\\nend'",
+    "text = 'role prose\\n<!-- SYNC:parallel-phase-advancement -->\\nold orchestration\\n<!-- /SYNC:parallel-phase-advancement -->\\nend'",
     "clean, removed = reconcile_excluded_blocks(text, 'security-auditor')",
     "print(json.dumps({'clean': clean, 'removed': removed}))",
   ].join("; ");
@@ -90,7 +90,7 @@ test("TC-HARNESS-005 injector reconciles excluded orchestration fences without r
   const parsed = JSON.parse(result.stdout);
   assert.equal(parsed.clean.includes("old orchestration"), false);
   assert.equal(parsed.clean.includes("role prose"), true);
-  assert.deepEqual(parsed.removed, ["SYNC:parallel-subagent-dispatch"]);
+  assert.deepEqual(parsed.removed, ["SYNC:parallel-phase-advancement"]);
 
   const whitelistCode = [
     "import sys, json",
@@ -114,7 +114,7 @@ test("TC-HARNESS-005 injector reconciles excluded orchestration fences without r
     "import sys, json",
     "sys.path.insert(0, '.claude/scripts')",
     "from inject_agent_protocol_blocks import reconcile_excluded_blocks",
-    "text = '<!-- SYNC:parallel-subagent-dispatch -->\\norphan body\\n\\nROLE-PROSE-A\\nROLE-PROSE-B\\n\\n<!-- SYNC:parallel-subagent-dispatch -->\\nstale orchestration\\n<!-- /SYNC:parallel-subagent-dispatch -->\\ntail'",
+    "text = '<!-- SYNC:parallel-phase-advancement -->\\norphan body\\n\\nROLE-PROSE-A\\nROLE-PROSE-B\\n\\n<!-- SYNC:parallel-phase-advancement -->\\nstale orchestration\\n<!-- /SYNC:parallel-phase-advancement -->\\ntail'",
     "clean, removed = reconcile_excluded_blocks(text, 'security-auditor')",
     "print(json.dumps({'clean': clean, 'removed': removed}))",
   ].join("; ");
@@ -126,7 +126,7 @@ test("TC-HARNESS-005 injector reconciles excluded orchestration fences without r
   assert.equal(orphanParsed.clean.includes("stale orchestration"), false, "the well-formed stale block is still removed");
   assert.equal(orphanParsed.clean.includes("orphan body"), true, "the unbalanced fence stays visible rather than being swallowed");
   assert.equal(orphanParsed.clean.includes("tail"), true);
-  assert.deepEqual(orphanParsed.removed, ["SYNC:parallel-subagent-dispatch"]);
+  assert.deepEqual(orphanParsed.removed, ["SYNC:parallel-phase-advancement"]);
 });
 
 test("TC-HARNESS-005 matrix and injector remain executable and canonical", () => {
@@ -162,9 +162,9 @@ test('TC-HARNESS-005 stale on-disk orchestration is rejected and the enforcement
       "errors, warnings = namespace['validate']()",
       "assert errors == [], errors",
       "carrier = namespace['AGENTS_DIR'] / 'security-auditor.md'",
-      "carrier.write_text(carrier.read_text(encoding='utf-8') + '\\n<!-- SYNC:parallel-subagent-dispatch -->\\nstale\\n<!-- /SYNC:parallel-subagent-dispatch -->\\n', encoding='utf-8')",
+      "carrier.write_text(carrier.read_text(encoding='utf-8') + '\\n<!-- SYNC:parallel-phase-advancement -->\\nstale\\n<!-- /SYNC:parallel-phase-advancement -->\\n', encoding='utf-8')",
       "errors, warnings = namespace['validate']()",
-      "expected = \"(i) agent 'security-auditor' still carries excluded-orchestration block(s) ['parallel-subagent-dispatch']; run inject_agent_protocol_blocks.py to reconcile exact fences\"",
+      "expected = \"(i) agent 'security-auditor' still carries excluded-orchestration block(s) ['parallel-phase-advancement']; run inject_agent_protocol_blocks.py to reconcile exact fences\"",
       "assert errors == [expected], ('stale carrier rejection missing', errors)",
       "print('stale-carrier-rejected; whitelist-control-valid')",
     ].join('\n');

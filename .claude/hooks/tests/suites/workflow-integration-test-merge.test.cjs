@@ -376,8 +376,7 @@ const tests = [
             // the skill carries the union of the two old guide sets, each backed by its projection file
             const tags = guideTags(wrapper());
             for (const tag of [
-                'environment-fault-hypothesis', 'incremental-persistence', 'integration-test-execution-discipline', 'nested-task-creation',
-                'real-world-fidelity-testing', 'session-goal-ledger', 'severity-rubric', 'subagent-return-contract',
+                'environment-fault-hypothesis', 'incremental-persistence', 'integration-test-execution-discipline', 'real-world-fidelity-testing', 'session-goal-ledger', 'severity-rubric', 'subagent-return-contract',
                 'task-tracking-external-report', 'test-architecture-execution-contract', 'test-failure-fault-adjudication', 'workflow-registry-binding'
             ]) {
                 assert.ok(tags.includes(tag), `the skill keeps the ${tag} guide`);

@@ -793,6 +793,11 @@ const SCHEMA = {
                 enumValues: WORKFLOW_ROUTE_MODES,
                 describe: 'Team default for the workflow route mode: ask (default; the workflow question is asked only when the route is to start a catalog workflow; direct and custom-simple routes ask nothing) | auto (start it without asking, by its tier) | off (no workflow is started without an explicit request). A person overrides it in ~/.claude/.ck.json, .claude/.ck.local.json or env CK_WORKFLOW_ROUTE_MODE.'
             },
+            skillAutoTrigger: {
+                type: 'boolean',
+                required: false,
+                describe: 'Default true. false prevents self-selection of framework skills except commit, pull-request and lightweight framework-config help. Named user requests, hook-required calls and required steps of an authorized skill remain allowed. Runtime prompt policy, not a host permission block. Personal overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_SKILL_AUTO_TRIGGER.'
+            },
             // false = the generated golden-rules section names each context group and points to the
             // file-conventions hook + `--lookup` CLI instead of inlining every rule (root byte budget).
             // Honored only with conventionInjection.enabled: true, the conventions lib available and every

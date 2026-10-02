@@ -111,15 +111,15 @@ You are a **teacher, a coach, and a router**, in that order.
 
    **If a contract file is missing** (a partial distribution, a vendored copy, an incomplete mirror sync), **degrade — never silently, and never by skipping the work it governs.** Say which file is absent in one line — *"`references/diagram-catalog.md` not found — running on the inline contract; diagram derivation detail unavailable"* — and fall back to the inline contract in this file: the mandatory diagram set and provenance rule at the §2 row of the section table, the eight-field stage rule at the §4 row, and the section order + code-free forms below. The report is still owed in full; only the elaboration is lost. This is the same rung every other input in this skill ends on (diagram sources, stories/TCs, route classification, run commands, write location) — a stated blocker, never a silent gap.
 
-3. **Size the target BEFORE you read it (cheap signals only — this step costs seconds).** Count, do not estimate: in-scope **files** (`git diff --name-only` + untracked, or a glob of the named area), distinct user-facing **capabilities/flows**, distinct **modules / bounded contexts** (`docs/project-config.json` → modules), and **changed lines** where a diff exists. Read the tier off the table — **first row whose trigger matches, top-down** — and announce it in one line (`Scope: S3 · Large — 63 files, 9 capabilities, 4 modules → 8 groups`).
+3. **Size the target BEFORE you read it (cheap signals only — this step costs seconds).** Count, do not estimate: in-scope **files** (`git diff --name-only` + untracked, or a glob of the named area), distinct user-facing **capabilities/flows**, distinct **modules / bounded contexts** (`docs/project-config.json` → modules), and **changed lines** where a diff exists. Read the tier off the table — **first row whose trigger matches, top-down, highest tier first** (promote before dispatch if subsequent decomposition exceeds the selected tier; a point request does not override measured scale) — and announce it in one line (`Scope: S3 · Large — 63 files, 9 capabilities, 4 modules → 8 groups`).
 
    | Tier | Trigger (first match wins) | Understanding groups | Report shape | How the work runs |
    | --- | --- | --- | --- | --- |
+   | **S4 · Program** | Whole repo · multi-service · "explain the project" | Grouped per context, nested | One file | Group agents in waves → context synthesizers → spine |
+   | **S3 · Large** | > 40 files **OR** > 6 groups | 6–12 | One file | One sub-agent per group, **every group spawned in ONE wave**, front-loaded fragment writes |
+   | **S2 · Multi** | ≥ 10 files **OR** ≥ 2 capabilities/flows/contexts | 2–6 | One file | **Gather fans out** — one read-only gather agent per group, all in ONE wave; orchestrator authors inline from the returns |
    | **S0 · Point** | One file, one decision, one concept, one error | 1 | One file | Inline, section by section |
    | **S1 · Small** | < 10 in-scope files, one capability | 1 | One file | Inline, section by section |
-   | **S2 · Multi** | ≥ 10 files **OR** ≥ 2 capabilities/flows/contexts | 2–6 | One file | **Gather fans out** — one read-only gather agent per group, all in ONE wave; orchestrator authors inline from the returns |
-   | **S3 · Large** | > 40 files **OR** > 6 groups | 6–12 | One file | One sub-agent per group, **every group spawned in ONE wave**, front-loaded fragment writes |
-   | **S4 · Program** | Whole repo · multi-service · "explain the project" | Grouped per context, nested | One file | Group agents in waves → context synthesizers → spine |
 
    > The thresholds are the framework's existing map-reduce ladder (`SYNC:systematic-review-batching`: < 10 sequential · ≥ 10 batch · > 6 categories or > 40 files hierarchical), **adopted deliberately** so `understand` and the review skills never partition the same target two different ways. What differs is only the unit and the output: this skill batches by **explainable group** and emits **teaching**, never findings. — why: a developer who runs both skills on one change should meet the same boundaries twice, not two competing maps.
 
@@ -341,7 +341,6 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -364,11 +363,6 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 

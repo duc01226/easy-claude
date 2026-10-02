@@ -141,10 +141,8 @@ const AGENT_ADOPTION_MIN_SKILL_REACH = 3;
 // Orchestration blocks a headless leaf sub-agent structurally CANNOT act on.
 // Mirrors agent_protocol_matrix.py EXCLUDED_ORCHESTRATION -- keep the two in step.
 const AGENT_ADOPTION_EXEMPT = new Set([
-    'nested-task-creation',        // expands a workflow step's child phase tasks
     'subagent-return-contract',    // instructs ITS sub-agents how to return (inverted for a leaf)
     'parallel-phase-advancement',  // all-return barrier across a parallel phase group
-    'parallel-subagent-dispatch',  // orchestrator partitions ITS task list into PAR/SEQ waves and spawns them; a leaf agent runs one brief and (per the block's own rule 7) must not fan out
     'sub-agent-selection',         // a dispatcher choosing which sub-agents to spawn
     'goal-contract-satisfaction-loop', // session goal file + convergence loop + user escalation
     'task-tracking-external-report', // folded into agent-bootstrap: an agent keeps one statement of the task and report rules (sync_blocks.AGENT_FOLDED_TAGS)
@@ -157,8 +155,6 @@ const AGENT_ADOPTION_EXEMPT = new Set([
     // the rules it applies already embedded (agent_protocol_matrix.py EXCLUDED_ORCHESTRATION).
     'review-protocol-injection',
     'systematic-review-batching',
-    'double-round-trip-review',
-    'fresh-context-review',
     'review-policy',
 ]);
 const AGENT_SKILL_CONNECTIONS_OPEN = '<!-- AGENT-SKILL-CONNECTIONS:START -->';
@@ -181,8 +177,6 @@ const CODE_STANDARDS_AGENTS = new Set([
     'spec-compliance-reviewer', 'tester',
 ]);
 const REVIEW_CYCLE_TAGS = [
-    'fresh-context-review',
-    'double-round-trip-review',
     'review-protocol-injection',
 ];
 const REVIEW_CYCLE_AGENTS = new Set([

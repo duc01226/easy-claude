@@ -177,7 +177,7 @@ Generate a CI job/step that:
 4. Runs type checker (fail on any error)
 5. Runs static analyzer (fail on configurable complexity/duplication threshold)
 6. Runs dependency vulnerability scanner (fail on HIGH/CRITICAL CVEs)
-7. Reports line coverage as DIAGNOSTIC only — NEVER fail on a coverage %. Low coverage signals untested areas; high coverage does not prove quality. If a test-strength gate is wanted, ask `AskUserQuestion`: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" Gate on mutation score (a surviving mutant = missing/weak assertion); report line coverage but do not gate on it. Keep behavior/change-coverage meaningful: each behavior-changing file tests the changed outcome.
+7. Reports line coverage as DIAGNOSTIC only — NEVER fail on a coverage %. Low coverage signals untested areas; high coverage does not prove quality. If a test-strength sensor is warranted, choose assertion-intent, contract, property or mutation evidence by profile, risk, tooling and budget under the shared Harness Engineering owner; ask before installing an optional tool. A mutation-score threshold applies only when justified and selected; report line coverage but do not gate on it. Keep behavior/change-coverage meaningful: each behavior-changing file tests the changed outcome.
 
 **MANDATORY:** CI gate must match pre-commit hooks. If a check runs locally, it runs in CI. No divergence.
 
@@ -189,7 +189,7 @@ After all config files generated, verify MUST ATTENTION each item:
 
 - Config files exist at project root (linter, formatter, type-checker configs)
 - `.editorconfig` created at project root
-- Pre-commit hook fires on `git commit` — test with an intentional violation (e.g., add a lint error, attempt commit, verify hook blocks)
+- Pre-commit verification runs in an isolated temporary fixture repository using the selected hook configuration and tooling, never the working repository. Snapshot the working repository HEAD and index bytes before the probe and verify both unchanged afterward. In the fixture, stage a synthetic lint violation, attempt the fixture commit, and require nonzero status plus the selected linter’s diagnostic for that exact file/rule; an unrelated authority hook rejection is not proof. Also test an absent/broken-hook fixture: a successful fixture commit must be reported as a failed hook-verification result. Include a clean valid fixture that succeeds to discriminate unrelated failures; remove fixture artifacts in finally. Setup authorization grants no real-project commit authority.
 - CI step defined and references the correct config files
 - Team setup documented in `README.md` — new devs know to run `{hook install command}` after clone
 - `.gitignore` updated with tool cache directories
@@ -229,7 +229,7 @@ After all config files generated, verify MUST ATTENTION each item:
 
 <!-- SYNC:engineering-foundation-gate:reminder -->
 
-**IMPORTANT MUST ATTENTION** engineering-foundation gate — judges whether the team can build, run, test, and change the system repeatably as it grows. Derive lifecycle, scale, criticality, repository shape, and runtime from evidence; take the lower supported tier when unknown. Judge all 7 dimensions, using `N/A-by-profile` with evidence when a concern truly does not apply. **F1** reproducible build/run/test path · **F2** document and exercise each supported or required execution mode; dual host/container or other modes only when the project uses or needs them · **F3** environment portability at applicable local/CI/production-shaped targets · **F4** meaningful test-strength evidence without making one mutation tool universal · **F5** measured performance where scale/risk warrants it · **F6** change/build scalability where the repository has meaningful module boundaries · **F7** mechanical checks selected for the stack/profile. For each, judge outcomes rather than tools, and preserve anti-over-engineering. Foundation creation may block on missing warranted outcomes; brownfield audits advise and name the smallest next step. Catalog → `.claude/docs/engineering-foundation-catalog.md` (update first, then re-run `inject_engineering_foundation_gate.py`).
+**IMPORTANT MUST ATTENTION** evidence-backed lifecycle/scale/criticality/repo/runtime profile; unknowns take lower tiers. Judge all 7 outcomes: **F1** reproducible build/run/test · **F2** exercise supported/required modes; dual modes only when warranted · **F3** applicable local/CI/production-shaped test portability · **F4** test-strength proof; no universal mutation tool · **F5** measured performance at warranted scale/risk · **F6** build/change scalability at meaningful module boundaries · **F7** stack/profile-fit mechanical checks. Evidence-backed `N/A-by-profile` is valid; prevent over-engineering. Creation blocks warranted omissions; brownfield advises without score changes, with smallest next steps. Catalog: `.claude/docs/engineering-foundation-catalog.md`; update first, re-run `inject_engineering_foundation_gate.py`.
 
 <!-- /SYNC:engineering-foundation-gate:reminder -->
 
@@ -243,14 +243,14 @@ After all config files generated, verify MUST ATTENTION each item:
 
 **IMPORTANT MUST ATTENTION** use QUERY TEMPLATES in Tool Research — NEVER hardcode tool names in the research phase; research the detected stack's current ecosystem and present options — why: tool ecosystems churn fast, hardcoded names cargo-cult dead tools.
 **IMPORTANT MUST ATTENTION** present top 2-3 options per category via `AskUserQuestion` — let the user pick; NEVER auto-select — why: tool choice is a team-owned decision, not the skill's.
-**IMPORTANT MUST ATTENTION** verify the pre-commit hook fires with an INTENTIONAL violation (add a lint error, attempt commit, confirm it blocks) before marking complete — why: an unproven gate is no gate.
+**IMPORTANT MUST ATTENTION** Test pre-commit only in an isolated temporary fixture: lint-specific rejection, valid success and absent-hook failure classification; preserve the working HEAD/index and clean fixture artifacts — why: an unproven gate is no gate.
 **IMPORTANT MUST ATTENTION** CI gate MUST match pre-commit hooks — if a check runs locally it runs in CI, no divergence — why: divergent local/CI checks let violations slip through one path.
 
 **MUST ATTENTION** detect the stack FIRST (`plan.md` → architecture report → tech-stack report); if a critical field is undetectable, `AskUserQuestion` before research — why: every downstream tool choice depends on the stack profile.
 **MUST ATTENTION** configure with the STRICTEST reasonable defaults; loosen ONLY with explicit user approval via `AskUserQuestion` — why: starting strict is easier to loosen than starting loose is to tighten.
 **MUST ATTENTION** ALWAYS emit a stack-agnostic `.editorconfig` and add tool cache dirs to `.gitignore` — why: editorconfig is the one truly portable cross-tool baseline; cached artifacts must never be committed.
 **MUST ATTENTION** order hooks formatter→linter→type-check, staged-files-only, <30s; defer slow checks (static analysis, full type-check) to CI — why: a slow hook gets bypassed, killing local feedback.
-**MUST ATTENTION** report line-coverage as a DIAGNOSTIC only — NEVER fail the build on a coverage %; gate on mutation score if a test-strength gate is wanted — why: high coverage is not evidence of assertion quality.
+**MUST ATTENTION** report line-coverage as a DIAGNOSTIC only — NEVER fail the build on a coverage %; choose profile-fit intent evidence if a test-strength sensor is warranted — why: high coverage is not evidence of assertion quality.
 **MUST ATTENTION** pre-commit hook framework names ARE allowed (ecosystem glue, not research choices) — the quality tools invoked inside them are the research-driven selections — why: keep the generic/research boundary clear.
 
 **MUST ATTENTION** when confidence in the current ecosystem is <80% (fast-moving or unfamiliar stack), use WebSearch to verify before presenting options — cite confidence % for every recommendation; <60% DO NOT recommend — why: stale tool advice fails silently.

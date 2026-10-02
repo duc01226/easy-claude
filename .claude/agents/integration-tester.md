@@ -221,12 +221,12 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- SYNC:repeatable-test-principle -->
 
-> **Repeatable Tests** — A test suite should produce the same contract result across normal fresh runs and supported concurrency. Use the project's runner and isolation policy; a fixed no-reset database procedure does not fit every harness.
+> **Repeatable Tests** — Preserve the same contract result across fresh runs and supported concurrency using the project's runner/isolation policy; no universal no-reset database procedure.
 >
-> 1. Isolate mutable test data from other tests and runs. Use generated identities when the configured environment shares a namespace or data store; stable IDs are fine in an isolated disposable database or deterministic fixture.
-> 2. Cleanup may remove only resources created and owned by that test/run. Use transactions, ephemeral databases, namespaces, teardown, or additive fixtures according to the project's harness; never reset shared or user-owned state.
-> 3. Make shared fixture setup idempotent when the runner may repeat it. Keep schema/migration testing when it is part of the project contract; follow the project's migration harness and never use rollback assumptions that the production system does not support.
-> 4. Verify repeatability at the level required by `integrationTestVerify.guidance`. If absent, use two fresh runs when persistent/shared state or asynchronous effects make one run insufficient; stateful verification must not rely on deleting another run's data.
+> 1. Isolate mutable data across tests/runs. Generate identities in shared namespaces/stores; stable IDs are valid in isolated disposable databases or deterministic fixtures.
+> 2. Cleanup only resources created AND owned by the test/run. Use harness-supported transactions, ephemeral databases, namespaces, teardown, or additive fixtures; never reset shared/user-owned state.
+> 3. Make repeatable shared setup idempotent. Retain contract-required schema/migration tests using the migration harness; assume no rollback unsupported in production.
+> 4. Follow `integrationTestVerify.guidance`. If absent, use two fresh runs when persistent/shared state or async effects make one insufficient; never delete another run's data to verify repeatability.
 
 <!-- /SYNC:repeatable-test-principle -->
 
@@ -254,7 +254,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- SYNC:graph-impact-analysis -->
 
-> **Graph Impact Analysis (optional advice)** — Optional: when a change looks high-risk (shared contract, many callers, cross-module/cross-service flow, public API) and `.code-graph/graph.db` exists, `blast-radius --json` can suggest files the change may affect (7 edge types: CALLS, MESSAGE_BUS, API_ENDPOINT, TRIGGERS_EVENT, PRODUCES_EVENT, TRIGGERS_COMMAND_EVENT, INHERITS). Impacted files outside the changeset are candidates to read, not proof of staleness; `<5` / `5-20` / `>20` impacted files is a rough low/medium/high hint. `trace --direction downstream` can follow deep chains. The graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify by reading the files. An absent graph is never a finding; skip it for low-risk or local changes.
+> **Graph Impact Analysis (optional advice)** — Optional: for high-risk changes (shared contract, many callers, cross-module/cross-service flow, public API), an existing `.code-graph/graph.db` can suggest affected files via `blast-radius --json` (7 edge types: CALLS, MESSAGE_BUS, API_ENDPOINT, TRIGGERS_EVENT, PRODUCES_EVENT, TRIGGERS_COMMAND_EVENT, INHERITS). Outside-changeset files are read candidates, not proof of staleness; `<5` / `5-20` / `>20` files roughly hint low/medium/high impact. Use `trace --direction downstream` for deep chains. The graph can be stale or incomplete (uncommitted edits/unindexed paths); verify by reading files. An absent graph is never a finding; skip low-risk/local changes.
 
 <!-- /SYNC:graph-impact-analysis -->
 
@@ -306,15 +306,15 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 > | CRITICAL | Block immediately; escalate | Immediate material risk if shipped: authentication/authorization or safety bypass; secrets/PII exposure; irreversible destructive action; data loss/corruption; a silent failure on a critical path. A failed binary gate is carried by the executable policy as a separate synthetic blocker, not an ordinary severity judgment. |
 > | HIGH | Must fix before PASS/merge | Material correctness or contract risk: wrong behavior on a supported path; violated business/data invariant; meaningful privacy or authority gap; breaking API/schema/compatibility change; likely harm to users/downstream systems; a missing proof for a behavior-changing fix. |
 > | MEDIUM | Must clear the current round; escalate if the fix needs an owner decision | Bounded but consequential risk: an edge case, resilience/observability/testability/maintainability gap, credible future defect, or local architectural drift — real impact, not immediate material loss. A recorded follow-up does not make an open MEDIUM a clean pass. |
-> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never counts toward the round-3 extension | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
+> | LOW | Record and defer; never opens another fix/re-review round from round 2 onward, never raises the round budget | Non-blocking polish with no credible present correctness, security, privacy, authority, availability, or data-integrity impact: wording/formatting, minor documentation or convention drift, optional defensive cleanup, cosmetic refinement. |
 >
-> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and unlocking or forfeiting the round-3 extension never decide the tier.
+> **Consequence decision tree (apply in order):** (1) A failed binary gate stays a separate hard blocker (synthetic CRITICAL in the executable helper) — never hide it behind an ordinary label. Otherwise, would shipping permit immediate material security/safety/authority harm, irreversible destruction, data loss/corruption, or a critical-path silent failure? → **CRITICAL**. (2) Does a supported path, invariant, public contract, privacy/authority boundary, compatibility promise, or behavior-changing proof fail with material impact? → **HIGH**. (3) A bounded but consequential edge, resilience, observability, testability, maintainability, or architectural gap with credible impact? → **MEDIUM**. (4) Evidence shows only non-blocking polish? → **LOW**. (5) Evidence to choose among 1–4 missing → **NOT VERIFIABLE**, not LOW. When several tiers fit, select the highest credible consequence; effort, cost, reviewer discomfort, frequency alone, proximity to the round cap, and obtaining another round never decide the tier.
 >
 > **Boundary examples:** auth bypass, exposed secret/PII, destructive command without an authority gate, or failed required test/generation/parity gate → **CRITICAL**; wrong supported response, broken invariant/API/schema, meaningful privacy/authority defect, or unproven behavior-changing fix → **HIGH**; bounded retry/timeout/alert/testability gap or credible maintainability drift → **MEDIUM**; typo, formatting, optional cleanup, or cosmetic suggestion proven not to affect behavior → **LOW**. A missing fact about any boundary is **NOT VERIFIABLE** until evidence or a documented residual-risk decision exists.
 >
 > **Classification procedure (every finding):** (1) state the affected user, system, data, contract, or gate; (2) assess consequence if it ships; (3) assess exposure/likelihood and reversibility/detectability; (4) select the highest justified tier; (5) cite `file:line` or equivalent evidence and a confidence percentage. `NOT VERIFIABLE` is a pending evidence state, not a fifth tier and never a LOW escape hatch: if the claim could affect required behavior, security, privacy, authority, availability, data integrity, or a binary gate, it stays an open evidence blocker until resolved or explicitly owner-accepted with documented residual risk. Classify LOW only when evidence supports the absence of credible present material impact.
 >
-> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate counts as CRITICAL for the round-3 extension; a failing test gate is outside the round budget and loops until the tests pass.
+> **Hard-gate rule:** Binary gates (tests, required artifacts, security must-fix checks, generated parity, policy compliance) are not severity-rated findings. The executable helper records a failed gate as a synthetic CRITICAL blocker so one predicate can carry it; the report still names the gate and failure evidence. A failed gate blocks at every round, even when all ordinary findings are LOW. A failed non-test gate is bounded by the three-round review cap; a failing test gate is outside the round budget and loops until the tests pass.
 >
 > **Score-based skills** map their numeric scale onto these tiers — no parallel vocabulary:
 >
@@ -329,7 +329,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 > - UI `P0`/`P1`/`P2`/`P3`/`P4` start as CRITICAL/HIGH/MEDIUM/LOW/LOW; override upward only on evidence of a higher shipped consequence. A P0/P1 accessibility or task-completion floor stays a blocking gate even when called a priority.
 > - Numeric SRE/readiness or impact/likelihood scores are evidence inputs, not tiers: emit the score, the consequence, and the normalized tier together. `INFO`/advisory observations are not findings unless evidence shows a material consequence.
 >
-> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; only an open CRITICAL/HIGH at round 2 (a failed non-test binary gate counts as CRITICAL) unlocks the single conditional extension round; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
+> A tier drives the gate: CRITICAL/HIGH/MEDIUM stay actionable and blocking under the round policy; all review blockers may use up to three rounds, then escalate; LOW may be tracked as a follow-up and, from round 2, never justifies another fix/re-review by itself. An owner decision may explain or schedule an open MEDIUM but never makes it a clean pass; owner acceptance never makes a failed binary gate pass and must record scope, rationale, and residual risk.
 
 <!-- /SYNC:severity-rubric -->
 
@@ -372,8 +372,6 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 <!-- /SYNC:category-review-thinking -->
 
 
-
-
 <!-- SYNC:trade-off-interrogation-gate -->
 
 > **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
@@ -413,7 +411,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
-> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes").
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 
@@ -463,13 +461,13 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- SYNC:test-data-isolation -->
 
-> **Test Data Isolation** — Tests MUST remain independent across the concurrency modes the project supports. Stateful suites should not depend on test order or mutate data another test/run owns.
+> **Test Data Isolation** — Tests MUST be independent across supported concurrency modes; stateful suites must not depend on order or mutate another test/run's data.
 >
-> 1. **Use the isolation boundary the harness supports:** transactions, per-test databases/schemas, namespaces, fixtures, or unique data as appropriate. Unique IDs are essential when tests share a namespace; stable IDs are fine inside isolated disposable fixtures.
-> 2. **Isolate mutable state when tests can observe or alter it concurrently.** Shared mutable state is safe only when the runner/project provides an explicit isolation guarantee; immutable reference data may be shared.
-> 3. **Account for cross-cutting consumers when they are relevant:** a bulk rebuild, recompute, or cascade can rewrite descendants of a shared parent; inspect that path if another test/run's work could affect the assertion.
-> 4. **On an intermittent contradiction, test contamination as a competing cause.** Trace the path first, then inspect other writers/consumers of shared state before attributing the wrong outcome to product code.
-> 5. **Prove the relevant isolation claim with a scoped search.** Inspect other tests and consumers that can touch the shared data in question; do not demand a repository-wide search when the test owns an isolated store/transaction.
+> 1. Use harness-supported transactions, per-test databases/schemas, namespaces, fixtures, or unique data. Shared namespaces require unique IDs; isolated disposable fixtures may use stable IDs.
+> 2. Isolate concurrently observable/mutable state. Share mutable state only under an explicit runner/project isolation guarantee; immutable reference data may be shared.
+> 3. Inspect relevant bulk rebuild/recompute/cascade consumers when rewriting shared-parent descendants could affect any test/run's assertions.
+> 4. For intermittent contradictions, trace the path and inspect competing writers/consumers before attributing the outcome to product code; consider contamination.
+> 5. Prove isolation through scoped searches of relevant tests/consumers; repository-wide searches are unnecessary for an owned isolated store/transaction.
 
 <!-- /SYNC:test-data-isolation -->
 
@@ -628,11 +626,11 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- SYNC:graph-assisted-investigation -->
 
-> **Graph-Assisted Investigation (optional advice)** — Optional: when grep and reading files alone may not reveal a high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), the code graph (`.code-graph/graph.db`) can add callers, dependents and impacted tests. Treat it as a hint, NOT proof: the graph can be stale or incomplete (it lags uncommitted edits and unindexed paths) — verify anything that matters by reading the files/grep. Skip it for low-risk or local changes.
+> **Graph-Assisted Investigation (optional advice)** — Optional: for high-risk blast radius (shared contract, many callers, cross-module/cross-service flow, public API), `.code-graph/graph.db` may add callers, dependents and impacted tests beyond grep/read. Treat it as a hint, NOT proof: stale or incomplete graphs lag uncommitted edits and unindexed paths. verify anything that matters by reading files/grep. Skip it for low-risk or local changes.
 >
 > An absent or stale graph is never a finding and never blocks, fails or gates work.
 >
-> **Pattern (when used):** grep/read finds files → optional graph query suggests extra callers/dependents → grep/read verifies details
+> **Pattern:** grep/read → optional graph suggestions → grep/read verification.
 >
 > | Situation                          | Optional graph query                         |
 > | ---------------------------------- | -------------------------------------------- |
@@ -642,7 +640,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 > | Review of a high-risk change       | `tests_for` on changed functions             |
 > | Blast radius                       | `trace --direction downstream`               |
 >
-> **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
+> **CLI:** `python .claude/scripts/code_graph {command} --json`. Start `--node-mode file` (10-30x less noise), then `--node-mode function` for detail.
 
 <!-- /SYNC:graph-assisted-investigation -->
 
@@ -680,7 +678,7 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer.
+**MUST ATTENTION** use structured reasoning for complex or ambiguous work, implicitly when visible markers would clutter. Verify hypotheses, revise assumptions, and close with confidence, assumptions, open questions and a concrete next action.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
@@ -700,15 +698,12 @@ Pattern (when used): grep/read first → optional graph query → grep/read veri
 <!-- /SYNC:severity-rubric:reminder -->
 
 
-
 <!-- SYNC:category-review-thinking:reminder -->
 
 - **MANDATORY** Derive review categories from file language + directory semantics + change nature; create a sub-task per category.
 - **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
 
 <!-- /SYNC:category-review-thinking:reminder -->
-
-
 
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->

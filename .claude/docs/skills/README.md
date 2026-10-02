@@ -2,7 +2,7 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->14<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
 
 ## Overview
 
@@ -16,6 +16,10 @@ Skill Detection: "fix", "employee", "validation"
 Skills Activated: fix, investigate
 ```
 
+## Framework help and configuration
+
+`framework-config` automatically matches questions about the .claude/.codex/.agents/.opencode framework and requests to configure it. Ask “How do these skills work?” or “Disable heavy auto-trigger for this checkout”. Questions are read-only; requested changes are scoped, merged and validated. Explicit invocation: `/framework-config` or `$framework-config`. It remains eligible under restricted heavy-skill selection.
+
 ## How Skills Work
 
 Skill loading activates instructions; execution performs their steps through the active host. Claude Code uses its `Skill` tool. Codex loads the registered `.agents/skills/<name>/SKILL.md` and follows it with available tools; OpenCode uses its native skill loader. A canonical `.claude/**` source read never changes the session's host. Read `.claude/docs/troubleshooting.md` when a discovered skill is incorrectly blocked on a foreign-host tool name.
@@ -26,7 +30,7 @@ Skill loading activates instructions; execution performs their steps through the
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                    |
 | ------------------------------------------------- | ------ | ---------------------------------------------- |
@@ -44,7 +48,7 @@ Skill loading activates instructions; execution performs their steps through the
 | [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
 | [Utility](#utility)                               | 1      | Skill creation                                 |
 
-**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->14<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
+**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->15<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
 
 ---
 
@@ -104,7 +108,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | Skill                         | Triggers                                                | Description                                          |
 | ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
 | `commit`                      | commit, stage, save changes                             | Git commits; adds a `Fix-Origin:` trailer only when `commit.fixOriginTrailer` is `true` in `docs/project-config.json` (new commits only) |
-| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch at the latest `pullRequest.targetBranch` (default `main`) — new branch when already merged, rebase when unpushed and behind, `/workflow-review-changes --fix-loop` over the whole branch, commit, push, create or ready the PR, loop CI to green — in the main session, without asking |
+| `pull-request`                | create PR, open PR, finish PR, ready to merge, mark ready | Take the branch to a ready-to-merge PR: branch at the latest `pullRequest.targetBranch` (default `main`) — new branch when already merged, rebase when unpushed and behind, ask for local tests and whole-branch review (including explicit Skip), run the selected gates, commit, push, create or ready the PR, loop CI to green — in the main session |
 | `code-quality-review`                 | review, feedback, PR review                             | Code review                                          |
 | `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
 | `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
@@ -138,7 +142,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | ----------------- | ------------------------------------------------ | ---------------------------- |
 | `code-simplifier` | simplify, refine, clarity                        | Code cleanup                 |
 | `learn`           | remember this, always do, patterns, list learned, rule for a skill, when doing X always | Pattern learning and viewing; skill-specific rules route to `project-skill-protocol` overlays; broad short project rules route to the root `CLAUDE.md` project-rules section (then `sync-codex`) |
-| `workflow-mode`   | workflow mode, route mode, workflows auto, turn workflows off, ask before workflow | Show or set this person's workflow route mode (`ask` · `auto` · `off`); personal, never a project setting |
+| `framework-config` | framework questions, .claude/.codex skills configuration, hooks, workflow settings | Explain and show settings; merge and validate requested team/user/checkout changes; reset one preference |
 
 ---
 
@@ -249,7 +253,7 @@ Set `disable-model-invocation: true` on a skill the model must never start on it
 
 **Manual-only skills shipped here** (list them with `grep -l "^disable-model-invocation: true" .claude/skills/*/SKILL.md`):
 
-- **Command-only utilities** — `ck-help`, `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-doc`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
+- **Command-only utilities** — `custom-agent`, `custom-prompt`, `docx-convert`, `git-developer-performance`, `graph-export`, `pdf-convert`, `playwright-cli`, `presentation-builder`, `project-help`, `release-doc`, `remotion`, `scan-codebase-health`, `skill-creator`, `sync-skills-shared-protocols`. No workflow step, agent `skills:` preload, `Skill(` call or hook starts any of them; the user runs `/name` (Claude) or `$name` (Codex). A file read by path (for example a workflow's `preActions.readFiles`) still works.
 - **Mirror syncs** — `sync-opencode` rewrites a generated folder, so only the user starts it. `sync-codex` is model-callable: run it once, after the `.claude/**` source is final, to regenerate `.agents/`, `.codex/` and `AGENTS.md`.
 - **Other** — `product-roadmap`. (No workflow wrapper ships manual-only: every framework workflow can be selected by the AI.)
 
@@ -302,7 +306,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->102<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->14<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

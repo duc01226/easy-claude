@@ -194,7 +194,7 @@ const tests = [
             const skill = skillText();
             const review = modeReview();
             const canon = canonical();
-            const tags = ['category-review-thinking', 'core-engineering-principles', 'double-round-trip-review', 'fresh-context-review', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'nested-task-creation', 'parallel-subagent-dispatch', 'review-principle-awareness', 'severity-rubric', 'source-test-drift-check', 'systematic-review-batching', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'understand-code-first'];
+            const tags = ['category-review-thinking', 'core-engineering-principles', 'goal-contract-satisfaction-loop', 'graph-assisted-investigation', 'review-principle-awareness', 'severity-rubric', 'source-test-drift-check', 'systematic-review-batching', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'understand-code-first'];
             for (const tag of tags) {
                 const body = extractSyncBody(canon, tag);
                 assert.ok(body, `canonical body for ${tag}`);
@@ -210,7 +210,7 @@ const tests = [
             const opens = review.match(/<!-- SYNC:[a-z-]+(?::reminder)? -->/g) || [];
             const closes = review.match(/<!-- \/SYNC:[a-z-]+(?::reminder)? -->/g) || [];
             assert.equal(opens.length, closes.length, 'fences balanced');
-            assert.ok((review.match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length >= 12, 'the :reminder digests moved with the bodies');
+            assert.ok((review.match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length >= 11, 'the :reminder digests moved with the bodies');
             // Protocol delivery for the domain model group names the surviving skill only
             const groups = JSON.parse(read(SKILLS, 'shared', 'protocol-groups.json'));
             const listed = groups.deliveryTriggers['domain-model'].skills;

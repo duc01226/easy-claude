@@ -153,11 +153,11 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->102<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->29<!-- /COUNT -->       |
+| Skills      | <!-- COUNT:skills -->101<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->30<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->14<!-- /COUNT -->      |
+| Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
 | Lib modules | <!-- COUNT:lib-modules -->45<!-- /COUNT --> |
 
 ---
@@ -166,10 +166,11 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 ```
 docs/adr/  (4 files)
+docs/knowledge/  (11 files)
 docs/project-reference/  (18 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (14 files)
+docs/specs/  (15 files)
 docs/templates/  (1 files)
 ```
 

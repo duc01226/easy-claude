@@ -215,7 +215,7 @@ NEVER declare a confirmed root cause straight from investigation. Run `/why-revi
 
 ## Mode protocols
 
-The protocols below apply to this mode only; their full text is inline so this reference is self-contained. `end-to-start-debugger-trace` is inline here because the debug flow runs it; the `investigate` skill also carries it, plus `cross-service-check`, `environment-fault-hypothesis`, `fix-layer-accountability`, `nested-task-creation`, `parallel-subagent-dispatch`, `root-cause-debugging`, `sequential-thinking-protocol`, `source-test-drift-check`, `task-tracking-external-report` and `understand-code-first` (and their digests), as guide lines.
+The protocols below apply to this mode only; their full text is inline so this reference is self-contained. `end-to-start-debugger-trace` is inline here because the debug flow runs it; the `investigate` skill also carries it, plus `cross-service-check`, `environment-fault-hypothesis`, `fix-layer-accountability`, `root-cause-debugging`, `sequential-thinking-protocol`, `source-test-drift-check`, `task-tracking-external-report` and `understand-code-first` (and their digests), as guide lines.
 
 <!-- SYNC:end-to-start-debugger-trace -->
 
@@ -343,7 +343,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 >
-> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes"), which is the sibling `SYNC:double-round-trip-review` boundary applied to the same class of carrier.
+> **Read-only/report-only role boundary:** when this block is carried by a report-only role (`code-reviewer`, `spec-compliance-reviewer`, `tester`, and any other agent whose definition declares it never edits source), "fix the wrong side" means RETURN the adjudicated verdict and the proposed repair to the parent — do not modify source, tests, generated carriers, or user data. The adjudication is the deliverable; the edit is the caller's. Without this sentence the block's step-3 imperatives read as write authority and directly contradict those agents' own declarations (e.g. `tester.md` "NEVER implement fixes").
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 

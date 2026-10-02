@@ -8,7 +8,7 @@ Why workflow skills and not workflows.json: editing `preActions.injectContext` c
 workflow manifest fingerprints and breaks resume of in-flight runs; the SKILL.md carriers
 are read at activation and at every step by the orchestrating assistant.
 
-Layout (same contract as inject_nested_task_creation.py):
+Layout (same contract as inject_workflow_registry_binding.py):
   TOP block:  immediately BEFORE the SYNC region start (sync_blocks.find_sync_region_start)
   BOTTOM:     SYNC:...:reminder block immediately BEFORE `## Closing Reminders` (else EOF)
 Existing blocks are refreshed in place from the canonical text (idempotent). A skill

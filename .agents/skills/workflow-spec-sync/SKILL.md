@@ -93,7 +93,7 @@ You choose inline vs sub-agent, batching and ordering to minimise wall-clock and
 ## Fix Path & Loop Bounds
 
 - Validate a finding (evidence-backed, reproducible) before fixing it; fix at the component that owns the violated contract, then re-run the reviewer or test that raised it — plus a holistic pass when fixes were non-trivial. Use `$plan` only for a large, cross-module or ambiguous fix set.
-- Review loops keep the framework bar: round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW; cap 2 rounds (+1 when a CRITICAL/HIGH stays open). Failing tests are not capped by rounds — they loop until green or escalate by asking the user directly on no progress.
+- Review loops keep the framework bar: round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW; cap 3 review rounds. Failing tests are not capped by rounds — they loop until green or escalate by asking the user directly on no progress.
 
 ---
 
@@ -102,7 +102,6 @@ You choose inline vs sub-agent, batching and ordering to minimise wall-clock and
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
-- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `ui-intent-layer` — Tech-agnostic UI intent layer in every UI-bearing spec; writing a spec for a feature with a user interface → .claude/skills/shared/protocols/ui-intent-layer.md
@@ -110,12 +109,6 @@ You choose inline vs sub-agent, batching and ordering to minimise wall-clock and
 
 <!-- PROTOCOL-GUIDES:END -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- SYNC:ui-intent-layer:reminder -->
 

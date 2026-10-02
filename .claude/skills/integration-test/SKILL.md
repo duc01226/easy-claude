@@ -53,7 +53,7 @@ The semantic floor is identical in every profile: MUST ATTENTION retain authored
 **Summary:**
 - **Testability contract:** resolve Unit/Integration/System/E2E applicability from runner/config evidence; record owner/root/data, copy-ready full/focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, run/data identity, and repeat proof; missing applicable fields block handoff; non-applicable tiers need evidence-backed `N/A`.
 - **Test fidelity:** trace the production entry path and invariant owner; assert meaningful outcomes (including persisted fields when persistence is part of the contract), never smoke-only setup checks; wait/poll only for documented asynchronous or eventual outcomes; use supported fixtures for preconditions without bypassing the boundary under test.
-- **Traceability + conventions:** resolve the case profile first; use its owner, identities, carriers, and cardinality. The strict default uses `TestSpec`/`TechnicalSpec` and permits one business TC to map to many integration/unit tests; never impose that representation on a native profile. Search same-service tests and read `references/integration-test-patterns.md`; match local helpers/base/collection and organize by domain feature, never CQRS type.
+- **Traceability + conventions:** resolve the case profile first; use its owner, identities, carriers, and cardinality. The strict default uses `TestSpec`/`TechnicalSpec` and permits one business TC to map to many integration/unit tests; never impose that representation on a native profile. Search same-service tests and read `references/integration-test-patterns.md`; match local helpers/base/collection and the project’s documented domain/module organization.
 - **Main steps (MANDATORY order):** (1) FIRST — read the selected canonical case owner and resolve needed scenario coverage; only the strict default creates/updates Section 8 TCs; (2) MIDDLE — implement locally patterned tests with the selected traceability carrier; (3) FINAL — reconcile changed behavior and the full affected owner/case scope across relevant test tiers using actual executor/assertion evidence, preserving declared variants/cardinality. Every mode: Detect → Find targets → Gather context → Execute → Report. Apply the repeat policy from `integrationTestVerify.guidance` (default: two fresh no-reset runs for persistent/shared-state suites); run the named coverage task and emit zero `GAP`/`UNKNOWN` results on every workflow/git-change/user-request run.
 
 **Workflow:** Detect mode → Find targets → Gather context → Execute → Report
@@ -139,14 +139,14 @@ Before implementation, search codebase for patterns:
 
 - MUST ATTENTION search existing test patterns in same service BEFORE generating
 - MUST ATTENTION READ `references/integration-test-patterns.md` before writing any test
-- **Organize by domain feature, NEVER by type** — command + query tests for same domain → same folder (e.g., `Orders/OrderCommandIntegrationTests.*`). NEVER create `Queries/` or `Commands/` folder.
+- **Organization follows the project-native convention.** Where it groups by domain, colocate related command/query cases; do not impose or prohibit CQRS folders against documented organization.
 - Use project's unique name generator for ALL string test data
-- Use project's entity assertion helpers for DB verification with async polling
+- Use project assertion helpers for persisted outcomes; synchronization follows the tested boundary
 - **CRITICAL MUST ATTENTION:** Mirror real workflows. When a command/query/seeder path exists, NEVER create or edit domain data through repositories; shortcut state is a test bug.
-- **CRITICAL MUST ATTENTION:** ALWAYS wrap ALL DB assertions in async polling/retry — every assertion, not only async handlers. **DB data assertion → async polling. No exceptions.**
+- **Synchronization:** use observable condition-based barriers for asynchronous/eventually consistent outcomes, with a bounded timeout; deterministic synchronous persistence uses the normal read/assert path. Never mask a synchronous defect with retries.
 - **CRITICAL MUST ATTENTION:** Before assertions, READ handler/entity/event source; identify changed fields, created/updated/deleted entities, and fired handlers. **Smoke-only is FORBIDDEN** unless side effect is truly unobservable.
 - **CRITICAL MUST ATTENTION:** Verification requires 2 consecutive successful suite/project runs without reset. One green run proves only the current run.
-- Minimum 3 test methods: happy path, validation failure, DB state check
+- Derive test cases from distinct protected behaviors, relevant failures and boundaries; a database check is required only when persistence belongs to the tested contract
 - **Authorization tests:** Multiple user contexts — authorized succeeds AND unauthorized rejected
 - **Strict default only:** every business test method has `// TC-{FEATURE}-{NNN}: Description` + `TestSpec`; technical-only tests use `TechnicalSpec`; one TC may map to many methods.
 - **Strict default only:** when a genuinely uncovered business behavior has no TC in the feature doc, add it to Section 8 before generation; never mirror a method already covered by an existing TC. Native profiles update only their declared owner/carrier through the native-profile sequence above.
@@ -215,7 +215,7 @@ Creating new `TC-{FEATURE}-{NNN}` codes:
 
 1. Check feature doc first — `{App}/README.{Feature}.md` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) has existing codes. New codes must not collide.
 2. Decade-based grouping — e.g., OM: 001-004 (CRUD), 011-013 (validation), 021-023 (permissions), 031-033 (events). Find next free decade.
-3. Unavoidable collision → renumber in doc only. Keep test-spec annotation unchanged; add renumbering note in doc.
+3. Unavoidable collision → preserve the owner-qualified scenario identity where possible. If renumbering is required, migrate the canonical ID and every configured carrier/reference atomically, preserving variants and declared many-to-many mappings. Inspect the executing assertions and verify that every migrated case still joins to its intended executor. If either owner/carrier is ambiguous or outside authorized ownership, stop and coordinate before claiming traceability; a prose note is not an alias.
 4. Feature doc = canonical registry. Test-spec annotation = traceability only, not numbering source.
 
 # Integration Test Generation
@@ -326,7 +326,7 @@ Before writing code, complete and preserve this additive matrix; it does not rep
 
 **File path:** `{project-test-dir}/{Service}.IntegrationTests/{Domain}/{CommandName}IntegrationTests{ext}` (adapt path/extension per `docs/project-config.json` → `integrationTestVerify.testProjectPattern`)
 
-> **Folder = domain feature.** `{Domain}` = business domain (Orders, Inventory, Notifications, UserProfiles), NOT CQRS type. Command and query tests for same domain live in same folder.
+> **Illustrative folder:** `{Domain}` is a domain grouping when that is the project’s convention. Preserve the actual native organization, including supported type-based layouts.
 
 **Structure:** adapt layout, imports, fixtures, assertions, and markers from existing tests in the configured project.
 
@@ -337,7 +337,7 @@ namespace {Service}.IntegrationTests.{Domain};
 [Trait("Category", "Command")]  // or "Query"
 public class {CommandName}IntegrationTests : {Service}ServiceIntegrationTestBase
 {
-    // Minimum 3 tests: happy path, validation failure, DB state verification
+    // Select distinct behavior, failure and persistence cases from the protected contract
 }
 ```
 
@@ -355,7 +355,7 @@ public class {CommandName}IntegrationTests : {Service}ServiceIntegrationTestBase
 
 > **[FORCED BRANCH — property apparatus]** Pattern 9 is not a "nice-to-have reference". For ANY command/query that enforces a universal hard rule or invariant in the selected profile, example-based rows are NOT sufficient — generate the Pattern 9 property test and boundary counter-case. The strict default maps these to `[HARD]` §4 / §5 and its §8 property TC; a native profile uses its declared rule, case identity, and carrier. Skipping the property or boundary assertion leaves the invariant over-fitted to examples.
 
-> **[REVIEW-BAR ALIGNMENT — write to the wider bar]** The property apparatus above is scoped to `[HARD]` §4 rules and §5 invariants, but the bar this suite is GRADED against is wider: `/integration-test --mode=review` **Gate 1** requires a killing assertion for **every changed core-logic line** and records a *Mutation Probe Ledger* with a `KILLED`/`SURVIVOR` verdict per line — no ledger, no PASS. So for each core-logic line the handler changes, ask now *"if I deleted or inverted this, which assertion fails?"* and add the missing assertion, rather than discovering the survivor in review. — why: authoring to a narrower bar than the reviewer grades guarantees a rework round on every change.
+> **Review-bar alignment:** `references/mode-review.md` Gate 1 owns acceptance. Name the protected rule and a concrete behavioral break that makes its assertion fail. A per-line Mutation Probe Ledger or mutation tool is not universally required; choose useful strength evidence supported by the project. Preserve required broad-input invariant and boundary coverage under the selected profile.
 
 ## Step 4: Verify
 
@@ -367,7 +367,7 @@ MUST ATTENTION verify ALL of the following:
 - Test category annotation present
 - All string test data uses project's unique name generator
 - User context created via project's user context factory
-- DB assertions use project's entity assertion helpers with async polling
+- Persisted assertions use project helpers and polling only for asynchronous/eventually consistent contracts
 - No mocks — real DI only
 - Every test method has the traceability form required by the selected profile. The strict default uses `// TC-{FEATURE}-{NNN}: Description` plus its test-spec annotation.
 
@@ -481,7 +481,7 @@ Mode = REVIEW: audit existing integration tests for quality, flaky patterns, bes
 - MUST ATTENTION flag DI-resolution-only tests — smoke tests that just resolve services → HIGH severity
 - MUST ATTENTION flag exception-check-only tests — `exception.Should().BeNull()` alone → HIGH severity
 - MUST ATTENTION verify test reads handler/entity/event source and asserts specific field values
-- MUST ATTENTION verify minimum 3 tests per command (happy path, validation failure, DB state)
+- MUST ATTENTION verify distinct protected behaviors, relevant failures and boundaries; do not impose a minimum case count
 
 **Dimension 3: Conventions** — Think: Does test follow project patterns?
 
@@ -730,7 +730,7 @@ MUST ATTENTION verify ALL of the following:
 
 ## Next Steps
 
-**Inside a workflow** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation` — a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count): skip the prompt below — the workflow's own next step is the next action. **Otherwise (standalone, or only an unrelated `[Workflow]` row exists):**
+**Inside a workflow** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in `TaskList`, such as an abandoned one, does not count): skip the prompt below — the workflow's own next step is the next action. **Otherwise (standalone, or only an unrelated `[Workflow]` row exists):**
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use `AskUserQuestion` to present:
 
@@ -802,8 +802,6 @@ integration-test (you are here)
 - `graph-impact-analysis` — Optional blast-radius query that suggests files a high-risk change may affect, a hint that can be stale and never proof; assessing the impact of a high-risk change while the code graph exists → .claude/skills/shared/protocols/graph-impact-analysis.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `integration-test-execution-discipline` — How integration tests are written, reviewed, run, diagnosed and cleared; working in the integration-test skill family → .claude/skills/shared/protocols/integration-test-execution-discipline.md
-- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `rationalization-prevention` — Recognize and reject the evasions used to skip required steps; tempted to skip a step, a test or a review → .claude/skills/shared/protocols/rationalization-prevention.md
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
 - `red-flag-stop-conditions` — Conditions that require stopping and escalating to the user; debugging or testing stalls or the risk rises → .claude/skills/shared/protocols/red-flag-stop-conditions.md
@@ -859,12 +857,6 @@ integration-test (you are here)
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
@@ -877,11 +869,6 @@ integration-test (you are here)
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 <!-- SYNC:test-architecture-execution-contract:reminder -->
 
@@ -898,7 +885,7 @@ integration-test (you are here)
 
 **IMPORTANT MUST ATTENTION** Main order: (1) FIRST read the selected canonical owner and resolve required case coverage; only the strict default upserts Section 8 TCs; (2) MIDDLE implement real-path tests with the selected traceability carrier; (3) FINAL reconcile changed behavior and the full affected owner/case scope across integration + unit. Per mode: Detect → Find targets → Gather context → Execute → Report.
 **IMPORTANT MUST ATTENTION** Modes: `from-changes`/`from-prompt` generate; `review` audits; `diagnose` classifies failures; `verify-traceability` audits test↔spec↔feature-doc links. The flagged `--mode=review` and `--mode=verify` remain the heavier gates.
-**IMPORTANT MUST ATTENTION** Gates: real DI; specific DB fields; async polling; real use-case setup; fidelity barriers; property/mutation coverage; zero-GAP changed-file + full affected-owner case audit under the selected profile; 2 no-reset runs; review → verify → owner sync.
+**IMPORTANT MUST ATTENTION** Gates: real DI; owned persisted fields when applicable; synchronization matching the boundary; real use-case setup; fidelity barriers; property/mutation coverage; zero-GAP changed-file + full affected-owner case audit under the selected profile; 2 no-reset runs; review → verify → owner sync.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each canonical body below is in force; this digest is the signpost, NEVER the substitute:**
 
@@ -919,7 +906,7 @@ integration-test (you are here)
 - **Task Tracking & External Report:** bootstrap task breakdown, transition one task at a time.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER write smoke-only tests — instead read handler/entity/event source, assert specific changed field values — why: DI-resolution / exception-null-only tests pass while the behavior is broken
-- **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS use async polling for EVERY DB assertion — no exceptions, not just async handlers — why: event handlers, message-bus consumers, background jobs, write latency delay persistence
+- **MANDATORY IMPORTANT MUST ATTENTION** use bounded condition-based polling for asynchronous/eventually consistent outcomes; synchronous persistence uses deterministic reads — why: synchronization must match the actual contract
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER fabricate state by direct repository writes — instead drive state through real command/query/seeder paths or valid seeded fixtures — why: shortcut data creates invalid state the suite then certifies
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing tests in the SAME service and READ `references/integration-test-patterns.md` BEFORE writing — match collection, base class, helpers, unique-name generators — why: local conventions override generic templates
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence (confidence >80% to act, <60% do NOT recommend) for every claim about field changes, entities, or handler behavior — why: AI hallucinates APIs/signatures; grep to confirm before asserting
@@ -928,8 +915,8 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** run the named "Validate: no missing integration tests" `TaskCreate` item — non-skippable inside a workflow, with current git changes present, or by user request (essentially every run) — every changed file covered AND every §8 TC in the WHOLE feature area covered, zero GAP rows before marking done — why: a diff-scoped-only check misses pre-existing orphaned TCs outside this run
 - **MANDATORY IMPORTANT MUST ATTENTION** every test method carries a traceability annotation: `TestSpec=TC-{FEATURE}-{NNN}` for business §8 coverage, or `TechnicalSpec=...` for technical-only regression coverage. Auto-create in Section 8 ONLY for genuinely uncovered business behavior — why: the annotation is the join key for traceability
 - **MANDATORY IMPORTANT MUST ATTENTION** one business TC maps to MANY tests (1:N, integration + unit) — NEVER split or technicalize a TC to force 1:1 — why: 1:1 splitting breaks the spec's business/user-story orientation (M1/M5)
-- **MANDATORY IMPORTANT MUST ATTENTION** for any handler enforcing a `[HARD]` §4 rule or §5 invariant, generate a Pattern 9 property/metamorphic test + boundary counter-case tied to a §8 Invariant/Property TC — why: example tests guard fixed points; the rule must fail across its whole input domain (mutation-kill, not line-coverage)
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER create `Queries/` or `Commands/` folders — instead organize by domain feature — why: CQRS-type folders fragment a domain across directories
+- **MANDATORY IMPORTANT MUST ATTENTION** for a broad-input invariant, use property/metamorphic checks supported by the project plus relevant boundary counter-cases tied to the selected profile’s identity/carrier (strict default: §8 Invariant/Property TC) — why: example tests guard fixed points; the rule must fail across its whole input domain (mutation-kill, not line-coverage)
+- **MANDATORY IMPORTANT MUST ATTENTION** preserve documented project-native test organization; group by domain only where that convention applies
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done after one green run — verification requires 2 consecutive `/integration-test --mode=verify` passes WITHOUT a DB reset — why: one run proves only the current run, not repeatability
 - **MANDATORY IMPORTANT MUST ATTENTION** make every test parallel-safe — own fresh per-test data down to the root it asserts on, NEVER a shared mutable entity; account for cross-cutting consumers (bulk re-sync/recompute/rebuild/cascade) that wipe a shared parent; on a contradiction between a provably-innocent path and wrong state, suspect cross-test interference FIRST and prove isolation by grepping other tests + consumers — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
 - **MANDATORY IMPORTANT MUST ATTENTION** apply the Real-World Fidelity Gate BEFORE writing any setup — ask "can this sequence, timing, and data actually occur in production?", model real pacing between distinct actor actions instead of firing them in the same millisecond, and wait on an observable settle signal in ARRANGE; NEVER widen an assertion timeout, loosen a comparison, or wrap a failing assertion in a retry to compensate — why: a scenario production can never reach proves nothing when it passes and manufactures phantom "product defects" when it fails

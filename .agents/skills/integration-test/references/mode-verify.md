@@ -360,7 +360,7 @@ If the system is unavailable, report `system not ready` and reference `startupSc
 
 ## Next Steps
 
-**Inside a workflow** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count): skip the prompt below — the workflow's own next step is the next action; return the counts, failing names and any Fault Verdicts to it. **Otherwise (standalone, or only an unrelated `[Workflow]` row exists):**
+**Inside a workflow** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count): skip the prompt below — the workflow's own next step is the next action; return the counts, failing names and any Fault Verdicts to it. **Otherwise (standalone, or only an unrelated `[Workflow]` row exists):**
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** after this skill, use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious":
 

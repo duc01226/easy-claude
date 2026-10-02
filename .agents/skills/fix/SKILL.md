@@ -112,7 +112,7 @@ disable-model-invocation: false
 >
 > **Scope:** applies with no parent workflow. No-flag runs the full diagnose→fix path; `--target={ci|issue|logs|review|test|types|ui}` branches remain self-contained for diagnosis, skip §1/§2 duplication, and inherit mandatory §3 test-update, §4 spec-correctness, the production-code `$changes-review` gate, and §5 `$why-review` gates. A branch's own `tester` / `code-reviewer` sub-agent step does not replace `$changes-review`.
 >
-> **Detect mode:** call the current task list first (per Nested Task Expansion). A run that is a step of a `[Workflow]` row (THIS run's own phase tasks are linked to that parent row, `nested=true` per `nested-task-creation` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count) — or a `--target=review` call from a reviewer's fix phase (`$changes-review` Phase 7) — skips this section because the caller owns these steps, but the Root-Cause Prerequisite Gate still requires a completed, same-problem `investigate --mode=debug` (or, for `--target=review`, its validated-review-finding skip row); presence alone is insufficient. Not nested (no linked parent row, or only a stale/unrelated `[Workflow]` row) → standalone: before the first code edit, MUST ATTENTION create this ordered minimum spine as task tracking todos:
+> **Detect mode:** call the current task list first (per Nested Task Expansion). A run that is a step of a `[Workflow]` row (THIS run's own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count) — or a `--target=review` call from a reviewer's fix phase (`$changes-review` Phase 7) — skips this section because the caller owns these steps, but the Root-Cause Prerequisite Gate still requires a completed, same-problem `investigate --mode=debug` (or, for `--target=review`, its validated-review-finding skip row); presence alone is insufficient. Not nested (no linked parent row, or only a stale/unrelated `[Workflow]` row) → standalone: before the first code edit, MUST ATTENTION create this ordered minimum spine as task tracking todos:
 >
 > 1. **`$investigate --mode=debug`** — root cause FIRST; §2 evidence decides whether it already ran. Trace symptom end-to-start to the invariant-owning layer with `file:line`, hypothesis matrix, and forward proof. This is standalone diagnosis and subsumes the spine's step-1 `debugger`; resume at planning with its report. Fast-mode-trivial bugs may inline the trace, but the trace remains required.
 > 2. **Fix spine** — this skill's `plan → 🛑 approve → implement` body below; Validate-Before-Fix remains unchanged.
@@ -297,7 +297,6 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 - `environment-fault-hypothesis` — Weigh the environment as a competing cause, with a named discriminator; judging a bug report, failing test, error or unexpected output → .claude/skills/shared/protocols/environment-fault-hypothesis.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `fix-layer-accountability` — Fix at the component that owns the violated contract, not at the crash site; choosing where to apply a fix → .claude/skills/shared/protocols/fix-layer-accountability.md
-- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `root-cause-debugging` — Systematic root-cause debugging, never guess-and-check; debugging a failure → .claude/skills/shared/protocols/root-cause-debugging.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
@@ -339,12 +338,6 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 

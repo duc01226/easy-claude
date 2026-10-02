@@ -165,11 +165,12 @@ const tests = [
             const { LOW_RESOLUTIONS } = require(path.join(REPO_ROOT, '.claude', 'scripts', 'lib', 'review-policy.cjs'));
             const canonical = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', 'shared', 'sync-inline-versions.md'), 'utf8')
                 .replace(/\r\n?/g, '\n');
-            const start = canonical.indexOf('## SYNC:double-round-trip-review\n');
+            const start = canonical.indexOf('## SYNC:review-policy\n');
             const body = canonical.slice(start, canonical.indexOf('\n---\n', start));
-            assert.match(body, /Round-1 LOW closure/, 'the canonical round protocol defines the closure');
+            assert.match(body, /validated round-1 findings except LOWs closed/, 'the canonical round protocol defines the closure');
             for (const resolution of LOW_RESOLUTIONS) assert.ok(body.includes(resolution), `protocol names resolution ${resolution}`);
-            assert.match(body, /never mints a commit review receipt/, 'a scoped check never stands in for a receipt-bearing full pass');
+            const loop = fs.readFileSync(path.join(REPO_ROOT, '.claude', 'skills', 'changes-review', 'references', 'fix-loop.md'), 'utf8');
+            assert.match(loop, /A round-1 LOW closed by scoped check never counts as that pass/, 'a scoped check never stands in for a receipt-bearing full pass');
         }
     },
     {

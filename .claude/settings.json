@@ -4,9 +4,16 @@
     "pr": "Generated with [Claude Code](https://claude.com/claude-code)"
   },
   "cleanupPeriodDays": 30,
-  "disabledMcpjsonServers": ["chrome-devtools"],
+  "disabledMcpjsonServers": [
+    "chrome-devtools"
+  ],
   "enableAllProjectMcpServers": false,
-  "enabledMcpjsonServers": ["context7", "github", "mongodb", "postgres"],
+  "enabledMcpjsonServers": [
+    "context7",
+    "github",
+    "mongodb",
+    "postgres"
+  ],
   "enabledPlugins": {
     "code-review@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": false,
@@ -281,6 +288,15 @@
           }
         ],
         "matcher": "compact|clear"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-activation-inject.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "startup|resume|compact|clear"
       }
     ],
     "Stop": [
@@ -333,6 +349,14 @@
             "type": "command"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-activation-inject.cjs",
+            "type": "command"
+          }
+        ]
       }
     ],
     "UserPromptExpansion": [
@@ -382,6 +406,14 @@
           },
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protocol-inject-universal-4.cjs",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-activation-inject.cjs",
             "type": "command"
           }
         ]

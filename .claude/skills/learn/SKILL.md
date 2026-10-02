@@ -20,7 +20,7 @@ disable-model-invocation: false
 - **Classify the carrier, don't default to prose:** a lesson stating a project FACT (path, run-command, module map, convention, tooling choice) belongs in `docs/project-config.json`, the machine-readable map every skill reads first; a lesson stating a RULE or pattern belongs in the matching `docs/project-reference/` doc. Both can apply — write the fact to config AND the rule to prose. To learn what the config holds and its exact field names, read the file or use `/project-config` (it runs `--describe`).
 - **Delegate overlay correctness:** `/project-skill-protocol` retains its mode resolution, target/scope resolution, additive-only constraint, collision/contradiction handling, proposal/user-confirmation gate and two-write contract; Learn must not bypass or replace it.
 - **Assess prevention depth** — doc/config update, prompt rule, static protocol lesson, hook, test, or skill update.
-- **Confirm target with the user, save, then run the 3 mandatory end tasks** — Learn Review → `/why-review` → `/prompt-enhance`, then the AI-discovery gate on each modified carrier.
+- **Confirm target with the user, save, then run the 3 mandatory end tasks** — Learn Review → `/why-review` → carrier-specific final quality pass (Markdown enhancement + AI-discovery, or configuration parser/schema validation).
 
 **Workflow:**
 
@@ -29,7 +29,7 @@ disable-model-invocation: false
 3. **Save** -- After the applicable confirmation gates, delegate a skill-specific lesson the user placed in an overlay to `/project-skill-protocol`; otherwise append the lesson to the selected file (a CLAUDE.md pick writes only the hand-owned `## Project Rules & Context` section, and `sync-codex` runs after the end tasks)
 4. **Confirm** -- Acknowledge what was saved and where
 5. **Learn Review** -- Run the mandatory 2-step end gate (`Learn Review` + `/why-review`)
-6. **Enhance** -- Run `/prompt-enhance` on modified file(s) to optimize AI attention anchoring, then the AI-discovery gate (carrier reachable from the docs index; anchors not padded)
+6. **Final quality pass** -- Supported prose uses `/prompt-enhance` then the AI-discovery gate; machine-readable configuration uses its owner parser/schema validation after the final write.
 
 **Key Rules:**
 
@@ -458,11 +458,11 @@ Claude and Codex load the same lessons and patterns: the protocol comes from the
 
 ## Prompt Enhancement (MANDATORY final step)
 
-After saving a lesson to any target file, run `/prompt-enhance` on the modified file(s) to optimize AI attention anchoring and token quality.
+After saving a lesson, route the final quality pass by carrier. Supported Markdown prose: run `/prompt-enhance` on the modified prose file(s) to optimize attention anchoring and token quality. Machine-readable configuration (including project-config JSON): NEVER pass it to the Markdown enhancer or insert summary/reminder prose; run the owning configuration parser/schema validator after the final write and record its result. Unsupported carriers require their owner's validation route, not a guessed prose rewrite.
 
 **When to run:**
 
-- After EVERY successful lesson save (regardless of target file)
+- After every successful save to a supported Markdown carrier (subject to the skip conditions below)
 - Pass the specific file path(s) that were modified
 
 **What it does:**
@@ -471,7 +471,7 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 - Optimizes token usage — tightens prose, merges redundant content
 - Verifies no content loss from the save operation
 
-**Then run the AI-discovery gate (`SYNC:ai-discovery-doc-quality`) on each modified file:** a lesson reaches the file's top critical rules or closing reminders only when it outranks a rule already there (those anchors hold 1–3 rules; otherwise it stays in its section, stated once); the carrier stays reachable from the docs index or root context (a new carrier doc gets a trigger row there); an edited pointer to another doc is `read <path> when <situation>` with an existing target.
+**Then run the AI-discovery gate (`SYNC:ai-discovery-doc-quality`) on each modified prose file (configuration uses its schema gate instead):** a lesson reaches the file's top critical rules or closing reminders only when it outranks a rule already there (those anchors hold 1–3 rules; otherwise it stays in its section, stated once); the carrier stays reachable from the docs index or root context (a new carrier doc gets a trigger row there); an edited pointer to another doc is `read <path> when <situation>` with an existing target.
 
 **How to invoke** — substitute the resolved reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path):
 
@@ -483,6 +483,7 @@ For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Contex
 
 **Skip conditions (do NOT run prompt-enhance if):**
 
+- The carrier is machine-readable configuration: use its owner parser/schema validation after the final write instead
 - The save was to `lessons.md` AND the file is under 1500 chars (too small to benefit)
 - The user explicitly requests "save only, no enhance"
 
@@ -494,9 +495,9 @@ For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Contex
 >
 > 1. "Run **Learn Review** (lesson value + generality + recurrence gate)."
 > 2. "Run `/why-review` to challenge whether the lesson is worth persistent memory."
-> 3. "Run `/prompt-enhance <modified-file>` to optimize lesson content for AI attention anchoring."
+> 3. "Run the carrier-specific final quality pass: `/prompt-enhance <modified-prose-file>` when applicable, or owner parser/schema validation after the final configuration write."
 >
-> Do NOT mark the skill complete until all 3 tasks run.
+> Do NOT mark the skill complete until review, rationale challenge and the applicable final quality pass have evidence. Record documented prose skip conditions explicitly.
 
 <!-- PROTOCOL-GUIDES:START -->
 
@@ -524,13 +525,13 @@ For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Contex
 
 **IMPORTANT MUST ATTENTION Goal:** Persist each lesson at its failure-mode level into the carrier a future session will actually read — the matching skill's project protocol when the lesson is skill-specific, otherwise the best-fit prose reference doc or `docs/project-config.json` when the lesson is really a machine-readable project fact.
 
-**IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**compare carriers; an overlay pick delegates to `/project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `/why-review` → `/prompt-enhance` → AI-discovery gate (lesson reachable from a top/bottom anchor and from the docs index) → `sync-codex` + size/mirror verification (root `CLAUDE.md` saves only).
+**IMPORTANT MUST ATTENTION** main steps, in order: generalize → Triage Gate → Lesson Quality Gate → detect skill-specific route (**compare carriers; an overlay pick delegates to `/project-skill-protocol`**) OR **classify carrier (FACT → config · RULE → prose · both → both)** → Prevention Depth Assessment → confirm with user → save → Learn Review → `/why-review` → carrier-specific final quality pass (prose enhancement + AI-discovery, or configuration parser/schema validation) → `sync-codex` + size/mirror verification (root `CLAUDE.md` saves only).
 **IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if the lesson is not a project convention or a universal best-practice protocol worth reading on everyday work, OR recurrence is low, OR review skills can catch it, skip `/learn` entirely
 **IMPORTANT MUST ATTENTION** check Reference Doc Catalog to find the best target file — NOT always `lessons.md`
 **IMPORTANT MUST ATTENTION** consider `docs/project-config.json` as a candidate carrier on EVERY routing decision, alongside the prose docs — read it directly or use `/project-config` to learn its sections and exact field names first — why: a project fact written only as prose is invisible to the tooling that reads the config and is contradicted the next time the generated docs regenerate from it.
 **IMPORTANT MUST ATTENTION** when routing into the config, copy field names verbatim from `node .claude/hooks/lib/project-config-schema.cjs --describe`, prefer an EXISTING field, and route the write through `/project-config`; no field fits → surface a proposed schema addition to the user instead of inventing a key — why: unknown keys only warn (`project-config-schema.cjs` unknown-key warnings), so an invented key looks applied while no consumer reads it.
 **IMPORTANT MUST ATTENTION** keep the config to FACTS — NEVER paste a narrative lesson into a config string field; the rule belongs in the matching prose reference doc.
-**IMPORTANT MUST ATTENTION** mandatory end tasks are ALWAYS: `Learn Review` → `/why-review` → `/prompt-enhance <modified-file>` (in order)
+**IMPORTANT MUST ATTENTION** mandatory end tasks are ALWAYS: `Learn Review` → `/why-review` → the applicable carrier-specific final quality pass (in order; documented prose skip conditions recorded)
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** prefer auto-injected files for high-recurrence lessons (higher visibility)
 
@@ -542,7 +543,7 @@ For a root `CLAUDE.md` save, scope the enhance to the `## Project Rules & Contex
 | "I know roughly what the config holds"           | Read it or run `/project-config` (`--describe`). Routing on a guessed schema writes a field nobody reads. |
 | "No field fits, I'll add a sensible key"         | Unknown keys only warn. Surface a proposed schema addition to the user — never invent one silently.   |
 | "Saving the user's exact words is most faithful" | Verbatim is the default failure mode. Climb to the failure mode; strip this ticket's nouns.           |
-| "Small lesson, skip the end gate"                | Learn Review → `/why-review` → `/prompt-enhance` run on every save, no exceptions.                    |
+| "Small lesson, skip the end gate"                | Learn Review and `/why-review` run on every save; final quality pass follows the carrier and documented prose skip conditions.                    |
 | "Every agent should see it — put it in CLAUDE.md" | Only a broad, ≤ 3-line, project-specific note with size headroom qualifies; detail goes to a reference doc, a one-skill rule to an overlay, a universal framework rule to the shared protocols. |
 | "I'll drop it into a generated CLAUDE.md block"  | Fences are regenerated from config and template. Write only the hand-owned `## Project Rules & Context` section, after user confirmation, then `sync-codex`. |
 

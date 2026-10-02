@@ -530,6 +530,17 @@ const tests = [
             assert.ok(Number.isInteger(ledgerLib.BOUNDARY_ATTRIBUTION_MS) && ledgerLib.BOUNDARY_ATTRIBUTION_MS >= 60000, 'the attribution window is a named constant of at least a minute');
             const SKEW = 1000;
 
+            // Millisecond clocks can stamp the host boundary and hook delivery equally.
+            // Exercise the real delivery entry with a fixed clock so this race is deterministic.
+            const equal = scenario('equal-clock');
+            const sameTime = Date.now();
+            const runAt = (input, now) => universalLib.runHook(1, {
+                input, projectRoot: fx.project, now, write: (text, done) => done(true)
+            });
+            assert.ok(await runAt(sessionStart(fx, 'compact', equal.extra), sameTime), 'equal clock: compaction delivered');
+            equal.boundaryAt(sameTime);
+            assert.equal(await runAt(prompt(fx, equal.extra), sameTime + SKEW), '', 'equal clock: the same compaction must not deliver twice');
+
             // Given the bundle delivered on the first prompt, then a compaction reported at session start
             // while the host has not written its boundary line yet (the observed host order)
             const a = scenario('after-hook');

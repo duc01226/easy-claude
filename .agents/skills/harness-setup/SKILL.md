@@ -33,7 +33,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 - **Purpose:** complete the outer harness—feedforward guidance plus computational and inferential feedback—so later agents self-correct before human review.
 - **Testability contract:** resolve Unit/Integration/System/E2E and warranted Performance/Scale applicability from runner/config evidence; record owner/root/data, copy-ready full/focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, unique run/data identity, and repeat proof. Block unresolved applicable fields; record evidence-backed `N/A` for non-applicable tiers.
 - **Ordered path:** 1 Guards → 2 Phase A Stack Detection → 3 Phase B Feedforward Guides → 4 Phase C Computational Sensors → 5 Phase D Inferential Sensors → 6 Phase E Behaviour Harness → 7 Phase F Inventory Report → 8 Next Steps. Each phase blocks the next; feedforward and sensor choices require ask the user directly.
-- **Quality boundary:** `$linter-setup` supplies computational sensors; this skill never installs them. Gate behavior on mutation score plus property/behavior coverage, never line coverage; append inventory after every phase and keep it living.
+- **Quality boundary:** `$linter-setup` supplies computational sensors; this skill never installs them. Require intent-protecting evidence selected by profile, risk, tooling and budget; mutation/property sensors are optional, line coverage diagnostic; append inventory after every phase and keep it living.
 
 **Main steps (run in order — each BLOCKS the next):**
 
@@ -42,7 +42,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 3. **Phase B — Feedforward Guides** — author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, boundaries), skill-activation rules, `docs/architecture/*` notes, and pattern catalog; confirm by asking the user directly.
 4. **Phase C — Computational Sensors** — confirm `$linter-setup` outputs and list config paths; invoke it if any are missing.
 5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$code-quality-review` pre-commit · `$domain-analysis --mode=review` post-impl · `$production-readiness-review` + `$security-audit` pre-release · `$scan-codebase-health` recurring · `$integration-test --mode=review` feature-area TC audit BOTH pre-release AND recurring, catching orphaned Section-8 TCs and uncovered behavior); record under `## Review Gates`.
-6. **Phase E — Behaviour Harness** — choose spec format, test pyramid, fixtures, mutation/property/behavior coverage, and `test-strategy.md`; NEVER gate on line `%`.
+6. **Phase E — Behaviour Harness** — choose spec format, profile-fit test tiers, fixtures and intent-protecting evidence, and `test-strategy.md`; NEVER gate on line `%`.
 7. **Phase F — Inventory Report** — append `harness-inventory.md` with all sensors and gaps; present it by asking the user directly.
 8. **Next Steps** — use ask the user directly to choose `$feature-implement` (recommended), `$why-review`, or skip.
 
@@ -122,7 +122,7 @@ Add the agreed sensor configuration to CLAUDE.md under "## Review Gates".
 Define the project behaviour harness:
 
 - **Functional spec:** ask the user directly: "Feature documentation format?" Options: feature-spec (8-section tech-free), TDD specs only, lightweight ADRs. Establish the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) or an equivalent spec home.
-- **Test pyramid:** Unit = pure functions, domain entities, business logic (no I/O); Integration = subcutaneous CQRS and real-DB repository tests; E2E = critical user journeys only (full coverage is too slow).
+- **Test tiers:** Select boundaries from the actual architecture and runner. Unit may cover pure rules; integration exercises applicable production boundaries (CQRS or persistence only where present); system/E2E cover warranted user/runtime paths. Record absent tiers as evidence-backed N/A, never impose a real database or CQRS layout on a stack that has neither.
 - **Approved fixtures:** pre-seed reference/lookup data as approved snapshots; integration tests accumulate data and NEVER delete/reset it.
 
 ### Testability & Execution Matrix (write to `test-strategy.md`)
@@ -144,8 +144,8 @@ For each applicable persistent-state tier, record run/test identity generation a
 **Test-strength sensors (NOT a line-coverage gate):**
 
 - **Line coverage is a diagnostic only — NEVER gate a build on it.** Low coverage is a useful NEGATIVE signal (an area is untested → investigate); high coverage is NOT evidence of quality (lines can execute with no meaningful assertion). Report it as a diagnostic; do not fail CI on a coverage %.
-- **Mutation score is the real test-strength metric — gate on this.** ask the user directly: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" A surviving mutant = a fault your tests did not catch = a missing/weak assertion. Add a minimum mutation-score threshold to CI as the computational test-strength sensor.
-- **Property coverage (optional second sensor):** each named business invariant guarded by ≥1 property/metamorphic test. Track which invariants have a property test; an unguarded invariant is a gap to fill.
+- **Test-strength evidence:** Follow the shared Harness Engineering owner and F4. Select assertion-intent review, contract checks, targeted mutation/fault injection, property/metamorphic checks or a focused defect probe according to invariant risk, stack and budget. Record the protected outcome and a concrete break the assertion catches. No mutation tool, property tool or score threshold is universally required. Ask before installing an optional sensor; when selected, document its meaningful maintained threshold and limits.
+- **Property checks (optional sensor):** choose them for broad-input invariants when tooling and risk justify them; otherwise record the alternate assertion/contract evidence. Tool absence alone is not a gap.
 - **Keep behavior/change-coverage (meaningful, not a %):** every behavior-changing file must have a test that asserts the changed outcome — see `$integration-test --mode=review` Gate 7. This is the right notion of "coverage"; the line-% is not.
 
 Document the agreed strategy in `docs/architecture/test-strategy.md`.
@@ -193,7 +193,7 @@ Missing/placeholder evidence is an open gap, not a PASS. The inventory must pres
 | Pre-commit | {formatter}        | Code formatting drift                          |
 | CI         | {type-checker}     | Type errors                                    |
 | CI         | {static-analyzer}  | Security, complexity, dead code                |
-| CI         | {mutation-tool}    | Weak/missing assertions (test-strength GATE)   |
+| CI         | {selected strength sensor, or N/A with alternate evidence} | Protected intent; threshold only if justified |
 | CI         | {coverage-tool}    | Untested areas (DIAGNOSTIC only — never gated) |
 
 ## Feedback Sensors — Inferential
@@ -262,7 +262,7 @@ ask the user directly:
 
 <!-- SYNC:engineering-foundation-gate:reminder -->
 
-**IMPORTANT MUST ATTENTION** engineering-foundation gate — judges whether the team can build, run, test, and change the system repeatably as it grows. Derive lifecycle, scale, criticality, repository shape, and runtime from evidence; take the lower supported tier when unknown. Judge all 7 dimensions, using `N/A-by-profile` with evidence when a concern truly does not apply. **F1** reproducible build/run/test path · **F2** document and exercise each supported or required execution mode; dual host/container or other modes only when the project uses or needs them · **F3** environment portability at applicable local/CI/production-shaped targets · **F4** meaningful test-strength evidence without making one mutation tool universal · **F5** measured performance where scale/risk warrants it · **F6** change/build scalability where the repository has meaningful module boundaries · **F7** mechanical checks selected for the stack/profile. For each, judge outcomes rather than tools, and preserve anti-over-engineering. Foundation creation may block on missing warranted outcomes; brownfield audits advise and name the smallest next step. Catalog → `.claude/docs/engineering-foundation-catalog.md` (update first, then re-run `inject_engineering_foundation_gate.py`).
+**IMPORTANT MUST ATTENTION** evidence-backed lifecycle/scale/criticality/repo/runtime profile; unknowns take lower tiers. Judge all 7 outcomes: **F1** reproducible build/run/test · **F2** exercise supported/required modes; dual modes only when warranted · **F3** applicable local/CI/production-shaped test portability · **F4** test-strength proof; no universal mutation tool · **F5** measured performance at warranted scale/risk · **F6** build/change scalability at meaningful module boundaries · **F7** stack/profile-fit mechanical checks. Evidence-backed `N/A-by-profile` is valid; prevent over-engineering. Creation blocks warranted omissions; brownfield advises without score changes, with smallest next steps. Catalog: `.claude/docs/engineering-foundation-catalog.md`; update first, re-run `inject_engineering_foundation_gate.py`.
 
 <!-- /SYNC:engineering-foundation-gate:reminder -->
 
@@ -279,15 +279,15 @@ ask the user directly:
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **Harness Engineering:** feedforward + feedback loops; gate on mutation score, never line-coverage %, keep quality left.
+- **Harness Engineering:** feedforward + feedback loops; require profile-fit intent evidence, never line-coverage %, keep quality left.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `$linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `$why-review`, `$code-quality-review`, `$domain-analysis --mode=review`, `$production-readiness-review`, `$security-audit`, `$scan-codebase-health`, `$integration-test --mode=review` missing-test/spec-coverage gate to gates) → E Behaviour Harness (spec format + test pyramid + mutation-score gate + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
+**IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `$linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `$why-review`, `$code-quality-review`, `$domain-analysis --mode=review`, `$production-readiness-review`, `$security-audit`, `$scan-codebase-health`, `$integration-test --mode=review` missing-test/spec-coverage gate to gates) → E Behaviour Harness (spec format + profile-fit test tiers + intent evidence + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
 
 **IMPORTANT MUST ATTENTION** BLOCK on the `$linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
 **IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm by asking the user directly — why: harness conventions bind every future agent; silent choices propagate to all later sessions
 **IMPORTANT MUST ATTENTION** write `tmp/harness/harness-inventory.md` incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings
 **IMPORTANT MUST ATTENTION** walk phases A→F as a hard barrier sequence — NEVER skip or reorder; each phase BLOCKS the next until its guard passes — why: a later phase consumes the prior phase's verified output
-**IMPORTANT MUST ATTENTION** gate the behaviour harness on mutation score + property coverage — NEVER fail a build on a line-coverage % — why: lines execute without asserting intent, so coverage % is a diagnostic only, never a quality gate
+**IMPORTANT MUST ATTENTION** require profile-fit intent-protecting evidence for the behaviour harness — NEVER fail a build on a line-coverage % — why: lines execute without asserting intent, so coverage % is a diagnostic only, never a quality gate
 **IMPORTANT MUST ATTENTION** wire `$integration-test --mode=review`'s feature-area-wide TC audit as a Phase D sensor BOTH pre-release AND on the SAME recurring cadence as `$scan-codebase-health` — never pre-release only — why: a diff-scoped-only run cannot see a §8 TC whose covering test regressed outside the current change set; only a periodic feature-area sweep catches it
 **IMPORTANT MUST ATTENTION** research tool choices per detected stack — NEVER hardcode a linter/formatter/mutation tool — present top 2-3 options, enforce strictest defaults, loosen only with explicit approval — why: harnessability depends on the actual stack, not a default
 **IMPORTANT MUST ATTENTION** harness inventory is a LIVING document — update it when new sensors are added later — why: a stale inventory misrepresents the active feedback loop
@@ -301,8 +301,8 @@ ask the user directly:
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | "Linter probably set up — skip the prereq check" | Grep for the config files. No `file:line` proof = BLOCK Phase A/B/C/D/E until verified.   |
 | "I'll pick the obvious linter myself"            | NEVER auto-decide — present top 2-3 by asking the user directly; the user owns binding conventions. |
-| "High line coverage means tests are strong"      | Coverage is a diagnostic, not a gate. Gate on mutation score; lines run without asserting. |
+| "High line coverage means tests are strong"      | Coverage is a diagnostic, not a gate. Choose profile-fit intent evidence; lines run without asserting. |
 | "Inventory's small, I'll hold it in memory"      | Append per phase to the inventory file — context loss silently drops findings.            |
 | "CLAUDE.md exists, harness already done"         | CLAUDE.md is a feedforward guide to ENHANCE, never a signal to skip phases.               |
 
-**IMPORTANT MUST ATTENTION** BLOCK on `$linter-setup` before any phase · NEVER auto-decide harness content (ask the user directly-gate) · gate behaviour on mutation score, NEVER on line-coverage %.
+**IMPORTANT MUST ATTENTION** BLOCK on `$linter-setup` before any phase · NEVER auto-decide harness content (ask the user directly-gate) · require profile-fit intent evidence, NEVER a universal mutation tool or line-coverage % gate.

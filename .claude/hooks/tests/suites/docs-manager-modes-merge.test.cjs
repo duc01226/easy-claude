@@ -260,7 +260,7 @@ const tests = [
         fn: () => {
             const skill = skillText();
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
-            const updateOnly = ['ai-discovery-doc-quality', 'cross-service-check', 'nested-task-creation', 'parallel-subagent-dispatch', 'subagent-return-contract', 'task-tracking-external-report'];
+            const updateOnly = ['ai-discovery-doc-quality', 'cross-service-check', 'subagent-return-contract', 'task-tracking-external-report'];
             const initOnly = ['ai-discovery-doc-quality'];
             for (const [label, text, tags] of [['mode-update', modeUpdate(), updateOnly], ['mode-init', modeInit(), initOnly]]) {
                 for (const tag of tags) {
@@ -280,7 +280,7 @@ const tests = [
             assert.equal((skill.match(/Root-carried protocols/g) || []).length, 0, 'no retired pointer line');
             // And the update reminders survive
             const reminders = (modeUpdate().match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length;
-            assert.ok(reminders >= 4, `tripwire: the update reminders survive (${reminders})`);
+            assert.ok(reminders >= 2, `tripwire: the update reminders survive (${reminders})`);
         }
     },
     {

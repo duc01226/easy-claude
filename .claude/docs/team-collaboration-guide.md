@@ -27,8 +27,8 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 
 | Pillar                        | What It Does                                                          | Count                                                      |
 | ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->29<!-- /COUNT --> top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->102<!-- /COUNT --> skills             |
+| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | <!-- COUNT:hooks -->30<!-- /COUNT --> top-level hook files |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | <!-- COUNT:skills -->101<!-- /COUNT --> skills             |
 | **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | <!-- COUNT:workflows -->19<!-- /COUNT --> workflows        |
 
 ### Workflow Detection
@@ -40,7 +40,7 @@ When you describe the first task of a session, Claude automatically:
 3. **Creates tasks** for every step and tracks progress
 4. **Executes** each step in sequence
 
-Each person sets how this works: route mode `ask` (default), `auto` (a matched workflow starts without asking, by its tier) or `off` (nothing starts without an explicit request). See [Workflow route mode](configuration/README.md#workflow-route-mode-per-person); change it with `/workflow-mode`.
+Each person sets how this works: route mode `ask` (default), `auto` (a matched workflow starts without asking, by its tier) or `off` (nothing starts without an explicit request). See [Workflow route mode](configuration/README.md#workflow-route-mode-per-person); change it with `/framework-config --mode=workflow`.
 
 Mid-session (follow-ups, corrections, new asks), Claude does the work directly, with the best-fit skill, or with a lean chain of at most 3 skills instead of auto-activating a workflow. An explicit workflow request — `/start-workflow <id>`, `/workflow-*`, or asking in words — always runs.
 

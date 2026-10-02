@@ -256,8 +256,8 @@ const tests = [
             const executeText = modeExecute();
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const reviewOnly = ['category-review-thinking', 'graph-assisted-investigation', 'severity-rubric', 'trade-off-interrogation-gate'];
-            const validateOnly = ['nested-task-creation', 'sequential-thinking-protocol', 'task-tracking-external-report', 'understand-code-first'];
-            const executeOnly = ['design-distinctiveness-gate', 'design-review-checklist', 'end-to-start-debugger-trace', 'nested-task-creation', 'severity-rubric', 'source-test-drift-check', 'ui-copywriting', 'understand-code-first'];
+            const validateOnly = ['sequential-thinking-protocol', 'task-tracking-external-report', 'understand-code-first'];
+            const executeOnly = ['design-distinctiveness-gate', 'design-review-checklist', 'end-to-start-debugger-trace', 'severity-rubric', 'source-test-drift-check', 'ui-copywriting', 'understand-code-first'];
             // Each mode-only tag is an inline body in its reference and absent from the default skill
             for (const [label, text, tags] of [['mode-review', reviewText, reviewOnly], ['mode-validate', validateText, validateOnly], ['mode-execute', executeText, executeOnly]]) {
                 for (const tag of tags) {
@@ -272,7 +272,7 @@ const tests = [
             assert.match(reviewText, /\*\*AI surface\?\*\* Only if the plan creates or changes a model call[^\n]*\.claude\/skills\/shared\/protocols\/ai-engineering-gate\.md[^\n]*otherwise skip this line/);
             assert.ok(!reviewText.includes('SYNC:ai-engineering-gate') && !planText.includes('ai-engineering-gate'), 'default plan creation pays nothing for the AI floor');
             // And plan keeps every protocol the modes share with plan creation
-            for (const tag of ['core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'plan-granularity', 'plan-quality', 'verify-last-order', 'cross-service-check', 'parallel-subagent-dispatch']) {
+            for (const tag of ['core-engineering-principles', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'plan-granularity', 'plan-quality', 'verify-last-order', 'cross-service-check']) {
                 assert.ok(planTags.includes(tag), `plan/SKILL.md carries ${tag}`);
             }
             for (const tag of planTags) assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', `${tag}.md`)), `projection file for ${tag}`);
@@ -283,8 +283,8 @@ const tests = [
                 assert.equal(opens.length, closes.length, `${label} fences balanced`);
             }
             const reminders = text => (text.match(/<!-- SYNC:[a-z-]+:reminder -->/g) || []).length;
-            assert.ok(reminders(validateText) >= 8, `tripwire: the validate reminders survive (${reminders(validateText)})`);
-            assert.ok(reminders(executeText) >= 10, `tripwire: the execute reminders survive (${reminders(executeText)})`);
+            assert.ok(reminders(validateText) >= 7, `tripwire: the validate reminders survive (${reminders(validateText)})`);
+            assert.ok(reminders(executeText) >= 9, `tripwire: the execute reminders survive (${reminders(executeText)})`);
         }
     },
     {

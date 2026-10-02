@@ -219,7 +219,7 @@ const tests = [
             assert.deepEqual(guideTags(refText), [], 'mode-debug carries no guide entry');
             assert.ok(!refText.includes('Root-carried protocols'), 'mode-debug carries no retired pointer line');
             // And investigate keeps the protocols the debug mode shares with the default flow
-            for (const tag of ['cross-service-check', 'end-to-start-debugger-trace', 'environment-fault-hypothesis', 'fix-layer-accountability', 'nested-task-creation', 'parallel-subagent-dispatch', 'root-cause-debugging', 'sequential-thinking-protocol', 'source-test-drift-check', 'task-tracking-external-report', 'understand-code-first']) {
+            for (const tag of ['cross-service-check', 'end-to-start-debugger-trace', 'environment-fault-hypothesis', 'fix-layer-accountability', 'root-cause-debugging', 'sequential-thinking-protocol', 'source-test-drift-check', 'task-tracking-external-report', 'understand-code-first']) {
                 assert.ok(skillTags.includes(tag), `investigate/SKILL.md carries ${tag}`);
             }
             for (const tag of skillTags) assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', `${tag}.md`)), `projection file for ${tag}`);

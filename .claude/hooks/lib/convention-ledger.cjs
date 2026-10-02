@@ -474,7 +474,9 @@ function isPresent(record, hash, ctx, settings) {
 function adoptExpectedBoundary(record, hash, ctx) {
     if (!record || record.expectBoundary !== true || record.hash !== hash || typeof record.deliveredAt !== 'number') return record;
     const boundary = ctx.lastCompactionAt;
-    if (!Number.isFinite(boundary) || !(boundary > record.deliveredAt)) return record;
+    // Equal millisecond stamps still identify the boundary this delivery expected.
+    // Presence is strictly after a boundary, so equality also needs attribution.
+    if (!Number.isFinite(boundary) || boundary < record.deliveredAt) return record;
     if (boundary - record.deliveredAt > BOUNDARY_ATTRIBUTION_MS) return record;
     const { expectBoundary, ...rest } = record;
     return { ...rest, deliveredAt: boundary + 1 };

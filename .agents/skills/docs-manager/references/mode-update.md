@@ -120,7 +120,9 @@ git diff → Triage → Phase 1: Project Context Sync (PARALLEL, impact-scoped)
 
 ### Step 0.1: Collect Changed Files
 
-Run `git diff --name-only HEAD` (staged + unstaged); if empty, run `git diff --name-only HEAD~1` (last commit); if still empty, run `git diff --name-only origin/develop...HEAD` (branch changes).
+Resolve the changed-file scope ONCE, in this precedence: explicit `changed_files` → caller `base` diff → default working-tree diff. With `changed_files`, use exactly the supplied repository-relative paths (including deleted paths); do not inspect unrelated Git changes. With `base`, collect `git diff --name-only <base>...HEAD`; use the same list for categorization and mapping. With neither, run `git diff --name-only HEAD` (staged + unstaged); if empty, run `git diff --name-only HEAD~1` (last commit); if still empty, run `git diff --name-only origin/develop...HEAD` (branch changes). Record the selected source and immutable `resolved_changed_files` list.
+
+Pass every resolved path as a separate positional argument to each impact-map invocation through structured process arguments (or correctly shell-quoted arguments); never interpolate raw caller text. If the resolved list is empty, record an empty-scope no-op and skip mapping; calling the mapper without paths would rediscover an unrelated scope.
 
 ### Step 0.2: Categorize Changes
 
@@ -143,7 +145,7 @@ Run `git diff --name-only HEAD` (staged + unstaged); if empty, run `git diff --n
 Run the Step 1.1 impact map now and read `fastExit`:
 
 ```bash
-node .claude/scripts/doc-impact-map.cjs --text
+node .claude/scripts/doc-impact-map.cjs --text <resolved_changed_files...>
 ```
 
 | Map result | Route |
@@ -201,9 +203,8 @@ Detection is SEQ and FIRST; derive assignments from the impacted-doc set after S
 ### Step 1.1: Build the Doc-Impact Map (SEQ — everything below derives from it)
 
 ```bash
-node .claude/scripts/doc-impact-map.cjs --json     # machine-readable (drives the wave)
-node .claude/scripts/doc-impact-map.cjs --text     # human-readable (goes in the report)
-node .claude/scripts/doc-impact-map.cjs --base=origin/main   # branch-scope instead of working tree
+node .claude/scripts/doc-impact-map.cjs --json <resolved_changed_files...> # same Step 0.1 list drives the wave
+node .claude/scripts/doc-impact-map.cjs --text <resolved_changed_files...> # same list goes in the report
 ```
 
 The map routes changed files to at-risk docs/config sections and returns per doc: `doc`, `exists`, `lastScanned`/`ageDays`, the exact owner invocation in `scanTarget` (including a generic custom filename where applicable), `checks`, `changedFiles`/`addedFiles`/`deletedFiles`, and `heuristicOnly`. It derives routing from `docs/project-config.json` (`contextGroups`, `modules`, `testing`, `e2eTesting`, `styling`, `designSystem`, `specRoots`, and selected generic `referenceDocs`) plus change classes — never hardcoded paths.
@@ -682,7 +683,7 @@ Pass caller context via `$ARGUMENTS` to avoid redundant triage or narrow scope:
 | `tc_mode`       | `tc_mode=implement-first`                            | Override spec [mode=tests] mode detection      |
 | `skip_phases`   | `skip_phases=1,2.5`                                  | Skip specific phases                  |
 | `freshness`     | `freshness=impact` (default) / `full` / `off`        | `impact` = Phase 1 as specified; `full` = escalate every routed doc to its `$scan --target=X` (and `$project-config`); `off` = skip Phase 1 — allowed ONLY on explicit user instruction, and the report MUST record every routed doc as `UNVERIFIED` |
-| `base`          | `base=origin/main`                                   | Scope the impact map to a branch diff instead of the working tree |
+| `base`          | `base=origin/main`                                   | Select the branch diff in Step 0.1 for every phase; explicit changed_files takes precedence |
 
 <additional_requests>
 $ARGUMENTS
@@ -755,40 +756,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:cross-service-check -->
 
-<!-- SYNC:nested-task-creation -->
-
-> **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
->
-> 1. Call the current task list first. Set `nested=true` and record `parentTaskId` ONLY when this run created its own child phase tasks linked to that parent row; a `[Workflow]` row that merely exists in the current task list (stale, abandoned, or belonging to another run) does not make a run nested — such a run behaves as standalone.
-> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] /skill-name — phase`.
-> 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
-> 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
-> 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
-> 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
->
-> **Blocked until:** the current task list done, child phases created, parent linked when nested, first child marked `in_progress`.
-
-<!-- /SYNC:nested-task-creation -->
-
-<!-- SYNC:parallel-subagent-dispatch -->
-
-> **Parallel Sub-Agent Dispatch** — Plan parallelism the moment a task breakdown exists, BEFORE executing it — serial execution of provably independent tasks wastes wall-clock. Applies to every multi-step job (workflow steps, planning, batch updates, investigation, research, scans, reviews, doc sync). **Plan execution is metadata-gated, NEVER default-parallel** — fan-out follows ONLY what the plan declares (`PAR`/`SEQ` tags + per-phase write set); an untagged plan runs sequentially — why: a derived write set cannot see cascade or generated writes.
->
-> 1. **Tag every task `PAR` or `SEQ`.** `PAR` = inputs exclude every pending task's output AND write set disjoint from every other `PAR`; else `SEQ`, naming the dependency that forces it.
-> 2. **Group `PAR` into waves.** No edge between members; two writers of one file NEVER share a wave; read-only work parallelizes freely.
-> 3. **Declare before dispatch:** `Parallel plan: wave 1 = [...] · wave 2 = [...] · SEQ = [...] (reason)`.
-> 4. **Spawn each wave in ONE message** — every `spawn_agent` call in one response, NEVER dripped per turn. Route each task to its specialist (`.claude/skills/shared/sub-agent-selection-guide.md`); NEVER `code-reviewer` as catch-all.
-> 5. **Brief each sub-agent self-contained:** goal · scope + owned files · reference docs · return contract (summary + `Full report:` path, per SYNC:subagent-return-contract) · incremental persistence to `tmp/reports/` (per SYNC:incremental-persistence).
-> 6. **Barrier per wave.** Advance ONLY after EVERY member returns (a skipped conditional counts as returned). Merge, mark each task completed/skipped, THEN dispatch the next wave. Mutating steps wait for the barrier.
-> 7. **One level deep.** A dispatched sub-agent executes its own brief; further fan-out stays the orchestrator's job unless that agent's `.claude/agents/*.md` definition authorizes it.
->
-> **Cost check before every wave:** each sub-agent pays a fixed context load before any work — its agent definition, every skill it loads or preloads, its brief and reference docs — commonly tens of thousands of tokens, far more than one duplicated protocol block. Dispatch only a task whose own work clearly exceeds that load; otherwise do it inline, or fold it into an agent that already reads the same files as concrete questions (that agent need not load the task's whole skill) — unless the task's risk needs its full protocol: risk sets depth, file count never does. Merge tasks that read the same files or reference docs into one agent, and prefer fewer, larger agents over many small ones. Parallelism buys wall-clock time, never free tokens.
->
-> **NEVER parallelize:** tasks sharing a write target · a task consuming a pending task's output · trivial single-file work (dispatch overhead > gain) · a task whose own work is smaller than its sub-agent's fixed context load (do it inline or merge it) · an order a skill or workflow explicitly fixes · gates awaiting user approval.
->
-> **Blocked until:** MUST ATTENTION every task tagged PAR/SEQ with a named reason per SEQ · waves declared + write-set disjointness checked · each wave spawned in ONE message · barrier honored before the next wave.
-
-<!-- /SYNC:parallel-subagent-dispatch -->
 
 <!-- SYNC:subagent-return-contract -->
 
@@ -859,12 +826,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
@@ -877,11 +838,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 ## Closing Reminders
 

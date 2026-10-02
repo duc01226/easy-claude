@@ -3,7 +3,7 @@
  * Help text for every config option whose schema entry carries no inline `describe`.
  * Covers project-config (project-config-schema.cjs SCHEMA) and .ck.json (ck-config-schema.cjs CK_SCHEMA).
  *
- * Read ONLY by the help commands (project-config --help, /ck-help config) and the
+ * Read ONLY by the help commands (project-config --help, /framework-config --mode=help config) and the
  * config-help-coverage test — never by hooks, so it adds nothing to hook start-up.
  *
  * Rule: a schema entry's own `describe` wins; this file supplies the rest. A new schema

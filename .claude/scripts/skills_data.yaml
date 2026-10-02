@@ -69,18 +69,6 @@
   path: changes-review/SKILL.md
   removal_after: null
   status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Utilities] Use when asking how to use the framework''s commands:
-    keyword or category search, command details, task recommendations. Project facts:
-    project-help.'
-  has_references: false
-  has_scripts: false
-  name: ck-help
-  path: ck-help/SKILL.md
-  removal_after: null
-  status: active
 - category: utilities
   deprecated_by: null
   deprecated_since: null
@@ -273,6 +261,18 @@
   has_scripts: false
   name: fix
   path: fix/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Utilities] Use when asking about or configuring the .claude/.codex/.agents/.opencode
+    skills framework: command discovery/help, settings, hooks, workflows, activation
+    or framework usage. Explains options; changes only requested settings.'
+  has_references: false
+  has_scripts: false
+  name: framework-config
+  path: framework-config/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -574,7 +574,7 @@
   deprecated_since: null
   description: '[Utilities] Use when asking what the .claude framework does for THIS
     project: configuration, skills/agents/workflows, reference docs, key tech/architecture/structure
-    facts. Command keyword search: ck-help.'
+    facts. Command keyword search: framework-config --mode=help.'
   has_references: false
   has_scripts: true
   name: project-help
@@ -620,8 +620,8 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Git] Use when asked to create, open, finish, update or mark ready
-    a pull request. Runs in the main session without asking: fresh branch from the
-    target, commit, /workflow-review-changes --fix-loop, open PR, CI to green.'
+    a pull request. Runs in the main session with user test and review choices, including
+    explicit skip: branch, commit, open PR, CI to green.'
   has_references: false
   has_scripts: false
   name: pull-request
@@ -917,9 +917,9 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Code Quality] Use when a workflow step or the user asks for a rationale
-    review of plans, PBIs, commits, diffs, docs, specs or reports; validates findings.
-    --fix-loop fixes and re-reviews.'
+  description: '[Code Quality] Use when a workflow step or the user asks for rationale
+    review: why needed/chosen, trade-offs, good idea or best practice. Only explicit
+    rationale asks; not generic reviews or how-it-works. --fix-loop fixes/re-reviews.'
   has_references: true
   has_scripts: false
   name: why-review
@@ -987,7 +987,7 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Process] Use when ending the active workflow and clearing its state.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: workflow-end
   path: workflow-end/SKILL.md
@@ -1071,18 +1071,6 @@
   has_scripts: false
   name: workflow-integration-test
   path: workflow-integration-test/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Utilities] Use when showing or changing this person''s workflow route
-    mode (ask, auto, off): which source decided it, set it for one session, or save
-    it to the user file or this checkout.'
-  has_references: false
-  has_scripts: false
-  name: workflow-mode
-  path: workflow-mode/SKILL.md
   removal_after: null
   status: active
 - category: other

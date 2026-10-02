@@ -125,31 +125,19 @@ ls "$SPEC_ROOT"/ 2>/dev/null
 | Directory missing or empty | ⚠️ Flag (naming the resolved root — default `docs/specs/`, overridden by `specRoots.business.path` in `docs/project-config.json`): `"No Feature Specs found under the business spec root. Consider running $workflow-code-to-spec (mode: init-full) to bootstrap spec-driven documentation for this codebase."` |
 | Feature Specs exist        | Proceed to Step 2                                                                                                                                                     |
 
-### Step 2 — Spec Staleness Check (only if bundle exists)
+### Step 2 — Changed-Feature Correspondence (only if bundle exists)
 
-For each spec file in the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides):
+Map this session’s changed business behavior and paths (working tree plus session commits) to the canonical feature/spec owners using project config, references, caller contracts, and the supported native/default spec profile. Inspect only those affected owners and their relevant tests; uncommitted correct owner updates count as current evidence. Record changed behavior → owner path/section/native identity → inspected source/test evidence → correspondence verdict.
 
-```bash
-git log --since="30 days ago" --name-only -- "$SPEC_ROOT"/ | head -10
-```
+| Evidence | Action |
+| --- | --- |
+| Changed behavior matches its inspected canonical intent/contracts | Record `MATCH` with owner and source/test locations. |
+| Inspected owner contradicts changed behavior or lacks its contract | Flag `DRIFT` with the specific mismatch and recommend the relevant spec/docs owner repair. |
+| No owner mapping or insufficient evidence | Record `NOT VERIFIED` and the missing mapping/evidence; recommend a focused `$workflow-code-to-spec (mode: audit)` rather than declaring freshness. |
 
-| Result                                                               | Action                                                                                                                                                    |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No commits in last 30 days AND business code changed in this session | ⚠️ Flag: `"Engineering spec bundle may be stale (no updates in >30 days). Consider running $workflow-code-to-spec (mode: audit) to verify freshness."` |
-| Recent commits found                                                 | ✅ Spec bundle is being maintained                                                                                                                        |
+### Step 3 — Maintenance Metadata and Handoff
 
-### Step 3 — Feature Docs Freshness Check
-
-`$SPEC_ROOT` remains the business spec root resolved in Step 1 (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides).
-
-```bash
-git log --since="30 days ago" --name-only -- "$SPEC_ROOT"/ | head -10
-```
-
-| Result                                               | Action                                                                                  |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| No commits in last 30 days AND business code changed | ⚠️ Flag: `"Business feature docs may be stale. Consider running $docs-manager --mode=update to sync."` |
-| Recent commits found                                 | ✅ Feature docs are being maintained                                                    |
+Commit age may be reported as optional metadata for the affected owner paths only. Age and unrelated recent spec commits never establish MATCH or DRIFT. Avoid duplicating the same flag for a spec bundle and feature docs when they share a canonical owner. Carry Step 2’s inspected correspondence and unresolved owners into the report; this wrap-up is read-only and does not silently amend business intent.
 
 **Output only flags that apply.** When no code changed, record `Spec health: skipped — no code changed` with the evidence; when code changed but none of it is business code, record `Spec health: skipped — no business code changed` with the changed-path list.
 
@@ -263,7 +251,6 @@ After the report is written, MUST ATTENTION use ask the user directly to present
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
-- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `task-tracking-external-report` — Task breakdown before the work and report files written incrementally; starting any multi-step skill, plan or review → .claude/skills/shared/protocols/task-tracking-external-report.md
 
 <!-- PROTOCOL-GUIDES:END -->
@@ -281,12 +268,6 @@ After the report is written, MUST ATTENTION use ask the user directly to present
 
 <!-- /SYNC:task-tracking-external-report:reminder -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 

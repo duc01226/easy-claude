@@ -43,7 +43,7 @@ Each gate must hold, with its evidence, before `/workflow-end` closes the run.
 
 - `/investigate` (optional) — The prompt does not pin the audit scope to an explicit path or the current diff, or the scope is medium or larger (more than about 15 files) so modules, boundaries and hotspots must be mapped before the reviewers fan out. Skip reason: The prompt pins a small audit scope to an explicit path or the current diff, so `architecture --mode=full` resolves the scope itself without a separate map. · proves / feeds: Scope map for the engine and for the final scope check.
 - `/architecture --mode=full` (gate) — Always. · proves / feeds: Three non-overlapping faces (`architecture --mode=scalability`, `architecture --mode=review`, `production-readiness-review`), progressive dedup synthesis, per-face `/why-review` fix, finalized verdict → `review-converged`.
-- `/why-review` (gate) — Always, after the report is `FINISHED`. · proves / feeds: Report-level validation. The engine skips its own Step 5 on a zero-open-finding PASS (Round-1 LOW closure, `SYNC:double-round-trip-review`), so this step is the one validation every run gets.
+- `/why-review` (gate) — Always, after the report is `FINISHED`. · proves / feeds: Report-level validation. The engine skips its own Step 5 on a zero-open-finding PASS (Round-1 LOW closure), so this step is the one validation every run gets.
 - `/docs-manager --mode=update` (optional) — The validated audit found project documentation (reference docs, project config, README, ADR status) that contradicts the audited code. Skip reason: The validated audit found no project documentation contradicting the audited code, and a read-only audit leaves no diff for docs-manager --mode=update to sync. · proves / feeds: Docs truthful.
 - `/workflow-end` (gate) — Always, last. · proves / feeds: `run-closed`.
 - `/watzup` (core) — Always. · proves / feeds: Handoff: verdict, sub-scores, follow-up owners per finding.
@@ -61,7 +61,7 @@ Recommended: on XS/S targets, run `/investigate` inline or let the engine's scop
 
 ## Memory & Reporting
 
-- Create one task per selected step. The engine pre-expands its own phases under the parent row (`nested-task-creation`).
+- Create one task per selected step. The engine pre-expands its own phases under the parent row.
 - Create the workflow report FIRST at `tmp/reports/workflow-architecture-audit-{YYMMDD}-{HHmm}-{slug}.md`: triage, per-step evidence, deviations, and the path of the engine's consolidated report (`tmp/reports/architecture-full-review-{date}-{slug}.md`). Append after each step.
 - Sub-agent briefs make report writing their first deliverable and return only the `subagent-return-contract` envelope.
 - After compaction, re-read `TaskList`, the workflow report, and the consolidated report's status line before continuing.
@@ -70,26 +70,19 @@ Recommended: on XS/S targets, run `/investigate` inline or let the engine's scop
 
 - No source fixes happen in this workflow. The only artifact that gets fixed is the report itself: the engine's own merged review of all faces, then the workflow-level `/why-review` at report level.
 - A finding counts as validated only when it survived `/why-review` with evidence. Route each one to its owner in the handoff, with severity and confidence: `/plan` when the fix set is large, cross-module or ambiguous, a feature or refactor workflow for a bounded fix.
-- Loop bounds for the report-level `/why-review`: round 1 exits on zero open findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 2 rounds (+1 when a validated CRITICAL/HIGH is still open); escalate via `AskUserQuestion` when a round makes no progress.
+- Loop bounds for the report-level `/why-review`: round 1 exits on zero open findings; from round 2 the bar is zero CRITICAL/HIGH/MEDIUM, with LOWs deferred and listed; cap 3 review rounds; escalate via `AskUserQuestion` when a round makes no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
-- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `workflow-registry-binding` — Read the workflow registry entry and the workflow skill together, since they must agree; executing or editing a workflow → .claude/skills/shared/protocols/workflow-registry-binding.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- SYNC:session-goal-ledger:reminder -->
 

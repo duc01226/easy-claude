@@ -121,7 +121,8 @@ function runChild(base, project, stubSource, body) {
     assertEqual(child.status, 0, `child must exit 0; stderr: ${child.stderr}`);
     const match = (child.stdout || '').match(/CHILD_RESULT:(.*)/);
     assertTrue(Boolean(match), `child printed no result; stdout: ${child.stdout}`);
-    return { ...JSON.parse(match[1]), home, cache, tmp };
+    const sharedCache = process.platform === 'darwin' ? path.join(home, 'Library', 'Caches') : cache;
+    return { ...JSON.parse(match[1]), home, cache: sharedCache, tmp };
 }
 
 /** An injected clock whose sleep advances it; records every sleep. */

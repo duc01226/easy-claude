@@ -274,10 +274,10 @@ const tests = [
                 'mode-story.md': ['estimation-framework', 'sequential-thinking-protocol', 'ui-system-context', 'ui-wireframe'],
                 'mode-mockup.md': ['design-distinctiveness-gate', 'design-review-checklist', 'existing-ui-research', 'ui-copywriting', 'ui-ux-design-principles', 'ux-journey-gate'],
                 'mode-challenge.md': ['ba-team-decision-model', 'estimation-framework', 'refinement-dor-checklist', 'sequential-thinking-protocol', 'ui-system-context'],
-                'mode-review.md': ['core-engineering-principles', 'design-distinctiveness-gate', 'design-review-checklist', 'double-round-trip-review', 'evidence-based-reasoning', 'fresh-context-review', 'goal-contract-satisfaction-loop', 'nested-task-creation', 'parallel-subagent-dispatch', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'ui-intent-layer', 'ui-ux-design-principles', 'understand-code-first', 'ux-journey-gate'],
+                'mode-review.md': ['core-engineering-principles', 'design-distinctiveness-gate', 'design-review-checklist', 'evidence-based-reasoning', 'goal-contract-satisfaction-loop', 'review-principle-awareness', 'review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'trade-off-interrogation-gate', 'ui-intent-layer', 'ui-ux-design-principles', 'understand-code-first', 'ux-journey-gate'],
                 'mode-dor.md': ['estimation-framework']
             };
-            const MIN_REMINDERS = { 'mode-refine.md': 3, 'mode-story.md': 3, 'mode-mockup.md': 5, 'mode-challenge.md': 3, 'mode-review.md': 15, 'mode-dor.md': 1 };
+            const MIN_REMINDERS = { 'mode-refine.md': 3, 'mode-story.md': 3, 'mode-mockup.md': 5, 'mode-challenge.md': 3, 'mode-review.md': 12, 'mode-dor.md': 1 };
             for (const [file, tags] of Object.entries(expected)) {
                 const text = ref(file);
                 for (const tag of tags) {

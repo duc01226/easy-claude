@@ -107,15 +107,9 @@ AGENTS_DIR = _CLAUDE_DIR / "agents"
 # Blocks that drive main-loop orchestration / user interaction. A headless leaf
 # sub-agent cannot act on these, so they must NOT propagate into agent files.
 EXCLUDED_ORCHESTRATION = {
-    "nested-task-creation",       # expands a workflow step's child phase tasks
     "sub-agent-selection",        # a dispatcher choosing which sub-agents to spawn
     "subagent-return-contract",   # instructs *its* sub-agents how to return (inverted for a leaf)
     "parallel-phase-advancement", # all-return barrier across a parallel workflow phase group
-    # Orchestrator-only: partitions ITS OWN task list into PAR/SEQ waves and
-    # spawns each wave. A headless leaf sub-agent receives one brief and, by rule
-    # 7 of the block itself, does NOT fan out another wave -- copying it would
-    # instruct the agent to perform the exact action the block forbids it.
-    "parallel-subagent-dispatch",
     # Session-scoped goal-file loop owned by the CALLER, not a leaf agent: step 1
     # resolves the goal from "the current user request" (a sub-agent sees only its
     # task prompt, never the parent conversation), step 6 drives the review->fix
@@ -147,8 +141,6 @@ EXCLUDED_ORCHESTRATION = {
     # scoped brief with the rules it applies already embedded; carrying these bodies
     # too cost about 11k tokens per spawn and told a leaf to batch, loop and spawn
     # reviewers it must not.
-    "double-round-trip-review",
-    "fresh-context-review",
     "systematic-review-batching",
     "review-protocol-injection",
     "review-policy",
@@ -168,15 +160,12 @@ ORCHESTRATION_WHITELIST = {
 # Blocks whose body literally instructs the agent to spawn Agent/Task sub-agents.
 # An agent assigned one of these MUST have Agent/Task (or an all-tools grant).
 SPAWN_INSTRUCTING_BLOCKS = {
-    "fresh-context-review",
     "review-protocol-injection",
 }
 
 # Review-cycle blocks are only relevant to agents whose primary job includes
 # adversarial review, fix-cycle validation, or review-gate orchestration.
 REVIEW_CYCLE_TAGS = {
-    "fresh-context-review",
-    "double-round-trip-review",
     "review-protocol-injection",
 }
 REVIEW_CYCLE_AGENTS = {

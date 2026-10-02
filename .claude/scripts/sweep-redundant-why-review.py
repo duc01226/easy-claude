@@ -40,7 +40,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # Review skills that embed the why-review findings-validation gate internally.
 # changes-review is intentionally excluded: the parent changes-review workflow
 # keeps an external why-review gate immediately after its first step.
-# (Verified via grep for validate-findings / double-round-trip-review / Findings
+# (Verified via grep for validate-findings / Findings
 #  Validation Gate across .claude/skills/*. why-review itself is excluded.)
 REVIEW_SKILLS = {
     "architecture --mode=review", "ui-design --mode=review", "ai-engineering-review",

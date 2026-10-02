@@ -57,7 +57,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 ## Evidence and Discovery
 
 1. Resolve and read the active Goal Contract per `SYNC:goal-contract-satisfaction-loop`; the plan must map its outcome and final proof to the saved required criteria.
-2. Resolve the configured plans root, spec profile, project references, commands, and mirror/generated surfaces from `docs/project-config.json` when present.
+2. Resolve the configured plans root, spec profile, project references, commands, and mirror/generated surfaces from `docs/project-config.json` when present. Read `.claude/skills/shared/product-roadmap-contract.md` to select the applicable Plan Gate branch; it owns branch artifacts, scenario requiredness and approval semantics.
 3. Read the task-relevant reference docs and governing spec/decision artifacts. For code-bearing work, inspect the target plus three comparable local patterns when available; record scarcity instead of inventing examples.
 4. Trace affected owners and consumers. The code graph is an optional, stale-able hint for high-risk blast radius; for service/event systems, check producers, consumers, orchestration, and shared contracts.
 5. Separate facts from execution-time discovery:
@@ -70,6 +70,14 @@ Use direct repository inspection for focused work. Add research agents or extern
 ## Plan Artifact Contract
 
 Write `plan.md` under the configured plans root. Use this compact shape; omit a section only with a stated `N/A` reason.
+
+### 0. Applicability and Plan Gate (required producer handoff)
+
+Before the technical sections, write exactly one `## Plan Gate` using the selected branch from `product-roadmap-contract.md`: EXPLICIT-ROADMAP, DECOMPOSITION-EMBEDDED, FRAMEWORK-LIBRARY, or EXEMPT. Preserve the shared owner's status values and required fields: Roadmap, Milestone, Scope brief, Scenarios, Product decisions, Project skeleton, Commands, Evidence plan, Human approval, plus Decomposition owner or Framework owner when applicable.
+
+- Reuse the stable `{plan-dir}` and the actual upstream scope/scenario artifacts. Create the branch-required scope brief and scenario evidence there if absent, using verified intent; an embedded ordinary route uses its owning artifact and conditional scenario evidence. Do not invent a roadmap, milestone or decomposition block.
+- Record approval only from explicit user/session evidence. An authorized scope may be recorded `APPROVED`; unknown approval stays `REQUIRED`, open intent stays `OPEN`, and the gate stays `BLOCKED` where the branch requires it. Saving a blocked plan is valid; implementation remains blocked.
+- Self-check these fields against the shared owner’s Plan Gate and Handoff rules before handoff without loading or running another mode. This supplies the applicability contract consumed by validation Phase 0.5; missing applicability is an incomplete producer artifact, not a discovery task for the validator.
 
 ### 1. Outcome and boundaries
 
@@ -133,6 +141,7 @@ List phase waves only when `PAR` phases have proven disjoint write sets. Otherwi
 
 ## Self-Check Before Handoff
 
+- **Producer handoff:** exactly one branch-correct `## Plan Gate`, real required scope/scenario paths, commands/evidence and honest approval state, as required by the shared owner and validation Phase 0.5.
 - **Plan, not implementation:** could an executor choose local mechanics without contradicting the plan?
 - **Decision completeness:** are product/public-contract/irreversible choices settled or explicitly blocked?
 - **Discovery completeness:** does every unknown have a bounded source, owner, and stop condition?
@@ -153,7 +162,6 @@ Persist the plan path and a short summary. Standalone asks once about optional `
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `fix-layer-accountability` — Fix at the component that owns the violated contract, not at the crash site; choosing where to apply a fix → .claude/skills/shared/protocols/fix-layer-accountability.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `plan-granularity` — Outcome phases name decisions, boundaries and bounded discovery without replaying implementation; breaking a plan into phases → .claude/skills/shared/protocols/plan-granularity.md
 - `plan-quality` — Plans decide direction, affected owners, risks and final proof without pre-writing implementation; writing or reviewing a plan → .claude/skills/shared/protocols/plan-quality.md
 - `preservation-inventory` — Table of behavior a bugfix plan must preserve, written before the implementation steps; writing a bugfix plan → .claude/skills/shared/protocols/preservation-inventory.md

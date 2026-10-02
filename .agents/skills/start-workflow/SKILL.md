@@ -236,7 +236,7 @@ This section is the single owner of the flex rules (BR-GWF-16); `workflows.json`
 7. **Mechanics.** Run: mark the task `in_progress` → **execute the skill protocol through the active host** → mark the task `completed`. Use native task tools or the documented equivalent ledger. Skip or merge: mark the task `in_progress` → comment "Skipped — {deviation-kind}: {evidence}" → deviation-log line → mark the task `completed`. A skipped or merged task, including a conditionally skipped task, completes without skill execution only after both the comment and the deviation-log line. Simplified and reordered steps still execute their skill protocol and add their line. Never delete a task.
 8. **Validation gates** (`$plan --mode=validate`, `$plan --mode=review`, `$why-review`) MUST use explicit evidence and local project protocol — NEVER auto-approve inferred decisions. Explicit user approval in the prompt may satisfy the gate only when the gate's skill permits it.
 9. **Close.** `workflow-end` checks evidence for every outcome gate before the run closes.
-10. **Verify-last loop** (`SYNC:verify-last-order`). A code-changing workflow reviews statically, then verifies once. When a step after the review edits the tree, re-invoke the review gate with its same args; when that re-review applies a fix, re-invoke the verify gates. A re-invocation reuses the existing task row (comment `rerun N: <reason>`) and is a loop iteration, never a new step or a deviation. The verify ↔ re-review alternation is capped at 2 turns; a third turn, or the same failure returning, escalates by asking the user directly. `workflow-end` checks the review receipt (`review-converged`, a stale one is flagged) and requires the cited green run to be newer than the last source or test edit (`tests-pass`).
+10. **Verify-last loop** (`SYNC:verify-last-order`). A code-changing workflow reviews statically, then verifies once. When a step after the review edits the tree, re-invoke the review gate with its same args; when that re-review applies a fix, re-invoke the verify gates. A re-invocation reuses the existing task row (comment `rerun N: <reason>`) and is a loop iteration, never a new step or a deviation. The verify ↔ re-review alternation is capped at 3 turns; a fourth turn, or the same failure returning, escalates by asking the user directly. `workflow-end` checks the review receipt (`review-converged`, a stale one is flagged) and requires the cited green run to be newer than the last source or test edit (`tests-pass`).
 
 ---
 
@@ -276,7 +276,6 @@ When `$workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
-- `parallel-subagent-dispatch` — Tag tasks PAR or SEQ, group them into disjoint waves and dispatch each wave at once; a task list has independent tasks → .claude/skills/shared/protocols/parallel-subagent-dispatch.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
 - `verify-last-order` — Build all phases and write tests, review statically, then verify once with a mutation check; planning or running any code-changing task → .claude/skills/shared/protocols/verify-last-order.md
@@ -290,11 +289,6 @@ When `$workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
-<!-- SYNC:parallel-subagent-dispatch:reminder -->
-
-- **MANDATORY** Plan waves per the `Workflow Step Advancement & Parallel Phases` rules: tag tasks `PAR`/`SEQ`, spawn each `PAR` wave in ONE message with disjoint write sets, honor the all-return barrier, and fold a small lens into an agent already reading the same files, unless its risk needs the full protocol; full text: `.claude/skills/shared/protocols/parallel-subagent-dispatch.md`.
-
-<!-- /SYNC:parallel-subagent-dispatch:reminder -->
 
 <!-- SYNC:session-goal-ledger:reminder -->
 

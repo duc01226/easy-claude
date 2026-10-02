@@ -292,7 +292,7 @@ def show_overview(data: dict, prefix: str) -> None:
     commands = data["commands"]
     categories = data["categories"]
     total = sum(len(cmds) for cmds in commands.values())
-    help_cmd = f"/{prefix}ck-help" if prefix else "/ck-help"
+    help_cmd = f"/{prefix}framework-config --mode=help" if prefix else "/framework-config --mode=help"
 
     print("# ClaudeKit Commands")
     print()

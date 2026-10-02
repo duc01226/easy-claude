@@ -316,7 +316,7 @@ const tests = [
             assert.match(modeReview(), /\*\*AI surface\?\*\* Only if the tested path calls a model[^\n]*\.claude\/skills\/shared\/protocols\/ai-engineering-gate\.md[^\n]*otherwise skip this line/);
             assert.ok(!modeReview().includes('SYNC:ai-engineering-gate') && !skillTags.includes('ai-engineering-gate'), 'default generation pays nothing for the AI floor guide');
             // And the skill keeps the protocols test generation shares with the modes
-            for (const tag of ['integration-test-execution-discipline', 'test-failure-fault-adjudication', 'test-architecture-execution-contract', 'verify-last-order', 'nested-task-creation', 'real-world-fidelity-testing', 'repeatable-test-principle']) {
+            for (const tag of ['integration-test-execution-discipline', 'test-failure-fault-adjudication', 'test-architecture-execution-contract', 'verify-last-order', 'real-world-fidelity-testing', 'repeatable-test-principle']) {
                 assert.ok(skillTags.includes(tag), `integration-test/SKILL.md carries ${tag}`);
             }
             for (const tag of skillTags) assert.ok(fs.existsSync(path.join(SKILLS, 'shared', 'protocols', `${tag}.md`)), `projection file for ${tag}`);

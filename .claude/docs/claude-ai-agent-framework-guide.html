@@ -453,7 +453,7 @@ footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule);
         <li><div><b>Fix at the owner</b><span><code>fix --target=review</code> records FIXED / REJECTED / DEFERRED; an unexplained defect is traced first.</span></div></li>
         <li><div><b>Receipt</b><span>A converged fix-loop mints a receipt for that exact changeset; any later edit invalidates it.</span></div></li>
         <li><div><b>Commit</b><span><code>/commit</code> runs the test and review gates; the commit gate blocks any agent commit without a receipt.</span></div></li>
-        <li><div><b>Pull request</b><span><code>/pull-request</code> reviews the whole branch, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes.</span></div></li>
+        <li><div><b>Pull request</b><span><code>/pull-request</code> asks for tests and whole-branch review with explicit Skip options, runs the selected gates, commits, pushes, opens a ready PR and fixes CI until green. It never merges or force-pushes.</span></div></li>
       </ol>
       <div class="callout"><b>Git discipline</b><span>Never commit, push or stage without an explicit request; branch first on the default branch; never destroy uncommitted work without asking; treat <code>gh</code> writes like a push. Only the literal <code>permissions.ask</code> patterns still prompt; the commit review gate is the one mechanical rule.</span></div>
     </section>

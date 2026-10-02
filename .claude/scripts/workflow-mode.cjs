@@ -4,7 +4,7 @@
 /**
  * workflow-mode — show or persist this person's workflow route mode (`ask` | `auto` | `off`).
  *
- * Backs the `workflow-mode` skill; the rule itself (modes, precedence, files) is owned by
+ * Backs `framework-config --mode=workflow`; the rule itself (modes, precedence, files) is owned by
  * `.claude/scripts/lib/workflow-routing-config.cjs`, which the route hook uses too.
  *
  *   node .claude/scripts/workflow-mode.cjs [show]             effective mode, the layer that decided it, every layer
@@ -28,13 +28,15 @@ const routing = require('./lib/workflow-routing-config.cjs');
 const { resolveProjectRoot } = require('./lib/project-root.cjs');
 
 function parseArgs(argv) {
-    const args = { mode: null, save: false, local: false, json: false, show: false, session: '', invalid: [] };
+    const args = { mode: null, save: false, local: false, json: false, show: false, session: '', setSession: false, resetSession: false, invalid: [] };
     for (const raw of argv) {
         const token = String(raw).trim().toLowerCase();
         if (/^--session=./.test(String(raw).trim())) args.session = String(raw).trim().slice('--session='.length);
         else if (token === '--save' || token === 'save') args.save = true;
         else if (token === '--local' || token === 'local') args.local = true;
         else if (token === '--json') args.json = true;
+        else if (token === '--set-session') args.setSession = true;
+        else if (token === '--reset-session') args.resetSession = true;
         else if (token === '--show' || token === 'show') args.show = true;
         else if (routing.ROUTE_MODES.includes(token)) args.mode = token;
         else args.invalid.push(raw);
@@ -66,10 +68,22 @@ function describeLayers(resolved, sessionMode) {
 function main(argv = process.argv.slice(2), env = process.env) {
     const args = parseArgs(argv);
     if (args.invalid.length > 0) {
-        process.stderr.write(`workflow-mode: unknown argument(s): ${args.invalid.join(' ')} (expected ask | auto | off | --save | --local | --show | --json | --session=<id>)\n`);
+        process.stderr.write(`workflow-mode: unknown argument(s): ${args.invalid.join(' ')} (expected ask | auto | off | --save | --local | --show | --json | --set-session | --reset-session | --session=<id>)\n`);
         return 1;
     }
     const rootDir = resolveProjectRoot({ cwd: process.cwd(), scriptPath: __filename, env }).rootDir;
+    const sessionId = args.session || routing.readSessionIdFromEnv(env);
+    if (args.setSession || args.resetSession) {
+        if ((args.setSession && !args.mode) || !sessionId || args.save || args.local || (args.setSession && args.resetSession) || (args.resetSession && args.mode)) {
+            process.stderr.write('workflow-mode: --set-session needs a mode and real session id; it cannot be combined with persistence flags.\n');
+            return 1;
+        }
+        const ledger = require('../hooks/lib/convention-ledger.cjs');
+        if (!ledger.writeSessionState(routing.resolveSessionStoreRoot(rootDir), sessionId, routing.SESSION_MODE_STATE, args.resetSession ? {} : { mode: args.mode })) {
+            process.stderr.write('workflow-mode: session preference NOT saved; no persistent configuration was changed.\n');
+            return 1;
+        }
+    }
     let written = null;
     if (args.mode && args.save) {
         const target = args.local ? 'local' : 'user';
@@ -85,7 +99,6 @@ function main(argv = process.argv.slice(2), env = process.env) {
         }
     }
     // The session's prompt directive lives in the hook's session record, not in a file or the env: read it by session id.
-    const sessionId = args.session || routing.readSessionIdFromEnv(env);
     const sessionMode = routing.readSessionRouteMode({ sessionId, rootDir });
     const resolved = routing.resolveWorkflowRouteMode({ rootDir, env, sessionMode });
     const sessionNote = sessionId
@@ -98,7 +111,7 @@ function main(argv = process.argv.slice(2), env = process.env) {
         layers: describeLayers(resolved, sessionMode),
         saved: written ? written.file : null,
         requested: args.mode,
-        note: args.mode && !args.save
+        note: args.setSession || args.resetSession ? 'Applied for this session only; no personal or team file written.' : args.mode && !args.save
             ? 'Nothing written. A session-only mode is set by sending `workflow-mode: <mode>` as the first line of a prompt; add --save to persist.'
             : (args.mode && resolved.mode !== args.mode
                 ? `Saved, but the effective mode stays ${resolved.mode}: a higher-precedence source (${routing.describeRouteModeSource(resolved.source)}) wins.`

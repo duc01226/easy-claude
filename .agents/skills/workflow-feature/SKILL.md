@@ -38,6 +38,8 @@ Escalate depth on risk and ambiguity, not file count alone:
 - **M, or any public-contract, data/schema, security or cross-module kind** — every core step at full depth plus each optional step whose condition holds (`$scenario`, `$domain-analysis`, `$plan --mode=validate`, ...).
 - **L/XL, or `isLargeIdea` true** — everything M runs, plus the embedded decomposition and bounded batches per module or slice for the build, test specs and review (one report per batch). A research-heavy scope that cannot be cut into slices → recommend `workflow-big-feature` to the user.
 
+**Representation authority:** resolve `shared/sdd-artifact-contract.md` and the configured/native case contract before interpreting the gates. Section/TC examples below apply only to the strict fallback; native profiles use their declared intent/evidence roles, owner-qualified IDs, carriers and mapping relation. Never create a second registry or default section to satisfy an example; unresolved mappings block.
+
 ## Required Quality Gates
 
 The run is not done until each applicable gate holds with its evidence:
@@ -123,7 +125,7 @@ Recommended: independent read-only work in one parallel wave (`$spec [mode=disco
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green.
 - Replanning is exceptional: only a material scope/contract decision invalidating the saved plan returns to `$plan`; ordinary implementation discovery stays with the executor.
-- Review loops (each `$pbi --mode=review` occurrence, the nested review): round 1 exits on zero open validated findings (Round-1 LOW closure, `SYNC:double-round-trip-review`); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 2 rounds, +1 when a CRITICAL/HIGH stays open; failing tests are uncapped; escalate with ask the user directly on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
+- Review loops (each `$pbi --mode=review` occurrence, the nested review): round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failing tests are uncapped; escalate with ask the user directly on no progress. Convergence lives inside each skill's own loop, so the sequence lists each review once.
 - Spec-loop discipline: §8 derives invariant/property TCs for every hard rule and invariant, not only example scenarios; every behavior-changing finding updates BOTH the spec and the tests, never code alone.
 
 <!-- PROTOCOL-GUIDES:START -->
@@ -132,7 +134,6 @@ Recommended: independent read-only work in one parallel wave (`$spec [mode=disco
 
 - `end-to-start-debugger-trace` — Walk backward from the observed end state through every feeder path before fixing; fixing a non-trivial bug, a regression or unclear code flow → .claude/skills/shared/protocols/end-to-start-debugger-trace.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
-- `nested-task-creation` — A child skill creates its own phase tasks under the workflow parent row; a skill runs as a workflow step → .claude/skills/shared/protocols/nested-task-creation.md
 - `session-goal-ledger` — Keep the original goal and every user prompt of the session; running a long or multi-prompt session → .claude/skills/shared/protocols/session-goal-ledger.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `subagent-return-contract` — Sub-agents return a structured envelope and a report path, never an inline report; spawning a sub-agent → .claude/skills/shared/protocols/subagent-return-contract.md
@@ -148,12 +149,6 @@ Recommended: independent read-only work in one parallel wave (`$spec [mode=disco
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
-<!-- SYNC:nested-task-creation:reminder -->
-
-- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
-- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] /skill-name — phase` prefixes and one-`in_progress` discipline.
-
-<!-- /SYNC:nested-task-creation:reminder -->
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 

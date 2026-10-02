@@ -27,9 +27,9 @@ description: '[Research] Use when a workflow step or the user asks for a researc
 **Summary:**
 
 - **Purpose/input/output:** Synthesize `tmp/research/_evidence-{slug}.md` + `_sources-{slug}.md` from `source-deep-dive` into `docs/knowledge/research/{slug}.md`; do not gather sources — upstream gathering already happened; no alternate mode or flag.
-- **Main path:** (1) create small tasks; (2) load evidence and inventory findings/confidence/discrepancies/gaps; (3) load template; (4) synthesize every section with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit citations; (6) roll up confidence, flag `<60%`, run final review, then clean working files after success.
+- **Main path:** (1) create small tasks; (2) load evidence and inventory findings/confidence/discrepancies/gaps; (3) load template; (4) synthesize every section with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit citations; (6) roll up confidence, flag `<60%`, run final review, then retain working evidence for acceptance and repair.
 - **Evidence gate:** Every factual claim MUST have inline `[N]` and 2+ independent sources; every Sources-table row needs a reference; Tier 4 is NEVER cited as fact; preserve gaps and discrepancies.
-- **Template/terminal gate:** Every enforced-template section, including Knowledge Gaps, MUST appear; final output is `docs/knowledge/research/{slug}.md`, with `tmp/research/` cleanup only after successful synthesis.
+- **Template/terminal gate:** Every enforced-template section, including Knowledge Gaps, MUST appear; final output is `docs/knowledge/research/{slug}.md`, with this run’s `tmp/research/` evidence retained through review acceptance.
 
 **Workflow:**
 
@@ -38,7 +38,7 @@ description: '[Research] Use when a workflow step or the user asks for a researc
 3. **Load template** — Read `.claude/templates/research-report-template.md`; retain every section.
 4. **Synthesize** — Write `docs/knowledge/research/{slug}.md`; map evidence into each section, cite `[N]`, declare confidence, and record patterns/contradictions in Analysis.
 5. **Citation audit** — Verify claim citations, Sources-table coverage, and no orphan citations.
-6. **Confidence and close** — Average scores, weight by importance, flag `<60%`; after successful synthesis, clean this run's `tmp/research/` working files (`_sources-{slug}.md`, `_evidence-{slug}.md` only).
+6. **Confidence and close** — Average scores, weight by importance, flag `<60%`; retain this run's source map and evidence base through downstream review and repair; synthesis completion does not authorize cleanup.
 
 **Key Rules:**
 
@@ -96,7 +96,7 @@ Calculate overall report confidence:
 
 Final report: `docs/knowledge/research/{descriptive-slug}.md`
 
-Clean up this run's `tmp/research/_sources-{slug}.md` and `_evidence-{slug}.md` after successful synthesis; never delete other files under `tmp/research/`.
+Retain this run's `tmp/research/_sources-{slug}.md` and `_evidence-{slug}.md` through review and repair. In a workflow, only the orchestrator may clean these exact files after `$knowledge-review` APPROVED the final artifact and `$workflow-end` successfully accepted closure; record the acceptance and cleanup in the workflow report. On REVISE, BLOCKED, interruption, or closure failure, keep both files so their owning skills can rerun. Standalone synthesis retains both files until an explicit acceptance or retention policy authorizes cleanup; never delete other files under `tmp/research/`.
 
 ---
 
@@ -104,9 +104,9 @@ Clean up this run's `tmp/research/_sources-{slug}.md` and `_evidence-{slug}.md` 
 
 **IMPORTANT MUST ATTENTION Goal:** Synthesize the existing evidence base into a fully cited, template-compliant research report with honest confidence and explicit gaps, trustworthy for decisions.
 
-**IMPORTANT MUST ATTENTION Main path:** (1) create small task tracking tasks; keep one `in_progress`; add a final review task; (2) load both evidence files and inventory findings/confidence/discrepancies/gaps; (3) load the enforced template and retain every section; (4) synthesize to `docs/knowledge/research/{slug}.md` with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit claim citations, Sources-table coverage, and orphan citations; (6) average scores, weight by importance, flag `<60%`, run final review, then clean `tmp/research/` only after success.
+**IMPORTANT MUST ATTENTION Main path:** (1) create small task tracking tasks; keep one `in_progress`; add a final review task; (2) load both evidence files and inventory findings/confidence/discrepancies/gaps; (3) load the enforced template and retain every section; (4) synthesize to `docs/knowledge/research/{slug}.md` with `[N]` citations, per-finding confidence, and Analysis patterns/contradictions; (5) audit claim citations, Sources-table coverage, and orphan citations; (6) average scores, weight by importance, flag `<60%`, run final review, then retain source/evidence inputs until accepted workflow closure or explicit standalone acceptance.
 
-**IMPORTANT MUST ATTENTION Mode/boundary:** No alternate mode or flag; consume existing `source-deep-dive` evidence; NEVER gather sources, fabricate, or upgrade findings; clean `tmp/research/` only after successful synthesis.
+**IMPORTANT MUST ATTENTION Mode/boundary:** No alternate mode or flag; consume existing `source-deep-dive` evidence; NEVER gather sources, fabricate, or upgrade findings; retain `tmp/research/` source/evidence inputs through review and repair.
 
 **IMPORTANT MUST ATTENTION** use enforced template structure (`.claude/templates/research-report-template.md`) — every section required, NEVER omit Knowledge Gaps — why: a missing gaps section manufactures false confidence in incomplete research
 **IMPORTANT MUST ATTENTION** inline-cite every factual claim with `[N]`; verify zero orphan citations (claim cites missing source) AND zero orphan sources (Sources-table row referenced 0 times) — why: uncited claims are assertions, not findings
@@ -116,7 +116,7 @@ Clean up this run's `tmp/research/_sources-{slug}.md` and `_evidence-{slug}.md` 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress` at a time and complete it on evidence
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence (or `[N]` source) for every claim — confidence >80% to act, <60% DO NOT assert; NEVER present a guess as fact
 **IMPORTANT MUST ATTENTION** grep/read 3+ similar existing reports under `docs/knowledge/research/` before writing — match the template's section shape, do NOT invent a new layout — why: divergent report structure breaks the knowledge-review gate
-**IMPORTANT MUST ATTENTION** output final report to `docs/knowledge/research/{slug}.md`, then clean up `tmp/research/` working files after successful synthesis — why: stale working files leak across runs
+**IMPORTANT MUST ATTENTION** output final report to `docs/knowledge/research/{slug}.md`, retain this run’s working evidence until acceptance authorizes cleanup — why: rejected artifacts need reproducible repair inputs
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality (template complete · citations balanced · gaps present · rollup flagged)
 
 **Anti-Rationalization:**

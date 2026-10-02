@@ -125,7 +125,7 @@ const tests = [
             assert.match(protocol, /Build[\s\S]*Review and fix, static[\s\S]*Verify once[\s\S]*Fix and re-run until green[\s\S]*Re-review only if step 4 edited anything/);
             assert.match(protocol, /Green counts only on the final tree/);
             // And the verify <-> re-review alternation is bounded, and the mutation check never uses destructive git
-            assert.match(protocol, /alternation is capped at 2 turns[^\n]*escalates via `AskUserQuestion`/);
+            assert.match(protocol, /alternation is capped at 3 turns[^\n]*escalates via `AskUserQuestion`/);
             assert.match(protocol, /NEVER `git checkout`, `restore`, `reset` or `stash` on the working tree/);
             // And the skills that run tests on their own initiative defer to the single verify
             assert.match(read('integration-test/SKILL.md'), /Verify-last exception[\s\S]*WRITES the tests and does NOT run them/);

@@ -23,9 +23,10 @@
     ]
   },
   "entrySkills": {
-    "_description": "Skills the minimal preset keeps listed: the workflow runner, commit and the setup skills the setup gates start. Routing gates and hooks start them, so they are protected like calledByOthers (never commandOnly or off without skillProfile.allowHidingCalledSkills) but are not made name-only by the standard preset.",
+    "_description": "Skills the minimal preset keeps listed: the workflow runner, commit, lightweight framework-config help and the setup skills the setup gates start. Routing gates and hooks start them, so they are protected like calledByOthers (never commandOnly or off without skillProfile.allowHidingCalledSkills) but are not made name-only by the standard preset.",
     "skills": [
       "start-workflow",
+      "framework-config",
       "commit",
       "project-init",
       "project-config",

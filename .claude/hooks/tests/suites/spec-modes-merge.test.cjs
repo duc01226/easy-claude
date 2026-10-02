@@ -256,9 +256,9 @@ const tests = [
             const specTags = guideTags(specText);
             const bodyOf = (text, tag) => text.includes(`<!-- SYNC:${tag} -->`) && text.includes(`<!-- /SYNC:${tag} -->`);
             const modeOnly = {
-                discovery: ['graph-assisted-investigation', 'incremental-persistence', 'nested-task-creation', 'parallel-subagent-dispatch', 'rationalization-prevention', 'subagent-return-contract', 'task-tracking-external-report'],
-                clarify: ['fresh-context-review', 'nested-task-creation', 'parallel-subagent-dispatch', 'review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'understand-code-first'],
-                index: ['parallel-subagent-dispatch']
+                discovery: ['graph-assisted-investigation', 'incremental-persistence', 'rationalization-prevention', 'subagent-return-contract', 'task-tracking-external-report'],
+                clarify: ['review-protocol-injection', 'severity-rubric', 'task-tracking-external-report', 'understand-code-first'],
+                index: []
             };
             for (const mode of MERGED_MODES) {
                 const text = reference(mode);

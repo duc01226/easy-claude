@@ -229,7 +229,7 @@ The user file is the same `.ck.json` the framework already reads from your home 
 
 Examples: `CK_WORKFLOW_ROUTE_MODE=auto claude` (bash/zsh) or `$env:CK_WORKFLOW_ROUTE_MODE = 'auto'` (PowerShell) for one session; the JSON above in `~/.claude/.ck.json` for every project you work on; in `.claude/.ck.local.json` for one checkout. The legacy boolean `portability.workflowAutoDetect` still works in every file that takes the key: `false` reads as `off`, `true` as `ask`, and `workflowRouteMode` wins when both are present. A team `off` takes effect on the next prompt: the hook reads the project config directly, so nothing needs regenerating.
 
-**In a prompt, or with the skill.** Start a prompt with `workflow-mode: auto` (or `/workflow-mode auto`, `$workflow-mode auto` on Codex) as its whole first line — only `ask`, `auto` or `off` after the keyword, optionally followed by `save` — and the hook applies that mode to this prompt and the rest of the session (kept in the session's state under `tmp/workflow-routing/`), ahead of every other source when that session state is saved. If session recording fails, the hook applies the mode to this prompt, explicitly reports "session preference NOT saved", and states that later prompts use the recorded/configured mode. With `save` it also writes `~/.claude/.ck.json`; that personal-file result is reported independently and a successful personal save participates in later prompts through the normal preference order. Prose that merely mentions the words, or a directive on a later line or inside a code fence, does nothing. The first task after the directive counts as the session's first task for the workflow rule. The `workflow-mode` skill (`/workflow-mode [ask|auto|off] [--save] [--local] [--show]`) shows the effective mode and which source decided it, or persists it (`--save` = user file; `--local` = this checkout's file, refused unless git ignores it); `node .claude/scripts/workflow-mode.cjs` does the same from a shell. Every delivered block opens with a line `Route mode: <mode> (<source>)`, so the state is visible without the skill. A missing or invalid value anywhere falls back to `ask` and never blocks the hook.
+**In a prompt, or with the skill.** Start a prompt with `workflow-mode: auto` (or `/framework-config --mode=workflow auto`, `$framework-config --mode=workflow auto` on Codex) as its whole first line — only `ask`, `auto` or `off` after the keyword, optionally followed by `save` — and the hook applies that mode to this prompt and the rest of the session (kept in the session's state under `tmp/workflow-routing/`), ahead of every other source when that session state is saved. If session recording fails, the hook applies the mode to this prompt, explicitly reports "session preference NOT saved", and states that later prompts use the recorded/configured mode. With `save` it also writes `~/.claude/.ck.json`; that personal-file result is reported independently and a successful personal save participates in later prompts through the normal preference order. Prose that merely mentions the words, or a directive on a later line or inside a code fence, does nothing. The first task after the directive counts as the session's first task for the workflow rule. The `framework-config --mode=workflow` skill (`/framework-config --mode=workflow [ask|auto|off] [--save] [--local] [--show]`) shows the effective mode and which source decided it, or persists it (`--save` = user file; `--local` = this checkout's file, refused unless git ignores it); `node .claude/scripts/workflow-mode.cjs` does the same from a shell. Every delivered block opens with a line `Route mode: <mode> (<source>)`, so the state is visible without the skill. A missing or invalid value anywhere falls back to `ask` and never blocks the hook.
 
 **Hosts.** Claude runs the hook from `.claude/settings.json`; Codex runs it from the mirrored `.codex/hooks.json` (a project hook needs the project trusted and its hash reviewed in `/hooks`); OpenCode runs it through the generated `.opencode/plugins/easy-claude-hooks.js` bridge. All three execute the same file with the same resolver, so the mode behaves identically. A host that runs no hook, or whose hook is disabled or not yet trusted, delivers no route at all (no root file carries a pointer or fallback): see [Hook-only delivery: host requirements](#hook-only-delivery-host-requirements).
 
@@ -420,6 +420,68 @@ A `checkpointTokens` value outside the range, or not a whole number, is a valida
 ### Pull-request target branch
 
 `docs/project-config.json` `pullRequest.targetBranch` (string, default `main`) is the base branch the `pull-request` skill branches from and opens PRs into. Two things take precedence over it: a base branch named in the request, and the base of a PR already open for the current branch. When omitted, the skill uses `main`.
+
+### Configure without knowing JSON keys
+
+Ask “How do these .claude skills work?”, “What can I configure in this .codex framework?” or
+“Disable automatic heavy skills for this checkout”. The `framework-config` skill selects automatically
+from its description and handles framework help plus show/explain/set/reset. Explicit commands:
+`/framework-config` (Claude/OpenCode), `$framework-config` (Codex).
+
+Questions are read-only. Changes default to checkout scope; say “for every project” for your user
+preference or “for the team” for the project default. Existing JSON is merged and validated, and reset
+removes only the selected layer’s key. This helper remains eligible when heavy auto-trigger is off and
+in the minimal visibility preset, unless you explicitly impose a native permission override.
+
+### Skill auto-trigger (runtime, per developer)
+
+Set `portability.skillAutoTrigger: false` to prevent automatic selection of framework skills while
+keeping named user requests and required hook/protocol calls callable. Default: `true` (today's
+behavior). This treats **all framework skills and workflow wrappers as heavy except `commit`,
+`pull-request` and the lightweight `framework-config` help/configuration entry**; personal, bundled and third-party skills are outside its scope.
+
+```json
+{ "portability": { "skillAutoTrigger": false } }
+```
+
+Place this in the configured project config (default `docs/project-config.json`, overridden by
+`.claude/.ck.json` `portability.projectConfigPath`) for the team, `~/.claude/.ck.json` for yourself
+across projects, or git-ignored `.claude/.ck.local.json` for this checkout. Later valid values win:
+default → team → user → checkout-local → `CK_SKILL_AUTO_TRIGGER`. Environment values accept
+`0/false/off/no/disabled` and `1/true/on/yes/enabled`; config values must be actual booleans.
+Use `true` to override a team `false`. Missing, malformed and invalid layers express no opinion.
+The hook reads effective preferences at runtime; changing this preference needs **no regeneration**.
+
+Restricted mode distinguishes **selection** from **execution**:
+
+- Ordinary “fix this”, “review these changes” or “implement this” prompts do not authorize a matching
+  heavy skill. Name the skill/workflow or its command to request it explicitly.
+- An operation-specific hook/protocol may require a named skill for an operation already active.
+  Once an authorized skill/workflow starts, its required dependencies remain eligible. Optional
+  suggestions, generic discovery guidance and self-starting a preloaded agent do not qualify.
+- Both `commit` and `pull-request` ask the user about tests and review, including explicit Skip options. A PR request, routing preference or general autonomy instruction never answers these questions. Reuse an actual same-candidate answer within the run rather than asking twice. After the user selects the review,
+  `workflow-review-changes` can run its required reviewers, findings validation and fix loop as written.
+  This policy neither answers the choice question nor approves a skip or Git operation.
+- The competing automatic workflow catalog is suppressed. Existing workflow-route restrictions and
+  native permissions/manual-only skills remain in force.
+
+The same `skill-activation-inject.cjs` emits a small scoped instruction on prompts, delegated starts
+and session recovery. Codex mirrors the runtime producer; OpenCode refreshes it at system-context
+transformation for main and child sessions and discards cached startup copies of this policy.
+Restoring auto mode emits a reset in scopes that previously received the restriction, then stays silent.
+
+**Why not the native manual-only flags?** Claude's `disable-model-invocation`/user-only overrides and
+OpenCode's skill `deny` can reject model calls, including hook-directed calls. Codex documents explicit
+user invocation with `allow_implicit_invocation: false`, but no portable hook exception. This switch
+therefore changes no frontmatter, `agents/openai.yaml`, `skillOverrides` or `permission.skill` entries.
+Existing `skillProfile` settings may still block a requested call; this mode does not override them.
+
+**Enforcement limit:** this is an assistant-selection instruction, not a hard access-control boundary.
+Skills remain discoverable, so it reduces unsolicited procedure execution rather than catalog context
+size. Adapter tests prove policy delivery and preserved call paths; they do not prove every model obeys
+the instruction on every turn. Hosts must run the framework hooks (and OpenCode its generated bridge).
+
+An explicitly requested workflow also authorizes its required and selected applicable skill steps within the declared workflow scope, recorded in a todo/task plan, including later or resumed execution and their required nested calls. A plan created from ordinary task wording cannot authorize a heavy workflow by itself.
 
 ### Skill profile
 

@@ -183,7 +183,7 @@ const COMMAND_ONLY_UTILITIES = [
     'custom-agent', 'docx-convert', 'pdf-convert', 'playwright-cli',
     'presentation-builder', 'remotion', 'sync-skills-shared-protocols', 'release-doc',
     'git-developer-performance', 'skill-creator', 'scan-codebase-health', 'graph-export',
-    'ck-help', 'project-help', 'custom-prompt',
+    'project-help', 'custom-prompt',
 ];
 const MODEL_CALLABLE_BY_DECISION = ['commit', 'learn', 'git-conflict-resolve', 'sync-codex'];
 
@@ -895,7 +895,7 @@ module.exports = {
                     '`outcomeGates`',
                     '`core` and `optional` steps are recommendations',
                     'Intent first, you may skip, merge, simplify or reorder one when every applicable outcome gate can still be satisfied',
-                    'Simplified and reordered steps still invoke their Skill tool and add their line',
+                    'Simplified and reordered steps still execute their skill protocol and add their line',
                 ];
                 const missing = required.filter(p => !protocol.includes(p));
                 // Then the freedom, its limit and its log are all stated
@@ -1012,7 +1012,7 @@ module.exports = {
         {
             // Guards BR-GWF-03 (R2-11): review-converged is machine-checked through the receipt CLI's
             // JSON; a cited report from the gate's declared satisfier closes without a question and is
-            // logged, with a not-converged or stale report named in the log and the close message; the
+            // logged only after accepted current evidence; rejected or stale reports block; the
             // commit bar is unchanged.
             name: '[content-presence] TC-GWF-042 review-converged reads the receipt JSON and accepts a cited report as a logged deviation',
             fn: () => {
@@ -1031,8 +1031,11 @@ module.exports = {
                     'written by the occurrence that satisfies this gate',
                     '`outcomeGates[].satisfiedBy`',
                     '`<that occurrence-id> · review-report · <report path>`',
-                    'never block or ask when a report is cited',
-                    // a weak report still closes, but visibly (AC-GWF-07, A-M2)
+                    'a not-converged verdict, stale report, mismatched target or unknown freshness **blocks the close**',
+                    'A cited path alone never satisfies the gate',
+                    'review-report-evidence.md',
+                    '`BLOCKED`/`ERROR` blocks',
+                    // failed/stale evidence blocks closure (AC-GWF-07)
                     'not converged: <final status>',
                     'stale: predates <occurrence-id>',
                     'the close message repeats it',

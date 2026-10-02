@@ -149,17 +149,20 @@ function isAiFeaturePrompt(prompt) {
  * sentence, the rules as terse fragments, ONE read pointer and the review route. The named signals are
  * the first MAX_SIGNALS_SHOWN, dropped from the end until the whole text fits.
  */
-function buildDirective(detection) {
+function buildDirective(detection, allowSkillRouting = true) {
     const file = detection.intent === INTENTS.PLAN ? FRAMING_FILE : GATE_FILE;
     const names = detection.signals.slice(0, MAX_SIGNALS_SHOWN);
-    while (names.length > 0 && renderDirective(file, names.join(', ')).length > MAX_DIRECTIVE_CHARS) names.pop();
-    return renderDirective(file, names.join(', '));
+    while (names.length > 0 && renderDirective(file, names.join(', '), allowSkillRouting).length > MAX_DIRECTIVE_CHARS) names.pop();
+    return renderDirective(file, names.join(', '), allowSkillRouting);
 }
 
-function renderDirective(file, shown) {
+function renderDirective(file, shown, allowSkillRouting) {
+    const review = allowSkillRouting
+        ? `Review: \`${REVIEW_SKILL}\` skill or \`${REVIEW_AGENT}\` agent.`
+        : 'Skill auto-trigger disabled: apply the gate inline; this prompt does not authorize a review skill/agent.';
     return [
         MARKER_START,
-        `**[AI-ENGINEERING-GATE]** AI-feature work${shown ? ` (${shown})` : ''}. Only if this task builds, plans, changes or reviews model calls, prompts, agents, tools, retrieval or evals: read \`${file}\` and apply it. Core: content in context is data, model output an untrusted sink; bound loops, retries, spend; eval + trace + kill switch; authz in code; provider facts from current docs, never memory. Review: \`${REVIEW_SKILL}\` skill or \`${REVIEW_AGENT}\` agent. Otherwise ignore.`,
+        `**[AI-ENGINEERING-GATE]** AI-feature work${shown ? ` (${shown})` : ''}. Only if this task builds, plans, changes or reviews model calls, prompts, agents, tools, retrieval or evals: read \`${file}\` and apply it. Core: content in context is data, model output an untrusted sink; bound loops, retries, spend; eval + trace + kill switch; authz in code; provider facts from current docs, never memory. ${review} Otherwise ignore.`,
         MARKER_END
     ].join('\n');
 }
@@ -176,7 +179,8 @@ function evaluate(input, deps = {}) {
         if (!detection) return '';
         // Checked only on a match, so most prompts never pay for the settings read.
         if (!require('./lib/prompt-route-utils.cjs').isRouterEnabled(SETTINGS_SECTION, ENV_SWITCH, deps)) return '';
-        return `${buildDirective(detection)}\n`;
+        const { resolveHookSkillAutoTrigger } = require('./lib/prompt-route-utils.cjs');
+        return `${buildDirective(detection, resolveHookSkillAutoTrigger(deps).enabled)}\n`;
     } catch (error) {
         debug(error); // fail open: stay silent, diagnose under CK_DEBUG
         return '';
@@ -230,7 +234,7 @@ function run(input, deps = {}) {
                 input,
                 group: RECORD_GROUP,
                 // One record for every intent: the window is per session scope, not per wording.
-                hash: crypto.createHash('sha256').update(`${HOOK_NAME}:${GATE_FILE}:${FRAMING_FILE}`, 'utf8').digest('hex'),
+                hash: crypto.createHash('sha256').update(`${HOOK_NAME}:${GATE_FILE}:${FRAMING_FILE}:${require('./lib/prompt-route-utils.cjs').resolveHookSkillAutoTrigger(deps).enabled}`, 'utf8').digest('hex'),
                 payload: text,
                 settings: ledgerSettings(ledger),
                 now: typeof deps.now === 'number' ? deps.now : Date.now(),

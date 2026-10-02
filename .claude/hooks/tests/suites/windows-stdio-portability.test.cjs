@@ -54,7 +54,9 @@ function runPython(code, label, options = {}) {
 function runSimulatedWindowsScript(relativePath, args = [], options = {}) {
   const scriptPath = path.join(REPO_ROOT, relativePath);
   const statements = [
-    'import runpy, sys',
+    // shutil selects native platform imports at import time (Python 3.12+).
+    // Load it on the real host before simulating the scripts' Windows branch.
+    'import runpy, sys, shutil',
     "sys.platform = 'win32'",
     `sys.path.insert(0, ${JSON.stringify(path.dirname(scriptPath))})`,
     ...((options.blockImports || []).map((name) => `sys.modules[${JSON.stringify(name)}] = None`)),

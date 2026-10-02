@@ -87,7 +87,7 @@ const FINDINGS_LANGUAGE_PATTERNS = [
 // `<!-- SYNC:double-round-trip-review -->` marker — only the literal why-review route counts.
 export const VALIDATE_ROUTE_PATTERN = /why-review\s+--validate-findings/;
 
-// The fix-loop engine marker. Its expanded body verbatim IS the converge-to-zero fix-loop, so any
+// Retired fix-loop marker: reject stale copies in graders. It is not a delivered protocol. Any
 // reference to it inside a grader proves the grader embeds the loop (the definitive SC7 guard —
 // catches the fix-loop regardless of surrounding prose wording).
 export const FIX_LOOP_BLOCK_PATTERN = /double-round-trip-review/;
