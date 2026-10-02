@@ -96,6 +96,37 @@ If the workflow catalog or project instructions are stale, run `/project-init` a
 
 Hook registrations live in `.claude/settings.json`, and registered commands resolve the project root through `CLAUDE_PROJECT_DIR`.
 
+### Codex desktop hooks fail with exit code 127
+
+If the error says `node: command not found`, Node is missing from the desktop process's
+environment even when it works in Terminal. A GUI app does not necessarily inherit the
+terminal's version-manager setup.
+
+Regenerate the Codex hook mirror from the canonical framework:
+
+```bash
+node .claude/scripts/codex/sync-hooks.mjs
+```
+
+Project-root Node hooks use a self-contained `/bin/sh` bootstrap on macOS and Linux.
+It checks `CK_NODE_PATH` first, then `PATH`, Volta/asdf/mise shims, NVM's default, and
+Homebrew/system Node locations. Discovery preserves stdin, suppresses manager initialization
+output, and prepends the selected executable's directory to the hook's `PATH` for child
+processes. It never sources shell profiles or installs a runtime. Configure NVM's default
+with `nvm alias default <installed-version>` if needed. An invalid explicit `CK_NODE_PATH`
+fails with an actionable error rather than silently selecting another runtime.
+
+Windows uses Codex's `commandWindows` override and retains the native `node -e` launcher;
+Node must be installed and available in the app's Windows `PATH`. WSL uses the Linux
+bootstrap and a Linux Node installation. Custom non-project hook commands keep their
+authored behavior and must arrange their own runtime.
+
+For a custom POSIX installation, set `CK_NODE_PATH` to the Node executable in the app's
+environment. Do not put a developer's home directory or version-specific runtime path in
+tracked hook configuration. After regeneration, review/trust the changed hook definitions
+in Codex's Hooks settings and reopen the session if the host has not reloaded them.
+The `commandWindows` override is documented in the [official Codex hook reference](https://learn.chatgpt.com/docs/hooks).
+
 ### Check the registration and hook file
 
 ```bash

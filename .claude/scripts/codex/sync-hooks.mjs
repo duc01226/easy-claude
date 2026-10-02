@@ -153,9 +153,8 @@ const supportedEvents = new Set([
 // (protocol-inject-universal-<n>.cjs) deliver the universal bundle on a prompt and at an agent start,
 // and skill-overlay-remind.cjs names the project overlay files when a skill activates. Their Codex
 // mapping differs from every other hook's, and ONLY theirs: each rule below keys
-// on the entry path, so every other handler renders exactly as before (a changed
-// render lands untrusted on Codex and is skipped until the user re-reviews it,
-// which would silently switch off guards such as the commit gate).
+// on the entry path. Runtime bootstrap applies to every project-root Node hook;
+// changes to a handler definition require re-review in Codex before it runs.
 const PROTOCOL_HOOK_PATH = /^\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs$/;
 
 /** True when `hookPath` (project-relative, `/` separators) is a protocol delivery entry. */
@@ -251,6 +250,42 @@ const nodeHookLauncher = [...launcherRootSteps, ...launcherGitSteps, launcherRun
 // the lean launcher's shell-call p90 was 2.5x lower in the confirmation run).
 const leanHookLauncher = [...launcherRootSteps, launcherRunStep].join(" ");
 
+// A desktop process need not inherit the terminal's Node/version-manager PATH.
+// Resolve before Node starts; keep stdin untouched and never source shell profiles.
+// commandWindows retains the native launcher (Codex's Windows override).
+const posixNodeResolver = [
+  'if [ -n "${CK_NODE_PATH:-}" ]; then',
+  '  ck_node="$CK_NODE_PATH";',
+  '  if [ ! -x "$ck_node" ] || [ -d "$ck_node" ]; then printf "%s\\n" "Framework hooks: CK_NODE_PATH is not an executable file: $ck_node" >&2; exit 127; fi;',
+  'else',
+  '  ck_node=$(command -v node 2>/dev/null) || ck_node=;',
+  '  if [ -z "$ck_node" ]; then',
+  '    for ck_candidate in "${VOLTA_HOME:-$HOME/.volta}/bin/node" "${ASDF_DATA_DIR:-$HOME/.asdf}/shims/node" "${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/shims/node"; do',
+  '      if [ -x "$ck_candidate" ] && [ ! -d "$ck_candidate" ]; then ck_node="$ck_candidate"; break; fi;',
+  '    done;',
+  '  fi;',
+  '  if [ -z "$ck_node" ]; then',
+  '    ck_nvm_dir="${NVM_DIR:-$HOME/.nvm}";',
+  '    if [ -s "$ck_nvm_dir/nvm.sh" ]; then',
+  '      ck_node=$(export NVM_DIR="$ck_nvm_dir"; set -- --no-use; . "$NVM_DIR/nvm.sh" >/dev/null 2>&1; nvm which default 2>/dev/null) </dev/null || ck_node=;',
+  '    fi;',
+  '  fi;',
+  '  if [ -z "$ck_node" ]; then',
+  '    for ck_candidate in /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node /bin/node; do',
+  '      if [ -x "$ck_candidate" ] && [ ! -d "$ck_candidate" ]; then ck_node="$ck_candidate"; break; fi;',
+  '    done;',
+  '  fi;',
+  'fi;',
+  'if [ -z "$ck_node" ] || [ ! -x "$ck_node" ] || [ -d "$ck_node" ]; then printf "%s\\n" "Framework hooks: Node.js was not found. Install Node.js 18+, configure your version manager default, or set CK_NODE_PATH to the Node executable in the app environment." >&2; exit 127; fi;',
+  'case "$ck_node" in /*) ;; *) ck_node="$(pwd -P)/$ck_node" ;; esac;',
+  'PATH="${ck_node%/*}:$PATH"; export PATH;',
+  'exec "$ck_node" "$@";',
+].join("\n");
+
+function quotePosix(value) {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
 const NODE_PROJECT_HOOK = /^\s*node\s+"?\$(?:\{CLAUDE_PROJECT_DIR\}|CLAUDE_PROJECT_DIR)"?((?:[/\\][^\s"']+)+)\s*$/;
 
 /** The project-relative hook path of a `node "$CLAUDE_PROJECT_DIR"/<path>` command, or null. */
@@ -263,9 +298,10 @@ function projectHookPath(command) {
  * Render one Claude hook command as the Codex command. Exported so tests can pin the
  * render of an existing hook byte for byte and the lean render of a protocol entry.
  * @param {string} command - The Claude settings.json command
+ * @param {{windows?: boolean}} options Select the native Windows override instead of POSIX bootstrap
  * @returns {string|null} The Codex command, or null for an empty command
  */
-export function normalizeCommand(command) {
+export function normalizeCommand(command, { windows = false } = {}) {
   if (typeof command !== "string" || command.trim().length === 0) {
     return null;
   }
@@ -278,7 +314,8 @@ export function normalizeCommand(command) {
   const hookPath = projectHookPath(command);
   if (hookPath) {
     const launcher = isProtocolHookPath(hookPath) ? leanHookLauncher : nodeHookLauncher;
-    return `node -e "${launcher}" -- ${JSON.stringify(hookPath)}`;
+    if (windows) return `node -e "${launcher}" -- ${JSON.stringify(hookPath)}`;
+    return `/bin/sh -c ${quotePosix(posixNodeResolver)} ck-node -e ${quotePosix(launcher)} -- ${quotePosix(hookPath)}`;
   }
 
   // Preserve the previous cwd-relative behavior for non-Node commands whose
@@ -337,11 +374,12 @@ async function main(targetDir = codexDir) {
     target: path.relative(rootDir, codexHooksPath).replaceAll("\\", "/"),
     notes: [
       "Generated Node hook commands resolve from the nearest .claude parent, so the tracked mirror works in worktrees, session subdirectories, and bare framework copies.",
+      "Project Node hooks bootstrap Node on macOS/Linux without terminal profiles; commandWindows preserves the native Windows launcher. CK_NODE_PATH overrides POSIX discovery; otherwise PATH, standard installations, supported shims and NVM default are checked.",
       "Tool matcher capabilities vary by event on Codex. SessionStart shares Claude's startup|resume|clear|compact vocabulary and mirrors verbatim. SessionEnd accepts only `other`, so Claude's clear|exit|compact is DROPPED — kept verbatim it would name nothing Codex emits and the hook could never fire; it mirrors unscoped instead, recorded as a matcher-unsupported-on-codex-hook-runs-unscoped group skip. UserPromptSubmit and Stop ignore matchers entirely, so theirs are preserved unchanged: identical behaviour today, forward-compatible if Codex ever honors them.",
       "Hooks belong in .codex/hooks.json ONLY. Codex loads ALL matching hook sources (~/.codex and <repo>/.codex, hooks.json and config.toml) rather than letting a higher layer replace a lower one, so declaring the same hook in both .codex/config.toml and .codex/hooks.json runs it twice. Repo-level hooks load automatically but only when the project layer is trusted.",
       "SessionStart hooks are omitted from the generated Codex config by default so startup context is not duplicated; both hosts load the same static files, and an adopter may add a local startup hook as an optional accelerator.",
       "EXCEPTION: SessionStart hooks on the codexSessionStartMirrors allowlist ARE mirrored. They produce a runtime signal that a mirrored non-SessionStart hook consumes, so skipping them would leave the consumer registered and permanently unreachable rather than merely un-accelerated. The report's session_start_mirrors array names each one and the consumer that forces it.",
-      "Protocol delivery entries (.claude/hooks/protocol-inject-<name>.cjs and .claude/hooks/skill-overlay-remind.cjs) map differently, and only they do: UserPromptExpansion groups join UserPromptSubmit (reported as remapped-to-user-prompt-submit); groups keyed only to Read or Skill, tools Codex never emits, are not mirrored (matcher-names-no-codex-tool); the Read group's entries render once more on the Codex shell tool, Bash (codex_only_groups); a SubagentStart agent-type list is anchored because Codex matchers are unanchored regexes; each entry carries additionalContextLimit 3000 and a launcher without the Git step. Every other handler renders as before, so existing Codex hook trust holds; the new entries need review in Codex /hooks before they run.",
+      "Protocol delivery entries (.claude/hooks/protocol-inject-<name>.cjs and .claude/hooks/skill-overlay-remind.cjs) map differently, and only they do: UserPromptExpansion groups join UserPromptSubmit (reported as remapped-to-user-prompt-submit); groups keyed only to Read or Skill, tools Codex never emits, are not mirrored (matcher-names-no-codex-tool); the Read group's entries render once more on the Codex shell tool, Bash (codex_only_groups); a SubagentStart agent-type list is anchored because Codex matchers are unanchored regexes; each entry carries additionalContextLimit 3000 and a launcher without the Git step. Project Node launch commands use the POSIX runtime bootstrap and original Windows override; changed definitions need review in Codex /hooks before they run.",
     ],
     session_start_mirrors: [...codexSessionStartMirrors].map(([hook, reason]) => ({
       hook,
@@ -426,6 +464,9 @@ async function main(targetDir = codexDir) {
           type: "command",
           command,
         };
+        if (projectHookPath(hook?.command)) {
+          mappedHook.commandWindows = normalizeCommand(hook.command, { windows: true });
+        }
         if (typeof hook?.timeout === "number" && Number.isFinite(hook.timeout)) {
           mappedHook.timeout = hook.timeout;
         }

@@ -231,12 +231,14 @@ test("sync-hooks launches project-root Node hooks from Git and bare .claude root
 
     const rawHooks = await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8");
     const hooksConfig = JSON.parse(rawHooks);
-    const commands = hooksConfig.hooks.PreToolUse[0].hooks.map((hook) => hook.command);
+    const entries = hooksConfig.hooks.PreToolUse[0].hooks;
+    const commands = entries.map((hook) => process.platform === "win32" ? hook.commandWindows : hook.command);
     assert.equal(commands.length, 4);
     for (const [index, name] of ["scout-block", "sample-block", "path-boundary-block", "fourth-variant"].entries()) {
-      assert.match(commands[index], /^node -e ".*fs\.existsSync\(path\.join\(candidate, '\.claude'\)\)/);
+      assert.match(entries[index].commandWindows, /^node -e ".*fs\.existsSync\(path\.join\(candidate, '\.claude'\)\)/);
+      assert.match(entries[index].command, /^\/bin\/sh -c /);
       assert.doesNotMatch(commands[index], /git rev-parse/);
-      assert.match(commands[index], new RegExp(`-- \\\"\\.claude/hooks/${name}\\.cjs\\\"$`));
+      assert.match(entries[index].commandWindows, new RegExp(`-- \\\"\\.claude/hooks/${name}\\.cjs\\\"$`));
     }
     assert.ok(
       commands.every((command) => !command.includes(tempRoot)),
