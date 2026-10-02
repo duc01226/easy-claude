@@ -121,7 +121,7 @@ Work from the adopting project's root; use that project's copied framework, neve
 
 | Request | Exact setting | Behavior |
 | --- | --- | --- |
-| “Don't automatically start heavy skills” | `portability.skillAutoTrigger: false` | Named requests, hook-required calls and authorized workflow steps remain allowed |
+| “Don't automatically start heavy skills” | `portability.skillAutoTrigger: false` | Ask once to run a suitable matched skill or skip and execute directly; named requests, required calls and authorized workflow steps remain allowed |
 | “Restore automatic skills” | `portability.skillAutoTrigger: true`, or reset if requested | Later valid preference wins; default true |
 | “Workflows should ask / start automatically / only run explicitly” | `portability.workflowRouteMode: "ask" / "auto" / "off"` | Separate workflow routing preference |
 
@@ -129,6 +129,10 @@ Skill-auto-trigger precedence: default → team → user → checkout → `CK_SK
 `commit`, `pull-request` and this configuration/help entry remain eligible under restricted selection.
 An explicitly requested workflow authorizes its scoped planned skill calls, including later/resumed steps
 and required nested calls. Commit and pull-request both ask for test/review choices with explicit Skip options; configuration never answers those questions or approves a skip. Required skills selected through those choices remain callable even when auto-trigger is disabled.
+For a suitable unrequested skill match, false asks once to run that skill or skip and execute directly,
+then waits for the answer. Confirmation authorizes its scoped dependencies; Skip keeps direct execution
+and required checks without re-asking for the same task. No match proceeds directly without a question.
+Named requests and already authorized steps need no skill-choice question.
 This runtime switch is model guidance, not a hard permission boundary.
 
 Examples of automatic matches: “How do these .claude skills work?”, “What can I configure in this

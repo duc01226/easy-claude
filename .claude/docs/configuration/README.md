@@ -435,9 +435,9 @@ in the minimal visibility preset, unless you explicitly impose a native permissi
 
 ### Skill auto-trigger (runtime, per developer)
 
-Set `portability.skillAutoTrigger: false` to prevent automatic selection of framework skills while
-keeping named user requests and required hook/protocol calls callable. Default: `true` (today's
-behavior). This treats **all framework skills and workflow wrappers as heavy except `commit`,
+Set `portability.skillAutoTrigger: false` to ask before starting a suitable matched framework skill: run
+the skill, or skip it and execute directly. Named user requests and required hook/protocol calls stay
+callable. Default: `true` (today's behavior). This treats **all framework skills and workflow wrappers as heavy except `commit`,
 `pull-request` and the lightweight `framework-config` help/configuration entry**; personal, bundled and third-party skills are outside its scope.
 
 ```json
@@ -455,7 +455,12 @@ The hook reads effective preferences at runtime; changing this preference needs 
 Restricted mode distinguishes **selection** from **execution**:
 
 - Ordinary “fix this”, “review these changes” or “implement this” prompts do not authorize a matching
-  heavy skill. Name the skill/workflow or its command to request it explicitly.
+  heavy skill by themselves. If a suitable skill matches, the assistant names it, explains its fit and
+  asks once: **Run the matched skill** or **Skip the skill and execute directly**. It waits for your
+  answer. Confirmation authorizes that skill and its scoped dependencies; Skip proceeds directly
+  with required quality/safety checks and no replacement skill. The same task is not asked again on
+  follow-up, delegation or resume. With no suitable match, the assistant executes directly without
+  a question. Explicit named requests and already authorized steps need no skill-choice question.
 - An operation-specific hook/protocol may require a named skill for an operation already active.
   Once an authorized skill/workflow starts, its required dependencies remain eligible. Optional
   suggestions, generic discovery guidance and self-starting a preloaded agent do not qualify.

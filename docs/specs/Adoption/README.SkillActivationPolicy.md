@@ -15,7 +15,9 @@ scope_mode: FRAMEWORK-LIBRARY
 
 A team or individual developer can stop the assistant from starting heavy framework procedures on
 ordinary task requests. Explicitly requested procedures and checks required by an active operation
-remain available. The default preserves automatic selection. This is guidance for assistant behavior,
+remain available. When a suitable procedure matches an ordinary request, the assistant asks whether
+to run it or skip it and execute directly. The default preserves automatic selection. This is guidance
+for assistant behavior,
 not an access-control guarantee: the procedure catalog remains available and existing permissions
 remain authoritative.
 
@@ -29,7 +31,7 @@ remain authoritative.
 | Named request | A human explicitly asks for a particular procedure by name or command |
 | Required call | An operation-specific instruction requires a named procedure after the operation is active |
 | Authorized scope | The selected operation and its required dependencies; excludes optional unrelated work |
-| Restricted policy | Automatic selection is disabled while named requests and required calls stay eligible |
+| Restricted policy | Suitable unrequested procedures need confirmation; named requests and required calls stay eligible |
 
 ## 3. User Stories & Acceptance Criteria
 
@@ -39,7 +41,9 @@ As a project maintainer, I want ordinary requests handled without automatically 
 procedures, so their cost is incurred only when requested or required.
 
 - **AC-SAP-01:** An unset preference preserves automatic selection; a restricted preference tells the
-  assistant not to start heavy procedures on ordinary fixing, implementation, explanation or review requests.
+  assistant to ask once before starting a suitable heavy procedure on ordinary fixing, implementation,
+  explanation or review requests: name the procedure and its fit, offer run or skip and execute directly,
+  then wait for the answer. With no suitable match, execute directly without a question.
 - **AC-SAP-02:** Commit and pull-request entry procedures retain their usual triggers and human authorization.
 - **AC-SAP-03:** The assistant receives no competing suggestion to self-start a workflow in restricted mode.
 
@@ -48,11 +52,15 @@ procedures, so their cost is incurred only when requested or required.
 As a developer, I want a commit to retain its review-choice question and the selected review's required
 reviewers, so restricting automatic work does not bypass quality checks.
 
-- **AC-SAP-04:** Named requests and required calls remain eligible without changing procedure access.
+- **AC-SAP-04:** Named requests and required calls remain eligible without changing procedure access
+  or asking an additional procedure-choice question. A confirmed candidate and its scoped required
+  dependencies become eligible without requiring the user to repeat its name.
 - **AC-SAP-05:** A commit still asks the human to select a review or explicitly approve a skip where required;
   the selected review can invoke its required reviewers and validation. The policy itself approves neither choice.
 - **AC-SAP-06:** Optional unrelated procedures and attempts to obtain authorization by self-starting an agent
-  remain outside the authorized scope.
+  remain outside the authorized scope. A skipped procedure is not replaced by another unrequested one;
+  direct execution retains required quality and safety checks. The same task does not prompt again
+  on follow-up, delegation or recovery; its recorded choice and scope are preserved.
 
 ### US-SAP-03: Override the team preference personally
 
@@ -67,8 +75,16 @@ As a developer, I want a personal preference without rewriting shared files, so 
 
 - **BR-SAP-01 [HARD]:** Automatic selection is enabled unless a valid preference disables it. The policy
   affects framework procedures only, with commit, pull-request and lightweight framework configuration exempt.
-- **BR-SAP-02 [HARD]:** Restricted mode allows named human requests, operation-specific required calls and
-  required dependencies and selected applicable steps within an authorized workflow’s declared scope, including planned steps executed later or after recovery. Ordinary task wording, generic discovery guidance,
+- **BR-SAP-02 [HARD]:** For every ordinary task with a suitable restricted procedure match, ask one
+  choice question before loading or executing it: name the best fit and its reason, offer run (recommended)
+  or skip and execute directly, and wait for the human answer. No suitable match means direct execution
+  without a question. Confirmation authorizes only that candidate and its scoped required dependencies.
+  Skip proceeds directly without a replacement or repeated question for the same task, while retaining
+  required quality and safety checks. Silence never grants confirmation. Named requests, already authorized
+  required calls and exempt entry procedures need no procedure-choice question. Restricted mode allows
+  named human requests, confirmed candidates, operation-specific required calls and required dependencies
+  and selected applicable steps within an authorized workflow’s declared scope, including planned steps
+  executed later or after recovery. Ordinary task wording, generic discovery guidance,
   optional suggestions and merely reading a procedure do not create authorization.
 - **BR-SAP-03 [HARD]:** Human review-choice and skip-approval gates remain intact. A selected commit review
   authorizes its required review chain; it does not authorize unrelated work or additional Git operations.
@@ -93,7 +109,10 @@ As a developer, I want a personal preference without rewriting shared files, so 
 
 1. Resolve the effective preference for the current project and developer.
 2. For restricted mode, deliver scoped selection guidance and suppress automatic workflow suggestions.
-3. On an ordinary request, perform the task without choosing a heavy framework procedure by resemblance.
+3. On an ordinary request with a suitable heavy procedure match, ask once whether to run it or skip
+   and execute directly; wait for the answer. No match proceeds directly. Confirmation scopes the
+   authorization to that procedure; Skip preserves direct execution and required checks. Preserve the
+   answer and scope for follow-ups, delegation and recovery without asking again for the same task.
 4. On a named request or required call, execute the real procedure and preserve its human-choice gates.
 5. A selected commit review runs its required review chain under the same scope.
 6. Refresh guidance on subsequent prompts, delegated starts and recovery; replace an earlier restriction
@@ -160,21 +179,31 @@ common editor encodings preserve the same outcome; team and personal validation 
 **Evidence:** [Source: operation/SkillActivationPolicy/Resolve]
 > **CoveredBy:** `.claude/hooks/tests/suites/skill-activation-policy.test.cjs::TC-SAP-002` · **Status:** Tested
 
-### TC-SAP-003: Ordinary prompts receive the restricted selection boundary [P0]
+### TC-SAP-003: Ordinary prompts receive confirmation or direct execution guidance [P0]
 
-**Objective:** Prevent ordinary task wording from authorizing heavy procedures.
+**Objective:** Let the user confirm a suitable procedure or skip it and proceed directly; ordinary
+wording alone never authorizes its execution.
 **Business Intent / Invariant Guarded:** BR-SAP-01, BR-SAP-02 / AC-SAP-01, AC-SAP-02, AC-SAP-06.
 **Preconditions:** Restricted team preference and each primary host launcher.
 
 ```gherkin
 Given automatic selection is restricted
 When an ordinary fixing, review, explanation or implementation request arrives
-Then the delivered guidance says ordinary wording does not authorize heavy procedures
+Then the guidance requires one question naming the suitable procedure and its fit
+And the choices are run the matched procedure or skip and execute directly
+And it requires waiting for the human answer without inferring consent from silence
+And confirmation authorizes only that procedure and its scoped required dependencies
+And skip retains direct execution and required checks without a replacement procedure
+And no suitable match proceeds directly without a question
+And named requests, authorized calls and exempt entries need no extra procedure-choice question
+And the same task preserves its answer through follow-up, delegation and recovery without re-asking
+And ordinary wording alone does not authorize heavy procedures
 And commit and pull-request retain their existing triggers
 And generic discovery guidance and self-started agents cannot widen authorization
 ```
 
-**Expected Result:** Ordinary wording does not authorize a heavy procedure; exempt entry triggers remain.
+**Expected Result:** Guidance delivers the run-or-direct choice and its wait, scope, skip, no-match
+and same-task preservation boundaries; exempt entry triggers remain.
 **Acceptance Criteria:** AC-SAP-01, AC-SAP-02, AC-SAP-06.
 **Test Data:** Isolated project, personal preference layers and the requests shown above.
 **Related Behaviors:** Named operation authorization and preference resolution.
@@ -240,6 +269,8 @@ unrelated notifications are silent.
 Given automatic skill selection is restricted
 When an ordinary request reaches the workflow router
 Then no automatic workflow catalog or route-choice question is suggested
+And a suitable unrequested candidate follows the single procedure-choice question
+And user confirmation authorizes that candidate under the shared policy
 And named requests and required calls remain eligible under existing restrictions
 ```
 
@@ -260,7 +291,8 @@ And named requests and required calls remain eligible under existing restriction
 ```gherkin
 Given restricted selection and the real policy and commit routes
 When ordinary and commit requests enter the adapter
-Then the restriction and commit route are delivered
+Then the confirmation-or-direct guidance and commit route are delivered
+And the choice waits for the human and preserves scoped authorization and the same-task answer
 When delegated work obtains its system instructions without a user-message notification
 Then it receives the live restriction
 When a personal preference restores automatic selection

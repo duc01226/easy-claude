@@ -117,7 +117,7 @@ const CK_SCHEMA = {
       // the personal ~/.claude/.ck.json, git-ignored .claude/.ck.local.json and env CK_WORKFLOW_ROUTE_MODE;
       // the later layer wins (owner: .claude/scripts/lib/workflow-routing-config.cjs).
       workflowRouteMode: { type: "string", required: false, enum: WORKFLOW_ROUTE_MODES },
-      skillAutoTrigger: { type: "boolean", required: false, describe: "Personal framework skill auto-trigger preference (default true). False allows only named requests and required calls/steps of authorized operations, except commit, pull-request and lightweight framework-config help. User, checkout-local and CK_SKILL_AUTO_TRIGGER overrides apply at runtime; native skill permissions remain unchanged." },
+      skillAutoTrigger: { type: "boolean", required: false, describe: "Personal framework skill auto-trigger preference (default true). False asks whether to run a suitable matched skill or skip it and execute directly; no match proceeds directly. Named requests and required calls/steps of authorized operations remain allowed, except commit, pull-request and lightweight framework-config help which keep normal triggers. User, checkout-local and CK_SKILL_AUTO_TRIGGER overrides apply at runtime; native skill permissions remain unchanged." },
       // Optional custom protocol appended to the runtime workflow-route reminder. A string is
       // inline markdown; an object carries inline `text` and/or a repo-relative `path`. The
       // tracked team value lives in the project-config file; a developer overrides it in

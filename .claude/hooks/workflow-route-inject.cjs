@@ -312,7 +312,7 @@ function run(input, deps = {}) {
 
             let content;
             if (skillPolicy?.enabled === false) {
-                content = 'Framework skill auto-trigger is disabled. Do not self-route into a catalog workflow or offer the workflow-selection question. Named user requests and required hook/protocol calls remain eligible under the skill activation policy; existing workflow route restrictions still apply.';
+                content = 'Framework skill auto-trigger is disabled. Do not self-route into a catalog workflow or offer the workflow-selection question. For a suitable unrequested skill/workflow candidate, follow the single skill-choice question in the skill activation policy; user confirmation authorizes that candidate. Named user requests and required hook/protocol calls remain eligible under the skill activation policy; existing workflow route restrictions still apply.';
             } else if (mode !== 'off') {
                 const protocol = deps.protocol !== undefined ? deps.protocol : resolveProtocolText(routing, projectDir);
                 content = deps.content || buildInjectionOrNotice(projectDir, protocol, mode, source);

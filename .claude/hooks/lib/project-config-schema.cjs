@@ -796,7 +796,7 @@ const SCHEMA = {
             skillAutoTrigger: {
                 type: 'boolean',
                 required: false,
-                describe: 'Default true. false prevents self-selection of framework skills except commit, pull-request and lightweight framework-config help. Named user requests, hook-required calls and required steps of an authorized skill remain allowed. Runtime prompt policy, not a host permission block. Personal overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_SKILL_AUTO_TRIGGER.'
+                describe: 'Default true. false asks whether to run a suitable matched framework skill or skip it and execute directly; no match proceeds directly. Commit, pull-request and lightweight framework-config help keep normal triggers. Named user requests, hook-required calls and required steps of an authorized skill remain allowed. Runtime prompt policy, not a host permission block. Personal overrides: ~/.claude/.ck.json, .claude/.ck.local.json, CK_SKILL_AUTO_TRIGGER.'
             },
             // false = the generated golden-rules section names each context group and points to the
             // file-conventions hook + `--lookup` CLI instead of inlining every rule (root byte budget).

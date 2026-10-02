@@ -358,9 +358,15 @@ test("TC-SAP-007 real policy reaches OpenCode main/child sessions, keeps commit 
     const { pluginPath } = await materializeOpencodeHooks({ rootDir: root });
     const hooks = await (await loadBridge(pluginPath))({ directory: root });
 
+    // Given restricted selection, when an ordinary request enters the real bridge,
+    // then its context asks for skill confirmation or direct execution.
     const ordinary = userMessage("review these changes", { sessionID: "main" });
     await hooks["chat.message"]({ sessionID: "main" }, ordinary);
     assert.ok(ordinary.parts.some(part => part.synthetic && /generic request.*NOT permission/.test(part.text)));
+    assert.ok(ordinary.parts.some(part => part.synthetic && /Run the matched skill.*Skip the skill and execute directly/.test(part.text)));
+    assert.ok(ordinary.parts.some(part => part.synthetic && /Stop and wait for the human answer/.test(part.text)));
+    assert.ok(ordinary.parts.some(part => part.synthetic && /Confirmation authorizes only the selected skill/.test(part.text)));
+    assert.ok(ordinary.parts.some(part => part.synthetic && /Do not re-ask the skill-choice question for the same task/.test(part.text)));
     const commit = userMessage("commit this", { sessionID: "main" });
     await hooks["chat.message"]({ sessionID: "main" }, commit);
     assert.ok(commit.parts.some(part => part.synthetic && /COMMIT-SKILL-ROUTE/.test(part.text)));
@@ -370,6 +376,8 @@ test("TC-SAP-007 real policy reaches OpenCode main/child sessions, keeps commit 
     const child = { system: ["child base"] };
     await hooks["experimental.chat.system.transform"]({ sessionID: "child" }, child);
     assert.equal(child.system.filter(text => /auto-trigger is DISABLED/.test(text)).length, 1);
+    assert.ok(child.system.some(text => /ask ONE skill-choice question/.test(text)));
+    assert.ok(child.system.some(text => /preserve the answer and authorized scope/.test(text)));
     // A child without a session.created/chat.message notification also gets live policy.
     const unannounced = { system: [] };
     await hooks["experimental.chat.system.transform"]({ sessionID: "unannounced-child" }, unannounced);

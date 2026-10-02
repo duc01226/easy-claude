@@ -92,11 +92,28 @@ module.exports = {
                 assert.equal(routing.resolveSkillAutoTrigger(fx.options).enabled, false);
             }
         }) },
-        { name: 'TC-SAP-003 ordinary prompts receive scoped restriction through Claude and Codex launchers', fn: () => withFixture(fx => {
+        { name: 'TC-SAP-003 ordinary prompts receive skill choice and scoped restriction through Claude and Codex launchers', fn: () => withFixture(fx => {
+            // Given a restricted preference and ordinary requests with potentially suitable skills.
             fx.write('docs/project-config.json', settings(false));
             for (const host of ['claude', 'codex']) {
                 for (const text of ['fix this bug', 'review these changes', 'implement this feature', 'explain this function']) {
+                    // When the real host launcher delivers prompt context.
                     const context = JSON.parse(runProcess(fx, { ...prompt, prompt: text }, host)).hookSpecificOutput.additionalContext;
+                    // Then the human chooses skill execution or direct work before any activation.
+                    assert.match(context, /ask ONE skill-choice question before loading or executing it/);
+                    assert.match(context, /name the best-fit skill and briefly explain why it fits/);
+                    assert.match(context, /Run the matched skill.*Skip the skill and execute directly/);
+                    assert.match(context, /Stop and wait for the human answer; never infer confirmation from silence/);
+                    assert.match(context, /If no suitable restricted skill matches, execute directly without a skill-choice question/);
+                    assert.match(context, /human confirms the matched candidate/);
+                    assert.match(context, /already authorized by \(1\), \(2\) or \(4\)/);
+                    assert.match(context, /Confirmation authorizes only the selected skill and its required dependencies/);
+                    assert.match(context, /If the human chooses Skip, execute the task directly without that skill or an unrelated replacement/);
+                    assert.match(context, /keep required quality and safety checks/);
+                    assert.match(context, /Do not re-ask the skill-choice question for the same task on follow-up, delegation or resume/);
+                    assert.match(context, /preserve the answer and authorized scope in task state and delegated briefs/);
+                    assert.match(context, /Explicit named requests, already authorized required calls\/steps and the exempt entry skills above need no skill-choice question/);
+                    assert.ok(context.length < 9500, 'policy must fit one host context message');
                     assert.match(context, /auto-trigger is DISABLED/);
                     assert.match(context, /generic request to fix, implement, explain or review is NOT permission/);
                     assert.match(context, /Exceptions: commit and pull-request/);
@@ -141,7 +158,10 @@ module.exports = {
         { name: 'TC-SAP-005 prompts, subagents and recovery refresh restrictions; config removal restores auto', fn: () => withFixture(fx => {
             fx.write('docs/project-config.json', settings(false));
             for (const event of [prompt, { ...prompt, hook_event_name: 'SubagentStart', agent_id: 'reviewer' }, ...['startup', 'resume', 'compact', 'clear'].map(source => ({ ...prompt, hook_event_name: 'SessionStart', source }))]) {
-                assert.match(runProcess(fx, event), /auto-trigger is DISABLED/);
+                const output = runProcess(fx, event);
+                assert.match(output, /auto-trigger is DISABLED/);
+                assert.match(output, /ask ONE skill-choice question/);
+                assert.match(output, /Do not re-ask the skill-choice question for the same task/);
             }
             fs.unlinkSync(path.join(fx.root, 'docs', 'project-config.json'));
             assert.match(runProcess(fx, prompt), /replaces the earlier restricted selection policy/);
@@ -163,6 +183,8 @@ module.exports = {
             const context = await routeHook.run(prompt, { projectDir: fx.root, env: {}, homeDir: fx.temp, write: (text, done) => { output += text; done(true); } });
             assert.match(context, /Do not self-route/);
             assert.match(output, /Named user requests and required hook\/protocol calls remain eligible/);
+            assert.match(context, /follow the single skill-choice question in the skill activation policy/);
+            assert.match(context, /user confirmation authorizes that candidate/);
             assert.doesNotMatch(output, /Workflow Catalog|full workflow.*custom route/);
         }) },
         { name: 'TC-SAP-002 project and personal schemas reject string booleans', fn: () => {
