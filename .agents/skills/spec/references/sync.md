@@ -99,7 +99,7 @@ Reverse sync is **emergency recovery only** — back-fill §8 for tests that exi
     - **Technical-only:** do **not** insert into Section 8. Report it as a technical orphan and route to the derived technical spec tree/test owner. A sync/consumer/projection/idempotency/load/path test with no user/QC-visible business result is not a missing business TC.
     - NEVER overwrite existing §8 TCs (canonical)
     - Append new TCs at the end of the appropriate decade group
-4. **[BLOCKING]** ask the user directly — present proposed inserted business TCs for user review before saving, plus report-only technical orphans separately.
+4. **[BLOCKING]** ask user tool — present proposed inserted business TCs for user review before saving, plus report-only technical orphans separately.
 5. Write a recovery report naming recovered TC IDs, skipped technical-only test IDs, source test methods, and why reverse sync was required.
 
 ### Invariant Harvest Algorithm (Code / Tests / Review → §4·§5·§8)
@@ -120,7 +120,7 @@ Reverse sync is **emergency recovery only** — back-fill §8 for tests that exi
    - Rule into §3/§4/§5 → `$spec [mode=update]`
    - §8 TC for the property → `$spec [mode=tests]`
    - Guarding property/boundary test if absent → `$integration-test`
-6. **[BLOCKING] confirm intent changes only.** A pure SPEC-SILENT capture (code already enforces it; the spec was merely silent) is enrichment — add it. ask the user directly ONLY when the capture would change documented interpretation, promote SOFT→HARD, or the "always-true" claim is uncertain (drops below the act threshold). Never weaken, rename, or renumber an existing rule — Harvest only ADDS.
+6. **[BLOCKING] confirm intent changes only.** A pure SPEC-SILENT capture (code already enforces it; the spec was merely silent) is enrichment — add it. ask user tool ONLY when the capture would change documented interpretation, promote SOFT→HARD, or the "always-true" claim is uncertain (drops below the act threshold). Never weaken, rename, or renumber an existing rule — Harvest only ADDS.
 7. **Re-review (forced loop, not terminal).** Hand the enriched §3/§4/§5/§8 back to the whole-package review for ONE bounded, module-scoped re-review against the enriched spec (`changes-review` SPEC-CONTENT re-entry) — confirm the newly-written rule is enforced in code AND guarded by a test, and surface any further hidden rule. **Harvest converges when a full review pass discovers no new unwritten invariant** (mirrors `plan --mode=review` recursion; each cycle enriches the spec).
 8. **Report.** Name each harvested rule, its new logical ID (`BR-`/`§5 invariant`/`AC-`/`TC-`), the source anchor, the strength decision ([HARD]/[SOFT] + why), and the re-review verdict.
 
@@ -164,7 +164,7 @@ Forward-sync the canonical business §8 TCs against the test suite (§8 is canon
 
 ## Next Steps (sync mode)
 
-Based on the reconciliation outcome, suggest by asking the user directly:
+Based on the reconciliation outcome, suggest using ask user tool:
 
 ```
 1. "$integration-test — Generate tests for any §8 TCs flagged with no covering integration test (Recommended)"

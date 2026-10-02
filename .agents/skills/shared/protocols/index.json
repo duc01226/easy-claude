@@ -281,12 +281,12 @@
       "group": "universal",
       "summary": "Critical and sequential thinking with traced proof for every claim",
       "when": "delivered by the universal hook",
-      "chars": 1950,
+      "chars": 2001,
       "file": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/critical-thinking-mindset.md",
-          "chars": 1950
+          "chars": 2001
         }
       ]
     },
@@ -1447,12 +1447,12 @@
       "group": "universal",
       "summary": "Closing reminders that restate the universal rules",
       "when": "delivered by the universal hook",
-      "chars": 544,
+      "chars": 575,
       "file": ".claude/skills/shared/protocols/universal-closing-reminders.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/universal-closing-reminders.md",
-          "chars": 544
+          "chars": 575
         }
       ]
     },

@@ -65,7 +65,7 @@ Before `$integration-test`, `$investigate` emits one evidence-backed record and 
 
 - `$integration-test --mode=review` performs exactly one read-only review round and returns every validated finding. It does not fix, loop, or re-review itself. If the caller fixes a finding, any later review is a new explicit invocation with a fresh report.
 - The one pass applies the canonical consequence-based severity rubric without re-tiering findings to obtain a pass. An open blocking finding prevents a clean review verdict; the caller decides whether to fix, defer where policy permits, or request a new invocation.
-- Failing tests are not capped by rounds — they loop until green; escalate by asking the user directly on no progress or an `ENVIRONMENT-BLOCKED`/`AMBIGUOUS` verdict.
+- Failing tests are not capped by rounds — they loop until green; escalate using ask user tool on no progress or an `ENVIRONMENT-BLOCKED`/`AMBIGUOUS` verdict.
 
 ## Closing Reminders
 

@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -101,7 +101,7 @@ Recommended: XS/S work inline without sub-agents; L/XL mechanical changes applie
 - **Tasks:** one task per selected step or batch so nothing is lost after compaction; child skills expand their phases under the parent row.
 - **Report first:** create `tmp/reports/workflow-refactor-{YYMMDD}-{HHmm}-{slug}.md` before the first finding; append triage, baseline evidence, pattern examples, batch results and deviations per step; re-read it and the current task list after compaction. Sub-agent briefs make report-writing their first deliverable.
 - **Fix path:** validate a finding (evidence-backed, reproducible) before fixing it; fix at the owning layer; re-run the reviewer or test that raised it, plus a holistic pass when fixes were non-trivial. A failing test after the change means the refactor changed behavior until proven otherwise — adjudicate it before editing either side.
-- **Loop bounds:** round 1 exits on zero open validated findings (Round-1 LOW closure); from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 3 review rounds; failing tests are uncapped; no progress → escalate by asking the user directly.
+- **Loop bounds:** round 1 exits on zero open validated findings (Round-1 LOW closure); from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 3 review rounds; failing tests are uncapped; no progress → escalate using ask user tool.
 
 ## Activation
 

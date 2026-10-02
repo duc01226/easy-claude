@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -46,7 +46,7 @@ That line is the `init-full` preview. Each mode resolves its own manifest (finge
 
 ## 1. Step 0 — Mode and Scope (MANDATORY FIRST)
 
-Resolve the configured business spec root and artifact contract, then suggest a mode: no current spec for the target → `init-full`; a diff touches an already-specified capability → `update`; an explicit audit/freshness request → `audit`. Map changed code to its capability owner through the App Bucket Mapping in the local `spec-system-reference.md` (reference-docs root from `docsRoots.projectReference.path`). **BLOCKING:** confirm mode, capability names and target paths by asking the user directly before any other action.
+Resolve the configured business spec root and artifact contract, then suggest a mode: no current spec for the target → `init-full`; a diff touches an already-specified capability → `update`; an explicit audit/freshness request → `audit`. Map changed code to its capability owner through the App Bucket Mapping in the local `spec-system-reference.md` (reference-docs root from `docsRoots.projectReference.path`). **BLOCKING:** confirm mode, capability names and target paths using ask user tool before any other action.
 
 ## 2. Triage (sets depth, recorded in the run report)
 
@@ -100,7 +100,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 ## 6. Memory, Reporting and Fix Path
 
 - One task per selected step and per capability; write the run report under `tmp/reports/` FIRST and append per section — never hold findings in memory.
-- Findings are validated before fixing; fix only validated gaps that block the current round, in the owning spec role, then restart the full pbi --mode=review pass. Review loop: round 1 exits on zero open findings (Round-1 LOW closure); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; binary gates always block; cap 3 review rounds; escalate by asking the user directly on no progress.
+- Findings are validated before fixing; fix only validated gaps that block the current round, in the owning spec role, then restart the full pbi --mode=review pass. Review loop: round 1 exits on zero open findings (Round-1 LOW closure); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; binary gates always block; cap 3 review rounds; escalate using ask user tool on no progress.
 - **Spec-loop discipline:** derive property cases with boundary counter-cases for every hard invariant; protected core logic uses the mutation-score gate, not line coverage; feed uncovered behavior into both spec and tests through a dual-feedback ledger until no new gap or hidden rule remains.
 - **Audit output:** `tmp/reports/spec-audit-{date}-{Bucket}.md` — stale capabilities/roles, stale coverage %, priority order; `$watzup` recommends an `update` run scoped to the stale capabilities.
 
@@ -152,7 +152,7 @@ You choose inline vs sub-agent, parallel waves vs sequential, batching and order
 
 **IMPORTANT MUST ATTENTION Goal:** one canonical spec per capability in three-way agreement with the implementation and its test evidence, through the confirmed `init-full`, `update` or `audit` mode; derive only declared aids.
 
-- **[BLOCKING]** Step 0 FIRST — confirm mode, capabilities and target paths by asking the user directly; then triage by capability count and breadth; multi-bucket scope keeps the Coverage Ledger and clears the completeness gate (`{reviewed}/{total}`) before `$workflow-end`.
+- **[BLOCKING]** Step 0 FIRST — confirm mode, capabilities and target paths using ask user tool; then triage by capability count and breadth; multi-bucket scope keeps the Coverage Ledger and clears the completeness gate (`{reviewed}/{total}`) before `$workflow-end`.
 - **[BLOCKING]** resolve the artifact profile before authoring; the portable eight-section/`TC-{FEATURE}-{NNN}` form applies only when no native profile or local contract exists; unknown mappings stay BLOCKED.
 - **[BLOCKING]** trace the FULL vertical chain per capability and reconcile it; `$pbi --mode=review` converges with the M1-M7 gate; update mode runs `$workflow-review-changes` inline in the main session; `$docs-manager --mode=update` precedes `$workflow-end`.
 - **[BLOCKING]** 4+ capabilities → one `spec` sub-agent per capability, all spawned in ONE message; after compaction read the ledger and the current task list first and never re-author a done capability.

@@ -1,4 +1,4 @@
-> **Red Flag Stop Conditions** — STOP and escalate to user by asking the user directly when:
+> **Red Flag Stop Conditions** — STOP and escalate to user using ask user tool when:
 >
 > 1. Confidence drops below 60% on any critical decision
 > 2. Changes would affect >20 files (blast radius too large)

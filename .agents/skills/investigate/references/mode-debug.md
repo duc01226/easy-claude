@@ -19,7 +19,7 @@
 
 - **Purpose — investigation-ONLY:** Find/pin cause; NEVER patch here. Deliver a `$why-review`-validated cause to `$fix`, or "hypothesis, not confirmed" with evidence gaps.
 - **Ordered phases:** (0) Classify bug type and route `debugger` / `performance-optimizer` / `security-auditor`; (0.5) failing/flaky integration test ONLY: READ the protocol (never invoke) and emit one verdict; (1) Reproduce; (2) Hypothesize 2-3 ranked theories; (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer, including ALL feeder paths; (4) Confirm one cause explains ALL symptoms and no bypasses; (5) validate via `$why-review`; (6) report the confidence-tagged finding, then `$fix`.
-- **Modes and gates:** Phase 0 is BLOCKING; Phase 0.5 applies only to failing integration tests; the code graph is optional advice (stale-able hint, never required); `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask the user directly; a direct call asks no workflow question, and standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
+- **Modes and gates:** Phase 0 is BLOCKING; Phase 0.5 applies only to failing integration tests; the code graph is optional advice (stale-able hint, never required); `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask user tool; a direct call asks no workflow question, and standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
 - **Core evidence:** Bad state enters where written, so fix at the LOWEST invariant-owning layer, NEVER the crash site. Every root-cause claim needs `Confidence: X%` + `file:line`; below 60% report an unconfirmed hypothesis with named gaps.
 
 **Workflow:**
@@ -76,7 +76,7 @@
 | **TEST-NOT-OPTIMAL** | Test is right but fragile — timing, shared state, ordering dependence | The fragility's source (missing ARRANGE barrier, shared infra assertion) |
 | **SOURCE-WRONG** | Production code violates the spec or a clear invariant | Normal end-to-start trace to the invariant-owning layer; KEEP or strengthen the test |
 | **ENVIRONMENT-BLOCKED** | Config, DB, credentials, ports, versions | Mark BLOCKED — do not trace application code |
-| **AMBIGUOUS** | Spec silent or contradictory about which side is correct | **STOP and ask the user** by asking the user directly — never self-resolve |
+| **AMBIGUOUS** | Spec silent or contradictory about which side is correct | **STOP and ask the user** using ask user tool — never self-resolve |
 
 > **Development Rules** — Task steps need observable verification; changes stay surgical; tests protect intent; failed tests require fault adjudication; NEVER weaken assertions, add skips, relax timeouts, or alter source merely to force green.
 >
@@ -180,7 +180,7 @@ NEVER declare a confirmed root cause straight from investigation. Run `$why-revi
 
 - `$why-review` PASSES → declare confirmed, proceed to `$fix`
 - `$why-review` finds GAPS/risks → collect additional evidence, repeat
-- 2 validation rounds without passing → STOP, escalate to user by asking the user directly
+- 2 validation rounds without passing → STOP, escalate to user using ask user tool
 
 ## Anti-Rationalization (Red Flags)
 
@@ -200,7 +200,7 @@ NEVER declare a confirmed root cause straight from investigation. Run `$why-revi
 
 ## Next Steps (Standalone only — skip only when `nested=true`: THIS run is a step of a `[Workflow]` row with its own linked phase tasks; a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count)
 
-**MUST ATTENTION** after completion, use ask the user directly; NEVER auto-decide next step:
+**MUST ATTENTION** after completion, use ask user tool; NEVER auto-decide next step:
 
 - **"Proceed with full workflow (Recommended)"** — detect best workflow to continue from here
 - **"$fix"** — apply fix based on debug findings
@@ -270,7 +270,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 <!-- SYNC:red-flag-stop-conditions -->
 
-> **Red Flag Stop Conditions** — STOP and escalate to user by asking the user directly when:
+> **Red Flag Stop Conditions** — STOP and escalate to user using ask user tool when:
 >
 > 1. Confidence drops below 60% on any critical decision
 > 2. Changes would affect >20 files (blast radius too large)
@@ -359,7 +359,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION Goal:** Deliver a `$why-review`-validated root cause at the lowest invariant-owning layer with `file:line` proof; investigate only so `$fix` corrects causes, not symptoms, or report "hypothesis, not confirmed" with evidence gaps.
 
 **IMPORTANT MUST ATTENTION — Main steps/modes/gates:** Investigation-only: (0) Classify bug type and route specialist → (0.5) failing/flaky integration test ONLY: read the `integration-test --mode=review` protocol, never invoke it, emit one verdict → (1) Reproduce → (2) Hypothesize 2-3 ranked theories → (3) Trace END-to-START from Frame 0 through reader → storage/projection → writer → consumer/job → producer and ALL feeder paths → (4) Confirm one cause explains ALL symptoms and no bypasses → (5) validate with `$why-review` → (6) report confidence-tagged finding → `$fix`.
-**IMPORTANT MUST ATTENTION — Routing/terminal behavior:** Phase 0 is BLOCKING; Phase 0.5 is conditional; the code graph is optional advice; `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask the user directly; a direct call asks no workflow question; standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
+**IMPORTANT MUST ATTENTION — Routing/terminal behavior:** Phase 0 is BLOCKING; Phase 0.5 is conditional; the code graph is optional advice; `$why-review` runs in the SAME main session, 2 failed rounds → STOP/ask user tool; a direct call asks no workflow question; standalone completion asks `workflow`, `$fix`, `$plan`, or manual continuation.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this mode carries):**
 
@@ -384,7 +384,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **IMPORTANT MUST ATTENTION** NEVER fix at the crash site — trace full data flow origin → crash, fix at the lowest invariant-owning layer that protects ALL downstream consumers — why: the crash site is a symptom; scattered guards at consumers signal nobody owns the invariant.
 **MUST ATTENTION** trace END-to-START — name Frame 0 (observed final state), walk reader → storage/projection → writer → consumer/job → producer, enumerate ALL feeder paths, build the hypothesis matrix BEFORE proposing any fix — why: the bug enters where bad state is WRITTEN, not where it crashes.
 **MUST ATTENTION** every root-cause claim carries `Confidence: X%` + `file:line` proof; <60% → report "hypothesis, not confirmed" with named evidence gaps, NEVER a guess — why: self-confirmed findings rationalize their own gaps.
-**MUST ATTENTION** NEVER declare a confirmed root cause without passing the `$why-review` gate (SAME session, SAME main agent, NO sub-agent); 2 rounds without passing → STOP, escalate by asking the user directly.
+**MUST ATTENTION** NEVER declare a confirmed root cause without passing the `$why-review` gate (SAME session, SAME main agent, NO sub-agent); 2 rounds without passing → STOP, escalate using ask user tool.
 **MUST ATTENTION** search 3+ existing patterns and READ the actual code before concluding — cite `file:line`; inference alone is insufficient — why: trial-and-error and assumed APIs hallucinate causes.
 **MUST ATTENTION** failing/flaky integration test → run **Phase 0.5 Fault Adjudication BEFORE any trace**: READ the `$integration-test --mode=review` protocol (8 assertion-quality / repeatability / domain-logic / scenario-fidelity gates) — NEVER invoke that skill, the verify loop owns the invocation — then emit ONE verdict: TEST-WRONG · TEST-NOT-OPTIMAL · SOURCE-WRONG · ENVIRONMENT · AMBIGUOUS (→ STOP and ask) — why: without that verdict the trace targets the wrong side and can rationalize a broken invariant as green.
 **Optional advice:** on a cross-service flow grep may miss, a graph trace can hint at MESSAGE_BUS consumers and event handlers — it may be stale; verify by reading. Never required.

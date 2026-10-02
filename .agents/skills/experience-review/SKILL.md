@@ -9,7 +9,7 @@ description: '[Testing] Use when a workflow step or the user asks for a running-
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -44,7 +44,7 @@ description: '[Testing] Use when a workflow step or the user asks for a running-
 - **Run the real system, then use it like a person.** Bring the surface up locally as a WHOLE — its backing services, then the app — poll a readiness signal, drive the actual journey end to end through the real interface, and tear down what you started. A surface that never ran is `ENVIRONMENT-BLOCKED`, never a pass.
 - **Runtime logs and captured screens are evidence channels, not extras.** Capture them on every exercise and re-capture them every round. A runtime ERROR is BLOCKING. A WARNING is ADVISORY — attempt a bounded fix, never let one hold the review open. For a visual surface, capture each state/viewport and READ the images; unread captures are not observations.
 - **The loop converges on defects, never on taste.** Only a BLOCKING defect — objectively checkable against the stated purpose — opens a round. An ADVISORY finding (preference, polish, visual identity) is recorded, never looped on.
-- **Bounded: `--rounds=N`, default 3.** Every round adjudicates before editing, fixes at the owning layer through `$fix`, `$changes-review`s its own fix diff, and re-exercises from scratch. Cap reached, defects not shrinking across two rounds, defects increasing, or `ENVIRONMENT-BLOCKED` → STOP and escalate by asking the user directly. `--rounds=0` returns the single-pass report-only review.
+- **Bounded: `--rounds=N`, default 3.** Every round adjudicates before editing, fixes at the owning layer through `$fix`, `$changes-review`s its own fix diff, and re-exercises from scratch. Cap reached, defects not shrinking across two rounds, defects increasing, or `ENVIRONMENT-BLOCKED` → STOP and escalate using ask user tool. `--rounds=0` returns the single-pass report-only review.
 - **E2E visual-gate handoff:** when invoked as `$experience-review --rounds=0` by `e2e-test --mode=verify --fix-loop --visual-review=true`, apply `.claude/skills/shared/ui-state-capture-protocol.md`: reload the project's design/UI convention authority, then open and record EVERY capture in the manifest — declared matrix states and per-action transition captures alike, as the resolved `uiStateCapture.mode` produced them (a `declared-only` run lists every state-changing action as an uncaptured transition; `off` keeps the matrix and records transition coverage as `N/A`) — one at a time, case by case, before synthesizing clustered owner-routed findings and coverage gaps for the parent. The parent owns UI fixes and must rerun the same E2E command; this report-only invocation must not mutate snapshots, baselines, or expectations.
 - MUST ATTENTION apply `.claude/skills/shared/e2e-quality-protocol.md` for E2E/browser/user-flow observations and record each applicable gate row; do not duplicate or replace its detailed checklist.
 - **Fix the defect, never the evidence of it.** Expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round. A review that got clean by looking at less did not converge — it regressed.
@@ -388,7 +388,7 @@ budget is spent.
 1. **Adjudicate before editing.** Write one verdict per BLOCKING defect —
    `SOURCE-WRONG` · `EXPECTATION-WRONG` · `TEST-CONDITION-INVALID` ·
    `ENVIRONMENT-BLOCKED` · `AMBIGUOUS` — each with its observation reference,
-   `file:line` evidence, and confidence. `AMBIGUOUS` goes to ask the user directly;
+   `file:line` evidence, and confidence. `AMBIGUOUS` goes to ask user tool;
    never guess an owner. An unadjudicated defect gets "fixed" by whatever is
    nearest, which is almost always the surface rather than the cause.
 2. **Fix at the owning layer** through `$fix` (`--target=ui` for a visual,
@@ -421,7 +421,7 @@ budget is spent.
 BLOCKING defects across the whole matrix**, with the Round Integrity Check
 passed. Both, or it is not converged.
 
-**STOP and escalate by asking the user directly** — never silently spin — when any of
+**STOP and escalate using ask user tool** — never silently spin — when any of
 these holds: the round cap is reached with BLOCKING defects still open; the
 BLOCKING count fails to shrink across two consecutive rounds; the count
 increases (the fixes are regressing); or a round hits `ENVIRONMENT-BLOCKED`.
@@ -610,7 +610,7 @@ that the fix belongs elsewhere — stop the round and escalate.
 
 **IMPORTANT MUST ATTENTION** only a BLOCKING defect opens a round — ADVISORY findings (preference, polish, visual identity) are recorded, NEVER looped on; a loop that runs on taste has no fixed point.
 
-**IMPORTANT MUST ATTENTION** STOP and escalate by asking the user directly when the cap is reached with defects open, the defect count stops shrinking across two rounds, the count increases, or a round hits `ENVIRONMENT-BLOCKED` — report `NOT-CONVERGED`, never a partial pass.
+**IMPORTANT MUST ATTENTION** STOP and escalate using ask user tool when the cap is reached with defects open, the defect count stops shrinking across two rounds, the count increases, or a round hits `ENVIRONMENT-BLOCKED` — report `NOT-CONVERGED`, never a partial pass.
 
 **IMPORTANT MUST ATTENTION** fix the DEFECT, never the evidence of it: expectations, baselines, snapshots, fixtures, assertions, and acceptance criteria stay read-only in every round, and a review that got clean because the matrix shrank REGRESSED.
 

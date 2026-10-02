@@ -633,7 +633,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:red-flag-stop-conditions
 
-> **Red Flag Stop Conditions** — STOP and escalate to user by asking the user directly when:
+> **Red Flag Stop Conditions** — STOP and escalate to user using ask user tool when:
 >
 > 1. Confidence drops below 60% on any critical decision
 > 2. Changes would affect >20 files (blast radius too large)
@@ -764,16 +764,16 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 > 1. From changed files → identify **business logic files**: handlers, commands, queries, services, controllers, resolvers, event processors. Naming varies by stack — infer from project conventions (e.g., `*Service.*`, `*Handler.*`, `*Controller.*`, `*Command.*`, `*Query.*`, `*Resolver.*`). Exclude migration files: schema/data migrations are one-time execution paths, not core application logic.
 > 2. For each identified file → search for a corresponding test file. Infer test naming from existing tests in the project (e.g., `*.test.ts`, `*Tests.java`, `*_test.py`, `*.spec.js`, `*Tests.cs`). Check standard test directories (`tests/`, `spec/`, `__tests__/`, or adjacent test projects/packages).
 > 3. If test EXISTS → check if test methods cover changed behavior (new methods/parameters/logic paths)
-> 4. If test MISSING → **MANDATORY**: use ask the user directly: "Business logic file `{file}` has no integration tests — run `$integration-test` before proceeding, or confirm tests already written?" Options: "Run `$integration-test` first" (Recommended) | "Tests already written/updated — proceed"
+> 4. If test MISSING → **MANDATORY**: use ask user tool: "Business logic file `{file}` has no integration tests — run `$integration-test` before proceeding, or confirm tests already written?" Options: "Run `$integration-test` first" (Recommended) | "Tests already written/updated — proceed"
 > 5. Severity: **HIGH** — missing tests for changed business logic MUST be surfaced to the user; do NOT silently flag and continue
 >
-> **Surface every business-logic change that lacks test coverage for an explicit user decision — never silently skip. — why: a silent skip ships untested business logic to production.**
+> **Surface every business-logic change that lacks test coverage for an explicit user decision using ask user tool — never silently skip. — why: a silent skip ships untested business logic to production.**
 
 ---
 
 ## SYNC:integration-test-sync-check:reminder
 
-**IMPORTANT MUST ATTENTION** check changed logic files for matching tests. Surface missing tests by asking the user directly — mandatory, not advisory.
+**IMPORTANT MUST ATTENTION** check changed logic files for matching tests. Surface missing tests using ask user tool — mandatory, not advisory.
 
 ---
 
@@ -784,7 +784,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 > 1. Determine multilingual mode from project config: `localization.enabled === true` and `supportedLocales.length > 1`
 > 2. Detect UI-facing file changes via extensions/path patterns (`.ts`, `.tsx`, `.html`, `.css`, `.scss` plus `localization.uiPathPatterns` when configured)
 > 3. For multilingual UI changes, verify translation resource diffs exist (`localization.translationFilePatterns` when configured)
-> 4. If translation updates are missing → **MANDATORY**: use ask the user directly: "UI text changed in a multilingual project, but translation updates were not detected. Run translation sync now or proceed with explicit risk acceptance?" Options: "Run translation sync first" (Recommended) | "Proceed with explicit risk acceptance"
+> 4. If translation updates are missing → **MANDATORY**: use ask user tool: "UI text changed in a multilingual project, but translation updates were not detected. Run translation sync now or proceed with explicit risk acceptance?" Options: "Run translation sync first" (Recommended) | "Proceed with explicit risk acceptance"
 > 5. Severity: **HIGH** — no silent pass for multilingual UI text changes without explicit translation-sync decision
 >
 > **Do NOT silently skip. Multilingual UI text changes require explicit translation-sync confirmation.**
@@ -793,7 +793,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 ## SYNC:translation-sync-check:reminder
 
-**IMPORTANT MUST ATTENTION** for multilingual UI text changes, verify translation updates are present or explicitly accepted by the user as risk (ask the user directly when missing) before PASS.
+**IMPORTANT MUST ATTENTION** for multilingual UI text changes, verify translation updates are present or explicitly accepted by the user as risk (ask user tool when missing) before PASS.
 
 ---
 
@@ -1994,9 +1994,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
 > 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
 >
-> **MATERIAL → STOP and confirm by asking the user directly BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+> **MATERIAL → STOP and confirm using ask user tool BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
 >
-> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it by asking the user directly on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it using ask user tool on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
 >
 > This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
 >
@@ -2010,9 +2010,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## SYNC:trade-off-interrogation-gate:reminder
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm by asking the user directly BEFORE the verdict**.
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 ---
 
@@ -2147,6 +2147,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## SYNC:critical-thinking-mindset
 
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**User questions:** Use ask user tool to ask user.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
@@ -2282,7 +2283,7 @@ Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the ro
 
 ## SYNC:universal-closing-reminders
 
-Critical reminders: operate only within user authority; read the project config, docs index, `lessons.md` and the matching Doc Lookup row before answering or editing — never from memory; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; make every plan, implementation and review easy to change, easy to scale and easy to maintain (`SYNC:core-engineering-principles`: reuse first, bounded growth, intent-named tests, harness green); verify evidence and every required gate before completion.
+Critical reminders: use ask user tool to ask user; operate only within user authority; read the project config, docs index, `lessons.md` and the matching Doc Lookup row before answering or editing — never from memory; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; make every plan, implementation and review easy to change, easy to scale and easy to maintain (`SYNC:core-engineering-principles`: reuse first, bounded growth, intent-named tests, harness green); verify evidence and every required gate before completion.
 
 ---
 
@@ -2319,7 +2320,7 @@ Critical reminders: operate only within user authority; read the project config,
 > 2. **Review and fix, static** — one converging review fix-loop over the whole changeset, reading code and tests (TEST-GAP, WEAK-TEST by mutation thinking). It does NOT run tests (`$workflow-review-changes --tests=defer`). Fixes may write or amend tests but never run them.
 > 3. **Verify once** — run the full affected suite once through the runner (`tester`, `$integration-test --mode=verify`, `$test`), plus a mutation check on every changed core-logic line and new rule: use the project's mutation tool when configured, else temporarily break the line by hand-editing it: first copy the file to `tmp/` and restore from that copy afterwards, confirming a clean diff against the copy before green counts — NEVER `git checkout`, `restore`, `reset` or `stash` on the working tree, which can destroy the uncommitted work under test. The mutation check needs a step that may edit code — `$integration-test --mode=verify`, or the main session when no such step runs — never the read-only `tester` or `$test`. A surviving mutant is a missing test: write it, then re-run. For a bugfix the mutation check is the RED proof: reverting the fix must turn its regression test red.
 > 4. **Fix and re-run until green** — record a provisional verdict for each red test (SOURCE-WRONG · TEST-WRONG · TEST-NOT-OPTIMAL · ENVIRONMENT-BLOCKED · AMBIGUOUS) before any edit, fix at the owner, re-run the failing set, then the whole set once. NEVER weaken, skip or delete a test to force green.
-> 5. **Re-review only if step 4 edited anything** — any source or test edit after the review re-runs the review (`--tests=defer`) over the settled tree; a re-review that applies a fix sends you back to step 3. This verify ↔ re-review alternation is capped at 3 turns: a fourth turn, or the same failure returning, STOPS and escalates by asking the user directly (the review's own round cap does not bound it). Done = a green verify AND no edit after the last review.
+> 5. **Re-review only if step 4 edited anything** — any source or test edit after the review re-runs the review (`--tests=defer`) over the settled tree; a re-review that applies a fix sends you back to step 3. This verify ↔ re-review alternation is capped at 3 turns: a fourth turn, or the same failure returning, STOPS and escalates using ask user tool (the review's own round cap does not bound it). Done = a green verify AND no edit after the last review.
 > 6. **Green counts only on the final tree** — an edit after the last green run invalidates it.
 >
 > **Exceptions:** a refactor's pre-change runs are allowed — the baseline run, and ONE targeted run of any characterization tests written before the code moves (they must be proven green on the unrefactored tree); neither is a per-phase run. A standalone review with no later verify step keeps its own test run (`--tests=prove`, the default).
@@ -2427,7 +2428,7 @@ Critical reminders: operate only within user authority; read the project config,
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate by asking the user directly (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <60% on any critical decision → stop and escalate using ask user tool (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 

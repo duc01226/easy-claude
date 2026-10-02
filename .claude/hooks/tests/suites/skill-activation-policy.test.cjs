@@ -101,6 +101,7 @@ module.exports = {
                     const context = JSON.parse(runProcess(fx, { ...prompt, prompt: text }, host)).hookSpecificOutput.additionalContext;
                     // Then the human chooses skill execution or direct work before any activation.
                     assert.match(context, /ask ONE skill-choice question before loading or executing it/);
+                    assert.match(context, /Use ask user tool to ask user when available, otherwise ask in plain text/);
                     assert.match(context, /name the best-fit skill and briefly explain why it fits/);
                     assert.match(context, /Run the matched skill.*Skip the skill and execute directly/);
                     assert.match(context, /Stop and wait for the human answer; never infer confirmation from silence/);

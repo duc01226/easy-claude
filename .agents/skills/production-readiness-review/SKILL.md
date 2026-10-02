@@ -9,7 +9,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for a pro
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -323,7 +323,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 ## Next Steps
 
-**MANDATORY** after a standalone run, use ask the user directly. Skip it when a parent workflow or skill invoked this review, when it runs as a sub-agent, or under `--report-only` — return the report path, score, gate verdict, and findings to the caller instead:
+**MANDATORY** after a standalone run, use ask user tool. Skip it when a parent workflow or skill invoked this review, when it runs as a sub-agent, or under `--report-only` — return the report path, score, gate verdict, and findings to the caller instead:
 
 - **"$watzup (Recommended)"** — wrap up + check doc staleness
 - **"$test"** — run tests before wrapping up
@@ -442,9 +442,9 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm by asking the user directly BEFORE the verdict**.
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -497,7 +497,7 @@ The following are all MANDATORY:
 - **Optional advice:** for a high-risk cross-service blast radius grep may miss, the code graph (blast-radius, `tests_for`, downstream trace) can add hints — it may be stale; verify by reading. Never required.
 - **MANDATORY** when batched (≥10 files), RE-SCORE all 12 criteria holistically from combined cross-batch evidence — NEVER average per-batch scores — why: a cross-file criterion (query in one batch, migration in another) false-flags `0` per-batch.
 - **MANDATORY** changed core logic clears the MUTATION-SCORE gate, not a coverage %; every behavior-changing finding feeds BOTH the spec (name the contract/invariant in §8) AND a guarding test — a code-only fix is INCOMPLETE.
-- **MANDATORY** in a standalone run, validate decisions with the user by asking the user directly for the Next Steps hand-off — never auto-decide; a direct call asks no workflow question; a parent-invoked, sub-agent, or `--report-only` run returns them to the caller instead.
+- **MANDATORY** in a standalone run, validate decisions with the user using ask user tool for the Next Steps hand-off — never auto-decide; a direct call asks no workflow question; a parent-invoked, sub-agent, or `--report-only` run returns them to the caller instead.
 
 **Anti-Rationalization:**
 

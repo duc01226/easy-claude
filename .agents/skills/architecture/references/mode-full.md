@@ -26,13 +26,13 @@
 
 **Workflow:**
 
-1. **Step 1: Resolve Scope** — `$ARGUMENTS` or ask the user directly; map the chosen scope to each child's args.
+1. **Step 1: Resolve Scope** — `$ARGUMENTS` or ask user tool; map the chosen scope to each child's args.
 2. **Step 2: Load Project Reference Docs Once** — warm shared context before fan-out.
 3. **Step 3: Parallel Fan-Out (all-return barrier)** — spawn all three read-only sub-agents in ONE message; advance only after ALL three return.
 4. **Step 4: Progressive Synthesis (IN PROGRESS)** — open the ONE consolidated report at status `🚧 IN PROGRESS` when fan-out starts; merge + dedup each child's findings into it AS that child returns — never held in memory to the end; then run the §20.2 coverage sweep and the §20.3 self-audit over the merged set.
 5. **Step 5: Fix-Report-Per-Review `$why-review` Gate** — ONE merged `$why-review` pass that walks each of the three review faces + the dedup and fixes the report in place (severities, false positives, dedup-dropped issues).
 6. **Step 6: Finalize (FINISHED)** — lock the combined verdict (worst-case rollup) and flip the report status to `✅ FINISHED`.
-7. **Next Steps** — ask the user directly: `$plan` (fix validated findings) / `$code-simplifier` / skip.
+7. **Next Steps** — ask user tool: `$plan` (fix validated findings) / `$code-simplifier` / skip.
 
 **Key Rules (top 3 critical first):**
 
@@ -61,7 +61,7 @@ Skeptical synthesizer. Judge the three children's reports; do not re-derive them
 Decide audit scope, then map to each child's arguments.
 
 - If `$ARGUMENTS` names files/dirs, or contains `full` / `whole` / `diff` / `changes`, use that directly.
-- Else ask the user directly:
+- Else ask user tool:
   - **"Whole project (Recommended)"** — audit the entire repository.
   - **"Current changes (diff)"** — audit the uncommitted diff only.
   - **"Specific path"** — audit a named service/module/directory.
@@ -179,7 +179,7 @@ The report is now validated — lock it and hand off a stable artifact.
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS:** After completing, use ask the user directly to present:
+**MANDATORY — NO EXCEPTIONS:** After completing, use ask user tool to present:
 
 - **"$plan (fix validated findings)" (Recommended)** — plan the fixes for the validated findings (fixes happen in the downstream plan/feature flow, NOT here).
 - **"$linter-setup → $harness-setup"** — stand up (or complete) the mechanical quality harness. **Offer this FIRST whenever the `SYNC:engineering-foundation-gate` matrix marks F7 (mechanical harness) or F4 (test-strength proof) `MISSING-WARRANTED` or `PARTIAL-WITH-PATH`.**
@@ -705,9 +705,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
 > 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
 >
-> **MATERIAL → STOP and confirm by asking the user directly BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+> **MATERIAL → STOP and confirm using ask user tool BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
 >
-> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it by asking the user directly on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it using ask user tool on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
 >
 > This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
 >
@@ -780,9 +780,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm by asking the user directly BEFORE the verdict**.
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -812,7 +812,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
 **IMPORTANT MUST ATTENTION Goal:** Audit the WHOLE project's architecture, scalability, and production readiness in ONE pass: orchestrate three deliberately non-overlapping sibling reviewers, dedup intentional cross-references, and synthesize ONE consolidated Architecture Health Report with one combined verdict — this is a THIN orchestrator; NEVER re-implement child reviews.
 
-**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else ask the user directly; map to each child's args) → (2) Load project reference docs once → (3) Parallel fan-out of all three read-only sub-agents in ONE message behind an all-return barrier → (4) Progressive synthesis into ONE report at status `IN PROGRESS` — merge + dedup each face AS it returns, never held in memory, then run the §20.2 coverage sweep + §20.3 self-audit over the merged set → (5) Fix-report-per-review `$why-review` gate (one merged pass walking each of the three faces + the dedup, status `VALIDATING`) → (6) Finalize — lock the combined verdict + flip status to `FINISHED` → Next Steps ask the user directly. The report lifecycle is `IN PROGRESS → VALIDATING → FINISHED` on ONE file, never re-created.
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else ask user tool; map to each child's args) → (2) Load project reference docs once → (3) Parallel fan-out of all three read-only sub-agents in ONE message behind an all-return barrier → (4) Progressive synthesis into ONE report at status `IN PROGRESS` — merge + dedup each face AS it returns, never held in memory, then run the §20.2 coverage sweep + §20.3 self-audit over the merged set → (5) Fix-report-per-review `$why-review` gate (one merged pass walking each of the three faces + the dedup, status `VALIDATING`) → (6) Finalize — lock the combined verdict + flip status to `FINISHED` → Next Steps ask user tool. The report lifecycle is `IN PROGRESS → VALIDATING → FINISHED` on ONE file, never re-created.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost — the canonical body above governs, NEVER skip one):**
 
@@ -842,7 +842,7 @@ The following are all MANDATORY:
 - **MANDATORY** read required project-reference docs first (`project-structure-reference.md`, `backend-patterns-reference.md`, `code-review-rules.md`, always `lessons.md`) and cite `Reference docs read: ...` — why: project conventions override generic assumptions.
 - **MANDATORY** every merged finding carries `file:line` proof + confidence (>80% to act, <80% verify first) — NEVER synthesize a finding from inference.
 - **Optional advice:** the code graph (`.code-graph/graph.db`) can hint at a high-risk blast radius grep may miss; it may be stale — verify by reading. Never required.
-- **MANDATORY** validate decisions with the user by asking the user directly for scope resolution and next-step routing — never auto-decide the scope.
+- **MANDATORY** validate decisions with the user using ask user tool for scope resolution and next-step routing — never auto-decide the scope.
 
 **Anti-Rationalization:**
 

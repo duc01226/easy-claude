@@ -9,7 +9,7 @@ description: '[Documentation] Use when a workflow step or the user asks for spec
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -42,7 +42,7 @@ description: '[Documentation] Use when a workflow step or the user asks for spec
 **Workflow:**
 
 - **Purpose:** one skill owns `draft | init | update | audit | amend | tests | sync`, selecting the canonical artifact profile before applying representation-specific rules.
-- **Main steps (every run):** (1) **MUST ATTENTION** resolve mode FIRST — explicit `[mode=<x>]` wins, else infer from request + repo state, ambiguous → ask the user directly before any mutating mode; (2) resolve the project root, artifact type, profile, owner, and configured identifiers/carriers; (3) read required project references and the matching `references/{author,tests,sync}.md` body — NEVER run a mode from memory; (4) classify large-idea applicability; (5) task tracking-break the work before starting; (6) execute the selected profile's procedure and semantic gates; (7) cross-service check before concluding.
+- **Main steps (every run):** (1) **MUST ATTENTION** resolve mode FIRST — explicit `[mode=<x>]` wins, else infer from request + repo state, ambiguous → ask user tool before any mutating mode; (2) resolve the project root, artifact type, profile, owner, and configured identifiers/carriers; (3) read required project references and the matching `references/{author,tests,sync}.md` body — NEVER run a mode from memory; (4) classify large-idea applicability; (5) task tracking-break the work before starting; (6) execute the selected profile's procedure and semantic gates; (7) cross-service check before concluding.
 - **Semantic floor:** **MUST ATTENTION** enforce applicable M1-M7, evidence, testability, property/boundary, preservation, actual-execution, operation-authority, and drift gates for every profile. A representation change never waives these obligations. — why: traceable intent must survive changes in format or test topology.
 - **Strict default representation:** **MUST ATTENTION** use the tech-free eight-section Feature Spec and `TC-{FEATURE}-{NNN}` registry in Section 8 only when no native case profile is explicitly declared; preserve its canonical source, `[Source:]` evidence, and no-overwrite rules.
 - **Native representation:** **MUST ATTENTION** use the project's declared section roles, logical IDs, owner rule, case carriers, and cardinality. For executable coverage, link each owner/scenario/variant to its executor, inspected assertion, observed runner result, source evidence, and reconciliation state. Use a manual-QC path only when the profile explicitly authorizes it, with its approved procedure and observed evidence; never label that result runner-executed. Never add a TC/Section 8 side registry to mirror native cases.
@@ -52,7 +52,7 @@ description: '[Documentation] Use when a workflow step or the user asks for spec
 **Key Rules:**
 
 - **AI surface?** Only if the spec adds or changes a model call, prompt, agent, tool/MCP, retrieval or eval (see `node .claude/scripts/ai-signal-scan.cjs`): read `.claude/skills/shared/protocols/ai-feature-framing-gate.md` and write its quality bar and failure behavior as cases; otherwise skip this line.
-- Resolve the mode and artifact profile and read its matching reference body before any mutation; ambiguous mode → ask the user directly, invalid/conflicting profile → `UNKNOWN`/`BLOCKED`.
+- Resolve the mode and artifact profile and read its matching reference body before any mutation; ambiguous mode → ask user tool, invalid/conflicting profile → `UNKNOWN`/`BLOCKED`.
 - Keep the canonical owner and identifiers authoritative; never create duplicate case registries or overwrite existing owner content during `update`.
 - Apply the shared AI-SDD/large-idea gates, cross-service check, evidence rules, and review/sync boundaries before concluding.
 
@@ -104,14 +104,14 @@ This gate is product-level and does not relax applicable intent-quality rules in
 | `clarify` | After a spec exists: completeness vs the discovered system + BLOCKING user confirmation of every non-obvious or conflicting decision; blocks on unresolved intent. Formerly `/spec-clarify` | `references/mode-clarify.md` |
 | `index`  | Regenerate (or `audit` for staleness) DERIVED navigation aids — index, cross-capability ERD, reimplementation guide — FROM canonical specs only; `action=index\|audit` or `--audit`. Formerly `/spec-index` | `references/mode-index.md` |
 
-- **[BLOCKING]** When `[mode=discovery]`, read `references/mode-discovery.md` in full FIRST; it runs INLINE (its scope gate is a BLOCKING ask the user directly), never authors or edits a spec, and keeps `--investigation=<report path>` as its optional input.
+- **[BLOCKING]** When `[mode=discovery]`, read `references/mode-discovery.md` in full FIRST; it runs INLINE (its scope gate is a BLOCKING ask user tool), never authors or edits a spec, and keeps `--investigation=<report path>` as its optional input.
 - **[BLOCKING]** When `[mode=clarify]`, read `references/mode-clarify.md` in full FIRST (its interview catalog `references/clarify-interview.md` loads from it); it runs INLINE, blocks on unresolved intent, and returns `BLOCKED`/`NEEDS-CLARIFICATION` when the user cannot answer — never infer a decision.
-- **[BLOCKING]** When `[mode=index]`, read `references/mode-index.md` in full FIRST; it derives aids only from canonical specs, confirms scope/action/artifacts/destination by asking the user directly before reading spec bodies, and never writes canonical content. Its `audit` action (`action=audit` / `--audit`) is the derived-aid staleness report, never the spec `audit` mode.
+- **[BLOCKING]** When `[mode=index]`, read `references/mode-index.md` in full FIRST; it derives aids only from canonical specs, confirms scope/action/artifacts/destination using ask user tool before reading spec bodies, and never writes canonical content. Its `audit` action (`action=audit` / `--audit`) is the derived-aid staleness report, never the spec `audit` mode.
 
 **Mode resolution (do this before any work):**
 
 1. Parse the mode from the invocation: explicit `[mode=<x>]` arg wins; else infer from request + repo state ("overlap / related specs / duplicate-spec check before a new spec" → `discovery`; "validate or clarify spec decisions with the user / gap-review a spec" → `clarify`; "regenerate or audit the spec index / ERD / reimplementation guide" → `index`; "from idea/requirements/prompt", "draft spec", "no code yet" → `draft`; no canonical owner under the configured business root AND code exists to source from → `init`; docs exist + diff → `update`; "audit/stale" → `audit`; bugfix caller → `amend`; "write/update test specs" or the selected profile's case terms → `tests`; "sync tests" or reconcile canonical cases with tests → `sync`). **`draft` vs `init`:** both author a new artifact, but `draft` sources from idea/requirement text and records evidence/provisional state using the selected profile, while `init` sources from existing code. "No docs" alone does NOT imply `init` — check whether code exists to source from. Never overwrite existing owner content during `update`.
-2. If ambiguous, present the detected mode by asking the user directly before proceeding — NEVER auto-start a mutating mode.
+2. If ambiguous, present the detected mode using ask user tool before proceeding — NEVER auto-start a mutating mode.
 3. **Read the matching `references/` body** — it is the single source of truth for that mode's procedure, gates, and output contract. Do not run a mode from memory.
 
 **Key Rules (all modes):**
@@ -169,7 +169,7 @@ This skill owns the canonical artifact and cases selected by the active profile.
 
 ## Next Steps
 
-**[BLOCKING]** After completing, use ask the user directly to present options. Do NOT skip — user decides:
+**[BLOCKING]** After completing, use ask user tool to present options. Do NOT skip — user decides:
 
 - **"$spec [mode=tests] (Recommended)"** — Generate/update the selected profile's canonical test scenarios (strict default: Section 8 TCs)
 - **"$spec [mode=sync]"** — Reconcile the selected profile's canonical cases with executing test code
@@ -236,7 +236,7 @@ This skill owns the canonical artifact and cases selected by the active profile.
 - **Spec↔Tests↔Code Triangulation:** the unit of judgment is the WHOLE PACKAGE (configured intent/contracts/case carriers + tests + code) — reason mutual-consistency first; a disagreeing or missing face is a logged finding, NEVER a silent pass.
 - **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and capture unwritten invariants in the configured contract and case owner with a guarding test — NEVER normalize drift to whichever side is green.
 
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/{author,tests,sync,mode-discovery,mode-clarify,mode-index}.md` body — NEVER run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync`/`discovery`/`clarify`/`index` from memory; ambiguous → ask the user directly before any mutating mode — why: each mode's gates + output contract live in its body, not in this entry skill
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/{author,tests,sync,mode-discovery,mode-clarify,mode-index}.md` body — NEVER run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync`/`discovery`/`clarify`/`index` from memory; ambiguous → ask user tool before any mutating mode — why: each mode's gates + output contract live in its body, not in this entry skill
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Run the Applicability and Decomposition Gate before authoring or materially changing a spec; use the shared four-signal rule, require the complete five-field `large_idea_decomposition` block when true, omit roadmap/milestone placeholders when false, and use the standalone roadmap branch only for an explicit roadmap request — why: the spec must preserve an approved outcome boundary without turning every large idea into a new roadmap file
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Use only the selected profile's canonical owner, identifiers, evidence fields, and carriers; do not add a TC/Section 8 shadow registry beside a native case source — why: competing owners make drift silent.
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Source mapping or ID presence alone is not execution proof; map each owner/scenario/variant to its actual executor and inspected assertion, and claim executed/PASS only after observing the selected runner result — why: aggregate labels can conceal unverified rows.

@@ -9,7 +9,7 @@ description: '[Fix & Debug] Use when a workflow step or the user asks for how an
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -69,7 +69,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 | `--mode=debug [bug description]` | Root-cause investigation of a bug: reproduce, trace end-to-start, hypothesis matrix, pinpoint the owning layer, `$why-review` validation; never patches code (`$fix` applies the fix). Formerly `/debug-investigate` | `references/mode-debug.md` |
 | `--mode=explain [target]` | One-way developer narrative (Purpose → How → Why → Impact) — [Mode: Explain](#mode-explain-developer-narrative) below | _(inline below)_ |
 
-- **[BLOCKING]** When `--mode=debug`, read `references/mode-debug.md` in full FIRST; it replaces the default Phase 0 classification, Workflow and Output Format for the invocation (Phase 0 bug-type routing, reproduce, end-to-start trace, the `$why-review` Root Cause Validation gate, `$fix` hand-off). Workflow invocation (for example `workflow-bugfix`) returns the validated root cause to the parent; standalone ends with the ask the user directly next-step choice.
+- **[BLOCKING]** When `--mode=debug`, read `references/mode-debug.md` in full FIRST; it replaces the default Phase 0 classification, Workflow and Output Format for the invocation (Phase 0 bug-type routing, reproduce, end-to-start trace, the `$why-review` Root Cause Validation gate, `$fix` hand-off). Workflow invocation (for example `workflow-bugfix`) returns the validated root cause to the parent; standalone ends with the ask user tool next-step choice.
 - `--mode=debug` and the default flow are separate invocations; the default flow never chains into the debug gate, and debug mode never relaxes the READ-ONLY or `file:line` evidence rules.
 
 ## Phase 0: Scope Classification
@@ -265,7 +265,7 @@ For bug, failed-verification, or behavior-changing investigations, MUST ATTENTIO
 ### Contract (read first)
 
 - **DERIVE SCOPE FROM THE PROMPT.** No target → current context: active tasks (the current task list), working-tree changes (`git diff --name-only` + untracked via `git ls-files --others --exclude-standard`), active plan, and latest `$watzup` summary.
-- **NEVER ASK THE USER A QUESTION.** Stay one-way: no teach-back, quiz, ask the user directly, ambiguity question, or comprehension gate. Infer the likeliest target, state the assumption once, proceed. The explicit-skill workflow-detection exemption still applies.
+- **NEVER ASK THE USER A QUESTION.** Stay one-way: no teach-back, quiz, ask user tool, ambiguity question, or comprehension gate. Infer the likeliest target, state the assumption once, proceed. The explicit-skill workflow-detection exemption still applies.
 - **OPT-IN, NEVER BLOCKS.** Explain and end; never loop or gate commit, implementation, or workflow progress.
 - **ALWAYS EXPLAIN IN FULL.** Cover purpose + how + why every time.
 - **EXPLAIN THE WHOLE SCOPE, LEAD WITH THE NON-OBVIOUS.** Cover all scope, order by blast radius, future-change cost, and surprise; treat boilerplate/CRUD briefly.

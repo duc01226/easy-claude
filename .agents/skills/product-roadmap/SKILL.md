@@ -10,7 +10,7 @@ disable-model-invocation: true
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -97,7 +97,7 @@ Use “Pre-MVP Gate” for product truth/ownership/state decisions when needed, 
 
 ## Phase 3: Decision Gate
 
-Before writing an approved roadmap, use ask the user directly for every material ambiguity. At minimum confirm:
+Before writing an approved roadmap, use ask user tool for every material ambiguity. At minimum confirm:
 
 - the product hypothesis and primary owner/customer;
 - source-of-truth state and persistence expectation;
@@ -153,5 +153,5 @@ Report:
 **IMPORTANT MUST ATTENTION Main steps:** confirm the explicit route → load context and contract → frame outcomes → design milestones → obtain owner decisions → write the roadmap/scope brief → hand off the selected milestone or EXEMPT branch through scenario and Plan Gate.
 **IMPORTANT MUST ATTENTION** run the explicit route → context → outcome/milestone or EXEMPT boundary → decision gate → scope → handoff in order.
 **IMPORTANT MUST ATTENTION** define outcome, risk retired, non-goals, human decisions, dependencies, and evidence for every milestone.
-**IMPORTANT MUST ATTENTION** use ask the user directly for material decisions; AI confidence never equals owner approval.
+**IMPORTANT MUST ATTENTION** use ask user tool for material decisions; AI confidence never equals owner approval.
 **IMPORTANT MUST ATTENTION** no framework, schema, endpoint, screen, or code decisions in the product roadmap.

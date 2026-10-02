@@ -17,7 +17,7 @@
 2. Use the `debugger` subagent to analyze `./logs.txt`: read with `Grep` `head_limit: 30` (last 30 lines; increase if needed — avoid loading the whole file). Write analysis to `tmp/analysis/{issue-name}.analysis.md`; re-read before fixing.
 3. Use the `$investigate` skill to locate the exact source of the issue; report back.
 4. Use the `planner` subagent to create an implementation plan; report back.
-5. **🛑 Present root cause + fix plan → ask the user directly → wait for approval.**
+5. **🛑 Present root cause + fix plan → ask user tool → wait for approval.**
 6. Implement the fix.
 7. Use the `tester` subagent to verify; report back.
 8. Use the `code-reviewer` subagent to review the changes; report back.

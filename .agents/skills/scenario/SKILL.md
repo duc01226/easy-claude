@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -93,7 +93,7 @@ For each scenario assign `SCN-{MILESTONE}-{NNN}`, severity (`Critical`, `High`, 
 
 ## Phase 3: Decision and Risk Gate
 
-Use ask the user directly for each material choice the scenario analysis cannot resolve, such as conflict policy, deletion semantics, status meaning, audit/history expectations, access boundary, or acceptable recovery behavior. Present 2–4 concrete options and a recommendation. Record each decision as `confirmed`, `deferred`, or `blocked`.
+Use ask user tool for each material choice the scenario analysis cannot resolve, such as conflict policy, deletion semantics, status meaning, audit/history expectations, access boundary, or acceptable recovery behavior. Present 2–4 concrete options and a recommendation. Record each decision as `confirmed`, `deferred`, or `blocked`.
 
 A scenario may be deferred only when the owning decomposition block or explicit roadmap names the deferred item and its owner/follow-up artifact. “AI will handle it later” is not a decision.
 

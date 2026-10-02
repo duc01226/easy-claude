@@ -13,13 +13,13 @@
 
 **Summary:**
 
-- **Main steps (the pipeline):** (1) read PBI + active plan, load domain context — module, entities, BR-IDs; (2) identify VERTICAL end-to-end slices; (3) SPIDR-split anything SP >8 (MUST) / >5 (SHOULD) until INVEST-valid; (4) write each story with min 3 GWT scenarios + 1 authorization scenario; (5) estimate bottom-up (Blast-Radius pre-pass → phase-hours → days; SP DERIVED) and emit full estimate frontmatter; (6) emit Story Dependencies table (no orphans); (7) run MANDATORY ask the user directly validation; (8) save to `pbis/stories/{YYMMDD}-ba-story-{slug}.md` under the team-artifacts root (default `team-artifacts/`; path from `docsRoots.teamArtifacts.path` in `docs/project-config.json`); (9) suggest `$spec [mode=tests]` next.
+- **Main steps (the pipeline):** (1) read PBI + active plan, load domain context — module, entities, BR-IDs; (2) identify VERTICAL end-to-end slices; (3) SPIDR-split anything SP >8 (MUST) / >5 (SHOULD) until INVEST-valid; (4) write each story with min 3 GWT scenarios + 1 authorization scenario; (5) estimate bottom-up (Blast-Radius pre-pass → phase-hours → days; SP DERIVED) and emit full estimate frontmatter; (6) emit Story Dependencies table (no orphans); (7) run MANDATORY ask user tool validation; (8) save to `pbis/stories/{YYMMDD}-ba-story-{slug}.md` under the team-artifacts root (default `team-artifacts/`; path from `docsRoots.teamArtifacts.path` in `docs/project-config.json`); (9) suggest `$spec [mode=tests]` next.
 - Slice VERTICALLY (thin end-to-end), NEVER horizontally (backend/frontend split) — apply SPIDR (Spike/Paths/Interfaces/Data/Rules) until each story is INVEST-valid — why: horizontal slices delay deliverable user value.
 - Every story is tech-agnostic + rebuild-from-scratch + demoable (AI-SDD M1-M5 and M7): no framework/class/file names in prose, carry the inherited `FR-`/`BR-` logical ID plus a `[Source: namespace/service/id]` abstract anchor (NEVER `file:line`), and every criterion states an outcome a stakeholder could SEE — reject and rework on any STOP condition.
 - Stories collectively MUST cover the parent PBI's releasable outcome from entry through result and exit; do not turn a PBI into disconnected technical-layer stories. Enabling work stays attached to a vertical outcome slice.
 - Min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario per story; every criterion has exactly ONE observable interpretation.
 - Estimate bottom-up (phase-hours → days × productivity factor; SP DERIVED, never the driver) with explicit `test_count` and Blast-Radius pass; emit full `man_days_*` / `risk_*` / `blast_radius` / `estimate_reasoning` frontmatter — why: SP-first anchors to a guess, downstream `$prioritize`+`$plan` read these fields.
-- Story Dependencies table is mandatory (no orphan stories) and the ask the user directly validation interview runs before handoff — NEVER auto-decide slicing/scope/effort.
+- Story Dependencies table is mandatory (no orphan stories) and the ask user tool validation interview runs before handoff — NEVER auto-decide slicing/scope/effort.
 - Read `.claude/skills/shared/releasable-pbi-contract.md`; preserve the parent PBI's actor, outcome, non-goals, full-flow pages/views, and applicable UI surface when slicing.
 - Stories inherit the parent PBI/spec's applicability branch. When `isLargeIdea=true`, preserve the owning slice ID and the complete `large_idea_decomposition` context (`outcome_slices`, `dependencies_order`, `non_goals`, `risks_evidence`, `deferred_work_owner`); when all signals are false, do not add roadmap or milestone fields. An explicit roadmap branch may carry its selected milestone; a supplied roadmap is read-only context. Missing or conflicting scope is BLOCKED, not resolved by slicing.
 
@@ -48,7 +48,7 @@
 - Min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario; each criterion has exactly ONE observable interpretation.
 - Tech-agnostic prose ONLY — no framework/class/file names; anchor with `[Source: namespace/service/id]`, NEVER `file:line`.
 - Story Dependencies table is mandatory — NEVER leave an orphan story.
-- Run the ask the user directly validation interview before handoff — NEVER auto-decide slicing, scope, or effort.
+- Run the ask user tool validation interview before handoff — NEVER auto-decide slicing, scope, or effort.
 
 ### Frontend/UI Context (if applicable)
 
@@ -498,7 +498,7 @@ After creating user stories, validate with user.
 ### Process
 
 1. Generate 2-4 questions focused on slicing quality, scenarios, and dependencies
-2. Use ask the user directly tool to interview
+2. Use ask user tool tool to interview
 3. Document in story artifact under `## Validation Summary`
 4. Update stories based on answers (split if needed)
 
@@ -556,7 +556,7 @@ Example for a "Create Invoice" story:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask user tool to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 - **"$spec [mode=tests] (Recommended)"** — Generate test specifications from stories
 - **"$pbi --mode=mockup"** — Generate HTML mockup report from PBI and stories
 - **"$plan --mode=validate"** — If stories need validation against plan
@@ -748,7 +748,7 @@ Example for a "Create Invoice" story:
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate by asking the user directly (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <60% on any critical decision → stop and escalate using ask user tool (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -802,7 +802,7 @@ Example for a "Create Invoice" story:
 
 **IMPORTANT MUST ATTENTION Goal:** Produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — by breaking Product Backlog Items into implementable stories via vertical slicing and SPIDR splitting, so a team with zero codebase knowledge can implement on any stack.
 
-**IMPORTANT MUST ATTENTION Main steps (execute in order, NEVER skip):** read PBI + active plan + domain context → identify VERTICAL slices → SPIDR-split (SP >8 MUST / >5 SHOULD) → write INVEST stories with min 3 GWT + 1 auth scenario → estimate bottom-up (Blast-Radius pre-pass, SP DERIVED) + full frontmatter → emit Story Dependencies table (no orphans) → MANDATORY ask the user directly validation → save to `pbis/stories/` under the team-artifacts root (default `team-artifacts/`; path from `docsRoots.teamArtifacts.path` in `docs/project-config.json`) → suggest `$spec [mode=tests]`.
+**IMPORTANT MUST ATTENTION Main steps (execute in order, NEVER skip):** read PBI + active plan + domain context → identify VERTICAL slices → SPIDR-split (SP >8 MUST / >5 SHOULD) → write INVEST stories with min 3 GWT + 1 auth scenario → estimate bottom-up (Blast-Radius pre-pass, SP DERIVED) + full frontmatter → emit Story Dependencies table (no orphans) → MANDATORY ask user tool validation → save to `pbis/stories/` under the team-artifacts root (default `team-artifacts/`; path from `docsRoots.teamArtifacts.path` in `docs/project-config.json`) → suggest `$spec [mode=tests]`.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor each canonical body, NEVER skip one:**
 
@@ -823,7 +823,7 @@ Example for a "Create Invoice" story:
 **MANDATORY IMPORTANT MUST ATTENTION** slice VERTICALLY (thin end-to-end), NEVER horizontally (backend/frontend split) — why: horizontal slices delay deliverable user value.
 **MANDATORY IMPORTANT MUST ATTENTION** search existing component libraries and domain vocabulary BEFORE proposing new components/entities (>=80% match = reuse); use the project's own entity names — why: duplicate UI/domain code = wrong tier and fragments the codebase.
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` (or grep/graph) evidence with a confidence % for every claim about existing code/entities — >80% to act, <80% verify first — why: AI hallucinates entity/API names; unverified scoping mis-slices the story.
-**MANDATORY IMPORTANT MUST ATTENTION** validate stories with the user by asking the user directly before handoff — NEVER auto-decide slicing/scope/effort — why: silent assumptions on ambiguous scope ship the wrong stories.
+**MANDATORY IMPORTANT MUST ATTENTION** validate stories with the user using ask user tool before handoff — NEVER auto-decide slicing/scope/effort — why: silent assumptions on ambiguous scope ship the wrong stories.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify every story against its AC scenarios, the dependency table, and the Quality Checklist.
 
 **Anti-Rationalization:**
@@ -835,7 +835,7 @@ Example for a "Create Invoice" story:
 | "Happy path is enough"                    | Min 3 scenarios + a mandatory authorization scenario per story. Edge + error + auth are NOT optional. |
 | "+tests covers the test cost"             | Compute `test_count` explicitly per driver (auth matrix, validation, states). Hand-wave is the #1 estimate failure. |
 | "Independent story, skip the dep table"   | No orphan stories — every story appears in the dependency table, even if `independent`.        |
-| "Slicing is obvious, skip validation"     | ask the user directly validation is MANDATORY, not optional. The user confirms slicing/scope/effort. |
+| "Slicing is obvious, skip validation"     | ask user tool validation is MANDATORY, not optional. The user confirms slicing/scope/effort. |
 
 **IMPORTANT MUST ATTENTION** AI-SDD M1-M5/M7 (tech-agnostic + demoable) + dependency table + bottom-up estimate are the three rules this skill must never skip — re-anchored here (recency) and in the Quick Summary (primacy).
 **IMPORTANT MUST ATTENTION** embedded large-idea stories must carry the parent slice ID, preserve the complete decomposition context or a traceable reference to it, and repeat slice non-goals/deferred owners; never grow a story into deferred work. Only an explicit roadmap branch carries roadmap/milestone references.

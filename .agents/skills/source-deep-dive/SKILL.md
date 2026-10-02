@@ -9,7 +9,7 @@ description: '[Research] Use when a workflow step or the user asks for deep rese
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -33,7 +33,7 @@ description: '[Research] Use when a workflow step or the user asks for deep rese
 - **Purpose/input:** Consume prior `tmp/research/_sources-{slug}.md`; prioritize Tier 1-2, high-relevance, gap-covering sources; NEVER start a fresh search.
 - **Ordered path:** (1) load/prioritize source map → (2) fetch 5-8 sources with `WebFetch` (hard cap 8) → (3) extract claims, data, quotes, methodology, publication date, author credentials, source type → (4) cross-validate → (5) write evidence base.
 - **Confidence gate:** 2+ independent sources agree = high confidence; disagreement = both positions + discrepancy; one source = `single source, unverified`; declare 95/80/60/<60% for every finding.
-- **Handoff/routes:** Write `tmp/research/_evidence-{slug}.md` with inline citations, `## Unresolved Discrepancies`, and `## Gaps Remaining`; a direct run uses ask the user directly for the post-completion choice only (no routing question: a direct call is an explicit skill request).
+- **Handoff/routes:** Write `tmp/research/_evidence-{slug}.md` with inline citations, `## Unresolved Discrepancies`, and `## Gaps Remaining`; a direct run uses ask user tool for the post-completion choice only (no routing question: a direct call is an explicit skill request).
 
 **Workflow:**
 
@@ -125,7 +125,7 @@ Write findings incrementally to `tmp/research/_evidence-{slug}.md`:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use ask the user directly to offer:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use ask user tool to offer:
 
 - **"$market-analysis (Recommended)"** — Size the market (TAM/SAM/SOM), competitors, trends, SWOT, segments — the producer `$business-evaluation` consumes
 - **"$business-evaluation"** — Evaluate business viability. **Run `$market-analysis` first** — this skill consumes its sized-market output as evidence and MUST NOT re-derive market sizing. Without it, every market figure must be marked N/A.
@@ -152,7 +152,7 @@ Write findings incrementally to `tmp/research/_evidence-{slug}.md`:
 **IMPORTANT MUST ATTENTION Goal:** Deep-dive the prior source map into a cross-validated, source-cited evidence base (`tmp/research/_evidence-{slug}.md`) where every finding has source trace and confidence, discrepancies stay explicit, and no unverified single-source claim becomes fact.
 
 **IMPORTANT MUST ATTENTION Main path:** Run all 5 steps in order: (1) load/prioritize source map → (2) fetch 5-8 prioritized sources, maximum 8 `WebFetch` calls → (3) extract claims, data, quotes, methodology, publication date, author credentials, source type → (4) cross-validate → (5) write the evidence base incrementally.
-**IMPORTANT MUST ATTENTION Route gates:** A direct `$source-deep-dive` call is an explicit skill request and runs with no routing question; after completion, use ask the user directly to offer `$market-analysis`, `$business-evaluation` (after `$market-analysis`), `$knowledge-synthesis`, or manual continuation.
+**IMPORTANT MUST ATTENTION Route gates:** A direct `$source-deep-dive` call is an explicit skill request and runs with no routing question; after completion, use ask user tool to offer `$market-analysis`, `$business-evaluation` (after `$market-analysis`), `$knowledge-synthesis`, or manual continuation.
 **IMPORTANT MUST ATTENTION Evidence gate:** Every finding cites a source number and confidence; 2+ independent sources support factual claims; disagreements show both positions; one source is `single source, unverified`.
 
 **IMPORTANT MUST ATTENTION** Cross-validation drives confidence: 2+ independent sources agree → high (95/80%); disagreement → both positions + discrepancy; one source → `single source, unverified`; `<60%` → say `insufficient evidence, verified: … / not verified: …` — NEVER collapse conflicts.
@@ -162,7 +162,7 @@ Write findings incrementally to `tmp/research/_evidence-{slug}.md`:
 **IMPORTANT MUST ATTENTION** Deliverable MUST include `## Unresolved Discrepancies` and `## Gaps Remaining`; NEVER hide unverifiable content.
 **IMPORTANT MUST ATTENTION** Break work into task tracking todos BEFORE starting; keep one `in_progress`; add a final review todo checking citation and confidence coverage.
 **IMPORTANT MUST ATTENTION** Write findings incrementally to `tmp/research/_evidence-{slug}.md`; NEVER hold the full evidence base only in context.
-**IMPORTANT MUST ATTENTION** Run as called and NEVER start a workflow from inside this skill; only the post-completion next-step question uses ask the user directly.
+**IMPORTANT MUST ATTENTION** Run as called and NEVER start a workflow from inside this skill; only the post-completion next-step question uses ask user tool.
 
 **Anti-Rationalization:**
 

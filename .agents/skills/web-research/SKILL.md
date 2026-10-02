@@ -9,7 +9,7 @@ description: '[Research] Use when a workflow step or the user asks for web resea
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -142,7 +142,7 @@ Note gaps for `source-deep-dive`.
 
 ## Next Steps
 
-**Without `--chain=deep-dive` only** (chain mode follows `references/research-chain.md`). **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use ask the user directly; user chooses:
+**Without `--chain=deep-dive` only** (chain mode follows `references/research-chain.md`). **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, use ask user tool; user chooses:
 
 - **"$source-deep-dive (Recommended)"** — Deep-dive into top sources
 - **"$market-analysis"** — If sizing the market (TAM/SAM/SOM), competitors, trends — required before `$business-evaluation`
@@ -190,7 +190,7 @@ Note gaps for `source-deep-dive`.
 **IMPORTANT MUST ATTENTION** with `--chain=deep-dive`, after Step 5 read `references/research-chain.md` and run `source-deep-dive` Steps 1-5 from its own SKILL.md (never from memory); without the flag stop at the source map — why: the flag is the only contract that lets one step own both halves while each skill still works alone.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo task to verify work quality; transition one task at a time.
 **IMPORTANT MUST ATTENTION** persist intermediate findings/results to a report file in `tmp/reports/` for complex or lengthy work — why: external memory prevents context loss and is itself the deliverable.
-**IMPORTANT MUST ATTENTION** a direct `$web-research` call is an explicit skill request: run it with no routing question and NEVER start a workflow from inside this skill; only the post-completion Next Steps question uses ask the user directly.
+**IMPORTANT MUST ATTENTION** a direct `$web-research` call is an explicit skill request: run it with no routing question and NEVER start a workflow from inside this skill; only the post-completion Next Steps question uses ask user tool.
 **IMPORTANT MUST ATTENTION** every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first) — NEVER speculate without proof.
 
 **Anti-Rationalization:**

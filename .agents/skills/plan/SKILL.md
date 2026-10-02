@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -61,7 +61,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 | `--mode=cro` | Conversion-optimization intake | `references/mode-cro.md` |
 
 - **[BLOCKING]** When `--mode=review`, read `references/mode-review.md` in full FIRST; it replaces plan creation for the invocation (it reads and reports, never writes or edits a plan) and its one-round cap and read-only rules govern. Workflow invocation returns the report path and verdict to the parent; standalone reports the same result.
-- **[BLOCKING]** When `--mode=validate`, read `references/mode-validate.md` in full FIRST; it replaces plan creation for the invocation (interview by asking the user directly, annotate `plan.md` only). Workflow invocation and standalone both run the interview.
+- **[BLOCKING]** When `--mode=validate`, read `references/mode-validate.md` in full FIRST; it replaces plan creation for the invocation (interview using ask user tool, annotate `plan.md` only). Workflow invocation and standalone both run the interview.
 - **[BLOCKING]** When `--mode=execute`, read `references/mode-execute.md` in full FIRST; it replaces plan creation for the invocation and owns the `--approval`, `--tests` and `--parallel` flags (no flag is set by default: no flags = the full spine, run sequentially). Workflow invocation runs Steps 0–2, the Checklist Walk (parent-owned rows carried as `PENDING-PARENT`) and Step 6 only; standalone runs the full spine.
 - **[BLOCKING]** When `--mode=ci`, read `references/mode-ci.md` in full FIRST; when `--mode=cro`, read `references/mode-cro.md` in full FIRST. Both add domain intake only; they do not add review or change the plan-creation contract.
 - `--mode=review`, `--mode=validate` and `--mode=execute` are separate invocations over an existing plan; plan creation never chains into them.

@@ -9,7 +9,7 @@ description: '[Architecture] Use when a workflow step or the user asks for --mod
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -24,7 +24,7 @@ description: '[Architecture] Use when a workflow step or the user asks for --mod
 
 **Summary:**
 
-- Each mode is a self-contained contract in `references/mode-<x>.md`; the reference is the whole invocation contract — inputs, outputs, flags, report paths, round caps and ask the user directly behavior are that reference's, unchanged from the skill it came from.
+- Each mode is a self-contained contract in `references/mode-<x>.md`; the reference is the whole invocation contract — inputs, outputs, flags, report paths, round caps and ask user tool behavior are that reference's, unchanged from the skill it came from.
 - `--mode=full` composes the other modes: its three face sub-agents each run `--mode=scalability` or `--mode=review` (reading that mode's reference) plus `production-readiness-review`; it never re-implements a face.
 - No mode is never an expensive default: print the table, stop.
 

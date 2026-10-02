@@ -9,7 +9,7 @@ description: '[Documentation] Use when generating the DERIVED technical spec vie
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -73,7 +73,7 @@ Before an interactive generation, resolve the profile and require the supported 
 1. Read `docs/project-config.json`; resolve `specArtifacts`, `specRoots.technical.path`, and `techSpecScan` before selecting a procedure. A malformed declared profile blocks; it never falls back to TC.
 2. Parse the mode from the invocation: explicit `[mode=<x>]` wins; otherwise infer from the request.
 3. A native profile routes `sync` to `$spec [mode=sync]`; its `generate` view is `UNSUPPORTED` and must stop before the annotation generator. Without a native profile, strict §8/TC sync remains the default; generation still requires the configured annotation contract.
-4. If scope/mode remains ambiguous, ask by asking the user directly before mutation.
+4. If scope/mode remains ambiguous, ask using ask user tool before mutation.
 5. **Read the matching `references/` body** — it owns that mode's procedure and output contract. Do not run a mode from memory.
 
 **Workflow:** `$investigate` (locate the component) → `$tech-spec` (project the view) → `$changes-review` → `$watzup`
@@ -153,7 +153,7 @@ Harvest **detection** is a structural signal — *an invariant enforced at ≥2 
 
 ## Step 0 — Scope Gate (MANDATORY FIRST)
 
-Before deriving facts or invoking a generator, read the project config and resolve the profile and technical root. Use ask the user directly only if scope or mode remains ambiguous. A native-profile generation request returns `UNSUPPORTED` here; do not continue to the annotation generator.
+Before deriving facts or invoking a generator, read the project config and resolve the profile and technical root. Use ask user tool only if scope or mode remains ambiguous. A native-profile generation request returns `UNSUPPORTED` here; do not continue to the annotation generator.
 
 | Dimension       | Question                                                                                          | Auto-Default          |
 | --------------- | ------------------------------------------------------------------------------------------------- | --------------------- |

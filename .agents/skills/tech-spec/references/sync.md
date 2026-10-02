@@ -142,7 +142,7 @@ Report drift between the canonical §8 TCs and the test suite (§8 is canonical;
 
 ## Next Steps (sync mode)
 
-Based on the reconciliation outcome, suggest by asking the user directly:
+Based on the reconciliation outcome, suggest using ask user tool:
 
 ```
 1. "$integration-test or owning test route — Generate tests for any §8 TCs flagged with no covering test (Recommended)"

@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -94,7 +94,7 @@ Each gate names the evidence that proves it:
 
 ## Workflow-Specific Contracts
 
-- **Decisions** — 2–4 options with confidence % and evidence per major decision; validate each phase's decisions with the user by asking the user directly before building on them; never self-approve a one-way door. Save artifacts to the plan directory per step.
+- **Decisions** — 2–4 options with confidence % and evidence per major decision; validate each phase's decisions with the user using ask user tool before building on them; never self-approve a one-way door. Save artifacts to the plan directory per step.
 - **Occurrence names** — repeated skills are distinct tasks: PLAN₁ `plan-architecture` (system design, boundaries, tech choices) · PLAN₂ `plan-implementation` (stories, test specs, phased tasks) · PLAN₃ `plan-integration-tests` (test structure, data setup, CI) · rationale reviews `domain-rationale-review`, `architecture-rationale-review`, `pre-coding-rationale-review` · `test-spec-initial` / `test-spec-post-impl`.
 - **Scaffold** — grep first for base classes, generic interfaces, infrastructure abstractions, utility layers, frontend foundations and DI registrations; found → skip with evidence. Otherwise build them behind interfaces with at least one concrete implementation before any feature story, sized to the triaged scale.
 - **Reference docs** — after the foundation review's fixes, the four `$scan` targets derive the project-reference docs (default `docs/project-reference/`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) from the reviewed foundation, so feature work reads accurate references from day one.
@@ -120,7 +120,7 @@ Declared all-return barriers — advance only after every member returns:
 
 ## Fix Path & Loop Bounds
 
-Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass after non-trivial fixes. Plan ceremony for fixes only when the fix set is large, cross-module or ambiguous. Review loops: round 1 exits on zero open validated findings (Round-1 LOW closure); from round 2 only CRITICAL/HIGH/MEDIUM block (LOW deferred); cap 3 review rounds; failing tests are uncapped; no progress → ask the user directly.
+Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass after non-trivial fixes. Plan ceremony for fixes only when the fix set is large, cross-module or ambiguous. Review loops: round 1 exits on zero open validated findings (Round-1 LOW closure); from round 2 only CRITICAL/HIGH/MEDIUM block (LOW deferred); cap 3 review rounds; failing tests are uncapped; no progress → ask user tool.
 
 ## Step Chain
 

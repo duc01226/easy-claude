@@ -9,7 +9,7 @@ description: '[Dev Data] Use when a workflow step or the user asks for test-data
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -340,7 +340,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 > **Inside a workflow** (THIS run is a step of a `[Workflow]` row: its own phase tasks are linked to that parent row, `nested=true` — a `[Workflow]` row that merely exists in the current task list, such as an abandoned one, does not count): skip the prompt below — the workflow's own next step is the next action. **Otherwise (standalone, or only an unrelated `[Workflow]` row exists):**
 >
-> **MUST ATTENTION** after completing (Generate mode): use ask the user directly — do NOT skip. Step 7 self-review (`--mode=review`) MUST have run on the changed code BEFORE these:
+> **MUST ATTENTION** after completing (Generate mode): use ask user tool — do NOT skip. Step 7 self-review (`--mode=review`) MUST have run on the changed code BEFORE these:
 
 - **"$workflow-review-changes (Recommended)"** — final step: review all changes before commit (runs AFTER the `--mode=review` convention self-audit)
 - **"$integration-test"** — write tests verifying idempotency and count compliance

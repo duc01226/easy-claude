@@ -9,7 +9,7 @@ Source: .claude/agents/debugger.md
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -216,7 +216,7 @@ Name report files under `tmp/reports/` via `{date}-{slug}` convention. Concise �
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate by asking the user directly (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <60% on any critical decision → stop and escalate using ask user tool (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -257,7 +257,7 @@ Name report files under `tmp/reports/` via `{date}-{slug}` convention. Concise �
 
 <!-- SYNC:red-flag-stop-conditions -->
 
-> **Red Flag Stop Conditions** — STOP and escalate to user by asking the user directly when:
+> **Red Flag Stop Conditions** — STOP and escalate to user using ask user tool when:
 >
 > 1. Confidence drops below 60% on any critical decision
 > 2. Changes would affect >20 files (blast radius too large)
@@ -435,7 +435,7 @@ Name report files under `tmp/reports/` via `{date}-{slug}` convention. Concise �
 **IMPORTANT MUST ATTENTION** issues span services — scan message-bus producers/consumers, entity events, and cross-service contracts before closing; per touchpoint record owner · message · consumers · risk (NONE/ADDITIVE/BREAKING) — why: a missed consumer is a silent regression.
 **IMPORTANT MUST ATTENTION** holistic-first — list EVERY precondition (config, env vars, DB names, endpoints, DI, data) and verify each against evidence before forming a code-layer hypothesis — why: the most expensive failure is digging deeper in the "obvious" layer while the bug sits in one never questioned.
 **IMPORTANT MUST ATTENTION** write intermediate findings to `tmp/reports/` after each step — never batch at the end — why: long investigations lose context before the summary lands.
-**IMPORTANT MUST ATTENTION** STOP and escalate by asking the user directly at any red flag — confidence <60%, blast radius >20 files, cross-service boundary, security-sensitive code, breaking change — why: proceeding past a red flag ships unreviewed high-blast-radius change.
+**IMPORTANT MUST ATTENTION** STOP and escalate using ask user tool at any red flag — confidence <60%, blast radius >20 files, cross-service boundary, security-sensitive code, breaking change — why: proceeding past a red flag ships unreviewed high-blast-radius change.
 **IMPORTANT MUST ATTENTION** root cause uncertain → present most likely scenarios with evidence and confidence %, then recommend further investigation steps; NEVER ship a fix you cannot explain.
 
 **Anti-Rationalization:**

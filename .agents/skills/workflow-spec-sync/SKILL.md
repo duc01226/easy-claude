@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -93,7 +93,7 @@ You choose inline vs sub-agent, batching and ordering to minimise wall-clock and
 ## Fix Path & Loop Bounds
 
 - Validate a finding (evidence-backed, reproducible) before fixing it; fix at the component that owns the violated contract, then re-run the reviewer or test that raised it — plus a holistic pass when fixes were non-trivial. Use `$plan` only for a large, cross-module or ambiguous fix set.
-- Review loops keep the framework bar: round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW; cap 3 review rounds. Failing tests are not capped by rounds — they loop until green or escalate by asking the user directly on no progress.
+- Review loops keep the framework bar: round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 onward clears CRITICAL/HIGH/MEDIUM and defers LOW; cap 3 review rounds. Failing tests are not capped by rounds — they loop until green or escalate using ask user tool on no progress.
 
 ---
 

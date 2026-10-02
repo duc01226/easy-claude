@@ -112,7 +112,7 @@ Scoring rules:
 1. **Score the outcome, not the vocabulary.** Two entries sharing the word "test" are not both matches if only one produces what the user asked for. — why: keyword overlap is the single largest source of confidently-wrong matches.
 2. **Never break a near-tie yourself.** Two entries within ~0.2 → present both and let the user pick. A near-tie is precisely where your inference is weakest.
 3. **State the reason per candidate** in one clause ("matched trigger `patch prod`"). The user is confirming a judgement, and cannot confirm one they cannot see.
-4. **The score never replaces the gate.** 1.0 still goes to ask the user directly.
+4. **The score never replaces the gate.** 1.0 still goes to ask user tool.
 
 ---
 

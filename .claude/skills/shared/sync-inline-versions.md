@@ -2147,6 +2147,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## SYNC:critical-thinking-mindset
 
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**User questions:** Use ask user tool to ask user.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
@@ -2282,7 +2283,7 @@ Add `Analyze AI mistakes & lessons learned` to non-trivial tasks. Extract the ro
 
 ## SYNC:universal-closing-reminders
 
-Critical reminders: operate only within user authority; read the project config, docs index, `lessons.md` and the matching Doc Lookup row before answering or editing — never from memory; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; make every plan, implementation and review easy to change, easy to scale and easy to maintain (`SYNC:core-engineering-principles`: reuse first, bounded growth, intent-named tests, harness green); verify evidence and every required gate before completion.
+Critical reminders: use ask user tool to ask user; operate only within user authority; read the project config, docs index, `lessons.md` and the matching Doc Lookup row before answering or editing — never from memory; preserve user work and canonical ownership; map task dependencies and parallel waves before executing; make every plan, implementation and review easy to change, easy to scale and easy to maintain (`SYNC:core-engineering-principles`: reuse first, bounded growth, intent-named tests, harness green); verify evidence and every required gate before completion.
 
 ---
 

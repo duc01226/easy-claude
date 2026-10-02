@@ -9,7 +9,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -33,7 +33,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 - **Step 0a — Journey Report FIRST (`UX-1`, BLOCKING):** before any spec section, report the frame, actors + job statements, ranked main journeys with step tables, derived requirements and assumptions, each claim `SOURCED`/`INFERRED`; confirm an inferred primary actor/job/outcome (no question tool → record it `INFERRED — unconfirmed (no question tool)` and continue).
 - **Step 0–0b — ground context + design authority (`UX-2`):** inventory related UI and connected flows; if a governing Feature Spec exists, seed from §6 and reuse its view/state vocabulary verbatim; otherwise state that no governing spec exists. With `design-system/` and the project's design principles, this is the design-authority read — record `Design authority read: …` or `N/A` before authoring.
-- **Step 1–2 — route + size:** design link (e.g. a Figma URL)→ask the user to export the frames as images (ask the user directly), then visual analysis; image→visual analysis; wireframe/sketch→`--mode=wireframe` plus confidence/human review; PBI/text→requirements; choose Quick (compact §0a, §1–4, §8, §9) or Full (§0a, §0–§9, plus Flow Diagram for multi-page).
+- **Step 1–2 — route + size:** design link (e.g. a Figma URL)→ask the user to export the frames as images (ask user tool), then visual analysis; image→visual analysis; wireframe/sketch→`--mode=wireframe` plus confidence/human review; PBI/text→requirements; choose Quick (compact §0a, §1–4, §8, §9) or Full (§0a, §0–§9, plus Flow Diagram for multi-page).
 - **Step 3–6 — specify the surface:** inventory new/existing components; define interactions and all 7 observable states where applicable; extract design-system tokens; document content-driven responsive behavior and the complete releasable page/view/navigation/full-flow surface.
 - **Step 6b — walk the journeys (`UX-8`):** cognitive walkthrough of every main journey on the spec plus the §8 traceability matrix; fix every unserved step and orphan element before saving.
 - **Step 7–8 — close the chain:** save under `design-specs/` in the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides); when a governing Feature Spec exists, update only its `design_spec:`/`mockup:` frontmatter; satisfy M1–M5/M7 and logical-ID traceability.
@@ -102,7 +102,7 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 >
 > - **Evidence first:** when a governing Feature Spec exists, its profile-resolved interaction flows and view inventory (strict-default §6.5 and §6.2) are the primary evidence — read them here (Step 0b reuses the same read), then stories/acceptance criteria, business logic in code, and the existing UI (catalog §3). Tag every claim `SOURCED (<location>)` or `INFERRED (<reason>)`.
 > - **Companion mockup (reuse):** when a `$pbi --mode=mockup` run for the same feature already produced a reviewed Journey Report — `tmp/design/<run>/journey-report.md` (with its `direction-approved.md` and `Design authority read:` record), the Journey Report in its report, or a path the caller supplies — that report is the starting evidence: reuse it, re-confirm only what the source changed since, and surface (never silently re-derive) any journey that disagrees. An approved `direction-approved.md` seeds the §0 Design Plan (colour · type · layout recorded `ADOPTED`, still passing the `DD-3` generic test). With no companion mockup available (standalone run) derive the report and plan as above.
-> - **Confirm before generating:** an INFERRED primary actor, main job or success outcome is confirmed with the user by asking the user directly before any spec section is authored; with no question tool, record it `INFERRED — unconfirmed (no question tool)` in §0a assumptions and continue — never block.
+> - **Confirm before generating:** an INFERRED primary actor, main job or success outcome is confirmed with the user using ask user tool before any spec section is authored; with no question tool, record it `INFERRED — unconfirmed (no question tool)` in §0a assumptions and continue — never block.
 > - **Depth by spec size (catalog §10):** Quick Spec → actors + 1–2 main journeys with step tables for the view(s) in scope; Full Spec → the full template, 3–5 main journeys; multi-page flow → full template plus the cross-view navigation path. Never zero for a new or reshaped view.
 >
 > **Skip ONLY** when the feature has no user-facing surface — state that explicitly.
@@ -123,7 +123,7 @@ All three live under the reference-docs root (default `docs/project-reference`; 
 
     | Input Detected           | Detection                                      | Action                                                                   |
     | ------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------ |
-    | Design-tool link         | A design-tool URL (e.g. `figma.com`) in text   | Ask the user by asking the user directly to export the frames as images, then continue on the image path |
+    | Design-tool link         | A design-tool URL (e.g. `figma.com`) in text   | Ask the user using ask user tool to export the frames as images, then continue on the image path |
     | Image/screenshot         | Image file attached to prompt                  | Use `visual analysis tooling` to extract design guidelines, then continue          |
     | Hand-drawn wireframe     | Image + "wireframe"/"sketch" keyword           | Run `--mode=wireframe` (internal — see "Mode: wireframe" section)         |
     | PBI/story text           | Acceptance criteria present                    | Extract UI requirements from text, continue                              |
@@ -226,7 +226,7 @@ Emit this table linking each interactive component to the feature operations/rul
 
 - **Always display confidence level** for wireframe interpretation (analysis is 70-80% accurate).
 - **Always recommend human review** before proceeding to implementation.
-- If confidence <70%: ask clarifying questions about ambiguous elements by asking the user directly.
+- If confidence <70%: ask clarifying questions about ambiguous elements using ask user tool.
 
 ## Output Format
 

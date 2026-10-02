@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -117,7 +117,7 @@ Recommended: XS/S work inline without sub-agents; independent read-only investig
 - **Goal Contract:** resolve the active goal at start per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root, default `plans/`, relocated by `docsRoots.plans.path` in `docs/project-config.json` → create from the bug report); pass the same goal file to every child step; emit the Goal Satisfaction matrix before `$workflow-end`.
 - **Spec context:** when the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) holds a spec for the affected module, read its rules and contracts before investigating.
 - **Fix path:** validate a finding (evidence-backed, reproducible) before fixing it; fix at the owning layer; re-run the reviewer or test that raised it, plus a holistic pass when fixes were non-trivial. When the bug touches a `[HARD]` rule or invariant, regression TCs add invariant/property cases whose bar is a killed mutant, not line coverage, and each behavior-changing finding updates BOTH spec and tests.
-- **Loop bounds:** round 1 exits on zero open validated findings (Round-1 LOW closure); from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 3 review rounds; failing tests are uncapped; no progress → escalate by asking the user directly. Single-occurrence review steps converge inside their own skill loop.
+- **Loop bounds:** round 1 exits on zero open validated findings (Round-1 LOW closure); from round 2 only CRITICAL/HIGH/MEDIUM block and LOW-only findings are deferred; cap 3 review rounds; failing tests are uncapped; no progress → escalate using ask user tool. Single-occurrence review steps converge inside their own skill loop.
 
 ## Activation
 

@@ -28,5 +28,5 @@ Create the `web-research` phase tasks and the `source-deep-dive` phase tasks up 
 ## Boundaries
 
 - **No fresh-context boundary needed.** The deep dive reads its input from the source-map file written in step 1, and the evidence base is written incrementally, so after compaction a resume continues at the first unfinished phase (source map present, evidence base absent or partial).
-- **No user checkpoint between the halves.** Neither skill has a mid-chain ask the user directly: their only prompts are the post-run Next Steps, covered above. Any blocking question a future edit adds to `source-deep-dive` Steps 1-5 is kept inside the chained step.
+- **No user checkpoint between the halves.** Neither skill has a mid-chain ask user tool: their only prompts are the post-run Next Steps, covered above. Any blocking question a future edit adds to `source-deep-dive` Steps 1-5 is kept inside the chained step.
 - **The independent check stays outside.** The chain never reviews its own evidence. `knowledge-review` (or the caller's review gate) runs as its own step on the final artifact.

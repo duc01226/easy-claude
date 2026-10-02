@@ -9,7 +9,7 @@ description: '[Documentation] Use when a workflow step or the user asks for a st
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -38,7 +38,7 @@ description: '[Documentation] Use when a workflow step or the user asks for a st
 
 **Workflow:**
 
-1. **Resolve scope** — anchor on `activePlan`, accumulate its full artifact set across the plan's created→now date range (every `{YYMMDD}` in range, NOT just today); custom prompt widens; standalone + no prompt → ask the user directly.
+1. **Resolve scope** — anchor on `activePlan`, accumulate its full artifact set across the plan's created→now date range (every `{YYMMDD}` in range, NOT just today); custom prompt widens; standalone + no prompt → ask user tool.
 2. **Gap-fill (smart routing — sub-agent)** — spec lacks PBIs → ask once (`manual` tier), on a yes `workflow-spec-to-pbi` AS A SUB-AGENT, else report the gap; PBIs lack mockups (mockup-bearing workflow) → `pbi --mode=mockup`. Spec-only `idea-to-spec` → SKIP mockup generation.
 3. **Load project design context** — baseline + matched per-app design-system docs via `project-config.json`.
 4. **[BLOCKING] Inventory existing UI + map connected flows** — `SYNC:existing-ui-research`.
@@ -126,7 +126,7 @@ Determine deck scope; full algorithm: `references/artifact-accumulation.md` → 
 1. **Default (active-plan anchor):** Read `activePlan` from `CK_TMP_DIR/session/{id}.json` (path returned by `getSessionStatePath`, written by `.claude/scripts/set-active-plan.cjs`). Accumulate the plan's FULL artifact set across its **created→now date range** — glob `team-artifacts/{ideas,pbis,pbis/stories,design-specs}` and `*-mockup.html` for EVERY `{YYMMDD}` in range, plus plan `docs/specs` outputs. **Both roots in that glob are DEFAULTS** — keep the brace expression exactly as written and swap the `team-artifacts` / `docs/specs` prefixes for `{artifacts-root}` / `{spec-root}` whenever `docsRoots.teamArtifacts.path` / `specRoots.business.path` are declared in `docs/project-config.json`.
     - **Multi-day rule:** a workflow that spans midnight authors specs on day 1 and PBIs on day 2 — a single-day `{YYMMDD}` glob silently drops day-1 artifacts. Glob over the whole created→now range, never just today.
 2. **Custom prompt:** If user names specs/features, widen scope to those artifacts plus dependents.
-3. **Standalone + no prompt:** Use ask the user directly to ask which specs/ideas to present — never silently guess scope.
+3. **Standalone + no prompt:** Use ask user tool to ask which specs/ideas to present — never silently guess scope.
 
 ### Step 2: Gap-Fill (Smart Routing — Sub-Agent)
 
@@ -301,7 +301,7 @@ Component tiers: common (slide shell, controls, status, notes panel, overview) �
 | Embedded mockup loads a web font or other outside asset | Declare the deck's asset policy + how-to viewer notice (Step 6 outside-asset scan); the deck's own markup still loads nothing |
 | Deck fails the `review` conformance check      | Fix the failed checks and re-run; never report the deck ready while it fails (Step 8) |
 | Workflow spans midnight (multi-day)            | Glob over plan's created→now range, not just today's `{YYMMDD}` (Step 1) |
-| Standalone invocation with no prompt/scope     | ask the user directly which specs/ideas to present (Step 1)                   |
+| Standalone invocation with no prompt/scope     | ask user tool which specs/ideas to present (Step 1)                   |
 
 ---
 
@@ -342,7 +342,7 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, MUST ATTENTION use ask the user directly to present these options; the user decides, even when the task seems simple:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** After completion, MUST ATTENTION use ask user tool to present these options; the user decides, even when the task seems simple:
 
 - **"Open the deck"** — open the standalone HTML in a browser to review with stakeholders
 - **"$prioritize"** — prioritize the synthesized PBIs in the backlog
@@ -403,7 +403,7 @@ A synthesis deck differs from a per-PBI mockup in inputs, audience, and altitude
 **IMPORTANT MUST ATTENTION** spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + a narrated step-through of ASCII frames ONLY; NEVER generate HTML mockups, NEVER invoke `pbi --mode=mockup` — why: full mockups break the spec-only no-code contract.
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo to verify quality.
-**MANDATORY IMPORTANT MUST ATTENTION** validate next-step decisions with the user by asking the user directly — standalone + no prompt → ask which specs/ideas to present, never silently guess scope.
+**MANDATORY IMPORTANT MUST ATTENTION** validate next-step decisions with the user using ask user tool — standalone + no prompt → ask which specs/ideas to present, never silently guess scope.
 
 **Domain rules this skill must not skip:**
 

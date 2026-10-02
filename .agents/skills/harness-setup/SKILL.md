@@ -9,7 +9,7 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -32,19 +32,19 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 **Summary:**
 - **Purpose:** complete the outer harness—feedforward guidance plus computational and inferential feedback—so later agents self-correct before human review.
 - **Testability contract:** resolve Unit/Integration/System/E2E and warranted Performance/Scale applicability from runner/config evidence; record owner/root/data, copy-ready full/focused commands, zero-match behavior, CI/simple Windows/macOS/Linux entry, unique run/data identity, and repeat proof. Block unresolved applicable fields; record evidence-backed `N/A` for non-applicable tiers.
-- **Ordered path:** 1 Guards → 2 Phase A Stack Detection → 3 Phase B Feedforward Guides → 4 Phase C Computational Sensors → 5 Phase D Inferential Sensors → 6 Phase E Behaviour Harness → 7 Phase F Inventory Report → 8 Next Steps. Each phase blocks the next; feedforward and sensor choices require ask the user directly.
+- **Ordered path:** 1 Guards → 2 Phase A Stack Detection → 3 Phase B Feedforward Guides → 4 Phase C Computational Sensors → 5 Phase D Inferential Sensors → 6 Phase E Behaviour Harness → 7 Phase F Inventory Report → 8 Next Steps. Each phase blocks the next; feedforward and sensor choices require ask user tool.
 - **Quality boundary:** `$linter-setup` supplies computational sensors; this skill never installs them. Require intent-protecting evidence selected by profile, risk, tooling and budget; mutation/property sensors are optional, line coverage diagnostic; append inventory after every phase and keep it living.
 
 **Main steps (run in order — each BLOCKS the next):**
 
 1. **Guards** — verify `$linter-setup` (linter config + pre-commit hook + CI gate); detect existing inventory and enhance it, never skip it.
-2. **Phase A — Stack Detection** — read plan / `architecture --mode=design` / tech-stack reports; write `stack-profile.md`; use ask the user directly for undetectable fields.
-3. **Phase B — Feedforward Guides** — author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, boundaries), skill-activation rules, `docs/architecture/*` notes, and pattern catalog; confirm by asking the user directly.
+2. **Phase A — Stack Detection** — read plan / `architecture --mode=design` / tech-stack reports; write `stack-profile.md`; use ask user tool for undetectable fields.
+3. **Phase B — Feedforward Guides** — author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, boundaries), skill-activation rules, `docs/architecture/*` notes, and pattern catalog; confirm using ask user tool.
 4. **Phase C — Computational Sensors** — confirm `$linter-setup` outputs and list config paths; invoke it if any are missing.
 5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$code-quality-review` pre-commit · `$domain-analysis --mode=review` post-impl · `$production-readiness-review` + `$security-audit` pre-release · `$scan-codebase-health` recurring · `$integration-test --mode=review` feature-area TC audit BOTH pre-release AND recurring, catching orphaned Section-8 TCs and uncovered behavior); record under `## Review Gates`.
 6. **Phase E — Behaviour Harness** — choose spec format, profile-fit test tiers, fixtures and intent-protecting evidence, and `test-strategy.md`; NEVER gate on line `%`.
-7. **Phase F — Inventory Report** — append `harness-inventory.md` with all sensors and gaps; present it by asking the user directly.
-8. **Next Steps** — use ask the user directly to choose `$feature-implement` (recommended), `$why-review`, or skip.
+7. **Phase F — Inventory Report** — append `harness-inventory.md` with all sensors and gaps; present it using ask user tool.
+8. **Next Steps** — use ask user tool to choose `$feature-implement` (recommended), `$why-review`, or skip.
 
 **Produces:**
 
@@ -61,9 +61,9 @@ description: '[Quality] Use when a workflow step or the user asks for an agent q
 
 ## Activation Guards
 
-**Check 1 — `$linter-setup` prerequisite (BLOCK if missing):** Before phases, verify it completed by checking for a root linter config (e.g., `.eslintrc`, `pyproject.toml`, `.editorconfig`), pre-commit hook config (e.g., `.husky/`, `.pre-commit-config.yaml`), and CI quality gate definition. If any is missing → ask the user directly: "$linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run $linter-setup first, then return here?" **BLOCK** Phases A–E until verification passes.
+**Check 1 — `$linter-setup` prerequisite (BLOCK if missing):** Before phases, verify it completed by checking for a root linter config (e.g., `.eslintrc`, `pyproject.toml`, `.editorconfig`), pre-commit hook config (e.g., `.husky/`, `.pre-commit-config.yaml`), and CI quality gate definition. If any is missing → ask user tool: "$linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run $linter-setup first, then return here?" **BLOCK** Phases A–E until verification passes.
 
-**Check 2 — Existing harness inventory:** Check `tmp/harness/harness-inventory.md`. If found → ask the user directly: "Harness inventory already exists — re-run to enhance existing harness, or skip?" Existing `CLAUDE.md`/`AGENTS.md` are feedforward guides to enhance, NEVER skip signals.
+**Check 2 — Existing harness inventory:** Check `tmp/harness/harness-inventory.md`. If found → ask user tool: "Harness inventory already exists — re-run to enhance existing harness, or skip?" Existing `CLAUDE.md`/`AGENTS.md` are feedforward guides to enhance, NEVER skip signals.
 
 ---
 
@@ -79,7 +79,7 @@ Read, in order: `plan.md` frontmatter → `architecture --mode=design` report �
 
 Write detection result to `tmp/harness/stack-profile.md`.
 
-If any field is undetectable → ask the user directly before proceeding.
+If any field is undetectable → ask user tool before proceeding.
 
 ---
 
@@ -93,7 +93,7 @@ For each guide type, check existence; create it or enhance an existing guide:
 4. **Pattern catalog:** create `docs/architecture/pattern-catalog.md`, document each `$architecture --mode=design` choice with DO/DON'T examples, and anchor examples to actual project files once scaffolding produces them.
 5. **Discovery gate (`SYNC:ai-discovery-doc-quality`):** every created or enhanced guide leads with its purpose, when to read it and its critical rules, ends with closing reminders when long, and is routed from the root instruction file or docs index by a `read <path> when <situation>` trigger — a guide nothing routes to is never read. Put generated root-context changes through `$ai-context-refresh`, not a hand-edit of a generated section; run `$prompt-enhance` on each hand-owned guide that changed.
 
-Present created/updated guides by asking the user directly: "Feedforward guides above will be created/enhanced. Confirm or adjust?"
+Present created/updated guides using ask user tool: "Feedforward guides above will be created/enhanced. Confirm or adjust?"
 
 ---
 
@@ -105,7 +105,7 @@ Confirm `$linter-setup` outputs by checking the root linter config (e.g., `.esli
 
 ## Phase D — Inferential Feedback Sensors
 
-Configure AI review skills by lifecycle stage. Present by asking the user directly: "Which inferential sensors should be mandatory vs optional for this repository?"
+Configure AI review skills by lifecycle stage. Present using ask user tool: "Which inferential sensors should be mandatory vs optional for this repository?"
 
 - **Pre-implementation:** `$why-review` validates design rationale before the implementation approach is committed.
 - **Pre-commit:** document in CLAUDE.md that significant changes run `$code-quality-review`.
@@ -121,7 +121,7 @@ Add the agreed sensor configuration to CLAUDE.md under "## Review Gates".
 
 Define the project behaviour harness:
 
-- **Functional spec:** ask the user directly: "Feature documentation format?" Options: feature-spec (8-section tech-free), TDD specs only, lightweight ADRs. Establish the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) or an equivalent spec home.
+- **Functional spec:** ask user tool: "Feature documentation format?" Options: feature-spec (8-section tech-free), TDD specs only, lightweight ADRs. Establish the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) or an equivalent spec home.
 - **Test tiers:** Select boundaries from the actual architecture and runner. Unit may cover pure rules; integration exercises applicable production boundaries (CQRS or persistence only where present); system/E2E cover warranted user/runtime paths. Record absent tiers as evidence-backed N/A, never impose a real database or CQRS layout on a stack that has neither.
 - **Approved fixtures:** pre-seed reference/lookup data as approved snapshots; integration tests accumulate data and NEVER delete/reset it.
 
@@ -214,13 +214,13 @@ Missing/placeholder evidence is an open gap, not a PASS. The inventory must pres
 | {area not yet harnessed} | {reason} | {LOW/MED/HIGH} |
 ```
 
-Present inventory to user for review by asking the user directly.
+Present inventory to user for review using ask user tool.
 
 ---
 
 ## Next Steps
 
-ask the user directly:
+ask user tool:
 
 - **"$feature-implement (Recommended)"** — Begin implementing the project plan with full harness in place
 - **"$why-review"** — Review harness design rationale before proceeding
@@ -284,7 +284,7 @@ ask the user directly:
 **IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `$linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `$why-review`, `$code-quality-review`, `$domain-analysis --mode=review`, `$production-readiness-review`, `$security-audit`, `$scan-codebase-health`, `$integration-test --mode=review` missing-test/spec-coverage gate to gates) → E Behaviour Harness (spec format + profile-fit test tiers + intent evidence + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
 
 **IMPORTANT MUST ATTENTION** BLOCK on the `$linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
-**IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm by asking the user directly — why: harness conventions bind every future agent; silent choices propagate to all later sessions
+**IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm using ask user tool — why: harness conventions bind every future agent; silent choices propagate to all later sessions
 **IMPORTANT MUST ATTENTION** write `tmp/harness/harness-inventory.md` incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings
 **IMPORTANT MUST ATTENTION** walk phases A→F as a hard barrier sequence — NEVER skip or reorder; each phase BLOCKS the next until its guard passes — why: a later phase consumes the prior phase's verified output
 **IMPORTANT MUST ATTENTION** require profile-fit intent-protecting evidence for the behaviour harness — NEVER fail a build on a line-coverage % — why: lines execute without asserting intent, so coverage % is a diagnostic only, never a quality gate
@@ -300,9 +300,9 @@ ask the user directly:
 | Evasion                                         | Rebuttal                                                                                  |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | "Linter probably set up — skip the prereq check" | Grep for the config files. No `file:line` proof = BLOCK Phase A/B/C/D/E until verified.   |
-| "I'll pick the obvious linter myself"            | NEVER auto-decide — present top 2-3 by asking the user directly; the user owns binding conventions. |
+| "I'll pick the obvious linter myself"            | NEVER auto-decide — present top 2-3 using ask user tool; the user owns binding conventions. |
 | "High line coverage means tests are strong"      | Coverage is a diagnostic, not a gate. Choose profile-fit intent evidence; lines run without asserting. |
 | "Inventory's small, I'll hold it in memory"      | Append per phase to the inventory file — context loss silently drops findings.            |
 | "CLAUDE.md exists, harness already done"         | CLAUDE.md is a feedforward guide to ENHANCE, never a signal to skip phases.               |
 
-**IMPORTANT MUST ATTENTION** BLOCK on `$linter-setup` before any phase · NEVER auto-decide harness content (ask the user directly-gate) · require profile-fit intent evidence, NEVER a universal mutation tool or line-coverage % gate.
+**IMPORTANT MUST ATTENTION** BLOCK on `$linter-setup` before any phase · NEVER auto-decide harness content (ask user tool-gate) · require profile-fit intent evidence, NEVER a universal mutation tool or line-coverage % gate.

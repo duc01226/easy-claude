@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -103,7 +103,7 @@ Paths are relative to the team-artifacts root (default `team-artifacts/`; `docsR
 - **Orchestration freedom:** choose inline vs sub-agent, batching and order to minimize wall-clock and tokens at equal quality; 1–3 capabilities run inline; 10+ capabilities run in bounded capability-group batches, one report section per batch. Fixed dependencies: freshness and clarification precede decomposition; a PBI exists before it is reviewed; `$prioritize` runs once after every PBI loop finishes; `$docs-manager --mode=update` follows it; gates awaiting user answers are never parallelized; `$workflow-end` runs last. When `$prioritize` changes a rank after a mockup was built, refresh the mockup's priority badge.
 - **Memory:** one task per selected step (per capability group when batched). Create `tmp/reports/spec-to-pbi-{date}-{bucket}.md` first, append after each capability/feature, and re-read it plus the current task list after compaction; never hold all PBIs in memory. Sub-agent briefs make report writing their first deliverable.
 - **Fix path:** findings are validated before fixing; fix in the owning artifact (`$pbi --mode=refine` for the PBI, `$pbi --mode=story` for stories, `$spec [mode=update]` for confirmed spec changes) and re-run the reviewer that raised it.
-- **Loop bounds:** round 1 zero open findings (Round-1 LOW closure), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; on no progress escalate by asking the user directly.
+- **Loop bounds:** round 1 zero open findings (Round-1 LOW closure), or round 2 zero CRITICAL/HIGH/MEDIUM with LOWs deferred; cap 3 review rounds; on no progress escalate using ask user tool.
 
 ---
 

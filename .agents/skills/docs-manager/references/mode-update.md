@@ -465,7 +465,7 @@ Business-visible functionality detected: {new or changed user/QC-visible outcome
 **What `$spec [mode=tests]` handles (DO NOT duplicate here):**
 
 - 5 modes: TDD-first, implement-first, update, sync, from-integration-tests
-- `TC-{FEATURE}-{NNN}` format with decade-based numbering and interactive TC review (ask the user directly)
+- `TC-{FEATURE}-{NNN}` format with decade-based numbering and interactive TC review (ask user tool)
 - Cross-cutting categories: authorization, seed data, performance, data migration
 - Phase-mapped coverage, graph context analysis for cross-service impact, and per-TC evidence verification
 - Write to Feature Spec §8 (canonical business TC registry)
@@ -863,7 +863,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 **MUST ATTENTION** evidence gate — every claim, detected module, and impact mapping needs `file:line` / git-diff proof, confidence >80% to act, <60% DO NOT act; "Module unchanged" without proof is NOT a valid skip — why: speculation routes the wrong docs and misses real drift
 **MUST ATTENTION** search-existing-patterns BEFORE asserting a doc shape — read the bucket's existing Feature Spec / INDEX layout and project-reference docs; build the module map from `docs/project-config.json`, NEVER from hard-coded skill paths — why: local doc conventions override generic assumptions
 **MUST ATTENTION** evaluate fit before reusing a nearby pattern — a module with backend + frontend changes is ONE deduped entry, not two; verify the change actually alters behavior before routing to `$spec` — why: duplicate or behavior-free invocations waste passes and corrupt the audit
-**MUST ATTENTION** validate ambiguous routing decisions with the user by asking the user directly — surface the options, NEVER silently auto-decide which phases run
+**MUST ATTENTION** validate ambiguous routing decisions with the user using ask user tool — surface the options, NEVER silently auto-decide which phases run
 **MUST ATTENTION** tech-agnostic output — when updating spec/specs/README/INDEX, introduce NO framework/product/language/pattern names in prose or headings; update logical IDs (`FR-`/`BR-`/`OP-`/`TC-`) FIRST, then prose; preserve the evidence-field exception — why: prose is the portable contract, evidence carriers hold the physical coords (spec-principles §3)
 **MUST ATTENTION** Step 2.4 final code↔spec sync-verify per touched module — a removed/weakened [HARD] BR is a code-vs-spec contradiction that BLOCKS completion until resolved or owner-accepted; AC drift re-invokes `$spec`, TC drift routes to `$spec [mode=sync]`
 **MUST ATTENTION** Phase 1 project context sync ALWAYS runs unless the impact map is empty — build the map (`node .claude/scripts/doc-impact-map.cjs`), verify the routed `docs/project-reference/**` docs and `docs/project-config.json` sections in a PARALLEL wave, give every routed doc a verdict (`FRESH | PATCHED | RESCAN REQUIRED | UNVERIFIED`), and NEVER move a `Last scanned` stamp from an impact-scoped pass — why: these docs feed every downstream AI context, an unchecked doc is UNVERIFIED not FRESH, and a moved stamp silently disables the 60-day full-rescan gate

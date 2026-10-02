@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -101,7 +101,7 @@ Recommended: XS/S inline without sub-agents; L/XL in bounded batches per module 
 - Validate findings (evidence-backed, reproducible) before fixing; fix at the owning layer; re-run the reviewer or test that raised each finding, plus a holistic pass when the fixes were non-trivial.
 - A failing test gets a root-cause verdict before either the source or the test is edited; never weaken an assertion to force green. A test that contradicts the supplied spec is adjudicated against the spec, never silently rewritten.
 - Re-run `$plan` only when a material scope or contract decision invalidates the saved plan; ordinary implementation discovery stays with the executor.
-- The nested review keeps the framework loop bounds: round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failing tests are uncapped; escalate with ask the user directly on no progress.
+- The nested review keeps the framework loop bounds: round 1 exits on zero open validated findings (Round-1 LOW closure); round 2 exits on zero CRITICAL/HIGH/MEDIUM with LOW-only findings deferred; cap 3 review rounds; failing tests are uncapped; escalate with ask user tool on no progress.
 
 <!-- PROTOCOL-GUIDES:START -->
 

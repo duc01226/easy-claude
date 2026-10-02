@@ -199,7 +199,7 @@ test('migrate-claude-to-codex mirrors skills without injecting any protocol bloc
         assert.match(mirroredSkill, /spawn_agent\(\{ agent_type: "architect"/);
         assert.match(mirroredSkill, /spawn_agent\(example-review, agent_type="code-reviewer"/);
         assert.match(mirroredSkill, /Use the specialized agent_type when one exists\./);
-        assert.match(mirroredSkill, /STOP and ask the user directly whether integration-test --mode=verify ran\./);
+        assert.match(mirroredSkill, /STOP and ask user tool whether integration-test --mode=verify ran\./);
         assert.doesNotMatch(mirroredSkill, /a direct user question/);
         assert.doesNotMatch(mirroredSkill, /\bAgent\(|\bsubagent_type\b/);
         assert.equal(mirroredReadme, 'Legacy $code-simplifier note.\n');

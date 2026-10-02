@@ -20,9 +20,9 @@
 **Summary:**
 
 - **Purpose:** CROSS-PERSON review: a different Dev BA PIC challenges the BA drafter's PBI; NEVER review your own draft—use `$pbi --mode=review --type=pbi`. — why: external skepticism breaks confirmation bias.
-- **Pipeline (8, in order):** (1) locate PBI → (2) detect + **confirm module by asking the user directly before domain docs** → (3) Technical Feasibility → (4) AC Quality + M1-M7 → (5) Cross-Cutting Concerns (auth/seed/migration/performance/UI Layout + releasable/full-flow surface) → (6) generate SPECIFIC challenge prompts with suggested answers → (7) Challenge Prompts FIRST, then AI Verdict → (8) human records final decision by asking the user directly.
+- **Pipeline (8, in order):** (1) locate PBI → (2) detect + **confirm module using ask user tool before domain docs** → (3) Technical Feasibility → (4) AC Quality + M1-M7 → (5) Cross-Cutting Concerns (auth/seed/migration/performance/UI Layout + releasable/full-flow surface) → (6) generate SPECIFIC challenge prompts with suggested answers → (7) Challenge Prompts FIRST, then AI Verdict → (8) human records final decision using ask user tool.
 - **Blocking gates:** Any M1-M5 or M7 failure forces `REQUEST_REVISION` with mandate ID + exact section/line/AC; missing releasable outcome or full-flow surface also forces `REQUEST_REVISION`.
-- **Decision:** AI provides analysis; human decides by asking the user directly. Verdicts: `APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`; technical veto is unilateral, non-technical decisions require 2/3 BA vote; Next Steps remains user-routed.
+- **Decision:** AI provides analysis; human decides using ask user tool. Verdicts: `APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`; technical veto is unilateral, non-technical decisions require 2/3 BA vote; Next Steps remains user-routed.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -44,7 +44,7 @@ Informal PBI review misses architecture feasibility, vague AC, auth, and cross-s
 | Risk                                                                                                                 | Likelihood | Impact | Mitigation                                                                                                               |
 | -------------------------------------------------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
 | **Automation bias** — Dev BA PIC rubber-stamps AI verdict without independent assessment                             | High       | High   | Workflow Step 7 shows challenge prompts BEFORE the verdict — Dev BA PIC forms their own view first                       |
-| **Module misdetection** — AI loads wrong domain context, produces entity conflict analysis for wrong service         | Medium     | High   | Workflow Step 2 confirms detected module with Dev BA PIC by asking the user directly before proceeding                           |
+| **Module misdetection** — AI loads wrong domain context, produces entity conflict analysis for wrong service         | Medium     | High   | Workflow Step 2 confirms detected module with Dev BA PIC using ask user tool before proceeding                           |
 | **Challenge prompts ignored** — Drafter revises PBI superficially to satisfy reviewer without resolving root gaps    | Medium     | Medium | Decision Record includes drafter-response field; Dev BA PIC re-runs skill on revision, not just reads revised PBI        |
 | **Suggested answers create adoption pressure** — Drafter adopts suggested answer rather than reasoning independently | Medium     | Medium | Suggested answers framed as "consider whether X" options, not corrections; language review in challenge prompt templates |
 | **3-way BA vote deadlock** — UX BA, Designer BA, Dev BA PIC all disagree                                             | Low        | Medium | Escalation path per `ba-team-decision-model`: Engineering Manager for tech uncertainty, PO for business value            |
@@ -60,7 +60,7 @@ For frontend/UI changes, read — every filename below resolves inside the refer
 ## Workflow
 
 1. **Locate PBI draft** — Find BA drafter's draft in `pbis/` under the team-artifacts root (default `team-artifacts`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path) or the user-provided path. Note an optional `--reuse=<pbi review report>` input (see the M1-M7 gate section below).
-2. **Load domain context** — Auto-detect module from PBI content. **MANDATORY: Use ask the user directly to confirm the module with the Dev BA PIC before loading domain docs.** Wrong module = wrong entity context = false APPROVE risk. Then load:
+2. **Load domain context** — Auto-detect module from PBI content. **MANDATORY: Use ask user tool to confirm the module with the Dev BA PIC before loading domain docs.** Wrong module = wrong entity context = false APPROVE risk. Then load:
     - `domain-entities-reference.md` in the reference-docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path) — entity definitions
     - Relevant feature docs from `{App}/` under the business spec root (default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path)
     - Existing business rules (BR-{MOD}-XXX) from feature docs
@@ -85,7 +85,7 @@ For frontend/UI changes, read — every filename below resolves inside the refer
 7. **Present Challenge Prompts first, then AI Verdict** — Show prompts BEFORE the verdict so the Dev BA PIC forms an independent view, then show `APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`.
      - **Technical decisions** (feasibility, dependencies, cross-service impact, security): Dev BA PIC has unilateral veto power; no 2/3 vote.
      - **Non-technical decisions** (UI/UX, visual design, business value): require 2/3 majority (Dev BA PIC + UX BA + Designer BA per `ba-team-decision-model`).
-8. **ask the user directly** — Dev BA PIC records the FINAL decision (`APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`) in the Decision Record. This is human decision, not Next Steps routing.
+8. **ask user tool** — Dev BA PIC records the FINAL decision (`APPROVE` / `REQUEST_REVISION` / `ESCALATE_TO_LEAD`) in the Decision Record. This is human decision, not Next Steps routing.
 
 ## M1-M7 Compliance Gate (BLOCKING — drives the AI Verdict)
 
@@ -154,7 +154,7 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 
 ### Decision Record
 
-**Dev BA PIC Decision:** {filled after human review by asking the user directly}
+**Dev BA PIC Decision:** {filled after human review using ask user tool}
 **Vote:** {approve / request-revision / escalate}
 **Conditions:** {if any}
 **Drafter Response (on revision):** {drafter's response to each challenge prompt — filled when Dev BA PIC re-runs on revised PBI}
@@ -175,7 +175,7 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask user tool to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$pbi --mode=dor (Recommended)"** — If APPROVE: validate DoR before grooming
 - **"$pbi --mode=refine"** — If REQUEST_REVISION: BA drafters revise, then re-run `$pbi --mode=challenge`
@@ -395,7 +395,7 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate by asking the user directly (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <60% on any critical decision → stop and escalate using ask user tool (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -443,7 +443,7 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 
 **IMPORTANT MUST ATTENTION Goal:** Help a Dev BA PIC challenge a BA drafter's PBI before grooming, surfacing evidence-backed feasibility, AC, authorization, cross-service, M1-M7, releasable-outcome, and full-flow gaps so no infeasible or under-specified PBI reaches grooming as a false APPROVE; AI analyzes, human decides.
 
-**IMPORTANT MUST ATTENTION Main steps (8, in order):** (1) locate PBI draft → (2) detect + **confirm module by asking the user directly before loading domain docs** → (3) Technical Feasibility → (4) AC Quality (+ M1-M7 checks) → (5) Cross-Cutting Concerns (auth/seed/migration/perf/UI Layout + Releasable Outcome/full-flow surface) → (6) generate SPECIFIC challenge prompts → (7) Challenge Prompts FIRST, then AI Verdict → (8) human records decision by asking the user directly. NEVER skip, reorder, or merge steps without explicit user approval — why: the prompts-before-verdict and module-confirm ordering is what defeats automation bias and false APPROVE.
+**IMPORTANT MUST ATTENTION Main steps (8, in order):** (1) locate PBI draft → (2) detect + **confirm module using ask user tool before loading domain docs** → (3) Technical Feasibility → (4) AC Quality (+ M1-M7 checks) → (5) Cross-Cutting Concerns (auth/seed/migration/perf/UI Layout + Releasable Outcome/full-flow surface) → (6) generate SPECIFIC challenge prompts → (7) Challenge Prompts FIRST, then AI Verdict → (8) human records decision using ask user tool. NEVER skip, reorder, or merge steps without explicit user approval — why: the prompts-before-verdict and module-confirm ordering is what defeats automation bias and false APPROVE.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each canonical body still governs:**
 
@@ -454,16 +454,16 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 - **Estimation Framework:** Bottom-up phase hours drive man-days; SP derived; UI usually dominates.
 - **Sequential Thinking:** Multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS; NEVER skip confidence closer.
 
-**IMPORTANT MUST ATTENTION** AI provides ANALYSIS, human makes DECISION — present Challenge Prompts FIRST, AI Verdict (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD) SECOND, then record the human decision by asking the user directly. NEVER auto-approve or auto-reject — why: verdict-first triggers automation bias and the Dev BA PIC rubber-stamps without independent assessment.
+**IMPORTANT MUST ATTENTION** AI provides ANALYSIS, human makes DECISION — present Challenge Prompts FIRST, AI Verdict (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD) SECOND, then record the human decision using ask user tool. NEVER auto-approve or auto-reject — why: verdict-first triggers automation bias and the Dev BA PIC rubber-stamps without independent assessment.
 **IMPORTANT MUST ATTENTION** this is CROSS-PERSON review, not self-review — run only on a BA drafter's draft, NEVER on your own; route self-review to `$pbi --mode=review --type=pbi` — why: external skepticism breaks the drafter's blind spots that self-review rationalizes away.
 **IMPORTANT MUST ATTENTION** M1-M7 Compliance Gate is BLOCKING and drives the verdict — any M1-M5 or M7 failure forces REQUEST_REVISION with a challenge prompt naming the violated mandate ID + exact section/line/AC; an APPROVE over an M1-M5 or M7 violation is itself defective. M1 governs vocabulary, M7 governs subject matter — tech-free prose satisfies M1 and can still violate M7, so apply the demo test to the BODY. Carriers (`[Source: ...]`, `**Evidence**`, `CoveredBy:`, legacy `**IntegrationTest:**`, YAML, mermaid) are EXEMPT — challenge leakage only in PBI narrative prose — why: stack-named or under-specified prose locks the PBI to one implementation and ships ambiguity to grooming.
-**IMPORTANT MUST ATTENTION** confirm the auto-detected module by asking the user directly BEFORE loading domain docs — wrong module = wrong entity context = false APPROVE — why: entity-conflict analysis built on the wrong service is worse than none.
+**IMPORTANT MUST ATTENTION** confirm the auto-detected module using ask user tool BEFORE loading domain docs — wrong module = wrong entity context = false APPROVE — why: entity-conflict analysis built on the wrong service is worse than none.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; keep one `in_progress`; add a final review todo to verify work quality — why: untracked multi-step work loses state on compaction.
 **IMPORTANT MUST ATTENTION** every concern raised must cite source (`file:line`, protocol section, entity definition, feature doc) with confidence — >80% to act, <60% DO NOT recommend; "Insufficient evidence" is valid output. NEVER present a guess as a verdict — why: a false APPROVE on an infeasible PBI costs more than the review.
 **IMPORTANT MUST ATTENTION** challenge prompts must be SPECIFIC with suggested answers, not vague ("needs work") — frame suggestions as "consider whether X" options, never corrections — why: vague challenges get superficially satisfied; corrections create adoption pressure that suppresses independent reasoning.
 **IMPORTANT MUST ATTENTION** search 3+ existing entity definitions + feature docs in the detected module before flagging a conflict or feasibility gap; verify the PBI's context shares the same constraints before reusing a nearby pattern as evidence — why: closest example ≠ matching preconditions.
 **IMPORTANT MUST ATTENTION** Technical-veto scope (architecture feasibility, dependency correctness, cross-service impact, performance, security) is the Dev BA PIC's unilateral call — no 2/3 vote; non-technical decisions (UI/UX, visual design, business value) require 2/3 BA majority per `ba-team-decision-model` — why: routing a technical veto through a vote dilutes accountability for false APPROVE.
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use ask the user directly to present Next Steps (`$pbi --mode=dor` on APPROVE, `$pbi --mode=refine` on REQUEST_REVISION, escalate on ESCALATE_TO_LEAD, or skip) — the user decides; never skip because the task seems obvious.
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use ask user tool to present Next Steps (`$pbi --mode=dor` on APPROVE, `$pbi --mode=refine` on REQUEST_REVISION, escalate on ESCALATE_TO_LEAD, or skip) — the user decides; never skip because the task seems obvious.
 
 **Anti-Rationalization:**
 
@@ -473,10 +473,10 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 | "I can review my own draft with this"            | This is cross-person review. Use `$pbi --mode=review --type=pbi` for self-review.            |
 | "Minor M1-M5 slip, still APPROVE"                | Any M1-M5 or M7 failure forces REQUEST_REVISION. An APPROVE over a violation is itself defective. |
 | "No tech words in it — M7 passes"                | M1 ≠ M7. Apply the demo test to the BODY: what would a stakeholder SEE change? No answer → FAIL, however clean the prose. |
-| "Module is obvious, skip the confirm"            | Wrong module = wrong entity context = false APPROVE. Confirm by asking the user directly.        |
+| "Module is obvious, skip the confirm"            | Wrong module = wrong entity context = false APPROVE. Confirm using ask user tool.        |
 | "Concern is clearly right, no citation needed"   | Show `file:line` / section / entity ref + confidence. No proof = no verdict.               |
 | "Challenge prompt good enough as a question"     | Must be SPECIFIC with a suggested answer, or the drafter satisfies it superficially.       |
 
-**IMPORTANT MUST ATTENTION** AI provides ANALYSIS, human makes DECISION — challenge prompts FIRST, verdict SECOND, human records by asking the user directly.
+**IMPORTANT MUST ATTENTION** AI provides ANALYSIS, human makes DECISION — challenge prompts FIRST, verdict SECOND, human records using ask user tool.
 **IMPORTANT MUST ATTENTION** M1-M5 or M7 violation forces REQUEST_REVISION with mandate ID + section/line citation — an APPROVE over a violation is defective.
 **IMPORTANT MUST ATTENTION** cite `file:line`/section/entity evidence for every concern (confidence >80% to act); never run on your own draft — cross-person review only.

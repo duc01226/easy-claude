@@ -80,7 +80,7 @@ Each file below sits in the project-reference docs root — default `docs/projec
 3. Capture constraints: team skills, expected scale, hosting preferences, budget — as input signals only
 4. Use WebSearch for market research + competitor analysis
 5. Output domain model artifact alongside PBI artifact
-6. Increase ask the user directly frequency — validate domain boundaries, entity relationships, business rules
+6. Increase ask user tool frequency — validate domain boundaries, entity relationships, business rules
 7. **[CRITICAL] NEVER ask about tech stack during refinement.** Tech stack decided after business analysis. Capture team skills + scale expectations as signals only.
 
 **Be skeptical. Every claim needs traced proof, confidence >80%.**
@@ -105,7 +105,7 @@ Read `.claude/skills/shared/product-roadmap-contract.md` before eliciting PBI de
 2. If all signals are false, omit the decomposition block and all roadmap/milestone/scope-brief placeholders. Preserve the actor, outcome, in-scope behavior, non-goals, lifecycle terms, source-of-truth state, persistence expectation, and evidence directly in the PBI.
 3. If the user explicitly requests a product roadmap, route to `$product-roadmap`; only that explicit branch may require the product-roadmap artifact (default `docs/product-roadmap.md`; a `docsRoots.productRoadmap.path` entry in `docs/project-config.json` overrides the path), a selected milestone, and a scope brief. An existing roadmap supplied by the user is read-only context.
 4. For a framework/library change, use the shared `FRAMEWORK-LIBRARY` technical branch. For an isolated brownfield change, use the explicit EXEMPT branch. Neither branch creates a product roadmap.
-5. Use ask the user directly for mismatches or material ambiguity. Do not infer whether “ready,” “published,” “delivered,” or equivalent means reviewable, sellable, visible, or accessible.
+5. Use ask user tool for mismatches or material ambiguity. Do not infer whether “ready,” “published,” “delivered,” or equivalent means reviewable, sellable, visible, or accessible.
 
 ## Phase 1: Idea Intake & Context Loading
 
@@ -126,7 +126,7 @@ Use WebSearch with domain terms. Summarize in max 3 bullets (market context, com
 
 ## Phase 3: Problem Hypothesis Validation
 
-Validate hypothesis with user by asking the user directly. 42% of startups fail from no market need — validate before building.
+Validate hypothesis with user using ask user tool. 42% of startups fail from no market need — validate before building.
 
 **Skip:** `--skip-hypothesis`, validated hypothesis exists, bug fix/tech debt.
 
@@ -151,7 +151,7 @@ Validate hypothesis with user by asking the user directly. 42% of startups fail 
 ### Validation Process
 
 1. Draft hypothesis from idea content
-2. Use ask the user directly to validate:
+2. Use ask user tool to validate:
     - "Is this the core problem we're solving?"
     - "Who exactly experiences this? How often?"
     - "What evidence do we have this problem exists?"
@@ -245,7 +245,7 @@ Scenario: Approver reviews a submitted invoice
 
 ### Phase 5.5: Testability Assessment
 
-Use ask the user directly with 2-3 questions:
+Use ask user tool with 2-3 questions:
 
 1. "Which testing approach fits this PBI?"
     - TDD-first: Write test specs before implementation (Recommended for complex features)
@@ -296,7 +296,7 @@ Effort: Story points (1, 2, 3, 5, 8, 13, 21)
 
 ## Phase 7: Validation Interview (MANDATORY)
 
-Generate 3-5 questions covering assumptions, scope, dependencies, edge cases. Use ask the user directly. Document in PBI. **NOT optional.**
+Generate 3-5 questions covering assumptions, scope, dependencies, edge cases. Use ask user tool. Document in PBI. **NOT optional.**
 
 **Reuse the idea interview:** when the input idea artifact carries a `## Discovery Interview` (Phase 1), do NOT re-ask a category its answers already settle (scope boundaries, business impact, constraints, persona) — record those answers in the Validation Summary as `(from idea Discovery Interview)` and spend the 3-5 questions on the categories it never asks (Assumptions, Dependencies, Edge Cases, Entities, Prod Readiness, Authorization, Seed Data, Data Migration). With no idea artifact, or an idea without that section (standalone `$pbi --mode=refine` on a raw request), run the full interview below.
 
@@ -314,7 +314,7 @@ Generate 3-5 questions covering assumptions, scope, dependencies, edge cases. Us
 | **Data Migration**  | "Does this change entity schema? Is data transformation needed?"            |
 
 1. Generate 3-5 questions from assumptions, scope, dependencies
-2. Use ask the user directly to interview
+2. Use ask user tool to interview
 3. Document in PBI under `## Validation Summary`
 4. Update PBI based on answers
 
@@ -374,7 +374,7 @@ Compute `delta_pct = (new_likely_days - draft_likely_days) / draft_likely_days �
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `\|delta\| ≤ 20%` | Keep draft estimate. Note `reestimate_delta_pct: <signed>` + `reestimate_reason: "within tolerance, no change"` in PBI frontmatter for transparency.                                                                                                                                                                         |
 | `\|delta\| > 20%` | UPDATE `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`. Add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason` explaining what changed (e.g., "auth scope confirmed wider", "seed data dropped per validation").                                                                              |
-| `\|delta\| > 50%` | UPDATE values AND flag `SHOULD-RESCOPE`. Surface to user by asking the user directly BEFORE Phase 8 writes the PBI: "Re-estimate is +/-X% vs original. Options: (a) accept new estimate as-is, (b) split into 2 PBIs, (c) trim scope back to original estimate, (d) defer." Record the user's decision in `## Validation Summary`. |
+| `\|delta\| > 50%` | UPDATE values AND flag `SHOULD-RESCOPE`. Surface to user using ask user tool BEFORE Phase 8 writes the PBI: "Re-estimate is +/-X% vs original. Options: (a) accept new estimate as-is, (b) split into 2 PBIs, (c) trim scope back to original estimate, (d) defer." Record the user's decision in `## Validation Summary`. |
 
 ### Output
 
@@ -740,7 +740,7 @@ For domain PBIs: detect module from the directory names under the business spec 
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION** after completing this skill, use ask the user directly to present these options. NEVER skip because task seems "simple" or "obvious":
+**MANDATORY IMPORTANT MUST ATTENTION** after completing this skill, use ask user tool to present these options. NEVER skip because task seems "simple" or "obvious":
 
 - **"$why-review (Recommended)"** — Validate design rationale, alternatives, risk assessment before `$pbi --mode=story` or implementation
 - **"$domain-analysis"** — If PBI creates/modifies domain entities, model bounded contexts before writing stories
@@ -937,7 +937,7 @@ For domain PBIs: detect module from the directory names under the business spec 
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <60% on any critical decision → stop and escalate by asking the user directly (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <60% on any critical decision → stop and escalate using ask user tool (60-80% → verify first) · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 
@@ -1006,7 +1006,7 @@ For domain PBIs: detect module from the directory names under the business spec 
 - **IMPORTANT MUST ATTENTION** every generated PBI MUST pass the Releasable Outcome Gate: one actor-facing outcome, complete entry-to-result journey, observable evidence, and no standalone technical/foundation/migration/setup scope — read `.claude/skills/shared/releasable-pbi-contract.md`
 - **IMPORTANT MUST ATTENTION** UI PBIs MUST include all pages/views, navigation, reusable/domain/page components, applicable states, and a full-flow demo journey; one static screen is NOT a releasable UI outcome
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via task tracking BEFORE starting; mark one `in_progress`, complete it before the next; on context loss the current task list first — why: compaction wipes prior-work memory, resume don't duplicate
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user by asking the user directly — NEVER auto-decide
+- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user using ask user tool — NEVER auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** apply the shared four-signal `isLargeIdea` rule before PBI elicitation; when true, require and propagate the complete five-field `large_idea_decomposition` block and stable slice IDs, then run conditional scenario analysis where needed. Only an explicit roadmap request uses the product-roadmap artifact (default `docs/product-roadmap.md`; path from `docsRoots.productRoadmap.path` in `docs/project-config.json`); ordinary ideas must not create it, and ambiguous product intent is BLOCKED rather than inferred.
 - **IMPORTANT MUST ATTENTION** acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the Phase 5.1 AI-SDD M1-M5 and M7 gate — tech-agnostic Business Intent, logical `FR-`/`BR-` IDs first, observable single-interpretation ACs, rebuild-from-scratch validity, every AC demoable as a business outcome — why: a reader who must guess a rule/limit/role re-implements the wrong behavior
 - **IMPORTANT MUST ATTENTION** apply the M7 demo test to every AC's BODY — _"what would a stakeholder SEE change?"_; no answer → TECHNICAL-ONLY, drop it. FAIL a `WHEN` that is an invocation (handler runs, consumer receives, job fires, data syncs) or a `THEN` asserting schema/type/nullability/call-count; NEVER derive the AC count from an architecture inventory — why: M1 governs vocabulary, M7 governs subject matter — a technical AC in tech-free prose passes M1 and still rots the PBI

@@ -9,7 +9,7 @@ description: '[Code Quality] Use when a workflow step or the user asks for an AI
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -283,7 +283,7 @@ Group files by AI SURFACE first (one sub-agent owns a surface end to end so no s
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS:** after completing, use ask the user directly to present (skip under `--report-only`, when invoked by a parent skill, or as a sub-agent — return the report and next-step recommendations instead):
+**MANDATORY — NO EXCEPTIONS:** after completing, use ask user tool to present (skip under `--report-only`, when invoked by a parent skill, or as a sub-agent — return the report and next-step recommendations instead):
 
 - **"$security-audit" (Recommended when a P0/P1 touches injection, secrets or authorization)** — exploit-class depth
 - **"$integration-test --mode=review"** — assertion quality of the AI feature's tests
@@ -401,9 +401,9 @@ Before reporting ANY work done:
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm by asking the user directly BEFORE the verdict**.
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 
@@ -464,7 +464,7 @@ Before reporting ANY work done:
 **MUST ATTENTION** after validated fixes restart the FULL review from Phase 0; spawn a fresh `ai-engineering-reviewer` (not `code-reviewer`) when the local catalog provides it
 **MUST ATTENTION** `--report-only` runs Phases 0–8 only — no fix, no nested fan-out, no user question, no writer beyond the report; return validated findings grouped Critical/High/Medium/Low (P0 → Critical, P1 → High, P2 → Medium, P3 → Low) — why: a read-only leaf that fixes, fans out or asks races or stalls its barrier siblings
 **MUST ATTENTION** `--mode=plan` is read-only — return plan gaps per `AF` clause and REQUIRED plan additions; never edit the plan
-**MUST ATTENTION** use ask the user directly for next steps — except under `--report-only`, when invoked by a parent skill, or as a sub-agent, which ask nothing and return next steps in the summary
+**MUST ATTENTION** use ask user tool for next steps — except under `--report-only`, when invoked by a parent skill, or as a sub-agent, which ask nothing and return next steps in the summary
 
 **Anti-Rationalization:**
 

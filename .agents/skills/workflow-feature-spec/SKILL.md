@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -67,7 +67,7 @@ You choose inline vs sub-agent, batching and ordering — optimize wall-clock an
 ## 5. Memory, Reporting and Fix Path
 
 - One task per selected step; write the run report under `tmp/reports/` FIRST and append per step; re-read it and the current task list after compaction.
-- Findings are validated before fixing; fix in the owning spec role; re-run the review that raised them. Review loop: round 1 exits on zero open findings (Round-1 LOW closure); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 3 review rounds; escalate by asking the user directly on no progress.
+- Findings are validated before fixing; fix in the owning spec role; re-run the review that raised them. Review loop: round 1 exits on zero open findings (Round-1 LOW closure); round 2 on zero CRITICAL/HIGH/MEDIUM with LOWs recorded as deferred; cap 3 review rounds; escalate using ask user tool on no progress.
 - Define success criteria before the first edit (the sections, cases and decisions that must exist) and loop until each is observably true.
 
 <!-- PROTOCOL-GUIDES:START -->

@@ -9,7 +9,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -24,7 +24,7 @@ description: '[Project Management] Use when a workflow step or the user asks for
 
 **Summary:**
 
-- Each mode is the complete, unchanged contract of one former skill: inputs, flags, outputs, report paths, round caps, ask the user directly gates and Next Steps live in that mode's reference file. This file only routes.
+- Each mode is the complete, unchanged contract of one former skill: inputs, flags, outputs, report paths, round caps, ask user tool gates and Next Steps live in that mode's reference file. This file only routes.
 - Run exactly one mode per invocation. A mode never chains into another; its own Next Steps section offers the follow-up `$pbi --mode=<x>` and the user decides.
 - `--reuse` links three modes: `--mode=review --type=pbi` produces the report, `--mode=challenge` and `--mode=dor` consume it (see [The `--reuse` contract](#the---reuse-contract)).
 - Project specifics (artifact roots, spec roots, design system) come from `docs/project-config.json`; every mode resolves them at run time.

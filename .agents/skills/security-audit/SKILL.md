@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -416,7 +416,7 @@ Every finding: `[severity] [confidence %] [file:line OR command+output] [finding
 2. **Findings exist:** run `$why-review --validate-findings <security-report-path>` before any fix; do not spawn a fresh sub-agent only to re-review the same findings before validation/fix
 3. **After validated fixes:** restart the full security review from Scope over the full current security target. If the restarted review needs a fresh reviewer, spawn a NEW `security-auditor` sub-agent (`agent_type: "security-auditor"`) — ZERO memory of prior rounds. Include in prompt: the domain checklist set (D1–D10) selected for the scope mode, OWASP Top 10 2025, auth flows, injection risks, dependency CVEs/supply-chain, microservices boundary security.
 4. **Repeat:** if issues remain, validate the new findings before more fixes, then restart the full review after fixes with a brand-new task breakdown
-5. **Stop:** A clean review pass ENDS the review once the persisted `minRounds` is met. If the same blocker repeats across 2 full invocations with no progress, escalate by asking the user directly.
+5. **Stop:** A clean review pass ENDS the review once the persisted `minRounds` is met. If the same blocker repeats across 2 full invocations with no progress, escalate using ask user tool.
 
 > Optional: `python .claude/scripts/code_graph query callers_of <function> --json` can hint at entry points into sensitive functions (verify by reading).
 
@@ -501,7 +501,7 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use ask user tool to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$production-readiness-review (Recommended)"** — Production readiness review
 - **"$performance-review"** — Analyze performance next
@@ -601,9 +601,9 @@ Optionally, when a graph DB exists, `trace` can hint at data flow paths for secu
 
 <!-- SYNC:trade-off-interrogation-gate:reminder -->
 
-- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm by asking the user directly BEFORE the verdict**.
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **what does it SACRIFICE?** name the dimensions checked (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it MATERIAL enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm using ask user tool BEFORE the verdict**.
 - **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; never bury one as a Low-severity note, never decide it silently, and never let delivery or convergence pressure authorize a one-way door — an un-walked-back one-way door is the user's call, not the reviewer's.
-- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
+- **MANDATORY — a context that cannot ask escalates BY HANDOFF, never by silence.** ask user tool reaches only the main interactive agent, so a sub-agent or a terminal/verdict-only mode cannot ask. There the duty is REDIRECTED, not waived: still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, and **state the unconfirmed MATERIAL trade-off in your RETURNED verdict so the CALLER escalates it** (a note only in an on-disk report is not a handoff); never emit an unqualified PASS. If you CAN ask, you MUST ask.
 
 <!-- /SYNC:trade-off-interrogation-gate:reminder -->
 

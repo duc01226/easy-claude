@@ -50,7 +50,7 @@ test('Claude tool translation preserves the required operation and gate constrai
   );
   // Then only tool vocabulary changes; execution and gate constraints remain.
   assert.equal(output,
-    'Execute the skill invocation. Gate steps ALWAYS run; NEVER skip a gate. Ask by asking the user directly only for a missing required capability.');
+    'Execute the skill invocation. Gate steps ALWAYS run; NEVER skip a gate. Ask using ask user tool only for a missing required capability.');
 });
 
 // Read only the shipped canonical protocol, never an adopter's config/docs/git state.
@@ -70,4 +70,22 @@ test('universal workflow guidance supports every host while preserving authority
     assert.match(guidance, /never block on a foreign-host tool name alone/);
     assert.match(guidance, /All gates and authority limits still apply/);
   }
+});
+
+// Intent: generic ask-user instructions retain explicit tool use in every mirror.
+test('user-question instructions use the ask user tool', () => {
+  const output = prependCodexCompatibilityNote('# Review\nAsk the user before proceeding.\n');
+  assert.match(output, /Use ask user tool to ask user\./);
+  assert.ok(output.endsWith('Ask the user before proceeding.\n'));
+  for (const input of ['via `AskUserQuestion`', 'via AskUserQuestion', '`AskUserQuestion` decision', 'Use `AskUserQuestion`', 'Use AskUserQuestion']) {
+    const rewritten = rewriteClaudeToolTermsForCodex(input);
+    assert.match(rewritten, /ask user tool/);
+    assert.doesNotMatch(rewritten, /AskUserQuestion|ask the user directly/);
+    assert.equal(rewriteClaudeToolTermsForCodex(rewritten), rewritten);
+  }
+});
+
+test('shared question guidance is available to all harnesses', () => {
+  const protocol = readCanonicalProtocol(bundleRoot, 'critical-thinking-mindset');
+  assert.match(protocol, /Use ask user tool to ask user\./);
 });

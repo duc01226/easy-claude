@@ -9,7 +9,7 @@ description: '[Architecture] Use when a workflow step or the user asks for tech 
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -32,14 +32,14 @@ description: '[Architecture] Use when a workflow step or the user asks for tech 
 **Summary:**
 
 - **Purpose:** act as solution architect—load business/domain/PBI context, derive constraints, research current options, compare fit, and record only user-confirmed decisions.
-- **Ordered path:** (1) load context → (2) derive requirements + ask the user directly confirmation → (3) classify layer applicability and WebSearch unresolved required layers (2–3 viable alternatives; bounded searches) → (4) compare → (5) score/rank each layer with confidence % → (6) write `{plan-dir}/research/tech-stack-comparison.md` (<=200 lines) → (7) end interview (5-8 questions) and write `status: confirmed` to `{plan-dir}/phase-02-tech-stack.md`.
+- **Ordered path:** (1) load context → (2) derive requirements + ask user tool confirmation → (3) classify layer applicability and WebSearch unresolved required layers (2–3 viable alternatives; bounded searches) → (4) compare → (5) score/rank each layer with confidence % → (6) write `{plan-dir}/research/tech-stack-comparison.md` (<=200 lines) → (7) end interview (5-8 questions) and write `status: confirmed` to `{plan-dir}/phase-02-tech-stack.md`.
 - **Evidence gates:** cite a URL, benchmark, or case study for every claim/recommendation; score 8 criteria with High=3x/Medium=2x/Low=1x; NEVER choose by familiarity.
-- **Follow-up modes:** after Step 7, separate ask the user directly offers `$architecture --mode=design` (Recommended), `$plan` if architecture is decided, or skip; a second council prompt offers skip (Recommended) or `$llm-council` (11 sub-agents) for close scores or unfamiliar/strategic dependencies.
+- **Follow-up modes:** after Step 7, separate ask user tool offers `$architecture --mode=design` (Recommended), `$plan` if architecture is decided, or skip; a second council prompt offers skip (Recommended) or `$llm-council` (11 sub-agents) for close scores or unfamiliar/strategic dependencies.
 
 **Workflow:**
 
 1. **Load Business Context** — Read prior business evaluation, domain/ERD, refined PBI, and discovery notes from the plans and team-artifacts roots (defaults `plans/` and `team-artifacts/`; `docsRoots.plans.path` / `docsRoots.teamArtifacts.path` in `docs/project-config.json` override them).
-2. **Derive Technical Requirements** — Map signals to constraints; confirm by asking the user directly.
+2. **Derive Technical Requirements** — Map signals to constraints; confirm using ask user tool.
 3. **Research Per Layer** — Research only unresolved required layers; compare 2–3 viable alternatives within the agreed query budget.
 4. **Deep Compare** — Build pros/cons matrices with benchmarks, community health, and team fit.
 5. **Score & Rank** — Apply weighted scoring across 8 criteria to open required layers; rank with confidence %.
@@ -92,7 +92,7 @@ Map business signals to technical requirements:
 | Tight budget       | Open-source, low hosting cost                   | Should   |
 | Compliance         | Audit trail, encryption, auth framework         | Must     |
 
-**MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user by asking the user directly before proceeding to research.
+**MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user using ask user tool before proceeding to research.
 
 ## Step 3: Research Per Stack Layer
 
@@ -195,7 +195,7 @@ Report must be **<=200 lines**. Use tables over prose.
 
 ## Step 7: User Validation Interview
 
-**MANDATORY IMPORTANT MUST ATTENTION** present findings and ask 5-8 questions by asking the user directly:
+**MANDATORY IMPORTANT MUST ATTENTION** present findings and ask 5-8 questions using ask user tool:
 
 ### Required Questions
 
@@ -225,7 +225,7 @@ After user confirms, update report with final decisions, mark `status: confirmed
 ---
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY recommendation with user by asking the user directly — NEVER auto-decide.
+**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY recommendation with user using ask user tool — NEVER auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** include confidence % and evidence citations for all claims.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 
@@ -233,7 +233,7 @@ After user confirms, update report with final decisions, mark `status: confirmed
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because task seems "simple"/"obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask user tool to present these options. Do NOT skip because task seems "simple"/"obvious" — the user decides:
 
 - **"$architecture --mode=design (Recommended)"** — Design solution architecture with chosen tech stack
 - **"$plan"** — If architecture already decided
@@ -241,7 +241,7 @@ After user confirms, update report with final decisions, mark `status: confirmed
 
 ### Council escalation (always-offer, second prompt)
 
-After the existing `## Next Steps` prompt above resolves, present a **second**, independent ask the user directly call:
+After the existing `## Next Steps` prompt above resolves, present a **second**, independent ask user tool call:
 
 - **"Skip council — proceed with chosen stack (Recommended)"** — Continue with the selected tech stack as-is.
 - **"Escalate to $llm-council"** — Run 11 sub-agent council. Best applied when 2+ stacks score within 15% on the comparison matrix or you have unfamiliar/strategic dependencies. Cheaper alternatives: `$why-review`, `$plan --mode=validate`.
@@ -291,10 +291,10 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 **IMPORTANT MUST ATTENTION** preserve user confirmation, cited evidence, weighted scoring, and fit against scale, budget, skills, and timeline; never replace those gates with familiarity or an unverified default.
 
-**IMPORTANT MUST ATTENTION — run ALL 7 steps in declared order, none skipped:** (1) Load Business Context → (2) Derive Technical Requirements (+ ask the user directly confirm) → (3) Research Per Layer (classify applicability; compare open choices within total cap) → (4) Deep Comparison Matrix → (5) Weighted Score & Ranking (confidence %) → (6) Generate Report (<=200 lines) → (7) User Validation Interview (5-8 questions, write `status: confirmed`) — why: AI keeps collapsing this into "just pick a stack" and dropping requirements-derivation, scoring, and the confirmation gate that make the choice defensible.
+**IMPORTANT MUST ATTENTION — run ALL 7 steps in declared order, none skipped:** (1) Load Business Context → (2) Derive Technical Requirements (+ ask user tool confirm) → (3) Research Per Layer (classify applicability; compare open choices within total cap) → (4) Deep Comparison Matrix → (5) Weighted Score & Ranking (confidence %) → (6) Generate Report (<=200 lines) → (7) User Validation Interview (5-8 questions, write `status: confirmed`) — why: AI keeps collapsing this into "just pick a stack" and dropping requirements-derivation, scoring, and the confirmation gate that make the choice defensible.
 
 **IMPORTANT MUST ATTENTION** research 2–3 viable options per OPEN-REQUIRED layer only; record FIXED/N/A layers and honor the total query cap; every recommendation carries confidence % + cited evidence (URL, benchmark, case study) — NEVER recommend on familiarity alone — why: familiarity bias commits the team to the wrong stack that surfaces only at scale.
-**IMPORTANT MUST ATTENTION** gate on user by asking the user directly at EVERY decision point — confirm derived requirements before research (Step 2), confirm each open layer recommendation in the end interview (Step 7) — NEVER auto-decide — why: the team owns the stack, not the AI.
+**IMPORTANT MUST ATTENTION** gate on user using ask user tool at EVERY decision point — confirm derived requirements before research (Step 2), confirm each open layer recommendation in the end interview (Step 7) — NEVER auto-decide — why: the team owns the stack, not the AI.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, `completed` immediately after evidence; add a final review todo.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
@@ -303,7 +303,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 **IMPORTANT MUST ATTENTION** requirements come BEFORE research — load prior business/domain/PBI artifacts (Step 1), map business signals to technical requirements (Step 2), user-confirm them, THEN WebSearch (Step 3) — NEVER research before requirements are derived and confirmed — why: researching first picks tech then back-fits the problem, the reverse of architecture.
 **IMPORTANT MUST ATTENTION** score every OPEN-REQUIRED layer with the weighted 8-criteria matrix (High=3x / Medium=2x / Low=1x), rank with confidence %, cap the `{plan-dir}/research/tech-stack-comparison.md` report at <=200 lines using tables over prose — why: an unscored or unbounded report hides the trade-off the decision turns on.
-**IMPORTANT MUST ATTENTION** only user-confirmed decisions get written to `phase-02-tech-stack.md` as `status: confirmed` — the end interview (5-8 ask the user directly questions) is mandatory and NEVER skipped even when the choice seems "obvious" — why: an unconfirmed stack is a guess the team will pay for.
+**IMPORTANT MUST ATTENTION** only user-confirmed decisions get written to `phase-02-tech-stack.md` as `status: confirmed` — the end interview (5-8 ask user tool questions) is mandatory and NEVER skipped even when the choice seems "obvious" — why: an unconfirmed stack is a guess the team will pay for.
 **IMPORTANT MUST ATTENTION** every claim, finding, and recommendation requires `file:line`/URL proof or traced evidence + confidence % (>80% act, 60-80% verify first, <60% DO NOT recommend) — NEVER present a guess as fact — why: a stack chosen on speculation fails silently until production.
 **IMPORTANT MUST ATTENTION** evaluate fit before copying a reference stack from another project — verify the new context shares the same scale, budget, team skills, compliance, and timeline constraints — why: the closest example rarely matches preconditions, and a mismatched copy compiles but fails the real requirements.
 

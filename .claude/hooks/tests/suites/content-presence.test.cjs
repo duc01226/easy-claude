@@ -781,7 +781,7 @@ module.exports = {
                     'ask the workflow question (below) only when YOUR route is to start a catalog workflow',
                     'it NEVER starts before the answer',
                     '**Workflow question** (every tier): only when your route is to start a catalog workflow (never for direct or custom-simple)',
-                    "your host's question tool, else plain text, then stop until the user answers",
+                    "use ask user tool to ask user, else plain text, then stop until the user answers",
                     'the recommended one first with a one-line reason',
                     '(a) the full workflow `<id>`',
                     '(b) a slimmer custom route listing its steps, keeping every required gate',

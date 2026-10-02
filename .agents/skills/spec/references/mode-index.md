@@ -61,7 +61,7 @@ Before reading canonical source content:
 
 1. **MUST ATTENTION** read `docs/project-config.json`, the configured docs index (default `docs/project-reference/docs-index-reference.md`), `lessons.md`, and the required spec references from the configured reference-doc root. Resolve roots, authorship, mapped sections/identities/carriers, and the allowed derived-output location.
 2. State `Reference docs read: ... | Not applicable: ...`.
-3. **MUST ATTENTION** use ask the user directly to confirm scope and output. Do not read canonical source bodies until the user confirms.
+3. **MUST ATTENTION** use ask user tool to confirm scope and output. Do not read canonical source bodies until the user confirms.
 
 Confirm:
 
@@ -171,7 +171,7 @@ If a requested artifact conflicts with the project's canonical ownership or outp
 
 ## Next Steps
 
-**[BLOCKING]** After completing, use ask the user directly — DO NOT skip:
+**[BLOCKING]** After completing, use ask user tool — DO NOT skip:
 
 - **"$docs-manager --mode=update (Recommended)"** — reconcile stale canonical specs and their profile-defined case/test carriers
 - **"$watzup"** — wrap up if index generation is the final step
@@ -210,7 +210,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Generate requested, regenerable navigation aids from exact canonical sources while preserving configured section, identity, evidence, authorship, and case/test semantics.
-- **IMPORTANT MUST ATTENTION Main steps/actions/gates:** read project config and required spec references → ask the user directly confirms scope, action, artifacts, and approved output destination before source-body reads → discover canonical owners with the configured patterns/exclusions → map intent/contracts/evidence, identifiers, carriers, and coverage relation; strict default TC/Section 8 applies only without an explicit native profile → assemble selected aids → stamp and write each approved output immediately, with unchanged-content guard → verify selection totals, source links, section policy, DERIVED status, and no duplicate registry → after completion ask about `$docs-manager --mode=update`, `$watzup`, or continuing manually. NEVER skip gates or infer a missing source — why: a wrong root or copied case registry can silently replace the real owner.
+- **IMPORTANT MUST ATTENTION Main steps/actions/gates:** read project config and required spec references → ask user tool confirms scope, action, artifacts, and approved output destination before source-body reads → discover canonical owners with the configured patterns/exclusions → map intent/contracts/evidence, identifiers, carriers, and coverage relation; strict default TC/Section 8 applies only without an explicit native profile → assemble selected aids → stamp and write each approved output immediately, with unchanged-content guard → verify selection totals, source links, section policy, DERIVED status, and no duplicate registry → after completion ask about `$docs-manager --mode=update`, `$watzup`, or continuing manually. NEVER skip gates or infer a missing source — why: a wrong root or copied case registry can silently replace the real owner.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION each canonical body above):**
 
@@ -218,7 +218,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 - **IMPORTANT MUST ATTENTION** Canonical owners remain authoritative; emit only approved derived aids, link every row/entity to its exact owner, and mark `[UNVERIFIED]` or omit unsupported claims.
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve business root, canonical pattern, section roles, owner/ID rules, carriers, coverage relation, prose policy, and destination from project config + required references; if no native profile is explicit, use the strict default TC/Section 8 format.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm scope + action + artifacts + allowed destination by asking the user directly after required reference prefetch and before reading canonical source bodies. Empty selection → verify root/pattern, report exact search, STOP; never extract a substitute spec from code.
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm scope + action + artifacts + allowed destination using ask user tool after required reference prefetch and before reading canonical source bodies. Empty selection → verify root/pattern, report exact search, STOP; never extract a substitute spec from code.
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Never create a parallel case registry, canonical spec tree, or index forbidden by project policy; output only at a confirmed derived destination.
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Context compaction/session resume → the current task list FIRST; resume existing tasks, never re-run a completed generation pass — why: summaries describe intent, not filesystem state
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Stamp a DERIVED banner + date and write each selected aid immediately; compare candidate content first and do not write when content is unchanged.
@@ -236,7 +236,7 @@ The protocols below apply to this mode only; their full text is inline so this r
 | "The derived view can become a canonical source"        | NEVER — only configured canonical owners define requirements and cases. |
 | "A familiar filename or folder pattern should work"     | Resolve the project's configured root, selectors, and naming rules first. |
 | "No specs in this selection; I'll extract them from code" | Verify the root and selector, report exact paths, then STOP; code is not a replacement source. |
-| "Scope is obvious; skip ask the user directly"              | BLOCKING — confirm scope, action, artifact set, and destination before reading canonical bodies. |
+| "Scope is obvious; skip ask user tool"              | BLOCKING — confirm scope, action, artifact set, and destination before reading canonical bodies. |
 | "I'll trust the source link"                             | Verify it. A dangling link makes the derived navigation layer worse than none. |
 | "Case count looks about right"                           | Count only from the selected canonical carrier and its explicit counting rule; otherwise mark unknown or omit it. |
 

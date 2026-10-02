@@ -9,7 +9,7 @@ description: '[Utilities] Use when a workflow step or the user asks for a sessio
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -33,7 +33,7 @@ description: '[Utilities] Use when a workflow step or the user asks for a sessio
 
 - **READ-ONLY contract** — review, summarize and FLAG only; NEVER edit, fix, implement, or update the docs or specs you flag. The only write is the git-ignored session report — why: watzup is a handoff, not an edit pass.
 - **Scope is the session**, not only recent commits: uncommitted working-tree changes plus the commits made in this session, bounded by the session's task list, plan and prompt ledger when present — why: most session work is still uncommitted at wrap-up.
-- **Main steps in order:** (1) **Scope** the session's work; (2) **Session summary** — Done, Key changes, Why, How it works, then the detail; (3) **Doc-staleness gate**; (4) **Spec-driven health check** (business code only); (5) **Root-cause lesson extraction**; (6) **HTML session report**, auto-opened; (7) **ask the user directly Next Steps**.
+- **Main steps in order:** (1) **Scope** the session's work; (2) **Session summary** — Done, Key changes, Why, How it works, then the detail; (3) **Doc-staleness gate**; (4) **Spec-driven health check** (business code only); (5) **Root-cause lesson extraction**; (6) **HTML session report**, auto-opened; (7) **ask user tool Next Steps**.
 - **HTML report:** the four parts plus Flags and Next steps go into `tmp/reports/watzup-{YYMMDD}-{HHmm}-{slug}.html`, built from `references/session-report-template.html` and opened with `node .claude/scripts/open-report.cjs <path>`; chat gets a short summary plus the path — why: the reader should come away understanding what was done, why and how it works, not skimming a chat scroll.
 - **Proportion rule:** the session summary and lesson gate always run. When no code changed (research, diagram or docs-only runs), the doc-staleness and spec-health gates record `skipped — no code changed` with evidence. The wrap-up never adds a second comprehension workflow — why: the four-part summary and report already own the handoff.
 - Lessons go to `$learn` ONLY after user confirmation; surface-level "always check file X" notes are noise, not lessons.
@@ -46,7 +46,7 @@ description: '[Utilities] Use when a workflow step or the user asks for a sessio
 4. **Spec Health** — Run when business code changed; otherwise record `skipped — no code changed` (or `no business code changed`) with evidence.
 5. **Lesson Learned** — Analyze AI mistakes/issues during the session and capture lessons.
 6. **Session Report** — Write the HTML report and open it (see [Session Report (HTML)](#session-report-html)); post a short chat summary plus the report path.
-7. **Next Steps** — ask the user directly (see [Next Steps](#next-steps)).
+7. **Next Steps** — ask user tool (see [Next Steps](#next-steps)).
 
 **Key Rules:**
 
@@ -234,7 +234,7 @@ Runs on every invocation after the lesson analysis. It is the detailed, readable
 
 **MANDATORY** before presenting these options, write and open the session report ([Session Report (HTML)](#session-report-html)). The report and chat summary are the complete handoff; do not invoke another comprehension skill.
 
-After the report is written, MUST ATTENTION use ask the user directly to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
+After the report is written, MUST ATTENTION use ask user tool to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
 
 - **"$workflow-end (Recommended)"** — Complete and close the active workflow. **Offer it only when `$workflow-end` has not already run**: when this session's task list or the workflow's Tier-2 manifest shows a completed `workflow-end` occurrence (or its `Workflow [name] completed` announcement), leave this option out and make `$commit` the first option. A standalone wrap-up with no such evidence keeps this option.
 - **"$commit"** — Commit changes if not using workflow
@@ -292,13 +292,13 @@ After the report is written, MUST ATTENTION use ask the user directly to present
 
 **IMPORTANT MUST ATTENTION** stay READ-ONLY — only FLAG findings; NEVER edit, fix, implement, or update the docs or specs you flag — why: watzup is a review/handoff, not an edit pass; flagging-then-fixing silently breaks the read-only contract.
 **IMPORTANT MUST ATTENTION** scope the whole session (uncommitted changes plus this session's commits) and write the Session summary first — Done, Key changes, Why, How it works — then run the gates: doc-staleness, spec health (business code only), lesson extraction. Never skip a gate because the change "looks small"; with no code changed, doc-staleness and spec health record `skipped — no code changed` with evidence — why: stale docs and missed lessons compound silently, while a code gate on a no-code session is noise.
-**IMPORTANT MUST ATTENTION** write and open the HTML session report BEFORE the ask the user directly Next Steps prompt; never invoke another comprehension skill from this workflow — why: the four-part summary and report already own the developer handoff.
+**IMPORTANT MUST ATTENTION** write and open the HTML session report BEFORE the ask user tool Next Steps prompt; never invoke another comprehension skill from this workflow — why: the four-part summary and report already own the developer handoff.
 **IMPORTANT MUST ATTENTION** make the HTML report beautiful, easy to read and easy to understand — one-line outcome, text status per request, changes grouped by area, a before → after or flow for changed behaviour, plain short sentences, no empty optional block — and check it before opening — why: a correct report nobody can scan hands over no understanding.
 **IMPORTANT MUST ATTENTION** HTML-escape every placeholder value in the report and keep every `href` a relative, `file:` or `vscode:` link — why: the report is auto-opened in a browser, and unescaped session text can hide report content or run as markup.
 
 **IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases (or a stable project convention); recommend `$learn` ONLY for a project convention or a universal best-practice protocol worth reading on everyday work — rare AI-agent quirks, one-off incidents and current-task details are noise, and so are surface-level "always check file X" notes — why: persisted lessons are read on every task, so only everyday-valuable prevention compounds across sessions.
 **IMPORTANT MUST ATTENTION** send lessons to `$learn` ONLY after explicit user confirmation — NEVER auto-persist or self-edit instruction files — why: lesson capture is a durable instruction change the user must own.
-**IMPORTANT MUST ATTENTION** use ask the user directly for the Next Steps decision — NEVER auto-decide the route even when it "seems obvious" — why: the user owns the workflow-end / commit / continue choice.
+**IMPORTANT MUST ATTENTION** use ask user tool for the Next Steps decision — NEVER auto-decide the route even when it "seems obvious" — why: the user owns the workflow-end / commit / continue choice.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks with task tracking BEFORE starting (one task per file read), keep exactly one `in_progress`, and add a final review todo to verify work quality — why: long files exhaust context; granular tasks survive compaction.
 **IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence with a confidence % for every claim/finding (>80% to act, <80% verify first) — NEVER present a guess as fact — why: an unverified staleness/lesson flag misleads the developer's next decision.
 **IMPORTANT MUST ATTENTION** grep/glob to verify any referenced doc, path, or API actually exists before flagging it — NEVER hallucinate a doc mapping or count — why: AI invents file paths and method names; the change summary must match the real diff.
@@ -310,7 +310,7 @@ After the report is written, MUST ATTENTION use ask the user directly to present
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | "Doc looks fine, skip the staleness gate"        | Run the path→doc table anyway — staleness is silent; flag or output `No doc updates needed`.   |
 | "No real mistakes this session, skip lessons"    | Still run the gate — output `No AI mistakes identified` only after honest self-review.         |
-| "It's obvious next they want a commit, just do it" | NEVER auto-decide — present the ask the user directly options; the user owns the route.           |
+| "It's obvious next they want a commit, just do it" | NEVER auto-decide — present the ask user tool options; the user owns the route.           |
 | "I can just fix this stale doc while I'm here"    | READ-ONLY — flag only. Fixing here breaks the contract; the user decides.                      |
 | "Big change needs another explanation workflow"  | Keep one owner: make the session summary and HTML report complete instead of invoking another skill. |
 | "Nothing was coded, skip the summary"            | The Session summary always runs — research and docs sessions still have Done, Why and How.     |

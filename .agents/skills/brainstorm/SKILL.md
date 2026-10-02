@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -33,13 +33,13 @@ disable-model-invocation: false
 **Summary:**
 
 - **Ordered core:** P0 Setup (scenario/role/known + context) → P1 Problem Framing/diverge (POV, 5 Whys/Fishbone, JTBD, HMW) → P2 Opportunity Framing/converge (OST, Lean Canvas, ERRC, Value Proposition) → P3 Ideation/diverge (SCAMPER, Crazy 8s, Brainwriting, Impact Mapping, Analogy; 25–40 ideas) → P4 Evaluation/converge (Dot Vote, RICE, Kano, 2×2, MoSCoW; shortlist 3–5) → P5 Validation (problem/value cards, RAT, cheapest test, Build-Measure-Learn) → P6 Decision (one recommendation) → P7 Documentation/Handoff.
-- **Purpose and gates:** Run ask the user directly in P0 first; separate diverge from converge; test every top-3 candidate before build; Multi-Opportunity Discovery ranks 3–8 opportunities and uses multi-select.
+- **Purpose and gates:** Run ask user tool in P0 first; separate diverge from converge; test every top-3 candidate before build; Multi-Opportunity Discovery ranks 3–8 opportunities and uses multi-select.
 - **Routing:** Resolve `--mode=roadmap|scope` before P0. Roadmap hands outcome/milestone framing to `$product-roadmap`; scope amends one approved `plans/{plan-id}/scope-brief.md` and stops before scenario/plan work (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides it).
 - **Handoff boundary:** Apply `isLargeIdea`; when true, carry one complete `large_idea_decomposition` block in the owning handoff. Default mode offers user-selected handoff (`$idea`, `$pbi --mode=refine`, `$plan`, etc.); Multi-Opportunity Discovery hands selected items to the per-opportunity PBI loop.
 
 **Workflow:**
 
-1. **Session Setup** — ask the user directly detects scenario, role, known context; load domain or market context.
+1. **Session Setup** — ask user tool detects scenario, role, known context; load domain or market context.
 2. **Problem Framing/diverge** — POV, root cause when applicable, JTBD, HMW.
 3. **Opportunity Framing/converge** — scenario-specific OST, Lean Canvas, ERRC, Value Proposition.
 4. **Ideation/diverge** — SCAMPER, Crazy 8s, Brainwriting, Impact Mapping, Analogy; no judgment.
@@ -52,7 +52,7 @@ disable-model-invocation: false
 - **Golden Rule:** NEVER evaluate ideas while generating them; diverge and converge stay separate.
 - **Evidence:** Every claim and recommendation needs `file:line`, source, or traced evidence; confidence >80% required.
 - **Output:** Scored, ranked shortlist with hypothesis validation—never a flat idea list.
-- **User decisions:** Use ask the user directly for scenario selection, prioritization, and handoff.
+- **User decisions:** Use ask user tool for scenario selection, prioritization, and handoff.
 - **Technique selection:** Derive the sequence from the detected scenario; use cheat sheets for routing, not a one-size-fits-all checklist.
 - **Risk profile:** Content skill; fresh-eyes review, specialist delegation, embedded sub-agent protocols, and recursive fix loops are N/A. Preserve the existing terminal state.
 
@@ -90,7 +90,7 @@ Resolve the flag before Phase 0:
 | `--mode=scope` | Clarify one selected roadmap milestone | Amend the exact selected `plans/{plan-id}/scope-brief.md` (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides) with in-scope behavior, non-goals, terms, source of truth, risks, decisions, and evidence; stop before `$scenario`/`$plan` |
 | default | Standard Double Diamond ideation | Existing idea shortlist or multi-opportunity map flow below |
 
-`--mode=roadmap` still requires owner approval. Use ask the user directly for milestone boundaries and lifecycle terms. `$product-roadmap` owns the canonical artifact and selection gate; this mode supplies framing only.
+`--mode=roadmap` still requires owner approval. Use ask user tool for milestone boundaries and lifecycle terms. `$product-roadmap` owns the canonical artifact and selection gate; this mode supplies framing only.
 
 `--mode=scope` MUST resolve an existing scope-brief path from the `$product-roadmap` handoff, `$ARGUMENTS`, or active plan, then amend that file in place. If no stable `plans/{plan-id}/scope-brief.md` exists — plans root default `plans/`, overridable via `docsRoots.plans.path` in `docs/project-config.json` — stop and route to `$product-roadmap`; NEVER create a competing brief or write one under `tmp/reports/`.
 
@@ -113,7 +113,7 @@ When true, the brainstorm handoff owns this portable block; downstream skills co
 
 ## Phase 0: Session Setup (MANDATORY)
 
-**MUST ATTENTION** Use ask the user directly to detect scenario, role, and constraints before any technique.
+**MUST ATTENTION** Use ask user tool to detect scenario, role, and constraints before any technique.
 
 ### 0.1 — Scenario Detection
 
@@ -173,7 +173,7 @@ because peak-season backlogs delay fulfillment,
 but the current system shows raw order data with no ranking or comparison.
 ```
 
-Use ask the user directly to validate the framing:
+Use ask user tool to validate the framing:
 
 - "Is this the core problem, or a symptom of a deeper problem?"
 - "Who specifically experiences this? How often? What's the cost?"
@@ -593,7 +593,7 @@ Time to validation: [Days/weeks]
 | 2    | ...         | ...                    | ...   | ...    | ...        | ...    | ...  | ...  |
 ```
 
-**Multi-select handoff:** present the ranked map with ask the user directly and `multiSelect: true`: "Which opportunities should we develop into PBIs?". Selected opportunities feed `workflow-idea-to-pbi`'s **per-opportunity PBI loop** (idea → pbi --mode=refine → review → pbi --mode=story → challenge → DoR → mockup, then final cross-PBI prioritization). Do NOT author PBIs, specs, or plans here; the deliverable is only the scored, multi-selected map.
+**Multi-select handoff:** present the ranked map with ask user tool and `multiSelect: true`: "Which opportunities should we develop into PBIs?". Selected opportunities feed `workflow-idea-to-pbi`'s **per-opportunity PBI loop** (idea → pbi --mode=refine → review → pbi --mode=story → challenge → DoR → mockup, then final cross-PBI prioritization). Do NOT author PBIs, specs, or plans here; the deliverable is only the scored, multi-selected map.
 
 ---
 
@@ -770,7 +770,7 @@ Create a Markdown summary report:
 → 3. HMW Questions → 4. SCAMPER → 5. RICE-score EVERY opportunity
 → 6. Rank into a 3–8-item opportunity map (do NOT pick ONE)
 → 7. Write plans/{plan-dir}/brainstorm-opportunity-map.md  (plans root default plans/; docsRoots.plans.path in docs/project-config.json overrides)
-→ 8. ask the user directly multiSelect → hand selected opportunities to the per-opportunity PBI loop
+→ 8. ask user tool multiSelect → hand selected opportunities to the per-opportunity PBI loop
 ```
 
 > **Key difference from A/B/C:** converge to a RANKED MAP for multi-select, never a single recommendation. See [Multi-Opportunity Discovery Mode](#multi-opportunity-discovery-mode).
@@ -806,7 +806,7 @@ Create a Markdown summary report:
 
 ## Workflow Integration
 
-After the session, use ask the user directly to present next steps:
+After the session, use ask user tool to present next steps:
 
 | Next Step              | When                                                        | Skill/Workflow          |
 | ---------------------- | ----------------------------------------------------------- | ----------------------- |
@@ -818,7 +818,7 @@ After the session, use ask the user directly to present next steps:
 | `$domain-analysis`     | Idea touches domain entities, need model first              | `domain-analysis` skill |
 | Continue brainstorming | More scenarios to explore                                   | Stay in this session    |
 
-**Multi-Opportunity Discovery handoff:** in discovery mode, do NOT pick one next step. Present the ranked 3–8-item RICE map (write to `plans/{plan-dir}/brainstorm-opportunity-map.md`; plans root default `plans/`, overridable via `docsRoots.plans.path` in `docs/project-config.json`) by asking the user directly with `multiSelect: true`, then hand selected opportunities to `workflow-idea-to-pbi`'s per-opportunity PBI loop. `workflow-idea-to-pbi` consumes this map directly.
+**Multi-Opportunity Discovery handoff:** in discovery mode, do NOT pick one next step. Present the ranked 3–8-item RICE map (write to `plans/{plan-dir}/brainstorm-opportunity-map.md`; plans root default `plans/`, overridable via `docsRoots.plans.path` in `docs/project-config.json`) using ask user tool with `multiSelect: true`, then hand selected opportunities to `workflow-idea-to-pbi`'s per-opportunity PBI loop. `workflow-idea-to-pbi` consumes this map directly.
 
 ---
 
@@ -864,20 +864,20 @@ After the session, use ask the user directly to present next steps:
 
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers, confidence closer.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** detect scenario + role + how-much-known by asking the user directly Phase 0 FIRST — each scenario routes a different technique sequence — why: misclassifying scenario derails every downstream phase.
+- **MANDATORY IMPORTANT MUST ATTENTION** detect scenario + role + how-much-known using ask user tool Phase 0 FIRST — each scenario routes a different technique sequence — why: misclassifying scenario derails every downstream phase.
 - **MANDATORY IMPORTANT MUST ATTENTION** separate diverge (Phases 1 & 3, generate, "Yes, and…", zero judgment) from converge (Phases 2 & 4, narrow + score) — NEVER evaluate ideas while generating them — why: mixing the two modes is the Golden Rule violation that kills creative output.
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER stop at a raw or flat idea list — every top-3 candidate carries a problem + value hypothesis card, an identified riskiest assumption (RAT), and the single cheapest validation test designed before any build commitment — why: 42% of features fail from no market need; validate before building.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark each `completed` immediately, add a final review todo — why: long brainstorm sessions lose context without external task tracking.
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns first — read the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) for domain (codebase) or `WebSearch` for market/competitor context (greenfield) before ideating — why: ideas ungrounded in domain or market evidence score on gut feel, not fit.
 - **MANDATORY IMPORTANT MUST ATTENTION** cite evidence for every claim, confidence >80% to recommend; RICE Confidence is a multiplier, not optional — why: low-evidence ideas without a Confidence score get over-ranked.
-- **MANDATORY IMPORTANT MUST ATTENTION** close with ONE opinionated recommendation + trade-offs (Phase 6) — never a flat menu of options — why: a menu pushes the decision back on the team and invites HiPPO bias. EXCEPTION — **Multi-Opportunity Discovery mode** (selected in Phase 0): do NOT pick ONE; instead RANK a 3–8-item RICE opportunity map, write it to `plans/{plan-dir}/brainstorm-opportunity-map.md` (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides), and hand off by asking the user directly `multiSelect: true` to `workflow-idea-to-pbi`'s per-opportunity PBI loop — why: each opportunity becomes a separate downstream PBI, so collapsing to one would discard the backlog the discovery workflow exists to produce.
-- **MANDATORY IMPORTANT MUST ATTENTION** use ask the user directly for all user decisions and handoff routing (`$idea`, `$pbi --mode=refine`, `$plan`) — never auto-decide — why: the user owns scenario, prioritization, and next-step choices.
+- **MANDATORY IMPORTANT MUST ATTENTION** close with ONE opinionated recommendation + trade-offs (Phase 6) — never a flat menu of options — why: a menu pushes the decision back on the team and invites HiPPO bias. EXCEPTION — **Multi-Opportunity Discovery mode** (selected in Phase 0): do NOT pick ONE; instead RANK a 3–8-item RICE opportunity map, write it to `plans/{plan-dir}/brainstorm-opportunity-map.md` (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides), and hand off using ask user tool `multiSelect: true` to `workflow-idea-to-pbi`'s per-opportunity PBI loop — why: each opportunity becomes a separate downstream PBI, so collapsing to one would discard the backlog the discovery workflow exists to produce.
+- **MANDATORY IMPORTANT MUST ATTENTION** use ask user tool for all user decisions and handoff routing (`$idea`, `$pbi --mode=refine`, `$plan`) — never auto-decide — why: the user owns scenario, prioritization, and next-step choices.
 
 **Anti-Rationalization:**
 
 | Evasion                                          | Rebuttal                                                                              |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| "Scenario is obvious, skip Phase 0 detection"    | Misclassified scenario routes the wrong technique sequence. Run ask the user directly first. |
+| "Scenario is obvious, skip Phase 0 detection"    | Misclassified scenario routes the wrong technique sequence. Run ask user tool first. |
 | "Just list the ideas, evaluation can wait"       | A flat idea list is the deliverable failure. Score, rank, and hypothesis-test the top 3. |
 | "Skip the RAT — the idea is clearly good"        | "Clearly good" is HiPPO bias. Design the cheapest test before any build commitment.   |
 | "Diverge and converge together to save time"     | Mixing modes kills creative output — the Golden Rule violation. Keep phases separate. |

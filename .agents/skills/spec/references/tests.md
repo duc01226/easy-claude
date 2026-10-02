@@ -27,7 +27,7 @@ Everything from this point to the end describes the strict default TC/Section 8 
 
 **Workflow:** (1) Mode Detection → (2) Investigation → (3) TC Generation → (4) Write Section 8 → (5) Test-Code Sync → (6) Next Steps
 
-**Key Rules:** Unified `TC-{FEATURE}-{NNN}` format · Section 8 = source of truth · Evidence required on every TC · Minimum 5 categories (positive, negative, authorization, edge cases, invariant/property) · Properties not just examples — every [HARD] rule / §5 invariant gets a universally-quantified property TC · Interactive review by asking the user directly mandatory
+**Key Rules:** Unified `TC-{FEATURE}-{NNN}` format · Section 8 = source of truth · Evidence required on every TC · Minimum 5 categories (positive, negative, authorization, edge cases, invariant/property) · Properties not just examples — every [HARD] rule / §5 invariant gets a universally-quantified property TC · Interactive review using ask user tool mandatory
 
 > **[M5 — Rebuild-from-scratch signal]** A competent team with zero codebase knowledge MUST be able to derive and execute every TC from the spec text alone, on ANY stack — without reading source. If a TC's intent is only understandable by opening the implementation, it fails M5: rewrite the objective/Given-When-Then in business-observable terms. See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria.
 
@@ -80,7 +80,7 @@ Each reference doc below sits in the project-reference docs root — default `do
     - **Performance TCs:** Feature within SLA under production-like volume
     - **Data Change TCs:** business data state transforms correctly and remains visible/usable as expected
     - **Preservation TCs (MANDATORY business-visible bugfixes):** ≥1 per "Healthy input" row — authored from OLD code semantics BEFORE fix lands. Technical-only bugfixes with no business-visible result produce zero business TCs.
-- **Interactive review:** ALWAYS ask the user directly — review TC list with user before writing
+- **Interactive review:** ALWAYS ask user tool — review TC list with user before writing
 - **Real-world fidelity (per TC):** every TC's `Preconditions` and `Demo Flow` MUST describe a situation real actor behaviour can actually produce. State HOW production reaches the precondition, and — whenever two consecutive steps are distinct actor actions — state the realistic elapsed gap between them. A TC specifying a sequence production could never reach GUARANTEES an unrealistic test downstream: the spec is the upstream lever, so fix it here, never in the generated test's assertions.
 
 <!-- SYNC:real-world-fidelity-testing -->
@@ -152,7 +152,7 @@ Detect mode from prompt and context:
 | **Sync**                   | User says "sync test specs" or bidirectional need | Reconcile feature docs ↔ the business spec root (default `docs/specs/`, overridden by `specRoots.business.path` in `docs/project-config.json`), either direction — see `sync.md` |
 | **From-integration-tests** | Tests exist with test spec annotations, no docs   | Extract TC metadata from test code → write to feature docs        |
 
-### Mode Confirmation (ask the user directly)
+### Mode Confirmation (ask user tool)
 
 **[REQUIRED]** Confirm mode before Phase 2 when signals ambiguous:
 
@@ -183,7 +183,7 @@ Read target feature doc Sections 3, 4, 5, 7. Check:
 - Section 7 has permission matrix (≥1 role × action row) — flag if absent
 - Section 3 has US-/AC- entries with explicit outcomes — flag if empty/vague
 
-If 2+ fail → ask the user directly: "Spec readiness below TC generation threshold. Fill gaps first OR proceed with shallow TCs (`Status: Planned`)?" NEVER silently generate shallow TCs.
+If 2+ fail → ask user tool: "Spec readiness below TC generation threshold. Fill gaps first OR proceed with shallow TCs (`Status: Planned`)?" NEVER silently generate shallow TCs.
 
 **If target feature doc missing:** suggest `$spec` first, OR create minimal Section 8 stub.
 
@@ -417,7 +417,7 @@ Task tracking: "Generate Edge Case TCs for {feature} — boundary conditions fro
 Task tracking: "Generate Invariant/Property TCs for {feature} — per [HARD] §4 rule + §5 invariant: universally-quantified property + boundary counter-case (probe idempotency/round-trip/commutativity/monotonicity/conservation/state-transition)"
 ```
 
-Each batch task completes before starting the next. Final ask the user directly review covers all batches together.
+Each batch task completes before starting the next. Final ask user tool review covers all batches together.
 
 ### Phase 3: TC Generation with Interactive Review
 
@@ -431,7 +431,7 @@ Each batch task completes before starting the next. Final ask the user directly 
 | TC-ORD-039 | Unauthenticated user cannot access orders | P0 | Permission | New |
 ```
 
-2. Use ask the user directly to review with user:
+2. Use ask user tool to review with user:
 
 ```
 Question: "These {N} test cases cover {feature}. Review the list:
@@ -553,7 +553,7 @@ The full reconciliation procedure (direction detection, quality gate, forward/re
 
 ### Phase 6: Next Step Suggestion
 
-Based on mode, suggest by asking the user directly:
+Based on mode, suggest using ask user tool:
 
 **TDD-first:**
 

@@ -72,7 +72,7 @@ This returns `file_summary`, `imports_of`, `importers_of`, `callers_of`, and `te
 ### Step 4: Handle response status
 
 - **`status: "ok"`** -- Parse `results[]` and `edges[]`, format report (Step 5)
-- **`status: "ambiguous"`** -- Multiple matches found. Show `candidates[]` list and ask user to pick one using ask the user directly
+- **`status: "ambiguous"`** -- Multiple matches found. Show `candidates[]` list and ask user to pick one using ask user tool
 - **`status: "not_found"`** -- No match. Suggest: check spelling, use relative file path, try a different name. Optionally run `file_summary` on the parent file to show available names.
 - **`status: "error"`** -- Show error message. Common: graph.db missing, Python version too old.
 

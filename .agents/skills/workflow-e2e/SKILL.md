@@ -10,7 +10,7 @@ disable-model-invocation: false
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -128,7 +128,7 @@ You choose inline vs sub-agent, batching and wave layout, optimizing wall-clock 
 
 ## Fix Path & Loop Bounds
 
-Owned by `$e2e-test --mode=verify --fix-loop`; this workflow only enforces its bounds. Classify before editing, trace root cause with `$investigate --mode=debug`, fix at the owning layer with `$fix`, review the round's diff with `$changes-review`, run the Round Integrity Check, then rerun fresh over the same scope. Converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3). A non-shrinking or rising failure count, a cap hit with failures open, scope shrink or test loss → `NOT-CONVERGED` and escalate by asking the user directly with exact evidence. Never weaken, skip, narrow, delete, silence or auto-accept to obtain green.
+Owned by `$e2e-test --mode=verify --fix-loop`; this workflow only enforces its bounds. Classify before editing, trace root cause with `$investigate --mode=debug`, fix at the owning layer with `$fix`, review the round's diff with `$changes-review`, run the Round Integrity Check, then rerun fresh over the same scope. Converge on the configured consecutive fresh green runs (default 2) within the round cap (default 3). A non-shrinking or rising failure count, a cap hit with failures open, scope shrink or test loss → `NOT-CONVERGED` and escalate using ask user tool with exact evidence. Never weaken, skip, narrow, delete, silence or auto-accept to obtain green.
 
 <!-- PROTOCOL-GUIDES:START -->
 

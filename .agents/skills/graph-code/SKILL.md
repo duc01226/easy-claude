@@ -9,7 +9,7 @@ description: '[Code Intelligence] Use when building/syncing the code graph, quer
 > - Source vs execution: prefer the registered `.agents/skills/<name>/SKILL.md` for Codex execution. `.claude/**` remains the canonical authoring source; reading it for a registry or source inspection does not switch this session to Claude Code.
 > - Capability check: interpret Claude tool names through the active host before declaring a blocker. Continue when Codex can perform the required operation; stop and ask only when the actual capability is unavailable, naming the step and evidence. Host-native execution is not a protocol deviation and needs no extra approval.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
+> - Use ask user tool to ask user.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
 > - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
@@ -26,7 +26,7 @@ description: '[Code Intelligence] Use when building/syncing the code graph, quer
 
 **Key Rules:**
 
-- One mode per invocation. No mode and no mode word: show the [Mode Dispatch](#mode-dispatch) table and ask which mode by asking the user directly; a natural-language request that matches exactly one row of the Intent column selects that row's mode (the Intent column holds action phrases only: a prompt that merely names "code graph", "knowledge graph" or "uncommitted changes" carries no action and gets the table); anything else gets the table, never a guess.
+- One mode per invocation. No mode and no mode word: show the [Mode Dispatch](#mode-dispatch) table and ask which mode using ask user tool; a natural-language request that matches exactly one row of the Intent column selects that row's mode (the Intent column holds action phrases only: a prompt that merely names "code graph", "knowledge graph" or "uncommitted changes" carries no action and gets the table); anything else gets the table, never a guess.
 - Always pass `--json` to the CLI so the output is structured and parseable.
 - Graph not built (`.code-graph/graph.db` absent): report plainly — "graph not built — run $graph-code --mode=build, or continue with grep" — and stop that mode. It is never an error for a caller.
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act; MUST ATTENTION keep task tracking updated as each step starts/completes.
