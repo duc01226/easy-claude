@@ -2,7 +2,7 @@
 
 > **Purpose:** the one-page map of the portable `.claude/` framework — what it does, how the parts fit, how to use it day to day, and where each topic's detailed owner doc lives. Read it first when you adopt the framework, change it, or need to explain a hook block, a routing decision or a workflow step.
 >
-> **Framework inventory:** <!-- COUNT:hooks -->30<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->45<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->101<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries.
+> **Framework inventory:** <!-- COUNT:hooks -->30<!-- /COUNT --> top-level hook files · <!-- COUNT:lib-modules -->45<!-- /COUNT --> hook-library modules · <!-- COUNT:skills -->101<!-- /COUNT --> skills · <!-- COUNT:workflows -->19<!-- /COUNT --> workflows · <!-- COUNT:agents -->24<!-- /COUNT --> agents · <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries.
 >
 > **Visual version:** `.claude/docs/claude-ai-agent-framework-guide.html` (same content, one standalone page).
 

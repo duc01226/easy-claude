@@ -41,6 +41,8 @@
    - fixtures/builders/data isolation and runner configuration.
 4. Create `tmp/reports/integration-test-review-{YYMMDD}-{HHmm}-{slug}.md` before findings.
 
+**Resolved tests/source only:** follow `.claude/skills/shared/review-preparation.md` after locating the review package and before the eight gates. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. This does not run generation or runtime verification.
+
 ## Single Review Pass — Eight Gates
 
 Judge each gate `PASS`, `FAIL`, `N/A`, or `NOT VERIFIABLE` with `file:line`/config/runner evidence.

@@ -1,6 +1,6 @@
 # Configuration Reference
 
-> Complete guide to Claude Code configuration files
+> Complete guide to Claude Code configuration files. Read [../review-preparation.md](../review-preparation.md) when configuring deterministic review groups, required rule sources or optional OCR acquisition. **MUST ATTENTION** keep machine permission in personal/ignored local policy; team review settings grant nothing.
 
 ## Overview
 
@@ -110,6 +110,32 @@ The `codeReview` section records which project-specific review-rule doc the revi
 | `injectOnSkills` | string[] | Skills associated with the review-rules doc                                                                                                                                                                                         |
 
 **To update code review rules:** Edit `code-review-rules.md` in the project-reference docs root directly. Review skills/agents read it on demand via the project-reference-docs gate.
+
+### Portable review preparation
+
+The configured project-config file (default `docs/project-config.json`) owns optional `reviewPreparation` and `reviewGroups`. These describe project review policy; they grant no execution, network or installation permission. Read [../review-preparation.md](../review-preparation.md) when selecting exact scopes, adding groups/rules or inspecting preparation artifacts.
+
+- `reviewPreparation.provider`: omitted = Unset (setup-needed without invocation/acquisition), explicit `open-code-review` = Enabled, `none` = Off (quiet disabled on later reviews).
+- `reviewPreparation.ruleDocs`: additional safe project-relative required sources; omit for `[]`. Keep actual project-selected rules and matching conventions; never append an unconditional document inventory.
+- `reviewGroups[]`: exact unique `id`, optional safe integer `priority` (default `500`), existing `modules[]`/`contextGroups[]` references, optional `relatedGroups[]` and setup `origin`/`detectedFingerprint`. At least one classifier reference is required. Lowest rank wins; ties use declaration order; unmatched entries use reserved `general`. Every overlapping applicable rule remains required.
+
+`project-config` and `framework-config` expose the same **project** OCR preference through `node .claude/skills/project-config/scripts/review-setup.cjs --action inspect`; status/questions write nothing. Explicit enable/off uses the same helper with `--action enable|off --expected-source <exact-inspect-token>`, retaining the inspected `expectedSource`. It follows the full canonical config loader/relocation, preserves unrelated settings/rules/groups and validates saved readback. Before-publication refusal leaves settings unchanged with “Review assistance settings not saved”. For `config-publication-unverified`, report “Review assistance settings may have changed; confirmation unavailable”, invalidate prior preparation/evidence and re-inspect; a continuing review must freshly capture current target/policy. Never silently retry/acquire or bypass through the generic checkout writer. Configuration performs no provider readiness/acquisition.
+
+Read [../skills/README.md](../skills/README.md#review-preparation-and-setup) when choosing the configuration/review route, and [../review-preparation.md](../review-preparation.md#choose-or-change-ocr-for-the-project) when executing the single top-level review adoption choice: **Accept setup**, **Turn off OCR for this project**, **Skip this time**. Successful preference saves require fresh exact target/policy/output before continued review; Skip writes nothing and repeats `--provider-decision skip` through every parent/child/recheck. Empty/artifact/runtime/image/feedback-only reviews do not ask; read-only leaves inherit without questions/writes/acquisition. Off stays quiet; Enabled tool failure gives fallback without another adoption question. Neither saved preference nor provider readiness passes a review gate.
+
+`project-config` previews and persists accepted groups; `project-init` delegates after classifier setup and keeps preference setup config-only; `scan` recommendations remain report-only. Manual/user and edited detected entries survive setup. Validate with `node .claude/hooks/lib/project-config-schema.cjs --validate docs/project-config.json` (use the configured path if relocated).
+
+Only `~/.claude/.ck.json` and ignored `.claude/.ck.local.json` supply `reviewTools.openCodeReview`: `execution` (default `true`), `acquisition` (`auto`/`never`, default `auto`), `network` (default `true`), optional absolute `binaryPath` and `cacheDir`. Denial in either personal layer dominates grants; tracked team `.ck.json` is not a machine permission source. Native host permissions still apply.
+
+```json
+{
+  "reviewTools": {
+    "openCodeReview": { "acquisition": "never", "network": false }
+  }
+}
+```
+
+Use this in personal or ignored local configuration when using an existing compatible pinned binary without downloading. `CK_REVIEW_TOOL_EXECUTE=0`, `CK_REVIEW_TOOL_INSTALL=0`, `CK_REVIEW_TOOL_NETWORK=0` only restrict; `CK_REVIEW_TOOL_BINARY` and `CK_REVIEW_TOOL_CACHE` supply absolute machine path preferences. Explicit preparation may acquire the fixed native publication without global npm, lifecycle scripts or a model API key. **MUST** resolve target or required-rule errors; provider failure retains ordinary review with the same target and complete rules.
 
 ### Per-file convention injection
 
@@ -684,6 +710,11 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 | `CLAUDE_HOOK_DEBUG_LOG`                 | Path of that trace file; default `<os temp>/ck/debug/bash-hooks.log`                                                                 |
 | `CK_NO_AUTO_OPEN`                       | `1`: HTML reports (`watzup`, `understand`) print their path instead of opening; nothing opens under `CI` or headless Linux either    |
 | `CK_STARTUP_INSTALL_TRUST`              | `1`: host grant that lets `hooks.startupInstall.allowLifecycleScripts: true` take effect (see [Startup dependency installation](#startup-dependency-installation)) |
+| `CK_REVIEW_TOOL_EXECUTE` | `0`: deny OCR process execution during explicit review preparation |
+| `CK_REVIEW_TOOL_INSTALL` | `0`: forbid acquiring a missing OCR provider; an existing compatible pinned binary remains usable |
+| `CK_REVIEW_TOOL_NETWORK` | `0`: forbid provider download; no override grants native host network permission |
+| `CK_REVIEW_TOOL_BINARY` | Absolute path to a supported pinned native OCR binary; invalid or incompatible overrides fall back |
+| `CK_REVIEW_TOOL_CACHE` | Absolute private provider cache directory; default `~/.claude/cache/review-tools` |
 | `CK_PROMPT_LEDGER`                      | `0` / `false` / `off` / `no`: turns the session prompt ledger off, like `promptLedger.enabled: false` in `.ck.json`                  |
 | `CK_PROMPT_LEDGER_DIR`                  | Directory for prompt-ledger records instead of `<project>/tmp/prompt-ledger`                                                         |
 | `CK_COMMIT_SKILL_ROUTE`                 | `0`: stops the reminder to commit through the `commit` skill, like `commitSkillRoute.enabled: false`                                 |
@@ -859,3 +890,7 @@ Set a personal switch as an `env` entry in the git-ignored `.claude/settings.loc
 ---
 
 _Source: `.claude/` configuration files_
+
+## Closing reminders
+
+**MUST** keep project facts in the configured project-config file and machine permission in personal/ignored local policy. **MUST** validate declared settings and retain native host permissions. **MUST** resolve required review target/rule errors; optional provider fallback never waives host review gates.

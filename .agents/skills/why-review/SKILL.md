@@ -16,6 +16,25 @@ description: '[Code Quality] Use when a workflow step or the user asks for ratio
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- REVIEW-POLICY-SOURCES:START -->
+```json
+{
+  "version": 1,
+  "defaultMode": "full",
+  "modes": {
+    "full": [
+      ".claude/skills/why-review/references/full-mode.md"
+    ],
+    "validate-findings": [],
+    "fix-loop": [
+      ".claude/skills/why-review/references/fix-loop.md",
+      ".claude/skills/why-review/references/full-mode.md"
+    ]
+  }
+}
+```
+<!-- REVIEW-POLICY-SOURCES:END -->
+
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
@@ -52,6 +71,8 @@ description: '[Code Quality] Use when a workflow step or the user asks for ratio
 **Workflow:** Detect mode/target → (full mode only) read `references/full-mode.md`, then bind the self-recursive review loop (protocol-primary; optional `/goal` accelerator when available) → route path/docs/sub-agent focus (optional graph hint) → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review when validation identifies report defects or missed findings (at most 2 re-dos; 3 full review cycles total); otherwise hand off retained target findings → ask next step in full mode.
 
 **Key Rules:** MUST ATTENTION resolve target type BEFORE review. MUST ATTENTION every finding needs `file:line`, severity, confidence, best-practice rationale. MUST ATTENTION ask the 3 trade-off questions on every decision AND every recommendation (trade-off? worth it? material → confirm with user); NEVER accept "no trade-off" unexamined, NEVER decide a material trade-off silently. NEVER say "No active plan" except unresolved plan-rationale request. NEVER call `$why-review` from `validate-findings`. MUST ATTENTION judge by Easy-to-Change: lower future change cost or reject.
+
+**Source-review preparation:** Full/fix-loop code or diff targets use `.claude/skills/shared/review-preparation.md` at `references/full-mode.md` Target Resolution. Terminal validate-findings and plan/PBI/spec/docs/report-only rationale do not.
 
 ## Your Mission
 

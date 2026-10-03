@@ -2,6 +2,8 @@
 
 > Comprehensive AI-assisted development documentation for YourProject
 
+**Goal:** Route framework work to its authoritative guide so setup, review and quality gates remain portable. **MUST ATTENTION** read [review-preparation.md](./review-preparation.md) when configuring exact review targets, grouping or OCR criteria; retain complete rules and native host permissions.
+
 ## Quick Links
 
 | Goal                           | Document                                                                                                                           |
@@ -9,6 +11,7 @@
 | **New to Claude Code?**        | [quick-start.md](./quick-start.md) - 5-minute onboarding                                                                           |
 | **Need a skill?**              | [skills/README.md](./skills/README.md) - <!-- COUNT:skills -->101<!-- /COUNT --> skills catalog                                                                        |
 | **Building a feature?**        | [skills/README.md](./skills/README.md) + project-reference root patterns                                                           |
+| **Preparing a code review?** | [review-preparation.md](./review-preparation.md) - exact targets, complete rules, project groups and optional OCR criteria |
 | **Verifying user experience?** | [configuration/experience-verification.md](./configuration/experience-verification.md) - portable evidence and acceptance contract |
 | **Understanding hooks?**       | [hooks/README.md](./hooks/README.md) - <!-- COUNT:hooks -->30<!-- /COUNT --> top-level hook files deep-dive                                                           |
 | **Understanding workflows?**   | `.claude/workflows.json` canonical catalog plus opt-in prompt injection - <!-- COUNT:workflows -->19<!-- /COUNT --> workflows                                             |
@@ -36,6 +39,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 |
 |-- code-graph-mechanism.md  How the structural knowledge graph works
 |-- code-graph-setup.md      Setup guide for Python + Tree-sitter
+|-- review-preparation.md    Portable review targets, grouping, rules and machine policy
 |-- development-rules.md     Dev rules extracted from CLAUDE.md (static reference)
 |-- anti-hallucination-patterns.md  AI failure mode catalog + remediation patterns
 |
@@ -96,6 +100,7 @@ Project-owned branches below sit at their DEFAULT roots; `docs/project-config.js
 | How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                                                          |
 | How to configure output                     | [configuration/output-styles.md](./configuration/output-styles.md)                                              |
 | How team collaboration works                | [team-collaboration-guide.md](./team-collaboration-guide.md)                                                    |
+| How review targets, grouping and OCR fallback work | Read [review-preparation.md](./review-preparation.md) before configuring or troubleshooting preparation |
 | How to update code review rules             | [hooks/README.md#code-review-rules](./hooks/README.md#code-review-rules)                                        |
 
 ## Document Sizes (for context planning)
@@ -161,8 +166,13 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | 19    |
 | Hook Tests             | 133   |
-| Documentation Files    | 28    |
+| Hook Test Files        | 99 suites + 9 top-level test files |
+| Framework Markdown Files | 42 (`.claude/docs/**/*.md`) |
 
 ---
 
 _Last updated: 2026-06-11 | Source: `.claude/` directory analysis_
+
+## Closing reminders
+
+**Goal:** Route framework work to its authoritative guide so setup, review and quality gates remain portable. **MUST ATTENTION** select the guide for the task, inspect its source-backed configuration and preserve required host gates; read [review-preparation.md](./review-preparation.md) when troubleshooting review capture or supplemental-provider fallback.

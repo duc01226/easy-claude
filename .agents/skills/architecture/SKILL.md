@@ -16,6 +16,36 @@ description: '[Architecture] Use when a workflow step or the user asks for --mod
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- REVIEW-POLICY-SOURCES:START -->
+```json
+{
+  "version": 1,
+  "defaultMode": null,
+  "modes": {
+    "design": [
+      ".claude/skills/architecture/references/mode-design.md",
+      ".claude/docs/engineering-foundation-catalog.md",
+      ".claude/docs/scale-technique-catalog.md",
+      ".claude/docs/scenario-stress-catalog.md",
+      ".claude/skills/shared/sub-agent-selection-guide.md",
+      ".claude/skills/project-skill-protocol/references/registry.md"
+    ],
+    "review": [
+      ".claude/skills/architecture/references/mode-review.md"
+    ],
+    "scalability": [
+      ".claude/skills/architecture/references/mode-scalability.md",
+      ".claude/skills/architecture/references/scorecard.md",
+      ".claude/docs/architecture-knowledge.md"
+    ],
+    "full": [
+      ".claude/skills/architecture/references/mode-full.md"
+    ]
+  }
+}
+```
+<!-- REVIEW-POLICY-SOURCES:END -->
+
 > **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=design`, `--mode=review`, `--mode=scalability` or `--mode=full` selects that mode; read its reference file in full before anything else (see [Mode Dispatch](#mode-dispatch)). No mode: show the mode table below and stop — ask nothing, run nothing, never guess a mode. `$architecture --mode=design`, `--mode=review`, `--mode=scalability` and `--mode=full` are the former `/architecture-design`, `/architecture-review`, `/architecture-scalability-review` and `/architecture-review-full`: those slash commands no longer exist, and each mode works called directly with no workflow.
 
 ## Quick Summary
@@ -46,6 +76,8 @@ Detect the mode from the invocation arguments before any other work; do not load
 - **[BLOCKING]** When `--mode=full`, read `references/mode-full.md` in full FIRST and follow it alone; it runs INLINE, fans the faces out as sub-agents and synthesizes one report.
 - The `mode=init` / `mode=audit` tokens of the scalability mode are its run type, separate from the skill-level `--mode=scalability` that selects it.
 - Modes are separate invocations: no mode chains into another except `--mode=full`, whose faces run the `scalability` and `review` modes as sub-agents.
+
+**Source-review preparation:** after `review`, `full` or `scalability` resolves a concrete source set, follow `.claude/skills/shared/review-preparation.md` before source review. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Design, no-mode help and planned architecture grading are excluded.
 
 ## Closing Reminders
 

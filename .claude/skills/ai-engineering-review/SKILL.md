@@ -6,6 +6,19 @@ execution-mode: subagent
 context-budget: high
 ---
 
+<!-- REVIEW-POLICY-SOURCES:START -->
+```json
+{
+  "version": 1,
+  "defaultMode": "code",
+  "modes": {
+    "code": [],
+    "plan": []
+  }
+}
+```
+<!-- REVIEW-POLICY-SOURCES:END -->
+
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
@@ -151,6 +164,8 @@ git status && git diff && git diff --cached                          # the chang
 - Optional: when a changed call site, prompt or tool has a high-risk blast radius grep may miss and `.code-graph/graph.db` exists, `python .claude/scripts/code_graph trace <file> --direction both --json` (`--node-mode file` first) can hint at callers and covering tests (`tests_for`). The graph can be stale or incomplete — verify by reading; an absent graph is never a finding.
 
 **Expand files → surfaces (MANDATORY).** A file does not behave; a surface does. For every matched file find the call site → prompt → tools → sinks → data sources it belongs to and review the surface WHOLE, including its unchanged parts. A shared prompt, tool schema, model constant or retriever config changes every call site that reads it: review the highest-fan-out consumers and state the sample. Record `surface → changed files` at the top of the report.
+
+**Source-review preparation:** in code mode, after resolving the AI source/surface scope, follow `.claude/skills/shared/review-preparation.md` before review. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Plan and provider-fact-only lookup are excluded; existing paid-call restrictions remain.
 
 **Plan mode:** see [Plan Mode](#plan-mode---modeplan).
 

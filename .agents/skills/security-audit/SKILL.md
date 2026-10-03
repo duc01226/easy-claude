@@ -17,6 +17,22 @@ disable-model-invocation: false
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, steps follow the guided contract in `$start-workflow` (gate steps fixed; other steps may flex with a logged reason); report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- REVIEW-POLICY-SOURCES:START -->
+```json
+{
+  "version": 1,
+  "defaultMode": "changes",
+  "modes": {
+    "changes": [],
+    "full": [],
+    "deps": [],
+    "vet": [],
+    "host": []
+  }
+}
+```
+<!-- REVIEW-POLICY-SOURCES:END -->
+
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
@@ -100,6 +116,8 @@ Resolve mode from `<scope>` arguments. When ambiguous, default to `changes` if d
 | `deps`             | "check dependencies", "scan packages", after `npm install` issues | D3 (+ D2)                                                       |
 | `vet <repo/pkg>`   | BEFORE installing/cloning/running any third-party repo or package | D4 (+ D3)                                                       |
 | `host`             | "is this server compromised", VPS audit, post-incident            | D5 (+ D2)                                                       |
+
+**Source-review preparation:** for the resolved source subset of `changes`/`full` only, follow `.claude/skills/shared/review-preparation.md` before audit. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Exclude deps/vet/host and plan-only review; retain sensitive-file exclusions and D2/D4 safeguards.
 
 **D2 (Secrets) is ALWAYS in scope regardless of mode.** Cheap to check, catastrophic to miss.
 

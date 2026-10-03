@@ -14,6 +14,7 @@ description: '[Documentation] Use when a workflow step or the user asks for one 
 - **Ordered path:** Resolve optional config and selection → applicability → owner scan → candidate/retention review → enhance + final quality gate → baseline/no-op check and application → report.
 - **Modes/gates:** Init/Sync and target-defined Force; `kind: orchestrator` uses its procedure; unknown key STOPs; unsupported capability is a reported skip, not a guessed fallback.
 - **Evidence:** Use real `file:line` examples, incremental unique reports, surgical writes, all-path/name checks, target exceptions, and graph checks when the project supports them.
+- **Review setup findings:** recommend evidence-backed classifier groups/rule sources in the report; `/project-config` owns accepted policy writes. Scanning performs no review-tool acquisition.
 
 **Workflow:**
 
@@ -104,6 +105,8 @@ Read the full report. Apply the fresh-eyes protocol:
 
 ## Phase 4: Write & Verify
 
+**Selected-target review recommendations:** when this scan's authorized evidence reveals stable review responsibilities or rule sources, append proposals to its report: existing module/context identities, sample primary/overlap/unmatched assignments, suggested priority/related context and complete rule-source evidence with `file:line`. Recommend classifier changes through `/project-config` when an existing identity cannot express the observed boundary; never invent a duplicate matcher. Read `.claude/skills/shared/review-preparation.md` when explaining rule retention and fallback. **MUST ATTENTION** keep review-policy recommendations read-only: this scan writes only its selected doc and existing authorized convention output, never `reviewGroups`, `reviewPreparation` or tool installation policy. `/project-config` previews and merges the accepted subset; absent evidence yields no recommendation. An Unset OCR preference may be reported with the project-config/framework-config focused configuration route; the scan never asks the adoption choice, saves enable/off/Skip, invokes OCR or acquires it. Source-review adoption belongs to the shared recipe, not this scanning operation.
+
 1. **[BLOCKING] No-op scans write NOTHING — not even the stamp.** Finish enhancement and semantic review on the full candidate before application; choose freshness metadata according to the classified operation, then compare it against the doc on disk with the shared guard, which ignores volatile stamps and whitespace:
 
    ```bash
@@ -178,6 +181,8 @@ Read the full report. Apply the fresh-eyes protocol:
 
 
 ## Closing Reminders
+
+**MUST ATTENTION** selected scan evidence → review-group/rule recommendations → project-config acceptance handoff; write only the selected output and existing authorized convention output, never review policy or tool installation.
 
 **IMPORTANT MUST ATTENTION Goal:** Scan one manifest-selected reference-doc target and deliver a surgical, evidence-backed update that preserves action-changing rules, exceptions and verified discovery without report bulk.
 

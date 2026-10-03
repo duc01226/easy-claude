@@ -124,6 +124,8 @@ Analyze user request, not only literal argument shape. Determine target, then ch
 | Docs/spec/report/findings path                       | Artifact review                     | Read the target artifact and verify claims against source evidence; use rationale checklist only where the artifact is a plan/PBI.   |
 | Ambiguous request                                    | Infer from evidence; ask if unsafe  | Prefer a reasonable target from the request and repo evidence. Ask only when two plausible review paths would produce different work. |
 
+**Code/diff targets only:** after resolving the exact source target, follow `.claude/skills/shared/review-preparation.md` before review or each fresh fix-loop round. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Artifact rationale and terminal findings validation do not prepare source.
+
 **Important defaults:**
 
 1. Commit hash / `Commit:` block => code-change review, not "no active plan."

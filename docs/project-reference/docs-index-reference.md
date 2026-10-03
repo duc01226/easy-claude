@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-10-02 -->
+<!-- Last scanned: 2026-10-03 -->
 
 # Documentation Index Reference
 
@@ -13,7 +13,7 @@
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 475 unique authored Markdown files across 12 categories; `docs/` contains 52 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 494 unique authored Markdown files across 12 categories; `docs/` contains 54 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Workflow
 
@@ -29,7 +29,7 @@
 
 ## Documentation System
 
-475 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-02.
+494 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-03.
 
 **Relocatable roots.** Four of the categories below are anchored on a configurable root. Resolve each one before running its glob:
 
@@ -46,16 +46,16 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Project Reference      |             18 | `**/*.md` under the project-reference docs root                                       |
 | Operations             |              0 | direct getting-started/deployment/operations/runbook/setup/install/configuration docs |
 | Design System          |              1 | `design-system/**/*.md` under the project-reference docs root                         |
-| Feature Specs          |             10 | `*/README.*.md` under the business spec root                                          |
+| Feature Specs          |             11 | `*/README.*.md` under the business spec root                                          |
 | Spec Catalogs          |              5 | `*/INDEX.md` under the business spec root                                             |
 | Architecture Decisions |              4 | `**/*.md` under the ADR root                                                          |
 | Templates              |              1 | `**/*.md` under the templates root                                                    |
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
-| Knowledge Reports      |              11 | `docs/knowledge/**/*.md`                                                             |
-| Framework Docs         |             41 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            379 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Knowledge Reports      |              12 | `docs/knowledge/**/*.md`                                                             |
+| Framework Docs         |             42 | `.claude/docs/**/*.md`                                                                |
+| Skill Markdown         |            395 | `rg --files .claude/skills -g '*.md'`                                                 |
 
-The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
+The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. For this inventory, the authored/tracked scope includes generated protocol projections deliberately published as reader-facing documentation; Codex/OpenCode mirrors are excluded. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
 ## Documentation Graph
 
@@ -66,7 +66,7 @@ easy-claude/
 ├── AGENTS.md                                      # Codex/agent instructions
 ├── CLAUDE.md                                      # Claude project instructions
 ├── README.md                                      # Project overview and adoption entry point
-├── docs/                                          # 52 markdown files
+├── docs/                                          # 54 markdown files
 │   ├── adr/                                       # 4 architecture decisions
 │   │   ├── 0001-skill-lifecycle.md
 │   │   ├── 0002-canonical-count-metrics.md
@@ -111,21 +111,23 @@ easy-claude/
 │   │   ├── Presentation/                          # 1 Feature Spec + 1 bucket catalog
 │   │   │   ├── INDEX.md
 │   │   │   └── README.PresentationDecks.md
-│   │   └── WorkflowExecution/                     # 1 Feature Spec + 1 bucket catalog
+│   │   └── WorkflowExecution/                     # 2 Feature Specs + 1 bucket catalog
 │   │       ├── INDEX.md
-│   │       └── README.GuidedWorkflow.md
-│   ├── knowledge/research/                        # 11 project research/audit reports
+│   │       ├── README.GuidedWorkflow.md
+│   │       └── README.ReviewPreparation.md
+│   ├── knowledge/research/                        # 12 project research/audit reports
+│   │   ├── agent-skill-prompt-engineering-2026-10-03.md
 │   │   ├── ai-agent-skills-best-and-bad-practices.md
 │   │   └── workflow-skill-audit-2026-10-02/            # index + 4 audit/validation reports + repair log + 4 repair reports
 │   └── templates/                                 # 1 Feature Spec template
-├── .claude/docs/                                  # 41 framework docs
-│   ├── 24 direct framework guides
+├── .claude/docs/                                  # 42 framework docs
+│   ├── 25 direct framework guides
 │   ├── agents/                                    # 2
 │   ├── configuration/                             # 4
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 379 authored/tracked markdown assets
+└── .claude/skills/                                # 395 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -160,12 +162,14 @@ CLAUDE.md
 ├── skills/README.md
 ├── hooks/{README,extending-hooks}.md
 ├── configuration/{README,output-styles,experience-verification}.md
+├── review-preparation.md
 ├── team-collaboration-guide.md
 ├── code-graph-{mechanism,setup}.md
 └── troubleshooting.md
 
 docs/specs/Adoption/INDEX.md
 ├── README.AdoptionSwitches-Part2.md
+│   └── README.AdoptionSwitches.md   # parent_spec / See also
 └── README.SkillActivationPolicy.md
 
 docs/specs/ContextDelivery/INDEX.md
@@ -181,10 +185,11 @@ docs/specs/Presentation/INDEX.md
 └── README.PresentationDecks.md
 
 docs/specs/WorkflowExecution/INDEX.md
-└── README.GuidedWorkflow.md
+├── README.GuidedWorkflow.md
+└── README.ReviewPreparation.md
 ```
 
-Evidence: `README.md:386-396` (Further Reading); `CLAUDE.md` (Doc Lookup rows for hook, skill, agent, test, and feature-spec docs; the not-applicable reference note; the integration-test reference; the Automatic Skill Activation spec/test rows; the ADR pointer); `.claude/docs/README.md:9-18,88-98,146-150`; `Adoption/INDEX.md:7-12`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-11`; `Presentation/INDEX.md:7-11`; and `WorkflowExecution/INDEX.md:7-11`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
+Evidence: `README.md:386-396` (Further Reading); `CLAUDE.md` (Doc Lookup rows for hook, skill, agent, test, and feature-spec docs; the not-applicable reference note; the integration-test reference; the Automatic Skill Activation spec/test rows; the ADR pointer); `.claude/docs/README.md:9-18,88-98,146-150`; `Adoption/INDEX.md:7-12`; `ContextDelivery/INDEX.md:7-14`; `Notifications/INDEX.md:7-11`; `Presentation/INDEX.md:7-11`; and `WorkflowExecution/INDEX.md:7-12`. The bucket index paths resolve under the business spec root (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it).
 
 ## Doc Lookup Guide
 
@@ -225,6 +230,9 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Feature Specs          | changing workflow routing, the route payload, or activation tiers (WFR)                                                                                                            | `ContextDelivery/README.WorkflowRouting.md`                                                                 |
 | Feature Specs          | changing how shared protocols reach the assistant: guide lines, delivery hooks, host mapping (PDL)                                                                                 | `ContextDelivery/README.ProtocolDelivery.md`                                                                |
 | Feature Specs          | changing how a chosen workflow runs: step roles, outcome gates, deviation log, the spec-supplied route, scope guard, usage report, token checkpoint (GWF)                          | `WorkflowExecution/README.GuidedWorkflow.md`                                                                |
+| Feature Specs          | changing exact review target identity, deterministic grouping, full required rules or supplemental-provider boundaries (RVP) | `WorkflowExecution/README.ReviewPreparation.md` |
+| Framework Docs         | configuring or troubleshooting portable review preparation, OCR delegation, machine policy, scopes or artifacts | `.claude/docs/review-preparation.md` |
+| Skill Markdown         | executing code/diff review capture and consumption through the active host | `.claude/skills/shared/review-preparation.md` |
 | Feature Specs          | changing adoption switches: code graph, commit trailer, command-only skills, compaction (ADS)                                                                                      | `Adoption/README.AdoptionSwitches.md` (release-D cases in `Adoption/README.AdoptionSwitches-Part2.md`)      |
 | Feature Specs          | changing assistant session notifications (NT)                                                                                                                                      | `Notifications/README.AssistantSessionNotifications.md`                                                     |
 | Feature Specs          | changing slide decks: the shared deck standard, conformance profiles, the feature review deck, slide-direction hand-off (PD)                                                       | `Presentation/README.PresentationDecks.md`                                                                  |
@@ -249,13 +257,14 @@ With no `docsRoots.projectReference.path` entry in `docs/project-config.json`, t
 
 ## Uncategorized Files
 
-None. A fresh broad `docs/**/*.md` scan returned 52 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 52.
+None. A fresh broad `docs/**/*.md` scan returned 54 paths; the normalized union of Project Reference, Operations, Design System, Feature Specs, Spec Catalogs, Architecture Decisions, Templates, Release Notes, and Knowledge Reports covered all 54.
 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Route readers to every indexed Markdown surface with current category counts, complete lookup paths, and no uncategorized `docs/` files.
 
 - **MUST ATTENTION** Resolve roots and re-glob categories → normalize and union paths → compare the broad `docs/**/*.md` set and list remainders → verify relationships and lookup paths.
+- **MUST ATTENTION** route exact review targets/grouping/provider boundaries to the RVP spec and execution/configuration guides above.
 - **MUST** rerun all category globs before changing any count.
 - **MUST** preserve an explicit Uncategorized Files result.
 - **NEVER** copy stale totals from a prior scan or count an overlapping subset twice.

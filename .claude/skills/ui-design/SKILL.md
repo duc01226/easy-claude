@@ -5,6 +5,26 @@ description: '[Design] Use when a workflow step or the user asks for a UI design
 disable-model-invocation: false
 ---
 
+<!-- REVIEW-POLICY-SOURCES:START -->
+```json
+{
+  "version": 1,
+  "defaultMode": "fast",
+  "modes": {
+    "fast": [],
+    "good": [],
+    "explore": [],
+    "describe": [],
+    "screenshot": [],
+    "video": [],
+    "review": [
+      ".claude/skills/ui-design/references/mode-review.md"
+    ]
+  }
+}
+```
+<!-- REVIEW-POLICY-SOURCES:END -->
+
 > **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=review` selects the UI review (read-only findings over existing interfaces); explicit `--mode={fast|good|explore|describe|screenshot|video}` selects that design mode; no `--mode` is the default `fast` design (everything below, unchanged). An explicit mode always wins. `/ui-design --mode=review` is the former `/ui-review`: that slash command no longer exists, and the mode works called directly with no workflow. `--mode=review` REPLACES the design spine for the invocation — read `references/mode-review.md` in full before anything else (see [Mode Dispatch](#arguments--mode-dispatch)); the shared steps, design-intelligence search, lane and mode branches below do not run for it.
 
 ## Quick Summary
@@ -62,6 +82,8 @@ disable-model-invocation: false
 - Use media processing tooling (RMBG) to remove backgrounds from generated assets when needed
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+
+**Source-review preparation:** `--mode=review` uses `.claude/skills/shared/review-preparation.md` once concrete UI sources are resolved in `references/mode-review.md`. Design/describe/screenshot/video modes and image/live-only review without source are excluded.
 
 ## Arguments & Mode Dispatch
 

@@ -16,6 +16,7 @@ const {
     normalizeProjectRelativePath,
     validateReferenceDocDefinition
 } = require('./project-reference-registry.cjs');
+const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SCHEMA DEFINITION
@@ -340,6 +341,33 @@ const SCHEMA = {
                 enumValues: ['read', 'edit', 'both'],
                 describe: 'Which file operation delivers this group: read, edit, or both (default both).'
             }
+        }
+    },
+    reviewPreparation: {
+        type: 'object',
+        required: false,
+        rejectNull: true,
+        closed: true,
+        describe: 'Optional review preparation policy. Omit for portable host-owned defaults. This section requests supplemental assistance and required project rule documents; it grants no machine execution, network or installation permission.',
+        properties: {
+            provider: { type: 'string', required: false, rejectNull: true, enumValues: ['open-code-review', 'none'], describe: 'Omitted provider is Unset: a nonempty source review returns setup-needed before any supplemental tool call. Explicit open-code-review enables bounded preparation; none turns OCR off for this project. Every state retains required host review coverage and gates.' },
+            ruleDocs: { type: 'array', required: false, rejectNull: true, itemType: 'string', describe: 'Additional required review documents, as safe project-root-relative forward-slash paths. Defaults to []; missing declared sources block preparation. Machine and sensitive paths are rejected.' }
+        }
+    },
+    reviewGroups: {
+        type: 'arrayOf',
+        required: false,
+        rejectNull: true,
+        closed: true,
+        describe: 'Optional deterministic review responsibility groups referencing existing modules and convention classes. Each entry needs at least one classifier reference. Lowest priority wins, absent priority is 500, ties use declaration order. Unmatched entries use reserved general; every overlapping required rule remains applicable independently.',
+        itemSchema: {
+            id: { type: 'string', required: true, describe: 'Unique nonblank trimmed group identity, preserving case and Unicode exactly; general is reserved for unmatched entries.' },
+            priority: { type: 'number', required: false, rejectNull: true, describe: 'Safe whole-number primary responsibility rank, lower first; omit for 500. Equal ranks use declaration order.' },
+            modules: { type: 'array', required: false, rejectNull: true, itemType: 'string', describe: 'Existing modules[].name references; each must resolve to exactly one module. Omit for []. Membership uses the existing module matcher.' },
+            contextGroups: { type: 'array', required: false, rejectNull: true, itemType: 'string', describe: 'Existing contextGroups[].name references; each must resolve uniquely. Omit for []. Membership and associated rules use the existing convention matcher.' },
+            relatedGroups: { type: 'array', required: false, rejectNull: true, itemType: 'string', describe: 'Declared reviewGroups[].id references for bounded cross-group context, never additional primary ownership. Omit for [].' },
+            origin: { type: 'string', required: false, rejectNull: true, enumValues: ['detected', 'user'], describe: 'Setup ownership: user entries are preserved; detected entries refresh only when unchanged since their recorded fingerprint. Omit for maintainer-owned policy.' },
+            detectedFingerprint: { type: 'string', required: false, rejectNull: true, describe: 'Setup-owned 16-character lowercase hexadecimal content fingerprint. A missing or mismatching fingerprint protects a detected entry from refresh.' }
         }
     },
     conventionInjection: {
@@ -1057,6 +1085,8 @@ function validateField(value, fieldSchema, path, errors, warnings) {
     if (value === undefined || value === null) {
         if (fieldSchema.required) {
             errors.push(`${path}: required field is missing`);
+        } else if (value === null && fieldSchema.rejectNull) {
+            errors.push(`${path}: declared value must not be null; omit the field to use its default`);
         }
         return;
     }
@@ -1150,8 +1180,8 @@ function validateField(value, fieldSchema, path, errors, warnings) {
                 }
                 // Warn about unknown top-level properties (but don't error — extensible)
                 for (const key of Object.keys(value)) {
-                    if (!fieldSchema.properties[key]) {
-                        warnings.push(`${path}.${key}: unknown property (not in schema)`);
+                    if (!Object.prototype.hasOwnProperty.call(fieldSchema.properties, key)) {
+                        (fieldSchema.closed ? errors : warnings).push(`${path}.${key}: unknown property (not in schema)`);
                     }
                 }
             }
@@ -1193,6 +1223,13 @@ function validateField(value, fieldSchema, path, errors, warnings) {
                     }
                     for (const [propName, propSchema] of Object.entries(fieldSchema.itemSchema)) {
                         validateField(item[propName], propSchema, `${path}[${i}].${propName}`, errors, warnings);
+                    }
+                    if (fieldSchema.closed) {
+                        for (const key of Object.keys(item)) {
+                            if (!Object.prototype.hasOwnProperty.call(fieldSchema.itemSchema, key)) {
+                                errors.push(`${path}[${i}].${key}: unknown property (not in schema)`);
+                            }
+                        }
                     }
                 });
             }
@@ -1659,6 +1696,58 @@ const CONVENTION_INJECTION_RANGES = [
     ['blindReinjectAfterMinutes', 1, 1440]
 ];
 
+/** Review responsibility references and additional required rule-document paths (BR-RVP-02/03). */
+function validateReviewPreparationSemantics(config, errors) {
+    const preparation = config.reviewPreparation;
+    if (preparation && Array.isArray(preparation.ruleDocs)) {
+        preparation.ruleDocs.forEach((doc, index) => {
+            const field = `reviewPreparation.ruleDocs[${index}]`;
+            try {
+                normalizeProjectRelativePath(doc, field);
+                if (isPrivacySensitive(doc)) errors.push(`${field}: sensitive paths cannot be review rule documents`);
+            } catch (error) {
+                errors.push(error.message);
+            }
+        });
+    }
+    const groups = config.reviewGroups;
+    if (!Array.isArray(groups)) return;
+    const ids = new Map();
+    for (const group of groups) {
+        if (group && typeof group.id === 'string') ids.set(group.id, (ids.get(group.id) || 0) + 1);
+    }
+    const classifiers = field => {
+        const counts = new Map();
+        for (const entry of Array.isArray(config[field]) ? config[field] : []) {
+            if (entry && typeof entry.name === 'string') counts.set(entry.name, (counts.get(entry.name) || 0) + 1);
+        }
+        return counts;
+    };
+    const references = { modules: classifiers('modules'), contextGroups: classifiers('contextGroups'), relatedGroups: ids };
+    groups.forEach((group, index) => {
+        if (!group || typeof group !== 'object' || Array.isArray(group)) return;
+        const field = `reviewGroups[${index}]`;
+        if (typeof group.id === 'string') {
+            if (!group.id.trim() || group.id !== group.id.trim()) errors.push(`${field}.id: expected a nonblank trimmed identity`);
+            if (group.id === 'general') errors.push(`${field}.id: general is reserved for unmatched entries`);
+            if (ids.get(group.id) > 1) errors.push(`${field}.id: duplicate review group identity`);
+        }
+        if (group.priority !== undefined && !Number.isSafeInteger(group.priority)) errors.push(`${field}.priority: expected a safe whole-number priority`);
+        if (!nonEmptyArray(group.modules) && !nonEmptyArray(group.contextGroups)) errors.push(`${field}: needs at least one module or context-group reference`);
+        for (const [key, identities] of Object.entries(references)) {
+            if (!Array.isArray(group[key])) continue;
+            group[key].forEach((reference, refIndex) => {
+                if (typeof reference !== 'string' || !reference.trim() || reference !== reference.trim() || identities.get(reference) !== 1) {
+                    errors.push(`${field}.${key}[${refIndex}]: reference must resolve to exactly one declared identity`);
+                }
+            });
+        }
+        if (group.detectedFingerprint !== undefined && (typeof group.detectedFingerprint !== 'string' || !/^[a-f0-9]{16}$/.test(group.detectedFingerprint))) {
+            errors.push(`${field}.detectedFingerprint: expected 16 lowercase hexadecimal characters`);
+        }
+    });
+}
+
 /** conventionInjection numeric ranges (BR-PFCI-11). */
 function validateConventionInjectionSemantics(config, errors) {
     const settings = config.conventionInjection;
@@ -1932,6 +2021,7 @@ function validateConfig(config) {
     validateExperienceVerificationSemantics(config, errors, warnings);
     validateE2eExecutionSemantics(config, errors, warnings);
     validateContextGroupSemantics(config, errors, warnings);
+    validateReviewPreparationSemantics(config, errors);
     validateReferenceDocsSemantics(config, errors, warnings);
     validateFeatureDocTemplateSemantics(config, errors);
     validateConventionInjectionSemantics(config, errors);
@@ -2085,10 +2175,12 @@ function describeField(name, schema, depth, lines) {
         emitDescribe(schema, depth + 1, lines);
         if (schema.itemSchema) {
             const example = generateExampleItem(schema.itemSchema);
-            const json = JSON.stringify(example, null, 2);
-            for (const line of json.split('\n')) {
-                lines.push(`${indent}  ${line}`);
-            }
+            const fields = Object.entries(example);
+            lines.push(`${indent}  {`);
+            fields.forEach(([key, value], index) => {
+                lines.push(`${indent}    ${JSON.stringify(key)}: ${JSON.stringify(value)}${index === fields.length - 1 ? '' : ','}`);
+            });
+            lines.push(`${indent}  }`);
         }
     } else if (Array.isArray(schema.oneOf)) {
         const shapes = schema.oneOf.map((alt) => alt.type || 'value').join(' | ');

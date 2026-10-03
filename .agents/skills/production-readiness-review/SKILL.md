@@ -100,6 +100,8 @@ $ARGUMENTS
 3. Focus: backend source files under service root (per the project's structure reference / `docs/project-config.json`), API controllers, service classes
 4. Skip: frontend files, test files, documentation, config-only changes
 
+**Source-review preparation:** for the resolved backend/API source set only, follow `.claude/skills/shared/review-preparation.md` before scoring. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Frontend/tests/docs/config-only and purely operational evidence are excluded.
+
 ## Production Readiness Scoring
 
 Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = fully.

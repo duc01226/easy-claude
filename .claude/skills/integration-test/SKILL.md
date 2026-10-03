@@ -6,6 +6,31 @@ execution-mode: subagent
 context-budget: high
 ---
 
+<!-- REVIEW-POLICY-SOURCES:START -->
+```json
+{
+  "version": 1,
+  "defaultMode": "generate",
+  "modes": {
+    "generate": [
+      ".claude/skills/integration-test/references/integration-test-patterns.md",
+      ".claude/skills/project-skill-protocol/references/registry.md"
+    ],
+    "review": [
+      ".claude/skills/integration-test/references/mode-review.md"
+    ],
+    "verify": [
+      ".claude/skills/integration-test/references/mode-verify.md"
+    ],
+    "verify-fix-loop": [
+      ".claude/skills/integration-test/references/mode-verify.md",
+      ".claude/skills/integration-test/references/fix-loop.md"
+    ]
+  }
+}
+```
+<!-- REVIEW-POLICY-SOURCES:END -->
+
 > **[BLOCKING] Mode routing — detect FIRST.** Explicit `--mode=review` or `--mode=verify` selects that mode; no mode is default integration-test generation (everything below, unchanged). `/integration-test --mode=review` and `/integration-test --mode=verify` are the former `/integration-test-review` and `/integration-test-verify`: those slash commands no longer exist, and each mode works called directly with no workflow. Read the mode file in full before anything else (see [Mode Dispatch](#mode-dispatch)).
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -71,6 +96,8 @@ The semantic floor is identical in every profile: MUST ATTENTION retain authored
 - Every test method MUST carry the traceability form required by the selected profile. The strict default uses `TestSpec` for business §8 coverage and `TechnicalSpec` for technical-only regression coverage; only that profile auto-creates a Section 8 case for genuinely uncovered business behavior.
 - Derive case count from distinct behaviors, invariants, risk, and meaningful boundaries; do not enforce an arbitrary minimum per command or endpoint
 - Follow `integrationTestVerify.guidance`; when absent, require two fresh no-reset runs for suites with persistent/shared state before declaring that scope repeatable
+
+**Source-review preparation:** `--mode=review` uses `.claude/skills/shared/review-preparation.md` once its tests/source package is resolved in `references/mode-review.md`. Generation and runtime verification do not; diagnostic loops may consume prepared child evidence.
 
 ## Mode Dispatch
 

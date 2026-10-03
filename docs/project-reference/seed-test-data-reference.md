@@ -1,61 +1,37 @@
 # Seed Test Data Reference
 
-<!-- Last scanned: 2026-08-04 -->
+<!-- Last scanned: 2026-10-03 -->
 
-> **Goal:** State the verified seed-data capability of this repository without inventing application or database conventions.
+Read this guide when arranging repeatable test fixtures or assessing seed-data capability. This repository has reusable hook-test fixture setup; application/database seeding remains not applicable. Keep generated sample paths separate from persisted data and clean up every mutable fixture through its owning helper.
 
-> **Context:** easy-claude ships framework skills, hooks, agents, and workflows. Its configured modules are framework libraries, and database, messaging, API, and infrastructure maps are empty (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`).
+## Seeder/Fixture Capability
 
-## Quick Summary
+`makeHookTreeProject(prefix)` creates a fresh, canonicalized OS-temp project containing the hook tree and shared script libraries. It excludes top-level hook tests, notifications and dependencies. Launcher tests then add the settings/configuration needed for their contract and run the real hook in that fixture (`.claude/hooks/tests/lib/hook-runner.cjs:359`; `.claude/hooks/tests/suites/codex-launcher.test.cjs:208`).
 
-- Application/dev-data seeding is **N/A** in this repository.
-- Hook-test fixtures are committed test inputs, not persistent seed data.
-- Re-scan this reference if an application database or executable seeder is added.
+The helper is also used by workflow-route and judgement-route tests (`.claude/hooks/tests/suites/workflow-route-modes.test.cjs:56`; `.claude/hooks/tests/suites/judgement-integrity-route.test.cjs:240`). This is repeatable test-project setup, not an application startup seeder.
 
-## Workflow
+`generateTestFixtures()` produces cached synthetic module names and path strings from project configuration, with portable fallback values. It does not create files or insert records. `clearFixtureCache()` resets its process-local cache when a test changes configuration (`.claude/hooks/lib/test-fixture-generator.cjs:83`; `.claude/hooks/lib/test-fixture-generator.cjs:203`).
 
-1. Read the `contextGroups`, `databases`, and `infrastructure` maps in `docs/project-config.json`.
-2. Search executable source for seeder declarations, gates, count loops, scope helpers, registration, and polling.
-3. Document a pattern only after an executable seeder and its consumers are verified.
+## Safety & Scope
 
-## Key Rules
+Application stores, database transactions, tenant seed scope, DI lifetimes and cross-service seed waits are not configured in `docs/project-config.json`. Do not derive those conventions from generic framework examples or sample path strings.
 
-- **NEVER** treat workflow skills or test fixtures as application data seeders.
-- **NEVER** copy the generic seeder template into this reference without project source evidence.
-- **MUST** rerun `/scan --target=seed-test-data` after introducing a database-backed application or seeder.
+A fixture root selects which hook tree and project settings execute; use an explicit test cwd and per-call environment overrides. `childEnv` removes case-equivalent inherited keys on Windows before applying overrides, while fixture project resolution keeps execution from falling back to the host repository (`.claude/hooks/tests/lib/hook-runner.cjs:23`; `.claude/hooks/tests/lib/hook-runner.cjs:340`).
 
-## Seeder Base Class / Interface
+Read `docs/project-reference/integration-test-reference.md` when designing fixture environment isolation; its Portable Test Contract owns home-directory, provider-key and feature-switch scrubbing requirements. Default-root example; `docsRoots.projectReference.path` in `docs/project-config.json` overrides this location.
 
-**N/A.** No `Data Seeders` context group is configured; the only context groups cover hooks, skills, and agents (`docs/project-config.json:74-105`).
+## Repeatability & Cleanup
 
-## Environment Gate
+Create a fresh root for each mutable fixture. The copied-tree helper is not an idempotent updater for an existing directory. Callers remove it in `finally`, including when a hook invocation or assertion fails (`.claude/hooks/tests/suites/judgement-integrity-route.test.cjs:240`).
 
-**N/A.** No seeder enable flag, environment guard, or target-count key is configured (`docs/project-config.json:74-152`).
+`removeTempDir` canonicalizes both target and OS-temp root, checks a nonempty contained relative path, and refuses removal outside that boundary. The separate `test-utils.cleanupTempDir` uses a string-prefix check; do not assume it has the same canonical containment guarantee (`.claude/hooks/tests/lib/hook-runner.cjs:372`; `.claude/hooks/tests/lib/test-utils.cjs:23`).
 
-## Idempotency Pattern
+## Data Ownership & Persistence
 
-**N/A.** There is no persistent application store or executable seeder loop to make restart-safe (`docs/project-config.json:149-152`, `package.json:2-18`).
+Fixture files belong to the test that creates them. Shared helpers supply setup/cleanup; no persistent project/demo data loader, database migration seeder or runtime seeder registration is established by this scope. Configuration-derived sample values belong to the fixture generator's process cache, not a data store.
 
-## DI Scope Pattern
-
-**N/A.** No dependency-injection container, unit-of-work layer, database, or application service is configured (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`).
-
-## Registration
-
-**N/A.** Project context registration covers hooks, skills, and agents only; it contains no seeder registration (`docs/project-config.json:74-105`).
-
-## Cross-Service Wait
-
-**N/A.** No service, message bus, or external-consistency seeding flow is configured (`docs/project-config.json:149-152`).
-
-## Anti-Patterns
-
-No source-backed seeding violation exists because no executable seeder exists. Do not invent a warning from a generic stack assumption.
+Read `.claude/hooks/tests/lib/hook-runner.cjs` when preparing a copied hook project and tracing its cwd/environment behavior. Read `.claude/hooks/lib/test-fixture-generator.cjs` when interpreting generated path/name samples or resetting that cache.
 
 ## Closing Reminders
 
-- **MUST** cite the real seeder entry point and registration before documenting future conventions.
-- **MUST** verify environment gating, idempotency, and scope behavior from executable source.
-- **NEVER** convert an evidence-backed **N/A** into generic seeder boilerplate.
-
-> **Goal:** State the verified seed-data capability of this repository without inventing application or database conventions.
+Verify the actual fixture/loader entry point and its callers before documenting a convention. Preserve fixture environment isolation and finally cleanup. Re-run `scan --target=seed-test-data` when a real application seeder or a new reusable data-loading owner is introduced; no base class, DI scope or database pattern is implied by the target name.

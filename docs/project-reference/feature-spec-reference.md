@@ -1,270 +1,103 @@
-<!-- Last scanned: 2026-09-30 -->
-<!-- Shared Feature Spec rules are extended below with the current project inventory maintained by /scan --target=feature-spec. -->
-
-<!-- CRITICAL RULES (primacy anchor):
-1. MUST ATTENTION use the tech-free 8-section Feature Spec template for all business feature docs
-2. MUST ATTENTION include test specifications (Section 8) with TC-{FEATURE}-{NNN} format, Business Intent / Invariant Guarded, and Evidence field
-3. MUST ATTENTION study the master template and every concrete gold standard listed in this reference before writing new feature docs
--->
-
-> **[IMPORTANT]** MUST ATTENTION use the tech-free 8-section Feature Spec template . MUST ATTENTION include TC-{FEATURE}-{NNN} test cases (Section 8) with `Business Intent / Invariant Guarded` and `Evidence: [Source: namespace/service/id]` (abstract anchor - legacy `[Source: FilePath:Line]` is DEPRECATED) . MUST ATTENTION study the master template and every concrete gold standard listed below before writing.
+<!-- Last scanned: 2026-10-03 -->
 
 # Feature Documentation Reference
 
-<!-- PROMPT-ENHANCE:QUICK-SUMMARY:START -->
+Read this guide when authoring, reviewing, splitting, or tracing a business Feature Spec. It records the local owner format and discovery paths; the spec authoring and TC contracts own the full procedures.
 
-## Quick Summary
-
-**Goal:** All business feature docs follow the tech-free 8-section Feature Spec template - a single doc a BA, QA/QC, or AI fully understands from one read - with correct test spec format and verifiable code evidence.
-
-**Summary:**
-
-- The canonical capability path is `{Bucket}/README.{FeatureName}.md` inside the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path. Section 8 is the canonical Test Specification registry.
-- The current Feature Spec corpus is five buckets, each with a thin `INDEX.md`: `ContextDelivery` (`README.SessionPromptLedger.md`, `README.PerFileConventionInjection.md`, `README.WorkflowRouting.md`, `README.ProtocolDelivery.md`), `WorkflowExecution` (`README.GuidedWorkflow.md`), `Notifications` (`README.AssistantSessionNotifications.md`), `Presentation` (`README.PresentationDecks.md`) and `Adoption` (`README.AdoptionSwitches.md` plus its continuation part `README.AdoptionSwitches-Part2.md`). It is small and recent, so treat it as a conformance reference for structure — not yet as a gold-standard exemplar — and keep the project master template authoritative where the two differ.
-- Enforce M1-M7, the complete canonical TC fields, and stack-portable evidence anchors before accepting a Feature Spec.
-
-**Decision sequence:** inspect the current corpus -> study the master template and any listed exemplars -> author through the spec owner -> verify all eight sections, M1-M7, TC fields, and evidence -> refresh derived indexes and technical views.
-
-**Key Rules:**
-
-- MUST ATTENTION follow the 8-section structure in exact order (see below); narrative prose in every section is STRICTLY tech-free
-- MUST ATTENTION include Section 8 (Test Specifications) with `TC-{FEATURE}-{NNN}` IDs, `Business Intent / Invariant Guarded`, and `Evidence: [Source: namespace/service/id]` (abstract anchor; legacy `[Source: FilePath:Line]` DEPRECATED)
-- MUST ATTENTION study the master template and every concrete gold standard listed below before writing any new feature doc
-- MUST keep feature doc path: `{Bucket}/README.{FeatureName}.md` inside the business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path
-- MUST NOT apply line-count caps to Feature Specs; split the capability only when TCs>40 or distinct module-level capabilities emerge
-
-<!-- PROMPT-ENHANCE:QUICK-SUMMARY:END -->
-
----
+- Keep one canonical business owner per capability under the configured authored root. Resolve the native profile before choosing a representation; this repository currently uses the strict default.
+- Preserve the eight-section order, business-visible intent, stable logical IDs, and verified evidence. A matching test ID or complete heading list proves neither coverage nor semantic quality.
+- Keep provisional evidence explicit. Upgrade a draft through the spec owner after implementation; preserve derived-artifact ownership and existing project-template customizations.
 
 ## Directory Convention
 
-**Path roots used throughout this document.** Every path below is stated RELATIVE to one of these roots; the filenames are immutable, the roots are not:
+Resolve roots from `docs/project-config.json` before assuming paths. Here `specRoots.business` selects `docs/specs/` with `authorship: authored` and `m1Policy: enforced`; `specRoots.technical` selects `docs/specs-technical/` with `authorship: derived` and `m1Policy: exempt`. The technical root is configured but has no generated tree yet. `specArtifacts` is absent, so the strict default contract applies. A declared malformed profile blocks rather than falling back. Read `.claude/skills/shared/sdd-artifact-contract.md` when selecting a native profile or judging ownership and semantic obligations.
 
-- Business spec root — default `docs/specs`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path.
-- Project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path.
-- Templates root — default `docs/templates`; a `docsRoots.templates.path` entry in `docs/project-config.json` overrides the path.
+The local canonical path is `<business-spec-root>/{Bucket}/README.{FeatureName}.md`. A bucket groups multiple capabilities; it does not limit the bucket to one spec. `INDEX.md` is a derived capability router. Continuation files retain the parent capability and existing TC identities; `docs/specs/Adoption/README.AdoptionSwitches-Part2.md` declares its `parent_spec` in frontmatter. Read `.claude/skills/spec/references/author.md` when creating or splitting an owner; its size procedure uses more than forty TCs or distinct module-level capabilities as split triggers, without imposing a line-count cap. Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location.
 
-Feature docs path: `{Bucket}/README.{FeatureName}.md` inside the business spec root (no line-count cap; split when TCs>40 or distinct module-level capabilities emerge). Each bucket also includes `INDEX.md`. The bucket layout under the resolved root is identical for every project.
+Use the current bucket indexes for discovery rather than copying a census into this guide:
 
-### Current Directory Structure (top three levels)
+| Read when changing… | Canonical owner/router |
+| --- | --- |
+| Adoption behavior or automatic skill selection | `docs/specs/Adoption/INDEX.md`; ADS main owner `docs/specs/Adoption/README.AdoptionSwitches.md` and continuation; SAP owner `docs/specs/Adoption/README.SkillActivationPolicy.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| Context injection, protocol delivery, prompt history, workflow routing | `docs/specs/ContextDelivery/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| Assistant session notifications | `docs/specs/Notifications/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| Presentation deck standards | `docs/specs/Presentation/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| Review preparation: exact targets, required rules, groups and provider authority | `docs/specs/WorkflowExecution/README.ReviewPreparation.md`; read `.claude/docs/review-preparation.md` for execution/configuration Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| Guided workflow execution | `docs/specs/WorkflowExecution/INDEX.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 
-```text
-docs/                                      # Project-owned documentation
-├── adr/                                   # Architecture decisions
-│   ├── 0001-skill-lifecycle.md
-│   ├── 0002-canonical-count-metrics.md
-│   ├── 0003-config-driven-doc-and-spec-roots.md
-│   └── 0004-protocol-delivery-hybrid.md
-├── project-reference/                     # AI-facing project conventions and routers
-│   ├── design-system/
-│   │   └── README.md
-│   ├── backend-patterns-reference.md
-│   ├── code-review-rules.md
-│   ├── custom-prompts-reference.md
-│   ├── docs-index-reference.md
-│   ├── domain-entities-reference.md
-│   ├── e2e-test-reference.md
-│   ├── feature-spec-reference.md
-│   ├── frontend-patterns-reference.md
-│   ├── integration-test-reference.md
-│   ├── lessons.md
-│   ├── project-structure-reference.md
-│   ├── scss-styling-guide.md
-│   ├── seed-test-data-reference.md
-│   ├── skill-protocols-reference.md
-│   ├── spec-principles.md
-│   ├── spec-system-reference.md
-│   └── workflow-spec-test-code-cycle-reference.md
-├── release/                               # Release history
-│   └── release-notes-2026-03-15-to-2026-04-14.md
-├── release-notes/                         # Release-doc skill outputs (+ HTML renders)
-│   ├── release-notes-d0e5d0cc.html
-│   ├── release-notes-d0e5d0cc.md
-│   ├── release-notes-unreleased-2026-09-26.html
-│   └── release-notes-unreleased-2026-09-26.md
-├── specs/                                 # Canonical business Feature Specs (authored root)
-│   ├── Adoption/                          # Bucket: project switches for what the framework does by itself
-│   ├── ContextDelivery/                   # Bucket: which guidance reaches an AI assistant, and when
-│   ├── Notifications/                     # Bucket: telling a developer an AI assistant finished or needs an answer
-│   ├── Presentation/                      # Bucket: slide decks held to one shared deck standard
-│   └── WorkflowExecution/                 # Bucket: how a chosen workflow runs, what it must prove, and what it costs
-├── templates/                             # Project authoring templates
-│   └── detailed-feature-spec-template.md
-├── copilot-registry.json                  # Copilot registry data
-└── project-config.json                    # Machine-readable project map
-```
-
-The configured authored spec root exists and holds five buckets; the configured derived technical root is still absent from the tree. **Evidence:** `docs/project-config.json:401-412` (`specRoots.business` = `docs/specs`, `specRoots.technical` = `docs/specs-technical`); `docs/specs/Adoption/` holds `INDEX.md`, `README.AdoptionSwitches.md`, `README.AdoptionSwitches-Part2.md`; `docs/specs/ContextDelivery/` holds `INDEX.md`, `README.PerFileConventionInjection.md`, `README.ProtocolDelivery.md`, `README.SessionPromptLedger.md`, `README.WorkflowRouting.md`; `docs/specs/Notifications/` holds `INDEX.md`, `README.AssistantSessionNotifications.md`; `docs/specs/Presentation/` holds `INDEX.md`, `README.PresentationDecks.md`; `docs/specs/WorkflowExecution/` holds `INDEX.md`, `README.GuidedWorkflow.md`; no `docs/specs-technical/` path exists.
+The Adoption router currently links the ADS continuation without the main owner; use the explicit main path above until regenerated through the spec index owner. There is no product app/service mapping to infer: the configured modules are framework libraries.
 
 ## Template Paths
 
-| Template / Owner            | Path                                                  | Purpose                                                       | Used by Feature Docs | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- | -------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Feature document convention | `{Bucket}/README.{FeatureName}.md`                    | Canonical capability document                                 |                    8 | `ContextDelivery/README.PerFileConventionInjection.md`, `ContextDelivery/README.ProtocolDelivery.md`, `ContextDelivery/README.SessionPromptLedger.md`, `ContextDelivery/README.WorkflowRouting.md`, `WorkflowExecution/README.GuidedWorkflow.md`, `Notifications/README.AssistantSessionNotifications.md`, `Presentation/README.PresentationDecks.md`, `Adoption/README.AdoptionSwitches.md` (continuation part `README.AdoptionSwitches-Part2.md`) |
-| Project master template     | `detailed-feature-spec-template.md`                   | Current project authoring template                            |                    8 | All eight corpus specs follow its 8-section order (`README.PerFileConventionInjection.md:36-749`, `README.AssistantSessionNotifications.md:42-327`; every heading line under Section Structure)                                                                                                                                                                                                                                                     |
-| Portable source template    | `.claude/templates/detailed-feature-spec-template.md` | Bootstrap source when the project template is absent          |                    0 | `.claude/hooks/session-init-docs.cjs:62-63,182-198`                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Feature authoring owner     | `.claude/skills/spec/SKILL.md`                        | Owns authoring and Test Specifications lifecycle              |                  N/A | `.claude/skills/spec/SKILL.md:17-35,47-62`                                                                                                                                                                                                                                                                                                                                                                                                          |
-| Test-case format authority  | `.claude/skills/shared/tc-format.md`                  | Owns TC shape, evidence, coverage, cardinality, and numbering |                    8 | 356 TCs across the eight corpus specs (nine files) carry `CoveredBy:` + `Status:` per `.claude/skills/shared/tc-format.md:55-166,198-218`                                                                                                                                                                                                                                                                                                           |
+Read `docs/templates/detailed-feature-spec-template.md` when starting a local Feature Spec. Read `.claude/skills/spec/SKILL.md` and its selected author mode when choosing the lifecycle procedure. Read `.claude/skills/shared/tc-format.md` when writing or reviewing Section 8; it owns complete TC fields, property cases, evidence, deprecation, numbering, and cardinality. Default-root example; `docsRoots.templates.path` in `docs/project-config.json` overrides this location.
 
-No configured `workflowPatterns.featureDocTemplate` key is present. The authoring owner therefore identifies the project master template as its default (`.claude/skills/spec/references/author.md:63`; no matching key in `docs/project-config.json`).
+`workflowPatterns.featureDocTemplate` is not configured here. The author guide selects the project template by default. `.claude/templates/detailed-feature-spec-template.md` is the bootstrap source, copied only when the project template is absent; `.claude/hooks/session-init-docs.cjs:179-197` preserves an existing local template. Do not overwrite that customization to obtain parity.
+
+The project template and author guide differ on interaction-surface detail and rule/entity-anchor placement. Follow the governing author procedure for those semantic obligations, and resolve template alignment through its owner. Read `.claude/skills/spec/references/author.md` when a template omits a required condition; a shorter local template is not permission to omit it. Representative specs illustrate shape; none is declared a ratified gold standard.
 
 ## 8-Section Structure
 
-MUST ATTENTION follow exact section order. Narrative prose across **all 8 sections is tech-free**; technical identifiers live ONLY in evidence carriers, frontmatter, and Mermaid blocks. Technical contracts (commands, message/event schemas, API routes, cross-service wiring, performance internals) are **NOT doc content** - code is the technical source of truth.
+The strict default uses these sections in order. Narrative prose stays technology-free; technical identifiers belong in allowed evidence carriers, frontmatter, or Mermaid blocks. Code remains the technical source of truth.
 
--   1. **Overview** - 2-3 plain sentences: what the capability does, who uses it, why it matters
--   2. **Glossary** - domain / ubiquitous-language terms
--   3. **User Stories & Acceptance Criteria** - `US-{FC}-NN` (As a / I want / So that) each with `AC-{FC}-NN` (Given/When/Then)
--   4. **Business Rules** - `BR-{FC}-NN` invariants, validation, state transitions; plain IF/THEN; `[HARD]`/`[SOFT]`; `[Source: rule/{service}/{id}]` per rule group
--   5. **Domain Model** - entities, value objects, enums, relationships; Mermaid ERD + business-meaning columns; **plain types only** (text/number/date/yes-no); `[Source: component/{service}/{id}]` per entity. Business-meaningful domain events surface here as occurrences, never as bus/message schemas
--   6. **Process Flows** - key user journeys as step tables / simple diagrams (business actions; key screens as business steps/states, not component names)
--   7. **Permissions & Roles** - business RBAC matrix (Role x View/Create/Edit/Delete + scope rules); no auth-implementation detail
--   8. **Test Specifications** - `TC-{FEATURE}-{NNN}` BDD, each linked to the `AC-`/`BR-` it proves; MUST ATTENTION carry `Business Intent / Invariant Guarded` and a hidden `Evidence: [Source: namespace/service/id]` carrier + `CoveredBy:` field (legacy `IntegrationTest:` accepted as migration input; legacy `[Source: FilePath:Line]` DEPRECATED)
+| Order | Section | Authoring purpose |
+| ---: | --- | --- |
+| 1 | Overview | Who uses the capability, what it does, and why it matters |
+| 2 | Glossary | Domain terms and their business meanings |
+| 3 | User Stories & Acceptance Criteria | `US-{FC}-NN` stories and `AC-{FC}-NN` observable criteria |
+| 4 | Business Rules | `BR-{FC}-NN` invariants, decisions and state transitions; `[HARD]`/`[SOFT]` strength and abstract rule anchors |
+| 5 | Domain Model | Entities, value objects, relationships, plain business types and abstract entity anchors; no transport schemas |
+| 6 | Process Flows & Interaction Surface | Business journeys; for a UI-bearing feature, view inventory, navigation, key states and per-story interaction flows; a feature without UI records the omission reason |
+| 7 | Permissions & Roles | Business roles, permitted actions and scope, without auth implementation detail |
+| 8 | Test Specifications | Canonical business cases tied to criteria/rules, with intent, observable outcomes, evidence and coverage carriers |
 
-## M1-M7 Compliance for All Sections
-
-MUST ATTENTION all 8 sections satisfy the applicable BLOCKING AI-SDD mandates: M1 tech-agnostic prose; M2 no source identifiers in prose; M3 logical-ID-first traceability with abstract evidence anchors; M4 one testable interpretation; M5 rebuild-from-scratch completeness; M6 reviewer enforcement; and M7 business visibility through a user/QC-demoable outcome. Evidence carriers, frontmatter, and Mermaid blocks use the shared carve-outs. The full criteria live in `.claude/skills/shared/sdd-artifact-contract.md:83-97`.
+Read `.claude/skills/shared/sdd-artifact-contract.md` when reviewing M1–M7: technology-free prose, no source identifiers in prose, logical-ID-first traceability, one testable interpretation, rebuild completeness, reviewer enforcement, and user/QC-demoable visibility. The evidence carve-outs do not turn a technical-only scenario into a business case. Keep technical mechanisms in their appropriate source/derived owner.
 
 ## Test Case ID Format
 
-**Single format:** `TC-{FEATURE}-{NNN}` (e.g., TC-GM-001, TC-KD-011). `{FEATURE}` is a short feature code; the per-project code registry lives below the SCAN-MANAGED boundary.
+The strict default identity is `TC-{FEATURE}-{NNN}`. Section 8 is the registry; check existing IDs before allocation, use the canonical category-decade rules, and preserve deprecated IDs instead of deleting or reusing them. One business TC may have many covering tests; do not split a business outcome to force one method per TC.
 
-- **Source of truth:** Section 8 (canonical TC registry)
-- **Code link:** `CoveredBy` records representative coverage; a configured test-spec annotation supplies the complete one-to-many test join. This repository currently configures no annotation scan; `techSpecScan` is deliberately omitted (`docs/project-config.json:413`).
+Local capability codes are discoverable through owner frontmatter and bucket indexes:
+
+| Code | Capability | Canonical owner |
+| --- | --- | --- |
+| ADS | Adoption Switches | `docs/specs/Adoption/README.AdoptionSwitches.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| SAP | Framework Skill Activation Policy | `docs/specs/Adoption/README.SkillActivationPolicy.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| PFCI | Per-File Convention Injection | `docs/specs/ContextDelivery/README.PerFileConventionInjection.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| PDL | Protocol Delivery | `docs/specs/ContextDelivery/README.ProtocolDelivery.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| SPL | Session Prompt Ledger | `docs/specs/ContextDelivery/README.SessionPromptLedger.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| WFR | Workflow Routing | `docs/specs/ContextDelivery/README.WorkflowRouting.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| RVP | Review Preparation | `docs/specs/WorkflowExecution/README.ReviewPreparation.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| GWF | Guided Workflow Execution | `docs/specs/WorkflowExecution/README.GuidedWorkflow.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| NT | Assistant Session Notifications | `docs/specs/Notifications/README.AssistantSessionNotifications.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| PD | Presentation Decks | `docs/specs/Presentation/README.PresentationDecks.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+
+Read `.claude/skills/shared/tc-format.md` before writing or validating a case. Preserve its complete fields: title/priority, Objective, Business Intent / Invariant Guarded, Preconditions, Real-World Reachability, Demo Flow/GWT, Expected Result, Acceptance Criteria, Test Data, Edge Cases, Evidence, Related Behaviors, CoveredBy and Status. Include Deliberate Impossible State only when intentionally constructing one, and Transition Invariants when lifecycle states exist. Property cases for hard rules/entity invariants declare `inputDomain`, `invariant`, and `boundaryCounterCase`; probe the canonical invariant categories and preserve healthy behavior for a business-visible bugfix. Technical-only fixes do not manufacture business TCs.
 
 ## Evidence Rule
 
-EVERY test case MUST ATTENTION carry a machine-readable evidence anchor:
+For implemented behavior, each TC carries an abstract `[Source: namespace/service/id]` anchor. Allowed namespaces are `operation`, `event`, `component`, `schema`, `requirement`, `rule`, `constraint`, and `test`. Verify that the anchor resolves to real source behavior; legacy physical `[Source: FilePath:Line]` evidence is deprecated.
 
-```markdown
-**Evidence:** `[Source: {namespace}/{service}/{id}]` (namespace in operation | event | component | schema | requirement | rule | constraint | test)
-```
+A reference-only idea draft may use `Evidence: TBD` with `Status: Planned`, `provisional: true`, and the explicit DRAFT banner. Read `.claude/skills/spec/references/author.md` when upgrading it: replace every pending anchor with verified code evidence and reconcile coverage before clearing provisional status. A remaining TBD keeps the draft provisional; it cannot be presented as verified implemented evidence.
 
-The abstract `[Source: namespace/service/id]` form is canonical (see `.claude/skills/shared/tc-format.md`). The legacy `[Source: {FilePath}:{LineNumber}]` form is **DEPRECATED** - it is stack-fragile and breaks on refactor; do not author it in new or migrated docs. The lone exception is the per-TC `CoveredBy:` link (legacy name: `IntegrationTest:`), which stays a physical `{TestFile}::{MethodName}` path. NEVER use `TBD` placeholders in shipped docs. NEVER omit the Evidence field.
+`CoveredBy` is the physical QA exception: it may name test-file/method links, an accepted test-filter expression, `Manual-QC`, or `Untested`. Legacy `IntegrationTest` is migration input only. The field is representative, not an exhaustive join. Read `.claude/skills/shared/tc-format.md` when evaluating one-to-many coverage and test status; retain explicit conditional/untriggered and planned limitations.
 
----
+## Traceability & Verification
 
-<!-- SCAN-MANAGED BOUNDARY - refresh the project inventory below with /scan --target=feature-spec. -->
+For each claimed case, resolve the canonical owner and TC, inspect its preconditions/actions/owned outcome, then trace the coverage carrier to a real executor and its assertion. Confirm suite membership or test registration, not merely an ID comment. Record result evidence from the actual run; an aggregate pass proves only the cases whose assertions execute.
 
-## App-to-Service Mapping
+For example, `docs/specs/Adoption/README.SkillActivationPolicy.md` TC-SAP-003 links to the registered suite case at `.claude/hooks/tests/suites/skill-activation-policy.test.cjs:98`: a restricted fixture enters the real host launchers, and assertions check the emitted human-choice and authorization conditions. The suite runner discovers files and awaits test callbacks at `.claude/hooks/tests/run-all-tests.cjs:100-109,125-145`. These paths explain how to trace evidence; their existence does not establish a current passing result. Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location.
 
-No product application or service boundary is configured, so ownership maps to the framework module that owns the behavior rather than to a deployed app.
+Read `docs/project-reference/integration-test-reference.md` when choosing the test runner and isolation contract. Read `.claude/skills/spec/references/sync.md` when reconciling coverage or unmatched behavior, and `docs/project-reference/workflow-spec-test-code-cycle-reference.md` when coordinating behavior, specs, tests and derived views. Default-root example; `docsRoots.projectReference.path` in `docs/project-config.json` overrides this location.
 
-| App Name                                | Backend Services | Doc Directory                                                                                                                                   | Doc Count | Evidence                                                                                                                                                                                                                                                                                                                                                                                         |
-| --------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| N/A — no configured product application | None             | `docs/specs/ContextDelivery/`, `docs/specs/WorkflowExecution/`, `docs/specs/Notifications/`, `docs/specs/Presentation/`, `docs/specs/Adoption/` |         9 | `docs/project-config.json:44-115,401-412`; seven corpus specs describe hooks-module behavior (convention injection, prompt ledger, workflow routing, protocol delivery, session notifications, adoption switches, skill activation policy), one describes workflows-module behavior (guided workflow execution) and one describes skills-module behavior (presentation decks; `Presentation/README.PresentationDecks.md:2`) |
+The newer RVP owner is a provisional draft with Planned cases; its guidance and source joins do not establish observed execution. Read `docs/specs/WorkflowExecution/README.ReviewPreparation.md` when reviewing that capability’s intent and case coverage. Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location.
 
-## Gold Standard References
+## Coverage Gaps & Quality Limits
 
-No spec has been ratified as a gold-standard exemplar yet. The nine corpus specs are structurally conformant and recent, so read them for shape, and keep the master template authoritative wherever a spec and the template disagree:
-
-- `detailed-feature-spec-template.md` — project master template (authoritative on structure)
-- `ContextDelivery/README.PerFileConventionInjection.md` — conformance reference; 8 sections, 85 TCs in one file (over the forty-case split rule; a continuation part is its owner's follow-up)
-- `ContextDelivery/README.ProtocolDelivery.md` — conformance reference; 8 sections, 75 TCs in one file (over the forty-case split rule; a continuation part is its owner's follow-up)
-- `ContextDelivery/README.SessionPromptLedger.md` — conformance reference; 8 sections, 23 TCs
-- `ContextDelivery/README.WorkflowRouting.md` — conformance reference; 8 sections, 13 TCs
-- `Notifications/README.AssistantSessionNotifications.md` — conformance reference; 8 sections, 13 TCs
-- `Presentation/README.PresentationDecks.md` — conformance reference; 8 sections, 17 TCs (Section 6 uses the portable template's interaction-surface subsections)
-- `WorkflowExecution/README.GuidedWorkflow.md` — conformance reference; 8 sections, 68 TCs in one file (over the forty-case split rule; a continuation part is its owner's follow-up)
-- `Adoption/README.AdoptionSwitches.md` — conformance reference; 8 sections, 62 TCs (Section 8 continues in `README.AdoptionSwitches-Part2.md`)
-
-- `Adoption/README.SkillActivationPolicy.md` — implemented; 8 sections, 10 TCs for configurable runtime skill selection
-
-## Feature Code Registry
-
-Nine capability codes are registered: four in `ContextDelivery`, two in `Adoption`, and one each in `WorkflowExecution`, `Notifications` and `Presentation`.
-
-| Code | Feature                         | Module    | Status | Evidence                                                                              |
-| ---- | ------------------------------- | --------- | ------ | ------------------------------------------------------------------------------------- |
-| PFCI | Per-File Convention Injection   | hooks     | draft  | `ContextDelivery/INDEX.md:11`; `ContextDelivery/README.PerFileConventionInjection.md` |
-| SPL  | Session Prompt Ledger           | hooks     | draft  | `ContextDelivery/INDEX.md:13`; `ContextDelivery/README.SessionPromptLedger.md`        |
-| PDL  | Protocol Delivery               | hooks     | draft  | `ContextDelivery/INDEX.md:12`; `ContextDelivery/README.ProtocolDelivery.md`           |
-| WFR  | Workflow Routing                | hooks     | draft  | `ContextDelivery/INDEX.md:14`; `ContextDelivery/README.WorkflowRouting.md`            |
-| GWF  | Guided Workflow Execution       | workflows | draft  | `WorkflowExecution/INDEX.md:11`; `WorkflowExecution/README.GuidedWorkflow.md`         |
-| ADS  | Adoption Switches               | hooks     | draft  | `Adoption/INDEX.md:11`; `Adoption/README.AdoptionSwitches.md` (+ `-Part2`)            |
-| NT   | Assistant Session Notifications | hooks     | draft  | `Notifications/INDEX.md:11`; `Notifications/README.AssistantSessionNotifications.md`  |
-| PD   | Presentation Decks              | skills    | draft  | `Presentation/INDEX.md:11`; `Presentation/README.PresentationDecks.md`                |
-
-| SAP | Framework Skill Activation Policy | hooks | implemented | `Adoption/README.SkillActivationPolicy.md` |
-
-## Thin-Index Files
-
-Five bucket indexes exist, each a capability table (Capability · Feature Code · Status · Spec link): `ContextDelivery/INDEX.md` covers its four specs; `Adoption/INDEX.md` covers two specs and links the adoption-switch continuation part from its row; `Notifications/INDEX.md`, `Presentation/INDEX.md` and `WorkflowExecution/INDEX.md` each cover one spec. All five carry the derived-artifact banner (regenerate via `/spec [mode=index]`, never hand-edit). No parent cross-bucket index exists; with five buckets populated, one is now worth generating through the `/spec [mode=index]` owner. **Evidence:** `ContextDelivery/INDEX.md:1-14`; `Adoption/INDEX.md:1-11`; `Notifications/INDEX.md:1-11`; `Presentation/INDEX.md:1-11`; `WorkflowExecution/INDEX.md:1-11`.
-
-## Section Structure
-
-Corpus denominator: 9 Feature Specs (a continuation part is not a separate spec). All nine carry all eight prescribed sections in the prescribed order, so every section is observed at 100% (9/9) and classified standard.
-
-| Order | Prescribed Section                 | Observed Frequency |
-| ----: | ---------------------------------- | ------------------ |
-|     1 | Overview                           | 100% (9/9)         |
-|     2 | Glossary                           | 100% (9/9)         |
-|     3 | User Stories & Acceptance Criteria | 100% (9/9)         |
-|     4 | Business Rules                     | 100% (9/9)         |
-|     5 | Domain Model                       | 100% (9/9)         |
-|     6 | Process Flows                      | 100% (9/9)         |
-|     7 | Permissions & Roles                | 100% (9/9)         |
-|     8 | Test Specifications                | 100% (9/9)         |
-
-A 9-spec denominator confirms the prescribed order is followed but is too small to establish an independent corpus convention; the master template stays the authority. **Evidence:** `detailed-feature-spec-template.md:41-216`; `ContextDelivery/README.PerFileConventionInjection.md:36,44,76,247,507,654,728,749`; `ContextDelivery/README.SessionPromptLedger.md:36,42,60,122,185,247,278,296`; `ContextDelivery/README.WorkflowRouting.md:46,52,79,132,234,315,341,355`; `Notifications/README.AssistantSessionNotifications.md:42,48,71,112,213,256,315,327`; `Presentation/README.PresentationDecks.md:42,48,69,136,223,305,370,382`; `Adoption/README.AdoptionSwitches.md:64,70,102,207,362,472,516,536` (Section 8 continues at `README.AdoptionSwitches-Part2.md:27`); `ContextDelivery/README.ProtocolDelivery.md:68,74,110,220,369,498,538,552`; `WorkflowExecution/README.GuidedWorkflow.md:54,60,100,201,358,485,527,541`.
-
-## Documentation Conventions
-
-| Concern                | Current Rule                                                                                                                                                                                                                                                | Evidence                                                       |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Location and name      | One canonical capability document per bucket; each bucket index is `INDEX.md`                                                                                                                                                                               | `spec-system-reference.md:9-36`                                |
-| Section order          | Eight sections in the order above                                                                                                                                                                                                                           | `detailed-feature-spec-template.md:41-216`                     |
-| Story and criteria IDs | `US-{FC}-NN` and `AC-{FC}-NN`                                                                                                                                                                                                                               | `detailed-feature-spec-template.md:80-93`                      |
-| Rule IDs               | `BR-{FC}-NN` plus an abstract rule anchor                                                                                                                                                                                                                   | `detailed-feature-spec-template.md:100-110`                    |
-| Test IDs               | `TC-{FEATURE}-{NNN}` with category-decade numbering                                                                                                                                                                                                         | `.claude/skills/shared/tc-format.md:55-58,198-218`             |
-| Required TC content    | Descriptive name/priority, Objective, Business Intent / Invariant Guarded, Preconditions, Demo Flow/GWT, Expected Result, Acceptance Criteria, Test Data, Edge Cases, conditional Transition Invariants, Evidence, Related Behaviors, CoveredBy, and Status | `.claude/skills/shared/tc-format.md:55-146`                    |
-| Evidence               | Stack-portable `[Source: namespace/service/id]`; physical code coordinates stay outside prose                                                                                                                                                               | `.claude/skills/shared/sdd-artifact-contract.md:89-97,388-428` |
-| Coverage cardinality   | One business TC may be guarded by many tests through the shared test-spec annotation                                                                                                                                                                        | `.claude/skills/shared/tc-format.md:167-187`                   |
-| Ownership              | Business specs are authored; indexes and technical views are derived single-writer artifacts                                                                                                                                                                | `spec-system-reference.md:17-54`                               |
-
-## Coverage Gaps
-
-| Area                         | Current State                                                                                                                                                                                                                                                                                         | Evidence / Next Owner                                                                                                                                                                                          |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Canonical corpus             | Five buckets exist (`ContextDelivery`: 4 Feature Specs; `WorkflowExecution`: 1; `Notifications`: 1; `Presentation`: 1; `Adoption`: 2 (ADS in two parts)); every other capability is still uncovered                                                                                                         | `ContextDelivery/`, `WorkflowExecution/`, `Notifications/`, `Presentation/`, `Adoption/`; create further buckets through `$spec` when a capability is ready                                                    |
-| Module distribution          | The hooks module has seven Feature Specs, the workflows module one (GWF) and the skills module one (PD); the other four configured modules have zero                                                                                                                                                    | `docs/project-config.json:44-115`; corpus evidence above                                                                                                                                                       |
-| Worked exemplar              | No gold-standard capability document exists                                                                                                                                                                                                                                                           | Master template only: `detailed-feature-spec-template.md`                                                                                                                                                      |
-| Feature-code registry        | Nine codes registered (`PFCI`, `SPL`, `WFR`, `PDL`, `GWF`, `NT`, `ADS`, `PD`, `SAP`); SAP is `implemented`, the others `draft`; no code is `stable` yet                                                                                                                                                                                  | `ContextDelivery/INDEX.md:11-14`; `WorkflowExecution/INDEX.md:11`; `Notifications/INDEX.md:11`; `Presentation/INDEX.md:11`; `Adoption/INDEX.md:11`                                                             |
-| Thin indexes                 | Five bucket indexes exist (`ContextDelivery/INDEX.md`, `WorkflowExecution/INDEX.md`, `Notifications/INDEX.md`, `Presentation/INDEX.md`, `Adoption/INDEX.md`); no cross-bucket catalog yet — generate one through `/spec [mode=index]`                                                                        | `ContextDelivery/INDEX.md`; `Notifications/INDEX.md`; `Presentation/INDEX.md`; `Adoption/INDEX.md`                                                                                                             |
-| Forty-case split rule        | `ContextDelivery/README.PerFileConventionInjection.md` (85 TCs), `ContextDelivery/README.ProtocolDelivery.md` (75 TCs) and `WorkflowExecution/README.GuidedWorkflow.md` (68 TCs) each hold more than forty cases in one file; each records the split as an owner follow-up in its Section 8 size note | `/spec` owner; `Adoption/README.AdoptionSwitches-Part2.md` is the continuation-part precedent                                                                                                                  |
-| Local M1 tokens              | The local prose-rule section defines no banned-token list or verifier                                                                                                                                                                                                                                 | `spec-principles.md:35-39`                                                                                                                                                                                     |
-| Template configuration       | The referenced template config key is absent                                                                                                                                                                                                                                                          | `docs/project-reference/spec-system-reference.md:15`; no matching key in `docs/project-config.json`                                                                                                            |
-| Template parity              | Project and portable templates disagree on the Section 6 interaction-surface contract; `Presentation/README.PresentationDecks.md` follows the portable shape (Process Flows & Interaction Surface, subsections 6.1-6.5) while the other seven specs follow the project shape                          | templates-root `detailed-feature-spec-template.md:172-192`; portable `.claude/templates/detailed-feature-spec-template.md:153-235`; `Presentation/README.PresentationDecks.md:305-366`                         |
-| Rule/entity anchor placement | The reference and authoring owner require abstract anchors in Business Rules and Domain Model, while both templates say anchors appear only in Test Specifications                                                                                                                                    | this reference, `:114-115`; `.claude/skills/spec/SKILL.md:121-122`; templates-root `detailed-feature-spec-template.md:222-224,277-278`; portable `.claude/templates/detailed-feature-spec-template.md:318-321` |
-
-## M1/M2 Compliance Leaks
-
-The corpus now has nine auditable specs, but no per-token M1/M2 audit has been run against them. The table below is empty because the audit is OUTSTANDING — this is an unperformed audit, not a compliance PASS.
-
-| File | Line | Section | Mandate | Offending Token / Identifier |
-| ---- | ---: | ------- | ------- | ---------------------------- |
-
-Next owner: `/scan --target=feature-spec` populates these rows for every corpus spec, starting with `ContextDelivery/README.PerFileConventionInjection.md`, `ContextDelivery/README.SessionPromptLedger.md`, and `Notifications/README.AssistantSessionNotifications.md`. The shared category rules remain enforceable, but exact local-token coverage still cannot be claimed because the local banned-token list is not populated. **Evidence:** `.claude/skills/shared/sdd-artifact-contract.md:89-97`; `spec-principles.md:35-39`.
-
----
-
-<!-- CRITICAL RULES (recency anchor):
-1. MUST ATTENTION use the tech-free 8-section Feature Spec template for all business feature docs
-2. MUST ATTENTION include test specifications (Section 8) with TC-{FEATURE}-{NNN} format, Business Intent / Invariant Guarded, and Evidence field
-3. MUST ATTENTION study the master template and every concrete gold standard before writing new feature docs
--->
-
-<!-- PROMPT-ENHANCE:CLOSING-GUARDRAILS:START -->
+- `techSpecScan` is deliberately omitted: there is no configured annotation scan from which to derive a complete TC/test join. The technical generator rejects missing scan fields at `.claude/skills/tech-spec/scripts/generate-tech-specs.mjs:97-102`. Do not fabricate an annotation pattern or report generation success.
+- The strict-default provenance sidecar `docs/specs/.sdd-provenance-map.jsonl` is an expected generated output and is currently absent. <!-- path-role: generated-output --> Read `.claude/skills/shared/sdd-artifact-contract.md` when recovering physical coordinates from abstract anchors; route missing verified mappings through the spec owner. Existing related-doc tables and selected direct traces do not prove a complete anchor map. Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location.
+- Complete executable coverage remains `UNKNOWN` until each claim is matched to its executing assertions and result. Planned and untriggered cases are not test failures or proof of implemented coverage. Library-module inventories do not establish a list of missing business capabilities.
+- Read `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs` when assessing automated M1/M2 detection scope. Dictionary/source-shape checks do not prove all semantic mandates, and no local banned-token list is configured. Review implementation-file vocabulary outside carriers through the spec owner; public command vocabulary may require a different disposition from private source coordinates.
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION** use the tech-free 8-section Feature Spec template in exact order for ALL business feature docs; narrative stays tech-free and technical identifiers stay in allowed evidence carriers
-- **IMPORTANT MUST ATTENTION** Section 8 (Test Specifications) MUST include `TC-{FEATURE}-{NNN}` IDs, `Business Intent / Invariant Guarded`, and `Evidence: [Source: namespace/service/id]` for every test case (legacy `FilePath:Line` DEPRECATED)
-- **IMPORTANT MUST ATTENTION** study the master template and every concrete gold standard before writing any new feature doc; no worked exemplar exists yet
-- **IMPORTANT MUST ATTENTION** enforce M1-M7, including the user/QC-demoable business-visibility gate; an absent corpus is not a compliance PASS
-- **IMPORTANT MUST ATTENTION** do not apply line-count caps to Feature Specs; split only when TCs>40 or distinct module-level capabilities emerge - not shorter stubs, not sprawling dumps
-- **IMPORTANT MUST ATTENTION** NEVER ship docs with `TBD` Evidence placeholders - every TC requires a canonical `[Source: namespace/service/id]` anchor (legacy `FilePath:Line` DEPRECATED)
-- **IMPORTANT MUST ATTENTION** add final review task to verify all 8 sections present, narrative prose is tech-free, every TC has Business Intent / Invariant Guarded and Evidence fields, and no line-count cap was applied
-
-<!-- PROMPT-ENHANCE:CLOSING-GUARDRAILS:END -->
+Preserve the canonical owner, eight-section semantics, stable IDs, draft lifecycle and verified evidence. Read the author/TC owners at the decision point; use bucket indexes for discovery. Keep coverage unknown when assertions/results or anchor recovery are unresolved, and regenerate derived artifacts through their owning command.

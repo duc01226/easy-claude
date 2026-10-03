@@ -30,6 +30,7 @@ disable-model-invocation: false
 - Plan and assess the configured project, then repair the required config until non-empty `project.name` validates.
 - Keep always-on context separate from exact task-specific reference selection; add optional capabilities only from evidence.
 - Run scan, spec, surface, host, and graph work only when selected; preserve native spec formats or use strict defaults, then verify, review, and report outcomes and skips.
+- Selected review setup delegates classifier/rule proposals and protected accepted merge to `$project-config`; initialization performs no review-tool acquisition.
 
 **Workflow:**
 
@@ -213,6 +214,9 @@ Run required setup in order. Only scan/spec work selected from project evidence 
 5. **Post-config selected work** — when both scan and spec tasks apply, create them as sibling tasks and run them in parallel when the host supports it; otherwise finish both before crossing the barrier. When only one applies, run only that task. Every selected task must return completed, blocked, or evidence-deferred before final review.
 6. **Experience/E2E** — configure or review the `experienceVerification`/`e2eTesting` matrix only for evidence-backed observable surfaces. Use `$experience-review` or E2E workflows when the surface can actually run and be inspected; missing prerequisites are `ENVIRONMENT-BLOCKED`, not PASS/N/A. Never create an expected baseline from current output.
 7. **Convention classes** — run the detector only when stable `contextGroups` or convention injection is selected. Apply a write only when the configured preference or explicit request authorizes it; do not turn on injection merely because the detector found candidates. Verify a representative file with `file-conventions.cjs --lookup` when enabled.
+
+   **Review setup (selected only):** inspect the authoritative OCR preference through `$project-config` → “OCR project preference — focused route”. Configure enable/off only from an explicit owner request or accepted preference; a valid minimal project may remain Unset. Both project-config and framework-config use the same inspect/token/save/readback helper; this init route is config-only, never readiness/acquisition. When grouping is selected, delegate evidence-backed `reviewGroups` and `reviewPreparation.ruleDocs` proposals to `$project-config` section 2e.1 after classifiers and required rule sources are known. Preview representative assignments, overlaps, unmatched files and rule provenance; apply only the accepted subset with protected ID-based merge, then validate. A valid minimal project requires no groups. Scan outputs recommend policy; `$project-config` owns its accepted write. **NEVER** acquire a review tool during initialization or lifecycle hooks; explicit review preparation owns optional acquisition under machine policy. Read `.claude/skills/shared/review-preparation.md` when explaining review readiness, exact targets or fallback; absent tools preserve ordinary host review.
+
 8. **Root instructions** — run `$ai-context-refresh --mode init|update` when `CLAUDE.md` or equivalent root context is missing/stale, preserving user-authored content.
 9. **Codex mirror** — consume the `$ai-context-refresh` completion handoff when Codex files/host are present or requested; otherwise record the Codex-only step as not applicable.
 10. **Enhance** — use `$prompt-enhance` for newly created or materially updated project guidance when prompt quality warrants it.
@@ -312,6 +316,8 @@ Report:
 <!-- PROTOCOL-GUIDES:END -->
 
 ## Closing Reminders
+
+**MUST ATTENTION** selected review setup delegates evidence → preview → accepted protected merge → validation to project-config; initialize without acquiring review tools.
 
 **IMPORTANT MUST ATTENTION Goal:** any agent, with or without hooks, reaches a verified project-context state before project-specific work.
 

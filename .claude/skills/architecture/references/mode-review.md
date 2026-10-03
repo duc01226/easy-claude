@@ -163,6 +163,8 @@ git diff --cached   # Staged only
 - Categorize: backend (.cs), frontend (.ts/.html), config, docs, other.
 - Filter to architecture-relevant files (skip pure docs, configs, tests unless architecture-relevant).
 
+**Resolved source targets only:** follow `.claude/skills/shared/review-preparation.md` before reviewing the selected source/change set. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Plan-only architecture grading is excluded.
+
 ## Phase 2: Blast Radius (optional graph hint)
 
 - Assess the blast radius by grep/reading callers and dependents first.

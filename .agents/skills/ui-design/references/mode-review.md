@@ -127,6 +127,8 @@ git diff --cached   # Staged only
 - Filter to files matching the project's configured UI/frontend path and extension patterns
 - If ZERO UI files match → announce `"No UI changes detected — ui-design --mode=review skipped"` and report clean (honor the CONDITIONAL skip)
 
+**Concrete UI source review only:** follow `.claude/skills/shared/review-preparation.md` after source filtering and before surface review. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Screenshot/video/live-only evidence without source is excluded.
+
 **Expand files → surfaces (MANDATORY when UI files match).** A file does not render; a surface does. For every in-scope file, find the pages / views / dialogs / panels that render it — through routing, parent composition, template usage, or the graph's upstream edges (Phase 2). Record `surface → changed files that render into it` at the top of the index report. Every affected surface is reviewed WHOLE — including its unchanged parts — because load accumulated over many small, individually reasonable diffs is invisible file by file.
 
 - **Shared or global change** (global stylesheet, theme, token, reset, shared primitive): the surface set is every consumer. Review the project's declared representative surfaces (`uiReview.representativeSurfaces` in the project config, when present); otherwise the highest-fan-out consumers found. State the sample and why it is representative.

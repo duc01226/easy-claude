@@ -47,6 +47,29 @@ const CK_SCHEMA = {
   trust: { type: "object", required: false, freeform: true },
   project: { type: "object", required: false, freeform: true },
   codeReview: { type: "object", required: false, freeform: true },
+  reviewTools: {
+    type: "object",
+    required: false,
+    rejectNull: true,
+    closed: true,
+    describe: "Machine review-tool preferences in personal ~/.claude/.ck.json or ignored .claude/.ck.local.json only. Committed team configuration grants no execution, network or acquisition permission. Any machine denial dominates; malformed declared policy produces supplemental fallback.",
+    properties: {
+      openCodeReview: {
+        type: "object",
+        required: false,
+        rejectNull: true,
+        closed: true,
+        describe: "Optional native OCR delegation preferences, applied only during explicit review preparation. Omit for execution=true, acquisition=auto and network=true, subject to host permissions and deny-only environment overrides.",
+        properties: {
+          execution: { type: "boolean", required: false, rejectNull: true, describe: "False forbids every native invocation, including provided, cached and PATH binaries. A true preference cannot reverse another machine denial." },
+          acquisition: { type: "string", required: false, rejectNull: true, enum: ["auto", "never"], describe: "auto permits isolated pinned acquisition when all machine and host permissions allow it; never forbids acquisition while retaining permitted existing tools." },
+          network: { type: "boolean", required: false, rejectNull: true, describe: "False forbids acquisition network access; existing compatible tools remain usable when execution is permitted." },
+          binaryPath: { type: "string", required: false, rejectNull: true, nonBlank: true, describe: "Optional absolute path to a provisioned native executable; the acquisition-policy owner validates its path, native identity and compatibility. Local preference takes precedence over personal without reversing denial." },
+          cacheDir: { type: "string", required: false, rejectNull: true, nonBlank: true, describe: "Optional absolute private tool-cache location; the acquisition-policy owner verifies containment, ownership and integrity before reuse or publication. Never committed as team policy." }
+        }
+      }
+    }
+  },
   subagent: { type: "object", required: false, freeform: true },
   referenceDocs: {
     type: "object",
@@ -169,6 +192,8 @@ function validateField(value, fieldSchema, path, errors, warnings) {
     if (fieldSchema.nullable) return;
     if (fieldSchema.required) {
       errors.push(`${path}: required field is missing`);
+    } else if (fieldSchema.rejectNull) {
+      errors.push(`${path}: declared value must not be null; omit the field to use its default`);
     }
     return;
   }
@@ -209,6 +234,9 @@ function validateField(value, fieldSchema, path, errors, warnings) {
         errors.push(
           `${path}: invalid value "${value}" — expected one of: ${fieldSchema.enum.join(", ")}`,
         );
+      }
+      if (fieldSchema.nonBlank && (!value.trim() || value.includes('\0'))) {
+        errors.push(`${path}: expected a nonblank path without NUL characters`);
       }
       break;
 
@@ -272,8 +300,8 @@ function validateField(value, fieldSchema, path, errors, warnings) {
           );
         }
         for (const key of Object.keys(value)) {
-          if (!fieldSchema.properties[key]) {
-            warnings.push(`${path}.${key}: unknown property (not in schema)`);
+          if (!Object.prototype.hasOwnProperty.call(fieldSchema.properties, key)) {
+            (fieldSchema.closed ? errors : warnings).push(`${path}.${key}: unknown property (not in schema)`);
           }
         }
       }

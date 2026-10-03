@@ -65,6 +65,8 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
     - IF file/pattern argument provided → use it
     - IF not → ask user which files or components to review
 
+    **Concrete UI code only:** after identifying files, follow `.claude/skills/shared/review-preparation.md` before scanning. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Image/live-only evidence is excluded.
+
 2. **Scan files** using Read and Grep tools
 
 3. **Check against categories** (in priority order):

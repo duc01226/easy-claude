@@ -279,6 +279,59 @@
       "detectedFingerprint": "831d962b67931825"
     }
   ],
+  "reviewPreparation": {
+    "provider": "open-code-review"
+  },
+  "reviewGroups": [
+    {
+      "id": "tests",
+      "priority": 50,
+      "contextGroups": ["integration-test", "shipped-tests"],
+      "origin": "user"
+    },
+    {
+      "id": "specs",
+      "priority": 60,
+      "contextGroups": ["feature-spec"],
+      "origin": "user"
+    },
+    {
+      "id": "hooks",
+      "priority": 100,
+      "modules": ["hooks", "hooks-lib"],
+      "origin": "user"
+    },
+    {
+      "id": "skills",
+      "priority": 200,
+      "modules": ["skills"],
+      "origin": "user"
+    },
+    {
+      "id": "agents",
+      "priority": 300,
+      "modules": ["agents"],
+      "origin": "user"
+    },
+    {
+      "id": "scripts",
+      "priority": 400,
+      "modules": ["scripts"],
+      "origin": "user"
+    },
+    {
+      "id": "docs",
+      "priority": 500,
+      "modules": ["docs-framework"],
+      "origin": "user"
+    },
+    {
+      "id": "mirrors",
+      "priority": 600,
+      "contextGroups": ["agent-mirrors-context"],
+      "origin": "user"
+    }
+  ],
   "conventionInjection": {
     "enabled": true,
     "maxClassesPerEdit": 10,

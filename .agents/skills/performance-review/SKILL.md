@@ -148,6 +148,8 @@ Classify before analysis. Detection drives dimensions, evidence, sub-agent choic
 | Runtime/GC          | latency spikes uncorrelated with load, pauses, RSS growth, blocked event loop                    | GC log/pause histogram, allocation rate, RSS vs heap, thread states, event-loop lag             |
 | Resilience/load     | retry storm, no timeout, unbounded queue, cold-start blip, one tenant degrades all               | timeout/retry config, queue depth AND age, breaker state, per-tenant rate limits                |
 
+**Source-review preparation:** when scope resolves concrete code/query/caller/UI sources, follow `.claude/skills/shared/review-preparation.md` before source analysis. Use the actual skill/mode and selected required documents; inherit the parent decision, including explicit `--provider-decision skip` on children/rechecks, under the recipe’s read-only-leaf and exact-target limits. Profile/log/metrics-only and plan-only evidence are excluded; setup does not authorize new runtime calls.
+
 Skip reason allowed only when target explicitly narrows scope and evidence proves dimension irrelevant.
 
 **Triage accelerator (symptom → usual cause).** MUST ATTENTION use the symptom→cause matrix in `references/performance-knowledge.md` §3 to pick the FIRST evidence to pull — it maps signatures AI habitually misreads, e.g. `p99 bad + p50 fine` → GC pause / lock contention / fan-out tail / cold cache (NOT a slow query); `latency scales with result size` → N+1; `sudden cliff at some load` → utilization knee or pool exhaustion; `degrades over days, fine after restart` → leak/bloat/connection leak; `slow for one tenant only` → hot key/partition skew. NEVER let the matrix replace evidence — it orders the hypotheses, Phase 2 proves one.

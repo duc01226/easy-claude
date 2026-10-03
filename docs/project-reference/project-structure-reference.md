@@ -1,81 +1,86 @@
 # Project Structure Reference
 
-<!-- Last scanned: 2026-08-04 -->
+<!-- Last scanned: 2026-10-03 -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
-> **Goal:** Ground AI work in easy-claude's verified framework topology, runtime entry points, configuration surfaces, and commands so agents never invent application services, ports, or deployment infrastructure.
-> **MUST ATTENTION** Treat configured modules as framework libraries unless source evidence proves a deployable application.
-> **NEVER** infer ports, delivery providers, environments, or secret values; use cited configuration only.
+> Read this guide when planning or investigating framework ownership, runtime entry points, configuration, or verification commands.
 
 ## Quick Summary
 
-**Goal:** Ground AI work in easy-claude's verified framework topology, runtime entry points, configuration surfaces, and commands so agents never invent application services, ports, or deployment infrastructure.
+**Goal:** Locate the authoritative framework component and its execution boundary before changing easy-claude.
 
-**Summary:**
+- `.claude/` owns framework source; `.agents/`, `.codex/`, `.opencode/` and `AGENTS.md` are generated host surfaces.
+- The repository supplies hook handlers and task tooling. Configured modules are libraries; skill-local packages are optional tooling, not application services.
+- Invoke portable tooling by its in-framework path. The root manifest has no npm scripts.
+- Read configuration for versions, setting names and ports; preserve user settings and keep credential values out of documentation.
 
-- Start with Architecture Overview: single-package framework/library repository, not an application backend/frontend.
-- Map work through Key Directories, Module Codes, and Key Entry Points; `.claude/` is canonical, `.agents/`/`.codex/` are generated mirrors.
-- Read ports, commands, setting keys, and versions only from cited sources; keep secret values outside docs.
-- Re-run `$scan --target=project-structure` when topology or canonical inventory markers change.
+## Repository Scope & Architecture
 
-**Workflow:** Architecture classification → relevant module/entry point → source-backed runtime/config evidence → graph/path verification.
+The root package is private repository development tooling with Node `>=18.0.0`; its manifest declares formatter/commit tooling and an empty `scripts` object (`package.json:1–24`). The seven library modules are declared in `docs/project-config.json` → `modules`; their implementation roots are shown below. Hook entry points import shared libraries inward, for example `session-init.cjs` imports workflow/config helpers and `hook-runner.cjs` adapts host input (`.claude/hooks/session-init.cjs:18–40`; `.claude/hooks/lib/hook-runner.cjs:294–306`).
 
-**Key Rules:** MUST ATTENTION use `docs/project-config.json` as the module map. NEVER infer missing application/deployment layers. ALWAYS update canonical `.claude` sources before generated mirrors.
+Read `.claude/docs/framework-portability.md` when changing portable framework code or a host mirror; it defines the copy/verification boundary. Read `.claude/skills/sync-codex/SKILL.md` when canonical source edits require Codex regeneration; the standalone runner owns its stage roster (`.claude/skills/sync-codex/scripts/run-codex-sync.mjs:3–16`). OpenCode has its own owner at `.claude/skills/sync-opencode/SKILL.md`; the Codex runner delegates to it when `.opencode/` is present.
 
-## Overview
+## Applications & Entry Points
 
-**easy-claude** is a portable Claude Code enhancement framework. No application backend/frontend code; the repository is the framework.
+| Entry point | Read/use when | Evidence |
+| --- | --- | --- |
+| `.claude/settings.json` → `hooks` | Resolving a lifecycle event's registered commands, matchers and timeouts | `.claude/settings.json:30–194` |
+| `.claude/hooks/session-init.cjs` | Tracing startup, resume, clear and persisted session/workflow state | `.claude/hooks/session-init.cjs:313–330` |
+| `.claude/hooks/lib/hook-runner.cjs` | Selecting normalized hook-event and result/error handling | `.claude/hooks/lib/hook-runner.cjs:294–323` |
+| `.claude/skills/<name>/SKILL.md` | Executing a named task contract; discover current names through the skill catalog | `.claude/scripts/scan_skills.py:127–175` |
+| `.claude/workflows.json` + `.claude/scripts/lib/workflow-manifest.cjs` | Resolving workflow occurrences, variants, roles and outcome gates | `.claude/scripts/lib/workflow-manifest.cjs:162–212` |
+| `.claude/hooks/notifications/notify.cjs` | Tracing main-session alerts and configured providers | `.claude/hooks/notifications/notify.cjs:75–171` |
+| `.claude/scripts/review-prepare.cjs` | Preparing exact local/staged/branch/named-file review targets, active skill-mode/source binding and optional OCR; read `.claude/docs/review-preparation.md` when selecting capture or adoption behavior | `.claude/scripts/lib/review-preparation.cjs:45-88,117-123` |
+| `.claude/skills/project-config/scripts/review-setup.cjs` | Inspecting or saving the OCR project preference through the canonical relocated config loader; read `.claude/skills/project-config/SKILL.md` when accepting enable/off setup | `.claude/skills/project-config/scripts/review-setup.cjs:20-39,93-97,114-174` |
+| `.claude/scripts/ai-signal-scan.cjs` | Discovering AI-feature surfaces before an AI review | `.claude/scripts/ai-signal-scan.cjs:187-215` |
 
-## Architecture Overview
+Workflow progression is model-driven through the resolved manifest and tracked tasks; persisted state is recovery data, not proof that an outcome gate passed. Read `.claude/skills/start-workflow/SKILL.md` when resolving execution/flex rules, and `.claude/skills/workflow-end/SKILL.md` when closing a run. Read `.claude/docs/hooks/README.md` when changing registered lifecycle behavior; use the current registrations rather than a copied hook list.
 
-| Axis          | Detected state                                                                          | Evidence                                                                      |
-| ------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Repository    | Single-package framework/library repository; all configured modules are libraries       | `docs/project-config.json:23-73`, `package.json:2-18`                         |
-| Runtime       | Event-driven CommonJS hooks plus Python/Node tooling; no deployable application service | `.claude/docs/hooks/README.md:7-38`, `.claude/hooks/session-init.cjs:315-321` |
-| Orchestration | Direct command execution; no configured container or service orchestrator               | `docs/project-config.json:149-152`, `package.json:18-47`                      |
-| Delivery      | Undetermined: no provider workflow or IaC manifest is present                           | `docs/project-config.json:152`, `package.json:18-47`                          |
+## Runtime & Integrations
 
-## Service Architecture
+Hooks execute as host-registered Node commands. No mandatory database, broker, API service or infrastructure unit is declared in `docs/project-config.json` → `databases`, `messaging`, `api`, `infrastructure`. This does not exclude optional tooling connections.
 
-No backend API, worker, frontend app, Docker deploy unit, database, or broker configured (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`). Hooks are CLI lifecycle handlers, not network services (`.claude/docs/hooks/README.md:7-38`).
+- Code-graph tooling persists source topology in SQLite (`.claude/scripts/code_graph/graph.py:26–71`). Read `.claude/docs/code-graph-setup.md` when installing/building it; read `.claude/docs/code-graph-mechanism.md` when tracing graph ownership.
+- Notifications support desktop plus optional Telegram, Discord and Slack remote delivery. Provider calls are owned by `.claude/hooks/notifications/providers/telegram.cjs:110–114`, `discord.cjs:171–177` and `slack.cjs:130–132` under that same provider directory. Read `.claude/docs/configuration/README.md` when enabling them.
+- `html-export` uses its own Playwright/ffmpeg execution boundary; read `.claude/skills/html-export/SKILL.md` when exporting artifacts. Its override binaries are resolved by `.claude/skills/html-export/scripts/lib/ffmpeg.cjs:95–137`.
 
-No opt-in local HTTP utility is configured.
+No required application port is established by this configuration. Record a port only after reading the owning runtime configuration. A repository-wide maintained-manifest search found no CI, IaC or container deployment definition; delivery provider, promotion and rollback remain unknown.
 
-## Infrastructure Ports
+## Build, Delivery & Operations
 
-No mandatory database, broker, cache, or application port (`docs/project-config.json:149-152`).
+Use these platform-neutral Node entry points on Windows, macOS and Linux:
 
-## Deployment & Delivery
+| Command | Purpose / owner |
+| --- | --- |
+| `node .claude/hooks/tests/test-all-hooks.cjs` | Hook tests; configured in `docs/project-config.json` → `testing.commands` |
+| `node .claude/hooks/tests/run-all-tests.cjs` | All suites; configured in `docs/project-config.json` → `testing.commands` |
+| `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --list-stages` | Discover current sync/verification stages (`run-codex-sync.mjs:3–16`) |
+| `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verify-only` | Execute read-only Codex pipeline gates (`run-codex-sync.mjs:3–16`) |
 
-Delivery stack: **undetermined (no CI/IaC config found)**. Root commands cover local sync, generation, verification, and tests; no build/publish/deploy pipeline, promotion, or rollback defined (`package.json:18-47`). NEVER infer a provider.
+Read `docs/project-reference/integration-test-reference.md` when running, writing or reviewing shipped tests. Python tooling uses `py -3` on Windows and `python3` on macOS/Linux, as documented in `docs/project-config.json` → `testing.commandsNote`. Root `.cmd` files are Windows launch helpers; `claude-start.cmd` and `codex-start.cmd` explicitly bypass their hosts' permission/sandbox checks, so they are not ordinary verification commands.
 
-## Environment Configuration
+## Environment & Secret Configuration
 
-| Setting group                 | Surface                                                                        | Purpose                                                                                                                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework runtime             | `.claude/settings.json:24-30`                                                  | Context/auto-memory/todo controls, stop-hook cap, MCP timeout                                                                                                                                                         |
-| MCP authentication references | `.claude/.mcp.json:6-7`                                                        | `GITHUB_PERSONAL_ACCESS_TOKEN` <!-- path-role: user-local -->                                                                                                                                                         |
-| Notification references       | `.claude/hooks/notifications/.env.example:8-21`                                | Telegram, Discord, and Slack reference names                                                                                                                                                                          |
-| Optional skill credentials    | `.claude/.env.example:34-50`                                                   | Shared AI/ML API key reference names with per-skill override precedence                                                                                                                                               |
-| Optional skill tool paths     | `.claude/skills/html-export/scripts/lib/ffmpeg.cjs:114-127` (`overrideBinary`) | `HTML_EXPORT_FFMPEG` / `HTML_EXPORT_FFPROBE`: absolute ffmpeg/ffprobe override for video export; on Windows it must name an `.exe` or `.com` file (never a `.bat`/`.cmd` wrapper), else exit 3; unset → `PATH` lookup |
+| Source | Setting names / mechanism |
+| --- | --- |
+| `.claude/settings.json:26–29` | `CLAUDE_CODE_ENABLE_TODO_TOOLS`, `MCP_TIMEOUT` |
+| `.claude/hooks/lib/ck-config-loader.cjs:19–22` | Framework settings at project `.claude/.ck.json`, local `.ck.local.json`, personal `~/.claude/.ck.json`; read `.claude/docs/configuration/README.md` when selecting a setting | <!-- path-role: user-local -->
+| `.claude/hooks/notifications/.env.example:8–21` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DISCORD_WEBHOOK_URL`, `SLACK_WEBHOOK_URL`; environment precedence is process → personal → project (`notifications/lib/env-loader.cjs:80–100`) |
+| `.claude/.env.example:34–50` | Optional skill credential references `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`; inspect the skill's own loader before asserting precedence |
+| `.claude/skills/html-export/scripts/lib/ffmpeg.cjs:95–137` | `HTML_EXPORT_FFMPEG`, `HTML_EXPORT_FFPROBE`; Windows overrides must resolve supported executable files |
+| `.claude/hooks/lib/prompt-ledger-store.cjs:460–467` | `CK_PROMPT_LEDGER_DIR` optionally relocates per-session prompt records; default project `tmp/prompt-ledger` |
 
-MUST ATTENTION record setting keys/reference names only; keep credential values in environment or secret stores.
+Session-scoped legacy helpers use OS-temp `ck`; project dismiss/freshness markers use `tmp/claude-temp` (`.claude/hooks/lib/ck-paths.cjs:25–54`). Prompt and convention stores have their own owners; do not assume all runtime data uses one temp root.
 
-## Frontend Apps
+## Languages & Toolchain
 
-None. No frontend framework dependency, app mapping, dev-server port, or frontend build command is configured (`docs/project-config.json:106-121`, `package.json:16-47`).
+The root Node range is `>=18.0.0` (`package.json:12–14`); html-export requires `>=20` in `.claude/skills/html-export/package.json`. Use the selected tool’s requirement. Hooks/libraries use CommonJS `.cjs`; host-sync tooling also uses ESM `.mjs` (`hook-runner.cjs`; `run-codex-sync.mjs`). Read `.claude/scripts/README.md` when catalog/scanner PyYAML is missing: `.claude/scripts/lib/python_dependencies.py` owns the bounded global attempt, local fallback and actual-import verification. Python tooling requirements are ranges: `pyyaml>=6.0` in `.claude/scripts/requirements.txt`; graph dependencies are `tree-sitter>=0.21.0`, `tree-sitter-language-pack>=0.7.0`, `networkx>=3.0` in `.claude/scripts/code_graph/requirements.txt`. Optional conversion/export tools own separate manifests; do not present their packages as root runtime dependencies.
 
-## Key Directories
+Read `.claude/.mcp.json.example` when interpreting example MCP authentication references; its context7 API-key argument and `GOOGLE_GEMINI_API_KEY` reference do not establish an installed server. Read `.claude/docs/review-preparation.md` when selecting OCR machine policy: personal/ignored-local declarations and `CK_REVIEW_TOOL_*` restrictions are owned by `.claude/scripts/lib/review-acquisition-policy.cjs`. Tracked project groups grant no machine permission.
 
-| Path                      | Purpose                                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------------------ |
-| `.claude/hooks/`          | Runtime lifecycle hooks and shared hook libraries (`docs/project-config.json:23-37`)             |
-| `.claude/skills/`         | Task automation definitions and optional skill-local tooling (`docs/project-config.json:38-44`)  |
-| `.claude/agents/`         | Specialized sub-agent definitions (`docs/project-config.json:45-51`)                             |
-| `.claude/scripts/`        | Catalog, shared-protocol sync, graph, and maintenance tooling (`docs/project-config.json:52-58`) |
-| `.claude/workflows.json`  | Registered workflow definitions (`docs/project-config.json:59-65`)                               |
-| `.claude/docs/`           | Framework documentation (`docs/project-config.json:66-72`)                                       |
-| `docs/project-reference/` | Project-specific AI reference docs (`docs/project-config.json:158-250`)                          |
+## Source Organization
+
+Read `docs/project-config.json` → `modules` when selecting a component; module paths are project configuration and must be corroborated by source. `.claude/hooks/` contains entry points, `hooks/lib/` shared utilities, `skills/` task contracts/local tools, `agents/` specialized roles, `scripts/` maintenance tools, `workflows.json` workflow definitions and `docs/` framework guidance. Read `docs/project-reference/docs-index-reference.md` when locating project/reference/spec documentation.
 
 ## Component Architecture
 
@@ -86,47 +91,9 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 | Skills         | <!-- COUNT:skills -->101<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->24<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
-| Scripts        | 40                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
-| Codex Scripts  | 16                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, and verification tools                               |
 | Hook Tests     | 99 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
 | Codex Mirrors  | <!-- COUNT:skills -->101<!-- /COUNT --> skills, <!-- COUNT:agents -->24<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
-## Project Directory Tree
-
-```
-easy-claude/
-├── .claude/                 # Canonical framework source
-│   ├── agents/              # Specialized agent definitions
-│   ├── docs/                # Framework guides
-│   ├── hooks/               # Runtime hooks + shared libraries/tests
-│   ├── scripts/             # Catalog, graph, sync, and maintenance tools
-│   ├── skills/              # Skill definitions + optional local tooling
-│   └── workflows.json       # Registered workflow definitions
-├── .agents/                 # Generated Codex skill mirror
-├── .codex/                  # Generated Codex context/configuration
-├── docs/
-│   ├── adr/                 # Architecture decisions
-│   ├── project-reference/   # Project-specific AI context
-│   ├── release/             # Release archives
-│   └── templates/           # Authored templates
-├── AGENTS.md                # Codex-facing generated instructions
-├── CLAUDE.md                # Canonical project instructions
-├── package.json             # Node tooling commands + runtime requirement
-└── README.md                # Project overview and setup
-```
-
-## Tech Stack
-
-| Category | Technology            | Details                                            |
-| -------- | --------------------- | -------------------------------------------------- |
-| Runtime  | Node.js 18+           | Hook execution, scripts                            |
-| Language | JavaScript (CommonJS) | All hooks and hook libraries                       |
-| Language | Python 3              | Catalog generation, utility scripts                |
-| Language | Markdown              | Skills, agents, documentation                      |
-| Config   | JSON                  | workflows.json, settings.json, project-config.json |
-| Testing  | Custom CJS runner     | `node .claude/hooks/tests/test-all-hooks.cjs`      |
-| Platform | Claude Code CLI       | Target platform for the framework                  |
-| Platform | Codex CLI             | Compatibility mirror generated from Claude sources |
 
 ## Module Codes
 
@@ -137,163 +104,38 @@ easy-claude/
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->101<!-- /COUNT --> task automation skill definitions                                                 |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->24<!-- /COUNT --> specialized subagent role definitions                                              |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->19<!-- /COUNT --> end-to-end process orchestrations                                               |
-| SC   | Scripts        | `.claude/scripts/`             | 40 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                        |
-| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 16 top-level ESM sync, migration, notification, and verification scripts                                                  |
+| SC   | Scripts        | `.claude/scripts/`             | Catalog, protocol, graph and maintenance tools                                        |
+| CX   | Codex Tooling  | `.claude/scripts/codex/`       | ESM sync, migration, notification and verification tools                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
 | HT   | Hook Tests     | `.claude/hooks/tests/`         | 99 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
-## Hooks (<!-- COUNT:hooks -->30<!-- /COUNT --> top-level `.cjs` files)
 
-### Safety Hooks
+## Repository review responsibility
 
-| Hook                 | Event      | Purpose                                                               |
-| -------------------- | ---------- | --------------------------------------------------------------------- |
-| `review-commit-gate` | PreToolUse | Block an agent `git commit` lacking a review fix-loop or skip receipt |
+`docs/project-config.json` opts this repository into supplemental OCR with user-owned groups derived from existing modules/context classes. Read `.claude/docs/review-preparation.md` when preparing targets or changing rule routing.
 
-### Quality Hooks
+OCR preference belongs to the loader-selected project config: omitted provider is Unset, `open-code-review` is Enabled, and `none` is Off. For a nonempty source review with valid required policy, Unset offers exactly Accept setup / Turn off OCR for this project / Skip this time. Enabled uses permitted readiness/fallback; Off suppresses later adoption prompts. Read `.claude/skills/shared/review-preparation.md` when asking as the top-level review owner, verifying a save, recapturing target/policy after a save, or propagating invocation-only `--provider-decision skip` to children and rechecks (`.claude/scripts/lib/review-preparation.cjs:84-88`; `.claude/skills/shared/review-preparation.md:17-34`).
 
-| Hook               | Event            | Purpose                                                                             |
-| ------------------ | ---------------- | ----------------------------------------------------------------------------------- |
-| `init-prompt-gate` | UserPromptSubmit | Gate initial prompt processing                                                      |
-| `doc-sync-gate`    | PreToolUse       | Warn (never block) when behavioral code edits or commits lack a Feature Spec update |
+Read `.claude/skills/framework-config/SKILL.md` when an OCR preference request enters framework configuration; it routes to the same project-config helper. That helper preserves unrelated settings and validates the consent-bound candidate/readback; it never invokes or acquires OCR. Saved Enabled is a preference, not tool Ready or machine permission (`.claude/skills/project-config/scripts/review-setup.cjs:114-174`).
 
-> **Static enforcement.** Task creation, skill activation, edit gates, and workflow task-list integrity are universal protocols delivered by the universal hook and skill `SKILL.md` files.
+| Primary group | Priority | Existing classifier references |
+| --- | ---: | --- |
+| tests | 50 | context classes `integration-test`, `shipped-tests` |
+| specs | 60 | context class `feature-spec` |
+| hooks | 100 | modules `hooks`, `hooks-lib` |
+| skills | 200 | module `skills` |
+| agents | 300 | module `agents` |
+| scripts | 400 | module `scripts` |
+| docs | 500 | module `docs-framework` |
+| mirrors | 600 | context class `agent-mirrors-context` |
 
-### Static Project Context
+**MUST ATTENTION** preserve one primary owner per entry and every matching required convention. Tests/specs precede enclosing framework modules; unmatched paths retain `general`. These team groups do not grant machine permission. Additional `ruleDocs` is omitted. Required sources include declared active skill-mode procedures, host-selected project/spec/ADR/caller documents, selected review references and matching conventions. The host carries the same `--skill-mode` and repeated `--required-doc` union through capture, child replay and final recheck; `policySelection` exposes this choice (`.claude/scripts/lib/review-rule-policy.cjs:48-88,170-240`; `.claude/scripts/lib/review-preparation.cjs:45-64,117-123`).
 
-> Backend/frontend/SCSS/design/lessons/mindset/role guidance lives in `CLAUDE.md`, the project-reference docs root (default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path), and relevant skills. Read it through the project-reference docs gate; the static copy is authoritative. The opt-in `file-convention-inject` hook only re-reminds per-file convention classes (`contextGroups[]`) that are missing from the current context.
+## Advisory Selection and Workflow Discovery
 
-| Hook                                                                                                                                                                | Event                                                                                                                                                 | Purpose                                                                                                                                                                        |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `file-convention-inject`                                                                                                                                            | PostToolUse, SessionStart (compact)                                                                                                                   | Per-file convention reminder (content signals read a bounded sample and never follow a link out of the project; registered with a 10 s limit); records condensation, no output |
-| `prompt-ledger`                                                                                                                                                     | UserPromptSubmit, PostToolUse, SessionStart (compact/resume/clear)                                                                                    | Record each user prompt; re-anchor the original request after condensation and at task checkpoints                                                                             |
-| `token-budget-checkpoint`                                                                                                                                           | PostToolUse (task/plan steps)                                                                                                                         | Advisory note each time the session's non-cached tokens cross the next `hooks.tokenBudget.checkpointTokens` multiple                                                           |
-| `protocol-inject-<group>` (5: `review`, `evidence-trace`, `workflow-task`, `spec-test`, `design`), `protocol-inject-universal-<n>` (4 bins), `skill-overlay-remind` | PostToolUse (`Skill`, `Read` of a `SKILL.md`), UserPromptExpansion, SubagentStart (groups + bins), UserPromptSubmit and SessionStart `compact|clear` (bins) | Deliver a converted skill's shared protocols once per session (lib `protocol-delivery.cjs`); read `.claude/docs/hooks/README.md#protocol-delivery` when changing them          |
-
-### Graph Hooks
-
-| Hook                 | Event            | Purpose                                                                                                                      |
-| -------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `graph-session-init` | SessionStart     | Report graph status / install guidance, then sync with HEAD, only while the code graph is active (`hooks.codeGraph.enabled`) |
-| `graph-auto-update`  | PostToolUse      | Incremental graph update after edits, only while the code graph is active (`hooks.codeGraph.enabled`)                        |
-| `graph-prompt-sync`  | UserPromptSubmit | Re-sync when git HEAD moved since the last prompt, only while the code graph is active (`hooks.codeGraph.enabled`)           |
-
-### Session Management Hooks
-
-| Hook                | Event        | Purpose                               |
-| ------------------- | ------------ | ------------------------------------- |
-| `session-init`      | SessionStart | Initialize session state, load config |
-| `session-init-docs` | SessionStart | Check/create reference docs           |
-| `session-end`       | SessionEnd   | Persist state, cleanup                |
-| `verify-install`    | SessionStart | Verify framework install integrity    |
-
-> **Compaction recovery:** re-read `CLAUDE.md` / `SKILL.md` plus persisted task tracking; no live `PreCompact` recovery hook exists.
-
-### Workflow Hooks
-
-| Hook                        | Event                                           | Purpose                                                                                                                                                                                                                                                                                                                                                                                   |
-| --------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `workflow-route-inject`     | UserPromptSubmit                                | Inject the canonical workflow routing gate from `.claude/skills/shared/workflow-first-gate.md`                                                                                                                                                                                                                                                                                            |
-| `commit-skill-route`        | UserPromptSubmit                                | Remind the agent to run the `commit` skill when the prompt asks to commit                                                                                                                                                                                                                                                                                                                 |
-| `judgement-integrity-route` | UserPromptSubmit                                | Inject the anti-confirmation-bias answer why-review when the prompt asks for a verdict                                                                                                                                                                                                                                                                                                    |
-| `ai-feature-route`          | UserPromptSubmit                                | Inject one short conditional directive (at most 700 characters by construction, one read pointer, review route) once per re-arm window when the prompt names an AI technique AND asks to act on it (the Claude API or SDK counts, "Claude Code" does not); silent on questions, framework-machinery prompts (two framework cues, or one without a concrete product technique) and repeats |
-| `core-principles-inject`    | UserPromptSubmit, PostToolUse (task/plan steps) | Re-deliver the Easy to change · scale · maintain gate, deduplicated to about once per 100k tokens                                                                                                                                                                                                                                                                                         |
-
-> **Workflow tracking:** progression is model-driven against `CLAUDE.md` and persisted task tracking; no workflow-step hook advances tasks.
-
-### Utility Hooks
-
-| Hook                                     | Event                                   | Purpose                                                                                                                                                                                                                                                                |
-| ---------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `post-edit-prettier`                     | PostToolUse                             | Run prettier after edits                                                                                                                                                                                                                                               |
-| `.claude/hooks/notifications/notify.cjs` | SessionEnd/Stop/PreToolUse/Notification | Main-session end alert; direct Claude `AskUserQuestion`; Codex `Stop` question when the final message ends in `?`; turn-complete alert only when the main session has no delegated work left, plus input/permission alerts (desktop + optional Telegram/Discord/Slack) |
-
-> **Post-processing:** no large-output swap, post-agent validator, or bash-cleanup hook is registered.
-
-> **Sub-agent context:** `.claude/agents/*.md` carries static context; `SubagentStart` runs only the protocol delivery steps.
-
-## Workflows (<!-- COUNT:workflows -->19<!-- /COUNT -->)
-
-| Category                 | Registered Workflows                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| **Core Development**     | `workflow-feature`, `workflow-implement-spec`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature` |
-| **Discovery & Planning** | `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-greenfield-init`, `workflow-spec-to-pbi`           |
-| **Spec & Documentation** | `workflow-code-to-spec`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`                   |
-| **Testing**              | `workflow-integration-test`, `workflow-e2e`, `workflow-seed-test-data`                                        |
-| **Review**               | `workflow-review-changes`, `workflow-architecture-audit`, `workflow-spec-to-mockup`                           |
-
-> **Also available as a workflow skill** (invokeable via `/workflow-<name>` but not registered in `workflows.json`): `workflow-end` (the lifecycle terminator) and `workflow-mode` (the route-mode configuration utility). They are the only two of the 21 `.claude/skills/workflow-*` skills without a `workflows.json` entry; the other 19 map 1:1 to the registered workflows above.
-
-## Agents (<!-- COUNT:agents -->24<!-- /COUNT -->)
-
-| Agent                      | Specialization                                                            |
-| -------------------------- | ------------------------------------------------------------------------- |
-| `ai-engineering-reviewer`  | AI-feature review: checklist read whole, knowledge/calibration by section |
-| `architect`                | System design, ADRs, cross-service analysis                               |
-| `backend-developer`        | Backend implementation with project patterns                              |
-| `code-reviewer`            | File-by-file code review with reports                                     |
-| `code-simplifier`          | Code clarity and maintainability                                          |
-| `database-admin`           | DB queries, optimization, migrations                                      |
-| `debugger`                 | Root cause analysis, diagnostic reports                                   |
-| `docs-manager`             | Documentation detection and updates                                       |
-| `e2e-runner`               | E2E test generation and maintenance                                       |
-| `framework-maintainer`     | `.claude` framework authoring — skills, agents, workflows, hooks, mirrors |
-| `frontend-developer`       | Frontend implementation with design system                                |
-| `fullstack-developer`      | Parallel plan execution, file ownership                                   |
-| `git-manager`              | Commits, branches, conventional commits                                   |
-| `integration-tester`       | Integration test generation from specs                                    |
-| `journal-writer`           | Technical difficulty documentation                                        |
-| `knowledge-worker`         | Research, synthesis, report generation                                    |
-| `performance-optimizer`    | Backend + frontend performance analysis                                   |
-| `planner`                  | Implementation planning, trade-off analysis                               |
-| `researcher`               | Technology research, best practices                                       |
-| `security-auditor`         | OWASP compliance, vulnerability assessment                                |
-| `solution-architect`       | Greenfield project inception                                              |
-| `spec-compliance-reviewer` | Implementation vs specification matching                                  |
-| `tester`                   | Test execution, coverage analysis                                         |
-| `ui-ux-designer`           | UI/UX design, wireframes, accessibility                                   |
-
-## Key Entry Points
-
-| Entry Point                                              | Purpose                                                                                                                                                                                          |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.claude/settings.json`                                  | Hook registration, permissions, features                                                                                                                                                         |
-| `.claude/hooks/session-init.cjs`                         | Session startup — loads config, sets state                                                                                                                                                       |
-| `.claude/skills/shared/protocols/`                       | Published protocol texts; the universal bundle is hook-delivered and re-armed after a compaction (no recovery hook)                                                                              |
-| `.claude/workflows.json`                                 | All <!-- COUNT:workflows -->19<!-- /COUNT --> workflow definitions                                                                                                                               |
-| `docs/project-config.json`                               | Project-specific runtime configuration                                                                                                                                                           |
-| `.claude/hooks/tests/test-all-hooks.cjs`                 | Main test runner                                                                                                                                                                                 |
-| `.claude/scripts/ai-signal-scan.cjs`                     | Lists the AI-feature surfaces of a change set (`--base <ref>` = merge-base range plus local changes); the JSON `status` is `surface`, `clean` or `unknown`, and only `clean` means no AI surface |
-| `.claude/skills/shared/protocols/ai-engineering-gate.md` | The one document AI-feature work reads; the `.claude/docs/ai-engineering-*` checklist, knowledge and calibration docs are read by section on demand                                              |
-| `CLAUDE.md`                                              | Project instructions for Claude                                                                                                                                                                  |
-
-## Scan Targets (13)
-
-The single `/scan --target=<key>` skill populates the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path. Every filename below is relative to that root (per-target detail in `.claude/skills/scan/references/targets.md`):
-
-| `--target=<key>`             | Generates                                             |
-| ---------------------------- | ----------------------------------------------------- |
-| `project-structure`          | `project-structure-reference.md`                      |
-| `backend-patterns`           | `backend-patterns-reference.md`                       |
-| `frontend-patterns`          | `frontend-patterns-reference.md`                      |
-| `scss-styling`               | `scss-styling-guide.md`                               |
-| `design-system`              | `design-system/README.md`                             |
-| `code-review-rules`          | `code-review-rules.md`                                |
-| `domain-entities`            | `domain-entities-reference.md`                        |
-| `feature-spec`               | `feature-spec-reference.md`                           |
-| `docs-index`                 | `docs-index-reference.md`                             |
-| `e2e-tests`                  | `e2e-test-reference.md`                               |
-| `integration-tests`          | `integration-test-reference.md`                       |
-| `seed-test-data`             | `seed-test-data-reference.md`                         |
-| `ui-system` _(orchestrator)_ | runs design-system + scss-styling + frontend-patterns |
+Read `.claude/hooks/skill-activation-inject.cjs` when tracing runtime skill-selection guidance and `.claude/hooks/workflow-route-inject.cjs` when tracing route/catalog delivery; neither changes host permission or advances workflow steps. SubagentStart carries protocol delivery and advisory skill context. `workflow-end` is the unregistered lifecycle skill; route-mode configuration belongs to `.claude/skills/framework-config/SKILL.md` and `.claude/scripts/workflow-mode.cjs`. Use the current manifest/catalog instead of restoring a stale workflow-mode skill inventory.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ground AI work in easy-claude's verified framework topology, runtime entry points, configuration surfaces, and commands so agents never invent application services, ports, or deployment infrastructure.
-
-**IMPORTANT MUST ATTENTION** classify repository → select module/entry point → read cited runtime/config evidence → run graph/path verification.
-**IMPORTANT MUST ATTENTION** treat `.claude/` as canonical and `.agents/` / `.codex/` as generated mirrors.
-**IMPORTANT MUST ATTENTION** use actual configuration for every port, command, version, and setting reference.
-**IMPORTANT MUST ATTENTION** keep secret values out of reports/docs; record key/reference names only.
-**NEVER** fabricate a backend, frontend, database, broker, container, CI/IaC provider, environment, promotion flow, or rollback mechanism when evidence is absent.
+Locate the authoritative component, resolve its runtime/configuration, then verify the affected output. Edit canonical framework source before regenerating host mirrors. Use source-defined commands, ranges and setting names; keep credentials private and leave unsupported deployment/port claims unknown.

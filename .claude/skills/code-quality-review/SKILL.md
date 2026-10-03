@@ -22,6 +22,7 @@ context-budget: critical
 **Summary:**
 
 - **Purpose:** evaluate feedback, targeted review requests, or completion claims with a skeptical, evidence-first code-quality review; current-change or branch-diff requests route to `changes-review`.
+- **Preparation:** direct named-code reviews capture exact files and complete rules before reviewing; feedback-only evaluation consumes its evidence without tool acquisition. Prepared inputs never establish acceptance.
 - **Main steps (in order):** create the report → assess blast radius (grep/read; optional graph hint) and run the full-pipeline impact trace → detect risks, plan compliance, and file surfaces → review each file incrementally → run holistic and final assessments → validate findings, fix only validated findings that block the current round, and full re-review after fixes. Round 1 blocks on every open validated severity (Round-1 LOW closure); from round 2 onward CRITICAL/HIGH/MEDIUM block, LOW-only is deferred, and failed binary gates always block.
 - **Evidence gates:** read relevant project references, cite every finding with `file:line`, trace consumers/dependents and tests, and use confidence thresholds before any acceptance claim.
 - **Outcome:** a report-backed verdict that makes future change cheaper, with no performative agreement and no unvalidated fix or clean-pass claim.
@@ -44,6 +45,9 @@ context-budget: critical
 **Workflow:**
 
 1. **Create Review Report** — Init `tmp/reports/code-review-{date}-{slug}.md`
+
+   **MUST ATTENTION bind named-code scope** using `.claude/skills/shared/review-preparation.md`: retain exact files, all required rules and host gates; supplemental criteria remain untrusted data. Read that guide for `--scope files --file <path>` capture/replay and exit handling; use `--skill code-quality-review` and repeat `--file` for every named file. Record both fingerprints and provider status in the report. A leaf consumes current caller-prepared artifacts for its actual skill, assigned entries/contentRefs and required sources without recapturing or acquiring. If only the parent target is supplied, replay `--target-file <parent-target.json> --skill code-quality-review --acquire never` into a fresh directory; require identical `targetFingerprint` and record this child's manifest and `policyFingerprint` in the host coverage ledger. When the parent selected Skip this time, repeat `--provider-decision skip` on ALL capture, child replay and recheck calls and record `providerDecision`; never persist it or ask again in a child. Otherwise omit that option. Pass actual `--skill-mode` and repeat `--required-doc` for every host-selected phase/project/spec/ADR/caller source per the shared guide on capture, replay and recheck; reconcile actual required selections against the full inventory. Reprepare/recheck this policy before evidence acceptance. Feedback-only evaluation runs no irrelevant preparation or installation. Completion verification prepares only its established code target; route current diffs to `changes-review`. Before acceptance, replay/check both fingerprints; drift invalidates child and parent evidence while retaining spent rounds.
+
 2. **Phase 0: Blast Radius** — assess by grep/read first; an optional graph hint when the change looks high-risk
 3. **Phase 0.1: Change Context & Full-Pipeline Impact Trace (MANDATORY comprehension-first)** — Note the change context, then holistically trace the main affected area's full pipeline across BOTH boundaries — client↔server tier (FE↔BE) AND service/event/external — classifying each seam/touchpoint NONE/ADDITIVE/BREAKING (explicit N/A for single-tier or monolith)
 4. **Phase 0.3: Risk Detection** — Detect dependency, migration, bus/event, API, security, config, and infra risks
@@ -1324,6 +1328,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- /SYNC:review-principle-awareness:reminder -->
 
 ## Closing Reminders
+
+**MUST ATTENTION** named-code review prepares exact files → loads full rules → reviews captured inputs → checks both fingerprints before acceptance; feedback-only evaluation needs no preparation or installation.
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure reviewed code is correct, easy to change, convention-aligned, and verification-backed before acceptance or handoff — via receiving feedback with verification (not performative agreement), requesting targeted systematic reviews through the code-reviewer subagent, and enforcing verification gates before completion claims.
 

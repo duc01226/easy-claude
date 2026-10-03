@@ -184,6 +184,20 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 
 ---
 
+## Review preparation and setup
+
+Read [../review-preparation.md](../review-preparation.md) when configuring review scopes, ownership groups, full rules or OCR acquisition policy.
+
+- Source-review modes of review skills use [the shared preparation recipe](../../skills/shared/review-preparation.md) at their actual source-capture boundary, including direct specialist reviews. Artifact/image/runtime/feedback-only modes retain their own path without an adoption question. Unsupported exact targets keep host scope, never a substitute local diff.
+- Only the top-level source-review owner resolves nonempty Unset once through exactly **Accept setup**, **Turn off OCR for this project**, **Skip this time**, waiting for a real human answer. No answer leaves setup-needed; Off stays quiet, Enabled tool failure falls back without re-asking. Empty targets never ask or invoke/acquire.
+- A workflow captures one parent target; each selected child replays it with its actual skill/mode, its host-selected document union, inherited `--provider-decision skip` when selected and `--acquire never`, records its separate procedure/overlay policy fingerprint and preserves parent criteria. Read-only leaves never ask/save/acquire; unresolved choice returns setup-needed to parent. Repeat skip on ALL parent/child/recheck calls; later independent reviews use the unchanged durable preference. Require the same target fingerprint and recheck every policy before accepting evidence.
+- Mode-owning canonical skills declare unconditional procedure documents in a body `REVIEW-POLICY-SOURCES` JSON block; conditional phase/project/spec/ADR/caller documents use repeated `--required-doc`. **MUST ATTENTION** reconcile the active source inventory and keep the selection identical through capture, replay and recheck; the preparation guide above owns declaration format and bounds.
+- `project-config` and `framework-config` inspect/enable/off the same project preference through the project-config-owned `review-setup.cjs` helper and exact inspect token, regardless of generic framework checkout defaults. Saved status/path/provider/readback must confirm persistence; every successful save requires fresh exact target/policy/output. The helper grants no machine permission or native readiness. `project-config` also recommends groups from existing classifiers and preserves manual or edited detected entries; `project-init` delegates selected configuration without acquiring a tool.
+- `scan` reports group/rule recommendations for the selected reference target; it does not persist review policy or acquire a provider.
+- **MUST ATTENTION** retain required coverage, full rules and existing host review gates. Target/required-policy errors block; unavailable supplemental OCR falls back visibly. Claude Code/OpenCode invoke `/changes-review`; Codex invokes `$changes-review`; all execute the same Node preparation script through the active host.
+
+---
+
 ## Shared Protocols (SYNC bodies and guides)
 
 Shared protocols follow the hybrid policy (`SYNC:shared-protocol-duplication-policy`). A converted skill carries one guide line per protocol in its `PROTOCOL-GUIDES` block, and a hook delivers the full text from the generated projection `.claude/skills/shared/protocols/` (the guide path is the fallback). The four converging review-family skills (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`), SYNC bodies in `references/*.md` and agents keep full `<!-- SYNC:tag -->` bodies. Single-pass `plan --mode=review` uses guides. The protocols of the `universal` group are delivered by the universal hook and carried by no skill: a skill holds no body, reminder, guide line or pointer for them. The canonical source for all SYNC content is `.claude/skills/shared/sync-inline-versions.md`.
@@ -212,6 +226,7 @@ Each skill is located at `.claude/skills/{skill-name}/`:
 |-- product-roadmap-contract.md
 |-- protocol-groups.json       # Hook delivery groups + inlineSkills (review-family skills keeping full bodies)
 |-- protocols/                 # GENERATED projection the protocol-inject hooks deliver (build-protocol-projection.cjs)
+|-- review-preparation.md     # Exact target capture + full-rule consumption for host reviews
 |-- releasable-pbi-contract.md
 |-- sdd-artifact-contract.md
 |-- sub-agent-selection-guide.md
@@ -310,4 +325,4 @@ _Source: `.claude/skills/` | <!-- COUNT:skills -->101<!-- /COUNT --> runnable sk
 
 ## Closing Reminders
 
-**MUST** discover the selected skill, load its instructions and execute its required steps through the active host. **MUST** edit canonical `.claude/**` source and regenerate mirrors; a source read never changes hosts. **MUST** keep gates intact and evidence any genuinely missing capability; a foreign-host tool name alone is not a blocker.
+**MUST** discover the selected skill, load its instructions and execute its required steps through the active host. **MUST** edit canonical `.claude/**` source and regenerate mirrors; a source read never changes hosts. **MUST** keep gates intact and evidence any genuinely missing capability; a foreign-host tool name alone is not a blocker. **Goal:** Discover/load → execute → verify gates/capabilities → author canonical source → regenerate mirrors. **MUST ATTENTION** prepared reviews retain actual mode, active document union and full sources through capture, replay and recheck.
