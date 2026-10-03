@@ -60,6 +60,7 @@ const cjsRequire = name => `${'req'}uire(${JSON.stringify(name)})`;
 async function withFixture(fn) {
     // Resolve the temp root (macOS /var -> /private/var) so containment checks see one spelling.
     const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'aig-test-')));
+    const previousEnv = { ...process.env };
     const fx = {
         root,
         project: path.join(root, 'project'),
@@ -71,6 +72,19 @@ async function withFixture(fn) {
             fs.mkdirSync(path.dirname(file), { recursive: true });
             fs.writeFileSync(file, content);
             return file;
+        },
+        /** A completed raw-body load using documented tool_use/tool_result pairing, not a launch acknowledgment. */
+        completed(name, input, at = NOW - MINUTE) {
+            const rel = name === 'Skill' ? `.claude/skills/${input.skill}/SKILL.md` : input.file_path.replace(/\\/g, '/');
+            const file = path.isAbsolute(rel) ? rel : fx.abs(rel);
+            fs.mkdirSync(path.dirname(file), { recursive: true });
+            if (!fs.existsSync(file)) fs.writeFileSync(file, `Fixture complete protocol for ${name}.\nRequired second rule.\n`);
+            const request = toolUse(name, input, at);
+            const id = JSON.parse(request).message.content[0].id;
+            const result = JSON.stringify({ type: 'user', timestamp: new Date(at).toISOString(), message: { content: [
+                { type: 'tool_result', tool_use_id: id, content: fs.readFileSync(file, 'utf8') }
+            ] } });
+            return `${request}\n${result}`;
         },
         append(line) {
             fs.appendFileSync(fx.transcript, line.endsWith('\n') ? line : `${line}\n`);
@@ -86,10 +100,16 @@ async function withFixture(fn) {
     fs.mkdirSync(fx.store, { recursive: true });
     fs.writeFileSync(fx.transcript, '{"type":"user","message":{"content":"start"}}\n');
     try {
+        for (const key of Object.keys(process.env)) {
+            if (/^(CK_|CLAUDE_|CODEX_|OPENCODE_|NODE_OPTIONS$)/i.test(key) || /(?:API_KEY|TOKEN|SECRET|PASSWORD)/i.test(key)) delete process.env[key];
+        }
+        Object.assign(process.env, { HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root, CLAUDE_PROJECT_DIR: fx.project });
         await fn(fx);
     } finally {
         ledger._resetCarrierCache();
         fs.rmSync(root, { recursive: true, force: true });
+        for (const key of Object.keys(process.env)) delete process.env[key];
+        Object.assign(process.env, previousEnv);
     }
 }
 
@@ -106,8 +126,9 @@ function post(fx, tool, rel, extra = {}) {
     };
 }
 
+let toolId = 0;
 function toolUse(name, input, at = NOW - MINUTE) {
-    return JSON.stringify({ type: 'assistant', timestamp: new Date(at).toISOString(), message: { content: [{ type: 'tool_use', id: 't1', name, input }] } });
+    return JSON.stringify({ type: 'assistant', timestamp: new Date(at).toISOString(), message: { content: [{ type: 'tool_use', id: `t${++toolId}`, name, input }] } });
 }
 
 async function deliver(fx, config, input, now = NOW) {
@@ -457,14 +478,14 @@ const tests = [
             fx.write('src/service.ts', SDK_IMPORT);
             const config = gateConfig();
             const edit = session => post(fx, 'Edit', 'src/service.ts', { session_id: session });
-            fx.append(toolUse('Read', { file_path: fx.abs(CHECKLIST) }));
+            fx.append(fx.completed('Read', { file_path: fx.abs(CHECKLIST) }));
             assert.ok(gateDelivered(await deliver(fx, config, edit('one-doc'))), 'one doc is not the whole gate');
-            fx.append(toolUse('Read', { file_path: fx.abs(PROTOCOL).replace(/\//g, '\\') }));
+            fx.append(fx.completed('Read', { file_path: fx.abs(PROTOCOL).replace(/\//g, '\\') }));
             assert.equal(await deliver(fx, config, edit('both-docs')), '', 'protocol + checklist read: present');
             assert.equal(ledger.readRecord(fx.store, 'both-docs', 'main', 'ai-feature-gate').form, 'evidence');
-            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'commit' })}\n`);
+            fs.writeFileSync(fx.transcript, `${fx.completed('Skill', { skill: 'commit' })}\n`);
             assert.ok(gateDelivered(await deliver(fx, config, edit('other-skill'))), 'an unrelated skill is not evidence');
-            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ai-engineering-review' })}\n`);
+            fs.writeFileSync(fx.transcript, `${fx.completed('Skill', { skill: 'ai-engineering-review' })}\n`);
             assert.equal(await deliver(fx, config, edit('review-skill')), '', 'the review skill carries the protocol');
         })
     },

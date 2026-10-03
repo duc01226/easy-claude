@@ -25,8 +25,8 @@
  * Any other event ends with no output before a project module is loaded.
  *
  * Never silent: a session without an id, or an unwritable ledger, delivers without a record (a
- * duplicate is accepted over a miss). A missing or unreadable protocol file drops that protocol from
- * the bin, never the whole bin. A bundle that cannot be rendered at all (unreadable layout or index, a
+ * duplicate is accepted over a miss). An incomplete bin names its missing files, carries readable
+ * rules and retries without a record; other bins keep their own dedup. A bundle that cannot be rendered at all (unreadable layout or index, a
  * missing protocols folder) is reported by bin 1 alone as one line naming the reason and the folder to
  * read, with no record, so the next event retries. The hook never blocks (exit 0) and never throws.
  *
@@ -43,7 +43,7 @@ const path = require('node:path');
 /** Name of the delivery group in `protocol-groups.json` and the published index. */
 const UNIVERSAL_GROUP = 'universal';
 /** Re-delivery distance of a bin, in conversation tokens. The one named constant of this bundle. */
-const UNIVERSAL_REINJECT_TOKENS = 200000;
+const UNIVERSAL_REINJECT_TOKENS = 100000;
 /** The largest message the primary host shows in full is 10,000 characters; a bin never exceeds this. */
 const MAX_BIN = 9500;
 const GROUPS_REL = '.claude/skills/shared/protocol-groups.json';
@@ -157,7 +157,7 @@ function isDeliverableEvent(input) {
  * @param {string} root absolute project root
  * @param {(file: string) => string|null} read file reader (null when unreadable)
  * @returns {{number: number, total: number, tags: string[], text: string}[]} in bin order; a bin
- *   whose protocols are all unreadable is omitted, and an unreadable layout yields []
+ *   whose protocols are unreadable carries its missing-file list; an unreadable layout yields []
  */
 function loadBins(root, read) {
     return loadBundle(root, read).bins;
@@ -166,8 +166,8 @@ function loadBins(root, read) {
 /**
  * The bins of the bundle and, when the bundle cannot be rendered at all, the short reason.
  * @returns {{bins: object[], problem: string|null}} `problem` is set when the layout or the published
- *   index is unreadable or malformed, or when no bin has a readable protocol; a bundle that renders
- *   partly has `problem: null` (an unreadable protocol file only drops that protocol).
+ *   index is unreadable or malformed, or when no bin has a readable protocol. Partly readable
+ *   bundles keep every bin, with `missing` naming protocols that could not be rendered.
  */
 function loadBundle(root, read) {
     const delivery = require('./protocol-delivery.cjs');
@@ -187,22 +187,30 @@ function loadBundle(root, read) {
     } });
     if (!index) return { bins: [], problem: 'protocols/index.json is unreadable or malformed' };
     const bins = [];
+    let readableCount = 0;
     layout.forEach((tags, i) => {
         if (!Array.isArray(tags)) return;
         const used = [];
         const bodies = [];
+        const missing = [];
         for (const tag of tags) {
             const row = typeof tag === 'string' ? index.rows.get(tag) : null;
-            if (!row || row.group !== UNIVERSAL_GROUP || row.parts.length !== 1) continue;
+            if (!row || row.group !== UNIVERSAL_GROUP || row.parts.length !== 1) {
+                missing.push(typeof tag === 'string' ? tag : 'invalid-entry');
+                continue;
+            }
             const raw = read(row.parts[0].abs);
-            if (typeof raw !== 'string') continue;
+            if (typeof raw !== 'string' || !raw.trim()) {
+                missing.push(tag);
+                continue;
+            }
             used.push(tag);
             bodies.push(raw.replace(/\r\n/g, '\n').replace(/\n+$/, ''));
+            readableCount += 1;
         }
-        if (!bodies.length) return;
-        bins.push({ number: i + 1, total: layout.length, tags: used, text: renderBin(i + 1, layout.length, bodies) });
+        bins.push({ number: i + 1, total: layout.length, tags: used, missing, text: renderBin(i + 1, layout.length, bodies) });
     });
-    return { bins, problem: bins.length ? null : 'no universal protocol file is readable' };
+    return readableCount ? { bins, problem: null } : { bins: [], problem: 'no universal protocol file is readable' };
 }
 
 /**
@@ -211,6 +219,24 @@ function loadBundle(root, read) {
  */
 function unavailableNotice(reason) {
     return `universal protocols unavailable (${reason}): read the files under ${PROTOCOLS_DIR_REL}`;
+}
+
+/** Keep diagnostics visible within the same host limit, even for damaged oversized source text. */
+function incompleteContext(bin) {
+    const names = bin.missing.map(tag => `${tag}.md`).join(', ');
+    const listed = names.length <= 700 ? names : `${names.slice(0, 700)}…`;
+    const notice = `universal protocols incomplete (bin ${bin.number}; missing ${listed}): read the files under ${PROTOCOLS_DIR_REL}; retry next event`;
+    const full = `${bin.text}\n\n${notice}`;
+    if (full.length <= MAX_BIN) return full;
+    // A damaged file may grow beyond its authored bin. Never hide the diagnostic in a host preview;
+    // retain explicit read paths instead of cutting a readable rule in the middle.
+    let text = `${binHeader(bin.number, bin.total)}\n\n${notice}\n\nRead remaining rules:`;
+    for (const tag of bin.tags) {
+        const line = `\n- ${PROTOCOLS_DIR_REL}${tag}.md`;
+        if (text.length + line.length > MAX_BIN) break;
+        text += line;
+    }
+    return text;
 }
 
 // ── ledger ──────────────────────────────────────────────────────────────────
@@ -253,10 +279,23 @@ function forgetRecord(ledger, store, input, group) {
 }
 
 function defaultWrite(text, done) {
+    let settled = false;
+    const finish = ok => {
+        if (settled) return;
+        settled = true;
+        done(ok);
+    };
+    // Failed writes report through the callback and then the stream's error event.
+    const onError = () => finish(false);
+    process.stdout.once('error', onError);
     try {
-        process.stdout.write(text, error => done(!error));
+        process.stdout.write(text, error => {
+            if (!error) process.stdout.removeListener('error', onError);
+            finish(!error);
+        });
     } catch {
-        done(false);
+        process.stdout.removeListener('error', onError);
+        finish(false);
     }
 }
 
@@ -293,6 +332,17 @@ function deliverBin(number, input, deps) {
             if (bundle.problem) return unavailable(bundle.problem);
             const bin = bundle.bins.find(candidate => candidate.number === number);
             if (!bin) return resolve('');
+            if (bin.missing.length) {
+                // Forget any previous complete record: repairing identical bytes must still deliver.
+                // Partial rules are never proof of a completed delivery and retry on the next event.
+                if (nonBlank(input.session_id)) {
+                    const ledger = require('./convention-ledger.cjs');
+                    const store = path.join(root, ...delivery.STORE_SEGMENTS);
+                    forgetRecord(ledger, store, scopedInput(input), `universal-bin-${number}`);
+                }
+                const partial = envelope(incompleteContext(bin));
+                return write(partial, ok => resolve(ok === false ? '' : partial));
+            }
             const payload = envelope(bin.text);
             const now = typeof deps.now === 'number' ? deps.now : Date.now();
             if (!nonBlank(input.session_id)) {

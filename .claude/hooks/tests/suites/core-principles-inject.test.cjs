@@ -22,6 +22,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
 
 const HOOKS_DIR = path.resolve(__dirname, '../..');
 const REPO_ROOT = path.resolve(HOOKS_DIR, '..', '..');
@@ -89,9 +90,28 @@ function grow(file, tokens) {
 function isolatedEnv(fx) {
     const env = { HOME: fx.root, USERPROFILE: fx.root, TMPDIR: fx.root, TEMP: fx.root, TMP: fx.root };
     for (const key of Object.keys(process.env)) {
-        if (/^CK_/i.test(key)) env[key] = '';
+        if (/^CK_/i.test(key) || /(?:API_KEY|TOKEN|SECRET|PASSWORD)/i.test(key)) env[key] = '';
     }
     return env;
+}
+
+/** Close the host's read side before releasing input, so the hook's real stdout write fails. */
+function closedOutput(fx, input) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(process.execPath, [HOOK], {
+            cwd: fx.project,
+            env: { ...process.env, ...isolatedEnv(fx), CLAUDE_PROJECT_DIR: fx.project },
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+        let stderr = '';
+        const timer = setTimeout(() => child.kill('SIGKILL'), 20000);
+        child.stderr.on('data', data => { stderr += data.toString(); });
+        child.stdin.on('error', () => {});
+        child.on('error', error => { clearTimeout(timer); reject(error); });
+        child.on('close', code => { clearTimeout(timer); resolve({ code, stderr }); });
+        child.stdout.destroy();
+        child.stdin.end(JSON.stringify(input));
+    });
 }
 
 const delivery = require(path.join(HOOKS_DIR, 'lib', 'protocol-delivery.cjs'));
@@ -131,6 +151,51 @@ function extractSection(text, heading) {
 }
 
 const tests = [
+    {
+        name: '[core-principles] TC-CEP-020 a closed host output pipe never blocks and leaves delivery retryable for both envelopes',
+        fn: () => withFixture(async fx => {
+            for (const event of [promptEvent(fx), ...['TodoWrite', 'TaskCreate', 'TaskUpdate', 'update_plan'].map(tool => stepEvent(fx, tool))]) {
+                // Given a fresh scope and a host that closes its output reader before this delivery
+                event.session_id = `closed-${event.tool_name || event.hook_event_name}`;
+                // When the real hook process tries to write the prompt or task-step envelope
+                const failed = await closedOutput(fx, event);
+                // Then an advisory output failure stays silent and exits successfully
+                assert.equal(failed.code, 0, failed.stderr);
+                assert.equal(failed.stderr, '', 'no unhandled stream error');
+                // And the next healthy event still delivers: the failed write earned no credit
+                const options = { cwd: fx.project, env: isolatedEnv(fx), timeout: 20000 };
+                const retry = await runHook(HOOK, event, options);
+                assert.equal(retry.code, 0, retry.stderr);
+                assert.ok(retry.stdout.includes(hook.MARKER_START), 'retry delivers');
+                assert.equal((await runHook(HOOK, event, options)).stdout, '', 'successful retry then deduplicates');
+            }
+        })
+    },
+    {
+        name: '[core-principles] TC-CEP-021 writer success and synchronous failure release their temporary stream listener',
+        fn: () => withFixture(async fx => {
+            // Given an imported hook and the real stdout stream with an isolated write seam
+            const originalWrite = process.stdout.write;
+            const listeners = process.stdout.listenerCount('error');
+            try {
+                // When stdout acknowledges success synchronously
+                process.stdout.write = (_text, done) => { done(null); return true; };
+                const written = await hook.run(promptEvent(fx), { env: {}, projectDir: fx.project, rawSettings: {} });
+                // Then the delivery succeeds and its temporary error listener is released
+                assert.ok(written.includes(hook.MARKER_START));
+                assert.equal(process.stdout.listenerCount('error'), listeners);
+                // When a distinct scope throws synchronously while writing
+                process.stdout.write = () => { throw new Error('fixture write failed'); };
+                assert.equal(await hook.run(promptEvent(fx, { session_id: 'throw-output' }), { env: {}, projectDir: fx.project, rawSettings: {} }), '');
+                // Then it remains retryable and releases the listener as well
+                assert.equal(process.stdout.listenerCount('error'), listeners);
+                process.stdout.write = (_text, done) => { done(null); return true; };
+                assert.ok(await hook.run(promptEvent(fx, { session_id: 'throw-output' }), { env: {}, projectDir: fx.project, rawSettings: {} }));
+            } finally {
+                process.stdout.write = originalWrite;
+            }
+        })
+    },
     {
         name: '[core-principles] TC-CEP-001 first prompt of a session delivers the canonical body, via the real process',
         fn: () => withFixture(async fx => {

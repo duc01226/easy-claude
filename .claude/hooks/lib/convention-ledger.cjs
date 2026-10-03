@@ -22,7 +22,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { CK_TMP_DIR } = require('./ck-paths.cjs');
-const { DEFAULTS } = require('./file-conventions.cjs');
+const { DEFAULTS, CONTENT_LIMITS, toRepoRelative } = require('./file-conventions.cjs');
+const { isPrivacySensitive } = require('./sensitive-path-policy.cjs');
 
 const MAIN_SCOPE = 'main';
 const ID_MAX = 80;
@@ -55,7 +56,6 @@ const FILESYSTEM_SAFE_ID = /^[A-Za-z0-9._-]+$/;
 // evidence docs or a load of an evidence skill, see scanEvidence); it ages exactly like a delivery.
 const RECORDED_FORMS = new Set(['full', 'references', 'evidence']);
 const PRESENT_FORMS = new Set(['full', 'references', 'static', 'evidence']);
-const COMMAND_NAME = /<command-name>\/?([^<\s]+)<\/command-name>/g;
 
 function storeRoot(env = process.env) {
     return env && typeof env.CK_CONVENTIONS_DIR === 'string' && env.CK_CONVENTIONS_DIR.trim()
@@ -506,37 +506,92 @@ function bareSkill(value) {
     return text.slice(text.lastIndexOf(':') + 1);
 }
 
-/** Tool calls of one transcript line: [{ name, input }] from `message.content[]` tool_use items. */
-function toolUses(parsed) {
-    const content = parsed && parsed.message && Array.isArray(parsed.message.content) ? parsed.message.content : [];
-    return content.filter(item => item && item.type === 'tool_use' && typeof item.name === 'string')
-        .map(item => ({ name: item.name, input: item.input && typeof item.input === 'object' ? item.input : {} }));
+/** Raw complete text only; unknown tool-specific decorations never prove a full load. */
+function resultText(item) {
+    if (item.is_error !== undefined && item.is_error !== false) return null;
+    if (typeof item.content === 'string') return item.content;
+    if (!Array.isArray(item.content) || !item.content.length) return null;
+    if (!item.content.every(block => block && block.type === 'text' && typeof block.text === 'string')) return null;
+    return item.content.map(block => block.text).join('');
 }
 
 /**
- * Transcript evidence that a class's protocol is ALREADY in the working context, so delivering its
- * digest would only duplicate it. Scans the LAST `windowBytes` of the context's history (the class's
- * re-arm distance) and keeps only evidence after the last condensation mark inside that window and
- * strictly after `lastCompactionAt` (host report): condensed content is gone, so it no longer counts.
- * Evidence (Claude transcript shapes; any other shape finds nothing — an extra reminder, never a
- * missed one):
- *   - skills: ANY listed skill loaded — a `Skill` tool call (`input.skill`) or a slash command
- *     (`<command-name>/name</command-name>`); these skills carry the protocol inline.
- *   - docs: EVERY listed doc read by a `Read` tool call (`input.file_path` ends with the repo-relative
- *     doc path); the credit dates from the OLDEST of those reads, since all must still be in context.
+ * Complete current owned text, not the content matcher’s bounded prefix. One scan owns the
+ * cache/8 MiB budget; each file retains the content reader's 2 MiB bound. Resolve before opening,
+ * then check the opened regular file's identity and stability; no foreign transcript path is read.
+ */
+function createEvidenceReader(projectDir) {
+    const cache = new Map();
+    let remaining = SCAN_CAP_BYTES;
+    return rel => {
+        if (isPrivacySensitive(rel)) return null;
+        if (cache.has(rel)) return cache.get(rel);
+        let fd = null;
+        let text = null;
+        try {
+            const absolute = path.resolve(projectDir, rel);
+            const physicalRoot = fs.realpathSync(projectDir);
+            const physical = fs.realpathSync(absolute);
+            const physicalRelative = toRepoRelative(physical, physicalRoot, physicalRoot);
+            if (physicalRelative === null || isPrivacySensitive(physicalRelative)) return null;
+            const before = fs.statSync(physical);
+            if (!before.isFile() || before.size === 0 || before.size > CONTENT_LIMITS.maxFileBytes || before.size > remaining) return null;
+            // O_NONBLOCK also prevents a raced-in special file from stalling this advisory scanner.
+            fd = fs.openSync(physical, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0) | (fs.constants.O_NOFOLLOW || 0));
+            const opened = fs.fstatSync(fd);
+            if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino || opened.size !== before.size) return null;
+            remaining -= opened.size;
+            const buffer = Buffer.alloc(opened.size);
+            let offset = 0;
+            while (offset < buffer.length) {
+                const read = fs.readSync(fd, buffer, offset, buffer.length - offset, offset);
+                if (!read) return null;
+                offset += read;
+            }
+            const after = fs.fstatSync(fd);
+            const current = fs.statSync(physical);
+            if (current.dev !== after.dev || current.ino !== after.ino || current.size !== after.size || current.mtimeMs !== after.mtimeMs || current.ctimeMs !== after.ctimeMs) return null;
+            if (after.size !== before.size || after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs || fs.realpathSync(absolute) !== physical) return null;
+            const decoded = buffer.toString('utf8');
+            if (!buffer.includes(0) && Buffer.from(decoded, 'utf8').equals(buffer)) text = decoded;
+        } catch {
+            // Missing, changed, non-text, over-budget or unreadable content means an extra reminder.
+        } finally {
+            if (fd !== null) {
+                try { fs.closeSync(fd); } catch { /* fail-open */ }
+            }
+            cache.set(rel, text);
+        }
+        return text;
+    };
+}
+
+/**
+ * BR-PFCI-26: only a completed successful full owned body proves presence. Recognized API
+ * tool_use.id / tool_result.tool_use_id pairs carry raw strings or all-text-block content.
+ * Unknown host decorations, launch acknowledgments and slash requests give no credit.
+ * Both halves must remain after compaction and inside the bounded transcript window.
+ * All required documents or any full listed local skill suffices. Credit ages from the result,
+ * oldest required document first. This does not claim a model obeys the loaded content.
  * @param {string|null} transcriptFile
  * @param {{docs?: string[], skills?: string[]}} evidence
- * @param {{windowBytes: number, lastCompactionAt?: number, compactionMarkers?: string[], capBytes?: number}} opts
- * @returns {{at: number, transcriptBytes: number}|null} evidence time (ms) and absolute byte offset
+ * @param {{projectDir: string, cwd?: string, windowBytes: number, lastCompactionAt?: number, compactionMarkers?: string[], capBytes?: number}} opts
+ * @returns {{at: number, transcriptBytes: number}|null}
  */
 function scanEvidence(transcriptFile, evidence, opts = {}) {
+    if (!opts || typeof opts !== 'object' || !nonBlank(opts.projectDir)) return null;
     const docs = (evidence && Array.isArray(evidence.docs) ? evidence.docs : []).filter(nonBlank).map(normalizedDocPath);
     const skills = new Set((evidence && Array.isArray(evidence.skills) ? evidence.skills : []).filter(nonBlank).map(bareSkill));
     if (!docs.length && !skills.size) return null;
+    const docPaths = new Map(docs.map(doc => [doc, toRepoRelative(doc, opts.projectDir, opts.projectDir)]));
+    const skillPaths = new Map([...skills].filter(name => /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(name))
+        .map(name => [name, `.claude/skills/${name}/SKILL.md`]));
+    const readBody = createEvidenceReader(opts.projectDir);
     const size = transcriptSize(transcriptFile);
     const windowBytes = Number.isInteger(opts.windowBytes) && opts.windowBytes > 0 ? opts.windowBytes : 0;
-    if (!size || !windowBytes) return null;
-    const length = Math.min(size, windowBytes, opts.capBytes || SCAN_CAP_BYTES);
+    const cap = opts.capBytes === undefined ? SCAN_CAP_BYTES : opts.capBytes;
+    if (!size || !windowBytes || !Number.isInteger(cap) || cap <= 0) return null;
+    const length = Math.min(size, windowBytes, cap, SCAN_CAP_BYTES);
     const start = size - length;
     let text;
     try {
@@ -544,7 +599,7 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
         try {
             const buffer = Buffer.alloc(length);
             const read = fs.readSync(fd, buffer, 0, length, start);
-            text = buffer.slice(0, read).toString('utf8');
+            text = buffer.subarray(0, read).toString('utf8');
         } finally {
             fs.closeSync(fd);
         }
@@ -554,7 +609,6 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
     const lastCompaction = typeof opts.lastCompactionAt === 'number' ? opts.lastCompactionAt : -Infinity;
     const markers = compileMarkers(opts.compactionMarkers);
     let offset = start;
-    // A window that starts mid-line skips that partial line: its evidence is (partly) outside the window.
     if (start > 0) {
         const firstNewline = text.indexOf('\n');
         if (firstNewline < 0) return null;
@@ -563,6 +617,14 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
     }
     let docReads = new Map();
     let skillHit = null;
+    const pending = new Map();
+    const seen = new Set();
+    const completed = new Set();
+    const invalidate = id => {
+        pending.delete(id);
+        for (const [doc, hit] of docReads) if (hit.id === id) docReads.delete(doc);
+        if (skillHit && skillHit.id === id) skillHit = null;
+    };
     for (const line of text.split('\n')) {
         const lineStart = offset;
         offset += Buffer.byteLength(line, 'utf8') + 1;
@@ -570,44 +632,50 @@ function scanEvidence(transcriptFile, evidence, opts = {}) {
         if (line.includes(BUILTIN_BOUNDARY) || markers.some(re => re.test(line))) {
             docReads = new Map();
             skillHit = null;
+            pending.clear();
             continue;
         }
-        if (!line.includes('"tool_use"') && !line.includes('<command-name>')) continue;
+        if (!line.includes('"tool_use"') && !line.includes('"tool_result"')) continue;
         let parsed;
-        try {
-            parsed = JSON.parse(line);
-        } catch {
-            continue;
-        }
+        try { parsed = JSON.parse(line); } catch { continue; }
         const ts = parsed && typeof parsed.timestamp === 'string' ? Date.parse(parsed.timestamp) : NaN;
-        // An undated line cannot be ordered against a host-reported condensation, so it counts only
-        // while none was ever observed, dated 0 so that any later condensation voids it.
         const at = Number.isFinite(ts) ? ts : (Number.isFinite(lastCompaction) ? null : 0);
         if (at === null || !(at > lastCompaction)) continue;
-        const hit = { at, transcriptBytes: lineStart };
-        for (const use of toolUses(parsed)) {
-            if (use.name === 'Skill' && nonBlank(use.input.skill) && skills.has(bareSkill(use.input.skill))) skillHit = hit;
-            if (use.name === 'Read' && nonBlank(use.input.file_path)) {
-                const read = normalizedDocPath(use.input.file_path);
-                for (const doc of docs) {
-                    if (read === doc || read.endsWith(`/${doc}`)) docReads.set(doc, hit);
+        const content = parsed && parsed.message && Array.isArray(parsed.message.content) ? parsed.message.content : [];
+        for (const item of content) {
+            if (!item || typeof item !== 'object') continue;
+            if (item.type === 'tool_use' && nonBlank(item.id)) {
+                if (seen.has(item.id)) { invalidate(item.id); continue; }
+                seen.add(item.id);
+                const input = item.input && typeof item.input === 'object' && !Array.isArray(item.input) ? item.input : {};
+                let rel = null;
+                if (item.name === 'Read' && nonBlank(input.file_path) && (input.offset === undefined || input.offset === 1) && input.limit === undefined) {
+                    rel = toRepoRelative(input.file_path.replace(/\\/g, '/'), opts.projectDir, nonBlank(parsed.cwd) ? parsed.cwd : opts.cwd);
+                } else if (item.name === 'Skill' && nonBlank(input.skill)) {
+                    rel = skillPaths.get(bareSkill(input.skill)) || null;
                 }
-            }
-        }
-        if (skills.size && line.includes('<command-name>')) {
-            for (const match of line.matchAll(COMMAND_NAME)) {
-                if (skills.has(bareSkill(match[1]))) skillHit = hit;
+                if (rel && ([...docPaths.values()].includes(rel) || [...skillPaths.values()].includes(rel))) pending.set(item.id, { rel, at });
+            } else if (item.type === 'tool_result' && nonBlank(item.tool_use_id)) {
+                const id = item.tool_use_id;
+                if (completed.has(id)) { invalidate(id); continue; }
+                completed.add(id);
+                const use = pending.get(id);
+                pending.delete(id);
+                if (!use || at < use.at) continue;
+                const returned = resultText(item);
+                if (returned === null || returned !== readBody(use.rel)) continue;
+                const hit = { at, transcriptBytes: lineStart, id };
+                for (const [doc, rel] of docPaths) if (use.rel === rel) docReads.set(doc, hit);
+                if ([...skillPaths.values()].includes(use.rel)) skillHit = hit;
             }
         }
     }
     const candidates = [];
     if (skillHit) candidates.push(skillHit);
-    if (docs.length && docs.every(doc => docReads.has(doc))) {
-        candidates.push(docs.map(doc => docReads.get(doc)).reduce((a, b) => (a.transcriptBytes <= b.transcriptBytes ? a : b)));
-    }
+    if (docs.length && docs.every(doc => docReads.has(doc))) candidates.push(docs.map(doc => docReads.get(doc)).reduce((a, b) => a.transcriptBytes <= b.transcriptBytes ? a : b));
     if (!candidates.length) return null;
-    // The most recent qualifying evidence leaves the longest remaining credit.
-    return candidates.reduce((a, b) => (a.transcriptBytes >= b.transcriptBytes ? a : b));
+    const { at, transcriptBytes } = candidates.reduce((a, b) => a.transcriptBytes >= b.transcriptBytes ? a : b);
+    return { at, transcriptBytes };
 }
 
 const carrierCache = new Map();

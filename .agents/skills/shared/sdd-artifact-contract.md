@@ -501,11 +501,7 @@ ancestor that nonetheless still holds rules its cleaned-up descendant never rece
 wording axis and then deleting the file destroys every rule that lived only on the content axis** — and the
 deletion reports success, because file-granularity hides the N rule-level deletes inside it.
 
-**This is not hypothetical. It is why this sub-gate exists** (measured, `docs/business-features/` vs
-the business spec root — default `docs/specs/`, relocated by `specRoots.business.path` in `docs/project-config.json` — 2026-07-16): the newer canonical file was correctly identified as the M1-cleaned descendant
-(`"Pipeline"`→`"Process"`, `"(Backend)"` dropped) — **and it held 26 TCs to the ancestor's 36.** Obeying
-*"the mirror is not authority"* at file granularity would have destroyed **10 tested TCs and a `[HARD]` rule
-that existed nowhere else.** ⇒ **The gate written to prevent data loss would have CAUSED it.**
+**Failure example:** a cleaned descendant held 26 TCs while its ancestor held 36. File-level retirement would have erased 10 tested cases and a uniquely held [HARD] rule. Wording authority and content completeness must therefore be assessed separately.
 
 - 🔴 **[BLOCKING] RECENCY IS NOT COMPLETENESS.** The reciprocal of *"recency is not authority"* above, and the
   half every reader supplies for themselves incorrectly. **A newer file routinely holds FEWER rules.** A `[HARD]`

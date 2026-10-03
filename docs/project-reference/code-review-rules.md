@@ -105,6 +105,8 @@ Not applicable to this repository: Phase-0 detection found no frontend applicati
 
 ---
 
+Focused injection does not authorize truncating required reference-document reads. Parser-only lifecycle handlers require a documented lifecycle need and process-boundary coverage; use the shared parser at that boundary. Read `docs/specs/ContextDelivery/README.ProjectContextIntake.md` when reviewing project-reference loading and `docs/specs/ContextDelivery/README.ProtocolDelivery.md` when reviewing universal delivery. Default-root examples; `specRoots.business.path` in `docs/project-config.json` overrides these locations.
+
 ## Skill Definition Conventions
 
 ### Directory Structure

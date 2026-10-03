@@ -333,6 +333,7 @@ Before reporting ANY work done:
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
+- `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `sequential-thinking-protocol` — Structured multi-step reasoning with revision, branch and hypothesis markers; planning, debugging or reviewing complex or ambiguous work → .claude/skills/shared/protocols/sequential-thinking-protocol.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
@@ -447,6 +448,12 @@ Before reporting ANY work done:
 
 <!-- /SYNC:ai-review-checklist:reminder -->
 
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Review plans and changes that call a model against the AI-engineering protocol — evidence-backed findings ranked by consequence, provider facts verified, project policy respected — and skip when no AI surface exists.
@@ -485,13 +492,8 @@ Before reporting ANY work done:
 
 | Evasion | Rebuttal |
 | --- | --- |
-| "The prompt already tells the model not to" | A prompt is not a boundary. Find the code that enforces it, or file the gap. |
 | "We added a moderation classifier" | One probabilistic layer. Ask what still holds when it misses. |
-| "I remember that model or parameter is retired" | Memory is not evidence. Verify in current provider docs and cite the URL, or `NOT VERIFIABLE`. |
 | "It is only a prototype" | Prototype de-escalates polish, never exposure — secrets, cross-user data and destructive tools stay P0. |
-| "Only the model calls this tool, so the arguments are safe" | Model output is untrusted input to every tool. Validate and re-authorize in the tool. |
-| "security-audit already covers AI" | It covers exploit classes; this skill covers the AI-specific lens. Run both and report the defect once. |
-| "Legal probably needs this, so it is non-compliant" | Route `[LEGAL-OWNER]` items to the owner as a question; never decide legality. |
 
 <!-- SYNC:core-engineering-principles:reminder -->
 

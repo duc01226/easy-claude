@@ -157,7 +157,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 | Hooks       | <!-- COUNT:hooks -->30<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->24<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->19<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->15<!-- /COUNT -->      |
+| Shared      | <!-- COUNT:shared -->16<!-- /COUNT -->      |
 | Lib modules | <!-- COUNT:lib-modules -->45<!-- /COUNT --> |
 
 ---
@@ -166,11 +166,11 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 ```
 docs/adr/  (4 files)
-docs/knowledge/  (11 files)
+docs/knowledge/  (12 files)
 docs/project-reference/  (18 files)
 docs/release/  (1 files)
 docs/release-notes/  (2 files)
-docs/specs/  (15 files)
+docs/specs/  (17 files)
 docs/templates/  (1 files)
 ```
 

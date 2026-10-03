@@ -1,5 +1,7 @@
 # Architecture Knowledge Catalog — Laws, Trade-Offs, Patterns & Anti-Patterns
 
+> **Capacity decisions:** read `.claude/skills/shared/protocols/measured-capacity-engineering.md` when choosing cache placement, capacity targets or a scaling step — model demand/SLO, reduce measured work safely, then prove headroom and recovery. Read `.claude/skills/performance-review/references/performance-knowledge.md` §6.1 and §10.1 when designing the cache contract or benchmark. Throughput evidence and business availability requirements are separate inputs; a low-cost single-instance result does not choose a production topology.
+
 > **Role:** the **authoritative knowledge body** architecture skills reason FROM. Owns the LAWS, TRADE-OFF TABLES, QUALITY-ATTRIBUTE TACTICS, STYLE-SELECTION rules, MODULE-DESIGN principles, PATTERN and ANTI-PATTERN catalogs, the SYMPTOM→CAUSE triage matrix, and the JUDGMENT CHECKLISTS (§20). Owns NO procedure — procedure lives in the consuming skills.
 >
 > **Consumed by:** `architecture` — mode `--mode=design` (Steps 2, 3A, 3C, 3D, 7, 11) · mode `--mode=review` (Phase 0 + Categories 0, 1, 2, 7, 9, 11, 12) · modes `--mode=scalability` and `--mode=full`. This list is the drift-guard's scope below — a skill belongs here ONLY if it carries an inline `architecture-knowledge.md` pointer, so the list stays greppable and the sweep stays truthful. NEVER add an aspirational consumer.

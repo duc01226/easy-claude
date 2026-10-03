@@ -1,106 +1,88 @@
-<!-- Last scanned: 2026-09-16 -->
+<!-- Last scanned: 2026-10-03 -->
 
 # Design System
 
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
+> Read this guide when reusing the Remotion scaffold palette/components or PDF print styling, or when deciding whether an application-owned design system exists.
+
 ## Quick Summary
 
-**Goal:** Separate verified skill-local UI assets from application-owned design-system authority, so AI reuses real tokens/components without promoting examples into nonexistent shared infrastructure.
+**Goal:** Reuse verified skill-local visual assets while preserving their ownership and avoiding invented application-wide design authority.
 
-**Summary:**
-
-- Current scope: one copyable Remotion scaffold palette plus its component references, and one standalone PDF print stylesheet; no configured app mapping, canonical token file, Storybook, or installed component library.
-- Important steps: resolve configured authority → whitelist declarations/components → preserve ownership boundaries → record gaps → run `/scan --target=design-system` after application adoption.
-
-**Key rule:** MUST ATTENTION treat tokens and components as shared only when configured ownership and declaration evidence support that scope; NEVER promote repeated values or scaffold examples by inference.
-
-## Status: Limited Skill-Local System
-
-easy-claude has no configured application design system, frontend app mapping, Storybook, or shared component package. It contains one exported palette object with copyable Remotion component references, and one isolated print stylesheet owned by the `pdf-convert` skill. These assets are local to their owning skills, not repository-wide UI primitives.
+- The maintained sources here are the Remotion scaffold palette/components and the PDF converter's default print stylesheet.
+- Read the owning skill and declaration before copying a component, changing a palette or replacing PDF styling.
+- Treat token values, usage examples and computed contrast as scoped records; they do not establish rendered accessibility compliance.
+- Resolve configured authority → inspect declarations and consumers → preserve ownership → record applicable conventions/gaps. Scan does not enforce UI defaults or change visual source.
 
 ## Design System Overview
 
-Type: limited scaffold-first/ad-hoc. There is no runtime token chain and no CSS custom property is declared anywhere in the authored scope. The only named-token surface is a TypeScript palette constant exported for copying into a scaffolded Remotion project (`.claude/skills/remotion/refs/Shared.tsx:8-20`).
+`docs/project-config.json` → `designSystem` points at this reference directory and has an empty `appMappings` list. No application token owner is configured. The evidenced visual sources are skill-local: `.claude/skills/remotion/refs/Shared.tsx:1–20` is a copyable scaffold template; `.claude/skills/pdf-convert/to-pdf/assets/default-style.css:1–7` is standalone print styling. Their source ownership is distinct from an installed application component library.
 
 ## App Documentation Map
 
-| Scope                    | Design doc                         | Token/component source                                       | Status                                                                   |
-| ------------------------ | ---------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| Configured frontend apps | None                               | None                                                         | `designSystem.appMappings` is empty (`docs/project-config.json:144-147`) |
-| Remotion scaffold        | `.claude/skills/remotion/SKILL.md` | `.claude/skills/remotion/refs/Shared.tsx`                    | Copyable reference, not installed library                                |
-| PDF output               | This limited reference             | `.claude/skills/pdf-convert/to-pdf/assets/default-style.css` | Standalone print stylesheet, not application-wide                        |
+| Scope | Read when | Authoritative source and consumption |
+| --- | --- | --- |
+| Configured applications | Resolving application design ownership: read `docs/project-config.json` → `designSystem.appMappings` | Empty mapping; do not infer a canonical app design doc. |
+| Remotion scaffold | Creating/updating video scenes: read `.claude/skills/remotion/SKILL.md` → scaffold and scene steps | Copy `refs/Shared.tsx` and `refs/animations.ts` into the generated project's component/utility paths; scene templates consume them (`SKILL.md:221–227,288–305`). |
+| PDF output | Replacing document print styling: read `.claude/skills/pdf-convert/SKILL.md` → PDF conversion | `to-pdf/assets/default-style.css` is selected by `to-pdf/scripts/lib/config-loader.cjs:68–76,87–103`; the converter passes it to `mdToPdf` (`converter.cjs:44–70` in that library directory). |
 
 ## Design Tokens
 
-Authoritative named tokens exist only in the Remotion scaffold palette; usages of `C.*` do not create new declarations. The PDF stylesheet declares no tokens — every value there is a literal.
+The Remotion `C` object declares `bg`, `surface`, `border`, `text`, `dim`, `blue`, `purple`, `green`, `amber`, `red`, `cyan` (`.claude/skills/remotion/refs/Shared.tsx:8–20`). `C.*` usages are consumers, not new declarations. The PDF stylesheet has literal local values and no named custom-property token chain. These observations apply to those sources, not every authored visual artifact in the repository.
 
-| Category                    | Naming / authority                                            | Evidence                                        |
-| --------------------------- | ------------------------------------------------------------- | ----------------------------------------------- |
-| Colors/surfaces             | `C.bg`, `C.surface`, `C.border`                               | `.claude/skills/remotion/refs/Shared.tsx:9-11`  |
-| Text                        | `C.text`, `C.dim`                                             | `.claude/skills/remotion/refs/Shared.tsx:12-13` |
-| Accent / status             | `C.blue`, `C.purple`, `C.green`, `C.amber`, `C.red`, `C.cyan` | `.claude/skills/remotion/refs/Shared.tsx:14-19` |
-| Typography                  | No named scale; per-component `fontSize` props and literals   | `.claude/skills/remotion/refs/Shared.tsx:59,95` |
-| Spacing/breakpoints/z-index | No named scale; raw local values only                         | `.claude/skills/remotion/refs/Shared.tsx:94,96` |
+To change a copied video palette, read `.claude/skills/remotion/SKILL.md:460–463`: edit its generated `Shared.tsx` palette; font ownership is per scene unless the adopting project chooses a shared owner. A caller-supplied PDF CSS file replaces the default stylesheet rather than layering onto it (`.claude/skills/pdf-convert/to-pdf/scripts/lib/config-loader.cjs:68–76,89–92`).
+
+### UI/UX Convention Record
+
+This records project authority and applicable gaps; it does not flag deviations as defects. Read `.claude/skills/ui-design/SKILL.md` when reviewing an actual user-facing interface. Defaults apply where the relevant adopting surface has no project convention.
+
+| Clause | Source-backed local convention | Authority / gap |
+| --- | --- | --- |
+| `UI-2.5` type scale | Remotion owner defines eyebrow 14/700, hero 44–56/800, body 17–21/400, card 15–16/700 and mono 12–14/400 (`.claude/skills/remotion/SKILL.md:352–361`). PDF has body 12pt, h1 24pt, h2 18pt, h3 14pt, h4 12pt and print body 11pt (`.claude/skills/pdf-convert/to-pdf/assets/default-style.css:12,27,33,38–39,146`). | PROJECT AUTHORITY — skill-local roles override a forced six-step scale for these outputs. GAP — no repository-wide named six-step scale. |
+| `UI-4.1` spacing | Remotion uses local values such as gap 10, top 36, left 48, padding 20px/24px and 5px/16px (`Shared.tsx:36,72,96`). PDF mixes cm/em/px (`default-style.css:6,21–22,81` at the sources above). | GAP — no declared shared 4px/8px base; default applies for a relevant future interface, not by deriving a scale from literals. |
+| `UI-3.2` accent jobs | Six palette accents; progress uses blue→purple, chapter badge defaults blue (`Shared.tsx:14–19,26,32`). The other four have no fixed job in Shared. Owner guidelines use category color (`SKILL.md:356,359`). | PROJECT AUTHORITY — multicolor video scaffold overrides a single-accent assumption. GAP — no per-token one-job taxonomy. Do not infer status semantics from names. |
+| `UI-3.1` contrast | Computed scoped pairs below; caller colors, parent opacity and unspecified PDF page backgrounds remain unmeasured. | GAP — no declared local contrast policy; 4.5:1 text / 3:1 UI-edge defaults apply where the interface requires them. Color declarations alone do not waive accessibility. |
+| `UI-3.4` dark surfaces | `C.bg=#070d1a`, surface white alpha .04, border white alpha .08, softened text `#e8f0fe` (`Shared.tsx:9–12`). | PROJECT AUTHORITY — additive translucent lifting in the dark scaffold. No inverted-light algorithm or PDF dark-mode theme is declared in these sources. |
+| `UI-5.4` motion | Frame-driven 18-frame badge/row and 14-frame code-line fades (`Shared.tsx:34,80,115`); `easeOut` uses cubic-bezier(.16,1,.3,1) (`.claude/skills/remotion/refs/animations.ts:6–10`). At the owner's 30fps composition example only, these are 600ms/~467ms (`SKILL.md:410`). | PROJECT AUTHORITY — video-timeline motion overrides interactive 150–250ms timing for this output. GAP — no reduced-motion handling in Shared/animations; apply relevant defaults when adopting into interactive UI. |
+
+### Computed Contrast
+
+Ratios use declared encoded-sRGB colors, alpha composited onto `C.bg` before luminance calculation. Assume settled opacity 1 and no parent opacity. `C.surface`/`C.border` have no universal backdrop; these values apply only to the stated composition. They are source measurements, not a rendered conformance verdict (`.claude/skills/remotion/refs/Shared.tsx:9–13,69–80`).
+
+| Pair | Ratio |
+| --- | ---: |
+| `C.text` on `C.bg` | 16.94:1 |
+| `C.dim` on `C.bg` | 4.71:1 |
+| `C.dim` on `C.surface` composed over `C.bg` | 4.36:1 |
+| `C.border` composed over `C.bg`, against `C.bg` | 1.20:1 |
+| CodeBlock default `C.dim` on its `#0d1117` | 4.59:1 |
+| PDF blockquote `#666` on declared `#fafafa` | 5.50:1 |
+
+The PDF blockquote pair comes from `.claude/skills/pdf-convert/to-pdf/assets/default-style.css:109–110`. Body/link colors against the unspecified PDF page background, caller-supplied Pill colors and transient video fades are **unmeasured**. Review actual rendered usage when accessibility matters.
 
 ## Component Inventory
 
-No installed reusable application component library exists. The following are copyable Remotion scaffold references:
+These exports are copyable Remotion scene references, not installed application primitives. The type declarations and defaults below are owned by `.claude/skills/remotion/refs/Shared.tsx`.
 
-| Component      | Category      | Variants / state                            | Source                                            |
-| -------------- | ------------- | ------------------------------------------- | ------------------------------------------------- |
-| `ProgressBar`  | Feedback      | chapter index + total                       | `.claude/skills/remotion/refs/Shared.tsx:23-30`   |
-| `ChapterBadge` | Data display  | label, color, entrance opacity              | `.claude/skills/remotion/refs/Shared.tsx:32-56`   |
-| `CodeBlock`    | Data display  | line color, start frame, stagger, font size | `.claude/skills/remotion/refs/Shared.tsx:59-86`   |
-| `Pill`         | Badge         | color, opacity                              | `.claude/skills/remotion/refs/Shared.tsx:89-106`  |
-| `AnimRow`      | Motion layout | up/left direction, distance, opacity        | `.claude/skills/remotion/refs/Shared.tsx:108-118` |
+| Component / category | Props and supported state | Source |
+| --- | --- | --- |
+| `ProgressBar` / feedback | Required `chapterIndex`, `totalChapters`; progress width derives from their ratio; blue→purple gradient | `Shared.tsx:23–30` |
+| `ChapterBadge` / data display | Required `index`, `label`; optional `color` defaults `C.blue`; entrance opacity is frame-driven | `Shared.tsx:32–56` |
+| `CodeBlock` / data display | Required `lines` with text/optional color; defaults `startFrame=0`, `stagger=5`, `fontSize=16`; line color defaults `C.dim` | `Shared.tsx:59–86` |
+| `Pill` / badge | Required `label`, `color`; optional `opacity=1`; alpha background/border strings derive from the supplied color | `Shared.tsx:89–106` |
+| `AnimRow` / motion layout | Required `frame`, `startAt`, `children`; `direction` is `up` or `left` (default `up`); `distance=20` | `Shared.tsx:108–118` |
 
-The PDF stylesheet exposes no components — it styles document elements plus one flat `.page-break` utility class (`.claude/skills/pdf-convert/to-pdf/assets/default-style.css:139-141`).
+Read `.claude/skills/remotion/SKILL.md:288–305` when wiring scene consumers; keep chapter totals consistent when scenes change. The scoped components are display-oriented divs with no ARIA, keyboard or interactive-state contract. Their video rendering use does not establish an application accessibility guarantee.
 
-## Gap Analysis
+The PDF stylesheet styles document elements and `.page-break`, not exported components (`.claude/skills/pdf-convert/to-pdf/assets/default-style.css:139–163`). Resulting document/PDF accessibility belongs to markup and renderer verification.
 
-- `designSystem.canonicalDoc` and `designSystem.tokenFiles` are not configured; do not infer paths from filenames (`docs/project-config.json:144-147`).
-- No configured application mappings, Storybook stories, component barrel, or per-component library docs exist.
-- No CSS custom property or SCSS variable is declared anywhere in the authored style scope — there is no runtime theming surface to extend.
-- Breakpoints, spacing, z-index, elevation geometry, and component token prefixes lack shared named scales.
-- Remotion components are scaffold references; adoption into a real app requires ownership, accessibility review, and app-specific documentation.
+## Scope & Usage Guidelines
 
-## Icon & Asset Library
+No icon library, Storybook adoption contract or app component barrel is declared by the two visual owners inspected here; this is not a claim that the repository ships no other media examples or visual assets. Read the owning skill's references when using additional scene/media templates.
 
-No icon library exists and no icon asset is shipped in the authored scope.
-
-## Storybook
-
-Not configured. No `.storybook/` or story files were found in the bounded source scan.
-
-## Usage Guidelines
-
-- Treat the Remotion palette and components as copyable scaffold examples, not installed shared components (`.claude/skills/remotion/refs/Shared.tsx:1-2`).
-- Keep the PDF stylesheet standalone; a caller-supplied `--css` path replaces it rather than layering on it.
-- Add repository-wide tokens/components only after configuring authoritative paths and app mappings.
-
-### Why This File Exists
-
-This reference distinguishes current skill-local UI assets from an adopted application design system and remains the output location for `/scan --target=design-system`.
-
-### Related Skills and Agents (for Target Projects)
-
-easy-claude ships skill definitions and agents that produce design-system output for **other** projects — not for this repository:
-
-- **Skills:** `/ui-design` (multi-mode/lane and local design intelligence), `/design-spec`, `/web-design-guidelines`
-- **Shared protocol blocks:** `SYNC:ui-system-context`, `SYNC:ui-wireframe-protocol`, and `SYNC:design-system-check` are defined in `.claude/skills/shared/sync-inline-versions.md:207,1172,1239`; consuming skills inline them.
-- **Agents:** `ui-ux-designer`, `frontend-developer`, `fullstack-developer`
-- **Scan skill:** `/scan --target=design-system` — run this after adopting easy-claude into a UI project to populate this file with actual design tokens, color palettes, and component inventories.
-
-### When to Populate
-
-Run `/scan --target=design-system` after easy-claude is integrated into a project that contains a component library or design token set. Preserve skill-local boundaries until application-owned sources exist.
+Preserve skill-local ownership until an adopting project supplies authoritative token/component/docs roots and application mappings. Then run `scan --target=design-system` for that project's actual system. Framework design-producing skills serve adopting projects; their protocols are guidance, not this repository's product tokens.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Separate verified skill-local UI assets from application-owned design-system authority, so AI reuses real tokens/components without promoting examples into nonexistent shared infrastructure.
-
-**IMPORTANT MUST ATTENTION** follow the full sequence: resolve configured authority → whitelist declarations/components → preserve ownership → document gaps → rescan after application adoption.
-**IMPORTANT MUST ATTENTION** keep the Remotion palette and components classified as copyable scaffold references and the PDF stylesheet as a standalone, replaceable surface.
-**IMPORTANT MUST ATTENTION** verify every future token, component, variant, icon, and Storybook claim at `file:line`.
-**IMPORTANT MUST ATTENTION** configure canonical doc, token paths, and app mappings before declaring a repository-wide design system.
+Resolve configured authority, inspect declarations and consumers, preserve ownership, then record relevant conventions/gaps. Keep copied Remotion references and replaceable PDF styling local to their owners. Compute contrast for declared pairs and verify rendered accessibility separately; never promote examples or repeated values into an application-wide system.

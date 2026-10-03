@@ -239,10 +239,24 @@ function defaultProjectDir(input, env) {
 }
 
 function defaultWrite(text, done) {
+    let settled = false;
+    const finish = ok => {
+        if (settled) return;
+        settled = true;
+        done(ok);
+    };
+    // A failed pipe reports through both the callback and the stream's error event.
+    // Keep the listener on callback failure until that event arrives; removing it early throws.
+    const onError = () => finish(false);
+    process.stdout.once('error', onError);
     try {
-        process.stdout.write(text, error => done(!error));
+        process.stdout.write(text, error => {
+            if (!error) process.stdout.removeListener('error', onError);
+            finish(!error);
+        });
     } catch {
-        done(false);
+        process.stdout.removeListener('error', onError);
+        finish(false);
     }
 }
 

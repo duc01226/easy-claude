@@ -2,7 +2,13 @@
 
 Read this guide when discovering, executing or authoring framework skills. **MUST** execute through the active host; **MUST** keep canonical source ownership separate from runtime paths; **MUST** preserve required gates and report an actual missing capability with evidence.
 
-> <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+> <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries for context-aware AI assistance (`_templates/template-skill` is a source template, not a runnable skill)
+
+## Quick Summary
+
+**Goal:** Discover, execute and author portable skills through the active host while preserving canonical ownership and required gates.
+
+**Summary:** Discover/load → execute required steps → evidence capabilities and gates → edit canonical source → regenerate mirrors. For prepared reviews, retain actual mode, active document union and full rules through capture, replay and recheck.
 
 ## Overview
 
@@ -48,7 +54,7 @@ Skill loading activates instructions; execution performs their steps through the
 | [Document Processing](#document-processing)       | 3      | PDF, DOCX, Markdown conversions, HTML export   |
 | [Utility](#utility)                               | 1      | Skill creation                                 |
 
-**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->15<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
+**Additional:** Shared reference/protocol entries (<!-- COUNT:shared -->16<!-- /COUNT -->: files plus the generated `protocols/` projection) -- see [Shared Protocols](#shared-protocols-sync-bodies-and-guides)
 
 ---
 
@@ -88,7 +94,7 @@ See `frontend-patterns-reference.md` in the project-reference docs root for proj
 | `experience-review`       | user experience, acceptance, baseline                                 | Exercise and inspect applicable observable output; preserve expectations until explicit acceptance                                               |
 | `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                         |
 | `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to the business spec root (sync mode retires when dashboards are removed in Phase 7) |
-| `integration-test --mode=review` | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                                  |
+| `integration-test --mode=review` | integration test review, assertion quality, test gate review, TC gate | One read-only review pass through eight quality gates covering intended, observable, repeatable and source/spec-aligned behavior                                  |
 | `integration-test --mode=verify` | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                                 |
 
 ---
@@ -321,7 +327,7 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->15<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
+_Source: `.claude/skills/` | <!-- COUNT:skills -->101<!-- /COUNT --> runnable skills across 15+ domains + <!-- COUNT:shared -->16<!-- /COUNT --> shared reference/protocol entries (the `_templates/template-skill` source is excluded from runtime discovery)_
 
 ## Closing Reminders
 

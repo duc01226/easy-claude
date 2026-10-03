@@ -354,6 +354,7 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `goal-contract-satisfaction-loop` — Save the goal in a file and loop until every saved criterion passes; executing work against a user goal → .claude/skills/shared/protocols/goal-contract-satisfaction-loop.md
 - `graph-assisted-investigation` — Optional hint: a code-graph query can add callers and dependents when grep may miss a high-risk blast radius, and it can be stale; a high-risk change where grep and reading alone may miss the blast radius → .claude/skills/shared/protocols/graph-assisted-investigation.md
+- `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `review-principle-awareness` — Classify the change context first, then apply the current principles that fit it; starting any review → .claude/skills/shared/protocols/review-principle-awareness.md
 - `review-protocol-injection` — Verbatim template and protocol blocks for every fresh sub-agent review prompt; spawning a fresh sub-agent to review → .claude/skills/shared/protocols/review-protocol-injection.md
 - `scale-technique-gate` — Which scale techniques a system warrants, and which it does not; reviewing architecture or production readiness → .claude/skills/shared/protocols/scale-technique-gate.md
@@ -365,7 +366,6 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 - `trade-off-interrogation-gate` — Three trade-off questions before any verdict, score or recommendation; rendering a verdict or recommending an option → .claude/skills/shared/protocols/trade-off-interrogation-gate.md
 
 <!-- PROTOCOL-GUIDES:END -->
-
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
@@ -463,6 +463,12 @@ _Any failed or unresolved binary gate above blocks PASS regardless of score or o
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready across observability, reliability, data integrity, and database performance: score each dimension with evidence and expose operational gaps.
@@ -513,7 +519,4 @@ The following are all MANDATORY:
 | "Batched, so average the per-batch scores"    | Re-score all 12 holistically from combined evidence; each batch sees only its own files and false-flags |
 | "Tests pass, mutation gate is covered"        | Green coverage over un-asserted behavior fails the gate; a surviving mutant is a blocker     |
 
-**IMPORTANT MUST ATTENTION** every score needs `file:line` evidence or it is `0`; assume worst without proof.
 **IMPORTANT MUST ATTENTION** `--report-only` runs steps 1–5 and 7 plus findings validation — no fix, no restart, no batching fan-out, no user question, no writer beyond the report; return the `/24` score, gate verdict, and findings grouped by severity — why: a read-only leaf that fixes, fans out, or asks races or stalls its barrier siblings.
-**IMPORTANT MUST ATTENTION** DB Performance Protocol + validated-fix full re-review are NEVER skippable regardless of change size.
-**IMPORTANT MUST ATTENTION** validate findings before fixing, then rerun the FULL review before PASS — a pass clearing the current round's exit bar ENDS the loop (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).

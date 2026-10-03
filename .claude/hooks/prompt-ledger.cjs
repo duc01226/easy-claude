@@ -58,10 +58,23 @@ function defaultProjectDir(input, env) {
 }
 
 function defaultWrite(text, done) {
+    let settled = false;
+    const finish = ok => {
+        if (settled) return;
+        settled = true;
+        done(ok);
+    };
+    const onError = () => finish(false);
+    process.stdout.once('error', onError);
     try {
-        process.stdout.write(text, err => done(!err));
+        process.stdout.write(text, err => {
+            // A failed write emits an error after its callback; consume that event too.
+            if (!err) process.stdout.removeListener('error', onError);
+            finish(!err);
+        });
     } catch {
-        done(false);
+        process.stdout.removeListener('error', onError);
+        finish(false);
     }
 }
 

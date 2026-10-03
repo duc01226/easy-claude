@@ -565,6 +565,21 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+<!-- SYNC:measured-capacity-engineering -->
+
+> **Measured Capacity Engineering** — Apply when planning, building, testing or reviewing a hot path, cache, capacity claim or scaling decision. Preserve the hosting skill's authority, phase order, scores and gates; unrelated work skips this protocol. **Priorities:** model demand and the SLO, remove measured work safely, then prove capacity and recovery before adding infrastructure.
+>
+> 1. **Define capacity as a workload contract.** Record endpoint/journey mix, think time, reads/writes, payloads, data volume/skew, authentication, environment and latency/error targets. Distinguish active sessions, open connections, in-flight requests, offered RPS and achieved successful RPS. A benchmark's hardware price, user count or CPU limit is not a portable capacity guarantee; DAU requires a separate usage model.
+> 2. **Choose and disclose the load model.** Use closed-loop users for journeys; use an open arrival-rate model when testing independently arriving demand. Closed loops can reduce offered traffic as latency rises. Report attempted/completed work, errors/timeouts and dropped iterations, verify generator headroom, and separate component tests from the full journey. Repeat controlled runs with realistic data, warm steady state, cold/expiry cache, sustained load and recovery as warranted; static evidence yields a verification plan, never an invented capacity result.
+> 3. **Locate the limiting resource.** Correlate tail latency with queue/pool wait and per-process CPU, runtime stalls, memory/GC, database query plans and lock waits, disk and network. Co-located components compete for resources; high aggregate CPU alone does not identify its owner. Compare one hypothesis-changing optimization at a time under the same workload, then re-profile because the bottleneck can move.
+> 4. **Reduce work before multiplying resources.** Bound/filter at the data source, verify query access paths, batch repeated calls, trim payloads and keep synchronous hot-path work small. Select the smallest evidenced fix; urgent capacity or availability requirements can justify scaling first. Read `.claude/skills/performance-review/references/performance-knowledge.md` §10.1 when designing a capacity experiment and §6.1 before selecting a cache layer.
+> 5. **Place reuse at the earliest safe boundary.** Compare request/process, shared data and proxy/client caches by work avoided, hit rate, key cardinality, freshness and operating cost. Cache lookup must preserve authorization and all response-varying inputs; personalized data is private/bypassed unless isolation and authorization before every hit are proven. Bound bytes/entries, lifetime and refill concurrency; specify write invalidation, stale-data policy, cross-instance behavior and cold-cache fallback. Verify cross-user isolation and mutation visibility as well as speed.
+> 6. **Budget overload and recovery.** Find the measured SLO boundary and keep justified headroom; no universal CPU percentage defines safety. Bound queues, concurrency, pools, retries and dependency demand across all replicas. Exercise cache loss, deploy/warmup and overload: verify bounded degradation/shedding and recovery after demand falls, without dropping correctness, authorization or durability to win a benchmark.
+> 7. **Scale the evidenced owner incrementally.** Compare tuning/offload and vertical capacity with horizontal replicas or component separation; name state/session/cache coherence, shared dependency limits, availability and operational costs. A single-instance design can be efficient while failing an availability requirement. Choose distribution only for measured pressure or explicit business/availability needs, with an owner, revisit trigger and reversible next step.
+>
+> **Evidence output:** workload/SLO/environment | load model and offered/achieved demand | limiting-resource proof | before/after distributions and errors | cache correctness/cold-state proof (if applicable) | headroom/recovery | cost/trade-off and next scaling trigger. Record unavailable measurements explicitly. **Closing priorities:** model demand → reduce work safely → prove capacity/recovery; retain the hosting contract and never generalize anecdotal numbers.
+
+<!-- /SYNC:measured-capacity-engineering -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
 
@@ -656,6 +671,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Resolve the requested review target and apply the matching adversarial review path (plan/PBI rationale, code changes, docs/spec/report, findings, or explicit artifact) so decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
@@ -719,7 +740,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
-> **ALWAYS ASK THE 3 TRADE-OFF QUESTIONS (every decision AND every recommendation you make):** (1) **is there any trade-off?** — name what it sacrifices; "none" is an unfinished analysis, not an answer; (2) **is it worth it?** — gain vs cost, who pays, when → WORTH IT / NOT WORTH IT / UNCLEAR; (3) **is the trade-off material enough to confirm with the user?** — irreversible, cost shifted to someone else, one quality attribute traded for another, boundary crossed, high-consequence path, or UNCLEAR → STOP and confirm via `AskUserQuestion` BEFORE the verdict. NEVER resolve a material trade-off silently. — why: naming a benefit without its price is an endorsement, not a review, and a one-way door is the user's call to walk through, never yours.
+> **Trade-off priority:** apply the complete three-question gate in Closing Reminders to every decision and recommendation; MATERIAL or UNCLEAR requires its own user confirmation before the verdict.
 > **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `/why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The self-recursive review loop — the **protocol loop primarily** (host-independent), plus a `/goal` Stop-hook gate WHEN available — BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
 
 **Anti-Rationalization:**

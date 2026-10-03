@@ -298,7 +298,7 @@ The same hook can carry project-supplied additional route rules via `portability
 { "portability": { "workflowRouteProtocol": { "path": "docs/project-protocols/route.md" } } }
 ```
 
-`workflow-route-inject.cjs` appends the resolved text in its own marker block (`<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->`), advisory only and never blocking. A `path` naming a privacy-sensitive file (`.env`, credentials, secrets, `*.pem`/`*.key`) is refused — the validator rejects it and the runtime treats it as no opinion — and a file over 20,000 bytes is truncated with a visible marker. It is runtime-only and is never stamped into tracked `CLAUDE.md`/`AGENTS.md`/Codex context.
+`workflow-route-inject.cjs` appends the resolved text in its own marker block (`<!-- CK:WORKFLOW-ROUTE-PROTOCOL -->`), advisory only and never blocking. A `path` naming a privacy-sensitive file (`.env`, credentials, secrets, `*.pem`/`*.key`) is refused — the validator rejects it and the runtime treats it as no opinion. The runtime also checks the physically resolved project-relative target, so a public alias cannot expose a private target; aliases to eligible public files remain readable. A file over 20,000 bytes is truncated with a visible marker. It is runtime-only and is never stamped into tracked `CLAUDE.md`/`AGENTS.md`/Codex context.
 
 ### Just-in-time path rules
 

@@ -223,7 +223,7 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 - OR the project's documented truncate/text-ellipsis mixins or utility classes from the styling rules doc.
 - Multi-line: use the project-documented clamp pattern.
 
-**GOOD vs BAD:** a utility/token-driven truncation that exposes the full value on overflow (tooltip/`title`) is correct; a hand-rolled substring / width-math truncation, or truncated text with no tooltip, is the anti-pattern. Cite the styling rules doc for the project's reuse targets.
+**Anti-patterns:** hand-rolled substring/width-math truncation. For full-value access and reuse targets, enforce the decision/fix rules above and cite the styling authority.
 
 ---
 
@@ -252,7 +252,7 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 - Use configured breakpoints when present; do not invent a project-wide breakpoint scale
 - Large layout refactor required → surface it as a finding and keep it distinct from an unrelated change
 
-**Anti-patterns:** layout rules that bypass a configured sizing system, or fixed layouts that clip or hide required content at a supported size. Cite the applicable project/platform rule and inspect the rendered outcome before flagging.
+**Evidence:** cite the applicable project/platform sizing rule and inspect the rendered outcome before flagging.
 
 ---
 
@@ -270,7 +270,7 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 - Use the project's layout and sizing primitives. In CSS-based layouts, flex/grid and min/max constraints may be appropriate when they match the surrounding code.
 - Keep a fixed dimension only when the design or platform requires it and evidence shows it remains usable across supported settings.
 
-**Anti-patterns:** fixed sizing that demonstrably clips required content, blocks user scaling, or prevents the surface from fitting a supported form factor. Fixed dimensions are valid when the platform or design requires them and the supported use remains accessible. Cite the relevant project/platform authority and evidence.
+**Evidence:** cite the applicable sizing authority and supported-use outcome; the fixed-size exception above remains valid.
 
 ---
 
@@ -291,7 +291,7 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 
 Cross-reference the project's layering map when one is configured. Any chosen layer must match the actual surface role.
 
-**GOOD vs BAD:** a layer token is correct when the project defines one; otherwise use the platform's documented order. Flag a raw value or override only when it violates local rules or causes evidenced overlap. Cite the authority for the target.
+**Evidence:** cite the applicable layer/order authority and evidenced overlap; enforce the detection and fix rules above.
 
 ---
 
@@ -332,7 +332,7 @@ Apply fixes per the resolved project styling rules doc.
 - Keep genuinely shared behavior under a clear owner. Consider extraction when evidence shows reuse will reduce change cost; do not require an abstraction from a fixed duplication count.
 - Test reusable component contracts and page/screen composition according to the project's test organization.
 
-**GOOD vs BAD:** when a project declares shared component tiers, a screen composes the appropriate documented components and tests each contract at its owner. In projects without tiers, follow the existing component structure and extract only where an evidenced reusable owner improves the code. Cite the real project references or source patterns.
+**Evidence:** cite real project references or source patterns for the ownership/reuse checks above.
 
 ---
 
@@ -365,7 +365,7 @@ Apply fixes per the resolved project styling rules doc.
 - Reuse documented loading/progress, error, and empty-state components or patterns when present; otherwise follow the target platform's idiom without inventing a project-wide abstraction.
 - Bind loading / error / empty behavior to the data flow and state owner established by the project; do not impose a fixed model/service/component layer order.
 
-**GOOD vs BAD:** an important delayed operation gives progress feedback, communicates a failure with a usable next step, and explains an empty result; a surface that shows nothing until success is the anti-pattern. Cite the project's applicable references or observed implementation.
+**Evidence:** cite applicable project references or observed feedback/recovery behavior.
 
 > **Note vs Category 5's Bug-Detection "Error Handling":** the shared Bug Detection protocol checks that `catch` scope is correct and exceptions are not swallowed at the *code* level; Category 6 checks that the failure/loading/empty branch produces a *user-visible* state at the *UI* level. Both must pass — a correctly-caught error that renders nothing still fails Category 6.
 
@@ -1308,7 +1308,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MUST ATTENTION** NEVER mix incompatible project token systems in one file — recommend whichever system the file already imports/uses
 **MUST ATTENTION** after validated UI fixes, rerun the full UI review; when that protocol uses a fresh reviewer, use the UI/UX-specialized sub-agent from the local sub-agent selection guide
 **Optional advice:** the code graph can hint at shared-component consumers grep may miss; it may be stale — verify by reading
-**MUST ATTENTION** review SURFACES, not files: expand changed files to the views that render them, reconstruct composition (tree + style origins + render or `ENVIRONMENT-BLOCKED`), and run the Phase 2C surface UX pass (task trace, Field Necessity Matrix, container fit, budget, and the `UX-8` walkthrough of every main journey with a traceability check — no unserved step, no orphan element; inferred journeys tag findings `HEURISTIC`) BEFORE the code categories — why: an overloaded or ancestor-broken surface passes every file-level check
+**MUST ATTENTION** review SURFACES, not files: execute Phases 2B–2C in the Workflow above BEFORE code categories. The `UX-8` walkthrough must leave no unserved journey step or orphan element; tag findings from inferred journeys `HEURISTIC`.
 **MUST ATTENTION** write the index to `tmp/reports/ui-review-{date}-{slug}.md` and one file per surface (and per shared component with findings) under `tmp/reports/ui-review-{date}-{slug}/`, appended as each completes; cluster repeated defects into one systemic finding
 **MUST ATTENTION** NEVER fix code — review and report only
 **MUST ATTENTION** apply `Think:` reasoning prompt before checking each category — derive violations, don't recite checklists

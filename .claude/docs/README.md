@@ -129,6 +129,8 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | `feature-spec-reference.md`                                  | Feature doc templates, app/service mapping                  |
 | `domain-entities-reference.md`                               | Domain entity catalog, relationships, cross-service sync    |
 | [skill-naming-conventions.md](./skill-naming-conventions.md) | Skill naming rules and prefix guide                         |
+| `.claude/skills/shared/protocols/measured-capacity-engineering.md` | Read when designing, testing or reviewing capacity, hot paths, cache placement or scaling — shared decision contract |
+| `.claude/skills/performance-review/references/performance-knowledge.md` §6.1, §10.1 | Read when proving safe cache placement or designing a workload-defined capacity experiment |
 | [configuration/README.md](./configuration/README.md)         | Settings schema, permissions, hooks config                  |
 | [ux-journey-process.md](./ux-journey-process.md)             | Read FIRST when generating, planning or reviewing any user-facing surface — journey-first `UX-1`–`UX-11` (Journey Report, design-authority read), before [design-knowledge.md](./design-knowledge.md) (`DD-*`) and [design-review-checklist.md](./design-review-checklist.md) (`CL-*`) |
 
@@ -166,7 +168,7 @@ Unprefixed filenames resolve inside the project-reference docs root — default 
 | Agents                 | <!-- COUNT:agents -->24<!-- /COUNT --> |
 | Workflows              | 19    |
 | Hook Tests             | 133   |
-| Hook Test Files        | 99 suites + 9 top-level test files |
+| Hook Test Files        | 100 suites + 9 top-level test files |
 | Framework Markdown Files | 42 (`.claude/docs/**/*.md`) |
 
 ---

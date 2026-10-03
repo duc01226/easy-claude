@@ -362,13 +362,6 @@ Standalone (no parent workflow): after writing or updating E2E tests, suggest `/
 
 ---
 
-# Skill: e2e-test
-
-**Category:** [Testing]
-**Trigger:** e2e test, e2e from recording, generate e2e, playwright test, cypress test, selenium test, webdriver, puppeteer
-
-Generate and maintain E2E tests using project's configured testing framework.
-
 - The canonical business-artifact root — resolve `specRoots.business.path` from `docs/project-config.json` (default `docs/specs/` only when unset); read requirement/acceptance/scenario IDs, owner links, cardinality, carriers, and evidence-section roles from optional `specArtifacts`. Match each selected owner-qualified case/variant to its actual E2E executor(s), assertion(s), and result(s). The strict default profile uses TC cases and §8/Test Specifications.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -382,6 +375,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 - `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
 - `core-engineering-principles` — Core quality gate: easy to change, easy to scale, easy to maintain, judged by future change cost; planning, implementing or reviewing any change → .claude/skills/shared/protocols/core-engineering-principles.md
 - `e2e-visual-design-contract` — Evidence and baseline rules for visual review in E2E and human QC; handling visual-review evidence or visual baseline updates → .claude/skills/shared/protocols/e2e-visual-design-contract.md
+- `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
 - `sub-agent-selection` — Pick the sub-agent type from the routing guide; choosing which sub-agent to spawn → .claude/skills/shared/protocols/sub-agent-selection.md
@@ -422,6 +416,12 @@ Generate and maintain E2E tests using project's configured testing framework.
 
 <!-- /SYNC:e2e-visual-design-contract:reminder -->
 
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
@@ -453,16 +453,6 @@ Generate and maintain E2E tests using project's configured testing framework.
 **IMPORTANT MUST ATTENTION** update `e2e-test-reference.md` in the reference-docs root (default `docs/project-reference`; `docsRoots.projectReference.path` in `docs/project-config.json` overrides) with learnings when investigating/fixing E2E failures.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 
-**Anti-Rationalization:**
-
-| Evasion                                       | Rebuttal                                                                                          |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| "I know the framework, skip the reference"    | Read `e2eTesting` config + reference FIRST — stack, paths, and case profile are project-specific. |
-| "data-testid is everywhere, just use it"      | Prefer accessible role/name or label, then an explicit test hook; explain any project-specific fallback. |
-| "This selector is faster via `:nth-child`"    | Positional/generated selectors break on unrelated churn. Use a semantic/data anchor.               |
-| "I'll clean up the data after the run"        | Never delete/reset persistent, seeded, additive, or shared data. Only configured current-run ephemeral cleanup after evidence capture is allowed. |
-| "Test passes, traceability is bookkeeping"    | No configured owner-qualified case mapped to the real assertion/result = unresolved, not PASS. TC→§8 is the strict-default example. |
-| "Just generate the test inline, it's quick"   | Spawn `e2e-runner` — it owns stack detection, profile-resolved case traceability, and baseline updates. |
 
 
 ---

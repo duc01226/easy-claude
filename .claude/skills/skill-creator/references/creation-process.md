@@ -50,16 +50,18 @@ SKILL.md answers: (1) purpose in a few sentences, (2) when to use it, (3) in pra
 **Resource guidance:**
 
 - **scripts/** — prefer Node/Python over bash (bash is poorly supported on Windows). Python scripts need `requirements.txt` + `.env.example`. Write and run tests until they pass; run manually on real cases.
-- **references/** — load-as-needed docs; split large files. Sacrifice grammar for concision. Avoid duplication: info lives in SKILL.md OR a reference, not both — prefer references for detail to keep SKILL.md lean.
+- **references/** — load-as-needed docs; split large files. Keep readable conditions and necessary rationale. Avoid duplication: info lives in SKILL.md OR a reference, not both — prefer references for detail to keep SKILL.md lean.
 - **assets/** — output files only (never loaded into context): templates, icons, boilerplate, fonts.
 
 ## Step 5 — Package
+
+Before handoff or packaging, apply the quality gate in `authoring-quality.md`; it owns contract, retention, resources, trust, behavior, and baseline checks. Structural validation alone does not establish useful decisions.
 
 `python3 .claude/skills/skill-creator/scripts/package_skill.py <skill-folder> [output-dir]` validates (frontmatter, naming, structure, resource refs) then zips. On failure it reports and exits without packaging — fix and rerun.
 
 ## Step 6 — Iterate
 
-Use the skill on real tasks, notice struggles, update SKILL.md / resources, retest. Best done right after use with fresh context of how it performed.
+Use real task failures to guide narrow revisions. Read `authoring-quality.md` when selecting behavioral cases and comparing the revision with a clean-context baseline; inspect actual outputs and record model/runtime, time, tokens, and unrun checks.
 
 ## Combining Skills
 

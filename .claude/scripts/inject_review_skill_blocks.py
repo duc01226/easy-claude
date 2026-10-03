@@ -32,6 +32,9 @@ Tags propagated (each with its `:reminder` sibling):
         (trade-off? worth it? material -> confirm with user; additive-safe,
          graders and loop-orchestrators included — see ALL_REVIEW_SKILLS comment)
 
+Capacity guidance is adopted by the roles that design, implement, measure or validate
+hot paths. Its body is scope-gated and its hook delivery is triggered by capacity work.
+
 Idempotent. For each (skill, tag):
   TOP main block -> refreshed in place if drifted; left out when the skill carries
                     a guide entry for the tag (sync_blocks.has_guide_entry: the skill
@@ -237,7 +240,20 @@ AI_ENGINEERING_FLOOR = ["ai-engineering-review"]
 AI_REVIEW_PROCEDURE = ["ai-engineering-review"]
 
 # Canonical apply order per skill (stable, cosmetic only).
+# One adoption owner; the parity verifier parses this roster rather than maintaining
+# a second list. Architecture owns full bodies in its selected mode references;
+# agents adopt applicable quality bodies through agent_protocol_matrix.py.
+MEASURED_CAPACITY = [
+    "performance-review", "production-readiness-review",
+    "plan", "tech-stack-research", "scaffold", "harness-setup",
+    "feature-implement", "fix", "test", "integration-test", "e2e-test",
+    "seed-test-data", "security-audit", "ai-engineering-review",
+    "changes-review", "code-quality-review", "why-review", "workflow-review-changes",
+    "workflow-greenfield-init", "workflow-big-feature",
+]
+
 MATRIX = [
+    ("SYNC:measured-capacity-engineering", MEASURED_CAPACITY),
     ("SYNC:systematic-review-batching", BATCHING),
     ("SYNC:severity-rubric", SEVERITY),
     ("SYNC:category-review-thinking", CATEGORY),

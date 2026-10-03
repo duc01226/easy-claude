@@ -337,13 +337,6 @@ Report must be **≤250 lines**. Use tables over prose.
 
 ---
 
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY bounded context and key relationship with user via `AskUserQuestion`.
-**MANDATORY IMPORTANT MUST ATTENTION** include Mermaid ERD and confidence % for all architectural decisions.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
-
----
-
 ## Next Steps
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, use `AskUserQuestion` to present these options:
@@ -361,10 +354,6 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 - **"Escalate to /llm-council"** — Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Best applied when bounded-context splits or aggregate boundaries are contested (multiple defensible cuts), the model touches >=3 services, or invariants span aggregates. DDD boundary decisions are hard to reverse once consumers depend on them. Cheaper alternatives: `/why-review`, `/plan --mode=validate` (run these first if you haven't).
 
 ---
-
-**MANDATORY IMPORTANT MUST ATTENTION** use `TaskCreate` to break ALL work into small tasks BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** use `AskUserQuestion` at EVERY decision point — validate every bounded context and entity relationship with user.
-**MANDATORY IMPORTANT MUST ATTENTION** produce ERD diagram (Mermaid) and domain model report with confidence %.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `tmp/reports/` — prevents context loss and serves as deliverable.
 

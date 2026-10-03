@@ -36,6 +36,8 @@ function runPython(python, args, env) {
 // scan_skills.py imports its stdio helper unguarded, so a relocated copy needs it beside it.
 function copyStdioHelper(dir) {
   fs.copyFileSync(path.join(root, ".claude", "scripts", "win_compat.py"), path.join(dir, "win_compat.py"));
+  fs.mkdirSync(path.join(dir, "lib"), { recursive: true });
+  fs.copyFileSync(path.join(root, ".claude", "scripts", "lib", "python_dependencies.py"), path.join(dir, "lib", "python_dependencies.py"));
 }
 
 function envWithoutPythonPath(extra = {}) {
@@ -328,3 +330,252 @@ test("TC-PYDEP-002: any other missing module inside the yaml import still re-rai
     assert.doesNotMatch(result.stderr, /PyYAML/, script);
   }
 });
+
+// Provisioning tests run the real helper in a copied project. Only the pip process
+// is replaced; actual yaml imports prove consumer availability without network or
+// global writes. -S removes the host's installed package; the flag proxy then
+// permits recovery under the explicitly controlled process seam.
+function recoveryFixture(t) {
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), "yaml-recovery-"));
+  t.after(() => fs.rmSync(project, { recursive: true, force: true }));
+  const scripts = path.join(project, ".claude", "scripts");
+  fs.mkdirSync(scripts, { recursive: true });
+  copyStdioHelper(scripts);
+  fs.writeFileSync(path.join(scripts, "requirements.txt"), "pyyaml>=6.0\n");
+  const env = envWithoutPythonPath();
+  for (const key of Object.keys(env)) {
+    if (/^(CK_|CLAUDE_|CODEX_|OPENCODE_)|TOKEN|SECRET|PASSWORD|API_KEY/i.test(key)) delete env[key];
+  }
+  Object.assign(env, { HOME: project, USERPROFILE: project, TMPDIR: project, TEMP: project, TMP: project });
+  return { project, scripts, env };
+}
+
+function recoveryPython(t, body, { allowRecovery = true } = {}) {
+  const fixture = recoveryFixture(t);
+  const python = findPython3();
+  const setup = [
+    "import os, sys, json, subprocess, importlib",
+    "from unittest.mock import patch",
+    `sys.path.insert(0, ${JSON.stringify(fixture.scripts)})`,
+    "from lib import python_dependencies as deps",
+    `requirements = ${JSON.stringify(path.join(fixture.scripts, "requirements.txt"))}`,
+    `project = ${JSON.stringify(fixture.project)}`,
+    "target = os.path.join(project, 'tmp', 'claude-temp', 'python-packages')",
+    "def write_yaml(folder):",
+    "    os.makedirs(os.path.join(folder, 'yaml'), exist_ok=True)",
+    "    with open(os.path.join(folder, 'yaml', '__init__.py'), 'w') as f:",
+    "        f.write('__version__ = \"6.0\"\\n')",
+    ...(allowRecovery ? [
+      "original_flags = sys.flags",
+      "class Flags:",
+      "    no_site = 0",
+      "    def __getattr__(self, key): return getattr(original_flags, key)",
+      "sys.flags = Flags()",
+    ] : []),
+    body,
+  ].join("\n");
+  const result = runPython(python, ["-S", "-c", setup], fixture.env);
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout);
+}
+
+test("TC-PYDEP-010: an available package avoids all installation", (t) => {
+  // Given a usable dependency, When recovery runs, Then no installer is invoked.
+  const result = recoveryPython(t, `
+write_yaml(project)
+sys.path.insert(0, project)
+with patch.object(deps.subprocess, 'run', side_effect=AssertionError('unexpected install')):
+    print(json.dumps({'ok': deps.ensure_pyyaml(requirements)}))`);
+  assert.equal(result.ok, true);
+});
+
+test("TC-PYDEP-011: global installation must make the dependency usable before success", (t) => {
+  // Given missing yaml, When the global pip seam supplies it, Then the real importer succeeds.
+  const result = recoveryPython(t, `
+calls = []
+def pip(argv, **options):
+    calls.append({'argv': argv, 'timeout': options['timeout'], 'shell': options.get('shell', False)})
+    write_yaml(project)
+    sys.path.insert(0, project)
+    return subprocess.CompletedProcess(argv, 0)
+with patch.object(deps.subprocess, 'run', side_effect=pip):
+    ok = deps.ensure_pyyaml(requirements)
+print(json.dumps({'ok': ok, 'calls': calls, 'origin': importlib.import_module('yaml').__file__}))`);
+  assert.equal(result.ok, true);
+  assert.equal(result.calls.length, 1);
+  assert.ok(result.calls[0].argv.includes("--no-user"));
+  assert.equal(result.calls[0].argv.at(-1), "pyyaml>=6.0");
+  assert.equal(result.calls[0].timeout, 30);
+  assert.equal(result.calls[0].shell, false);
+});
+
+for (const failure of ["denied", "timeout", "unusable-success", "missing-pip"]) {
+  test(`TC-PYDEP-012-${failure}: a failed global attempt recovers through a verified local target`, (t) => {
+    // Given global denial/timeout/unusable output, When local recovery supplies yaml,
+    // Then the consumer imports it from that target and further calls need no install.
+    const result = recoveryPython(t, `
+calls = []
+def pip(argv, **options):
+    calls.append(argv)
+    if '--target' not in argv:
+        mode = ${JSON.stringify(failure)}
+        if mode == 'timeout': raise subprocess.TimeoutExpired(argv, 30)
+        if mode == 'missing-pip': raise OSError('pip unavailable')
+        return subprocess.CompletedProcess(argv, 0 if mode == 'unusable-success' else 1)
+    write_yaml(argv[argv.index('--target') + 1])
+    return subprocess.CompletedProcess(argv, 0)
+with patch.object(deps.subprocess, 'run', side_effect=pip):
+    ok = deps.ensure_pyyaml(requirements)
+    repeated = deps.ensure_pyyaml(requirements)
+print(json.dumps({'ok': ok, 'repeated': repeated, 'calls': calls,
+                  'origin': importlib.import_module('yaml').__file__, 'target': target}))`);
+    assert.equal(result.ok, true);
+    assert.equal(result.repeated, true);
+    assert.equal(result.calls.length, 2);
+    assert.ok(result.calls[0].includes("--no-user"));
+    assert.ok(result.calls[1].includes("--target"));
+    assert.ok(result.origin.startsWith(result.target));
+    assert.ok(result.calls.every(argv => !argv.includes("--break-system-packages")));
+  });
+}
+
+test("TC-PYDEP-013: a cached local package is reused without repeating a global attempt", (t) => {
+  // Given an earlier target install, When another process needs yaml, Then it uses that cache.
+  const result = recoveryPython(t, `
+write_yaml(target)
+with patch.object(deps.subprocess, 'run', side_effect=AssertionError('cache must avoid install')):
+    print(json.dumps({'ok': deps.ensure_pyyaml(requirements),
+                      'origin': importlib.import_module('yaml').__file__, 'target': target}))`);
+  assert.equal(result.ok, true);
+  assert.ok(result.origin.startsWith(result.target));
+});
+
+test("TC-PYDEP-014: exhausted recovery remains unavailable with no unbounded retries", (t) => {
+  // Given both install strategies fail, When recovery runs, Then no false availability or third try.
+  const result = recoveryPython(t, `
+os.makedirs(target)
+calls = []
+def pip(argv, **options):
+    calls.append(argv)
+    return subprocess.CompletedProcess(argv, 1)
+with patch.object(deps.subprocess, 'run', side_effect=pip):
+    ok = deps.ensure_pyyaml(requirements)
+print(json.dumps({'ok': ok, 'calls': calls, 'target_added': target in sys.path}))`);
+  assert.equal(result.ok, false);
+  assert.equal(result.calls.length, 2);
+  assert.equal(result.target_added, false);
+});
+
+for (const mode of ["no-site", "opt-out", "undeclared", "duplicate", "missing-file"]) {
+  test(`TC-PYDEP-015-${mode}: diagnostic or undeclared recovery performs no installation`, (t) => {
+    // Given an explicit nonmutating probe or undeclared package, When called, Then no child process.
+    const result = recoveryPython(t, `
+mode = ${JSON.stringify(mode)}
+if mode == 'opt-out': os.environ['CK_AUTO_INSTALL_DEPENDENCIES'] = '0'
+if mode == 'undeclared':
+    with open(requirements, 'w') as f: f.write('--index-url https://example.invalid\\nunknown-package\\n')
+if mode == 'duplicate':
+    with open(requirements, 'w') as f: f.write('pyyaml>=6.0\\npyyaml>=6.0\\n')
+if mode == 'missing-file': os.remove(requirements)
+with patch.object(deps.subprocess, 'run', side_effect=AssertionError('must not install')):
+    print(json.dumps({'ok': deps.ensure_pyyaml(requirements)}))`, { allowRecovery: mode !== "no-site" });
+    assert.equal(result.ok, false);
+  });
+}
+
+for (const platform of ["win32", "darwin", "linux"]) {
+  test(`TC-PYDEP-016-${platform}: install arguments preserve the interpreter and literal paths`, (t) => {
+    // Given a platform interpreter literal with shell metacharacters, When installation is attempted,
+    // Then the subprocess receives literal argv, finite timeouts, and no shell/elevation.
+    // The helper has no OS branch: keep native sys.platform so lazy stdlib imports stay valid.
+    const result = recoveryPython(t, `
+sys.executable = ${JSON.stringify(platform === "win32" ? "C:\\Tools & Co\\python.exe" : "/opt/Python & Co/bin/python3")}
+sys.prefix = "prefix & literal's"
+calls = []
+def pip(argv, **options):
+    calls.append({'argv': argv, 'shell': options.get('shell', False), 'timeout': options['timeout'],
+                  'stdin_null': options['stdin'] == subprocess.DEVNULL})
+    return subprocess.CompletedProcess(argv, 1)
+with patch.object(deps.subprocess, 'run', side_effect=pip):
+    ok = deps.ensure_pyyaml(requirements)
+print(json.dumps({'ok': ok, 'calls': calls, 'executable': sys.executable, 'prefix': sys.prefix}))`);
+    assert.equal(result.ok, false);
+    assert.equal(result.calls.length, 2);
+    for (const call of result.calls) {
+      assert.deepEqual(call.argv.slice(0, 5), [result.executable, "-m", "pip", "--isolated", "install"]);
+      assert.equal(call.shell, false);
+      assert.equal(call.stdin_null, true);
+      assert.equal(call.timeout, 30);
+      assert.ok(call.argv.includes("--no-input"));
+      assert.ok(call.argv.includes("--only-binary=:all:"));
+      assert.equal(call.argv[call.argv.indexOf("--retries") + 1], "0");
+    }
+    assert.ok(result.calls[0].argv.includes("--no-user"));
+    assert.ok(!result.calls[0].argv.includes("--prefix"));
+    assert.ok(!result.calls[0].argv.includes("--root"));
+  });
+}
+
+test("TC-PYDEP-017: a broken transitive import is not guessed into an installation request", (t) => {
+  // Given an installed yaml with a broken transitive import, When recovery checks it,
+  // Then that fault propagates unchanged and never invokes pip.
+  const result = recoveryPython(t, `
+write_yaml(project)
+with open(os.path.join(project, 'yaml', '__init__.py'), 'w') as f: f.write('import missing_transitive_dependency\\n')
+sys.path.insert(0, project)
+with patch.object(deps.subprocess, 'run', side_effect=AssertionError('must not install guessed package')):
+    try:
+        deps.ensure_pyyaml(requirements)
+    except ModuleNotFoundError as error:
+        print(json.dumps({'name': error.name}))
+    else: raise AssertionError('broken package was hidden')`);
+  assert.equal(result.name, "missing_transitive_dependency");
+});
+
+for (const script of SCRIPTS) {
+  for (const succeeds of [true, false]) {
+    test(`TC-PYDEP-018-${path.basename(script)}-${succeeds}: entrypoint continues only with a usable recovered dependency`, (t) => {
+      // Given the real copied entrypoint and live helper, When pip recovers/fails,
+      // Then its owned help/metadata succeeds after actual import, otherwise actionable exit3.
+      const fixture = recoveryFixture(t);
+      fs.mkdirSync(path.join(fixture.project, ".claude", "skills"));
+      const yamlFixture = '__version__ = "6.0"\ndef dump(value, **options):\n    assert value == []\n    return "[]\\n"\n';
+      const copy = path.join(fixture.scripts, path.basename(script));
+      fs.copyFileSync(path.join(root, script), copy);
+      const python = findPython3();
+      const launcher = [
+        "import os, sys, subprocess, runpy",
+        "from unittest.mock import patch",
+        `sys.path.insert(0, ${JSON.stringify(fixture.scripts)})`,
+        "from lib import python_dependencies as deps",
+        `os.chdir(${JSON.stringify(fixture.project)})`,
+        "original_flags = sys.flags",
+        "class Flags:",
+        "    no_site = 0",
+        "    def __getattr__(self, key): return getattr(original_flags, key)",
+        "sys.flags = Flags()",
+        "calls = []",
+        "def pip(argv, **options):",
+        "    calls.append(argv)",
+        ...(succeeds ? [
+          `    os.makedirs(${JSON.stringify(path.join(fixture.project, "yaml"))}, exist_ok=True)`,
+          `    with open(${JSON.stringify(path.join(fixture.project, "yaml", "__init__.py"))}, 'w') as f: f.write(${JSON.stringify(yamlFixture)})`,
+          `    sys.path.insert(0, ${JSON.stringify(fixture.project)})`,
+          "    return subprocess.CompletedProcess(argv, 0)",
+        ] : ["    return subprocess.CompletedProcess(argv, 1)"]),
+        `sys.argv = ${JSON.stringify(path.basename(script) === "scan_skills.py" ? [copy] : [copy, "--help"])}`,
+        "with patch.object(deps.subprocess, 'run', side_effect=pip):",
+        `    runpy.run_path(${JSON.stringify(copy)}, run_name='__main__')`,
+      ].join("\n");
+      const result = runPython(python, ["-S", "-c", launcher], fixture.env);
+      assert.equal(result.status, succeeds ? 0 : 3, result.stderr);
+      assert.doesNotMatch(result.stderr, /Traceback/);
+      if (succeeds && path.basename(script) === "scan_skills.py") {
+        assert.match(result.stdout, /Found 0 skills/);
+        assert.match(result.stdout, /Saved metadata/);
+        assert.equal(fs.readFileSync(path.join(fixture.scripts, "skills_data.yaml"), "utf8"), "[]\n");
+      } else if (succeeds) assert.match(result.stdout, /usage:/i);
+      else assert.match(result.stderr, /PyYAML remains unavailable[\s\S]*requires PyYAML/);
+    });
+  }
+}

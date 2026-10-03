@@ -136,7 +136,7 @@ if (isHookEntryPoint(module)) {
     process.exitCode = 0;
     try {
         const { parseStdinSync } = require('./lib/stdin-parser.cjs');
-        const input = parseStdinSync({ defaultValue: null, throwOnError: false, context: HOOK_NAME });
+        const input = parseStdinSync({ defaultValue: null, throwOnError: true, context: HOOK_NAME });
         const text = evaluate(input);
         if (text) process.stdout.write(text);
     } catch (error) {

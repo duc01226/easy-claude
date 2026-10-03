@@ -288,38 +288,7 @@ Only `project` and its non-empty `name` are required. Every other property is op
 
 ### Schema Structure (v2)
 
-```
-docs/project-config.json
-├── schemaVersion, project{ name, description, languages[], packageManagers[], monorepoTool }
-├── modules[] — { name, kind, pathRegex, description, tags[], meta{} }
-├── contextGroups[] — { name, pathRegexes[], pathGlobs[], fileNameRegexes[], excludePathRegexes[], excludePathGlobs[], fileExtensions[], priority, guideDoc, patternsDoc, stylingDoc, designSystemDoc, referenceDocs[], skills[], rules[], origin, detectedFingerprint, on (read|edit|both; default both) }
-├── conventionInjection — { enabled, maxChars, maxClassesPerEdit, reinjectAfterBytes, reinjectAfterMinutes, blindReinjectAfterMinutes, onRead, compactionMarkers[] }  (optional; per-file convention reminder)
-├── styling — { technology, guideDoc, appMap{}, patterns[] }
-├── designSystem — { docsPath, modernUiNote, appMappings[] }
-├── uiReview — { complexityBudget{ inputsPerStep, sectionsPerView, primaryActionsPerView, dialogInputs }, representativeSurfaces[] }  (optional; project-declared UI-review budgets — never invent them, omit when the team has not agreed any)
-├── componentSystem — { type, selectorPrefixes[], filePattern, layerClassification{} }
-├── framework — { name, backendPatternsDoc, frontendPatternsDoc, codeReviewDoc, integrationTestDoc, searchPatternKeywords[] }
-├── testing — { frameworks[], filePatterns{}, commands{}, coverageTool, guideDoc, integrationRules[] }
-├── e2eTesting — { framework, language, configFile, testsPath, pageObjectsPath? (only when a POM exists), fixturesPath, execution{ surfaceIds[], auth{}, data{}, browser{}, evidence{}, convergence{} }, ... }
-├── experienceVerification — { enabled, evidenceRoot, baselineRoot, acceptancePolicy, reviewOn[], surfaces[] }
-├── databases{}, messaging{ broker, patterns[], consumerConvention }, api{ style, docsFormat, docsPath, authPattern }
-├── infrastructure — { containerization, orchestration, cicd{ tool, configPath } }
-├── graphConnectors — apiEndpoints{ enabled, frontend{ framework, paths[] }, backend{ framework, paths[], routePrefix } }
-│   └── implicitConnections[] — { name, edgeKind, paths[], source{ filePattern, contentPattern, keyGroup }, target{...}, matchBy }
-├── referenceDocs[] — { filename, purpose, sections[] }
-├── integrationTestVerify — { guidance, referenceDocs[], quickRunCommand, testProjectPattern, testProjects[], systemCheckCommand, runScript, startupScript }
-├── workflowPatterns — { architectureStyle, codeHierarchy, cssMethodology, stateManagement, crossModuleValidation, featureDocTemplate, reviewRulesDoc }
-├── specRoots — { business{ path, authorship, m1Policy }, technical{ path, authorship, m1Policy } }  (drives $spec + $tech-spec)
-├── specArtifacts? — { version, kind, sections{ intent[], contracts[], evidence[] }, identifiers{ requirement{}, acceptance{}, scenario{} }, ownership, carriers[] } (native engineering-contract profile; omission preserves strict defaults)
-├── docsRoots — { projectReference{ path }, adr{ path }, templates{ path }, plans{ path }, teamArtifacts{ path }, productRoadmap{ path } }  (relocatable doc roots; omit a sub-object to keep its default)
-├── techSpecScan — { sourceRoot, fileExtensions[], annotationPattern }  (enables $tech-spec) | else _techSpecScanNote (deliberate-omission carrier)
-├── portability — { workflowRouteMode, workflowAutoDetect, inlinePathRules, workflowRouteProtocol, workflowActivation{ default, overrides{} }, toolingPackageName }  (optional; routing + portability switches)
-├── hooks — { startupInstall{ enabled, packageManager, allowLifecycleScripts }, windowsGit{ enabled, autoRepair }, codeGraph{ enabled }, tokenBudget{ enabled, checkpointTokens } }  (optional; hook behavior — omitted properties keep portable defaults)
-├── commit — { fixOriginTrailer }  (optional; commit-skill policy — default false, no Fix-Origin trailer)
-├── pullRequest — { targetBranch }  (optional; pull-request-skill policy — default "main")
-├── skillProfile — { preset (full|standard|minimal), nameOnly[], commandOnly[], off[], allowHidingCalledSkills }  (optional; team skill visibility, applied by `node .claude/scripts/sync-skill-profile.cjs` — see `.claude/config/README.md` → Skill profile)
-└── DEPRECATED: backendServices, frontendApps, scss, componentFinder, sharedNamespace
-```
+Read the live schema before choosing fields: run `node .claude/hooks/lib/project-config-schema.cjs --describe`. It owns exact fields, nested requirements and capability semantics; do not maintain a second field inventory here. Preserve existing deprecated v1 data and omit deprecated sections in new projects as required above.
 
 > MUST ATTENTION run `node .claude/hooks/lib/project-config-schema.cjs --describe` for exact field names.
 
@@ -353,15 +322,7 @@ docs/project-config.json
 
 **`specArtifacts`** — optional, versioned data contract for a project's established native requirement, case, and evidence structure. Omit it when the project uses the framework's strict business-spec and TestSpec defaults; never add a profile just to avoid adapting the corpus. Derive it from multiple canonical owner artifacts and their executing tests, not one convenient file.
 
-| Field | Derive from | Rule |
-| --- | --- | --- |
-| `version`, `kind` | The supported normalized contract. | Use `1` and `engineering-contract`; read `--describe` for current schema details. |
-| `sections.intent[]`, `sections.contracts[]`, `sections.evidence[]` | Exact headings in canonical owner artifacts. | Use literal aliases only; classify each stable heading once. Subheadings inherit their nearest configured parent. Missing or unmapped enforced content is UNKNOWN, never exempt. |
-| `identifiers.requirement`, `identifiers.acceptance`, `identifiers.scenario` | Existing IDs in canonical specs and tests. | Each entry has a literal `prefix` and supported closed `grammar` (`decimal-lower-suffix` or `hyphen-tokens`); do not add regexes or custom parsers. |
-| `ownership` | The source's stable owner and case relationship. | Current v1 supports `spec-path-and-case-id`; preserve owner path, case/scenario ID, and optional variant without creating another registry. |
-| `carriers[]` | Real, executing test/spec carriers and their field names. | Use only supported `js-title-v1`, `js-keyed-cases-v1`, or `yaml-cases-v1` dialects; derive roots, extensions, call names, bindings, field mappings, and local YAML `acceptedStatuses` from source. Preserve many-to-many scenario/test cardinality when evidence shows it. |
-
-The profile configures discovery and identity; it does not prove a test passes. Trace each row to its actual executor and inspected assertion. Validate every declared profile with `node .claude/hooks/lib/project-config-schema.cjs --validate <configured-project-config-path>`; obtain that path from `getConfiguredProjectConfigPath()` in `.claude/hooks/lib/project-config-loader.cjs`. Malformed profiles must fail visibly. The profile resolver is the canonical normalizer, not a second case registry.
+Before deriving a native profile, read **§2t Native Spec Artifact Profile** below in full; it owns supported fields, carriers, source discovery, assertion/cardinality proof and fail-closed validation. Read `--describe` for the closed `decimal-lower-suffix` / `hyphen-tokens` grammars. Map exact stable headings once; subheadings inherit their nearest configured parent, and missing or unmapped enforced content is UNKNOWN, never exempt. The profile resolver owns normalization; never create a second case registry.
 
 **`docsRoots`** — the six relocatable documentation roots, sibling to `specRoots` and sharing its exact shape and its exact rules. A project that keeps the framework layout declares NOTHING; every accessor then returns its documented default, byte-identically to a repo with no `docsRoots` at all. Declare a sub-object ONLY when that tree has actually moved, and derive its value from what is on disk — never copy another project's literals.
 
@@ -750,16 +711,5 @@ Report: required config path and project identity; optional sections updated; ev
 **IMPORTANT MUST ATTENTION** keep absent `referenceDocs` distinct from explicit selection; an explicit array including `[]` stays exact, while lessons/index are initialized independently.
 **IMPORTANT MUST ATTENTION** preserve valid `specArtifacts`; absence uses strict TC/Section-8 defaults, while an invalid declaration blocks spec setup.
 
-**Anti-Rationalization:**
-
-| Evasion | Rebuttal |
-| --- | --- |
-| "File looks simple, skip planning" | Plan the selected identity/capability changes and their evidence before editing. |
-| "Already know the schema" | Run `--describe`; field names and nested requirements are schema-owned. |
-| "Phase N looks fine, skip validate" | Validate every merge so declared optional sections cannot fail later. |
-| "Optional section is absent, fill it with a guess" | Omit it until repository evidence or scope supports the capability. |
-| "Reference docs are partial, restore the whole registry" | Preserve explicit selection; the registry is metadata, not a required floor. |
-| "No spec profile, invent a native format" | Absence means strict TC/Section-8 defaults; only configure a stable evidenced native profile. |
-| "Small project, skip task tracking" | Track the selected work regardless of project size. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.

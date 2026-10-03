@@ -131,10 +131,24 @@ function defaultConfig() {
 
 /** Hands the payload to stdout; `done(false)` when the write fails, so nothing is recorded (BR-PFCI-17). */
 function defaultWrite(text, done) {
+    let settled = false;
+    const finish = ok => {
+        if (settled) return;
+        settled = true;
+        done(ok);
+    };
+    // A failed pipe reports through both the callback and the stream's error event.
+    // Keep the listener on callback failure until that event arrives; removing it early throws.
+    const onError = () => finish(false);
+    process.stdout.once('error', onError);
     try {
-        process.stdout.write(text, err => done(!err));
+        process.stdout.write(text, err => {
+            if (!err) process.stdout.removeListener('error', onError);
+            finish(!err);
+        });
     } catch {
-        done(false);
+        process.stdout.removeListener('error', onError);
+        finish(false);
     }
 }
 
@@ -221,6 +235,8 @@ function planDelivery(input, deps) {
     const evidencePresent = (entry, hash, perClass) => {
         if (!entry.evidenceDocs.length && !entry.evidenceSkills.length) return false;
         const found = ledger.scanEvidence(ledger.transcriptPathFor(input), { docs: entry.evidenceDocs, skills: entry.evidenceSkills }, {
+            projectDir,
+            cwd: input.cwd,
             windowBytes: perClass.reinjectAfterBytes,
             lastCompactionAt: ctx.lastCompactionAt,
             compactionMarkers: settings.compactionMarkers

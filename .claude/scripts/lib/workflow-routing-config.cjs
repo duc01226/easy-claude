@@ -446,6 +446,7 @@ function readProtocolFile(rootDir, relativePath) {
         const physicalRoot = resolvePhysicalPath(resolvedRoot);
         const physicalCandidate = resolvePhysicalPath(resolved);
         if (!isPathWithin(physicalRoot, physicalCandidate)) return null;
+        if (isSensitiveProtocolPath(path.relative(physicalRoot, physicalCandidate))) return null;
 
         const stat = fs.statSync(physicalCandidate);
         if (!stat.isFile()) return null;

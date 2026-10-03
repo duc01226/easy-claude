@@ -264,7 +264,14 @@ module.exports = {
             fn: () => {
                 // Given a fixture project with no settings and the developer's switch removed from the environment
                 const project = makeSettingsProject({});
-                const env = childEnv({ ...CHILD_ENV_RESET, CLAUDE_PROJECT_DIR: project });
+                const reset = {};
+                for (const key of Object.keys(process.env)) {
+                    if (/^(?:CK_|CLAUDE_|CODEX_|OPENCODE_|OPENAI_|ANTHROPIC_|GEMINI_|GOOGLE_|AZURE_)/i.test(key)) reset[key] = undefined;
+                }
+                const env = childEnv({ ...reset, HOME: project, USERPROFILE: project, TMPDIR: project, TEMP: project, TMP: project, CLAUDE_PROJECT_DIR: project });
+                const run = (input, debug = '') => spawnSync(process.execPath, [HOOK_PATH], {
+                    input, encoding: 'utf8', windowsHide: true, env: { ...env, CK_DEBUG: debug }
+                });
                 try {
                     // When the hook runs as `node <hook>` on a verdict ask / Then it emits the directive
                     const out = execFileSync(process.execPath, [HOOK_PATH], {
@@ -273,9 +280,16 @@ module.exports = {
                         env
                     });
                     assertContains(out, hook.MARKER_START);
-                    // When stdin is not JSON / Then it stays silent
-                    const silent = execFileSync(process.execPath, [HOOK_PATH], { input: 'not json', encoding: 'utf8', env });
-                    assertTrue(silent === '', 'unparseable stdin stays silent');
+                    // When stdin is empty, non-JSON, malformed, nonobject or code-only / Then both channels stay silent and exit 0
+                    for (const input of ['', 'not json', '{"secret":"SYNTHETIC-SECRET",', 'null', '[]', JSON.stringify(event('``any gaps?``')), JSON.stringify(event('~~~text\nany gaps?\n~~~'))]) {
+                        const silent = run(input);
+                        assertTrue(silent.status === 0 && silent.stdout === '' && silent.stderr === '', `irrelevant/malformed/code input stays silent: ${JSON.stringify(input)}; stderr=${silent.stderr}`);
+                    }
+                    // When malformed JSON arrives in debug mode / Then the sanitized diagnostic uses stderr only
+                    const diagnosed = run('{"secret":"SYNTHETIC-SECRET",', '1');
+                    assertTrue(diagnosed.status === 0 && diagnosed.stdout === '', 'debug parse failure remains fail-open');
+                    assertContains(diagnosed.stderr, 'Hook stdin contains invalid JSON');
+                    assertTrue(!diagnosed.stderr.includes('SYNTHETIC-SECRET'), 'malformed input is never echoed into diagnostics');
                 } finally {
                     fs.rmSync(project, { recursive: true, force: true });
                 }

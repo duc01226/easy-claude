@@ -120,15 +120,7 @@ If running within a workflow (big-feature, greenfield-init, etc.):
 
 ### Workflow
 
-1. Read PBI artifact and acceptance criteria
-2. **Load domain context** (if project module detected)
-3. Identify vertical slices (end-to-end functionality)
-4. **Apply SPIDR splitting** if stories too large
-5. Apply INVEST criteria to each story
-6. Create user stories with GIVEN/WHEN/THEN (min 3 scenarios)
-7. Save to `pbis/stories/` under the team-artifacts root (default `team-artifacts/`; a `docsRoots.teamArtifacts.path` entry in `docs/project-config.json` overrides the path)
-8. **Validate stories** (MANDATORY) - Interview user to confirm slicing, acceptance criteria, and effort
-9. Suggest next: `$spec [mode=tests]` or `$design-spec`
+Follow the ordered first-screen workflow and detailed steps below; user validation and the next-step handoff remain mandatory.
 
 ### Output
 
@@ -843,5 +835,3 @@ Example for a "Create Invoice" story:
 **MANDATORY IMPORTANT MUST ATTENTION** READ the project-reference docs named in the Quick Summary blockquote BEFORE starting — `project-structure-reference.md` and `domain-entities-reference.md` (business entities/models) in the project-reference docs root, plus the business spec root's existing TCs for related features (defaults `docs/project-reference/` and `docs/specs/`; `docsRoots.projectReference.path` / `specRoots.business.path` in `docs/project-config.json` override them) — plus the Frontend/UI Context docs when the PBI touches UI. File not found → search for the project's documentation, coding standards, and architecture docs instead — why: story scoping that guesses at entity names and module structure mis-slices the work.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.

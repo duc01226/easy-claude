@@ -111,9 +111,10 @@ function resolveProtocolText(routing, projectDir) {
 function renderGateForMode(raw, mode) {
     const text = String(raw === undefined || raw === null ? '' : raw);
     const block = text.match(GATE_BLOCK_RE);
-    return (block ? block[0] : text)
+    const rendered = (block ? block[0] : text)
         .replace(MODE_FENCE_RE, (all, modes, body) => (modes.trim().split(/\s+/).includes(mode) ? body : ''))
         .trim();
+    return rendered.replace(GATE_MARKER, '').replace(GATE_END_MARKER, '').trim() ? rendered : '';
 }
 
 /** `Route mode: <mode> (<source>)` — the state line every delivered block opens with. */
@@ -145,6 +146,7 @@ function buildInjection(projectDir, protocolText, mode = DEFAULT_MODE, source = 
     const catalogLib = require('../scripts/lib/workflow-skills-catalog.cjs');
     const effectiveMode = mode === 'auto' ? 'auto' : DEFAULT_MODE;
     const gate = renderGateForMode(fs.readFileSync(path.join(projectDir, ...GATE_FILE_SEGMENTS), 'utf8'), effectiveMode);
+    if (!gate) throw new Error('empty gate');
     const protocol = buildProtocolSection(protocolText);
     const state = buildStateLine(effectiveMode, source);
     const assemble = catalog => {

@@ -91,7 +91,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | Skills         | <!-- COUNT:skills -->101<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
 | Agents         | <!-- COUNT:agents -->24<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
 | Workflows      | <!-- COUNT:workflows -->19<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
-| Hook Tests     | 99 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Hook Tests     | 100 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
 | Codex Mirrors  | <!-- COUNT:skills -->101<!-- /COUNT --> skills, <!-- COUNT:agents -->24<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 
@@ -108,7 +108,7 @@ Read `docs/project-config.json` → `modules` when selecting a component; module
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | ESM sync, migration, notification and verification tools                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
 | NT   | Notifications  | `.claude/hooks/notifications/` | `notify.cjs` dispatcher + 4 channel providers in `providers/` (desktop, telegram, discord, slack)                         |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 99 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 100 suite files + 9 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
 
 ## Repository review responsibility
@@ -135,6 +135,8 @@ Read `.claude/skills/framework-config/SKILL.md` when an OCR preference request e
 ## Advisory Selection and Workflow Discovery
 
 Read `.claude/hooks/skill-activation-inject.cjs` when tracing runtime skill-selection guidance and `.claude/hooks/workflow-route-inject.cjs` when tracing route/catalog delivery; neither changes host permission or advances workflow steps. SubagentStart carries protocol delivery and advisory skill context. `workflow-end` is the unregistered lifecycle skill; route-mode configuration belongs to `.claude/skills/framework-config/SKILL.md` and `.claude/scripts/workflow-mode.cjs`. Use the current manifest/catalog instead of restoring a stale workflow-mode skill inventory.
+
+Read `docs/specs/ContextDelivery/README.ProjectContextIntake.md` when changing project-rule discovery before planning, implementation or review; read `docs/specs/ContextDelivery/README.ProtocolDelivery.md` when changing universal reinjection. Universal bins reinject after about 100K tokens (2.2 MB of transcript growth); the full-document reuse and generic convention horizons remain separate. Default-root examples; `specRoots.business.path` in `docs/project-config.json` overrides these locations.
 
 ## Closing Reminders
 

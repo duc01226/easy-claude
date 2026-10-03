@@ -404,35 +404,12 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 | Evasion | Rebuttal |
 | ------- | -------- |
-| "Experienced reader, skip the explanation" | Never omit required sections based on the reader's experience. The full report contract applies to every reader. |
-| "The concepts and options are obvious" | Sections §5/§8/§12/§13 always appear; keep their explanations concise when appropriate, but never omit them. |
-| "Drop the diagrams and collapse the review path" | Diagram and stage counts follow their required contracts. A missing stage can send the reviewer into code they are not equipped to judge yet. |
 | "Small diff — a diagram is overkill here" | A diagram is CHEAPEST exactly when the change is small, and the mandate is the minimum set, not a quota to justify. If one genuinely cannot be derived, it degrades to a **stated blocker** — never to omission, and never to a plausible-looking invented one. |
 | "Concept/plan target — there's nothing to review, skip §4" | Wrong form, not absent section. A concept routes through the repo's own instances of it; a plan routes through its phases in verification order; an un-fixed bug routes from symptom back toward cause. The eight-field stage grammar still applies (`references/report-template.md` matrix). An `N/A` stub is a failed section. |
 | "No tests exist — skip §11" | A change with no tests is the single most important thing the reviewer needs told. §11 then states how to demo it **manually** and flags the absent coverage explicitly. Missing tests are a finding, not an exemption — and never a reason to invent a `TC-*` ID to fill the row. |
-| "I'll quiz them to check understanding" | NEVER interrogate. Challenge prompts are written into §13 as rhetorical questions; you never ask, never wait, never gate. |
-| "Provoking thinking means asking them questions in chat" | It means writing the challenges down. `AskUserQuestion` stays forbidden — the developer is provoked on paper, never put on the spot. |
-| "Ambiguous target — I'll ask which one" | Do NOT ask. Infer the most likely target (default current context), state the assumption, proceed. |
-| "Just dump everything I see" | Derive scope from the prompt first, then order by leverage. Cover all of scope, but lead with the non-obvious — not a repo-wide dump. |
-| "Skip the trade-offs, just describe the code" | Why-this-solution, options, and trade-offs ARE the point. Mechanics alone is a failed run. |
-| "There was only one sensible way to do this" | Then ARGUE it — name the option space and why it's genuinely empty. An unargued "no alternatives" is a skipped §8. |
-| "I'll say we evaluated A, B and C" (when you didn't) | Label honestly: `[reconstructed]`. Fabricating a decision history is worse than admitting it was reconstructed. |
-| "The chosen option has no downsides" | Then the analysis is unfinished. Every chosen option costs something — find it. |
-| "I'll draw the architecture I'd expect this repo to have" | Then it is fiction with a diagram's authority — readers trust a picture more than prose and verify it less. Every node comes from a trace, a read call site, or a spec. Solid = traced, dashed = inferred and named, absent = stated as a blocker. |
-| "This story probably has a test — I'll cite TC-042" | NEVER invent a case ID. Cite the ID you actually read, or write "no test covers this story" and record the gap. A fabricated ID retires a risk that is still live. |
-| "Drop the report next to the skill / in docs/" | NEVER write inside `.claude/`, source, `docs/`, or tracked paths — only `tmp/reports/` + `tmp/understand/{branch}-index.md`. No git-ignored dir **for that artifact** → skip that artifact and report the blocker; every section goes to chat. Never a tracked path. |
 | "Concept target — §8/§10/§12 don't apply, skip them" | Wrong form, not absent section. Answer each section's question in its code-free form (Step 4) — never an `N/A` stub, never an invented `file:line`. |
-| "Write the report and continue silently" | ALWAYS post the chat summary — including the start-here line — plus the path when a file was written, or Step 3's blocker line when none could be. Never log-and-move-on into a hidden git-ignored file. |
-| "I'll write every section at the end in one go" | Create the file first, append per section — a run that dies mid-way must leave finished sections on disk. |
-| "Target is huge — a high-level summary IS the honest answer" | Wrong lever. Scale buys MORE GROUPS, never fewer sections. Size it, decompose it, task it, accumulate it — the contract is size-invariant. |
-| "I'll investigate the whole thing first, then write the report" | Never. Spine before section one, a block per group, ledger updated as each lands. Investigation held in context is investigation one cutoff from gone. |
-| "Small target — skip the sizing and the task list" | Sizing costs seconds and decides the shape of everything after it; S0 is a legitimate outcome. Tasks still exist (one per part) so a dead run shows where it stopped. |
 | "One big group is simpler than five" | A unit whose §1–§13 cannot be answered about it alone is not a group. Split at ≤8 files / ≤2000 diff-lines, and name each group so its name has no "and" in it. |
-| "The blocks are written and I remember them — I'll synthesize from memory" | Synthesize from the FILES. After compaction, memory is a hypothesis; the ledger plus the disk is the evidence. |
 | "This group's §5/§8 repeats the spine — drop it" | Answer it ONCE at the altitude where it differs, then leave a one-line POINTER in the group block. A pointer is a filled section; silence is a dropped one. |
-| "I'll call /changes-review or /fix to gather faster" | Delegates are READ-ONLY and gather-only. This skill emits no findings and mutates nothing — never delegate to a mutating or verdict-issuing skill. |
 | "The sub-agent reported it wrote the block" | Verify the FILE. A summary is evidence of a reply, never of a block — check it exists, carries its ⚠ sections, and cites REAL IDs. |
-| "12 groups won't fit in one file — I'll split it into a directory" | The ONE file IS the deliverable, at every tier and every group count. Size is what §0, the ledger, and the anchors are for — a directory is a deliverable nobody opens as a whole. Past 12 groups, NEST inside the file (`# Context — {name}`); never split it. |
-| "§0 would be enormous at 12 groups — I'll trim it to the top three" | §0 has NO maximum length. A 12-group report has 12 key mechanics and 12 ledger rows, not three. Include every load-bearing item; "too long to summarize" is the failure §0 exists to prevent. |
 
 > **[IMPORTANT]** This skill exists so the human can **judge** AI's work and **review** it, not just receive it — draw the system, state the stories and the rules, hand over the route that says where to start, teach the concepts, expose the whole option space with honest pros and cons, show how to run and demo it, hand over the decision levers, and write down the challenges that provoke real thinking. Never test them, never wait on them, never block them.

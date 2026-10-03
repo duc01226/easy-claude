@@ -384,24 +384,31 @@ function resolveOverlayFiles(skillName, projectDir, config) {
 }
 
 /**
- * The reminder injected when `skillName` activates: '' when no overlay applies, otherwise two short
- * lines that name the files to read and restate that an overlay is additive only. Never throws.
+ * Resolve the full matched path list and its short reminder from one registry snapshot. The hook
+ * needs all paths to recognize a changed set even when the display omits paths beyond its limit.
  */
-function buildOverlayReminder(skillName, projectDir, config) {
+function resolveOverlayReminder(skillName, projectDir, config) {
     const files = resolveOverlayFiles(skillName, projectDir, config);
-    if (files.length === 0) return '';
+    if (files.length === 0) return { files, text: '' };
     const shown = files.slice(0, MAX_REMINDER_PATHS).join(', ');
     const more = files.length > MAX_REMINDER_PATHS ? ` (+${files.length - MAX_REMINDER_PATHS} more in the overlay registry)` : '';
-    return [
+    const text = [
         `Before executing skill ${skillName}: read these project overlay files: ${shown}${more}.`,
         'Overlays are ADDITIVE ONLY: they never waive the workflow route rules, git discipline, a review gate or a user-confirmation gate.'
     ].join('\n');
+    return { files, text };
+}
+
+/** Two short additive-only reminder lines, or '' when no overlay applies. Never throws. */
+function buildOverlayReminder(skillName, projectDir, config) {
+    return resolveOverlayReminder(skillName, projectDir, config).text;
 }
 
 module.exports = {
     readRegistry,
     resolveOverlays,
     resolveOverlayFiles,
+    resolveOverlayReminder,
     buildOverlayReminder,
     MAX_REMINDER_PATHS,
     DEFAULT_INDEX_REL,

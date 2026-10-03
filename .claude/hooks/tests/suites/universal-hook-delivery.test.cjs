@@ -5,7 +5,7 @@
  *
  * The `universal` group of `.claude/skills/shared/protocol-groups.json` is the framework rules every
  * task follows. No file carries it: `protocol-inject-universal-<n>.cjs` (one hook process per bin)
- * delivers it on the session's first prompt, again after about 200,000 tokens of conversation growth
+ * delivers it on the session's first prompt, again after about 100,000 tokens of conversation growth
  * or a compaction, and at every sub-agent start.
  *
  * Guards: each bin is one message of at most 9,500 characters that covers the bundle exactly once
@@ -128,20 +128,22 @@ const agentStart = (fx, type, extra = {}) => ({
 // ── process runner ──────────────────────────────────────────────────────────
 
 /** Spawn bin `n`'s entry file (optionally under a --require preload) and parse its stdout. */
-function runBin(fx, n, input, { preload, env } = {}) {
+function runBin(fx, n, input, { preload, env, closeOutput = false } = {}) {
     return new Promise(resolve => {
         const args = preload ? ['--require', preload, entryFile(n)] : [entryFile(n)];
         const child = spawn(process.execPath, args, { cwd: fx.project, env: fx.env(env), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
         let stdout = '';
         let stderr = '';
         const timer = setTimeout(() => child.kill('SIGKILL'), SPAWN_TIMEOUT_MS);
-        child.stdout.on('data', chunk => { stdout += chunk; });
+        if (closeOutput) child.stdout.destroy();
+        else child.stdout.on('data', chunk => { stdout += chunk; });
         child.stderr.on('data', chunk => { stderr += chunk; });
         child.on('close', code => {
             clearTimeout(timer);
             const parsed = stdout ? JSON.parse(stdout).hookSpecificOutput : null;
             resolve({ code, stdout, stderr, event: parsed && parsed.hookEventName, context: parsed ? parsed.additionalContext : '' });
         });
+        child.stdin.on('error', () => {});
         child.stdin.end(JSON.stringify(input));
     });
 }
@@ -252,12 +254,12 @@ const tests = [
         })
     },
     {
-        name: 'TC-PDL-088 growth of 200,000 tokens re-delivers the bundle and one byte less does not',
+        name: 'TC-PDL-088 growth of 100,000 tokens re-delivers the bundle and one byte less does not',
         fn: () => withFixture(async fx => {
             // Given the bundle delivered with the conversation record at its starting size
             assertAllDelivered(await runAllBins(fx, prompt(fx)), 'first prompt');
             const start = fs.statSync(fx.transcript).size;
-            // When the record grows to one byte under the window (200,000 tokens x the measured bytes per token)
+            // When the record grows to one byte under the window (100,000 tokens x the measured bytes per token)
             fx.append(`${'y'.repeat(DISTANCE - 2)}\n`);
             assert.equal(fs.statSync(fx.transcript).size - start, DISTANCE - 1);
             // Then the next prompt delivers nothing
@@ -266,8 +268,8 @@ const tests = [
             fx.append('z');
             assertAllDelivered(await runAllBins(fx, prompt(fx)), 'at the window');
             assertAllSilent(await runAllBins(fx, prompt(fx)), 'right after the re-delivery');
-            // And the window is the named 200,000-token constant
-            assert.equal(universalLib.UNIVERSAL_REINJECT_TOKENS, 200000);
+            // And the window is the named 100,000-token constant
+            assert.equal(universalLib.UNIVERSAL_REINJECT_TOKENS, 100000);
         })
     },
     {
@@ -368,6 +370,11 @@ const tests = [
         fn: () => withFixture(async fx => {
             // Given a host event that carries no session id
             const input = prompt(fx, { session_id: undefined });
+            // Given a host that closes its output reader before a no-identity delivery
+            // When the native entries write, then transport failure stays silent and nonblocking.
+            const closed = await runAllBins(fx, input, { closeOutput: true });
+            assertAllSilent(closed, 'closed output without session');
+            closed.forEach(result => assert.equal(result.stderr, '', 'no unhandled pipe error'));
             // When two prompts arrive
             const first = await runAllBins(fx, input);
             const second = await runAllBins(fx, input);
@@ -380,6 +387,16 @@ const tests = [
     {
         name: 'TC-PDL-094 an unusable record store still delivers, and a missing protocol file drops only that protocol',
         fn: () => withFixture(async fx => {
+            // Given complete bins and a host that closes its output reader before input is released
+            // When every native bin attempts its first delivery, then failures never earn credit.
+            const closed = await runAllBins(fx, prompt(fx), { closeOutput: true });
+            assertAllSilent(closed, 'closed complete output');
+            closed.forEach(result => assert.equal(result.stderr, '', 'no unhandled pipe error'));
+            assert.deepEqual(fx.records(), {}, 'failed writes record no completed delivery');
+            // And a healthy retry delivers all rules exactly once before ordinary dedup resumes.
+            assertAllDelivered(await runAllBins(fx, prompt(fx)), 'healthy retry');
+            assertAllSilent(await runAllBins(fx, prompt(fx)), 'after healthy retry');
+            fs.rmSync(fx.store, { recursive: true, force: true });
             // Given a regular file where the record store folder should be (portable on every OS)
             fs.mkdirSync(path.dirname(fx.store), { recursive: true });
             fs.writeFileSync(fx.store, 'not a folder');
@@ -403,20 +420,30 @@ const tests = [
             assert.ok(result.context.startsWith(universalLib.binHeader(multi + 1, BIN_NUMBERS.length)));
             assert.equal(result.context.includes(body), false, 'the missing protocol appeared');
             assert.ok(result.context.includes(fs.readFileSync(fx.protocol(LAYOUT[multi][0]), 'utf8').trim()), 'the other protocols still arrive');
-            // And a bin whose protocols are all gone delivers nothing
+            // And a bin whose protocols are all gone names the loss rather than going silent
             for (const tag of LAYOUT[multi]) fs.rmSync(fx.protocol(tag), { force: true });
-            assert.equal((await runBin(fx, multi + 1, prompt(fx, { session_id: 's10' }))).stdout, '');
+            assert.ok((await runBin(fx, multi + 1, prompt(fx, { session_id: 's10' }))).context.includes('universal protocols incomplete'));
+            // Given incomplete/unavailable bundles, their warning paths use the same fail-open sink.
+            // When the host refuses output, then neither branch leaks a process error.
+            const partialClosed = await runBin(fx, multi + 1, prompt(fx, { session_id: 'partial-closed' }), { closeOutput: true });
+            assertAllSilent([partialClosed], 'closed incomplete output');
+            assert.equal(partialClosed.stderr, '');
+            fs.writeFileSync(path.join(fx.project, '.claude', 'skills', 'shared', 'protocols', 'index.json'), '{broken');
+            const unavailableClosed = await runBin(fx, 1, prompt(fx, { session_id: 'unavailable-closed' }), { closeOutput: true });
+            assertAllSilent([unavailableClosed], 'closed unavailable output');
+            assert.equal(unavailableClosed.stderr, '');
+            assert.ok((await runBin(fx, 1, prompt(fx))).context.startsWith('universal protocols unavailable ('), 'warning remains retryable');
         })
     },
     {
         name: 'TC-PDL-095 the re-delivery distance is the named token constant converted by the measured bytes per token, with no age re-arm',
         fn: () => {
             // Given the lib constants
-            assert.equal(universalLib.UNIVERSAL_REINJECT_TOKENS, 200000);
+            assert.equal(universalLib.UNIVERSAL_REINJECT_TOKENS, 100000);
             // When the ledger settings are built
             const settings = universalLib.getLedgerSettings();
             // Then the byte window is tokens x bytes-per-token, time alone never re-arms, and both hosts' compaction marks count
-            assert.equal(settings.reinjectAfterBytes, 200000 * BYTES_PER_TOKEN);
+            assert.equal(settings.reinjectAfterBytes, 100000 * BYTES_PER_TOKEN);
             assert.equal(settings.reinjectAfterMinutes, null);
             assert.equal(settings.blindReinjectAfterMinutes, null);
             assert.ok(settings.compactionMarkers.length >= 1);
@@ -584,7 +611,7 @@ const tests = [
         })
     },
     {
-        name: 'TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 200,000 tokens of growth',
+        name: 'TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 100,000 tokens of growth',
         fn: () => withFixture(async fx => {
             // Given the bundle delivered for a conversation whose record file is not on disk yet
             const later = path.join(fx.temp, 'later.jsonl');
@@ -699,15 +726,50 @@ const tests = [
         })
     },
     {
-        name: 'TC-PDL-112 a bundle that renders partly is not reported: an unreadable protocol file only drops that protocol',
+        name: 'TC-PDL-112 incomplete bins warn and retry without suppressing readable rules or repair',
         fn: () => withFixture(async fx => {
-            // Given every protocol file of bin 1 gone while the other bins still render
-            for (const tag of LAYOUT[0]) fs.rmSync(fx.protocol(tag), { force: true });
-            // When every bin runs on a prompt
-            const results = await runAllBins(fx, prompt(fx));
-            // Then bin 1 prints nothing (no notice: the bundle is not unrenderable) and the other bins deliver
-            assert.equal(results[0].stdout, '', 'bin 1 stays silent for a partly rendered bundle');
-            results.slice(1).forEach((result, i) => assert.ok(result.context.startsWith(universalLib.binHeader(i + 2, BIN_NUMBERS.length)), `bin ${i + 2} delivered`));
+            for (const missing of [['project-reference-docs-guide'], LAYOUT[0], LAYOUT.at(-1)]) {
+                const number = LAYOUT.findIndex(tags => tags.includes(missing[0])) + 1;
+                const originals = missing.map(tag => [fx.protocol(tag), fs.readFileSync(fx.protocol(tag))]);
+                // Given a previously healthy record and then a damaged bin (including a whole bin).
+                fs.rmSync(fx.store, { recursive: true, force: true });
+                assertAllDelivered(await runAllBins(fx, prompt(fx)), 'healthy before damage');
+                for (const [file] of originals) fs.rmSync(file);
+                // When each supported delivery event sees the damage.
+                for (const input of [prompt(fx), sessionStart(fx, 'compact'), sessionStart(fx, 'clear'), agentStart(fx, 'custom')]) {
+                    const results = await runAllBins(fx, input);
+                    const result = results[number - 1];
+                    // Then that bin warns, names missing files and stays inside the host limit.
+                    assert.equal(result.code, 0);
+                    assert.ok(result.context.includes('universal protocols incomplete'));
+                    for (const tag of missing) assert.ok(result.context.includes(`${tag}.md`), `${tag} is named`);
+                    assert.ok(result.context.length <= BIN, 'diagnostic remains visible in full');
+                    const readable = LAYOUT[number - 1].filter(tag => !missing.includes(tag));
+                    for (const tag of readable) assert.ok(result.context.includes(fs.readFileSync(fx.protocol(tag), 'utf8').trim()), `${tag} still arrives`);
+                    const scope = input.agent_id ? `agent-${input.agent_id}` : 'main';
+                    assert.equal(fx.records(input.session_id, scope)[`universal-bin-${number}`], undefined, 'incomplete delivery has no record');
+                    // And the next prompt retries only the incomplete main bin; healthy bins dedup.
+                    const repeated = await runAllBins(fx, prompt(fx));
+                    assert.ok(repeated[number - 1].context.includes('universal protocols incomplete'));
+                    repeated.forEach((r, i) => { if (i !== number - 1) assert.equal(r.stdout, '', `healthy bin ${i + 1} stays quiet`); });
+                }
+                // When the original bytes return, Then the old healthy hash cannot suppress repair.
+                for (const [file, bytes] of originals) fs.writeFileSync(file, bytes);
+                const repaired = await runAllBins(fx, prompt(fx));
+                assert.ok(repaired[number - 1].context.startsWith(universalLib.binHeader(number, BIN_NUMBERS.length)));
+                assert.ok(!repaired[number - 1].context.includes('universal protocols incomplete'));
+                assertAllSilent(await runAllBins(fx, prompt(fx)), 'after repaired delivery');
+            }
+            // Given an empty gate file and an oversized remaining file caused by a bad merge.
+            const gate = fx.protocol('project-reference-docs-guide');
+            fs.writeFileSync(gate, ' \n ');
+            fs.writeFileSync(fx.protocol(LAYOUT[0][0]), 'oversized readable rule '.repeat(BIN));
+            // When bin 1 delivers, Then the loss stays visible and readable files have explicit paths.
+            const bounded = await runBin(fx, 1, prompt(fx));
+            assert.ok(bounded.context.includes('project-reference-docs-guide.md'));
+            assert.ok(bounded.context.includes('universal protocols incomplete'));
+            assert.ok(bounded.context.includes(`.claude/skills/shared/protocols/${LAYOUT[0][0]}.md`));
+            assert.ok(bounded.context.length <= BIN);
         })
     },
     {

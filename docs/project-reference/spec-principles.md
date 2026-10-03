@@ -2,11 +2,11 @@
 
 > Project-specific extension for local spec, test, and documentation rules.
 
-This file records repository-local conventions only. Do not add reusable AI-SDD principles here; keep shared rules in `shared/sdd-artifact-contract.md`.
+Read this file when authoring or reviewing local spec prose, evidence, test mapping, or generated artifacts. It records repository-local conventions only. Do not add reusable AI-SDD principles here; keep shared rules in `.claude/skills/shared/sdd-artifact-contract.md`.
 
 ## 1. Local Authority
 
-- Shared contract: `shared/sdd-artifact-contract.md`
+- Shared contract: read `.claude/skills/shared/sdd-artifact-contract.md` when applying reusable AI-SDD mandates and artifact rules
 - Local configuration: `docs/project-config.json`
 - Local docs index: `docs-index-reference.md` in the project-reference docs root — default `docs/project-reference`; a `docsRoots.projectReference.path` entry in `docs/project-config.json` overrides the path
 - Local workflow cycle reference: `workflow-spec-test-code-cycle-reference.md` in that same root
@@ -28,7 +28,7 @@ Implementation identifiers belong in evidence carriers only:
 - `**CoveredBy:**` — canonical test-coverage carrier
 - `**IntegrationTest:**` — legacy alias, still accepted as migration input; NOT emitted by current templates
 - frontmatter
-- diagrams
+- `mermaid` blocks
 
 Narrative prose should describe business behavior, observable outcomes, local constraints, and ownership rules.
 

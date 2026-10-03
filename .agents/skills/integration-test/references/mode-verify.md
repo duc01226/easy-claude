@@ -340,15 +340,9 @@ If the system is unavailable, report `system not ready` and reference `startupSc
 
 ### Intermittent (flaky) failure adjudication — verdict BEFORE any change
 
-**MUST ATTENTION READ `.claude/skills/shared/verify-convergence-loop.md` § 1 whenever a required test is red in one run and green in another.** It holds the three-way verdict table — (a) unrealistic scenario / compressed pacing, (b) harness topology amplification, (c) genuine product race — with the evidence each needs. Non-negotiable here: record `Flake verdict: (a) | (b) | (c) — {evidence}` in the Step 5 report BEFORE any edit; reproduce and state the observed ratio; NEVER resolve a flake by widening a timeout, adding a retry, or skipping; do not file (c) until (a) and (b) are ruled out; any resolution restarts the configured repeat gate.
+**MUST ATTENTION READ `.claude/skills/shared/verify-convergence-loop.md` § 1 whenever a required test is red in one run and green in another.** It holds the three-way verdict table — (a) unrealistic scenario / compressed pacing, (b) harness topology amplification, (c) genuine product race — with the evidence each needs. Non-negotiable here: record `Flake verdict: (a) | (b) | (c) — {evidence}` in the Step 5 report BEFORE any edit; reproduce and state the observed ratio; NEVER resolve a flake by widening a timeout, adding a retry, or skipping; Do not file (c) until (a) and (b) are ruled out with evidence; Any resolution restarts the configured repeat gate.
 
-**Rules:**
-
-1. **Verdict first, change second.** Record `Flake verdict: (a) | (b) | (c) — {evidence}` in the Step 5 report before any edit. "Probably flaky" is not a verdict.
-2. **Reproduce before concluding.** Re-run the failing test repeatedly (it is a fast local test — see the 60s cap) so the intermittency is characterized, not assumed. State the observed ratio.
-3. **NEVER resolve a flake by widening a timeout, adding a retry, or skipping.** Those hide all three causes equally and destroy the signal.
-4. **Do not file (c) until (a) and (b) are ruled out with evidence.** Reporting a test-fidelity defect as a product defect burns hours and erodes trust in the suite.
-5. **Any resolution restarts the configured repeat gate.** An intermittent test is not verified until it satisfies the repeat policy after the fix.
+**Verdict first, change second. Reproduce before concluding.** Characterize intermittency by repeating the failing local test under the documented 60s cap; state the observed ratio. The read-first owner and non-negotiable verdict/no-timeout-retry-skip/product-race/repeat-reset rules above govern.
 
 ---
 
@@ -514,26 +508,13 @@ The protocols below are carried in full because only this mode needs them; the p
 
 | Evasion                                       | Rebuttal                                                                         |
 | --------------------------------------------- | ------------------------------------------------------------------------------- |
-| "One green run is enough"                     | 2 consecutive green runs without DB reset, or it isn't verified. Restart on any red. |
-| "I'll just hardcode `dotnet test`"            | Read `quickRunCommand` from config — this skill is language-agnostic.            |
 | "The test asserts too strictly, relax it"     | Fix the code or the setup, never the assertion. Weakened tests protect nothing.  |
 | "It's just flaky, re-run it"                  | Intermittent = unadjudicated. Classify (a) unrealistic scenario, (b) harness amplification, or (c) real product race — with evidence — before any change. |
 | "Bump the timeout and move on"                | Widening a timeout masks all three flake causes. The barrier belongs in ARRANGE, on a real observable. |
 | "Found a race — file it as a product bug"     | Not until (a) and (b) are ruled out. State whether the trigger exists in production and at what likelihood. |
-| "Looks like it passed"                        | Show Passed/Failed/Skipped counts from real runner output. No output = no claim. |
 | "Tests failed — report it and stop"           | Reporting red is half the job. Recommend `$workflow-integration-test --mode=green`; it owns the loop that clears the suite. |
-| "System probably ready"                       | Run `systemCheckCommand`. Unhealthy system → STOP, point user at `startupScript`. |
-| "I read the reference doc, that's the gate"   | Reading is not checking. Harvest the preconditions into a cited checklist and settle every row before the first test command. |
-| "systemCheckCommand is green, skip the checklist" | It verifies only what the config author encoded. The doc's preconditions are the ones the runner silently assumes — verify each. |
-| "Env is half-up, run the suite and see"       | A half-ready environment reports infrastructure faults as failing tests. STOP, report ENVIRONMENT-BLOCKED, name the unmet precondition. |
-| "Too simple to track"                         | Skip depth, never skip task tracking. Wrong assumptions waste more time.         |
-| "`--fix-loop`: only the changed tests matter" | `{scope}` defaults to the WHOLE system and is passed explicitly. A subset green is not a suite green. |
-| "`--fix-loop`: I deleted/skipped the failing test, now it's green" | Executed count down or skipped count up is a Round Integrity REGRESSION → STOP & escalate and restore it. |
-| "`--fix-loop`: root cause is obvious, just fix it" | One written Fault Verdict per failure, with `file:line` evidence, BEFORE any edit. Nearest-attention fixes patch the assertion. |
 | "`--fix-loop`: review already fixed it, and so did $fix" | Report-only mode means `$fix` owns the fix. If review self-fixed, SKIP `$fix` that round — never double-fix. |
 | "`--fix-loop`: tests are green, no need to review the fix" | Green cannot see a wrong-layer fix, a broken invariant elsewhere, or a security/perf regression. Any fix landed → `$changes-review` that round. |
-| "`--fix-loop`: round 3 hit, close enough" | Cap hit with failures open → STOP & escalate with the still-failing tests and their verdicts. Never silently continue. |
-| "`--fix-loop`: re-run myself with the flag for the next round" | Each round is the default pass WITHOUT the flag. One outer loop, no nesting. |
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — analyze task size first.
 

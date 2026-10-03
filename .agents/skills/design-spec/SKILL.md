@@ -602,16 +602,7 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 - **Releasable full flow** — preserve every required page/view, navigation edge, Common/Domain-Shared/Page component, state, and end-to-end demo journey; never collapse a multi-page outcome into one screen.
 - **Step 7–8** — save the correct design-spec/audit/component variant under `design-specs/` in the team-artifacts root (default `team-artifacts/`; `docsRoots.teamArtifacts.path` in `docs/project-config.json` overrides); update governing Feature Spec `design_spec:`/`mockup:` frontmatter only; satisfy M1–M5/M7 and logical-ID traceability.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **UI System Context:** read frontend-patterns, scss-styling, design-system before any UI change.
-- **UI Wireframe:** ASCII wireframe, tiered component inventory, states table, tokens, responsive breakpoints.
-
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** carry the 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`) into the spec sections so implementers INHERIT them: §5 authors empty/loading/error FIRST (`UI-1.5`) and enumerates all 5 interaction states per interactive element (`UI-5.2`); §4 DECLARES the 6-step type scale (`UI-2.5`) and the ONE 4/8px spacing unit (`UI-4.1`) instead of one-off values, with contrast targets measured and stated (4.5:1 text / 3:1 edges, `UI-3.1`); §6 keeps the focus ring visible (`UI-5.5`), colour never alone (`UI-3.3`), and ≥44×44pt targets + bottom-third primaries on touch surfaces (`UI-8.1`, `UI-8.2`); §7 records every deliberate deviation — why: an unstated clause is an unbuilt clause once the spec leaves this skill
+**MUST ATTENTION** Apply each inline protocol's body and the section-by-section Design-Principles Obligations above; carry their observable states, token/accessibility requirements and authorized deviations into the output. Read configured project UI references and search comparable implementations before creating code. Cite `file:line` (>80% to act), track work and complete a final quality review.
 
 **Anti-Rationalization:**
 
@@ -625,7 +616,3 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 | "'Show feedback' describes the error state"       | M4 FAIL — every state needs one observable completion marker, not a vague phrase.                     |
 
 **[TASK-PLANNING]** Before acting, use task tracking to break the work into small tasks, including each file read; update statuses per step and add a final review task. For simple tasks, ask whether the user wants to skip workflow depth, never task tracking.
-
-**IMPORTANT MUST ATTENTION** create tracked tasks before execution; report the main journeys (`UX-1`) and record the design-authority read (`UX-2`) before any spec section; walk them into §8 (`UX-8`) before saving; route input and choose Quick/Full/Flow Diagram before authoring; preserve wireframe confidence/review and M1–M5/M7 gates.
-**IMPORTANT MUST ATTENTION** save the correct artifact variant, link back through Feature Spec frontmatter only, and verify complete releasable full-flow coverage.
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim, preserve all 7 states/tokens/responsive/accessibility rules, and complete the final review task.

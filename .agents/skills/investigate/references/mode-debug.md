@@ -392,18 +392,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 **MUST ATTENTION** OOM/memory → check row COUNT before row SIZE (unbounded query > large row); 3+ failed fixes → STOP, question the architecture, escalate to user.
 **MUST ATTENTION** bootstrap task tracking task tracking BEFORE first file read; persist findings incrementally to `tmp/reports/`; return the investigation findings without modifying target code or applying fixes.
 
-**Anti-Rationalization:**
 
-| Evasion                                  | Rebuttal                                                                                       |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| "I see the problem, let me fix it"       | Symptom ≠ root cause. This mode is investigation-ONLY — trace end-to-start first.              |
-| "Too simple for Phase 0"                 | Root-cause assumptions waste more time than classification. Apply Phase 0 anyway.             |
-| "Skip `$why-review`, findings look solid"| Self-confirmed findings rationalize their own gaps. The `$why-review` gate is non-negotiable.  |
-| "It's OOM, must be a large object"       | Check row COUNT before row SIZE. Unbounded query > large single row.                           |
-| "Just try changing X and see"            | One hypothesis at a time. Scientific method, not trial and error.                             |
-
-**IMPORTANT MUST ATTENTION** investigation-ONLY: trace end-to-start to the invariant-owning layer, NEVER patch here.
-**IMPORTANT MUST ATTENTION** every root-cause claim needs `Confidence: X%` + `file:line` proof; <60% = "hypothesis, not confirmed", NEVER a guess.
-**IMPORTANT MUST ATTENTION** NEVER declare confirmed without the `$why-review` gate; task tracking before starting.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.

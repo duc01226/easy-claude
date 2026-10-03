@@ -107,17 +107,32 @@ function writeTranscript(fx, bytes) {
     fs.writeFileSync(fx.transcript, `${'x'.repeat(Math.max(0, bytes - 1))}\n`);
 }
 
-function spawnHook(fx, raw, env = {}) {
+/** Same argv/pipe boundary on Windows, macOS and Linux; no inherited user configuration. */
+function isolatedChildEnv(fx, extra = {}) {
+    const env = { ...process.env };
+    for (const key of Object.keys(env)) {
+        if (/^(?:CK_|CLAUDE_HOOK_|OPENAI_|ANTHROPIC_|GEMINI_|GOOGLE_|AZURE_|TELEGRAM_|DISCORD_|SLACK_)/i.test(key)) env[key] = '';
+    }
+    return {
+        ...env,
+        HOME: fx.root, USERPROFILE: fx.root, TMPDIR: fx.root, TEMP: fx.root, TMP: fx.root,
+        CLAUDE_PROJECT_DIR: fx.project, CK_PROMPT_LEDGER_DIR: fx.store,
+        ...extra
+    };
+}
+
+function spawnHook(fx, raw, env = {}, { closeStdout = false } = {}) {
     return new Promise(resolve => {
         const child = spawn(process.execPath, [HOOK], {
             cwd: fx.project,
             windowsHide: true,
             stdio: ['pipe', 'pipe', 'pipe'],
-            env: { ...process.env, CK_DEBUG: '', CLAUDE_HOOK_DEBUG: '', CK_PROMPT_LEDGER: '', CLAUDE_PROJECT_DIR: fx.project, CK_PROMPT_LEDGER_DIR: fx.store, ...env }
+            env: isolatedChildEnv(fx, env)
         });
         let stdout = '';
         let stderr = '';
-        child.stdout.on('data', chunk => { stdout += chunk; });
+        if (closeStdout) child.stdout.destroy();
+        else child.stdout.on('data', chunk => { stdout += chunk; });
         child.stderr.on('data', chunk => { stderr += chunk; });
         child.on('close', code => resolve({ code, stdout, stderr }));
         child.stdin.on('error', () => {});
@@ -501,6 +516,15 @@ const tests = [
             assert.ok(entry.text.length <= 4000 + '\n…[truncated 6000 chars]'.length);
             assert.ok(entry.goal.length <= store.GOAL_LINE_MAX);
 
+            // Given: a paste exceeds the bounded input scan as well as the per-entry cap.
+            // When: the original text is reduced to a stored excerpt.
+            await hook.run(prompt(fx, 'a'.repeat(300000), { session_id: 'scan-cap' }), deps(fx));
+            // Then: every omitted character is counted, including the unscanned tail (BR-SPL-07).
+            const large = ledgerOf(fx, 'scan-cap').entries[0];
+            assert.equal(large.removedChars, 296000);
+            assert.equal(large.truncated, true);
+            assert.ok(large.text.endsWith('…[truncated 296000 chars]'));
+
             await hook.run(prompt(fx, 'b'.repeat(4000), { session_id: 'session-exact' }), deps(fx));
             const exact = ledgerOf(fx, 'session-exact').entries[0];
             assert.equal(exact.truncated, false);
@@ -564,7 +588,7 @@ const tests = [
             assert.deepEqual(listFiles(fx.store), []);
 
             // Edge: malformed setting → defaults (on).
-            assert.equal(store.resolveSettings('yes').enabled, true);
+            assert.equal(store.resolveSettings('yes', {}).enabled, true, 'malformed settings use defaults without inherited feature switches');
         })
     },
     {
@@ -583,6 +607,26 @@ const tests = [
             assert.equal(unwritable.code, 0);
             assert.equal(unwritable.stdout, '');
             assert.equal(unwritable.stderr, '');
+
+            // Given: the host closes its output reader before a first prompt is processed.
+            // Intent: output failure never blocks work or claims a reminder was delivered (BR-SPL-10).
+            const closedId = 'closed-output';
+            // When: the real entrypoint writes into the closed pipe (portable Node pipe APIs).
+            const closed = await spawnHook(fx, JSON.stringify(prompt(fx, 'Keep the original request', { session_id: closedId })), {}, { closeStdout: true });
+            // Then: successful silent exit, retained original, and no false delivery record.
+            assert.equal(closed.code, 0, 'closed reader never crashes the advisory hook');
+            assert.equal(closed.stdout, '');
+            assert.equal(closed.stderr, '', 'closed reader never prints an error stack');
+            assert.equal(store.readDelivery(sessionDir(fx, closedId)), null, 'failed output is not recorded as delivered');
+            assert.equal(ledgerOf(fx, closedId).entries[0].text, 'Keep the original request');
+            // When: a later prompt arrives with a healthy output channel.
+            const retry = await spawnHook(fx, JSON.stringify(prompt(fx, 'Continue the same task', { session_id: closedId })));
+            // Then: the absent reminder is retried and the original request is still pinned.
+            assert.equal(retry.code, 0);
+            assert.equal(retry.stderr, '');
+            assert.match(retry.stdout, /^Session prompt ledger — original goal \(P1\): «Keep the original request»/);
+            assert.equal(ledgerOf(fx, closedId).entries.length, 2);
+            assert.ok(store.readDelivery(sessionDir(fx, closedId)), 'successful retry records delivery');
 
             // Internal error inside the store → silent.
             const throwing = { ...store, readLedger: () => { throw new Error('boom'); } };
@@ -617,6 +661,22 @@ const tests = [
             assert.equal(store.buildDigest(ledger, 'tmp/prompt-ledger/s/ledger.md').tag, tag, 'tag stable for the same record');
             const grown = store.appendPrompt(ledger, 'one more', { now: NOW + 99, settings: store.resolveSettings({}) }).ledger;
             assert.notEqual(store.buildDigest(grown, 'tmp/prompt-ledger/s/ledger.md').tag, tag, 'tag changes with the record');
+
+            // Given: a long but supported record location leaves no room for recent goal lines.
+            // Intent: the hard budget never removes the final verification or exceeds eight entries.
+            for (const size of [1000, 1300, 2000]) for (const sep of ['/', '\\']) {
+                // When: the digest is rendered for a POSIX or Windows location; no filesystem seam.
+                const location = `${sep === '/' ? '/' : 'C:\\'}${`nested${sep}`.repeat(Math.ceil(size / 7)).slice(0, size)}${sep}ledger.md`;
+                const long = store.buildDigest(ledger, location);
+                const rows = long.text.split('\n');
+                // Then: quote/data framing, recent cap, verify-last and content-derived version survive.
+                assert.ok(long.text.length <= store.DIGEST_MAX_CHARS);
+                assert.ok(rows.filter(row => /^- P\d+:/.test(row)).length <= store.DIGEST_RECENT);
+                assert.match(rows.at(-1), /^Verify each step and the final result against the original goal and every prompt above\. \[\[prompt-ledger@[0-9a-f]{8}\]\]$/);
+                const body = rows.slice(0, -1).join('\n');
+                const hash = require('node:crypto').createHash('sha256').update(body).digest('hex').slice(0, 8);
+                assert.equal(long.tag, `[[prompt-ledger@${hash}]]`, 'tag describes the text actually delivered');
+            }
 
             const bracketFirst = store.appendPrompt(null, '[{"not":"json"}]', { now: NOW }).ledger;
             assert.ok(store.buildDigest(bracketFirst, 'x').text.startsWith('Session prompt ledger'));

@@ -29,6 +29,8 @@
 
 These are documented product concepts, not a database entity inventory. Canonical specifications establish intended semantics; executable checks establish which parts are enforced mechanically. Read `docs/project-reference/spec-system-reference.md` when resolving canonical versus derived spec ownership. Default-root example; `docsRoots.projectReference.path` in `docs/project-config.json` overrides this location.
 
+Read `docs/specs/ContextDelivery/README.ProjectContextIntake.md` when changing project-rule discovery and phase-specific loading. The universal bundle delivers the loading gate; delivery records do not prove that required references were read or followed. Convention suppression requires verified successful complete loading of the correct project document. Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location.
+
 ## Representations & Transformations
 
 - Hook-event JSON is adapted by `.claude/hooks/lib/stdin-parser.cjs` → `parseHookEvent` and `.claude/hooks/lib/hook-runner.cjs` → `runHook`. This infrastructure representation is not a domain DTO hierarchy (`hook-runner.cjs:294–306`).

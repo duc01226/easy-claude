@@ -26,22 +26,6 @@
 
 - **MUST ATTENTION** run Phase 0 triage → Phase 1 impact-scoped context sync → Phase 2 `/spec` → optional Phase 2.5 `/spec [mode=index]` → optional Phase 2.6 `/tech-spec` → Phase 3 `/spec [mode=tests]` → Phase 4 `/spec [mode=sync]` → optional Phase 4.5 `/demo-guide` → Phase 5 report → final Step 2.4 code↔spec sync-verify; track each task before/after and record every skip.
 
-**Orchestration Model:**
-
-```
-git diff → Triage → Phase 1: Project Context Sync (PARALLEL, impact-scoped)
-                  │            ├─ impacted docs/project-reference/** — verify → patch → (escalate to /scan --target=X)
-                  │            ├─ impacted docs/project-config.json sections — verify → merge → validate
-                  │            └─ README.md / project docs (docs-manager)
-                  → Phase 2: /spec (business feature docs)
-                  → Phase 2.5: /spec [mode=index] (derived index/ERD refresh) [optional]
-                  → Phase 2.6: /tech-spec (derived technical view refresh/audit) [optional]
-                  → Phase 3: /spec [mode=tests] (§8 test specifications)
-                  → Phase 4: /spec [mode=sync] (§8 ↔ test code sync)
-                  → Phase 4.5: /demo-guide (refresh an existing, change-keyed demo guide) [optional]
-                  → Phase 5: Summary Report
-```
-
 **Key Rules:**
 
 - Router only — NEVER duplicate sub-skill logic or write Section 8 / Feature Spec content
@@ -100,19 +84,9 @@ git diff → Triage → Phase 1: Project Context Sync (PARALLEL, impact-scoped)
 
 ## Step-Skill Call Order (Do Not Reorder)
 
-| Order | Task ID | Step / Phase                   | Skill Call                             | Tracking Rule                                                                                   |
-| ----- | ------- | ------------------------------ | -------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 1     | 1       | Phase 0: Triage                | Inline triage logic in this skill      | Set Task 1 `in_progress` before diff scan; set `completed` after module + impact map recorded   |
-| 2     | 2       | Phase 1: Project Context Sync  | `doc-impact-map.cjs` + PARALLEL `docs-manager` sub-agents (one per impacted doc/cluster) + `/scan --target=X` or `/project-config` only on escalation | Set Task 2 `in_progress` before the impact map; `completed` only after EVERY routed doc and config section carries a verdict + evidence |
-| 3     | 3       | Phase 2: Business Feature Docs | `/spec`                        | Set Task 3 `in_progress` before invocation; `completed` after output review                     |
-| 4     | 4       | Phase 2.5/2.6: Derived View Refresh | `/spec [mode=index]` and/or `/tech-spec [mode=generate|audit]` | Set Task 4 `in_progress` before invocation; `completed` after derived outputs are refreshed or skipped with reason |
-| 5     | 5       | Phase 3: §8 Test Specs         | `/spec [mode=tests]`                            | Set Task 5 `in_progress` before invocation; `completed` after TC review                         |
-| 6     | 6       | Phase 4: §8 ↔ Test Code Sync   | `/spec [mode=sync]`           | Set Task 6 `in_progress` before invocation; `completed` after sync validation                   |
-| 7     | 7       | Phase 4.5: Demo Guide Refresh  | Glob the resolved `demoGuide.outputDir`, then `/demo-guide --output {existing path}` | Set Task 7 `in_progress` before the existence glob; `completed` only after every found guide carries a verdict (refreshed / unrelated-skip / DEFERRED / UNVERIFIED) or `NOT-APPLICABLE` is recorded |
-| 8     | 8       | Phase 5: Summary Report        | Inline report write                    | Set Task 8 `in_progress` before report write; `completed` after file path confirmed             |
-| 9     | 9       | Final Review                   | Inline verification gate               | Set Task 9 `in_progress` before final audit; `completed` after all phases justified             |
-
-**Enforcement:** If a required step cannot run, STOP and ask user before adapting order. Never continue with untracked steps.
+Use the nine task subjects above and the phase headings below as the execution map:
+`Phase 0 -> Phase 1 -> Phase 2 -> Phase 2.5/2.6 -> Phase 3 -> Phase 4 -> Phase 4.5 -> Phase 5 -> Final review`.
+Phase 1 finishes only when every routed doc/config section has a verdict; optional derived/demo phases finish with verified results or explicit skips. If a required step cannot run, STOP and ask the user before adapting. Never execute an untracked step.
 
 ---
 
@@ -194,7 +168,7 @@ Detection is SEQ and FIRST; derive assignments from the impacted-doc set after S
 
 ## Phase 1: Project Context Sync — Reference Docs + project-config.json (PARALLEL, impact-scoped)
 
-> **Why:** `docs/project-reference/**` and `docs/project-config.json` route every skill and enter every downstream AI context. Code moves can leave them teaching obsolete behavior; Phases 2-4 inspect only `docs/specs/**`. `/scan-all` + `/project-config` rebuild from zero on the 60-day cadence; this phase gives the same no-stale guarantee at diff scope after every change.
+> **Purpose:** Verify context that downstream skills read. Phase 1 checks diff-scoped reference docs/config; full `/scan-all` + `/project-config` owns the 60-day rebuild.
 
 **When to run:** ALWAYS, unless Step 0.3 declared a TRUE fast exit. Run it even when every one of Phases 2-4 is skipped.
 
@@ -338,13 +312,7 @@ Impacted sections based on change types: {section impact from triage}.
 Mode: update (existing docs only, do not create from scratch).
 ```
 
-**What `/spec` handles (DO NOT duplicate here):**
-
-- 8-section tech-free structure and principles (implementation details only in §8 evidence carriers + `[Source:]`)
-- Diff analysis → section-impact mapping → evidence-backed updates
-- Codebase analysis (entities, commands, queries, controllers)
-- Bucket `INDEX.md` row update
-- 3-pass verification: evidence audit, domain model, cross-reference
+`/spec` owns the tech-free eight-section structure, evidence-backed section updates, bucket `INDEX.md`, and three-pass evidence/domain/cross-reference verification. Pass scope; review results without reproducing its authoring logic.
 
 ### Step 2.3: Review `/spec` Output
 
@@ -462,13 +430,7 @@ Changed files: {list from triage}.
 Business-visible functionality detected: {new or changed user/QC-visible outcomes from diff analysis}.
 ```
 
-**What `/spec [mode=tests]` handles (DO NOT duplicate here):**
-
-- 5 modes: TDD-first, implement-first, update, sync, from-integration-tests
-- `TC-{FEATURE}-{NNN}` format with decade-based numbering and interactive TC review (`AskUserQuestion`)
-- Cross-cutting categories: authorization, seed data, performance, data migration
-- Phase-mapped coverage, graph context analysis for cross-service impact, and per-TC evidence verification
-- Write to Feature Spec §8 (canonical business TC registry)
+`/spec [mode=tests]` owns canonical §8 TCs, `TC-{FEATURE}-{NNN}` decade numbering, interactive review, and phase/cross-service coverage (authorization, seed data, performance, migration). Pass the selected mode and outcomes; do not reproduce its analysis or author TCs here.
 
 ### Step 3.3: Review `/spec [mode=tests]` Output
 
@@ -491,13 +453,9 @@ Direction: forward (Feature Spec §8 Test Specifications → executing test code
 Updated TCs from Phase 3: {list of new/changed TC IDs}.
 ```
 
-**What `/spec [mode=sync]` handles (DO NOT duplicate here):**
+`/spec [mode=sync]` compares canonical business §8 with executing test code (the technical source of truth), using configured `TestSpec` annotations and per-TC `CoveredBy:`. Legacy `IntegrationTest:` is migration input only.
 
-- Forward/reverse sync: §8 Test Specifications ↔ executing test code
-- Two-way comparison: Feature Spec §8 vs test code (code is technical source of truth)
-- Test cross-reference via configured `TestSpec` across executing tiers and per-TC `CoveredBy:`; legacy `IntegrationTest:` is migration input only
-
-> Do not route to the retired dashboard paths `README.md` or `PRIORITY-INDEX.md` at the business spec ROOT (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path); §8 is the canonical business TC registry. Derived aids are bucket `INDEX.md` (Phase 2.5) and the regenerable technical view under `specRoots.technical.path` (Phase 2.6); no hand-maintained `A-E`/`M##` tree.
+Keep §8 as the business TC registry. Do not route to root `README.md`/`PRIORITY-INDEX.md` dashboards or hand-maintained `A-E`/`M##` trees. Derived aids stay with Phase 2.5 bucket indexes and Phase 2.6 technical views.
 
 ### Step 4.2: Review Sync Results
 
@@ -708,15 +666,6 @@ $ARGUMENTS
 
 ---
 
-> **[BLOCKING]** Create ALL 9 tasks via `TaskCreate` BEFORE any action — see **Mandatory Task Creation** table. NEVER skip, batch-complete, or mark done without invoking sub-skill.
-> **[BLOCKING]** Follow fixed step-skill order: `Phase 0 -> Phase 1 -> Phase 2 -> Phase 2.5/2.6 -> Phase 3 -> Phase 4 -> Phase 4.5 -> Phase 5 -> Final review`. NEVER reorder, merge, or skip without explicit user approval.
-> **[BLOCKING]** Per-step task lock: BEFORE each step, mark task `in_progress`; AFTER each step, mark task `completed` with evidence or explicit skip reason.
-> **[BLOCKING]** If Task tool unavailable, create equivalent 9-step plan tracker and keep statuses synced for every step.
-
-> **Critical Purpose:** Single orchestrator for ALL documentation sync after code changes. Triages impact, delegates to specialized skills.
-
-> **Evidence Gate:** [BLOCKING] — every claim requires `file:line` proof or traced evidence, confidence >80% to act.
-
 ## Mode protocols
 
 The protocols below apply to this mode only; their full text is inline so this reference is self-contained. `docs-manager/SKILL.md` carries none of them, so `--mode=init` never loads this text.
@@ -845,34 +794,15 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 **IMPORTANT MUST ATTENTION — Main steps/modes:** Phase 0 triage → Phase 1 impact-scoped context sync → Phase 2 `/spec` → optional Phase 2.5 `/spec [mode=index]` → optional Phase 2.6 `/tech-spec` → Phase 3 `/spec [mode=tests]` → Phase 4 `/spec [mode=sync]` → optional Phase 4.5 `/demo-guide` → Phase 5 report → final Step 2.4 code↔spec sync-verify. TC modes: `TDD-first|implement-first|update|sync|from-integration-tests`; caller flags: `modules`, `changed_files`, `phases`, `mode`, `tc_mode`, `skip_phases`, `freshness={impact|full|off}`, `base`. Track each task before/after; record every skip.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor every block below:**
+**Critical rules:**
 
-- **Sub-Agent Return:** Spawned sub-agents return ONLY the summary contract; full detail to disk.
-- **Cross-Service Check:** Scan producers/consumers/sagas/contracts; missing consumer = silent regression.
-- **Nested Task Creation:** When nested, still expand child phase tasks and link the parent workflow row.
-- **AI-Discovery Doc Quality:** a `PATCHED` doc keeps purpose + critical rules on top and reminders at the bottom; new pointers are triggers to existing docs; an added/renamed/retired doc is re-routed in the docs index.
-- **Task Tracking:** Bootstrap tasks, one active, persist findings to `tmp/reports/` incrementally.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
-
-**IMPORTANT MUST ATTENTION** create ALL 9 tasks via `TaskCreate` BEFORE any action, then run the FIXED order `0 -> 1 -> 2 -> 2.5/2.6 -> 3 -> 4 -> 4.5 -> 5 -> final review` — NEVER reorder, merge, or skip without explicit user approval — why: phase order is the gate that catches drift; a skipped phase ships silent staleness
-**IMPORTANT MUST ATTENTION** `docs-manager --mode=update` is a ROUTER ONLY — delegate to `/spec`, `/spec [mode=tests]`, `/spec [mode=sync]`, `/spec [mode=index]`; NEVER write §8 content, edit Feature Spec / derived-index files, or duplicate sub-skill logic — why: dual authorship causes the two sources to diverge
-**IMPORTANT MUST ATTENTION** every skip is a DECISION with evidence — mark the task `completed` with a `file:line`-backed reason; NEVER silently omit a phase — why: an unjustified skip is indistinguishable from a missed update
-**MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via `TaskCreate` with `[N.M] /skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage — why: the workflow row is a container, not a substitute for phase tracking
-**MUST ATTENTION** for EVERY step: set task `in_progress` BEFORE execution, set `completed` AFTER execution with evidence or skip reason — never batch transitions, keep exactly one active
-**MUST ATTENTION** if task tooling unavailable, use an equivalent 9-step plan tracker and keep statuses synced per step
-**MUST ATTENTION** evidence gate — every claim, detected module, and impact mapping needs `file:line` / git-diff proof, confidence >80% to act, <60% DO NOT act; "Module unchanged" without proof is NOT a valid skip — why: speculation routes the wrong docs and misses real drift
-**MUST ATTENTION** search-existing-patterns BEFORE asserting a doc shape — read the bucket's existing Feature Spec / INDEX layout and project-reference docs; build the module map from `docs/project-config.json`, NEVER from hard-coded skill paths — why: local doc conventions override generic assumptions
-**MUST ATTENTION** evaluate fit before reusing a nearby pattern — a module with backend + frontend changes is ONE deduped entry, not two; verify the change actually alters behavior before routing to `/spec` — why: duplicate or behavior-free invocations waste passes and corrupt the audit
-**MUST ATTENTION** validate ambiguous routing decisions with the user via `AskUserQuestion` — surface the options, NEVER silently auto-decide which phases run
-**MUST ATTENTION** tech-agnostic output — when updating spec/specs/README/INDEX, introduce NO framework/product/language/pattern names in prose or headings; update logical IDs (`FR-`/`BR-`/`OP-`/`TC-`) FIRST, then prose; preserve the evidence-field exception — why: prose is the portable contract, evidence carriers hold the physical coords (spec-principles §3)
-**MUST ATTENTION** Step 2.4 final code↔spec sync-verify per touched module — a removed/weakened [HARD] BR is a code-vs-spec contradiction that BLOCKS completion until resolved or owner-accepted; AC drift re-invokes `/spec`, TC drift routes to `/spec [mode=sync]`
-**MUST ATTENTION** Phase 1 project context sync ALWAYS runs unless the impact map is empty — build the map (`node .claude/scripts/doc-impact-map.cjs`), verify the routed `docs/project-reference/**` docs and `docs/project-config.json` sections in a PARALLEL wave, give every routed doc a verdict (`FRESH | PATCHED | RESCAN REQUIRED | UNVERIFIED`), and NEVER move a `Last scanned` stamp from an impact-scoped pass — why: these docs feed every downstream AI context, an unchecked doc is UNVERIFIED not FRESH, and a moved stamp silently disables the 60-day full-rescan gate
-**MUST ATTENTION** Phase 0 triage ALWAYS runs first (git diff → categorize → dedup modules → record existing-doc state); Phase 2 `/spec` updates §1–§7 and BLOCKS doc-first when a changed module has feature behavior but no Feature Spec — why: skipping triage or the doc-first gate ships undocumented behavior
-**MUST ATTENTION** Phase 2.5 `/spec [mode=index]` OPTIONALLY refreshes the derived bucket INDEX/ERD from Feature Specs (never re-extracts an A-E tree); Phase 2.6 `/tech-spec` OPTIONALLY refreshes/audits the derived technical view; Phase 3 `/spec [mode=tests]` syncs §8 TCs; Phase 4 `/spec [mode=sync]` syncs §8 TCs ↔ executing test code (no QA dashboard exists)
-**MUST ATTENTION** Phase 4.5 OPTIONALLY refreshes an EXISTING demo guide — resolve `demoGuide.outputDir` then GLOB it (no filename convention exists, so NEVER guess a name), key each found guide to this change by its `Sources` / `Governing spec` / case `TC-*` / `Scope` header fields, and route the refresh to `/demo-guide --output {existing path}`; never hand-edit a guide, never author a first one here, and record `NOT-APPLICABLE` / `DEFERRED` / `UNVERIFIED` explicitly — why: a silent skip and a missed refresh look identical in the audit trail
-**MUST ATTENTION** inside `workflow-feature` / `workflow-bugfix` the `/demo-guide` step runs AFTER `docs-manager --mode=update` — Phase 4.5 there reports `DEFERRED — downstream /demo-guide step owns it` instead of invoking — why: two generators writing one guide in one run is a lost update
-**MUST ATTENTION** for `.claude` skills/hooks/workflows/sync-tooling changes, flag generated-mirror sync status (`/sync-codex` completed or explicit N/A) — `docs-manager --mode=update` routes/reports this check, NEVER edits generated mirrors directly
-**MUST ATTENTION** ALWAYS write the Phase 5 summary report to `tmp/reports/docs-update-{YYMMDD}-{HHMM}.md` and the final review task (#9) — the report is the audit trail, the review verifies all impacted docs updated with no unjustified skips
+- Create the nine tasks before action; track one active task, evidence-backed completions/skips, and final review. When nested, expand child tasks with `[N.M] /skill-name — phase` and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`; the workflow row is a container.
+- Route Feature Spec/§8/index/technical-view/demo writes to their owners. Phase 1 alone makes narrow context patches; inspect existing bucket/project conventions before deciding shape.
+- Require `file:line` or git-diff evidence (>80% to act; <60% do not act). Dedup modules, verify actual behavior impact, and ask via `AskUserQuestion` when routing remains ambiguous.
+- Give every Phase 1 routed doc a checked verdict; classify `unrouted` paths manually. Keep scan/scoped freshness separate under Step 1.6; a no-op writes nothing.
+- Preserve tech-agnostic prose/evidence exceptions and logical IDs. Final Step 2.4 verifies AC/BR/TC drift; a weakened `[HARD]` BR blocks until resolved or owner-accepted.
+- Demo refresh is existing-guide only: glob the configured dir, key each guide, and report refreshed/unrelated/`NOT-APPLICABLE`/`DEFERRED`/`UNVERIFIED`. A downstream `/demo-guide` workflow step owns refresh when present.
+- Report generated-mirror sync status and Phase 5 audit evidence. Honor inline discovery, cross-service, return-envelope and tracking protocols; use disjoint writer waves with an all-return barrier.
 
 **Anti-Rationalization:**
 
@@ -886,12 +816,6 @@ The protocols below apply to this mode only; their full text is inline so this r
 | "project-config.json is close enough"        | Re-derive the flagged sections from evidence, prove every touched `pathRegex` still matches a real file, and run schema validation |
 | "The mapper returned unrouted files — nothing to do" | Unrouted means the router had NO RULE, not that the doc is fresh. Classify each by hand |
 | "No feature docs exist — skip Phase 2"       | Mark task completed with reason. NEVER silently omit                   |
-| "Module unchanged — skip sub-skill"          | Show `file:line` evidence. No proof = no skip                          |
-| "Already know what changed"                  | Still run git diff — partial knowledge causes missed updates           |
-| "Phase 5 report not needed"                  | ALWAYS write summary report — it's the audit trail                     |
-| "I will update tasks later"                  | Invalid. Task status must change before/after each step in real time.  |
-| "I'll run skills first then create tasks"    | Invalid. Create/track tasks first, then execute step-skill calls.      |
-| "I'll write the §8 TC myself, faster"        | Invalid. Router only — delegate to `/spec [mode=tests]`; dual authors diverge. |
 | "[HARD] BR weakened but tests pass"          | BLOCK — code-vs-spec contradiction; resolve or owner-accept, never wave through. |
 | "No demo guide — nothing to record"          | Absence is a VERDICT. Record `NOT-APPLICABLE` with the globs you ran.   |
 | "I'll patch the demo guide's TC IDs by hand" | Invalid. Router only — a proof rung cannot be hand-edited; re-invoke `/demo-guide --output {path}`. |

@@ -77,9 +77,17 @@ function loadConfig(deps) {
 }
 
 function defaultWrite(text, done) {
+    // emit owns the once-only acknowledgment when the callback and error event both report failure.
+    const onError = () => done(false);
+    process.stdout.once('error', onError);
     try {
-        process.stdout.write(text, error => done(!error));
+        process.stdout.write(text, error => {
+            // A failed write also emits an error after the callback; keep its listener until then.
+            if (!error) process.stdout.removeListener('error', onError);
+            done(!error);
+        });
     } catch {
+        process.stdout.removeListener('error', onError);
         done(false);
     }
 }
@@ -111,7 +119,7 @@ function run(input, deps = {}) {
             const overlay = require('./lib/skill-protocol-overlay.cjs');
             const config = loadConfig(deps);
             const reminders = names
-                .map(name => ({ name, text: overlay.buildOverlayReminder(name, root, config) }))
+                .map(name => ({ name, ...overlay.resolveOverlayReminder(name, root, config) }))
                 .filter(item => item.text);
             if (!reminders.length) return finish('');
 
@@ -147,7 +155,8 @@ function run(input, deps = {}) {
                 root: store,
                 input,
                 group: `${GROUP_PREFIX}${item.name}`,
-                hash: crypto.createHash('sha256').update(item.text, 'utf8').digest('hex'),
+                // Every matched path defines the set, including paths omitted from the short text.
+                hash: crypto.createHash('sha256').update(JSON.stringify([item.text, item.files]), 'utf8').digest('hex'),
                 payload: item.text,
                 settings: getLedgerSettings(),
                 now,

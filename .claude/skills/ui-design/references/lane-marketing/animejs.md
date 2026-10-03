@@ -242,20 +242,7 @@ animate('.element', {
 
 ### ALWAYS Use Single-Line Format for Simple Animations
 
-**This is mandatory for readability** - Use for animations with ≤4 properties:
-
-```javascript
-// ✅ GOOD - Clean, readable, one line
-animate('.element', { x: 250, duration: 1, ease: 'outQuad' });
-animate('.box', { opacity: 0.5, scale: 0.8, duration: 0.3 });
-
-// ❌ BAD - Unnecessary multi-line for simple tweens
-animate('.element', {
-    x: 250,
-    duration: 1,
-    ease: 'outQuad'
-});
-```
+Use one line for animations with ≤4 properties; see the simple-tween example in Quick Start. Use the complex-animation format below for >4 properties or callbacks.
 
 ### Multi-Line Format (Only for Complex Animations)
 
@@ -407,23 +394,7 @@ anime.running
 
 ## 💡 AI Code Generation Rules
 
-When asked to create animations with anime.js:
-
-1. **ONLY** set `engine.timeUnit = 's'` ONCE in the app's main entry point (App.js, main.js, index.js) - NEVER in components
-2. **ALWAYS** use seconds for all durations (1 = 1 second)
-3. **ALWAYS** format simple animations on ONE LINE
-4. **ALWAYS** start with v4 imports
-5. **NEVER** use `anime()` function
-6. **ALWAYS** use `animate()` for animations
-7. **NEVER** include `targets` property
-8. **ALWAYS** use `ease` not `easing`
-9. **NEVER** use `value`, use `to` instead
-10. **ALWAYS** prefix callbacks with `on`
-11. **NEVER** use `direction`, use `alternate` and `reversed`
-12. **ALWAYS** use `createTimeline()` for timelines
-13. **PREFER** shorthand (`x`) over explicit (`translateX`)
-14. **FORMAT** short animations on single line (≤4 properties)
-15. **NEVER** generate v3 syntax under any circumstances
+Before generating code, apply the [Quick Validation Checklist](#-quick-validation-checklist) and the formatting rules above. Keep the configured major version consistent: v4 uses `animate`, `createTimeline`, `ease`, `to`, `on` callbacks and `alternate`/`reversed`; never emit v3 syntax for v4. Set seconds once at the app entry point, never in components.
 
 ## NPM Installation
 

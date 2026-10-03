@@ -1231,8 +1231,7 @@ function buildDigest(entries, rels, settings, opts = {}) {
     const ordered = Array.isArray(entries) ? entries : [];
     const targets = Array.isArray(rels) ? rels : [rels];
     const maxChars = (settings && settings.maxChars) || DEFAULTS.maxChars;
-    const forms = {};
-    for (const entry of ordered) forms[entry.name] = 'full';
+    const forms = Object.fromEntries(ordered.map(entry => [entry.name, 'full']));
     const lowestFirst = [...ordered].reverse();
     let text = composeText(ordered, forms, targets, opts);
     while (text.length > maxChars) {

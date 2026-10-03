@@ -429,27 +429,8 @@ Auto-open: opened | skipped ({reason})
 
 ---
 
-## Anti-patterns — each one fails a gate
+## Closing Reminders
 
-| Anti-pattern                                              | Why it fails                                                                            |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Writing the HTML straight from the diff, no temp report   | R5 is BLOCKING — context overflows and the doc invents claims                             |
-| Reading one commit deeply and calling the release covered | R1 breadth-first exists precisely to prevent this                                         |
-| A generic card/dashboard mock-up                          | Fails R8.2 — it must reproduce the project's real screen                                  |
-| Lorem ipsum / `Item 1` / `foo@bar.com`                    | Fails R8.2 — real domain fields and realistic data only                                   |
-| A render with no `⚠ Illustrative mock-up` label           | A reconstruction presented as a screenshot misleads the reader                            |
-| Restating commit subjects as "What's New"                 | A highlight is a user outcome, not a commit                                               |
-| Refactors, tests, CI, deps or docs listed in "What's New"  | Fails R8.3 — `INTERNAL` work belongs in the collapsed §7, never in the user narrative     |
-| Class / component / file / endpoint names in the prose     | Fails R8.3 — the reader does not know the codebase; chips carry traceability, prose carries meaning |
-| Rewording an internal change to sound user-facing          | Fails R8.1 — manufactured value is a fabrication; honest §7 routing is the correct move   |
-| Padding "What's New" so an all-internal release looks big  | Fails R8.3 — say "no user-facing changes this release" and render §7/§9 only              |
-| A wall of correct prose with no visual per highlight       | Fails R8.4 — each user-visible highlight is understood from its visual first (R6.5.2)     |
-| "Action required" buried below the features                | Fails R8.4 — the defaults board sits on the first screen (R6.5.1)                         |
-| Decorative icons or charts of estimated numbers            | Fails R8.4 / R8.1 — a visual must explain, and every value comes from the temp report     |
-| Judging layout from the source or one wide screenshot      | Fails R8.4 — view wide and verified-narrow renders (R6.5.8)                               |
-| Calling a change `NO-UI` because the diff was backend-only | Fails R4.1 — if its effect shows on an existing screen it is `BEHIND-UI` and gets a mock-up |
-| Inventing a mock-up procedure instead of `pbi --mode=mockup`'s    | Fails R8.2 — R6.3 binds the reproduction contract to `pbi --mode=mockup` Steps 3/3b/3c/7          |
-| Claiming a behavior with no `file:line`                   | Fails R8.1 — every claim carries an evidence chip                                         |
-| Smoothing over a spec↔code conflict                       | R3.3 requires surfacing it; a release doc must not hide a contradiction                   |
-| Failing the run because the browser did not open          | R9 — auto-open is best-effort, never a blocker                                            |
-| Skipping the HTML because the release has no UI           | R4.1 — a `NO-UI` release still gets the full HTML doc, minus the mock-up sections          |
+Complete R1–R10 in order: preserve breadth-first evidence in the temp report, surface spec/code conflicts, and route INTERNAL versus USER-VISIBLE work honestly. Reproduce real UI through the declared mock-up contract; label reconstructions, use realistic data, and keep traceability in evidence chips.
+
+R8 accuracy, fidelity, audience and visual gates all remain blocking; source-only rendering follows its explicit limitation record. A NO-UI release still receives the full HTML report. R9 auto-open is best-effort and never blocks delivery.

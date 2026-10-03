@@ -308,6 +308,7 @@ NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
+- `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
 - `test-architecture-execution-contract` — Testability as an architecture condition: required test types and execution modes; setting up or reviewing a test architecture → .claude/skills/shared/protocols/test-architecture-execution-contract.md
 - `understand-code-first` — Read and trace the target and existing patterns before changing code; planning or editing code → .claude/skills/shared/protocols/understand-code-first.md
@@ -345,6 +346,12 @@ NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review
 **MUST ATTENTION** Before implementation record evidence-backed applicability for the test types and modes the task/project contract requires: copy-ready full and focused commands where available, zero-match behavior, a useful platform-appropriate entry point, supported execution modes and environments, state-isolation requirements, exact results, and repeat evidence where persistent state makes it relevant. Exercise claimed modes; report a missing required capability as `ENVIRONMENT-BLOCKED`. Never invent production targets or impose a test format. Browser/UI E2E uses the configured runner's waits or project helper for observable readiness and outcomes; apply action pacing only where the project contract specifies it. Reuse the project's evidenced test organization — require a POM, base class, or component taxonomy only when the project actually selects it.
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
+
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
 
 ## Closing Reminders
 
@@ -395,4 +402,4 @@ NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review
 
 **[TASK-PLANNING]** Before acting, break task into small todo tasks using task tracking.
 
-**IMPORTANT MUST ATTENTION** Convention-first · local-dev default-enabled (env-gate FIRST, never prod) · seed via PUBLIC commands like a real user/QC · configurable count with SMALL default (cases + volume) · idempotent + restart-safe (resume to target X, never re-seed) · NEVER direct repo/DB writes · `file:line` evidence per gate (confidence >80%).
+**IMPORTANT MUST ATTENTION** apply every Universal Seed Data Rule and the Persistent Seed Run Contract above; closing priorities remain convention-first, env-gate FIRST, public commands, small configurable count, idempotency/restart safety, and evidence per gate.

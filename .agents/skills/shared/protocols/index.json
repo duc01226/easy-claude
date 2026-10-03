@@ -393,12 +393,12 @@
       "group": "universal",
       "summary": "Discovery order, search-first rule and first principles",
       "when": "delivered by the universal hook",
-      "chars": 1960,
+      "chars": 1986,
       "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/discovery-and-first-principles.md",
-          "chars": 1960
+          "chars": 1986
         }
       ]
     },
@@ -735,6 +735,20 @@
         {
           "file": ".claude/skills/shared/protocols/logic-and-intention-review.md",
           "chars": 882
+        }
+      ]
+    },
+    {
+      "tag": "measured-capacity-engineering",
+      "group": "design",
+      "summary": "Model demand, reduce measured work safely and prove capacity before scaling",
+      "when": "planning, building, testing or reviewing hot paths, caches or capacity",
+      "chars": 4201,
+      "file": ".claude/skills/shared/protocols/measured-capacity-engineering.md",
+      "parts": [
+        {
+          "file": ".claude/skills/shared/protocols/measured-capacity-engineering.md",
+          "chars": 4201
         }
       ]
     },
@@ -1531,12 +1545,12 @@
       "group": "universal",
       "summary": "Model-driven step advancement and the parallel-phase barrier",
       "when": "delivered by the universal hook",
-      "chars": 2169,
+      "chars": 2561,
       "file": ".claude/skills/shared/protocols/workflow-step-advancement.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/workflow-step-advancement.md",
-          "chars": 2169
+          "chars": 2561
         }
       ]
     }

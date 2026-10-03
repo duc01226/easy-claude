@@ -111,7 +111,7 @@ Detect the mode from the invocation arguments before any other work; do not load
 
 - **[BLOCKING]** When `--mode=review`, read `references/mode-review.md` in full FIRST; it replaces test generation for the invocation (read-only, one round, report under `tmp/reports/`), so its one-round cap and read-only rules govern. `--report-only` and `--prove-tests` are its flags; workflow invocation returns the verdict and report path to the parent without next-step prompts.
 - **[BLOCKING]** When `--mode=verify`, read `references/mode-verify.md` in full FIRST; it replaces test generation for the invocation and owns `--fix-loop` (read `references/fix-loop.md` in full before any loop work). Without `--fix-loop` the default verify pass runs exactly as documented there.
-- The positional `review` / `diagnose` / `verify` words below are lightweight inline branches of test generation; `--mode=review` and `--mode=verify` are the standalone gates. A workflow step always passes the `--mode` flag.
+- The positional `review` / `diagnose` / `verify` words below are lightweight positional branches of test generation; `--mode=review` and `--mode=verify` are the standalone gates. A workflow step always passes the `--mode` flag.
 - `--mode=review` and `--mode=verify` are separate invocations over existing tests; generation never chains into them on its own.
 - The frontmatter `execution-mode: subagent` describes default generation. `--mode=verify` runs INLINE in the main session (`--fix-loop` never runs as a sub-agent); `--mode=review` runs where its caller dispatches it (a read-only specialist under `workflow-review-changes`).
 
@@ -226,15 +226,7 @@ ALWAYS create and execute tasks in this exact order:
 
 ## Module Abbreviation Registry
 
-| Module                  | Abbreviation | Test Folder      |
-| ----------------------- | ------------ | ---------------- |
-| Order Management        | OM           | `Orders/`        |
-| Inventory               | INV          | `Inventory/`     |
-| User Profiles           | UP           | `UserProfiles/`  |
-| Notification Management | NM           | `Notifications/` |
-| Report Generation       | RG           | `Reports/`       |
-| Feedback                | FB           | `Feedback/`      |
-| Background Jobs         | BJ           | —                |
+Discover existing feature/module codes from the selected canonical business owner and its index; discover test folders from the project’s test organization. Do not copy generic module abbreviations into a project registry. The strict-default feature doc remains the numbering owner below; native profiles retain their declared identity and cardinality.
 
 ## TC Code Numbering Rules (Strict TC Default Only)
 
@@ -266,7 +258,7 @@ Args = "verify" (e.g., "/integration-test verify {Service}")
   → VERIFY-TRACEABILITY mode: check test code matches specs and feature docs
 ```
 
-> **Modes vs. flagged modes (name-collision note).** The positional `review` and `verify` are lightweight inline branches, not the standalone `--mode=review` (deep quality) or `--mode=verify` (full verification) gates. In `/integration-test → /integration-test --mode=review → /integration-test --mode=verify`, invoke the flagged modes; use the positional branches for quick mid-generation passes.
+> **Modes vs. flagged modes (name-collision note).** The positional `review` and `verify` are lightweight positional branches, not the standalone `--mode=review` (deep quality) or `--mode=verify` (full verification) gates. In `/integration-test → /integration-test --mode=review → /integration-test --mode=verify`, invoke the flagged modes; use the positional branches for quick mid-generation passes.
 
 ## Step 1: Find Targets
 
@@ -469,259 +461,19 @@ find . -name "*IntegrationTestFixture.*" -type f
 
 # REVIEW Mode — Test Quality Audit
 
-Mode = REVIEW: audit existing integration tests for quality, flaky patterns, best practices.
-
-## Sub-Agent Routing
-
-| Input type                                        | Sub-agent            | Why                                                                                                                                |
-| ------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Test file quality audit                           | `integration-tester` | Purpose-built for spec generation, TC traceability, and test patterns — catches integration-specific issues `code-reviewer` misses |
-| Security-sensitive test data (PII, auth fixtures) | `security-auditor`   | Detects PII leakage in test fixtures                                                                                               |
-
-## Sub-Agent Type Override
-
-> **MANDATORY:** Integration test REVIEW mode spawns `integration-tester` sub-agent (`subagent_type: "integration-tester"`), NOT `code-reviewer`.
-> **Rationale:** `integration-tester` specializes in test spec generation, TC traceability, CQRS test patterns, async-polling / eventual-consistency assertion correctness, and cross-service integration context — areas `code-reviewer` does not cover at depth.
-
-**One-pass review protocol:** Run one review pass inline. If evidence is low-confidence or contradictory, return `NOT VERIFIABLE` with the missing evidence or owner question; never start a second review round. A later review requires a new explicit invocation after the target or evidence changes.
-
-## Review Workflow
-
-1. **Find test files** — Glob `{Service}.IntegrationTests/{Domain}/**/*IntegrationTests.*`
-2. **Read each test file** — analyze for quality issues (persist findings after each file per SYNC:incremental-persistence)
-3. **Generate quality report** — categorized findings with severity
-
-## Review Dimensions
-
-**Dimension 1: Reliability** — Think: What causes intermittent failures?
-
-- MUST ATTENTION flag **missing async polling** — DB assertions after async handlers without an await-until-condition poll (the project's async-assertion helper) → WILL flake
-- MUST ATTENTION flag **missing retry for eventual consistency** — message bus / event handler / background job state without polling wrapper
-- MUST ATTENTION flag **hardcoded delays** — `Thread.Sleep()`, `Task.Delay()` instead of condition-based polling
-- MUST ATTENTION flag **race conditions** — tests modifying shared state without isolation (same entity ID, same user context)
-- MUST ATTENTION flag **shared mutable data** (see `SYNC:test-data-isolation`) — assertions hung off a shared mutable entity another test can change, OR off a parent a bulk re-sync/recompute/rebuild/cascade consumer can wipe → not parallel-safe, even without your test mutating it
-- MUST ATTENTION flag **non-unique test data** — hardcoded strings/IDs instead of unique generators
-- MUST ATTENTION flag **time-dependent assertions** — `DateTime.Now` without time abstraction
-
-**Dimension 2: Assertion Value** — Think: Does the test actually verify anything?
-
-- MUST ATTENTION flag DI-resolution-only tests — smoke tests that just resolve services → HIGH severity
-- MUST ATTENTION flag exception-check-only tests — `exception.Should().BeNull()` alone → HIGH severity
-- MUST ATTENTION verify test reads handler/entity/event source and asserts specific field values
-- MUST ATTENTION verify distinct protected behaviors, relevant failures and boundaries; do not impose a minimum case count
-
-**Dimension 3: Conventions** — Think: Does test follow project patterns?
-
-- MUST ATTENTION verify collection/group attribute — correct collection name for shared fixture
-- MUST ATTENTION verify category annotation or equivalent test-category marker when the project uses one
-- MUST ATTENTION verify TC annotation — every test method has a TC code comment + the test-spec annotation
-- MUST ATTENTION verify no mocks — real DI only
-- MUST ATTENTION verify unique test data — all string data uses unique generators
-- MUST ATTENTION verify user context — via factory, not hardcoded
-- MUST ATTENTION verify DB assertions — uses entity assertion helpers, not raw DB queries
-
-**Dimension 4: Code Quality** — Think: Maintainability and isolation?
-
-- MUST ATTENTION verify method naming — `{Action}_When{Condition}_Should{Expectation}`
-- MUST ATTENTION verify explicit Given-When-Then — map Arrange to Given, Act to When, and Assert to Then; the three phases must be clear and labeled
-- MUST ATTENTION flag logic in tests — conditionals, loops, complex setup in test methods
-- MUST ATTENTION verify test independence — each test runs in isolation
-
-## Review Report Format
-
-```markdown
-# Integration Test Quality Report — {Domain}
-
-## Summary
-
-- Tests scanned: {N}
-- Issues found: {N} (HIGH: {n}, MEDIUM: {n}, LOW: {n})
-- Overall quality: {GOOD|NEEDS_WORK|CRITICAL}
-
-## HIGH Severity Issues (Flaky Risk)
-
-| Test         | Issue                                            | Fix                                    |
-| ------------ | ------------------------------------------------ | -------------------------------------- |
-| {MethodName} | DB assertion without polling after async handler | Wrap in project's async polling helper |
-
-## MEDIUM Severity Issues (Best Practice)
-
-| Test | Issue | Fix |
-| ---- | ----- | --- |
-
-## LOW Severity Issues (Style)
-
-| Test | Issue | Fix |
-| ---- | ----- | --- |
-
-## Recommendations
-
-1. {Prioritized fix suggestions}
-```
+**[BLOCKING]** When positional `review`, read `references/integration-test-skill-positional-review.md` in full FIRST and follow that branch. The flagged `--mode=review` and `--mode=verify` retain their separate dispatch contracts.
 
 ---
 
 # DIAGNOSE Mode — Test Failure Root Cause Analysis
 
-Mode = DIAGNOSE: analyze failing tests to determine test bug vs application code bug.
-
-## Diagnose Workflow
-
-1. **Identify failing tests** — User provides test class name or run test suite to collect failures
-2. **Read test code** — understand what test expects
-3. **Read application code** — trace the command/query handler path
-4. **Compare expected vs actual** — determine root cause
-5. **Classify** — Test bug vs code bug vs infrastructure issue
-6. **Report** — Root cause + recommended fix
-
-## Root Cause Decision Tree
-
-```
-Test fails
-├── Compilation error?
-│   ├── Missing type/method → Code changed, test not updated → TEST BUG
-│   └── Wrong import/namespace → TEST BUG
-├── Timeout/hang?
-│   ├── Missing async/await → TEST BUG
-│   ├── Deadlock in handler → CODE BUG
-│   └── Infrastructure down → INFRA ISSUE
-├── Assertion failure?
-│   ├── Expected value wrong?
-│   │   ├── Test hardcoded old behavior → TEST BUG
-│   │   └── Business logic changed → CODE BUG (if unintended) or TEST BUG (if intended change)
-│   ├── Null/empty result?
-│   │   ├── Entity not found → Check if create step succeeded → TEST BUG (setup) or CODE BUG (handler)
-│   │   └── Query returns empty → Check filters/predicates → CODE BUG
-│   ├── Intermittent (passes sometimes)?
-│   │   ├── Async assertion without polling → TEST BUG (add async polling/retry)
-│   │   ├── Non-unique test data collision → TEST BUG (use unique name generator)
-│   │   └── Race condition in handler → CODE BUG
-│   └── Wrong/empty count when path under test is provably innocent?
-│       ├── Test data leak from other tests → TEST BUG (isolation: own fresh per-test data, not a shared mutable entity)
-│       ├── Shared parent wiped by cross-cutting consumer (bulk re-sync, recompute, cascade) → TEST BUG (isolation) — suspect FIRST, grep other tests + consumers before blaming code
-│       └── Logic error in query → CODE BUG
-├── Validation error (expected success)?
-│   ├── Test sends invalid data → TEST BUG
-│   └── Validation rule too strict → CODE BUG
-└── Exception thrown?
-    ├── Known exception type in handler → CODE BUG
-    └── DI/config error → INFRA ISSUE
-```
-
-## Diagnose Report Format
-
-```markdown
-# Test Failure Diagnosis — {TestClass}
-
-## Failing Tests
-
-| Test Method | Error Type        | Root Cause    | Classification              |
-| ----------- | ----------------- | ------------- | --------------------------- |
-| {Method}    | {AssertionFailed} | {Description} | TEST BUG / CODE BUG / INFRA |
-
-## Detailed Analysis
-
-### {MethodName}
-
-**Error:** {error message}
-**Expected:** {what test expected}
-**Actual:** {what happened}
-**Root Cause:** {explanation with code evidence}
-**Classification:** TEST BUG | CODE BUG | INFRA ISSUE
-**Evidence:** `{file}:{line}` — {what the code does}
-**Recommended Fix:** {specific fix with code location}
-
-## Summary
-
-- Test bugs: {N} — fix in test code
-- Code bugs: {N} — fix in application code
-- Infra issues: {N} — fix in configuration/environment
-```
+**[BLOCKING]** When positional `diagnose`, read `references/integration-test-skill-positional-diagnose.md` in full FIRST and follow that branch. The flagged `--mode=review` and `--mode=verify` retain their separate dispatch contracts.
 
 ---
 
 # VERIFY-TRACEABILITY Mode — Test ↔ Spec ↔ Feature Doc Verification
 
-Mode = VERIFY: bidirectional traceability check between test code, test specs, feature docs.
-
-> **Relationship to Mandatory "no missing integration tests" task (Mandatory Task Ordering, step 3).** That task already runs SAME bidirectional logic, feature-area-scoped, EVERY run (workflow / git-changes-present / user-request) — not only when user explicitly types `verify`. This standalone VERIFY mode exists for on-demand, potentially broader (multi-feature-doc or whole-service) traceability sweep user invokes by name — not a separate, narrower obligation. Both apply same run → audit once, satisfy both.
-
-## Verify Workflow
-
-1. **Collect test methods** — Grep for test-spec annotations across all test projects/suites (integration **and** unit)
-2. **Collect doc TCs** — Read feature doc Section 8 for all TC entries
-3. **Build 3-way matrix** — Test code ↔ specs/ ↔ feature doc Section 8
-4. **Identify mismatches** — Orphans, stale references, behavior drift
-5. **Classify mismatches** — Which source is correct?
-6. **Report** — Traceability matrix + recommended fixes
-
-## Mismatch Classification
-
-| Scenario                                          | Likely Correct Source                 | Action                                                                 |
-| ------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------- |
-| Test passes, spec describes different behavior    | Adjudication required                 | Compare against canonical product/spec intent before changing anything |
-| Test fails, spec describes expected behavior      | Spec, unless spec intent is disproved | Update test to match intended spec behavior                            |
-| Test exists, no spec                              | Adjudication required                 | Create spec from test only after confirming the test protects intent   |
-| Spec exists, no test                              | Spec                                  | Generate test from spec                                                |
-| Test and spec agree, but code behaves differently | Spec, unless both are stale           | Fix code or update spec+test after intent adjudication                 |
-
-**Rule:** Passing code or tests NEVER automatically outrank canonical product/spec intent. NEVER update spec, test, or code on a behavior-changing mismatch until it reaches adjudication-required status with explicit evidence. — why: a green test can encode a regression, so code agreement alone cannot ratify a spec change.
-
-## Verification Requirements
-
-MUST ATTENTION verify ALL of the following:
-
-- Every test method has matching TC in feature doc Section 8
-- Every TC in Section 8 has matching test method (or marked `Status: Untested`)
-- TC descriptions in docs match what test actually validates
-- Evidence file paths in TCs point to current (not stale) code locations
-- Business `TestSpec` annotations match TC IDs (no typos, no orphaned IDs); technical-only tests use `TechnicalSpec` and do not create §8 obligations
-- Priority levels in docs match test categorization
-- The business spec root dashboard (default `docs/specs/`; a `specRoots.business.path` entry in `docs/project-config.json` overrides the path) is in sync with feature doc Section 8
-
-## Verify Report Format
-
-```markdown
-# Traceability Report — {Service}
-
-## Summary
-
-- TCs in feature docs: {N}
-- Test methods with TC annotations: {N}
-- Fully traced (both directions): {N}
-- Orphaned tests (no matching TC): {N}
-- Orphaned TCs (no matching test): {N}
-- Mismatched behavior: {N}
-
-## Traceability Matrix
-
-| TC ID     | Feature Doc? | Test Code? | Dashboard? | Status       |
-| --------- | ------------ | ---------- | ---------- | ------------ |
-| TC-OM-001 | ✅           | ✅         | ✅         | Traced       |
-| TC-OM-005 | ✅           | ❌         | ✅         | Missing test |
-| TC-OM-010 | ❌           | ✅         | ❌         | Missing spec |
-
-## Orphaned Tests (no matching TC in docs)
-
-| Test File | Method   | Annotation | Action                   |
-| --------- | -------- | ---------- | ------------------------ |
-| {file}    | {method} | TC-OM-010  | Create TC in feature doc |
-
-## Orphaned TCs (no matching test)
-
-| TC ID     | Doc Location | Priority | Action                              |
-| --------- | ------------ | -------- | ----------------------------------- |
-| TC-OM-005 | Section 8    | P0       | Generate test via /integration-test |
-
-## Behavior Mismatches
-
-| TC ID | Doc Says | Test Does | Correct Source | Action |
-| ----- | -------- | --------- | -------------- | ------ |
-
-## Recommendations
-
-1. {Prioritized actions}
-```
+**[BLOCKING]** When positional `verify`, read `references/integration-test-skill-positional-traceability.md` in full FIRST and follow that branch. The flagged `--mode=review` and `--mode=verify` retain their separate dispatch contracts.
 
 ---
 
@@ -829,6 +581,7 @@ integration-test (you are here)
 - `graph-impact-analysis` — Optional blast-radius query that suggests files a high-risk change may affect, a hint that can be stale and never proof; assessing the impact of a high-risk change while the code graph exists → .claude/skills/shared/protocols/graph-impact-analysis.md
 - `incremental-persistence` — Persist results per file or section while the work proceeds; a sub-agent or heavy step processes more than three files → .claude/skills/shared/protocols/incremental-persistence.md
 - `integration-test-execution-discipline` — How integration tests are written, reviewed, run, diagnosed and cleared; working in the integration-test skill family → .claude/skills/shared/protocols/integration-test-execution-discipline.md
+- `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `rationalization-prevention` — Recognize and reject the evasions used to skip required steps; tempted to skip a step, a test or a review → .claude/skills/shared/protocols/rationalization-prevention.md
 - `real-world-fidelity-testing` — Integration, E2E and system tests exercise real boundaries; authoring, reviewing or repairing integration, E2E or system tests → .claude/skills/shared/protocols/real-world-fidelity-testing.md
 - `red-flag-stop-conditions` — Conditions that require stopping and escalating to the user; debugging or testing stalls or the risk rises → .claude/skills/shared/protocols/red-flag-stop-conditions.md
@@ -905,6 +658,12 @@ integration-test (you are here)
 
 <!-- /SYNC:test-architecture-execution-contract:reminder -->
 
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve Unit/Integration/System/E2E applicability, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before completion.
@@ -947,8 +706,8 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done after one green run — verification requires 2 consecutive `/integration-test --mode=verify` passes WITHOUT a DB reset — why: one run proves only the current run, not repeatability
 - **MANDATORY IMPORTANT MUST ATTENTION** make every test parallel-safe — own fresh per-test data down to the root it asserts on, NEVER a shared mutable entity; account for cross-cutting consumers (bulk re-sync/recompute/rebuild/cascade) that wipe a shared parent; on a contradiction between a provably-innocent path and wrong state, suspect cross-test interference FIRST and prove isolation by grepping other tests + consumers — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
 - **MANDATORY IMPORTANT MUST ATTENTION** apply the Real-World Fidelity Gate BEFORE writing any setup — ask "can this sequence, timing, and data actually occur in production?", model real pacing between distinct actor actions instead of firing them in the same millisecond, and wait on an observable settle signal in ARRANGE; NEVER widen an assertion timeout, loosen a comparison, or wrap a failing assertion in a retry to compensate — why: a scenario production can never reach proves nothing when it passes and manufactures phantom "product defects" when it fails
-- **MANDATORY IMPORTANT MUST ATTENTION** positional `review`/`verify` are lightweight inline branches — invoke `--mode=review` and `--mode=verify` for the heavier workflow gates — why: name-collision; the positional branches are not the standalone gates
-- **MANDATORY IMPORTANT MUST ATTENTION** passing code/tests NEVER outrank canonical spec intent — instead reach adjudication-required with evidence before changing spec/test/code on a behavior mismatch — why: a green test can encode a regression
+- **MANDATORY IMPORTANT MUST ATTENTION** positional `review`/`verify` are lightweight positional branches — invoke `--mode=review` and `--mode=verify` for the heavier workflow gates — why: name-collision; the positional branches are not the standalone gates
+- **MANDATORY IMPORTANT MUST ATTENTION** passing code/tests NEVER outrank canonical product/spec intent — instead reach adjudication-required with evidence before changing spec/test/code on a behavior mismatch — why: a green test can encode a regression
 - **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
 
 **Anti-Rationalization:**

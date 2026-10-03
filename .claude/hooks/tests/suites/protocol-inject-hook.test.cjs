@@ -70,7 +70,7 @@ const SPECS = [
 function scrubbedEnv(temp, extra = {}) {
     const overrides = { HOME: temp, USERPROFILE: temp, TMPDIR: temp, TEMP: temp, TMP: temp, NODE_OPTIONS: undefined };
     for (const key of Object.keys(process.env)) {
-        if (/^(?:CK_|CLAUDE_|CODEX_|OPENCODE_)/i.test(key)) overrides[key] = undefined;
+        if (/^(?:CK_|CLAUDE_|CODEX_|OPENCODE_|ANTHROPIC_|OPENAI_|AZURE_|GEMINI_|GOOGLE_|AWS_|MISTRAL_|COHERE_|GROQ_|DEEPSEEK_|TOGETHER_|PERPLEXITY_|XAI_|HF_|HUGGINGFACE_|LANGCHAIN_|LANGSMITH_|OLLAMA_|BEDROCK_)/i.test(key)) overrides[key] = undefined;
     }
     return childEnv({ ...overrides, ...extra });
 }
@@ -150,7 +150,7 @@ const skillLoad = (fx, name = 'conv-a', extra = {}) => ({
 // ── process runners ─────────────────────────────────────────────────────────
 
 /** Spawn one entry file (optionally under a --require preload) and parse its stdout. */
-function runEntry(fx, group, input, { preload, env } = {}) {
+function runEntry(fx, group, input, { preload, env, closeStdout = false, closeStderr = false } = {}) {
     return new Promise(resolve => {
         const args = preload ? ['--require', preload, entryFile(group)] : [entryFile(group)];
         const child = spawn(process.execPath, args, { cwd: fx.project, env: fx.env(env), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
@@ -163,6 +163,8 @@ function runEntry(fx, group, input, { preload, env } = {}) {
             clearTimeout(timer);
             resolve({ code, stdout, stderr, context: contextOf(stdout) });
         });
+        if (closeStdout) child.stdout.destroy();
+        if (closeStderr) child.stderr.destroy();
         child.stdin.end(JSON.stringify(input));
     });
 }
@@ -255,6 +257,178 @@ const LAUNCHER = discoverLauncher();
 // ── tests ───────────────────────────────────────────────────────────────────
 
 const tests = [
+    {
+        name: 'TC-PDL-054 a closed output pipe never blocks any group, records a failed delivery or suppresses its healthy retry',
+        fn: () => withFixture(async fx => {
+            // Given every group has an indexed protocol declared by a fixture skill.
+            const tags = ENTRY_GROUPS.map(group => ({ tag: `${group}-output`, group }));
+            const index = JSON.parse(fs.readFileSync(fx.abs(`${PROTOCOLS_DIR}/index.json`), 'utf8'));
+            for (const { tag, group } of tags) {
+                fx.setText(tag);
+                index.tags.push({ tag, group, parts: [{ file: `${PROTOCOLS_DIR}/${tag}.md` }] });
+                fx.skill(`output-${group}`, [tag]);
+            }
+            fx.write(`${PROTOCOLS_DIR}/index.json`, JSON.stringify(index));
+            for (const { tag, group } of tags) {
+                const event = skillLoad(fx, `output-${group}`, { session_id: group });
+                // When the host closes stdout before the group attempts delivery.
+                const failed = await runEntry(fx, group, event, { closeStdout: true });
+                // Then the advisory hook allows the event without false delivery credit or a held claim.
+                assertSilent(failed, `${group}: closed output`);
+                assert.equal(failed.stderr, '', `${group}: no unhandled error`);
+                assert.deepEqual(fx.records(group), {}, `${group}: failed write is not delivery evidence`);
+                const scope = path.join(fx.store, group, 'main');
+                assert.equal(fs.readdirSync(scope).filter(name => name.endsWith('.lock')).length, 0, `${group}: claim released`);
+                // When the same event retries with a healthy output pipe.
+                const retry = await runEntry(fx, group, event);
+                // Then the protocol arrives once and only that acknowledgment starts suppression.
+                assertDelivers(retry, [tag], `${group}: healthy retry`);
+                assert.deepEqual(Object.keys(fx.records(group)), [tag], `${group}: retry acknowledged`);
+                assertSilent(await runEntry(fx, group, event), `${group}: acknowledged retry deduplicates`);
+            }
+        })
+    },
+    {
+        name: 'TC-PDL-054 output acknowledgment settles once and removes transient error listeners',
+        fn: () => withFixture(async fx => {
+            // Native pipe coverage above owns actual EPIPE; this seam proves both
+            // callback/event orders and listener lifetime without process-global leakage.
+            for (const mode of ['success', 'callback-error', 'event-error', 'throw']) {
+                // Given an isolated native child and one of the supported output completion orders.
+                const input = skillLoad(fx, 'conv-b', { session_id: mode });
+                const source = `
+                    const fs = require('node:fs');
+                    const delivery = require(${JSON.stringify(LIB)});
+                    const ledger = require(${JSON.stringify(path.join(HOOKS_DIR, 'lib', 'convention-ledger.cjs'))});
+                    const output = process.stdout;
+                    const original = output.write;
+                    const baseline = output.listenerCount('error');
+                    let releases = 0;
+                    const release = ledger.releaseLock;
+                    ledger.releaseLock = (...args) => { releases++; return release(...args); };
+                    const mode = ${JSON.stringify(mode)};
+                    output.write = (text, done) => {
+                        const error = new Error('synthetic output failure');
+                        if (mode === 'throw') throw error;
+                        if (mode === 'success') { done(); return true; }
+                        if (mode === 'callback-error') { done(error); output.emit('error', error); }
+                        else { output.emit('error', error); done(error); }
+                        return false;
+                    };
+                    delivery.runHook('review', { input: ${JSON.stringify(input)}, projectRoot: ${JSON.stringify(fx.project)} })
+                    .then(payload => {
+                        const listeners = output.listenerCount('error') - baseline;
+                        output.write = original;
+                        original.call(output, JSON.stringify({ delivered: Boolean(payload), releases, listeners }));
+                    });
+                `;
+                // When its real delivery writer succeeds, fails by callback/event, or throws.
+                const result = spawnSync(process.execPath, ['-e', source], {
+                    cwd: fx.project, env: fx.env(), encoding: 'utf8', timeout: SPAWN_TIMEOUT_MS, windowsHide: true
+                });
+                // Then it acknowledges once, releases its claim, and leaves no transient listener.
+                assert.equal(result.error, undefined, `${mode}: process available`);
+                assert.equal(result.status, 0, result.stderr);
+                assert.equal(result.stderr, '', `${mode}: contained error`);
+                assert.deepEqual(JSON.parse(result.stdout), {
+                    delivered: mode === 'success', releases: 1, listeners: 0
+                }, `${mode}: one acknowledgment, no listener leak`);
+                assert.deepEqual(Object.keys(fx.records(mode)), mode === 'success' ? ['review-alpha'] : [], `${mode}: acknowledgment owns record`);
+            }
+        })
+    },
+    {
+        name: '[entry] malformed group diagnostics contain closed pipes and allow recovery for every group',
+        fn: () => withFixture(async fx => {
+            // Given every real group entry has a declared indexed protocol, but its registry is malformed.
+            const groupsFile = '.claude/skills/shared/protocol-groups.json';
+            const validGroups = fs.readFileSync(fx.abs(groupsFile), 'utf8');
+            const index = JSON.parse(fs.readFileSync(fx.abs(`${PROTOCOLS_DIR}/index.json`), 'utf8'));
+            for (const group of ENTRY_GROUPS) {
+                const tag = `${group}-diagnostic`;
+                fx.setText(tag);
+                index.tags.push({ tag, group, parts: [{ file: `${PROTOCOLS_DIR}/${tag}.md` }] });
+                fx.skill(`diagnostic-${group}`, [tag]);
+            }
+            fx.write(`${PROTOCOLS_DIR}/index.json`, JSON.stringify(index));
+            for (const group of ENTRY_GROUPS) {
+                fx.write(groupsFile, '{malformed');
+                const event = skillLoad(fx, `diagnostic-${group}`, { session_id: group });
+                // When a healthy stderr pipe receives the malformed-registry diagnostic.
+                const diagnostic = await runEntry(fx, group, event);
+                // Then the existing notice stays visible without creating a delivery record.
+                assertSilent(diagnostic, `${group}: healthy diagnostic`);
+                assert.equal(diagnostic.stderr, `[protocol-delivery] unknown protocol group "${group}": nothing delivered\n`);
+                // When the host closes stderr before the same real entry receives the event.
+                const failed = await runEntry(fx, group, event, { closeStderr: true });
+                // Then the diagnostic is best-effort, and neither records nor claims suppress recovery.
+                assertSilent(failed, `${group}: closed diagnostic pipe`);
+                assert.deepEqual(fx.records(group), {}, `${group}: diagnostic is not delivery evidence`);
+                assert.equal(fs.existsSync(path.join(fx.store, group)), false, `${group}: no diagnostic ledger or claim`);
+                // When valid registry data is restored and the same event retries on open pipes.
+                fx.write(groupsFile, validGroups);
+                const retry = await runEntry(fx, group, event);
+                // Then full context arrives once, earns a record, and its next repeat stays silent.
+                assertDelivers(retry, [`${group}-diagnostic`], `${group}: recovered registry`);
+                assert.deepEqual(Object.keys(fx.records(group)), [`${group}-diagnostic`]);
+                assertSilent(await runEntry(fx, group, event), `${group}: acknowledged recovery deduplicates`);
+            }
+        })
+    },
+    {
+        name: '[entry] diagnostic completion removes transient listeners across callback, event and throw orders',
+        fn: () => withFixture(async fx => {
+            // Given malformed group data and an isolated diagnostic stream for each completion order.
+            fx.write('.claude/skills/shared/protocol-groups.json', '{malformed');
+            for (const mode of ['success', 'callback-error', 'event-error', 'throw']) {
+                const source = `
+                    const delivery = require(${JSON.stringify(LIB)});
+                    const output = process.stderr;
+                    const original = output.write;
+                    const baseline = output.listenerCount('error');
+                    let writes = 0;
+                    let guardedAtFailure = false;
+                    const mode = ${JSON.stringify(mode)};
+                    output.write = (text, done) => {
+                        writes++;
+                        const error = new Error('synthetic diagnostic failure');
+                        if (mode === 'throw') throw error;
+                        if (mode === 'success') { if (done) done(); return true; }
+                        if (mode === 'callback-error') {
+                            if (done) done(error);
+                            guardedAtFailure = output.listenerCount('error') === baseline + 1;
+                            output.emit('error', error);
+                        } else {
+                            guardedAtFailure = output.listenerCount('error') === baseline + 1;
+                            output.emit('error', error);
+                            if (done) done(error);
+                        }
+                        return false;
+                    };
+                    delivery.runHook('review', { input: ${JSON.stringify(skillLoad(fx))}, projectRoot: ${JSON.stringify(fx.project)} })
+                    .then(payload => {
+                        const listeners = output.listenerCount('error') - baseline;
+                        output.write = original;
+                        process.stdout.write(JSON.stringify({ delivered: Boolean(payload), writes, listeners, guardedAtFailure }));
+                    });
+                `;
+                // When the real diagnostic writer receives success, either failure order, or a synchronous throw.
+                const result = spawnSync(process.execPath, ['-e', source], {
+                    cwd: fx.project, env: fx.env(), encoding: 'utf8', timeout: SPAWN_TIMEOUT_MS, windowsHide: true
+                });
+                // Then no error escapes, failed callbacks keep the native-event guard, and completion leaves none.
+                assert.equal(result.error, undefined, `${mode}: process available`);
+                assert.equal(result.status, 0, result.stderr);
+                assert.equal(result.stderr, '', `${mode}: contained diagnostic error`);
+                assert.deepEqual(JSON.parse(result.stdout), {
+                    delivered: false, writes: 1, listeners: 0,
+                    guardedAtFailure: mode === 'callback-error' || mode === 'event-error'
+                }, `${mode}: diagnostic lifecycle`);
+                assert.equal(fs.existsSync(fx.store), false, `${mode}: diagnostic never opens the ledger`);
+            }
+        })
+    },
+
     {
         name: '[entry] each of the five skill-load groups has a bare three-line entry file whose group is a literal (BR-PDL-15)',
         fn: () => {

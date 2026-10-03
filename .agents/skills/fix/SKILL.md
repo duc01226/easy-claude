@@ -297,6 +297,7 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 - `environment-fault-hypothesis` — Weigh the environment as a competing cause, with a named discriminator; judging a bug report, failing test, error or unexpected output → .claude/skills/shared/protocols/environment-fault-hypothesis.md
 - `evidence-based-reasoning` — Ground every material claim in file:line, config or source evidence, with stated confidence; making any claim, finding or recommendation → .claude/skills/shared/protocols/evidence-based-reasoning.md
 - `fix-layer-accountability` — Fix at the component that owns the violated contract, not at the crash site; choosing where to apply a fix → .claude/skills/shared/protocols/fix-layer-accountability.md
+- `measured-capacity-engineering` — Model demand, reduce measured work safely and prove capacity before scaling; planning, building, testing or reviewing hot paths, caches or capacity → .claude/skills/shared/protocols/measured-capacity-engineering.md
 - `root-cause-debugging` — Systematic root-cause debugging, never guess-and-check; debugging a failure → .claude/skills/shared/protocols/root-cause-debugging.md
 - `severity-rubric` — One consequence-based Critical, High, Medium, Low scale for every finding and gate; classifying a finding or deciding whether a review round passes → .claude/skills/shared/protocols/severity-rubric.md
 - `source-test-drift-check` — When source behavior changes, reconcile the affected tests from evidence; code, fix, test or review work changes behavior → .claude/skills/shared/protocols/source-test-drift-check.md
@@ -373,6 +374,12 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 
 <!-- /SYNC:environment-fault-hypothesis:reminder -->
 
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Eliminate each issue's root cause with end-to-start `file:line` evidence, fix the lowest invariant-owning layer (never the crash site), and add or update regression coverage that proves the fix converges.
@@ -408,21 +415,8 @@ Use `investigate --mode=debug` for complex problems, and the skills catalog to a
 
 | Evasion                                  | Rebuttal                                                                                          |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| "Root cause is obvious, just patch it"   | Trace end-to-start to the invariant owner with `file:line` first — the obvious site is the symptom. |
-| "I already investigated this"            | Show the the current task list row or investigation report for THIS symptom. Recall is not evidence — after compaction the belief survives, the findings do not. |
-| "A workflow is running, it handled diagnosis" | A parent row is a container, not proof. Cite the *completed* `investigate --mode=debug` step for this problem or the gate fires. |
-| "`--target=` scopes it, so no trace needed"   | Every branch passes through the Root-Cause Prerequisite Gate. A `debugger`/`tester` subagent step is not an end-to-start trace. |
-| "Fix it where it crashes"                | Crash site ≠ cause site. Fix at the project-identified owner of the invariant and protect all relevant consumers. |
 | "Add a `?.` / guard and move on"         | Scattered defensive checks = wrong layer. One authoritative fix beats many guards.               |
-| "Confident enough, skip evidence"        | No `file:line` + Confidence % = no claim. STOP and gather evidence if <60%.                       |
-| "Small fix, skip the approval gate"      | 🛑 Validate-Before-Fix is non-negotiable standalone — present root cause + plan, get approval.    |
-| "Tests pass, the fix is done"            | Not done until property TC + boundary case exist, the changed line is mutation-killed, and spec ↔ tests fed (Dual-Feedback). |
-| "Already searched the codebase"          | Show `file:line` evidence. No proof = no search.                                                 |
 
-**IMPORTANT MUST ATTENTION** NEVER edit code until `$investigate --mode=debug` traced THIS problem in THIS session — evidence (task row / report), not recall.
-**IMPORTANT MUST ATTENTION** NEVER fix at the crash site — trace end-to-start to the invariant owner and fix there.
-**IMPORTANT MUST ATTENTION** declare `Confidence: X%` + `file:line` for every claim; STOP if <60%.
-**IMPORTANT MUST ATTENTION** 🛑 Validate-Before-Fix approval before any code change — never skip it.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via task tracking.
 

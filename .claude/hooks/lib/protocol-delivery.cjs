@@ -948,10 +948,24 @@ function buildTriggerContext(root, input, env) {
 }
 
 function defaultHookWrite(text, done) {
+    let settled = false;
+    const finish = ok => {
+        if (settled) return;
+        settled = true;
+        done(ok);
+    };
+    const onError = () => finish(false);
+    process.stdout.once('error', onError);
     try {
-        process.stdout.write(text, err => done(!err));
+        process.stdout.write(text, err => {
+            // A failed write emits its stream error after the callback. Keep the
+            // one-shot listener until that event; successful writes leave none.
+            if (!err) process.stdout.removeListener('error', onError);
+            finish(!err);
+        });
     } catch {
-        done(false);
+        process.stdout.removeListener('error', onError);
+        finish(false);
     }
 }
 
@@ -960,10 +974,14 @@ function deliver(group, input, deps, finish) {
     if (!root) return finish('');
     const read = cachedReader(typeof deps.readFile === 'function' ? deps.readFile : defaultRead);
     if (!isKnownGroup(root, read, group)) {
+        const onError = () => {}; // a best-effort diagnostic never blocks the hook
+        process.stderr.once('error', onError);
         try {
-            process.stderr.write(`[protocol-delivery] unknown protocol group "${String(group).slice(0, 64)}": nothing delivered\n`);
+            process.stderr.write(`[protocol-delivery] unknown protocol group "${String(group).slice(0, 64)}": nothing delivered\n`, error => {
+                if (!error) process.stderr.removeListener('error', onError);
+            });
         } catch {
-            /* diagnostics are best-effort */
+            process.stderr.removeListener('error', onError);
         }
         return finish('');
     }

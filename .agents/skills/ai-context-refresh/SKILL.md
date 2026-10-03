@@ -62,7 +62,7 @@ Run `$ai-context-refresh` (or the generator directly) to produce `CLAUDE.md` fro
 tl;dr line, Doc Lookup, path-scoped rules, development commands and the skill-activation table. It
 carries none of the framework's universal rules (workflow step advancement, task planning, evidence,
 git discipline, code hierarchy, lesson extraction, closing reminders) and no workflow-route pointer:
-the universal hook delivers those protocols on the first prompt of a session and again after 200K
+the universal hook delivers those protocols on the first prompt of a session and again after 100K
 tokens of growth or a compaction. A host that runs no hook is unsupported.
 
 **Workflow routing is delivered only by the `workflow-route-inject` hook** (Claude, the mirrored Codex hook, the OpenCode bridge),

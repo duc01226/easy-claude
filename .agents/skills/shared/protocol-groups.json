@@ -3,6 +3,10 @@
   "version": 1,
   "binChars": 9500,
   "deliveryTriggers": {
+    "capacity": {
+      "pattern": "\\b(?:performance|latency|throughput|bottlenecks?|capacity|scal(?:e|ing|ability)|cach(?:e|es|ing)|load[- ]test(?:s|ing)?|stress[- ]test(?:s|ing)?|rps|qps|concurrent users?|headroom)\\b",
+      "skills": ["performance-review", "architecture", "production-readiness-review"]
+    },
     "ui": {
       "pattern": "\\b(?:ui|ux|gui|front-?end|screens?|layouts?|css|scss|stylesheets?|html|widgets?|dialogs?|modals?|mockups?|wireframes?|visual|landing page|dashboard|responsive|typography|themes?|theming|dark mode|accessibility|a11y|buttons?|forms?|pages?|navigation|menus?|sidebars?|toolbars?|icons?|tooltips?|animations?|carousels?|hero|spinners?|skeleton (?:loaders?|loading|ui|placeholders?)|nav ?bars?|drop-?downs?|toasts?|snackbars?|tables?|grids?|charts?|cards?|components?|mobile|tab bar|tab panels?|tabbed|avatars?|badges?|design[- ]system|design[- ]spec|web ?pages?|user interface)\\b|\\.(?:tsx|jsx|vue|svelte|scss|sass|less|css|html?|razor|cshtml|xaml|axml|storyboard|xib)\\b",
       "pathPattern": "\\.(?:tsx|jsx|vue|svelte|scss|sass|less|css|html?|razor|cshtml|xaml|axml|storyboard|xib)\\b|[\\\\/]res[\\\\/]layout",
@@ -122,6 +126,7 @@
     "design": {
       "description": "Architecture and code design quality, engineering foundations and UI/UX design.",
       "tags": {
+        "measured-capacity-engineering": { "summary": "Model demand, reduce measured work safely and prove capacity before scaling", "when": "planning, building, testing or reviewing hot paths, caches or capacity", "trigger": "capacity" },
         "agent-code-standards": { "summary": "Development rules: YAGNI, KISS, DRY, and read the pattern docs first", "when": "an agent writes or changes code" },
         "ai-agent-as-user-access": { "summary": "Treat an AI agent as a first-class machine actor with its own identity and authority", "when": "creating a greenfield system or reviewing actor-facing architecture" },
         "ai-engineering-gate": { "summary": "Thirty-eight AI-engineering clauses, AE-1.1 to AE-9.4: prompt contract, security, agents, retrieval, reliability, evals, operations, governance, UX", "when": "planning, building or reviewing a feature that calls a model", "trigger": "ai-feature" },
@@ -152,7 +157,7 @@
       }
     },
     "universal": {
-      "description": "The universal bundle: the framework rules every task follows. No skill, agent, root instruction file or mirror carries it; the universal hook delivers it on the first prompt of a session, again after about 200K tokens of growth or a compaction, and at every sub-agent start. bins is the authored delivery layout: one entry per hook process, each the ordered tags of one message; the build fails when a bin overflows binChars, a tag is missing or a tag is listed twice.",
+      "description": "The universal bundle: the framework rules every task follows. No skill, agent, root instruction file or mirror carries it; the universal hook delivers it on the first prompt of a session, again after about 100K tokens of growth or a compaction, and at every sub-agent start. bins is the authored delivery layout: one entry per hook process, each the ordered tags of one message; the build fails when a bin overflows binChars, a tag is missing or a tag is listed twice.",
       "bins": [
         ["critical-thinking-mindset", "discovery-and-first-principles", "project-reference-docs-guide", "code-responsibility-hierarchy"],
         ["ai-mistake-prevention"],

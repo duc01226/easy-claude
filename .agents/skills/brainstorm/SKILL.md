@@ -603,104 +603,13 @@ Time to validation: [Days/weeks]
 
 Use the naming pattern from the injected `## Naming` section.
 
-Create a Markdown summary report:
-
-```markdown
-# Brainstorm Session Report: [Topic]
-
-## Session Context
-
-- Scenario: [Problem-Solving / New Product / Enhancement]
-- Role: [PO / BA / Mixed]
-- Date: [YYYY-MM-DD]
-- Input: [Original question/problem]
-
-## Problem Statement
-
-[POV format]
-
-## Root Cause Analysis
-
-[5 Whys or Fishbone — if Problem-Solving]
-
-## Job Stories
-
-1. [Job Story 1]
-2. [Job Story 2]
-3. [Job Story 3]
-
-## HMW Questions
-
-1. How might we...
-2. How might we...
-
-## Opportunity Map
-
-[OST or Lean Canvas — per scenario]
-
-## Raw Ideas Generated
-
-[Total count: XX ideas across SCAMPER / Crazy 8s / Impact Mapping]
-
-## Scored Shortlist (RICE)
-
-| Rank | Idea | RICE | Kano | Effort | Priority    |
-| ---- | ---- | ---- | ---- | ------ | ----------- |
-| 1    | ...  | ...  | ...  | ...    | Must Have   |
-| 2    | ...  | ...  | ...  | ...    | Should Have |
-
-## Hypothesis Cards
-
-### Top Recommendation: [Option Name]
-
-- Problem Hypothesis: ...
-- Value Hypothesis: ...
-- Riskiest Assumption: ...
-- Cheapest Test: ...
-- Success Metric: ...
-
-## Decision
-
-[Recommendation + rationale]
-
-## Next Steps
-
-- [ ] [First concrete action]
-- [ ] [Validation test]
-- [ ] [Stakeholder alignment needed]
-```
+Read `references/brainstorm-skill-report.md` before writing the session report; retain all context, framing, scoring, hypothesis, decision and next-step fields. Multi-opportunity mode also preserves its scored-map contract above.
 
 ---
 
 ## Technique Quick Reference
 
-| Technique                 | Phase | When to Use                        | Time-box |
-| ------------------------- | ----- | ---------------------------------- | -------- |
-| POV Statement             | P1    | Always                             | 10 min   |
-| 5 Whys                    | P1    | Problem-solving scenario           | 15 min   |
-| Fishbone                  | P1    | Systemic/complex problems          | 20 min   |
-| JTBD / Job Stories        | P1    | New product or enhancement         | 20 min   |
-| HMW Questions             | P1    | Always — bridge problem → ideation | 15 min   |
-| Opportunity Solution Tree | P2    | Enhancement scenario               | 30 min   |
-| Lean Canvas               | P2    | New product scenario               | 20 min   |
-| Blue Ocean ERRC           | P2    | Differentiation needed             | 20 min   |
-| Value Proposition Canvas  | P2    | Product-market fit unclear         | 25 min   |
-| SCAMPER                   | P3    | Always — structured ideation       | 30 min   |
-| Crazy 8s                  | P3    | Need quantity fast                 | 8 min    |
-| Brainwriting 6-3-5        | P3    | Multi-stakeholder, async           | 30 min   |
-| Impact Mapping            | P3    | Outcome-first thinking             | 30 min   |
-| Analogical Thinking       | P3    | Novel/creative directions needed   | 15 min   |
-| Dot Voting                | P4    | First-pass elimination             | 10 min   |
-| RICE Scoring              | P4    | Always for prioritization          | 20 min   |
-| Kano Model                | P4    | Feature classification             | 15 min   |
-| 2×2 Effort/Impact         | P4    | Visual triage                      | 10 min   |
-| MoSCoW                    | P4    | Release scoping                    | 15 min   |
-| Problem Hypothesis        | P5    | Always before committing           | 15 min   |
-| Value Hypothesis          | P5    | Always before committing           | 15 min   |
-| Riskiest Assumption Test  | P5    | Before full build                  | 20 min   |
-| Build-Measure-Learn       | P5    | Lean validation                    | 20 min   |
-
----
+Read `references/brainstorm-skill-technique-routing.md` after Phase 0 scenario selection and before choosing techniques; its selection/time-box table supplements the execution phases.
 
 ## Role-Specific Guidance
 
@@ -738,44 +647,7 @@ Create a Markdown summary report:
 
 ## Scenario Cheat Sheets
 
-### Scenario A: Problem-Solving
-
-```
-1. POV Statement → 2. 5 Whys / Fishbone → 3. HMW Questions
-→ 4. SCAMPER on current solution → 5. RICE scoring
-→ 6. Problem Hypothesis + RAT → 7. Recommend + cheapest test
-```
-
-### Scenario B: New Product
-
-```
-1. Job Stories (JTBD) → 2. Lean Canvas → 3. Blue Ocean ERRC
-→ 4. HMW Questions → 5. Crazy 8s / Brainwriting
-→ 6. Kano Classification → 7. Value Hypothesis + RAT → 8. MVP scope
-```
-
-### Scenario C: Feature Enhancement
-
-```
-1. Job Stories (JTBD) → 2. Opportunity Solution Tree
-→ 3. HMW Questions → 4. SCAMPER on existing feature
-→ 5. Impact Mapping → 6. RICE scoring → 7. 2×2 matrix
-→ 8. Value Hypothesis + RAT → 9. Recommend + next experiment
-```
-
-### Scenario D: Multi-Opportunity Discovery
-
-```
-1. Job Stories (JTBD) → 2. Opportunity Solution Tree (FULL landscape, not one focus)
-→ 3. HMW Questions → 4. SCAMPER → 5. RICE-score EVERY opportunity
-→ 6. Rank into a 3–8-item opportunity map (do NOT pick ONE)
-→ 7. Write plans/{plan-dir}/brainstorm-opportunity-map.md  (plans root default plans/; docsRoots.plans.path in docs/project-config.json overrides)
-→ 8. ask user tool multiSelect → hand selected opportunities to the per-opportunity PBI loop
-```
-
-> **Key difference from A/B/C:** converge to a RANKED MAP for multi-select, never a single recommendation. See [Multi-Opportunity Discovery Mode](#multi-opportunity-discovery-mode).
-
----
+Read `references/brainstorm-skill-scenarios.md` after Phase 0 scenario selection for the matching route; retain the multi-opportunity ranking/multi-select exception.
 
 ## Anti-Patterns to Avoid
 
@@ -854,7 +726,6 @@ After the session, use ask user tool to present next steps:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Facilitate evidence-backed PO/BA Double-Diamond ideation that separates problem discovery from solution evaluation and delivers either a validated, ranked 3–5-candidate shortlist with problem/value hypotheses, each riskiest assumption, and cheapest validation test plus one recommendation—or, in **Multi-Opportunity Discovery mode**, a ranked 3–8-item RICE map for user selection—so the team commits to the right problem and solution, never a flat idea list.
-- **IMPORTANT MUST ATTENTION Main steps:** detect scenario/role → frame the problem → frame opportunities → diverge ideas → converge and score → validate hypotheses → decide or rank the opportunity map → document and hand off.
 - **IMPORTANT MUST ATTENTION Roadmap mode:** `--mode=roadmap` is explicit-only; it frames outcome-based milestones, risks, non-goals, human decisions, and evidence, then hands off to `$product-roadmap`; it does not choose technology or implementation.
 - **IMPORTANT MUST ATTENTION Embedded decomposition:** when any shared `isLargeIdea` signal is true, write the complete five-field `large_idea_decomposition` block in the owning handoff and carry its stable slice IDs into PBIs, stories, mock-ups, and the all-PBI presentation; do not create a default roadmap file.
 - **IMPORTANT MUST ATTENTION Scope mode:** `--mode=scope` resolves and amends exactly one approved `plans/{plan-id}/scope-brief.md` in place (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides), then stops before `$scenario` or `$plan`; it never creates a competing brief.
@@ -870,7 +741,7 @@ After the session, use ask user tool to present next steps:
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark each `completed` immediately, add a final review todo — why: long brainstorm sessions lose context without external task tracking.
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns first — read the business spec root (default `docs/specs/`; `specRoots.business.path` in `docs/project-config.json` overrides) for domain (codebase) or `WebSearch` for market/competitor context (greenfield) before ideating — why: ideas ungrounded in domain or market evidence score on gut feel, not fit.
 - **MANDATORY IMPORTANT MUST ATTENTION** cite evidence for every claim, confidence >80% to recommend; RICE Confidence is a multiplier, not optional — why: low-evidence ideas without a Confidence score get over-ranked.
-- **MANDATORY IMPORTANT MUST ATTENTION** close with ONE opinionated recommendation + trade-offs (Phase 6) — never a flat menu of options — why: a menu pushes the decision back on the team and invites HiPPO bias. EXCEPTION — **Multi-Opportunity Discovery mode** (selected in Phase 0): do NOT pick ONE; instead RANK a 3–8-item RICE opportunity map, write it to `plans/{plan-dir}/brainstorm-opportunity-map.md` (plans root default `plans/`; `docsRoots.plans.path` in `docs/project-config.json` overrides), and hand off using ask user tool `multiSelect: true` to `workflow-idea-to-pbi`'s per-opportunity PBI loop — why: each opportunity becomes a separate downstream PBI, so collapsing to one would discard the backlog the discovery workflow exists to produce.
+- **MANDATORY IMPORTANT MUST ATTENTION** close with ONE opinionated recommendation + trade-offs (Phase 6). **Multi-Opportunity Discovery exception:** follow [its complete map/path/selection contract](#multi-opportunity-discovery-mode) instead: rank 3–8 opportunities, persist the map and use ask user tool `multiSelect: true` for the per-opportunity PBI handoff; never collapse that backlog to one.
 - **MANDATORY IMPORTANT MUST ATTENTION** use ask user tool for all user decisions and handoff routing (`$idea`, `$pbi --mode=refine`, `$plan`) — never auto-decide — why: the user owns scenario, prioritization, and next-step choices.
 
 **Anti-Rationalization:**

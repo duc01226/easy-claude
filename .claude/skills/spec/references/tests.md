@@ -360,11 +360,7 @@ TC Blast Radius Analysis:
 - Change is additive only (new endpoint added, no existing endpoint modified)
 - Module has no dependency surface (standalone, no shared entities)
 
-**Sync mode (§8 TCs ↔ test code):** the full reconciliation procedure lives in `sync.md` (`[mode=sync]`). High-level shape:
-
-1. Read feature docs Section 8 TCs for target module (canonical source)
-2. Read test files: grep for the test-spec annotation (key `TestSpec`) across configured executing test tiers; include integration, unit, E2E, contract, and property-test suites that carry the annotation.
-3. Build a 2-way comparison table:
+**Sync mode (§8 TCs ↔ test code):** read `sync.md` for the full reconciliation procedure. Phase5 below retains the forward-sync summary and default one-to-many safeguards. Section8 is canonical; resolve missing test coverage through the owning test route, and adjudicate test-only business IDs with M7 before back-filling (technical-only tests use `TechnicalSpec`). The comparison shape is:
 
 ```
 | TC ID | In §8 (Feature Doc)? | In Test Code? | Action Needed |
@@ -373,9 +369,6 @@ TC Blast Radius Analysis:
 | TC-FEAT-025 | ✅ | ❌ | Generate test via /integration-test |
 | TC-FEAT-030 | ❌ | ✅ | Back-fill §8 TC (from-integration-tests mode) |
 ```
-
-4. Reconcile: a §8 TC with no covering test → flag for the owning test route; an existing business `TestSpec` with no §8 TC → adjudicate via M7 before back-filling; technical-only tests use `TechnicalSpec` and do not create §8 TCs
-5. Section 8 remains source of truth — any conflict uses the §8 version
 
 **From-integration-tests mode (reverse-engineer specs from existing tests):**
 
@@ -460,9 +453,7 @@ Options:
 
 > **[HARD] This block does NOT define the format; it only shows it.** If this excerpt and `tc-format.md` ever
 > disagree, **`tc-format.md` wins and this excerpt is the bug.** Never author a TC from this copy without checking
-> the canonical file — a format duplicated in N places drifts in N-1 of them, and it drifts silently because
-> nothing reads two files at once. *(This excerpt had already drifted: it taught `Test Steps` for a full version
-> after the canonical format moved to `Demo Flow` + `Expected Result`.)*
+> the canonical file. The canonical owner resolves any excerpt drift.
 
 ```markdown
 #### TC-{FEATURE}-{NNN}: {Descriptive Test Name} [{Priority}]

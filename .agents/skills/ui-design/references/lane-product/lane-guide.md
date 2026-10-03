@@ -43,29 +43,18 @@ Both live under the reference-docs root (default `docs/project-reference`; a `do
 
 # The Problem
 
-You will generate generic output. Your training has seen thousands of dashboards. The patterns are strong.
-
-You can follow the entire process below — explore the domain, name a signature, state your intent — and still produce a template. Warm colors on cold structures. Friendly fonts on generic layouts. "Kitchen feel" that looks like every other app.
-
-This happens because intent lives in prose, but code generation pulls from patterns. The gap between them is where defaults win.
-
-The process below helps. But process alone doesn't guarantee craft. You have to catch yourself.
-
----
+Domain exploration and stated intent can still produce a template when implementation defaults override them. Check the built interface against the product's subject and journeys.
 
 # Where Defaults Hide
 
-Defaults don't announce themselves. They disguise themselves as infrastructure — the parts that feel like they just need to work, not be designed.
+Treat structural choices as design decisions:
 
-**Typography feels like a container.** Pick something readable, move on. But typography isn't holding your design — it IS your design. The weight of a headline, the personality of a label, the texture of a paragraph. These shape how the product feels before anyone reads a word. A bakery management tool and a trading terminal might both need "clean, readable type" — but the type that's warm and handmade is not the type that's cold and precise. If you're reaching for your usual font, you're not designing.
+- **Typography:** weight, labels and paragraph texture establish identity. A bakery tool and trading terminal need different expression even when both require readable type.
+- **Navigation:** communicate location, available actions and priorities; a screen without product context reads as a component demo.
+- **Data:** choose a display for what the number means and what the person will do with it. A progress ring and label both show “3 of 10” but communicate differently.
+- **Token names:** `--ink`/`--parchment` evoke a world; `--gray-700`/`--surface-2` are generic. Apply the token test below.
 
-**Navigation feels like scaffolding.** Build the sidebar, add the links, get to the real work. But navigation isn't around your product — it IS your product. Where you are, where you can go, what matters most. A page floating in space is a component demo, not software. The navigation teaches people how to think about the space they're in.
-
-**Data feels like presentation.** You have numbers, show numbers. But a number on screen is not design. The question is: what does this number mean to the person looking at it? What will they do with it? A progress ring and a stacked label both show "3 of 10" — one tells a story, one fills space. If you're reaching for number-on-label, you're not designing.
-
-**Token names feel like implementation detail.** But your CSS variables are design decisions. `--ink` and `--parchment` evoke a world. `--gray-700` and `--surface-2` evoke a template. Someone reading only your tokens should be able to guess what product this is.
-
-The trap is thinking some decisions are creative and others are structural. no structural decisions. Everything is design. The moment you stop asking "why this?" is the moment defaults take over.
+Ask why each creative and structural choice fits the product.
 
 ---
 
@@ -88,25 +77,9 @@ If you cannot answer these with specifics, stop. Ask the user. Do not guess. Do 
 
 ## Every Choice Must Be A Choice
 
-For every decision, you must be able to explain WHY.
+Explain why the layout, color temperature, typeface, spacing scale and information hierarchy fit this domain. “Common,” “clean” and “works” alone do not establish fit.
 
-- Why this layout and not another?
-- Why this color temperature?
-- Why this typeface?
-- Why this spacing scale?
-- Why this information hierarchy?
-
-If your answer is "it's common" or "it's clean" or "it works" — you haven't chosen. You've defaulted. Defaults are invisible. Invisible choices compound into generic output.
-
-**The test:** If you swapped your choices for the most common alternatives and the design didn't feel meaningfully different, you never made real choices.
-
-## Sameness Is Failure
-
-If another AI, given a similar prompt, would produce substantially the same output — you have failed.
-
-This is not about being different for its own sake. It's about the interface emerging from the specific problem, the specific user, the specific context. When you design from intent, sameness becomes impossible because no two intents are identical.
-
-When you design from defaults, everything looks the same because defaults are shared.
+**The test:** swap them for common alternatives. If the interface feels unchanged, revisit the free axes. Similarity to a generic response is a signal to check product-specific intent, not a reason to invent arbitrary differences.
 
 ## Intent Must Be Systemic
 
@@ -188,13 +161,13 @@ If any check fails, iterate before showing.
 
 ## Subtle Layering
 
-This is the backbone of craft. Regardless of direction, product type, or visual style — this principle applies to everything. barely notice the system working. When you look at Vercel's dashboard, you don't think "nice borders." You just understand the structure. The craft is invisible — that's how you know it's working.
+Use subtle layering to make structure legible without drawing attention to its borders.
 
 ### Surface Elevation
 
 Surfaces stack. A dropdown sits above a card which sits above the page. Build a numbered system — base, then increasing elevation levels. In dark mode, higher elevation = slightly lighter. In light mode, higher elevation = slightly lighter or uses shadow.
 
-Each jump should be only a few percentage points of lightness. You can barely see the difference in isolation. But when surfaces stack, the hierarchy emerges. Whisper-quiet shifts that you feel rather than see.
+Use small lightness changes between levels: subtle individually, legible when surfaces stack.
 
 **Key decisions:**
 
@@ -210,23 +183,17 @@ Build a progression — not all borders are equal. Standard borders, softer sepa
 
 **The squint test:** Blur your eyes at the interface. still perceive hierarchy — what's above what, where sections divide. But nothing should jump out. No harsh lines. No jarring color shifts. Just quiet structure.
 
-This separates professional interfaces from amateur ones. Get this wrong and nothing else matters.
-
 ## Infinite Expression
 
-Every pattern has infinite expressions. **No interface should look the same.**
-
-A metric display could be a hero number, inline stat, sparkline, gauge, progress bar, comparison delta, trend badge, or something new. A dashboard could emphasize density, whitespace, hierarchy, or flow in completely different ways. Even sidebar + cards has infinite variations in proportion, spacing, and emphasis.
+Choose expression from the task and data. A metric can be a hero number, inline stat, sparkline, gauge, progress bar, delta or trend badge; a dashboard can emphasize density, whitespace, hierarchy or flow.
 
 **Before building, ask:**
 
-- What's the ONE thing users do most here?
-- What products solve similar problems brilliantly? Study them.
-- Why would this interface feel designed for its purpose, not templated?
+- What is the one action users perform most?
+- Which comparable products solve it well, and why?
+- What makes this layout fit its purpose?
 
-**NEVER produce identical output.** Same sidebar width, same card grid, same metric boxes with icon-left-number-big-label-small every time — this signals AI-generated immediately. It's forgettable.
-
-The architecture and components should emerge from the task and data, executed in a way that feels fresh. Linear's cards don't look like Notion's. Vercel's metrics don't look like Stripe's. Same concepts, infinite expressions.
+Avoid repeating the same sidebar width, card grid and icon/number/label treatment across unrelated briefs. Keep established project conventions where they already fit.
 
 ## Color Lives Somewhere
 

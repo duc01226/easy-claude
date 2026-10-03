@@ -21,9 +21,9 @@ disable-model-invocation: true
 
 **Goal:** Author, extend, validate, and package Claude Code skills with proper structure, progressive disclosure, SYNC protocol compliance, and AI attention anchoring.
 
-**Summary:** Use `$skill-creator` for the six modes below; `/skill-create` no longer resolves.
+**Summary:** Select one of the six modes, preserve the skill's contract and authority, and evaluate decision-changing guidance. Inspect existing owners → author or repair → validate structure/resources → enhance → run the quality gate → hand off or package. `/skill-create` no longer resolves.
 
-**Workflow:** Clarify intent → choose Create/Add Resources/Scan & Fix/Package/Optimize/Fix from Logs → follow the mode steps → verify SYNC/structure → validate → call `$prompt-enhance` → hand off or package.
+**Workflow:** Clarify intent → choose Create/Add Resources/Scan & Fix/Package/Optimize/Fix from Logs → follow the mode steps → verify SYNC/structure → validate → call `$prompt-enhance` → apply the authoring quality gate → hand off or package.
 
 | Mode              | Trigger                                                | Jump to                                 |
 | ----------------- | ------------------------------------------------------ | --------------------------------------- |
@@ -43,12 +43,14 @@ disable-model-invocation: true
 - Progressive disclosure — keep SKILL.md lean; move detail into `references/` and split large files
 - Shared protocols reach a skill only through the sync tools: a `<!-- SYNC:tag -->` body, which guide mode turns into a guide line outside the review-family skills (`SYNC:shared-protocol-duplication-policy`) — NEVER a hand-written file reference
 - MUST call `$prompt-enhance` on new/updated SKILL.md as final attention-anchoring quality pass
-- Skills are practical instructions (teach Claude HOW), not documentation (what a tool does)
+- Skills teach task-specific decisions and observable outcomes; retain only useful context.
+- Read `references/authoring-quality.md` before authoring or accepting changes: preserve contract/authority, calibrate procedure, and record evidence for each applicable quality check.
 
 **Detail references (load as needed):**
 
-- `references/schema-reference.md` — frontmatter fields, invocation matrix, variable substitution, validation rules
-- `references/creation-process.md` — full 6-step creation narrative, skill anatomy, progressive-disclosure design
+- Read `references/schema-reference.md` when editing headers or invocation policy; it owns fields, variable substitution, and structural validation.
+- Read `references/creation-process.md` when creating a skill or choosing bundled resources; it owns the expanded creation narrative.
+- Read `references/authoring-quality.md` when creating, extending, optimizing, repairing, or accepting a skill; it owns principles, bad-practice replacements, retention, and behavioral evaluation.
 
 # Skill Creator
 
@@ -60,6 +62,12 @@ not documentation**: each teaches Claude how to perform a task, not what a tool 
 A skill is a required `SKILL.md` plus optional `scripts/` (executable helpers), `references/`
 (context-loaded docs), and `assets/` (output files: templates, icons, fonts). Full anatomy and the
 three-level progressive-disclosure loading model live in `references/creation-process.md`.
+
+## Authoring quality gate
+
+Apply `references/authoring-quality.md` to the selected mode. Define the supported task, required inputs, observable result, scope/authority, and failure/stop behavior before writing. Keep precise discovery and task-relevant context; match strictness to real fragility.
+
+Before handoff or packaging, record each applicable gate as `PASS`, `FAIL`, or `N/A` with evidence; behavioral checks not run stay `NOT RUN`. Verify contract, discovery, signal/retention, procedure, resources, trust/recovery, observable behavior, incremental value, and ownership/model compatibility. Structure validation alone is not a behavioral pass. Select relevant cases and report limitations rather than impose a universal trial count.
 
 ## Helper invocation paths
 
@@ -75,7 +83,7 @@ Run helper commands from the project root. The examples use the canonical instal
 6. **Add SYNC blocks** — Add the relevant protocols as SYNC blocks, then convert them to guide lines where the hybrid policy says so (see `## SYNC Protocol Blocks`).
 7. **Add Closing Reminders** — Echo top rules at the bottom with `:reminder` SYNC blocks (recency anchoring).
 8. **Validate** — `node .claude/skills/skill-creator/scripts/validate-skills.cjs --path .claude/skills/<skill-name>`.
-9. **Enhance** — Call `$prompt-enhance` on the finished SKILL.md for AI attention anchoring.
+9. **Enhance and accept** — Call `$prompt-enhance` on the finished SKILL.md, then apply the authoring quality gate before handoff.
 
 ### Skill Attention Structure (MUST follow)
 
@@ -87,7 +95,7 @@ Run helper commands from the project root. The examples use the canonical instal
 [## Closing Reminders — bottom attention zone with :reminder SYNC blocks]
 ```
 
-**Why:** AI attention is strongest at TOP and BOTTOM (primacy-recency). Place critical rules in both zones.
+**Why:** Make priorities visible in the framework's top/bottom attention zones. This is a local presentation convention; it does not prove universal performance or justify repeating every rule.
 
 Detailed step-by-step narrative (understanding examples, planning contents, editing, iteration) is in `references/creation-process.md`.
 
@@ -101,7 +109,7 @@ Detailed step-by-step narrative (understanding examples, planning contents, edit
 2. **Create** — Add reference/script files following progressive disclosure (split large files). Scripts must have tests and respect `.env` load order: `process.env` > `.claude/skills/<skill>/.env` > `.claude/skills/.env` > `.claude/.env`.
 3. **Update SKILL.md** — Add SYNC blocks if new protocols apply; wire in references; keep it lean.
 4. **Enhance** — Call `$prompt-enhance` on the updated SKILL.md.
-5. **Validate** — Verify files work and scripts pass tests.
+5. **Validate** — Verify files work and scripts pass tests, then apply the authoring quality gate to the changed scope.
 
 **Source-gathering helpers:** Given a URL → use an `Explore` subagent to walk internal links. Multiple URLs → parallel `Explore` subagents. A GitHub URL → `repomix` to summarize + parallel `Explore` subagents.
 
@@ -130,7 +138,7 @@ python3 .claude/skills/skill-creator/scripts/package_skill.py <path/to/skill-fol
 python3 .claude/skills/skill-creator/scripts/package_skill.py <path/to/skill-folder> ./dist   # custom output dir
 ```
 
-Packaging validates first (frontmatter, naming, directory structure, resource references); on success it produces `<skill>.zip` preserving structure. On validation failure it reports errors and exits without packaging — fix and rerun.
+Apply the authoring quality gate to the intended package before running the helper. Packaging validates first (frontmatter, naming, directory structure, resource references); on success it produces `<skill>.zip` preserving structure. On validation failure it reports errors and exits without packaging — fix and rerun.
 
 ## Mode 5: Optimize an Existing Skill
 
@@ -142,11 +150,11 @@ Optimize an existing skill for token efficiency, AI attention anchoring, and SYN
 
 **Workflow:**
 
-1. **Analyze** — review structure, line count, SYNC tags, attention anchoring.
+1. **Analyze** — save a recoverable baseline; inventory rules, preconditions, exceptions, authority, protocols, navigation, and parser structures. Use line count to find candidates, not as a defect verdict.
 2. **Check SYNC compliance** — verify each protocol is a SYNC body or a tool-written guide line (never a hand-written file reference) and tags are balanced.
-3. **Optimize** — apply prompt-enhance principles, move details to references, improve clarity.
+3. **Optimize** — remove low-value repetition, move conditional detail to reachable references, and retain readable conditions. Map every meaningful baseline item to retained, consolidated, reliably routed, or removed with a reason.
 4. **Enhance** — call `$prompt-enhance` on the optimized SKILL.md.
-5. **Validate** — verify the skill still works correctly after optimization (diff check for content loss).
+5. **Validate** — verify semantic retention, referenced resources, and relevant behavior through the authoring quality gate; report baseline/performance comparisons not run.
 
 **Optimization Checklist:**
 
@@ -154,10 +162,10 @@ Optimize an existing skill for token efficiency, AI attention anchoring, and SYN
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Structure**         | `## Quick Summary` (Goal/Workflow/Key Rules) within first 30 lines · `## Closing Reminders` at bottom with `:reminder` SYNC blocks · SYNC protocol blocks at top (primacy zone) · critical rules in BOTH top and bottom (primacy-recency)    |
 | **SYNC Protocol**     | no hand-written `.claude/skills/shared/` references — each protocol is a SYNC body or a guide line written by `sync-update-blocks.py --mode=guide` · all SYNC tags balanced · bodies match canonical `.claude/skills/shared/sync-inline-versions.md` · `:reminder` blocks present at bottom per protocol |
-| **Token Efficiency**  | SKILL.md under 500 lines (target under 300) · no filler/redundancy/TOCs · tables/bullets over prose · examples minimal (1 per pattern)                                                                                                       |
-| **Final Enhancement** | `$prompt-enhance` on finished SKILL.md · verify no content loss · rule density maintained or improved (count MUST ATTENTION/NEVER/ALWAYS before & after)                                                                                     |
+| **Token Efficiency**  | No filler/report bulk · preserve readable conditions and useful navigation/examples · load conditional detail on demand; line count is a triage signal                                                                                                       |
+| **Final Enhancement** | `$prompt-enhance` on finished SKILL.md · semantic disposition map · observable checks and honest NOT RUN limits; word/warning counts are not proof                                                                                     |
 
-**Key rules:** SKILL.md under 500 lines, reference files under 100 lines each; shared protocols MUST ATTENTION arrive as `<!-- SYNC:tag -->` blocks or tool-written guide lines (NEVER hand-written `MUST ATTENTION READ shared/` references); MUST ATTENTION call `$prompt-enhance` as the final quality pass.
+**Key rules:** retain decision-changing guidance without arbitrary line or example quotas; shared protocols MUST ATTENTION arrive as `<!-- SYNC:tag -->` blocks or tool-written guide lines (NEVER hand-written `MUST ATTENTION READ shared/` references); MUST ATTENTION call `$prompt-enhance` as the final quality pass.
 
 ## Mode 6: Fix a Skill from Logs
 
@@ -170,7 +178,7 @@ Fix a skill based on error analysis from its `logs.txt` file (project root).
 3. **Fix** — apply corrections to SKILL.md, scripts, or references.
 4. **Verify SYNC compliance** — ensure the fix doesn't break SYNC tag balance or drop a protocol (body, guide line or reminder).
 5. **Enhance** — call `$prompt-enhance` on the fixed SKILL.md if structural changes were made.
-6. **Test** — run the skill again to verify the fix.
+6. **Test** — run the skill again to verify the reported failure is resolved; apply the authoring quality gate without broadening the repair.
 
 **Input rules:**
 
@@ -237,17 +245,19 @@ If the skill needs shared protocol enforcement (most do), add them as SYNC block
 
 **IMPORTANT MUST ATTENTION Goal:** Author, extend, validate, and package Claude Code skills with proper structure, progressive disclosure, SYNC protocol compliance, and AI attention anchoring.
 
-**IMPORTANT MUST ATTENTION Workflow:** Clarify intent → select one mode → inspect existing patterns/references → execute its steps → keep SYNC blocks balanced and every protocol carried (body or guide line) → validate → call `$prompt-enhance` → hand off or package; ask the user at required approval gates.
+**IMPORTANT MUST ATTENTION Workflow:** Clarify intent → select one mode → inspect existing patterns/references → execute its steps → keep SYNC blocks balanced and every protocol carried (body or guide line) → validate → call `$prompt-enhance` → apply the authoring quality gate → hand off or package; ask the user at required approval gates.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Shared Protocol Duplication:** follow the hybrid duplication policy (`SYNC:shared-protocol-duplication-policy`) — skills keep guide lines, the review-family skills and agents keep full bodies, and only the sync tool converts or propagates them.
-- **Output Quality:** Token efficiency, lead with answer, no filler.
+- **Output Quality:** Useful guidance and readable priorities; retain action-changing conditions and required structures.
 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 **IMPORTANT MUST ATTENTION** carry shared protocols as `<!-- SYNC:tag -->` blocks or tool-written guide lines per the hybrid policy — NEVER hand-written file references
 **IMPORTANT MUST ATTENTION** call `$prompt-enhance` on new/updated skills as final attention-anchoring quality pass
 **IMPORTANT MUST ATTENTION** include `## Quick Summary` within first 30 lines of every SKILL.md
 **IMPORTANT MUST ATTENTION** add Closing Reminders with `:reminder` SYNC blocks at bottom of every skill
+
+**IMPORTANT MUST ATTENTION** preserve contract and authority, keep decision-changing signal, and verify observable outcomes through `references/authoring-quality.md`; report `NOT RUN` honestly.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.

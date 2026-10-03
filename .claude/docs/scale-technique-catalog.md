@@ -23,6 +23,8 @@
 > `docs/specs/**`, `docs/project-config.json`, infra/compose/k8s manifests, and load/capacity notes. Cite
 > `file:line`/config/infra + a confidence %. **Unknown → state the assumption; do NOT default to T3.**
 
+**Capacity evidence:** user-count labels orient the profile; they are not hardware capacity limits or a DAU-to-RPS conversion. Read `.claude/skills/shared/protocols/measured-capacity-engineering.md` when choosing an optimization or scaling step: define the workload/SLO, measure the limiting owner and useful throughput, prove safe cache behavior and headroom, then compare the next increment. Read `.claude/skills/performance-review/references/performance-knowledge.md` §10.1 when designing the experiment. A local proxy cache can remove application work on one host; distinguish that offload from geographic CDN/edge delivery.
+
 ## Verdicts (per warranted technique)
 
 | Verdict             | Meaning                                | Action                                             |

@@ -4,11 +4,37 @@ Centralized utility scripts for Claude Code skills.
 
 ## Installation
 
-Install required dependencies:
+`scan_skills.py` and `generate_catalogs.py` recover missing PyYAML on use through
+`lib/python_dependencies.py`. They reuse an existing local target first, then try
+one interpreter-wide install and one local target under project-root
+`tmp/claude-temp/python-packages`. Each attempt has a 30-second deadline, uses
+literal argv and noninteractive wheel-only pip, and verifies the actual import.
+Managed Python or denied/offline installs fall back without overriding system
+protection. If both attempts fail, the required tool exits 3 with its existing
+installation recipe; it never reports a skipped check as passing.
 
-```bash
-pip install -r requirements.txt
+Set `CK_AUTO_INSTALL_DEPENDENCIES=0` to disable automatic attempts. Python `-S`
+probes intentionally disable recovery too. Broken transitive imports still surface.
+Read `requirements.txt` when changing the declared PyYAML constraint, and
+`lib/python_dependencies.py` when changing recovery. Project dependencies remain
+owned by the existing local startup installer; graph setup keeps its separate
+install-on-use owner.
+
+Manual installation from the project root:
+
+```powershell
+# Windows
+py -3 -m pip install -r .claude/scripts/requirements.txt
 ```
+
+```sh
+# macOS / Linux
+python3 -m pip install -r .claude/scripts/requirements.txt
+```
+
+See [pip installation options](https://pip.pypa.io/en/stable/cli/pip_install/) when
+checking interpreter/target behavior. The same running interpreter is used on all three
+platforms; neither shell activation nor global PATH rewriting is needed.
 
 ## resolve_env.py
 

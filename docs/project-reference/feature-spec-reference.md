@@ -63,6 +63,7 @@ Local capability codes are discoverable through owner frontmatter and bucket ind
 | ADS | Adoption Switches | `docs/specs/Adoption/README.AdoptionSwitches.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | SAP | Framework Skill Activation Policy | `docs/specs/Adoption/README.SkillActivationPolicy.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | PFCI | Per-File Convention Injection | `docs/specs/ContextDelivery/README.PerFileConventionInjection.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
+| PCI | Project Context Intake | `docs/specs/ContextDelivery/README.ProjectContextIntake.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | PDL | Protocol Delivery | `docs/specs/ContextDelivery/README.ProtocolDelivery.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | SPL | Session Prompt Ledger | `docs/specs/ContextDelivery/README.SessionPromptLedger.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |
 | WFR | Workflow Routing | `docs/specs/ContextDelivery/README.WorkflowRouting.md` Default-root example; `specRoots.business.path` in `docs/project-config.json` overrides this location. |

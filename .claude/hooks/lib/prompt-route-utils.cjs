@@ -21,11 +21,53 @@ const path = require('path');
 const { stripHostBlocks, isSyntheticPrompt } = require('./prompt-ledger-store.cjs');
 const { isHookEntryPoint } = require('./hook-runner.cjs');
 
-/** Replace fenced (```…```) and inline (`…`) code with a space. */
+/** Replace code spans and backtick/tilde fenced blocks; preserve prose outside code. */
 function stripCode(text) {
-    return String(text === undefined || text === null ? '' : text)
-        .replace(/```[\s\S]*?```/g, ' ')
-        .replace(/`[^`\n]*`/g, ' ');
+    const lines = String(text === undefined || text === null ? '' : text).split(/(\r\n|\r|\n)/);
+    const prose = [];
+    let fence = null;
+    for (let i = 0; i < lines.length; i += 2) {
+        const line = lines[i];
+        const ending = lines[i + 1] || '';
+        const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+        if (fence) {
+            if (marker && marker[1][0] === fence.character && marker[1].length >= fence.length && /^[ \t]*$/.test(marker[2])) fence = null;
+            prose.push(' ', ending);
+        } else if (marker && (marker[1][0] === '~' || !marker[2].includes('`'))) {
+            fence = { character: marker[1][0], length: marker[1].length };
+            prose.push(' ', ending);
+        } else {
+            prose.push(line, ending);
+        }
+    }
+    // Inline spans cannot cross a paragraph boundary. Retain that boundary verbatim.
+    return prose.join('').split(/((?:\r\n|\r(?!\n)|(?<!\r)\n)[ \t]*(?:\r\n|\r(?!\n)|(?<!\r)\n))/)
+        .map((paragraph, i) => i % 2 ? paragraph : stripInlineCode(paragraph)).join('');
+}
+
+function stripInlineCode(text) {
+    const runs = Array.from(text.matchAll(/`+/g));
+    const next = new Array(runs.length).fill(-1);
+    const lastByLength = new Map();
+    // Index matching run lengths once; repeated unmatched delimiters never rescan the suffix.
+    for (let i = runs.length - 1; i >= 0; i -= 1) {
+        const length = runs[i][0].length;
+        next[i] = lastByLength.get(length) ?? -1;
+        lastByLength.set(length, i);
+    }
+    const prose = [];
+    let cursor = 0;
+    for (let i = 0; i < runs.length; i += 1) {
+        let backslashes = 0;
+        for (let j = runs[i].index - 1; j >= 0 && text[j] === '\\'; j -= 1) backslashes += 1;
+        if (backslashes % 2 || next[i] === -1) continue;
+        const closing = next[i];
+        prose.push(text.slice(cursor, runs[i].index), ' ');
+        cursor = runs[closing].index + runs[closing][0].length;
+        i = closing;
+    }
+    prose.push(text.slice(cursor));
+    return prose.join('');
 }
 
 const LEADING_TAG = /^\s*<([A-Za-z][\w-]*)\b/;

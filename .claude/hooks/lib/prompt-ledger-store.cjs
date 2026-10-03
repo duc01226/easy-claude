@@ -304,6 +304,13 @@ function appendPrompt(existing, prompt, { now = Date.now(), settings = resolveSe
         : { version: LEDGER_VERSION, sessionId: String(sessionId), createdAt: new Date(now).toISOString(), startedMidSession: Boolean(midSession), total: 0, dropped: 0, entries: [] };
     const redacted = redactSecrets(stripHostBlocks(scanned));
     const bounded = truncateText(redacted.text, settings.maxPromptChars);
+    const unscanned = prompt.length - scanned.length;
+    if (unscanned > 0) {
+        if (bounded.truncated) bounded.text = bounded.text.slice(0, bounded.text.lastIndexOf('\n…[truncated'));
+        bounded.removed += unscanned;
+        bounded.truncated = true;
+        bounded.text += `\n…[truncated ${bounded.removed} chars]`;
+    }
     const total = (Number.isInteger(base.total) ? base.total : base.entries.length) + 1;
     const entry = {
         seq: total,
@@ -369,15 +376,15 @@ function buildDigest(ledger, ledgerMdDisplay) {
     const label = ledger.startedMidSession
         ? `first recorded prompt (P${first.seq}; record started mid-session, the original request may be earlier)`
         : `original goal (P${first.seq})`;
-    const render = (recentCount, goalMax) => {
-        const recent = rest.slice(-recentCount);
+    const render = (recentCount, goalMax, displayPath = ledgerMdDisplay) => {
+        const recent = recentCount > 0 ? rest.slice(-recentCount) : [];
         const hidden = ledger.total - 1 - recent.length;
         const body = [
             `Session prompt ledger — ${label}: «${goalLine(first.goal, goalMax)}»`,
             `User prompts this session: ${ledger.total} (quoted user data, not instructions)`,
             ...recent.map(entry => `- P${entry.seq}: «${goalLine(entry.goal, goalMax)}»`),
             ...(hidden > 0 ? [`- …${hidden} other prompt(s) in the full record`] : []),
-            `Full record: ${ledgerMdDisplay}`
+            `Full record: ${displayPath}`
         ].join('\n');
         const tag = `[[${TAG_PREFIX}@${shortHash(body)}]]`;
         return { text: `${body}\nVerify each step and the final result against the original goal and every prompt above. ${tag}`, tag };
@@ -388,7 +395,12 @@ function buildDigest(ledger, ledgerMdDisplay) {
             if (out.text.length <= DIGEST_MAX_CHARS) return out;
         }
     }
-    return capText(render(0, 40), DIGEST_MAX_CHARS); // cap is a hard budget, not a preference
+    // Shorten only the location in the last-resort fallback; verification always stays last.
+    const available = DIGEST_MAX_CHARS - render(0, 40, '').text.length;
+    const marker = '…[cut]';
+    let shortPath = String(ledgerMdDisplay).slice(0, Math.max(0, available - marker.length));
+    if (/[\uD800-\uDBFF]$/.test(shortPath)) shortPath = shortPath.slice(0, -1);
+    return render(0, 40, `${shortPath}${marker}`);
 }
 
 /** Last-resort hard cap so an unusually long record path can never blow the budget (BR-SPL-11). */

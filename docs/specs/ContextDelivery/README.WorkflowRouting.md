@@ -101,7 +101,7 @@ Before each prompt the assistant receives short routing guidance: the rule that 
 
 **Acceptance Criteria:**
 
-- **AC-WFR-03** — **Given** routing is on in mode ask or auto **When** the guidance is built **Then** it always contains the full routing gate for that mode, whatever the root instruction files hold, and never a line saying the gate is in a root file; when a shipped source it is built from cannot be read, the hook says so in one line instead of delivering nothing (TC-WFR-020, TC-WFR-021)
+- **AC-WFR-03** — **Given** routing is on in mode ask or auto **When** the guidance is built **Then** it always contains the full routing gate for that mode, whatever the root instruction files hold, and never a line saying the gate is in a root file; when a shipped source it is built from cannot be read or the gate has no guidance for that mode, the hook says so in one line instead of delivering nothing (TC-WFR-020, TC-WFR-021)
 - **AC-WFR-04** — **Given** a generated root instruction file **When** it is read **Then** it holds no pointer, no routing rule, no workflow question and no catalog; regenerating a root file removes a pointer or gate block an earlier version wrote
 - **AC-WFR-05** — **Given** any workflow with parallel phases **When** the guidance is built in the compact catalog or the index with parallel-phase marks **Then** its row keeps at least one parallel-phase mark per phase, and in every guidance form the guidance states the advancement rule
 
@@ -138,6 +138,18 @@ Before each prompt the assistant receives short routing guidance: the rule that 
 
 ---
 
+### US-WFR-05: Project route additions keep private files out of the conversation
+
+**As a** developer using a project's additional route guidance
+**I want** private local files to remain excluded even when another name points to them
+**So that** shared route settings cannot expose my credentials to the assistant
+
+**Acceptance Criteria:**
+
+- **AC-WFR-20** — **Given** additional route guidance names a project file **When** that file is resolved **Then** neither a private configured name nor a private final target is read into the guidance; a public alias to a public file remains readable, and a rejected personal source leaves an eligible team source in force
+
+---
+
 ## 4. Business Rules
 
 ### Rule Catalog
@@ -157,6 +169,7 @@ Before each prompt the assistant receives short routing guidance: the rule that 
 | BR-WFR-11 | A first-line prompt directive sets the mode for the session                                                                                 | Activation   | [HARD]      |
 | BR-WFR-12 | Personal settings stay personal                                                                                                             | Activation   | [HARD]      |
 | BR-WFR-13 | A workflow a run requires is part of that run                                                                                               | Activation   | [HARD]      |
+| BR-WFR-14 | Additional route guidance excludes private file names and final targets                                                                     | Privacy      | [HARD]      |
 
 ### BR-WFR-01: Guidance within the size cap [HARD]
 
@@ -185,7 +198,7 @@ Before each prompt the assistant receives short routing guidance: the rule that 
 
 Regenerating the root instruction files removes an outdated gate or pointer from them.
 
-When the hook cannot build the guidance from a shipped source, it is never silent: an unreadable workflow registry still delivers the state line and the full gate for the mode plus one line `workflow catalog unavailable: <reason>; read .claude/workflows.json`, and an unreadable gate file delivers the state line plus one line naming the gate file and the registry to read. The off notice reads no file and is unchanged.
+When the hook cannot build the guidance from a shipped source, it is never silent: an unreadable workflow registry still delivers the state line and the full gate for the mode plus one line `workflow catalog unavailable: <reason>; read .claude/workflows.json`, and an unreadable gate file or one with no guidance for the selected mode delivers the state line plus one line naming the gate file and the registry to read. An empty body, whitespace alone, empty gate markers, or only guidance for another mode all count as unavailable. The off notice reads no file and is unchanged.
 
 ### BR-WFR-04: Effective tier [HARD]
 
@@ -269,6 +282,16 @@ When the hook cannot build the guidance from a shipped source, it is never silen
 ### BR-WFR-13: A workflow a run requires is part of that run [HARD]
 
 **Statement:** A workflow that an explicit skill step, a skill the user named or an already-running parent workflow requires (for example a pull-request skill that runs the review workflow as its own step, or a nested review or end-to-end workflow inside a feature workflow) is part of that run, not a workflow the assistant chose by itself. It asks no workflow question in ask and is not skipped in off; it still runs with the quality gates of its run. Modes ask and off govern only a workflow the assistant chooses to start for the task: in ask a self-chosen catalog workflow still waits for the workflow question, and in off it is still not started. The routing gate, the off notice, the workflow start guidance and the configuration guide each state this in one sentence. A commit of unreviewed changes stays blocked by the review gate whatever the mode.
+
+---
+
+### BR-WFR-14: Additional route guidance excludes private files [HARD]
+
+**Statement:** For every additional route file named by a team or personal setting, both the chosen name and the final file it resolves to must remain inside the project and outside the privacy-sensitive classes: environment secrets, credentials, secret configuration and private keys. Another name or linked folder never makes a private target eligible. A refused file contributes no text and expresses no opinion, so an eligible earlier source can still decide. Public aliases and example or template files that are allowed by the same privacy policy remain readable. Off carries no additional route guidance.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/scripts/workflow-routing-config]`
 
 ---
 
@@ -417,17 +440,17 @@ Session           0──1 SessionMode         (set by a prompt directive)
 
 | Priority  | Count  | Automated | Manual |
 | --------- | ------ | --------- | ------ |
-| P0        | 1      | 1         | 0      |
+| P0        | 2      | 2         | 0      |
 | P1        | 19     | 19        | 0      |
 | P2        | 1      | 1         | 0      |
-| **Total** | **21** | **21**    | **0**  |
+| **Total** | **22** | **22**    | **0**  |
 
 | Category                    | TCs                                                                    |
 | --------------------------- | ---------------------------------------------------------------------- |
 | Core Routing Guidance Tests | TC-WFR-001, TC-WFR-002, TC-WFR-003, TC-WFR-004, TC-WFR-005, TC-WFR-013 |
 | Activation Tier Tests       | TC-WFR-006, TC-WFR-007, TC-WFR-009, TC-WFR-011, TC-WFR-012             |
 | Validation Tests            | TC-WFR-008                                                             |
-| Invariant / Property Tests  | TC-WFR-010                                                             |
+| Invariant / Property Tests  | TC-WFR-010, TC-WFR-022                                                             |
 | Route Mode Tests            | TC-WFR-014, TC-WFR-015, TC-WFR-016, TC-WFR-017, TC-WFR-018, TC-WFR-019, TC-WFR-020, TC-WFR-021 |
 
 ### Core Routing Guidance Tests
@@ -1631,9 +1654,9 @@ And mode off delivers its notice unchanged
 
 ---
 
-#### TC-WFR-021: An unreadable gate file is reported in one line naming it [P1]
+#### TC-WFR-021: An unavailable gate is reported in one line naming it [P1]
 
-**Objective:** Prove that when the gate file cannot be read (missing, or a folder in its place), the hook in ask and auto delivers the state line and one line naming the gate file and the registry to read, and that the off notice is unchanged.
+**Objective:** Prove that when the gate file cannot be read (missing, or a folder in its place) or has no guidance for the selected mode, the hook in ask and auto delivers the state line and one line naming the gate file and the registry to read, and that the off notice is unchanged.
 
 **Business Intent / Invariant Guarded:** The person and the assistant see that the route is gone instead of receiving nothing (BR-WFR-03, BR-WFR-08).
 
@@ -1641,19 +1664,20 @@ And mode off delivers its notice unchanged
 
 **Preconditions:**
 
-- A fixture project with its own temporary state, a readable registry and an unreadable gate file
+- A fixture project with its own temporary state, a readable registry and a gate that is unreadable or carries no guidance for the selected mode
 
-**Real-World Reachability:** A checkout where the gate file was deleted or replaced by a bad merge.
+**Real-World Reachability:** A checkout where the gate file was deleted, blanked, or replaced by an incomplete edit or bad merge.
 
-**Demo Flow:** Remove the gate file (and separately put a folder in its place), send a first prompt in ask and in auto and in off.
+**Demo Flow:** Remove the gate file, put a folder in its place, and separately leave it blank or with no guidance for the chosen mode; send a first prompt in ask, auto and off. Restore the gate and send another prompt in the same conversation.
 
 ```gherkin
-Given a project whose gate file cannot be read, in mode ask or auto
+Given a project whose gate file cannot be read or carries no guidance for that mode, in mode ask or auto
 When the hook delivers the route for the first prompt
 Then the state line is delivered
 And exactly one line says the route is unavailable, names the gate file and says to read it and the registry
 And no catalog is delivered and the hook ends normally
 And mode off delivers its notice with no unavailable line
+And after the gate is repaired, the next prompt in the same conversation delivers the gate and catalog
 ```
 
 **Expected Result:**
@@ -1667,7 +1691,8 @@ And mode off delivers its notice with no unavailable line
 
 **Acceptance Criteria:**
 
-- ✅ One notice line naming the gate file for a missing file and for an unreadable path
+- ✅ One notice line naming the gate file for a missing file, an unreadable path, or no guidance for the selected mode
+- ✅ Repair restores the normal guidance in the same conversation
 - ✅ Off notice unchanged
 - ❌ An empty output for an unreadable gate file
 
@@ -1675,14 +1700,16 @@ And mode off delivers its notice with no unavailable line
 
 ```json
 {
-    "breakers": ["missing gate file", "a folder in place of the gate file"],
+    "breakers": ["missing gate file", "a folder in place of the gate file", "empty file", "whitespace only", "empty gate markers", "guidance for another mode only"],
     "modes": ["ask", "auto", "off"]
 }
 ```
 
 **Edge Cases:**
 
-- A good registry does not hide the missing gate: the notice still appears
+- A good registry does not hide an unavailable gate: the notice still appears
+- Non-empty guidance without markers remains readable
+- An empty marked gate is unavailable even if text outside the gate exists
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -1759,6 +1786,77 @@ And it lists auto, confirm and manual as the allowed tiers
 ### Invariant / Property Tests
 
 > Property cases also live in other categories: TC-WFR-001 (size for every workflow set) and TC-WFR-006 (tier order for every pair) carry their property blocks in place.
+
+#### TC-WFR-022: Private route files remain private through aliases [P0]
+
+**Objective:** Prove that selecting additional route guidance through another name cannot expose private local content, while ordinary public guidance remains usable.
+
+**Business Intent / Invariant Guarded:** For every configured route file, a private chosen name or final target contributes no text to the assistant's guidance (BR-WFR-14).
+
+**Traces:** AC-WFR-20 / BR-WFR-14, BR-WFR-08
+
+**Preconditions:**
+
+- A project with readable standard routing guidance
+- Publicly named additional guidance that points to a private credentials file, and separately to a public guidance file
+- The private and public files contain distinct synthetic text
+
+**Real-World Reachability:** A maintainer shares a public guidance alias; on a developer's checkout its target is a local credentials file. The developer later sends a normal task prompt. Public aliases arise from a maintainer sharing reusable guidance in the same project.
+
+**Demo Flow:** Select the private-target alias and send prompts in ask and auto; inspect the delivered guidance for absence of private text. Select the public-target alias and repeat, then select off. Finally set a private personal alias over public team guidance and send another prompt.
+
+```gherkin
+Given additional route guidance points through a public name to private credentials
+When a developer sends a task in ask or auto
+Then the normal route arrives without the private text
+And a public alias to eligible public guidance still contributes its text
+And an allowed example file remains readable
+And a rejected personal file leaves eligible team guidance in force
+And off contributes no additional guidance
+```
+
+**Expected Result:**
+
+| Dimension | Expectation |
+| --- | --- |
+| **UI** | Not applicable — no screen; the observable surface is assistant context |
+| **System behavior** | Private files are refused without failing the prompt |
+| **Business data state** | Private content stays private and no setting is changed |
+| **Data shown on UI** | Standard routing guidance plus eligible public text only |
+
+**Acceptance Criteria:**
+
+- ✅ No synthetic private text in any ask or auto result
+- ✅ Public and allowed example aliases contribute their text
+- ✅ An ineligible personal source does not suppress eligible team guidance
+- ✅ Off carries no additional route text
+- ❌ A harmless chosen name authorizes reading a private final target
+
+**Test Data:**
+
+```yaml
+inputDomain: "every additional route file named directly or through an in-project alias, in ask or auto"
+invariant: "a private chosen name or resolved target contributes no text"
+boundaryCounterCase: "an alias to a public file or an allowed example file remains readable"
+```
+
+**Edge Cases:**
+
+- A linked folder reaches an in-project credentials file under a public leaf name
+- A public guidance file remains readable through a linked folder
+- The public example exception stays governed by the existing privacy policy
+- A rejected personal source falls through to eligible team guidance
+- A project reached through an alias still carries its eligible public guidance
+
+**Preservation Tests:** Eligible public aliases and allowed examples still appear in the normal guidance; off remains unchanged.
+
+<!-- machine-only carrier — ignore when reading as BA/QA -->
+
+> **Evidence:** `[Source: rule/scripts/workflow-routing-config]`
+> **Related Behaviors:** `rule/scripts/workflow-routing-config` · `operation/hooks/workflow-route-inject`
+> **CoveredBy:** `.claude/hooks/tests/suites/workflow-route-modes.test.cjs::[workflow-route-modes] TC-WFR-022 private protocol aliases are refused while public aliases remain readable` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/workflow-route-modes.test.cjs` "[workflow-route-modes] TC-WFR-022 private protocol aliases are refused while public aliases remain readable"
+
+---
 
 #### TC-WFR-010: Parallel-phase marks and the advancement rule survive the compact guidance [P0]
 

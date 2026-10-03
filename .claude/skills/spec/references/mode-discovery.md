@@ -406,29 +406,13 @@ The protocols below apply to this mode only; their full text is inline so this r
 
 **IMPORTANT MUST ATTENTION Workflow:** Phase 0 classify the corpus and short-circuit when empty → declare the parallel discovery wave → Step 1 scan related specs → Step 2 discover related code and graph paths → Step 3 reconcile gaps and invariants → Step 4 persist the report → Step 5 obtain the blocking scope decision → Step 6 hand off to `domain-analysis` and `spec [mode=draft|update]`.
 
-**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost to its canonical body above):**
+**IMPORTANT MUST ATTENTION** Apply the inline mode protocols and the parent skill's evidence/cross-service contracts; the digest never substitutes for their bodies.
 
-- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
-- **Incremental Persistence:** Append findings to the research report, never hold the landscape in memory.
-- **Subagent Return Contract:** Parallel-spec-read sub-agents return summary only, full findings on disk.
-- **Nested Task Creation:** Expand child phases and link parent when nested under a workflow row.
-- **Task Tracking External Report:** Bootstrap task tracking, persist discovery findings incrementally.
-- **Evidence:** Cite `file:line`; speculation forbidden, <60% do not recommend.
-- **Cross-Service Check:** Scan producers, consumers, sagas, contracts — a missed consumer the idea touches is a silent gap.
-- **Rationalization Prevention:** Reject step-skipping evasions; show grep evidence.
-- **Parallel Sub-Agent Dispatch:** Tag tasks PAR/SEQ, group PAR into disjoint-write-set waves, spawn each wave in ONE message, barrier before advancing.
-
-**MUST ATTENTION** every protocol above is in force for this spec discovery — honor its canonical body, not just the digest line.
-
-**IMPORTANT MUST ATTENTION** be BOTH spec-aware AND code-aware — read the spec root `<spec root>/**` (default `docs/specs`; `specRoots.business.path` in `docs/project-config.json` overrides it) (§1/§4/§5/§8 of related specs) AND delegate to `/investigate` (plus an optional code-graph hint); spec-only or code-only discovery misses half the landscape — why: overlap lives in the spec corpus, downstream impact lives in the code.
-**IMPORTANT MUST ATTENTION** run INLINE — the step 5 scope-decision gate is a BLOCKING `AskUserQuestion` that only works inline; spawn sub-agents only for parallel spec reads, NEVER delegate the whole skill — why: a delegated user gate cannot block, so the author would proceed before the user decides scope.
-**IMPORTANT MUST ATTENTION** NEVER auto-pick NEW — classify every candidate spec EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` evidence, then recommend and let the user decide via the BLOCKING gate — why: OVERLAPS detection is the entire reason this skill runs before the author; silently picking NEW ships a duplicate spec.
-**MUST ATTENTION** stay in the LANDSCAPE lane — surface related/overlapping/affected specs + the invariant landscape fast; do NOT author the spec (that is `spec [mode=draft]`) and do NOT deep-dive every flow (that is `investigate`) — why: scope creep into authoring/analysis duplicates the next steps and burns the budget.
-**Optional advice:** for a high-risk blast radius grep may miss, a graph hint on 2–3 key files investigate surfaced can add callers/consumers/event chains — it may be stale; grep + read always bridge code→spec via `[Source:]` anchors — why: overlap lives in the spec corpus, downstream impact lives in the code.
-**MUST ATTENTION** capture the invariant landscape explicitly — list every existing [HARD] rule (§4) and §5 invariant the idea must respect, as "for ALL {inputs}, {invariant} — owned by {spec/BR-id}" — why: a new spec that contradicts a DEPENDS-ON spec's [HARD] rule ships a defect.
-**MUST ATTENTION** apply the greenfield short-circuit — when no specs AND no code, record the reason with `Glob`/grep evidence, skip heavy discovery, hand off a minimal landscape; run the scope gate only if there is something to decide — why: grinding through empty discovery wastes the budget and produces nothing.
-**MUST ATTENTION** persist the report incrementally (per-section) to the research file — never hold the whole landscape in memory — why: context cutoff mid-discovery loses every finding; disk writes survive compaction.
-**MUST ATTENTION** read required project docs first (always `lessons.md`; `feature-spec-reference.md` + `spec-system-reference.md` for spec conventions) BEFORE reading any spec — project conventions override generic assumptions.
+- Stay in the landscape lane: classify every relevant spec with cited evidence, inspect related code, bridge code→spec through `[Source:]`, and list owned [HARD]/§5 invariants, gaps and unresolved confidence limits. Read project lessons and spec references first; use configured roots.
+- Run INLINE. Parallel readers own unique artifacts; the main agent validates every return and alone reduces them before the blocking NEW/EXTEND/SPLIT decision. Never auto-pick NEW in a nonempty landscape or delegate the whole skill.
+- Reuse an explicitly supplied same-run `--investigation=` report; investigate only uncovered slices. Graph hints are optional and verified by grep/read; their absence never waives code discovery.
+- Greenfield requires proof of no specs AND no code: skip heavy discovery, persist minimal scope/questions, and run the scope gate only when a real decision remains. Otherwise record the NEW assumption and hand off.
+- Persist each report section as produced; use the declared return contract and task statuses. Handoff supplies entities, invariants, cross-references and gaps to `domain-analysis` and the chosen draft/update mode.
 
 **Anti-Rationalization:**
 
@@ -441,7 +425,5 @@ The protocols below apply to this mode only; their full text is inline so this r
 | "I'll author the draft while I'm here"           | Landscape only. Authoring is `spec [mode=draft]`; deep flow analysis is `investigate`. |
 | "Invariants are the author's problem"            | A spec contradicting a [HARD] rule ships a defect. List the invariant landscape now. |
 | "Delegate the whole skill to a sub-agent, faster"| The step 5 gate is BLOCKING and inline-only. Spawn sub-agents only for spec reads. |
-
-**IMPORTANT MUST ATTENTION** spec-aware AND code-aware · INLINE (step 5 gate is BLOCKING) · NEVER auto-pick NEW — cite `file:line` with confidence >80% — these survive any long context, anchored top and bottom.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

@@ -1149,6 +1149,21 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+<!-- SYNC:measured-capacity-engineering -->
+
+> **Measured Capacity Engineering** — Apply when planning, building, testing or reviewing a hot path, cache, capacity claim or scaling decision. Preserve the hosting skill's authority, phase order, scores and gates; unrelated work skips this protocol. **Priorities:** model demand and the SLO, remove measured work safely, then prove capacity and recovery before adding infrastructure.
+>
+> 1. **Define capacity as a workload contract.** Record endpoint/journey mix, think time, reads/writes, payloads, data volume/skew, authentication, environment and latency/error targets. Distinguish active sessions, open connections, in-flight requests, offered RPS and achieved successful RPS. A benchmark's hardware price, user count or CPU limit is not a portable capacity guarantee; DAU requires a separate usage model.
+> 2. **Choose and disclose the load model.** Use closed-loop users for journeys; use an open arrival-rate model when testing independently arriving demand. Closed loops can reduce offered traffic as latency rises. Report attempted/completed work, errors/timeouts and dropped iterations, verify generator headroom, and separate component tests from the full journey. Repeat controlled runs with realistic data, warm steady state, cold/expiry cache, sustained load and recovery as warranted; static evidence yields a verification plan, never an invented capacity result.
+> 3. **Locate the limiting resource.** Correlate tail latency with queue/pool wait and per-process CPU, runtime stalls, memory/GC, database query plans and lock waits, disk and network. Co-located components compete for resources; high aggregate CPU alone does not identify its owner. Compare one hypothesis-changing optimization at a time under the same workload, then re-profile because the bottleneck can move.
+> 4. **Reduce work before multiplying resources.** Bound/filter at the data source, verify query access paths, batch repeated calls, trim payloads and keep synchronous hot-path work small. Select the smallest evidenced fix; urgent capacity or availability requirements can justify scaling first. Read `.claude/skills/performance-review/references/performance-knowledge.md` §10.1 when designing a capacity experiment and §6.1 before selecting a cache layer.
+> 5. **Place reuse at the earliest safe boundary.** Compare request/process, shared data and proxy/client caches by work avoided, hit rate, key cardinality, freshness and operating cost. Cache lookup must preserve authorization and all response-varying inputs; personalized data is private/bypassed unless isolation and authorization before every hit are proven. Bound bytes/entries, lifetime and refill concurrency; specify write invalidation, stale-data policy, cross-instance behavior and cold-cache fallback. Verify cross-user isolation and mutation visibility as well as speed.
+> 6. **Budget overload and recovery.** Find the measured SLO boundary and keep justified headroom; no universal CPU percentage defines safety. Bound queues, concurrency, pools, retries and dependency demand across all replicas. Exercise cache loss, deploy/warmup and overload: verify bounded degradation/shedding and recovery after demand falls, without dropping correctness, authorization or durability to win a benchmark.
+> 7. **Scale the evidenced owner incrementally.** Compare tuning/offload and vertical capacity with horizontal replicas or component separation; name state/session/cache coherence, shared dependency limits, availability and operational costs. A single-instance design can be efficient while failing an availability requirement. Choose distribution only for measured pressure or explicit business/availability needs, with an owner, revisit trigger and reversible next step.
+>
+> **Evidence output:** workload/SLO/environment | load model and offered/achieved demand | limiting-resource proof | before/after distributions and errors | cache correctness/cold-state proof (if applicable) | headroom/recovery | cost/trade-off and next scaling trigger. Record unavailable measurements explicitly. **Closing priorities:** model demand → reduce work safely → prove capacity/recovery; retain the hosting contract and never generalize anecdotal numbers.
+
+<!-- /SYNC:measured-capacity-engineering -->
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
@@ -1327,6 +1342,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
+
 ## Closing Reminders
 
 **MUST ATTENTION** named-code review prepares exact files → loads full rules → reviews captured inputs → checks both fingerprints before acceptance; feedback-only evaluation needs no preparation or installation.
@@ -1335,29 +1356,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION — Main steps:** create report → blast-radius (grep/read; optional graph hint) + full-pipeline trace → detect risks/plan/surfaces → file-by-file review → holistic review → final result → validate findings before fixes → full re-review after fixes; current/branch diff requests route to `changes-review`.
 
-**MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries — each line is a signpost to its canonical body above; the body governs):** NEVER act on the digest alone; ALWAYS read the cited canonical block when its trigger fires.
-
-- **Systematic Batching:** Large changeset → size-capped parallel batches, reduce.
-- **End To Start Debugger Trace:** Trace observed end-state backward before fixing.
-- **Graph-Assisted Investigation (optional):** the code graph is a stale-able hint for high-risk blast radius, never required.
-- **Category Review Thinking:** Derive category concerns from first principles.
-- **Subagent Return Contract:** Sub-agents return summary only, report on disk.
-- **Nested Task Creation:** Expand child phases under workflow row.
-- **Task Tracking External Report:** Bootstrap tasks; persist findings incrementally.
-- **Sequential Thinking Protocol:** Multi-step Thought N/M with confidence closer.
-- **Evidence Based Reasoning:** Cite `file:line`; confidence >80% to act.
-- **Design Patterns Quality:** DRY via OOP, lowest layer, SOLID.
-- **Complexity Prevention:** One business change = one code change.
-- **Double Round Trip Review:** Review → validate → fix current-round blocking findings → re-review until the current severity bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
-- **Fresh Context Review:** Re-review via fresh-memory sub-agents post-fix.
-- **Review Protocol Injection:** Embed all 11 protocol bodies verbatim.
-- **Rationalization Prevention:** Reject step-skipping evasions; show evidence.
-- **Logic And Intention Review:** Changed code matches stated purpose.
-- **Bug Detection:** Check null/boundary/error/resource every review.
-- **Test Spec Verification:** Map every changed path to a test.
-- **Fix Layer Accountability:** Fix at owning layer, not crash site.
-- **Source Test Drift Check:** Source change → reconcile affected tests.
-- **Severity Rubric:** Classify by consequence; Critical/High block PASS.
+**MUST ATTENTION** apply the triggered inline protocols above: systematic coverage, evidence and full-flow tracing; category/intention/test review; validation before repair at the contract owner; fresh full re-review under the current severity bar. Read the bodies when triggered; this digest grants no gate skip. Embed all 11 required review protocol bodies in emitted reviewer prompts.
 
 - **MANDATORY** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via `TaskCreate` with `[N.M] /skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
 - **MANDATORY** break work into small todo tasks using `TaskCreate` BEFORE starting

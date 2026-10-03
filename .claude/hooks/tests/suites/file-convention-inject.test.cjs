@@ -16,6 +16,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { isFrameworkRepo } = require('../lib/framework-repo-guard.cjs');
 
 const HOOKS_DIR = path.resolve(__dirname, '../..');
 const HOOK = path.join(HOOKS_DIR, 'file-convention-inject.cjs');
@@ -40,6 +41,7 @@ async function withFixture(fn) {
     // Resolve the temp root (macOS /var -> /private/var) so require.cache evictions hit the key
     // Node's loader records. JS realpathSync, not .native: the loader keeps Windows 8.3 short names.
     const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pfci-test-')));
+    const previousEnv = { ...process.env };
     const fx = {
         root,
         project: path.join(root, 'project'),
@@ -56,12 +58,20 @@ async function withFixture(fn) {
             fx.write('docs/project-config.json', typeof config === 'string' ? config : JSON.stringify(config, null, 2));
         }
     };
-    for (const dir of [path.join(fx.project, '.claude', 'hooks'), fx.store, fx.transcripts]) fs.mkdirSync(dir, { recursive: true });
     try {
+        for (const key of Object.keys(process.env)) {
+            if (/^(CK_|CLAUDE_|CODEX_)/i.test(key) || /(?:API_KEY|TOKEN|SECRET|PASSWORD)/i.test(key)) delete process.env[key];
+        }
+        const home = path.join(root, 'home');
+        const temp = path.join(root, 'temp');
+        for (const dir of [path.join(fx.project, '.claude', 'hooks'), fx.store, fx.transcripts, home, temp]) fs.mkdirSync(dir, { recursive: true });
+        Object.assign(process.env, { HOME: home, USERPROFILE: home, TMPDIR: temp, TEMP: temp, TMP: temp, CLAUDE_PROJECT_DIR: fx.project });
         await fn(fx);
     } finally {
         ledger._resetCarrierCache();
         fs.rmSync(root, { recursive: true, force: true });
+        for (const key of Object.keys(process.env)) delete process.env[key];
+        Object.assign(process.env, previousEnv);
     }
 }
 
@@ -129,8 +139,8 @@ function sessionStart(fx, source, sessionId, now, config = enabled([hooksGroup()
     return hook.run({ hook_event_name: 'SessionStart', source, session_id: sessionId }, { env: { CK_CONVENTIONS_DIR: fx.store }, config, now });
 }
 
-function spawnNode(args, { cwd, env = {}, stdin = '' }) {
-    return new Promise(resolve => {
+function spawnNode(args, { cwd, env = {}, stdin = '', closeOutput = false }) {
+    return new Promise((resolve, reject) => {
         const child = spawn(process.execPath, args, {
             cwd, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
             // Diagnostics switches default off so a developer's shell cannot turn silence assertions red.
@@ -139,19 +149,23 @@ function spawnNode(args, { cwd, env = {}, stdin = '' }) {
         let stdout = '';
         let stderr = '';
         const started = Date.now();
+        const timer = setTimeout(() => child.kill('SIGKILL'), 20000);
         child.stdout.on('data', chunk => { stdout += chunk; });
         child.stderr.on('data', chunk => { stderr += chunk; });
-        child.on('close', code => resolve({ code, stdout, stderr, ms: Date.now() - started }));
+        child.on('error', error => { clearTimeout(timer); reject(error); });
+        child.on('close', code => { clearTimeout(timer); resolve({ code, stdout, stderr, ms: Date.now() - started }); });
         child.stdin.on('error', () => {});
+        if (closeOutput) child.stdout.destroy();
         child.stdin.end(stdin);
     });
 }
 
-function spawnHook(fx, input, { raw, env = {} } = {}) {
+function spawnHook(fx, input, { raw, env = {}, closeOutput = false } = {}) {
     return spawnNode([HOOK], {
         cwd: fx.project,
         env: { CLAUDE_PROJECT_DIR: fx.project, CK_CONVENTIONS_DIR: fx.store, ...env },
-        stdin: raw !== undefined ? raw : JSON.stringify(input)
+        stdin: raw !== undefined ? raw : JSON.stringify(input),
+        closeOutput
     });
 }
 
@@ -237,6 +251,215 @@ function deliverOnceFor(fx, sessionId, { write, now = NOW } = {}) {
 }
 
 const tests = [
+    {
+        // INTENT BR-PFCI-26 / TC-PFCI-099: only completed current full owned content proves presence.
+        name: 'TC-PFCI-099 verified complete evidence rejects failed partial foreign unresolved and unknown loads',
+        fn: async () => withFixture(async fx => {
+            // Given owned multi-line protocols, an opted-in class, and isolated serialized histories.
+            const doc = 'docs/evidence.md';
+            const body = 'Required first rule.\nRequired middle rule.\nRequired last rule.\n';
+            const skillBody = '---\nname: review\n---\nRequired skill rule.\n';
+            fx.write(doc, body);
+            plant(path.join(fx.root, 'other-project'), doc, body);
+            fx.write('.claude/skills/review/SKILL.md', skillBody);
+            fx.write('.claude/hooks/evidence.cjs', 'module.exports = {};\n');
+            const config = enabled([hooksGroup({ evidenceDocs: [doc], evidenceSkills: ['review'] })]);
+            const request = (name = 'Read', input = { file_path: fx.abs(doc) }, id = 'load') => ({
+                type: 'assistant', timestamp: new Date(NOW - MINUTE).toISOString(), message: { content: [{ type: 'tool_use', id, name, input }] }
+            });
+            const result = (content = body, extra = {}) => ({
+                type: 'user', timestamp: new Date(NOW - MINUTE + 1000).toISOString(), message: { content: [{ type: 'tool_result', tool_use_id: 'load', content, ...extra }] }
+            });
+            const compact = { type: 'system', subtype: 'compact_boundary', timestamp: new Date(NOW - MINUTE + 500).toISOString() };
+            const skill = () => request('Skill', { skill: 'review' });
+            const rows = [
+                ['full-string', [request(), result()], true],
+                ['explicit-success', [request(), result(body, { is_error: false })], true],
+                ['full-text-blocks', [request(), result([{ type: 'text', text: body.slice(0, 21) }, { type: 'text', text: body.slice(21) }])], true],
+                ['windows-separators', [request('Read', { file_path: fx.abs(doc).replace(/\//g, '\\') }), result()], true],
+                ['relative-owned', [request('Read', { file_path: doc }), result()], true],
+                ['offset-one', [request('Read', { file_path: fx.abs(doc), offset: 1 }), result()], true],
+                ['full-skill', [skill(), result(skillBody)], true],
+                ['namespaced-full-skill', [request('Skill', { skill: 'plugin:review' }), result(skillBody)], true],
+                ['read-full-skill', [request('Read', { file_path: fx.abs('.claude/skills/review/SKILL.md') }), result(skillBody)], true],
+                ['request-only', [request()], false],
+                ['failed-read', [request(), result(body, { is_error: true })], false],
+                ['partial-content', [request(), result(body.slice(21))], false],
+                ['partial-offset', [request('Read', { file_path: fx.abs(doc), offset: 2 }), result()], false],
+                ['limited-request', [request('Read', { file_path: fx.abs(doc), limit: 1 }), result()], false],
+                ['foreign-same-suffix', [request('Read', { file_path: path.join(fx.root, 'other-project', doc) }), result()], false],
+                ['wrong-pair', [request(), result(body, { tool_use_id: 'unknown' })], false],
+                ['missing-id', [request('Read', { file_path: fx.abs(doc) }, ''), result()], false],
+                ['duplicate-request-id', [request(), request(), result()], false],
+                ['duplicate-result-id', [request(), result(), result()], false],
+                ['result-before-request', [result(), request()], false],
+                ['result-crosses-compaction', [request(), compact, result()], false],
+                ['completed-before-compaction', [request(), result(), compact], false],
+                ['failed-skill', [skill(), result(skillBody, { is_error: true })], false],
+                ['skill-launch-only', [skill(), result('Launching skill: review')], false],
+                ['unresolved-skill', [request('Skill', { skill: 'missing' }), result(skillBody)], false],
+                ['slash-only', [{ type: 'user', timestamp: new Date(NOW - MINUTE).toISOString(), message: { content: '<command-name>/review</command-name>' } }], false],
+                ['unknown-content', [request(), result({ text: body })], false],
+                ['mixed-result-blocks', [request(), result([{ type: 'text', text: body }, { type: 'image' }])], false],
+                ['unknown-error-flag', [request(), result(body, { is_error: 'false' })], false],
+                ['old-body', [request(), result(body + 'Removed rule.\n')], false]
+            ];
+            for (const [label, history, credited] of rows) {
+                const transcript = path.join(fx.transcripts, `${label}.jsonl`);
+                fs.writeFileSync(transcript, history.map(line => JSON.stringify(line)).join('\n') + '\n');
+                const input = post(fx, 'Edit', '.claude/hooks/evidence.cjs', { session_id: label, transcript_path: transcript });
+                // When the scanner and real hook decide whether this history loaded the complete required protocol.
+                assert.equal(Boolean(ledger.scanEvidence(transcript, { docs: [doc], skills: ['review'] }, { projectDir: fx.project, windowBytes: 8 * 1024 * 1024 })), credited, `${label}: scanner completion proof`);
+                const text = await deliver(fx, config, input);
+                const record = ledger.readRecord(fx.store, label, 'main', 'hooks-context');
+                // Then positive proof suppresses; every failure/unknown yields a reminder and no evidence credit.
+                assert.equal(text.includes('hooks-context@'), !credited, `${label}: reminder`);
+                assert.equal(record && record.form, credited ? 'evidence' : 'full', `${label}: owned delivery state`);
+                if (['full-string', 'failed-read', 'partial-content', 'foreign-same-suffix', 'full-skill', 'skill-launch-only'].includes(label)) {
+                    fx.writeConfig(config);
+                    const native = await spawnHook(fx, { ...input, session_id: `native-${label}` });
+                    assert.equal(native.code, 0, `${label}: native exit`);
+                    assert.equal(native.stderr, '', `${label}: native stderr`);
+                    assert.equal(contextOf(native.stdout).includes('hooks-context@'), !credited, `${label}: native reminder`);
+                }
+            }
+            // Given a sensitive operand or a safe path whose resolved target is classified sensitive by the existing pure policy.
+            // No private file is planted or read: these are classification/IO-tripwire stubs only.
+            const policyTranscript = path.join(fx.transcripts, 'policy-proof.jsonl');
+            const nativeRealpath = fs.realpathSync;
+            const policyStat = fs.statSync;
+            const policyOpen = fs.openSync;
+            let sensitiveResolutions = 0;
+            let sensitiveIO = 0;
+            try {
+                fs.realpathSync = file => {
+                    if (file === fx.abs('.env')) { sensitiveResolutions += 1; return file; }
+                    if (file === fx.abs(doc)) return fx.abs('credentials.md');
+                    return nativeRealpath(file);
+                };
+                fs.statSync = (file, ...args) => { if (file === fx.abs('.env') || file === fx.abs('credentials.md')) { sensitiveIO += 1; throw new Error('synthetic sensitive-path IO tripwire'); } return policyStat(file, ...args); };
+                fs.openSync = (file, ...args) => { if (file === fx.abs('.env') || file === fx.abs('credentials.md')) { sensitiveIO += 1; throw new Error('synthetic sensitive-path IO tripwire'); } return policyOpen(file, ...args); };
+                fs.writeFileSync(policyTranscript, [request('Read', { file_path: fx.abs('.env') }), result('Synthetic classification text')].map(line => JSON.stringify(line)).join('\n') + '\n');
+                // When evidence scanning resolves an opted-in sensitive document / Then pure policy rejects before body path resolution or IO.
+                assert.equal(ledger.scanEvidence(policyTranscript, { docs: ['.env'] }, { projectDir: fx.project, windowBytes: 10000 }), null);
+                assert.equal(sensitiveResolutions, 0, 'sensitive requested path rejected before resolving a body path');
+                assert.equal(sensitiveIO, 0, 'sensitive requested path never statted/opened');
+                fs.writeFileSync(policyTranscript, [request(), result()].map(line => JSON.stringify(line)).join('\n') + '\n');
+                // When a safe requested document resolves to a sensitive relative target / Then no body stat/open is attempted.
+                assert.equal(ledger.scanEvidence(policyTranscript, { docs: [doc] }, { projectDir: fx.project, windowBytes: 10000 }), null);
+                assert.equal(sensitiveIO, 0, 'sensitive physical target rejected before stat/open');
+            } finally { fs.realpathSync = nativeRealpath; fs.statSync = policyStat; fs.openSync = policyOpen; }
+            // Given a full result with its request outside the bounded window, or a host condensation after the request.
+            const transcript = path.join(fx.transcripts, 'bounds.jsonl');
+            const first = JSON.stringify(request()) + '\n';
+            const last = JSON.stringify(result()) + '\n';
+            fs.writeFileSync(transcript, first + last);
+            const evidence = { docs: [doc], skills: ['review'] };
+            const opts = { projectDir: fx.project, windowBytes: 10000 };
+            // When the scanner applies its window, compaction and IO bounds / Then missing proof never credits.
+            assert.ok(ledger.scanEvidence(transcript, evidence, opts), 'healthy completed control');
+            assert.equal(ledger.scanEvidence(transcript, evidence, { ...opts, windowBytes: Buffer.byteLength(last) }), null, 'request out of window');
+            assert.equal(ledger.scanEvidence(transcript, evidence, { ...opts, lastCompactionAt: NOW - MINUTE + 500 }), null, 'request before host compaction');
+            assert.equal(ledger.scanEvidence(transcript, evidence, { ...opts, capBytes: 0 }), null, 'zero cap fails conservatively');
+            // Given content unavailable for complete proof / When scanned / Then never suppress the reminder.
+            for (const content of [Buffer.alloc(0), Buffer.from([0, 97]), Buffer.from([0xff]), Buffer.alloc(conventions.CONTENT_LIMITS.maxFileBytes + 1, 97)]) {
+                fs.writeFileSync(fx.abs(doc), content);
+                const full = JSON.stringify(result(content.toString('utf8'))) + '\n';
+                fs.writeFileSync(transcript, first + full);
+                assert.equal(ledger.scanEvidence(transcript, evidence, { ...opts, windowBytes: 8 * 1024 * 1024 }), null, 'empty/binary/invalid UTF8/oversized full bodies give no credit');
+            }
+            fx.write(doc, body);
+            fs.writeFileSync(transcript, first + last);
+            // Given a changed fd identity or IO fault / When verifying the current file / Then fail conservatively and close every opened descriptor.
+            const nativeStat = fs.fstatSync;
+            const nativeRead = fs.readSync;
+            const nativeClose = fs.closeSync;
+            let closes = 0;
+            let rejectedContentReads = 0;
+            try {
+                fs.readSync = (fd, buffer, ...args) => { if (buffer.length === Buffer.byteLength(body)) rejectedContentReads += 1; return nativeRead(fd, buffer, ...args); };
+                fs.closeSync = fd => { closes += 1; return nativeClose(fd); };
+                fs.fstatSync = fd => { const stat = nativeStat(fd); stat.ino += 1; return stat; };
+                assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'opened identity differs from resolved file');
+                assert.equal(closes, 2, 'both transcript and rejected current-content fd closed');
+                assert.equal(rejectedContentReads, 0, 'an unidentified descriptor is never read before rejection');
+                fs.fstatSync = nativeStat;
+                closes = 0;
+                fs.readSync = (fd, buffer, ...args) => {
+                    if (buffer.length === Buffer.byteLength(body)) throw new Error('synthetic current-content IO failure');
+                    return nativeRead(fd, buffer, ...args);
+                };
+                assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'content IO failure gives no credit');
+                assert.equal(closes, 2, 'both descriptors closed on a failed content read');
+            } finally {
+                fs.fstatSync = nativeStat;
+                fs.readSync = nativeRead;
+                fs.closeSync = nativeClose;
+            }
+            // Given the pathname now refers to a different inode after opening / When completing proof / Then the old descriptor cannot credit new content.
+            const nativePathStat = fs.statSync;
+            let pathStats = 0;
+            try {
+                fs.statSync = (file, ...args) => {
+                    const stat = nativePathStat(file, ...args);
+                    if (file === fs.realpathSync(fx.abs(doc)) && ++pathStats === 2) stat.ino += 1;
+                    return stat;
+                };
+                assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'replaced pathname has a different identity');
+            } finally { fs.statSync = nativePathStat; }
+            // Given two successful loads of the same current file / When rescanning / Then content IO is cached only within that scan.
+            const secondRequest = request('Read', { file_path: fx.abs(doc) }, 'second');
+            fs.writeFileSync(transcript, first + last + JSON.stringify(secondRequest) + '\n' + JSON.stringify(result(body, { tool_use_id: 'second' })) + '\n');
+            let reads = 0;
+            try {
+                fs.readSync = (fd, buffer, ...args) => { if (buffer.length === Buffer.byteLength(body)) reads += 1; return nativeRead(fd, buffer, ...args); };
+                assert.ok(ledger.scanEvidence(transcript, evidence, opts));
+                assert.equal(reads, 1, 'same body read once per scan');
+                assert.ok(ledger.scanEvidence(transcript, evidence, opts));
+                assert.equal(reads, 2, 'next scan verifies current content again');
+            } finally { fs.readSync = nativeRead; }
+            // Given all required documents loaded at different result positions / When scanned / Then credit ages from the oldest full result.
+            fx.write('docs/second.md', body);
+            const secondDocRequest = request('Read', { file_path: fx.abs('docs/second.md') }, 'second-doc');
+            fs.writeFileSync(transcript, first + last + JSON.stringify(secondDocRequest) + '\n' + JSON.stringify(result(body, { tool_use_id: 'second-doc' })) + '\n');
+            assert.equal(ledger.scanEvidence(transcript, { docs: [doc, 'docs/second.md'] }, opts).transcriptBytes, Buffer.byteLength(first), 'oldest complete required document result governs aging');
+            // Given earlier mismatching reads consume the bounded IO allowance / When a later full skill needs more IO / Then no optimistic credit.
+            const expensive = [];
+            const largeDocs = [];
+            for (let i = 0; i < 4; i += 1) {
+                const rel = `docs/large-${i}.md`;
+                largeDocs.push(rel);
+                fx.write(rel, Buffer.alloc(conventions.CONTENT_LIMITS.maxFileBytes, 97));
+                expensive.push(request('Read', { file_path: fx.abs(rel) }, `large-${i}`), result('mismatched body', { tool_use_id: `large-${i}` }));
+            }
+            expensive.push(skill(), result(skillBody));
+            fs.writeFileSync(transcript, expensive.map(line => JSON.stringify(line)).join('\n') + '\n');
+            assert.equal(ledger.scanEvidence(transcript, { docs: largeDocs, skills: ['review'] }, opts), null, 'aggregate content IO budget stays bounded');
+            fs.writeFileSync(transcript, first + last);
+            fx.write(doc, body + 'New rule.\n');
+            assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'prior body differs from current required content');
+            fx.write(doc, body);
+            let statCalls = 0;
+            try {
+                fs.fstatSync = fd => { const stat = nativeStat(fd); if (++statCalls === 2) stat.mtimeMs += 1; return stat; };
+                fs.statSync = (file, ...args) => { const stat = nativePathStat(file, ...args); if (file === fs.realpathSync(fx.abs(doc)) && statCalls >= 2) stat.mtimeMs += 1; return stat; };
+                assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'content changed during the read gives no proof');
+            } finally { fs.fstatSync = nativeStat; fs.statSync = nativePathStat; }
+            // Given an unsuccessful Read and rejected reminder transport left no delivered evidence / When a later full owned load succeeds / Then that same context gains real presence.
+            const retrySession = 'healthy-evidence-retry';
+            fs.writeFileSync(transcript, first + JSON.stringify(result('Fixture failed read', { is_error: true })) + '\n');
+            let attemptedReminder = '';
+            const retryInput = post(fx, 'Edit', '.claude/hooks/evidence.cjs', { session_id: retrySession, transcript_path: transcript });
+            assert.equal(await deliver(fx, config, retryInput, { write: (payload, done) => { attemptedReminder = contextOf(payload); done(false); } }), '');
+            assert.ok(attemptedReminder.includes('hooks-context@'), 'failed load left the reminder eligible');
+            assert.equal(ledger.readRecord(fx.store, retrySession, 'main', 'hooks-context'), null, 'failed transport did not falsely mark presence');
+            fs.appendFileSync(transcript, JSON.stringify(request('Read', { file_path: fx.abs(doc) }, 'healthy-retry')) + '\n' + JSON.stringify(result(body, { tool_use_id: 'healthy-retry' })) + '\n');
+            assert.equal(await deliver(fx, config, retryInput), '', 'later full completed load suppresses the duplicate reminder');
+            assert.equal(ledger.readRecord(fx.store, retrySession, 'main', 'hooks-context').form, 'evidence', 'same context gained completed-content evidence');
+            fs.unlinkSync(fx.abs(doc));
+            assert.equal(ledger.scanEvidence(transcript, evidence, opts), null, 'missing current body cannot prove full load');
+        })
+    },
     // TC-PFCI-001: Reading a file of a class delivers its conventions
     {
         name: 'TC-PFCI-001 read delivers digest',
@@ -1686,19 +1909,56 @@ const tests = [
             // Edge: the real output channel reporting a write error counts as not accepted either
             const brokenSession = { ...input, session_id: 'session-broken-output' };
             const realWrite = process.stdout.write;
+            const realErrorWrite = process.stderr.write;
+            const trace = [];
+            const listenersBefore = process.stdout.listenerCount('error');
             let payload;
             process.stdout.write = (chunk, callback) => {
-                if (typeof callback === 'function') callback(Object.assign(new Error('pipe closed'), { code: 'EPIPE' }));
+                const error = Object.assign(new Error('pipe closed'), { code: 'EPIPE' });
+                if (typeof callback === 'function') callback(error);
+                process.stdout.emit('error', error);
                 return false;
             };
+            process.stderr.write = chunk => { trace.push(String(chunk)); return true; };
             try {
-                payload = await hook.run(brokenSession, { env: { CK_CONVENTIONS_DIR: fx.store }, projectDir: fx.project, config, now: NOW });
+                payload = await hook.run(brokenSession, { env: { CK_CONVENTIONS_DIR: fx.store, CK_DEBUG: '1' }, projectDir: fx.project, config, now: NOW });
             } finally {
                 process.stdout.write = realWrite;
+                process.stderr.write = realErrorWrite;
             }
             assert.equal(payload, '');
+            assert.equal(trace.filter(line => line.includes('write failed: nothing recorded')).length, 1, 'the callback and native error describe one failed delivery');
             assert.equal(ledger.readRecord(fx.store, 'session-broken-output', 'main', 'hooks-context'), null);
             assert.ok(!fs.existsSync(ledger.lockFile(fx.store, 'session-broken-output', 'main', 'hooks-context')), 'claim released');
+            assert.equal(process.stdout.listenerCount('error'), listenersBefore, 'failed native error removes temporary listener');
+            // Given a host closing its pipe before the real hook writes, not just a callback double
+            fx.writeConfig(config);
+            const closedSession = { ...input, session_id: 'session-real-closed-pipe' };
+            const closed = await spawnHook(fx, closedSession, { closeOutput: true });
+            // Then the advisory hook exits zero, leaves no presence or claim, and a healthy retry delivers
+            assertSilent(closed, 'real closed output');
+            assert.equal(ledger.readRecord(fx.store, closedSession.session_id, 'main', 'hooks-context'), null);
+            assert.ok(!fs.existsSync(ledger.lockFile(fx.store, closedSession.session_id, 'main', 'hooks-context')));
+            const retry = await spawnHook(fx, closedSession);
+            assert.equal(retry.code, 0, retry.stderr);
+            assert.equal(retry.stderr, '');
+            assert.ok(contextOf(retry.stdout).includes('Hooks use CommonJS'));
+            assert.ok(ledger.readRecord(fx.store, closedSession.session_id, 'main', 'hooks-context'));
+            // A healthy write and synchronous transport exception both release their temporary listener.
+            for (const throws of [false, true]) {
+                process.stdout.write = (chunk, callback) => {
+                    if (throws) throw new Error('transport unavailable');
+                    callback(null);
+                    return true;
+                };
+                try {
+                    const result = await hook.run({ ...input, session_id: `listener-${throws}` }, { env: { CK_CONVENTIONS_DIR: fx.store }, projectDir: fx.project, config, now: NOW });
+                    assert.equal(Boolean(result), !throws);
+                } finally {
+                    process.stdout.write = realWrite;
+                }
+                assert.equal(process.stdout.listenerCount('error'), listenersBefore, `listener lifecycle, throws=${throws}`);
+            }
             // Edge: after a stale claim was taken over, the original holder's release leaves the new claim alone
             const shared = ledger.lockFile(fx.store, 'session-takeover', 'main', 'hooks-context');
             const firstToken = ledger.acquireLock(shared, NOW);
@@ -2027,6 +2287,21 @@ const tests = [
             // Boundary counter-case: first and last lines alone exceed the limit → nothing delivered
             const wide = entryOf({ name: 'wide', pathRegexes: ['.'], referenceDocs: [`docs/${'w'.repeat(600)}.md`] });
             assert.deepEqual(conventions.buildDigest([wide], ['a'], { maxChars: 500 }), { text: '', forms: { wide: 'omitted' } });
+            // Any accepted class name, including object prototype names, owns a real delivery form.
+            for (const name of ['__proto__', 'constructor', 'toString']) {
+                const entry = entryOf({ name, pathRegexes: ['.'], rules: ['Required named-class rule'] });
+                const full = conventions.buildDigest([entry], ['src/file.cjs'], { maxChars: 10000 });
+                assert.ok(Object.hasOwn(full.forms, name), name);
+                assert.equal(full.forms[name], 'full');
+                assert.ok(full.text.includes('Required named-class rule'), name);
+                const oversized = entryOf({ name, pathRegexes: ['.'], rules: ['x'.repeat(2000)] });
+                const trimmed = conventions.buildDigest([oversized], ['src/file.cjs'], { maxChars: 500 });
+                assert.equal(trimmed.forms[name], 'references');
+                assert.ok(trimmed.text.length <= 500);
+                const omitted = conventions.buildDigest([oversized], ['x'.repeat(600)], { maxChars: 500 });
+                assert.equal(omitted.forms[name], 'omitted');
+                assert.equal(omitted.text, '');
+            }
         }
     },
 
@@ -2039,7 +2314,16 @@ const tests = [
                 enabled([hooksGroup(), specGroup(), { name: 'styles', pathRegexes: [], pathGlobs: ['**/*.scss'], stylingDoc: 'docs/s.md' },
                     { name: 'unknown-protocol', pathRegexes: [], pathGlobs: ['tools/**'], skills: ['no-such-skill'], rules: ['Tool rule'] }])
             ];
-            if (fs.existsSync(repoConfigPath)) configs.push(JSON.parse(fs.readFileSync(repoConfigPath, 'utf8')));
+            if (isFrameworkRepo(path.resolve(HOOKS_DIR, '..', '..')) && fs.existsSync(repoConfigPath)) configs.push(JSON.parse(fs.readFileSync(repoConfigPath, 'utf8')));
+            const namedClasses = enabled(['__proto__', 'constructor', 'toString'].map(name => ({ name, pathRegexes: [], pathGlobs: ['src/**'], rules: [`Required ${name} rule`] })));
+            configs.push(namedClasses);
+            const namedInput = post(fx, 'Edit', 'src/named.cjs', { session_id: 'named-classes' });
+            const namedText = await deliver(fx, namedClasses, namedInput);
+            for (const group of namedClasses.contextGroups) {
+                assert.ok(namedText.includes(group.rules[0]), `hook delivers ${group.name}`);
+                assert.ok(ledger.readRecord(fx.store, namedInput.session_id, 'main', group.name), `completed record for ${group.name}`);
+            }
+            assert.equal(await deliver(fx, namedClasses, namedInput), '', 'ordinary duplicate suppression works for prototype-named classes');
             // Generated valid configurations: every include form, rank, item mix and non-deliverable classes.
             // A location pattern renders as its readable path form; a file-name pattern as `name:<pattern>`.
             const regexRenderings = { [HOOKS_REGEX]: '/\\.claude/hooks/.*\\.cjs$**', '[\\\\/]src[\\\\/]': '/src/**' };

@@ -18,13 +18,13 @@ description: '[Skill Management] Use when enhancing, compressing or expanding pr
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Quick Summary
 
-**Goal:** Improve readable, actionable instructions with preserved meaning. Agent guides use the shared content-value branch; other targets use two-phase optimization — (1) Caveman Compression strips stop words + grammatical scaffolding while preserving semantic meaning; (2) Prompt Enhancement applies AI attention anchoring so AI reads and follows all instructions — producing a prompt/skill that states its objective and ultimate outcome (one consolidated Goal) in both top summary and bottom reminders so AI optimizes for the right result.
+**Goal:** Improve readable, actionable instructions with preserved meaning. Agent guides use the shared content-value branch; other targets use two-phase optimization — (1) Caveman Compression strips stop words + grammatical scaffolding while preserving semantic meaning; (2) Prompt Enhancement applies AI attention anchoring to make priorities and routing easier to find — producing a prompt/skill that states its objective and ultimate outcome (one consolidated Goal) in both top summary and bottom reminders so AI optimizes for the right result.
 
 **Summary:**
 
 - Classify output ownership FIRST. Agent guides use the content-value/retention branch; other targets compress prose then attention-anchor structure.
 - Enhance derives BOTH a **Goal** (the outcome to optimize for) AND a **Summary** (key things + steps to notice) for the target, and places both in its Quick Summary.
-- **Anti-forget rule (task/purpose targets):** when the target performs a task or has a purpose, the Summary AND Closing Reminders MUST carry the goal + purpose + ALL important main steps/tasks (compact enumeration) — why: AI forgets steps buried in the long middle of the prompt; the top Summary and bottom Reminders are the two high-attention anchors that survive context rot.
+- **Anti-forget rule (task/purpose targets):** when the target performs a task or has a purpose, the Summary AND Closing Reminders MUST carry the goal + purpose + ALL important main steps/tasks (compact enumeration) — why: this framework repeats a compact route at the entry and exit; anchors aid navigation but do not guarantee compliance.
 - Preserve meaningful rules and consumer-required code/YAML/tables/tags; agent-guide removals require semantic dispositions, not blanket example retention.
 - Route on `--op` (default `enhance`): `compress` = token-strip only, `expand` = reconstruct compressed text.
 
@@ -44,7 +44,7 @@ description: '[Skill Management] Use when enhancing, compressing or expanding pr
 - Preserve meaningful rules/constraints and verified evidence; agent guides may disposition redundant examples or outside-purpose evidence to reports.
 - MUST ATTENTION derive the target's Goal and add it to both `## Quick Summary` and `## Closing Reminders`
 - MUST ATTENTION derive the target's Summary (key important things + steps AI must notice) and place it in `## Quick Summary` immediately after the Goal — a condensing digest at a different altitude than Workflow/Key Rules, NEVER a verbatim re-listing of them
-- MUST ATTENTION when the target performs a task or has a purpose, the Summary AND `## Closing Reminders` MUST enumerate the goal + purpose + ALL important main steps/tasks as a compact list — why: long task descriptions in the middle of the prompt get forgotten; the top Summary and bottom Reminders re-anchor every step so none is skipped (compact enumeration ≠ the verbose Workflow prose, so the altitude stays distinct)
+- MUST ATTENTION when the target performs a task or has a purpose, the Summary AND `## Closing Reminders` MUST enumerate the goal + purpose + ALL important main steps/tasks as a compact list — why: compact entry and exit routes make required steps visible without duplicating their detailed procedures (compact enumeration ≠ the verbose Workflow prose, so the altitude stays distinct)
 - MUST ATTENTION skill AND sub-agent (`.claude/agents/*.md`) targets require the SAME Goal + Summary + Closing-Reminders structure (see [When Target is a Sub-Agent File](#when-target-is-a-sub-agent-file)) — anchored top and bottom; NEVER alter SYNC blocks when enhancing an agent
 - Verify retained rules, exceptions and preconditions by semantic disposition; warning-keyword counts are not a quality gate
 - Caveman compression applies to prose only — NEVER compress code blocks, YAML, or structured tables
@@ -155,14 +155,14 @@ After caveman compression, evaluate skill against each principle, add missing st
 
 ### Anti-Forget Anchoring (task/purpose targets)
 
-Any target that **performs a task or has a purpose** (skill, sub-agent, task-prompt) hides its main steps in the long middle — exactly the zone AI attention drops 15-47% (Stanford "lost-in-the-middle"). The fix is to mirror those steps into the two high-attention anchors:
+For task/purpose targets (skills, sub-agents and task prompts), this framework requires compact entry and exit routes. Position effects vary by model and task; these anchors are a navigation convention, not a guaranteed performance improvement:
 
 | Anchor                          | Must carry                                                                                                      |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `## Quick Summary` → `**Summary:**` | Goal + purpose + **ALL important main steps/tasks** as a compact ordered enumeration (one short phrase each)   |
 | `## Closing Reminders`          | Goal echo + a `MUST ATTENTION` line re-listing the same main steps/tasks in order                              |
 
-- MUST ATTENTION enumerate EVERY important main step/task — completeness beats brevity here; a step omitted from both anchors is a step AI will skip — why: the Summary and Reminders are the only parts guaranteed to be read on a long prompt.
+- MUST ATTENTION enumerate EVERY important main step/task — completeness beats brevity here; a step omitted from both anchors is harder to find — why: both anchors must expose the complete route; their presence does not guarantee that a model follows it.
 - The compact enumeration is a DIFFERENT altitude than the verbose `## Workflow`/body — short phrases, not full prose — so it complements (never replaces) the detailed steps below.
 - Surface conditional routing too (modes, `--flags`, gates) so the AI doesn't forget a whole branch — why: a forgotten mode silently runs the wrong path.
 
@@ -261,7 +261,7 @@ Do NOT compress:
 
 > Applies to `--op=compress|enhance`. For `--op=expand`, use the Structural Clarity pass (see expand branch above).
 
-Prompt quality FIRST. Verbose prompts degrade quality — AI attention dilutes across unnecessary tokens. Optimize **clarity-per-token**: maximum signal, minimum noise.
+Prompt quality FIRST. Remove low-value prose while preserving readable conditions. Optimize **clarity-per-token**; fewer tokens alone do not prove better performance.
 
 **What to cut:**
 
@@ -326,7 +326,7 @@ For each `.claude/` protocol reference:
 - Present but weak → strengthen with Goal, Workflow, Key Rules
 - Ensure `**Goal:**` states what the skill achieves AND the ultimate outcome it must cause — a single consolidated line (never split the objective and outcome into two separate lines)
 - Ensure `**Summary:**` is present in Quick Summary immediately after the Goal — create if missing, strengthen if weak; it condenses the key important things + the steps AI must notice at a different altitude than Workflow/Key Rules (NEVER a verbatim re-listing of them) — why: the Goal gives the outcome, the Summary gives the read-this-if-nothing-else digest
-- For task/purpose targets, ensure the Summary enumerates ALL important main steps/tasks (compact ordered list) + modes/flags/gates — why: completeness on steps is the anti-forget guarantee
+- For task/purpose targets, ensure the Summary enumerates ALL important main steps/tasks (compact ordered list) + modes/flags/gates — why: complete anchors expose the required route
 - Protocol summaries appear before Quick Summary
 
 ### Step 5: Add/Fix Bottom Section
@@ -419,22 +419,13 @@ For each `.claude/` protocol reference:
 - **Prompt Enhancement Transforms:** MUST ATTENTION inline READ summaries, top Quick-Summary, bottom Closing-Reminders (Transforms 1-3 base).
 - **Shared Protocol Duplication Policy:** NEVER extract SYNC duplication to references — edit canonical first; inline is intentional.
 
-**IMPORTANT MUST ATTENTION** classify output ownership and select `--op` FIRST (default `enhance`). Agent guides use the dedicated branch; other prompts compress then anchor, or expand with Language Expansion.
-**IMPORTANT MUST ATTENTION** NEVER compress code blocks, YAML frontmatter, structured tables, or SYNC tags
-**IMPORTANT MUST ATTENTION** read target file completely before any changes
-**IMPORTANT MUST ATTENTION** derive the target's one-sentence Goal (what it achieves + ultimate outcome), then place it in both `## Quick Summary` and `## Closing Reminders` — why: AI must know the ultimate outcome after enhancement
-**IMPORTANT MUST ATTENTION** enhance derives BOTH the target's Goal AND its Summary (key important things + steps AI must notice) and places both in `## Quick Summary`, the Summary at a different altitude than Workflow/Key Rules — why: the Goal tells AI the outcome to optimize for; the Summary tells AI the key things/steps to notice up front
-**IMPORTANT MUST ATTENTION** for a target that performs a task or has a purpose, the Summary AND Closing Reminders MUST enumerate the goal + purpose + ALL important main steps/tasks (compact ordered list) + modes/flags/gates — why: long task descriptions in the middle of the prompt get forgotten; the top Summary and bottom Reminders are the two anchors that survive context rot, so every step must appear in both
-**IMPORTANT MUST ATTENTION** skill AND sub-agent (`.claude/agents/*.md`) targets share ONE required structure — Goal + Summary in `## Quick Summary`, Goal echoed in `## Closing Reminders` — so creator skills (e.g. `custom-agent`) emit a consistent shape; when enhancing an agent NEVER alter `<!-- SYNC:... -->` blocks or delete `## Role`/`## Workflow`/`## Key Rules`/`## Output` — why: SYNC copies are canonical-synced and divergence fails the build
-**IMPORTANT MUST ATTENTION** read each referenced protocol file to write accurate inline summaries — NEVER guess content
-**IMPORTANT MUST ATTENTION** make purpose and critical rules visible first and repeat brief priorities at the end when useful; preserve owner-specific structure
-**IMPORTANT MUST ATTENTION** verify semantic dispositions and readability; warning-keyword counts and word reduction are not proof
-**IMPORTANT MUST ATTENTION** state the action to take, not only what to avoid — pair every `NEVER` with the right path, and append a terse `— why:` to each non-obvious rule — why: affirmative directives + carried rationale are followed more reliably and survive compression (principles #10/#11)
-**IMPORTANT MUST ATTENTION** add inline summaries only for `.claude/` protocol files, not project-specific `docs/` files
-**IMPORTANT MUST ATTENTION** keep all meaningful content — only restructure/compress, preserve meaningful rules; retain examples only when they clarify necessary distinctions
-**IMPORTANT MUST ATTENTION** verify no YAML frontmatter corruption after changes
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
-**IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting
+**IMPORTANT MUST ATTENTION Main steps:** classify ownership/type and select operation → read the complete target and inventory its contract → derive Goal + Summary → compress or expand → read protocol references and add inline summaries → anchor top and bottom → verify retention, readability and syntax. Agent guides use their dedicated branch and owning writer's application gate.
+
+- Default `--op=enhance`; `compress` strips prose only, while `expand` restores fluent language and structural clarity. Preserve code, YAML, tables, paths and SYNC content.
+- Task/purpose targets need Goal + purpose + every main step, conditional mode/flag and gate in both anchors. Keep Summary distinct from detailed Workflow/Key Rules. Skills and sub-agents share this structure; preserve agent Role/Workflow/Key Rules/Output sections.
+- Read referenced protocols before summarizing them; inline summaries apply to `.claude/` protocols, not project `docs/`. State the correct action and retain non-obvious rationale and examples that clarify necessary distinctions.
+- Preserve owner-specific structure, meaningful rules, exceptions and consumer contracts. Verify semantic dispositions and YAML integrity; length and warning counts prove neither quality nor retention.
+- Ground claims in `file:line` evidence; >80% confidence to act, verify uncertainty first. READ `CLAUDE.md` before starting.
 
 **Anti-Rationalization:**
 

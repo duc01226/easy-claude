@@ -30,14 +30,7 @@
 
 Informal PBI review misses architecture feasibility, vague AC, auth, and cross-service gaps. `/pbi --mode=refine` creates PBIs; `/pbi --mode=review --type=pbi` self-reviews and leaves drafter blind spots. This skill gives a different Dev BA PIC specific, evidence-backed challenges before grooming.
 
-## Alternatives Considered
-
-| Approach                                                                      | Pros                                                                     | Cons                                                                                                                | Decision                                                                                         |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Extend `/pbi --mode=review --type=pbi` with a reviewer-role flag                             | No new skill, single codebase                                            | Drafter runs it themselves in practice; role separation breaks down without enforcement                             | Rejected — role separation requires a distinct invocation point owned by a different person      |
-| Fully autonomous AI verdict (no human decision)                               | Faster, no Dev BA PIC scheduling needed                                  | Automation bias: AI wrong on domain specifics propagates unchecked; no human accountability for false APPROVE       | Rejected — cost of false APPROVE on infeasible PBIs exceeds review time saved                    |
-| Static DoR checklist given to Dev BA PIC (no AI)                              | Simple, no AI dependency                                                 | No domain entity context loading, no AC vagueness flagging; manual effort is high and inconsistent across reviewers | Rejected — AI domain lookup provides non-trivial value for cross-service entity detection        |
-| Async comment-thread model (AI generates questions posted as ticket comments) | Eliminates scheduling bottleneck; drafter can research before responding | Slower feedback loop; requires external ticket integration                                                          | Valid alternative for async teams; prefer if Dev BA PIC availability is chronically a bottleneck |
+For teams whose Dev BA PIC availability is a chronic bottleneck, an async comment-thread challenge is a valid alternative; it requires the drafter to research responses and an external ticket integration. Human decision ownership remains unchanged.
 
 ## Risk Assessment
 
@@ -477,6 +470,5 @@ Follow "Reusing an earlier verdict" in `.claude/skills/shared/m1-m7-gates.md`. W
 | "Concern is clearly right, no citation needed"   | Show `file:line` / section / entity ref + confidence. No proof = no verdict.               |
 | "Challenge prompt good enough as a question"     | Must be SPECIFIC with a suggested answer, or the drafter satisfies it superficially.       |
 
-**IMPORTANT MUST ATTENTION** AI provides ANALYSIS, human makes DECISION — challenge prompts FIRST, verdict SECOND, human records via `AskUserQuestion`.
-**IMPORTANT MUST ATTENTION** M1-M5 or M7 violation forces REQUEST_REVISION with mandate ID + section/line citation — an APPROVE over a violation is defective.
-**IMPORTANT MUST ATTENTION** cite `file:line`/section/entity evidence for every concern (confidence >80% to act); never run on your own draft — cross-person review only.
+
+**IMPORTANT MUST ATTENTION** closing priorities: human verdict ownership · cross-person evidence · blocking M1–M5/M7 mandates, as specified above.

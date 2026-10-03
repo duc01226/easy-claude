@@ -156,15 +156,11 @@ Apply this dimension only when project config/reference docs identify a persiste
 
 ## Project Patterns
 
-- Read `docs/project-config.json` and its configured reference-doc index to resolve conventions for the affected paths; honor documented `N/A` entries and custom paths.
-- For backend/API, UI/client, test, or other specialized code, load only the relevant configured reference docs. Do not assume that the project has a backend, frontend, database, component system, or any named abstraction.
-- When references are absent or silent, inspect at least three relevant existing examples and follow a consistent local convention. If none exists, keep the change minimal and state the gap rather than inventing a framework pattern.
-- Any named language, file extension, layer, class, helper, state tool, styling method, or storage API in an example is illustrative; apply it only when project config/reference docs and the changed code show that it fits.
-- **MUST ATTENTION** resolve the affected paths against project config and load their configured references before applying stack-specific checks; if those docs are missing, use source evidence and report the gap.
-- **MUST ATTENTION** mark Dimension 5 `N/A — reason` unless project config/source confirms a database and the changed path uses its query or index model.
-- **MUST ATTENTION** apply UI-specific conventions only when config or source confirms the affected path is a UI surface.
-- **NEVER** infer a layer, entity/DTO, state store, styling method, or database solely from names, file extensions, or this skill's examples.
-- **ALWAYS** cite config/schema/source evidence and query/runtime behavior before recommending paging or index changes.
+- Resolve affected paths through `docs/project-config.json` and its configured docs index; load only relevant backend/API, UI/client, test or other references, honoring custom paths and documented `N/A`.
+- Missing/silent references: inspect at least three fitting local examples. If none exists, keep the change minimal and report the gap; never invent a framework convention.
+- Names, extensions and examples do not establish applicability. Require config/reference + changed-code evidence for any layer, class, helper, state tool, styling method or storage API.
+- Dimension 5 is `N/A — reason` unless config/source confirms a database and the changed path uses its query/index model. UI checks require an evidenced UI surface.
+- Before paging/index recommendations, cite config/schema/source evidence and query/runtime behavior.
 
 ## Graph Intelligence (optional advice)
 
@@ -221,7 +217,7 @@ function getData() {
 
 ## Self-Recursive Verification (MANDATORY after simplifications)
 
-After simplifications are applied, verification requires a **self-recursive simplification pass** over the updated diff. Do NOT spawn a fresh-context reviewer to re-review this skill's own findings. Round 1 treats every open validated simplification finding as blocking (Round-1 LOW closure); from round 2 onward, repeat analyze → simplify → verify only while validated CRITICAL/HIGH/MEDIUM findings remain. A LOW-only round ends the loop, with each LOW recorded as deferred; do not spend another fix/review cycle on LOW polish alone. Stop on an unsafe/no-progress/user-decision blocker.
+After applying simplifications, follow the [Self-Recursive Simplification Loop](#self-recursive-simplification-loop) below. It owns round closure, deferred LOWs, no-progress/unsafe stops and the subsequent Self-Review Gate. For caller-owned verify-last execution, use the static-verification exception in Workflow Step 5.
 
 ## Self-Review Gate (MANDATORY when this skill changed code)
 

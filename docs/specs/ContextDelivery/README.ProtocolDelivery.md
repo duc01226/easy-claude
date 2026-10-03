@@ -156,7 +156,7 @@ Many skills follow the same shared protocols — evidence rules, review rules, t
 
 **Acceptance Criteria:**
 
-- **AC-PDL-09** — **Given** a session **When** its first prompt is processed **Then** the universal bundle arrives as its authored bins, each a message of at most 9,500 characters, once; it arrives again only after about 200,000 tokens of conversation growth or a compaction (a compaction reported at session start delivers it at once, and the prompt after it stays silent); and no skill (inline skills included), no agent and no root instruction file carries a body, reminder, guide entry or pointer line of a universal protocol
+- **AC-PDL-09** — **Given** a session **When** its first prompt is processed **Then** the universal bundle arrives as its authored bins, each a message of at most 9,500 characters, once; it arrives again only after about 100,000 tokens of conversation growth or a compaction (a compaction reported at session start delivers it at once, and the prompt after it stays silent); and no skill (inline skills included), no agent and no root instruction file carries a body, reminder, guide entry or pointer line of a universal protocol
 - **AC-PDL-10** — **Given** any agent type **When** it starts **Then** every bin is delivered to it once for that spawn, whether or not it preloads skills or has a definition file
 - **AC-PDL-11** — **Given** a skill that the project registry matches to overlay files **When** the skill starts **Then** a reminder of at most three lines names those files and states that overlays are additive only; after successful delivery it repeats for that skill only after about 100,000 tokens of growth, a compaction or a changed overlay set; a failed delivery leaves the reminder eligible at the next activation
 
@@ -395,7 +395,7 @@ The core engineering principles reach the assistant from two hooks: the task-ste
 
 The universal group carries an authored layout: an ordered list of bins, each an ordered list of its protocols. Each bin is one message of at most 9,500 characters that opens with a numbered header and is delivered by its own hook step with its own delivery record, so a bin that went missing is delivered again without the others. The build fails when a universal protocol sits in no bin, a bin names a foreign or repeated protocol, or a rendered bin exceeds the bin size.
 
-- IF a prompt is the session's first THEN every bin is delivered; afterwards a bin is delivered again only after about 200,000 tokens of conversation growth since its last delivery (the growth distance is the token figure converted by the measured bytes per token; no age re-arm) or after a compaction, on every host that reports one.
+- IF a prompt is the session's first THEN every bin is delivered; afterwards a bin is delivered again only after about 100,000 tokens of conversation growth since its last delivery (the growth distance is the token figure converted by the measured bytes per token; no age re-arm) or after a compaction, on every host that reports one.
 - IF a session start reports a compaction (source `compact`) THEN every bin is delivered again at once, so a run that ends no prompt after the compaction still carries the rules; the bin's own record is replaced, so the prompt that follows finds the bundle present and stays silent.
 - IF the host writes its own compaction boundary after the compaction report was delivered THEN the first boundary stamped within 120 seconds after that delivery belongs to it: the bin's record moves just past the boundary and the expectation is spent, so the prompt that follows stays silent (one delivery per compaction, not two). A boundary beyond the 120-second window, a second boundary after the first was attributed, and a boundary after a clear (a clear writes none) are real compactions and deliver again; with no boundary the growth re-arm is unchanged. A genuine second compaction inside the window and before the next prompt reads as the same one and is delivered again only at the next boundary or after the growth distance.
 - IF a delivery was recorded while the conversation record did not exist yet (its size unknown) THEN growth counts from an empty record, so the bundle still returns after the growth distance; with the current size also unknown no growth is measured and the delivery stays present.
@@ -403,7 +403,8 @@ The universal group carries an authored layout: an ordered list of bins, each an
 - IF a session start reports startup or resume THEN nothing is delivered and nothing is recorded; the first prompt delivers.
 - IF a bin's source file cannot be read THEN the step writes one notice line naming the unreadable file, never throws, and does not record the failed render as delivered; a later prompt, compaction or clear delivers it again once the file is readable. The workflow route hook gives the same one-line notice for an unreadable route source.
 - IF an agent of any type starts THEN every bin is delivered to it once; the spawn is its own scope.
-- IF the delivery record store cannot be used or the session has no identity THEN the bins are still delivered, without a record; a duplicate is accepted over a miss. A missing protocol file drops that protocol, never the bin.
+- IF a bin loses a required protocol or its content is empty THEN the assistant receives the readable rules and a short notice naming the missing files. Only that bin retries on later eligible events, without a delivery record. Any previous complete record for that bin is removed so restoring the same content cannot suppress repair. Other complete bins retain their independent delivery records. If the readable rules and notice exceed the message limit, explicit read paths replace the oversized text; the notice remains visible.
+- IF the delivery record store cannot be used or the session has no identity THEN the bins are still delivered, without a record; a duplicate is accepted over a miss.
 - Any other event ends before any project module loads and writes nothing.
 - The hosts are the three supported assistant hosts; the generated second-host and third-host steps derive from the primary host's registration.
 
@@ -5256,7 +5257,7 @@ boundaryCounterCase: 'growth past the distance → delivered again (TC-PDL-088)'
 
 ---
 
-#### TC-PDL-088: Growth of 200,000 tokens re-delivers the bundle and one byte less does not [P1]
+#### TC-PDL-088: Growth of 100,000 tokens re-delivers the bundle and one byte less does not [P1]
 
 **Objective:** Prove the re-delivery distance is exactly the token figure converted by the measured bytes per token.
 
@@ -5308,7 +5309,7 @@ boundaryCounterCase: 'one byte below the distance → nothing'
 
 > **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
 > **Related Behaviors:** `operation/hooks/universal-delivery`
-> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-088` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-088 growth of 200,000 tokens re-delivers the bundle and one byte less does not"
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-088` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-088 growth of 100,000 tokens re-delivers the bundle and one byte less does not"
 
 ---
 
@@ -5695,7 +5696,7 @@ boundaryCounterCase: 'an age-based re-arm → absent'
 
 **Edge Cases:**
 
-- The figure is 200,000 tokens
+- The figure is 100,000 tokens
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
@@ -5999,7 +6000,7 @@ boundaryCounterCase: 'a session start of source resume → nothing'
 
 **Objective:** Prove a universal bin or the workflow route whose source file cannot be read writes exactly one notice line, ends normally, and leaves no delivery record, so the next opportunity delivers it once the file is readable.
 
-**Business Intent / Invariant Guarded:** A corrupt or missing shipped file must be visible to the user and must not silently consume the delivery: a recorded failed render would suppress the rules for the next 200,000 tokens although the assistant never received them (BR-PDL-18, BR-PDL-02).
+**Business Intent / Invariant Guarded:** A corrupt or missing shipped file must be visible to the user and must not silently consume the delivery: a recorded failed render would suppress the rules for the next 100,000 tokens although the assistant never received them (BR-PDL-18, BR-PDL-02).
 
 **Traces:** AC-PDL-09 / BR-PDL-18
 
@@ -6055,27 +6056,30 @@ boundaryCounterCase: 'a readable source → the normal delivery and its record'
 
 ---
 
-#### TC-PDL-112: A bundle that renders partly is not reported; an unreadable protocol file only drops that protocol [P1]
+#### TC-PDL-112: Incomplete bins warn and retry without suppressing readable rules or repair [P1]
 
-**Objective:** Prove that one unreadable protocol file inside a bin drops only that protocol and produces no notice, while the other bins still deliver.
+**Objective:** Prove that incomplete guidance is visible, readable rules remain available, and repair is delivered without disturbing complete guidance.
 
-**Business Intent / Invariant Guarded:** The unavailable notice is for a bundle that cannot be rendered at all; a damaged single protocol must not turn into a notice that hides the rest of a working bundle (BR-PDL-18, BR-PDL-02).
+**Business Intent / Invariant Guarded:** Losing part of the rules must not look like successful delivery or suppress the repaired rules; readable guidance stays available and complete bins retain independent deduplication (BR-PDL-18, BR-PDL-02).
 
 **Traces:** AC-PDL-09 / BR-PDL-18
 
 **Preconditions:**
 
-- A fixture project with its own temporary state and every protocol file of the first bin removed
+- An isolated project with complete guidance delivered before one required rule or a whole bin becomes unreadable
 
 **Real-World Reachability:** A project whose shipped protocol folder lost some files through a partial sync or a bad merge.
 
-**Demo Flow:** Remove the protocol files the first bin names, send a first prompt, read what each bin writes.
+**Demo Flow:** Deliver complete guidance, remove one rule, request guidance twice, restore the same content and request again; repeat with a whole bin unavailable and after conversation resets or delegated starts.
 
 ```gherkin
-Given the fixture project and every protocol file of the first bin missing while the other bins still render
-When the first prompt reaches every bin
-Then the first bin writes nothing and no notice line appears
-And each of the other bins delivers its text
+Given complete guidance was delivered and part of it then becomes unavailable
+When an eligible event requests guidance
+Then the incomplete bin names the missing files and makes readable rules available
+And it is not recorded as complete and retries on later events
+And complete bins retain their independent delivery state
+When the original missing content is restored
+Then the repaired bin delivers once and the following prompt is quiet
 ```
 
 **Expected Result:**
@@ -6084,32 +6088,37 @@ And each of the other bins delivers its text
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **UI**                  | Not applicable — the capability has no screen; the observable surface is the text the assistant receives, the generated host files, command output and check messages |
 | **System behavior**     | Hook step runs through its real entry file and exits normally                                                                                                         |
-| **Business data state** | The other bins record their own delivery                                                                                                                              |
-| **Data shown on UI**    | The text of the readable bins, no notice                                                                                                                              |
+| **Business data state** | Incomplete bins have no delivery record; complete bins retain their records                                                                                          |
+| **Data shown on UI**    | Readable rules and a bounded notice naming missing files; oversized rules have explicit read paths                                                                  |
 
 **Acceptance Criteria:**
 
-- ✅ A partly rendered bundle → no notice line
-- ✅ The readable bins deliver in the same prompt
-- ❌ A notice line for a bundle that still renders partly
+- ✅ Partial or wholly unavailable bin → visible named notice and retry
+- ✅ Readable rules remain available; other bins deduplicate independently
+- ✅ Restoring the original content delivers the repaired bin once
+- ✅ Empty required content is incomplete; oversized damaged content uses bounded read paths
+- ❌ Incomplete guidance recorded as successfully delivered, silent loss, or suppressed repair
 
 **Test Data:**
 
 ```yaml
 inputDomain: 'a bundle where some protocol files are unreadable and the index and layout are readable'
-invariant: 'for ALL partly rendered bundles only the unreadable protocol is dropped'
+invariant: 'for ALL incomplete bins missing rules are visible, readable rules remain available, and repair is not suppressed'
 boundaryCounterCase: 'an unreadable index or layout → the one notice line (TC-PDL-111)'
 ```
 
 **Edge Cases:**
 
-- A bin whose every protocol is unreadable delivers nothing
+- A bin whose every rule is unavailable still names the missing files when other bins remain readable
+- A previous healthy delivery cannot suppress repair of identical content
+- Conversation compaction, clear and delegated starts retain the same incomplete-bin behavior
+- Empty and oversized damaged files retain visible, bounded guidance
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
 > **Related Behaviors:** `operation/hooks/universal-delivery`
-> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-112` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-112 a bundle that renders partly is not reported: an unreadable protocol file only drops that protocol"
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-112` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-112 incomplete bins warn and retry without suppressing readable rules or repair"
 
 ---
 #### TC-PDL-113: A compaction boundary the host writes after the session-start hooks belongs to the delivery already made [P1]
@@ -6175,7 +6184,7 @@ boundaryCounterCase: 'a boundary beyond the window → delivered again (a real c
 ---
 #### TC-PDL-114: A delivery recorded before the conversation record existed still returns after the growth distance [P1]
 
-**Objective:** Prove that a delivery recorded with an unknown conversation size re-delivers exactly when the record has grown by the 200,000-token distance.
+**Objective:** Prove that a delivery recorded with an unknown conversation size re-delivers exactly when the record has grown by the 100,000-token distance.
 
 **Business Intent / Invariant Guarded:** A record written blind would otherwise never age by growth and the rules would lapse for the whole session (BR-PDL-18, BR-PDL-02).
 
@@ -6228,7 +6237,7 @@ boundaryCounterCase: 'a known size under the distance → the delivery stays pre
 
 > **Evidence:** `[Source: rule/hooks/protocol-universal-bundle]`
 > **Related Behaviors:** `operation/hooks/universal-delivery`
-> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-114` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 200,000 tokens of growth"
+> **CoveredBy:** `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs::TC-PDL-114` · **Status:** Implemented — evidence: `.claude/hooks/tests/suites/universal-hook-delivery.test.cjs` "TC-PDL-114 a delivery recorded while the conversation record did not exist yet still re-delivers after 100,000 tokens of growth"
 
 ---
 ### Skill Overlay Reminder Tests

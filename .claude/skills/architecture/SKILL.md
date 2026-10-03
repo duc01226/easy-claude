@@ -45,6 +45,7 @@ description: '[Architecture] Use when a workflow step or the user asks for --mod
 - Each mode is a self-contained contract in `references/mode-<x>.md`; the reference is the whole invocation contract — inputs, outputs, flags, report paths, round caps and `AskUserQuestion` behavior are that reference's, unchanged from the skill it came from.
 - `--mode=full` composes the other modes: its three face sub-agents each run `--mode=scalability` or `--mode=review` (reading that mode's reference) plus `production-readiness-review`; it never re-implements a face.
 - No mode is never an expensive default: print the table, stop.
+- After mode dispatch, capacity/scaling or cache decisions apply the measured-capacity protocol in the selected mode reference; workload evidence and business availability needs drive the next step, while each mode keeps its existing score and gates.
 
 ## Mode Dispatch
 
@@ -75,3 +76,4 @@ Detect the mode from the invocation arguments before any other work; do not load
 - **MUST ATTENTION** no mode = print the table and stop; NEVER guess a mode, ask a question or start an audit — why: `full` is an expensive whole-project run nobody asked for.
 - **MUST ATTENTION** `--mode=full` composes the other modes (face sub-agents read their references); NEVER copy a mode body into another.
 - **MUST ATTENTION** follow the mode's own gates, flags, report paths and round caps verbatim; the old slash commands no longer exist.
+- **MUST ATTENTION** for capacity decisions, model demand → reduce measured work safely → prove capacity/recovery; preserve the selected mode's contract.

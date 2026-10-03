@@ -106,9 +106,9 @@ const ALLOWLIST_PATTERNS = [
 // inside an unrelated prompt must not bypass that gate. Both Claude
 // slash commands and Codex skill invocations are accepted.
 const CONFIG_REPAIR_PATTERNS = [
-    /^\s*(?:\/|\$)project-init\b/i,
-    /^\s*(?:\/|\$)init-project\b/i,
-    /^\s*(?:\/|\$)project-config\b/i
+    /^\s*(?:\/|\$)project-init(?=\s|$)/i,
+    /^\s*(?:\/|\$)init-project(?=\s|$)/i,
+    /^\s*(?:\/|\$)project-config(?=\s|$)/i
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -334,7 +334,7 @@ function handleStalenessGate(userPrompt) {
             '',
             'Auto-route before ordinary project-specific work:',
             '  /scan-all             — Refresh all reference docs',
-            '  /scan-<name>          — Refresh a specific doc when scope is narrow',
+            '  /scan --target=<key>  — Refresh a specific doc when scope is narrow',
             '',
             'Continue after the relevant scan completes.',
             ''
@@ -626,6 +626,9 @@ function main() {
                 process.exit(0);
             }
             noticeMissingConfig();
+            // Portable defaults need no generated project context. Every setup
+            // gate below depends on the author's validated project facts.
+            process.exit(0);
         }
 
         // The remaining setup gates apply to content-bearing projects only.

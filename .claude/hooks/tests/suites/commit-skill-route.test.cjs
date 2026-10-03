@@ -3,7 +3,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync, spawnSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const { assertTrue, assertContains } = require('../lib/assertions.cjs');
 const { runCodexLauncher, childEnv, makeHookTreeProject, removeTempDir } = require('../lib/hook-runner.cjs');
 
@@ -225,18 +225,47 @@ module.exports = {
             }
         },
         {
-            name: '[commit-skill-route] TC-CSR-004 entry point emits the directive and exits 0',
+            name: '[commit-skill-route] TC-CSR-004 entry point routes requests and keeps malformed stdin diagnostics debug-only',
             fn: () => {
-                // Given a fixture project with no settings and the developer's switch removed from the environment
+                // Technical contract: malformed host payloads fail open without default diagnostics.
+                // Given a fixture root isolated from developer settings, switches, home and temp state
                 const project = makeSettingsProject({});
-                const env = childEnv({ ...CHILD_ENV_RESET, CLAUDE_PROJECT_DIR: project });
+                const env = childEnv({
+                    ...CHILD_ENV_RESET,
+                    CLAUDE_PROJECT_DIR: project,
+                    HOME: project, USERPROFILE: project, TMPDIR: project, TEMP: project, TMP: project
+                });
+                const run = (input, debug) => spawnSync(process.execPath, [HOOK_PATH], {
+                    input, encoding: 'utf8', timeout: 30000, cwd: project,
+                    env: childEnv({ ...env, ...CHILD_ENV_RESET, CK_DEBUG: debug })
+                });
                 try {
-                    // When the hook runs as `node <hook>` on a commit request / Then it emits the directive
-                    const out = execFileSync(process.execPath, [HOOK_PATH], { input: JSON.stringify(event('stage and commit')), encoding: 'utf8', env });
-                    assertContains(out, hook.MARKER_START);
-                    // When stdin is not JSON / Then it stays silent
-                    const silent = execFileSync(process.execPath, [HOOK_PATH], { input: 'not json', encoding: 'utf8', env });
-                    assertTrue(silent === '', 'unparseable stdin stays silent');
+                    // When the real entry receives a valid commit request / Then it routes and exits 0
+                    const routed = run(JSON.stringify(event('stage and commit')));
+                    assertTrue(routed.status === 0 && routed.stderr === '', 'valid request exits 0 without diagnostics');
+                    assertContains(routed.stdout, hook.MARKER_START);
+                    // Upstream serialization bugs can produce malformed JSON; raw payloads must not be echoed.
+                    const malformed = '{malformed-payload-probe';
+                    for (const debug of [undefined, '', '0']) {
+                        // When debug is disabled / Then both output channels remain empty and exit stays 0
+                        const quiet = run(malformed, debug);
+                        assertTrue(quiet.status === 0 && quiet.stdout === '' && quiet.stderr === '',
+                            `malformed stdin is quiet without debug (${String(debug)}): ${quiet.stderr}`);
+                    }
+                    for (const debug of ['1', 'true']) {
+                        // When debug is enabled / Then only a sanitized diagnostic appears on stderr
+                        const loud = run(malformed, debug);
+                        assertTrue(loud.status === 0 && loud.stdout === '', 'debug parse failure still exits 0 without context');
+                        assertContains(loud.stderr, '[commit-skill-route]');
+                        assertContains(loud.stderr, 'Hook stdin contains invalid JSON');
+                        assertTrue(!loud.stderr.includes('malformed-payload-probe'), 'diagnostic must not reflect raw stdin');
+                    }
+                    // Empty or valid JSON with an unsupported event shape also stays silent, even under debug.
+                    for (const input of ['', ' \r\n ', 'null', '[]', '42', '"commit"', '{"prompt":false}']) {
+                        const ignored = run(input, '1');
+                        assertTrue(ignored.status === 0 && ignored.stdout === '' && ignored.stderr === '',
+                            `unsupported input stays silent: ${JSON.stringify(input)}`);
+                    }
                 } finally {
                     fs.rmSync(project, { recursive: true, force: true });
                 }

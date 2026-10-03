@@ -43,13 +43,27 @@ const JOURNEY = '.claude/docs/ux-journey-process.md';
 // ── fixtures ────────────────────────────────────────────────────────────────
 
 async function withFixture(fn) {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'uig-test-'));
+    const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'uig-test-')));
+    const previousEnv = { ...process.env };
     const fx = {
         root,
         project: path.join(root, 'project'),
         store: path.join(root, 'store'),
         transcript: path.join(root, 'transcript.jsonl'),
         abs: rel => path.join(fx.project, ...rel.split('/')),
+        /** A completed raw-body load using documented tool_use/tool_result pairing, not a launch acknowledgment. */
+        completed(name, input, at = NOW - MINUTE) {
+            const rel = name === 'Skill' ? `.claude/skills/${input.skill}/SKILL.md` : input.file_path.replace(/\\/g, '/');
+            const file = path.isAbsolute(rel) ? rel : fx.abs(rel);
+            fs.mkdirSync(path.dirname(file), { recursive: true });
+            if (!fs.existsSync(file)) fs.writeFileSync(file, `Fixture complete protocol for ${name}.\nRequired second rule.\n`);
+            const request = toolUse(name, input, at);
+            const id = JSON.parse(request).message.content[0].id;
+            const result = JSON.stringify({ type: 'user', timestamp: new Date(at).toISOString(), message: { content: [
+                { type: 'tool_result', tool_use_id: id, content: fs.readFileSync(file, 'utf8') }
+            ] } });
+            return `${request}\n${result}`;
+        },
         append(line) {
             fs.appendFileSync(fx.transcript, line.endsWith('\n') ? line : `${line}\n`);
         },
@@ -65,10 +79,16 @@ async function withFixture(fn) {
     fs.mkdirSync(fx.store, { recursive: true });
     fs.writeFileSync(fx.transcript, '{"type":"user","message":{"content":"start"}}\n');
     try {
+        for (const key of Object.keys(process.env)) {
+            if (/^(CK_|CLAUDE_|CODEX_|OPENCODE_|NODE_OPTIONS$)/i.test(key) || /(?:API_KEY|TOKEN|SECRET|PASSWORD)/i.test(key)) delete process.env[key];
+        }
+        Object.assign(process.env, { HOME: root, USERPROFILE: root, TMPDIR: root, TEMP: root, TMP: root, CLAUDE_PROJECT_DIR: fx.project });
         await fn(fx);
     } finally {
         ledger._resetCarrierCache();
         fs.rmSync(root, { recursive: true, force: true });
+        for (const key of Object.keys(process.env)) delete process.env[key];
+        Object.assign(process.env, previousEnv);
     }
 }
 
@@ -83,8 +103,9 @@ function post(fx, tool, rel, extra = {}) {
     };
 }
 
+let toolId = 0;
 function toolUse(name, input, at = NOW - MINUTE) {
-    return JSON.stringify({ type: 'assistant', timestamp: new Date(at).toISOString(), message: { content: [{ type: 'tool_use', id: 't1', name, input }] } });
+    return JSON.stringify({ type: 'assistant', timestamp: new Date(at).toISOString(), message: { content: [{ type: 'tool_use', id: `t${++toolId}`, name, input }] } });
 }
 
 function boundary(at = NOW - 30 * 1000) {
@@ -226,13 +247,13 @@ const tests = [
         fn: async () => withFixture(async fx => {
             const config = gateConfig();
             // Only the checklist read: DD-* is still missing -> deliver
-            fx.append(toolUse('Read', { file_path: fx.abs(CHECKLIST) }));
+            fx.append(fx.completed('Read', { file_path: fx.abs(CHECKLIST) }));
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.scss', { session_id: 'one-doc' }))), 'one doc is not the whole gate');
             // Checklist + knowledge read (Windows-style path for the second): the UX journey doc is still missing -> deliver
-            fx.append(toolUse('Read', { file_path: fx.abs(KNOWLEDGE).replace(/\//g, '\\') }));
+            fx.append(fx.completed('Read', { file_path: fx.abs(KNOWLEDGE).replace(/\//g, '\\') }));
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.scss', { session_id: 'no-journey-doc' }))), 'UI/DD/CL docs alone do not cover the UX journey-first gate');
             // All three evidence docs read -> no delivery, recorded as evidence
-            fx.append(toolUse('Read', { file_path: fx.abs(JOURNEY) }));
+            fx.append(fx.completed('Read', { file_path: fx.abs(JOURNEY) }));
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.scss', { session_id: 'both-docs' })), '');
             const record = ledger.readRecord(fx.store, 'both-docs', 'main', 'ui-ux-gate');
             assert.equal(record && record.form, 'evidence', 'evidence recorded so later triggers skip on the record');
@@ -241,15 +262,15 @@ const tests = [
     },
     {
         // INTENT: "if the protocol is included via a skill it is ok" — a UI skill carries the rules inline.
-        name: 'TC-UIG-007 a UI skill loaded in the window (Skill tool or slash command) counts as delivered; an unrelated skill does not',
+        name: 'TC-UIG-007 a UI skill fully loaded in the window (completed Skill result) counts as delivered; an unrelated skill does not',
         fn: async () => withFixture(async fx => {
             const config = gateConfig();
-            fx.append(toolUse('Skill', { skill: 'commit' }));
+            fx.append(fx.completed('Skill', { skill: 'commit' }));
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'other-skill' }))));
-            fx.append(toolUse('Skill', { skill: 'design-spec' }));
+            fx.append(fx.completed('Skill', { skill: 'design-spec' }));
             assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'skill-tool' })), '');
             fs.writeFileSync(fx.transcript, `${JSON.stringify({ type: 'user', timestamp: new Date(NOW - MINUTE).toISOString(), message: { content: '<command-name>/ui-design</command-name>' } })}\n`);
-            assert.equal(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'slash' })), '');
+            assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.vue', { session_id: 'slash' }))), 'a raw slash command does not prove a completed body load');
         })
     },
     {
@@ -258,22 +279,22 @@ const tests = [
         fn: async () => withFixture(async fx => {
             const config = gateConfig();
             // Before an in-transcript condensation mark
-            fx.append(toolUse('Skill', { skill: 'ui-design' }, NOW - 2 * MINUTE));
+            fx.append(fx.completed('Skill', { skill: 'ui-design' }, NOW - 2 * MINUTE));
             fx.append(boundary(NOW - MINUTE));
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.less', { session_id: 'before-mark' }))));
 
             // Positioned before a condensation mark, even when its clock reads later: position in the history wins
-            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-design' }, NOW - MINUTE)}\n${boundary(NOW - 2 * MINUTE)}\n`);
+            fs.writeFileSync(fx.transcript, `${fx.completed('Skill', { skill: 'ui-design' }, NOW - MINUTE)}\n${boundary(NOW - 2 * MINUTE)}\n`);
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.less', { session_id: 'skewed-mark' }))));
 
             // Before a host-reported condensation (no mark in the transcript)
-            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-design' }, NOW - 2 * MINUTE)}\n`);
+            fs.writeFileSync(fx.transcript, `${fx.completed('Skill', { skill: 'ui-design' }, NOW - 2 * MINUTE)}\n`);
             await hook.run({ hook_event_name: 'SessionStart', source: 'compact', session_id: 'host-report' },
                 { env: { CK_CONVENTIONS_DIR: fx.store }, config, now: NOW - MINUTE });
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.less', { session_id: 'host-report' }))));
 
             // Scrolled out of the class window
-            fs.writeFileSync(fx.transcript, `${toolUse('Skill', { skill: 'ui-design' })}\n`);
+            fs.writeFileSync(fx.transcript, `${fx.completed('Skill', { skill: 'ui-design' })}\n`);
             fx.grow(WINDOW_BYTES + 100);
             assert.ok(gateDelivered(await deliver(fx, config, post(fx, 'Edit', 'web/a.less', { session_id: 'out-of-window' }))));
         })
@@ -360,7 +381,7 @@ const tests = [
 
             // The protocol already loaded by a UI skill counts as delivered (evidence), and is remembered
             const evidence = { session_id: 'evidence-session' };
-            fx.append(toolUse('Skill', { skill: 'ui-design' }, Date.now() - MINUTE));
+            fx.append(fx.completed('Skill', { skill: 'ui-design' }, Date.now() - MINUTE));
             assert.equal(spawnNoConfig(fx, edit('web/a.tsx', evidence)), '', 'skill evidence counts as present');
             const record = ledger.readRecord(fx.store, 'evidence-session', 'main', 'ui-ux-gate');
             assert.equal(record && record.form, 'evidence', 'evidence skip recorded so later triggers skip on the record');

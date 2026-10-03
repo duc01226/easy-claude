@@ -59,3 +59,17 @@ leak and the gate that missed it**, or the next one lands the same way.
 `.venv/`, `node_modules/` and `__pycache__/` under `.claude/` are gitignored build output. They carry
 machine-specific absolute paths but never ship, so they are not bundle leaks — and they are untracked,
 so deleting them destroys the only copy. Leave them alone.
+
+## Missing dependency recovery
+
+When a capability needs a missing framework package or tool, follow the universal
+`workflow-step-advancement` dependency rule: verify the declared package/version, make a
+bounded noninteractive global attempt, then use an isolated/local runtime or an
+equivalent tool on failure. Re-probe the actual consumer. Skip optional capability
+only; an unavailable required check remains reported as unavailable.
+
+Read `.claude/scripts/README.md` when using catalog tooling's automatic PyYAML
+recovery. Keep installer scope with its existing owner: local adopter libraries,
+active graph dependencies and Windows Git have their own policies. Preserve them
+while adding on-use tooling recovery; never install arbitrary names inferred from
+an import error or relax platform/trust guards to force an installation.

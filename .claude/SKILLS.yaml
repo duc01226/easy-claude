@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-10-02'
+  last_updated: '2026-10-03'
   total_skills: 101
   total_by_status:
     active: 101
@@ -71,7 +71,7 @@ skills:
         brainstorming: new products, feature enhancement, roadmap framing. --mode={roadmap|scope}.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -637,7 +637,7 @@ skills:
         videos.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -706,7 +706,7 @@ skills:
         CI/CD, AI-agent risks.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -717,7 +717,7 @@ skills:
         seeders for QC happy paths. --mode=review audits a seeder read-only.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

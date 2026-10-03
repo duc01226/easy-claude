@@ -798,21 +798,8 @@ Apply `UI-1.1`–`UI-9.4` only to applicable user-interface work. Resolve platfo
 
 | Evasion | Rebuttal |
 | ------- | -------- |
-| "Required sections present, looks complete" | Presence ≠ quality. Name what's IN them and the specific failure mode NOT addressed. |
-| "ACs are defined" | Are they TESTABLE? Name the automated test a QA engineer writes for each — without clarification. |
-| "Alternatives were considered" | Real alternatives or strawmen set up to lose? Steel-man the strongest rejected one. |
-| "Verdict is clear, skip the contrarian pass" | Generate 2 sentences arguing the OPPOSITE conclusion first, then decide on evidence. |
-| "M1-M5/M7 violation is minor, let it pass" | Passing an M1-M5/M7 violation makes THIS review defective. NEEDS WORK + cite mandate ID + section/line. |
-| "No tech words in it — M7 passes" | M1 ≠ M7. Apply the demo test to the BODY: what would a stakeholder SEE change? No answer → FAIL, however clean the prose. |
 | "This sync/consumer case is business-critical, so it stays" | If it's business-critical it's demoable — rewrite it demoably. A case that CANNOT be rewritten demoably is exactly what M7 moves out. |
-| "Source name in prose, flag it" | Check the selected profile's declared carrier first — the strict default uses `[Source:]`/`**Evidence**`/`CoveredBy`/legacy `IntegrationTest`/frontmatter/Mermaid. |
-| "Fix the finding, then I'm done" | Validate findings (`/why-review`) BEFORE fixing, then restart the FULL review until the current exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). |
-| "Skip evidence for review judgments" | Cite section+line for every finding; confidence >80% to act, <60% DO NOT recommend. |
 
-**IMPORTANT MUST ATTENTION** SKEPTIC stance — clear the Anti-Bias Gate (adversarial techniques) before any verdict.
-**IMPORTANT MUST ATTENTION** M6 enforcement — NEEDS WORK on any **M1-M5 or M7** violation, cite mandate ID + section/line; carriers exempt.
-**IMPORTANT MUST ATTENTION** M7 — apply the demo test to each case's BODY, not its prose; an invocation-shaped `When` or a schema/type/call-count `Then` is TECHNICAL-ONLY and FAILS even when perfectly tech-free.
-**IMPORTANT MUST ATTENTION** validate findings before fixing, then restart the FULL fresh review until the current exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred).
 
 <!-- SYNC:core-engineering-principles:reminder -->
 

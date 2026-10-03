@@ -29,7 +29,7 @@ A generic LLM is capable but forgetful, confident without evidence, and unaware 
 | Drifts from the spec                 | Spec-first workflows, spec sync gates, doc-sync advisory     | `spec`, `docs-manager`, `doc-sync-gate.cjs`         |
 | Leaks one project into another       | Portable source + generated mirrors + residue verifiers     | `framework-portability.md`, `/sync-codex`          |
 
-The design bet: **hooks put the contract in context at the right moment.** The universal rules every task follows are delivered by the universal hook on the first prompt, again after 200K tokens or a compaction, and to every sub-agent; skill protocols arrive when a skill loads, and a skill's project overlays are named when it starts. `CLAUDE.md` holds project information only. Claude Code, Codex and OpenCode run the same hooks; a host with no hooks is unsupported. A few checks must be mechanical, so they are gates.
+The design bet: **hooks put the contract in context at the right moment.** The universal rules every task follows are delivered by the universal hook on the first prompt, again after 100K tokens or a compaction, and to every sub-agent; skill protocols arrive when a skill loads, and a skill's project overlays are named when it starts. `CLAUDE.md` holds project information only. Claude Code, Codex and OpenCode run the same hooks; a host with no hooks is unsupported. A few checks must be mechanical, so they are gates.
 
 ---
 
@@ -231,7 +231,7 @@ Everything else is advisory or silent.
 
 **Key mechanisms**
 
-- **Universal bundle** — the framework rules every task follows, in four messages, once per session, again after ~200K tokens of growth or a compaction, and once per spawned sub-agent.
+- **Universal bundle** — the framework rules every task follows, in four messages, once per session, again after ~100K tokens of growth or a compaction, and once per spawned sub-agent.
 - **Routing injection** — the gate plus the workflow catalog, once per session, re-armed on change, compaction or ~200K tokens of growth.
 - **Protocol delivery** — when a skill loads, its group hook sends the full text of the protocols its guide lines name, once per session, capped per message.
 - **Skill overlay reminder** — when a skill starts, a three-line reminder names the project overlay files that apply to it (repeats after ~100K tokens).
@@ -361,11 +361,11 @@ Codex transforms `/skill` into `$skill`, `Agent` into `spawn_agent` and strips C
 | Runner                                  | Tests  | Covers                                                                 |
 | --------------------------------------- | ------ | ---------------------------------------------------------------------- |
 | `test-all-hooks.cjs` (primary gate)  | **133** | Hook behaviors, bridged suites and the count guard                     |
-| `run-all-tests.cjs` (full aggregate) | **1364** | Primary plus every `tests/suites/*.test.cjs` suite                     |
+| `run-all-tests.cjs` (full aggregate) | **1388** | Primary plus every `tests/suites/*.test.cjs` suite                     |
 | `node --test .claude/scripts/codex/tests` | —      | Mirror generators and verifiers                                        |
 | `run-codex-sync.mjs --verify-only`      | —      | Every read-only gate before a commit                                   |
 
-> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1364 discovered. Both runners fail when these numbers drift from the docs.
+> Live-verified: `test-all-hooks.cjs` = 133; `run-all-tests.cjs` = 1388 discovered. Both runners fail when these numbers drift from the docs.
 
 **Portable test contract** — shipped tests must pass in any project layout on Windows, macOS and Linux: build a temp fixture project instead of reading this repository's config or git state; blank inherited feature switches and provider keys; point `HOME`, `USERPROFILE`, `TMPDIR`, `TEMP` and `TMP` at the temp dir; name OS differences explicitly (paths, symlinks, `py -3` vs `python3`); run the full suite twice to prove repeatability.
 

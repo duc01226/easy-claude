@@ -856,12 +856,7 @@ Before writing documentation, verify:
 
 ### TEST CASE EVIDENCE VERIFICATION
 
-**EVERY test case:**
-
-1. Read Evidence file at claimed line number
-2. Verify: code at line supports test assertion
-3. Check Edge Cases: find error constants in the configured error-constants location, if the project defines one
-4. Fix immediately if line numbers wrong
+For every test case, perform the four evidence checks in **Phase 3.5 → First Pass — Test Case Evidence Audit (Section 8)** below; correct inaccurate references immediately.
 
 ---
 

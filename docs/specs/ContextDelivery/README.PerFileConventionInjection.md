@@ -498,7 +498,9 @@ The scan only reads. It never fails the review: version-control or configuration
 
 ### BR-PFCI-26: Per-class reminder window and evidence of presence [HARD]
 
-**Statement:** A class may set its own reminder window, a conversation length between 20,000 and 2,000,000 tokens (about 22 bytes of conversation history per token), which replaces the project-wide reminder distance for that class only; the user-interface design class and the AI-feature class use 100,000 tokens. A class may also list evidence documents and evidence skills: when every listed document has been read, or any listed skill has been loaded, within the class's window, the class counts as present without a delivery, recorded as an evidenced delivery, and nothing is delivered. One of several listed documents, or an unrelated skill, is not evidence. Evidence follows the same presence rules as any delivery (BR-PFCI-05): a condensation or the window passing ends it.
+**Statement:** A class may set its own reminder window, a conversation length between 20,000 and 2,000,000 tokens (about 22 bytes of conversation history per token), which replaces the project-wide reminder distance for that class only; the user-interface design class and the AI-feature class use 100,000 tokens. A class may also list evidence documents and evidence skills: when every listed document, or any listed skill, has been verified as successfully loaded in full from the current project's own content within the class's window, the class counts as present without a delivery, recorded as an evidenced delivery, and nothing is delivered. One of several listed documents, or an unrelated skill, is not evidence. Evidence follows the same presence rules as any delivery (BR-PFCI-05): a condensation or the window passing ends it.
+
+A load counts only when its complete returned text matches the current complete project-owned content and is the successful reply to a distinct preceding request in this working context. Both the request and its completion must be within the reminder window and after the latest condensation. A request alone, a failed or partial load, content from another project, an unresolved skill, a launch acknowledgment, or an unrecognized or unverifiable reply never counts; the reminder stays eligible. Completion sets the evidence's position in the conversation; when all listed documents are required, the oldest required completion sets their reminder window. A fully loaded listed skill remains sufficient on its own.
 
 ### BR-PFCI-27: AI guidance costs nothing without an AI surface [HARD]
 
@@ -4653,7 +4655,7 @@ boundaryCounterCase: 'a signal inside the opening 64 KiB of a small text file �
 
 #### TC-PFCI-099: The AI-feature class follows read and change wording, no duplicates, and counts a loaded protocol as present [P1]
 
-**Objective:** Prove that the AI-feature class is delivered in conditional wording on a read, once more in mandatory wording on the first change, then not again until its reminder window ends, and that having already read its documents or loaded the review counts as delivered.
+**Objective:** Prove that the AI-feature class is delivered in conditional wording on a read, once more in mandatory wording on the first change, then not again until its reminder window ends, and that verified successful complete loading of its current project-owned documents or review counts as delivered.
 
 **Business Intent / Invariant Guarded:** The protocol reaches the assistant before an edit, once, and never a second time when it is already in context (US-PFCI-03, US-PFCI-08, BR-PFCI-05, BR-PFCI-20, BR-PFCI-26).
 
@@ -4675,8 +4677,11 @@ Then the reminder is shown in conditional wording ("if you will edit this file, 
 And when the assistant then changes that file, the reminder is shown once more in mandatory wording
 And a change of a second AI file shows nothing
 And the reminder returns only when the conversation has grown by the class's window of 100,000 tokens
-And when both of its documents have been read, or the AI review has been loaded, nothing is delivered
-And when only one document was read, or an unrelated skill was loaded, the reminder is delivered
+And when both current project-owned documents have been successfully loaded in full, or the listed AI review has been fully loaded, nothing is delivered
+And when only one document was loaded, or an unrelated skill was loaded, the reminder is delivered
+And a request alone, failed or partial load, content from another project, unresolved review or launch acknowledgment leaves the reminder eligible
+And an unrecognized reply, a reply without a distinct preceding matching request, or loading across a condensation or outside the window leaves the reminder eligible
+And a later successful complete owned load suppresses the reminder while its evidence remains present
 ```
 
 **Expected Result:**
@@ -4691,7 +4696,9 @@ And when only one document was read, or an unrelated skill was loaded, the remin
 **Acceptance Criteria:**
 
 - ✅ Conditional on a read, one mandatory after it, none while present, one again at the window edge
-- ✅ All documents read, or any listed skill loaded, counts as present; one document or an unrelated skill does not
+- ✅ All current project-owned documents successfully loaded in full, or any listed skill fully loaded, counts as present; one document or an unrelated skill does not
+- ✅ Failed, partial, foreign, unresolved or unverified loading leaves the reminder eligible; a later successful complete load can establish presence
+- ✅ Evidence belongs to this working context after its latest condensation and within the class window, including the preceding request; completion sets its age, and the oldest required document completion sets the all-document window
 - ❌ A repeat inside the window, or a delivery after full evidence
 
 **Test Data:**
@@ -4700,19 +4707,21 @@ And when only one document was read, or an unrelated skill was loaded, the remin
 {
     "windowTokens": 100000,
     "sequence": ["read a.ts", "edit a.ts", "edit b.ts", "grow to window minus one byte", "edit b.ts", "grow one byte", "edit b.ts"],
-    "evidence": { "oneDocument": "deliver", "bothDocuments": "skip", "unrelatedSkill": "deliver", "reviewSkill": "skip" }
+    "evidence": { "oneDocument": "deliver", "bothCompleteOwnedDocuments": "skip", "unrelatedSkill": "deliver", "completeOwnedReview": "skip", "requestedOnly": "deliver", "failed": "deliver", "partial": "deliver", "foreign": "deliver", "unresolved": "deliver", "launchAcknowledgment": "deliver", "unrecognizedReply": "deliver", "missingOrAmbiguousPair": "deliver", "beforeCondensation": "deliver", "outsideWindow": "deliver" }
 }
 ```
 
 **Edge Cases:**
 
-- Documents read in one path style and the class listing in another → still evidence
+- Documents loaded in one path style and the class listing in another → still evidence when the complete current owned content is proven
+- A reply with incomplete or earlier content, or an unavailable current body, never proves presence
+- A repeated or mismatched request identity, a reply before its request, or a condensation between request and reply leaves the reminder eligible
 
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > **Evidence:** `[Source: rule/hooks/class-window-evidence]` · `[Source: rule/hooks/presence-decision]`
 > **Related Behaviors:** `rule/hooks/class-window-evidence` · `operation/hooks/deliver-conventions` · `test/hooks/ai-feature-gate-inject`
-> **CoveredBy:** `.claude/hooks/tests/suites/ai-feature-gate-inject.test.cjs::TC-AIG-006 a read delivers the conditional wording, the first change re-delivers once, then dedup holds until the window edge`, `.claude/hooks/tests/suites/ai-feature-gate-inject.test.cjs::TC-AIG-007 the AI docs already read in the window, or the review skill loaded, count as delivered; one doc or another skill does not` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/ai-feature-gate-inject.test.cjs::TC-AIG-006 a read delivers the conditional wording, the first change re-delivers once, then dedup holds until the window edge`, `.claude/hooks/tests/suites/ai-feature-gate-inject.test.cjs::TC-AIG-007 the AI docs already read in the window, or the review skill loaded, count as delivered; one doc or another skill does not`, `.claude/hooks/tests/suites/file-convention-inject.test.cjs::TC-PFCI-099 verified complete evidence rejects failed partial foreign unresolved and unknown loads` · **Status:** Tested
 
 ---
 
@@ -5101,6 +5110,7 @@ And when the prompt carries one framework cue but names a concrete product techn
 **Edge Cases:**
 
 - A concrete product technique routes even when one framework word also appears in the prompt; two distinct framework words silence it, and repeating one word counts once
+- Quoted requests stay silent inside single or multiple matching backtick delimiters, including spans across line endings, and inside backtick or tilde fences. A shorter or different fence delimiter does not expose the quoted request; a sufficiently long matching closer ends the fence. A real request in prose outside the code still routes.
 - The Model Context Protocol phrase is not the framework's "protocol" cue
 - The Claude API, SDK or Agent SDK names a model provider and routes when an action is asked; the assistant's own names (Claude Code, claude-code, the CLAUDE.md file, claude.ai) and a bare statement about the Claude API do not
 
@@ -5108,7 +5118,7 @@ And when the prompt carries one framework cue but names a concrete product techn
 
 > **Evidence:** `[Source: operation/hooks/route-ai-feature]`
 > **Related Behaviors:** `operation/hooks/route-ai-feature` · `test/hooks/ai-feature-route`
-> **CoveredBy:** `.claude/hooks/tests/suites/ai-feature-route.test.cjs::[ai-feature-route] TC-AIR-001 prompts that name an AI technique and ask to act on it are routed with the signal that fired`, `.claude/hooks/tests/suites/ai-feature-route.test.cjs::[ai-feature-route] TC-AIR-002 framework vocabulary, bare questions, unrelated uses, code, host envelopes and explicit review calls stay silent`, `.claude/hooks/tests/suites/ai-feature-route.test.cjs::[ai-feature-route] TC-AIR-009 the route needs an action on the technique: the same prompt with and without an action verb`, `.claude/hooks/tests/suites/ai-feature-route.test.cjs::[ai-feature-route] TC-AIR-010 meta prompts: two framework cues silence, one cue keeps only concrete product techniques` · **Status:** Tested
+> **CoveredBy:** `.claude/hooks/tests/suites/ai-feature-route.test.cjs::[ai-feature-route] TC-AIR-001 prompts that name an AI technique and ask to act on it are routed with the signal that fired`, `.claude/hooks/tests/suites/ai-feature-route.test.cjs::[ai-feature-route] TC-AIR-002 framework vocabulary, bare questions, unrelated uses, code, host envelopes and explicit review calls stay silent`, `.claude/hooks/tests/suites/ai-feature-route.test.cjs::[ai-feature-route] TC-AIR-009 the route needs an action on the technique: the same prompt with and without an action verb`, `.claude/hooks/tests/suites/ai-feature-route.test.cjs::[ai-feature-route] TC-AIR-010 meta prompts: two framework cues silence, one cue keeps only concrete product techniques`, `.claude/hooks/tests/suites/prompt-route-utils.test.cjs::[prompt-route-utils] quoted code never becomes intent in any advisory router`, `.claude/hooks/tests/suites/prompt-route-utils.test.cjs::[prompt-route-utils] real requests outside code remain available to every router` · **Status:** Tested
 
 ---
 

@@ -732,7 +732,16 @@ module.exports = {
             name: '[workflow-route-modes] TC-WFR-021 an unreadable gate file is reported in one line naming it, and the off notice is unchanged',
             fn: () => withProject(p => {
                 const gate = path.join(p.root, '.claude', 'skills', 'shared', 'workflow-first-gate.md');
-                for (const [label, breakIt] of [['missing gate file', () => fs.rmSync(gate)], ['unreadable gate path (a folder)', () => { fs.rmSync(gate); fs.mkdirSync(gate); }]]) {
+                const good = fs.readFileSync(gate, 'utf8');
+                const breakers = [
+                    ['missing gate file', () => fs.rmSync(gate)],
+                    ['unreadable gate path (a folder)', () => { fs.rmSync(gate); fs.mkdirSync(gate); }],
+                    ['empty gate file', () => p.write(gate, '')],
+                    ['whitespace gate file', () => p.write(gate, ' \r\n\t')],
+                    ['empty marked gate', () => p.write(gate, '# unrelated reference\n<!-- CK:WORKFLOW-GATE -->\n \n<!-- /CK:WORKFLOW-GATE -->')],
+                    ['mode-filtered empty gate', () => p.write(gate, '<!-- CK:WORKFLOW-GATE -->\n<!-- CK:GATE-MODE off -->\nonly off\n<!-- /CK:GATE-MODE -->\n<!-- /CK:WORKFLOW-GATE -->')]
+                ];
+                for (const [label, breakIt] of breakers) {
                     fs.rmSync(gate, { recursive: true, force: true });
                     fs.copyFileSync(path.join(CLAUDE_DIR, 'skills', 'shared', 'workflow-first-gate.md'), gate);
                     breakIt();
@@ -751,6 +760,74 @@ module.exports = {
                     const off = p.run(newSession(), 'fix the flaky login test', { CK_WORKFLOW_ROUTE_MODE: 'off' });
                     assertContains(off.out, '<!-- CK:RUNTIME-WORKFLOW-ROUTE-OFF -->', `${label} / off`);
                     assertNotContains(off.out, 'workflow route unavailable', `${label} / off`);
+                }
+                // Adopters' nonempty unmarked gate text remains supported.
+                p.write(gate, 'SYNTHETIC_NONEMPTY_UNMARKED_GATE');
+                const unmarked = p.run(newSession(), 'fix the fixture');
+                assertContains(unmarked.out, 'SYNTHETIC_NONEMPTY_UNMARKED_GATE');
+                assertContains(unmarked.out, CATALOG_HEADING);
+                assertNotContains(unmarked.out, 'workflow route unavailable: ');
+                // Repair changes the delivered content, so this session receives the gate and catalog.
+                const session = newSession();
+                p.write(gate, '');
+                assertContains(p.run(session, 'first').out, 'workflow route unavailable: ');
+                p.write(gate, good);
+                const repaired = p.run(session, 'second');
+                assertContains(repaired.out, ASK_QUESTION);
+                assertContains(repaired.out, CATALOG_HEADING);
+                assertNotContains(repaired.out, 'workflow route unavailable: ');
+                assertContains(p.run(session, 'third', { CK_WORKFLOW_ROUTE_MODE: 'auto' }).out, CATALOG_HEADING);
+            })
+        },
+        {
+            // Intent: an alias to ignored credentials must not leak into context; public aliases still work.
+            name: '[workflow-route-modes] TC-WFR-022 private protocol aliases are refused while public aliases remain readable',
+            fn: () => withProject(p => {
+                const alias = path.join(p.root, 'docs', 'protocol-alias');
+                const variants = [
+                    ['credentials-store', 'route.md', 'SYNTHETIC_PRIVATE_SENTINEL', false],
+                    ['public-store', 'route.md', 'SYNTHETIC_PUBLIC_PROTOCOL', true],
+                    ['sample-store', '.env.example', 'SYNTHETIC_SAMPLE_PROTOCOL', true]
+                ];
+                for (const [folder, name, body, isAllowed] of variants) {
+                    const target = path.join(p.root, folder);
+                    p.write(path.join(target, name), body);
+                    fs.mkdirSync(path.dirname(alias), { recursive: true });
+                    fs.symlinkSync(target, alias, process.platform === 'win32' ? 'junction' : 'dir');
+                    try {
+                        p.write(p.teamFile, { portability: { workflowRouteProtocol: { path: `docs/protocol-alias/${name}` } } });
+                        for (const mode of ['ask', 'auto']) {
+                            const out = p.run(newSession(), 'fix the fixture', { CK_WORKFLOW_ROUTE_MODE: mode });
+                            assertEqual(out.code, 0, out.err);
+                            assertContains(out.out, mode === 'ask' ? ASK_QUESTION : AUTO_START);
+                            if (isAllowed) assertContains(out.out, body, `${folder} / ${mode}: public protocol remains readable`);
+                            else assertNotContains(out.out, body, `${folder} / ${mode}: physical credentials must stay private`);
+                        }
+                        const off = p.run(newSession(), 'fix the fixture', { CK_WORKFLOW_ROUTE_MODE: 'off' });
+                        assertNotContains(off.out, body, `${folder} / off: no protocol is read`);
+                        if (!isAllowed) {
+                            // A rejected checkout-local source expresses no opinion; the public team layer wins.
+                            p.write(p.localFile, { portability: { workflowRouteProtocol: { path: `docs/protocol-alias/${name}` } } });
+                            p.write(p.teamFile, { portability: { workflowRouteProtocol: 'SYNTHETIC_TEAM_PROTOCOL' } });
+                            const out = p.run(newSession(), 'fix the fixture');
+                            assertContains(out.out, 'SYNTHETIC_TEAM_PROTOCOL');
+                            assertNotContains(out.out, body);
+                            fs.rmSync(p.localFile);
+                        }
+                    } finally {
+                        fs.unlinkSync(alias);
+                    }
+                }
+                // Resolve both sides physically: a checkout reached through a link is still eligible.
+                const linkedRoot = path.join(p.root, 'linked-checkout');
+                p.write(p.teamFile, { portability: { workflowRouteProtocol: { path: 'public-store/route.md' } } });
+                fs.symlinkSync(p.root, linkedRoot, process.platform === 'win32' ? 'junction' : 'dir');
+                try {
+                    const out = p.run(newSession(), 'fix the fixture', { CLAUDE_PROJECT_DIR: linkedRoot });
+                    assertEqual(out.code, 0, out.err);
+                    assertContains(out.out, 'SYNTHETIC_PUBLIC_PROTOCOL');
+                } finally {
+                    fs.unlinkSync(linkedRoot);
                 }
             })
         }

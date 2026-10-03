@@ -710,7 +710,6 @@ Report: tmp/reports/domain-entities-review-{date}-{slug}.md
 - Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
 - Why-review skill itself is the active context (avoid recursion)
 
-**Why this exists:** AI sub-agent reports inherit confirmation bias — the orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify this as standard practice.
 
 ---
 
@@ -1171,21 +1170,6 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking; add a final "Analyze AI mistakes & lessons learned" review task.
 
-**Anti-Rationalization:**
-
-| Evasion | Rebuttal |
-| ------- | -------- |
-| "Generic DDD rule fits, skip Phase 0" | Discovered base classes override generic rules — verify the project's real entity/VO base FIRST or every finding is noise. |
-| "Finding is obvious, skip evidence" | No `file:line` proof = no finding. Confidence <60% → DO NOT recommend. |
-| "Clean enough, skip the re-review after fixes" | Every fix invalidates the prior verdict — restart the full review until the current round's exit bar is clear (round 1: zero open findings; round 2: zero CRITICAL/HIGH/MEDIUM, LOW deferred). |
-| "Looks anemic, flag it" | Inspect callers + base class first — pattern fit, not pattern resemblance, decides anemic vs. correct delegation. |
-| "Invariant enforced in code, that's coverage" | Dual-Feedback: spec must NAME it AND a property TC must GUARD it — code-only is INCOMPLETE. |
-| "Many entities, review them inline" | 10+ files → parallel sub-agents; persist per-file findings to `tmp/reports/` or they vanish on budget cutoff. |
-| "No setters here, model is fine" | Detect the paradigm (0.4) first — an immutable or event-sourced model has no setters BY CONSTRUCTION; the absence proves nothing until you know which model you are reading. |
-| "Entity has no methods → anemic" | Judge subdomain fit (3.1) first. CRUD/supporting subdomain with no invariants → simple IS correct; the finding is noise. |
-| "Rule is enforced, location is style" | Location IS the rule. In a validator/handler it is bypassable by every other entry point — that is a HIGH invariant gap, not a preference. |
-| "Events are raised correctly, done" | Raising is Section H. Section O owns WHEN they dispatch — in-transaction dispatch and publish-before-commit are CRITICAL regardless of how cleanly they were raised. |
-| "Single-threaded tests pass, concurrency is fine" | A set-based invariant checked in memory passes every single-threaded test and races in production. Verify the enforcing mechanism, not the test result. |
 
 **IMPORTANT MUST ATTENTION** Phase 0 discovery FIRST (base classes override generic rules) · NEVER report a finding without `file:line` evidence at confidence >80% · validate findings before fixing, then restart the full review — a clean pass ENDS it once the persisted `minRounds` is met.
 

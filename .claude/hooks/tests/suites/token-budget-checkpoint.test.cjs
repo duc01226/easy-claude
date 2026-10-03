@@ -12,13 +12,14 @@
  *   wiring     its own PostToolUse group on the prompt-ledger matcher (framework repo only).
  * Each test name starts with its TC id where the phase file supplies one. Fixtures are
  * synthetic transcripts inside unique temp projects removed in `finally`; child processes get
- * HOME/USERPROFILE/TMPDIR/TEMP/TMP pointed at the fixture and every inherited CK_* key blanked.
+ * HOME/USERPROFILE/TMPDIR/TEMP/TMP pointed at the fixture and every inherited CK_* switch and provider key blanked.
  */
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
 
 const HOOKS_DIR = path.resolve(__dirname, '../..');
 const REPO_ROOT = path.resolve(HOOKS_DIR, '..', '..');
@@ -124,11 +125,11 @@ function storedTotal(marker) {
     return Object.values(marker.usage.files).reduce((sum, file) => sum + usageLib.nonCachedTotal(file.totals), 0);
 }
 
-/** Child env: fixture HOME/temp dirs, every inherited CK_* switch blanked. */
+/** Child env: fixture HOME/temp dirs, inherited switches and provider keys blanked. */
 function isolatedEnv(fx) {
     const env = { HOME: fx.root, USERPROFILE: fx.root, TMPDIR: fx.root, TEMP: fx.root, TMP: fx.root };
     for (const key of Object.keys(process.env)) {
-        if (/^CK_/i.test(key)) env[key] = '';
+        if (/^CK_/i.test(key) || /(?:API_KEY|TOKEN|SECRET|PASSWORD)/i.test(key)) env[key] = '';
     }
     return env;
 }
@@ -137,12 +138,116 @@ function spawnHook(fx, event) {
     return runHook(HOOK, event, { cwd: fx.project, env: isolatedEnv(fx), timeout: 20000 });
 }
 
+/** Real host cancellation: close its stdout reader before releasing the hook's stdin. */
+function spawnWithClosedOutput(fx, event) {
+    return new Promise((resolve, reject) => {
+        const child = spawn(process.execPath, [HOOK], {
+            cwd: fx.project,
+            env: { ...process.env, ...isolatedEnv(fx), CLAUDE_PROJECT_DIR: fx.project },
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+        let stderr = '';
+        const timer = setTimeout(() => child.kill(), 20000);
+        child.stderr.on('data', chunk => { stderr += chunk; });
+        child.stdin.on('error', () => { /* a closed host can also close stdin */ });
+        child.once('error', error => { clearTimeout(timer); reject(error); });
+        child.once('close', code => { clearTimeout(timer); resolve({ code, stderr }); });
+        child.stdout.destroy();
+        child.stdin.end(JSON.stringify(event));
+    });
+}
+
 /** Fixed text of a note: every number replaced, so only the template remains. */
 function template(note) {
     return note.replace(/\d[\d,]*/g, '#');
 }
 
 const tests = [
+    {
+        name: '[token-budget] TechnicalSpec closed stdout stays advisory and preserves a due checkpoint for retry',
+        fn: () => withFixture(async fx => {
+            // Given usage past a due threshold and a host closing the pipe before output.
+            respond(fx, fx.main, [0, 0, 0, 600000]);
+            for (const toolName of hook.CHECKPOINT_TOOLS) {
+                const sessionId = 'closed-' + toolName;
+                const event = taskEvent(fx, toolName, {}, { session_id: sessionId });
+                // When the real hook writes to the closed reader (no timing sleep).
+                const failed = await spawnWithClosedOutput(fx, event);
+                // Then transport failure never blocks, credits a threshold, or leaves its claim.
+                assert.equal(failed.code, 0, failed.stderr);
+                assert.equal(failed.stderr, '', 'advisory stdout failure is handled');
+                const dir = ledger.sessionDir(fx.storeRoot, sessionId);
+                const stateFile = path.join(dir, hook.STATE_FILE);
+                assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).lastThreshold, 0);
+                assert.equal(fs.existsSync(path.join(dir, 'usage-state.lock')), false);
+                // When the host next accepts output, Then the due note delivers exactly once.
+                const retry = await spawnHook(fx, event);
+                assert.equal(retry.code, 0, retry.stderr);
+                assert.match(noteOf(retry.stdout), /600,000 non-cached tokens.*500,000 checkpoint/);
+                assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).lastThreshold, 500000);
+                const repeat = await spawnHook(fx, event);
+                assert.equal(repeat.code, 0, repeat.stderr);
+                assert.equal(repeat.stdout, '');
+            }
+        }, { project: { name: 'fixture' } })
+    },
+    {
+        name: '[token-budget] TechnicalSpec default writer releases its temporary listener on success and synchronous throw',
+        fn: () => withFixture(async fx => {
+            // Given a due note and a unit seam at the volatile stdout transport only.
+            respond(fx, fx.main, [0, 0, 0, 600000]);
+            const originalWrite = process.stdout.write;
+            const baseline = process.stdout.listenerCount('error');
+            try {
+                for (const shouldThrow of [false, true]) {
+                    let captured = '';
+                    process.stdout.write = (text, done) => {
+                        captured = text;
+                        if (shouldThrow) throw new Error('synthetic stdout failure');
+                        done();
+                        return true;
+                    };
+                    // When defaultWrite succeeds or throws, Then it settles and releases ownership.
+                    const event = taskEvent(fx, 'TaskCreate', {}, { session_id: 'writer-' + shouldThrow });
+                    const payload = await fire(fx, event, { write: undefined });
+                    assert.match(noteOf(captured), /500,000 checkpoint/);
+                    assert.equal(payload, shouldThrow ? '' : captured);
+                    assert.equal(process.stdout.listenerCount('error'), baseline, 'temporary listener released');
+                    const stateFile = path.join(ledger.sessionDir(fx.storeRoot, event.session_id), hook.STATE_FILE);
+                    if (fs.existsSync(stateFile)) assert.equal(JSON.parse(fs.readFileSync(stateFile, 'utf8')).lastThreshold, shouldThrow ? 0 : 500000);
+                }
+            } finally {
+                process.stdout.write = originalWrite;
+            }
+        })
+    },
+    {
+        name: '[token-budget] TechnicalSpec a late stream error cannot overwrite a peer accepted checkpoint',
+        fn: () => withFixture(async fx => {
+            // Given a due note and a failed transport reporting callback before its error event.
+            // Parallel hook processes may deliver successfully after that callback released the claim.
+            respond(fx, fx.main, [0, 0, 0, 600000]);
+            const originalWrite = process.stdout.write;
+            const existingListeners = new Set(process.stdout.listeners('error'));
+            const failure = new Error('synthetic pipe failure');
+            try {
+                process.stdout.write = (text, done) => { done(failure); return false; };
+                // When the failure callback runs, followed by a peer accepting the due note.
+                assert.equal(await fire(fx, taskEvent(fx), { write: undefined }), '');
+                const accepted = await fire(fx, taskEvent(fx));
+                assert.match(noteOf(accepted), /500,000 checkpoint/);
+                // Then the late error event only consumes the listener, never rolls back the peer.
+                process.stdout.emit('error', failure);
+                assert.equal(readMarker(fx).lastThreshold, 500000);
+                assert.equal(await fire(fx, taskEvent(fx)), '', 'accepted checkpoint remains deduplicated');
+            } finally {
+                process.stdout.write = originalWrite;
+                for (const listener of process.stdout.listeners('error')) {
+                    if (!existingListeners.has(listener)) process.stdout.removeListener('error', listener);
+                }
+            }
+        })
+    },
     {
         name: '[token-budget] TC-GWF-034 non-cached 520k past a 500k threshold: one note with the total, via the real process',
         fn: () => withFixture(async fx => {

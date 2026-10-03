@@ -218,6 +218,7 @@ OFF_ROLE_TRIMS = {
 AGENT_QUALITY_BLOCKS = {
     # --- review family ---------------------------------------------------
     "code-reviewer": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "whole-diff-correctness",
         "severity-rubric", "category-review-thinking",
@@ -259,6 +260,7 @@ AGENT_QUALITY_BLOCKS = {
     # carries them: every other agent holds one conditional pointer line instead, so a task with no
     # AI surface pays nothing (guarded by the ai-gate-zero-cost suite).
     "ai-engineering-reviewer": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation", "incremental-persistence",
@@ -269,6 +271,7 @@ AGENT_QUALITY_BLOCKS = {
         "ai-feature-framing-gate", "ai-engineering-gate", "ai-review-checklist",
     ],
     "security-auditor": [
+        "measured-capacity-engineering",
         "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation", "incremental-persistence",
         "source-test-drift-check",
@@ -277,6 +280,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "performance-optimizer": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation", "graph-impact-analysis",
@@ -301,6 +305,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     # --- investigation / research family ---------------------------------
     "debugger": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "end-to-start-debugger-trace", "root-cause-debugging", "red-flag-stop-conditions",
         "graph-assisted-investigation", "incremental-persistence",
@@ -319,6 +324,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     # --- planning / product / architecture family ------------------------
     "planner": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "estimation-framework", "plan-quality", "plan-granularity",
         "iterative-phase-quality", "preservation-inventory", "behavioral-delta-matrix",
@@ -335,6 +341,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "architect": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "severity-rubric", "category-review-thinking",
         "graph-assisted-investigation",
@@ -354,6 +361,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "solution-architect": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "design-patterns-quality", "scaffold-production-readiness",
         "estimation-framework", "module-detection",
@@ -370,6 +378,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     # --- test family -----------------------------------------------------
     "integration-tester": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "repeatable-test-principle", "source-test-drift-check", "red-flag-stop-conditions",
         "graph-impact-analysis", "incremental-persistence", "rationalization-prevention",
@@ -387,6 +396,7 @@ AGENT_QUALITY_BLOCKS = {
         "review-principle-awareness",
     ],
     "tester": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "source-test-drift-check", "repeatable-test-principle",
         "test-spec-verification", "red-flag-stop-conditions",
@@ -401,6 +411,7 @@ AGENT_QUALITY_BLOCKS = {
         "logic-and-intention-review",
     ],
     "e2e-runner": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "source-test-drift-check", "repeatable-test-principle",
         # wave 2 (twin: e2e-test)
@@ -413,6 +424,7 @@ AGENT_QUALITY_BLOCKS = {
         "logic-and-intention-review",
     ],
     "database-admin": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "graph-impact-analysis",
         # wave 2 (twin: db-migrate)
@@ -470,6 +482,7 @@ AGENT_QUALITY_BLOCKS = {
     # but its own .md. The precedent is `code-reviewer`, given the test-architecture
     # contract in this same campaign for the same reason.
     "backend-developer": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan --mode=execute / feature-implement)
@@ -481,6 +494,7 @@ AGENT_QUALITY_BLOCKS = {
         "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
     "frontend-developer": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan --mode=execute / feature-implement)
@@ -495,6 +509,7 @@ AGENT_QUALITY_BLOCKS = {
         "test-failure-fault-adjudication", "logic-and-intention-review",
     ],
     "fullstack-developer": [
+        "measured-capacity-engineering",
         "core-engineering-principles",
         "design-patterns-quality", "complexity-prevention",
         # wave 2 (twin: plan --mode=execute / feature-implement)

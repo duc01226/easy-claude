@@ -76,7 +76,7 @@ Decide audit scope, then map to each child's arguments.
 | Specific path            | `mode=audit` scoped to that path's services/modules           | scope override = that path     | that path's service/API files                                               |
 | New / greenfield foundation | **`mode=init`** over the planned/scaffolded structure      | scope override = the scaffold  | the scaffolded service/API entry points (record `N/A — <evidence>` for anything not yet built) |
 
-> **[GREENFIELD SCOPE]** `mode=init` was previously unreachable through this orchestrator even though the child supports it, so a foundation being created could only be graded with the brownfield rubric. It also flips this skill's `SYNC:engineering-foundation-gate` authority from **advisory** to **BLOCKING** — you are choosing the foundation now, so a `MISSING-WARRANTED` dimension must be an explicit decision, not a silent default.
+> **[GREENFIELD SCOPE]** `mode=init` makes this skill’s `SYNC:engineering-foundation-gate` **BLOCKING** rather than advisory: each `MISSING-WARRANTED` dimension requires an explicit foundation decision.
 
 > **MUST ATTENTION — `architecture --mode=scalability` always grades the PROJECT, even under diff scope.** A project-grader by design ("do not use as the every-change diff reviewer"). Under diff scope it still emits the `/20` scorecard, focused on the services/modules the diff touches — it never degrades into a pure per-line diff reviewer. Document this nuance in the consolidated report so its scorecard is read as a project posture, not a diff verdict.
 
@@ -186,7 +186,7 @@ The report is now validated — lock it and hand off a stable artifact.
 - **"$code-simplifier"** — simplify and refine implicated code.
 - **"Skip, continue manually"** — user decides.
 
-> **[BROWNFIELD HARNESS ROUTE — the gap this closes]** `linter-setup` and `harness-setup` both handle an EXISTING project (they inventory what is already there before proposing anything), yet the workflow catalog wired them into greenfield init ALONE — so an audit of a grown codebase could report "no quality harness" with no route to fix it. This skill is the brownfield entry point, so the route belongs here. Apply the gate's **ratchet** rule when recommending: on an existing codebase, fail-on-NEW while tolerating the current baseline is `PRESENT`, not a half-measure — it stops regression from day one without demanding a cleanup nobody has budget for.
+> **[BROWNFIELD HARNESS ROUTE]** `linter-setup` and `harness-setup` inventory existing projects before proposing changes. Apply the gate’s **ratchet** rule: fail-on-NEW while tolerating the existing baseline is `PRESENT`.
 
 > **Read-only until validated.** This skill produces findings and a verdict only. Applies NO fixes — every validated finding routes to a downstream `$plan` or feature-implementation flow that owns the change.
 
@@ -719,6 +719,21 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:trade-off-interrogation-gate -->
 
+<!-- SYNC:measured-capacity-engineering -->
+
+> **Measured Capacity Engineering** — Apply when planning, building, testing or reviewing a hot path, cache, capacity claim or scaling decision. Preserve the hosting skill's authority, phase order, scores and gates; unrelated work skips this protocol. **Priorities:** model demand and the SLO, remove measured work safely, then prove capacity and recovery before adding infrastructure.
+>
+> 1. **Define capacity as a workload contract.** Record endpoint/journey mix, think time, reads/writes, payloads, data volume/skew, authentication, environment and latency/error targets. Distinguish active sessions, open connections, in-flight requests, offered RPS and achieved successful RPS. A benchmark's hardware price, user count or CPU limit is not a portable capacity guarantee; DAU requires a separate usage model.
+> 2. **Choose and disclose the load model.** Use closed-loop users for journeys; use an open arrival-rate model when testing independently arriving demand. Closed loops can reduce offered traffic as latency rises. Report attempted/completed work, errors/timeouts and dropped iterations, verify generator headroom, and separate component tests from the full journey. Repeat controlled runs with realistic data, warm steady state, cold/expiry cache, sustained load and recovery as warranted; static evidence yields a verification plan, never an invented capacity result.
+> 3. **Locate the limiting resource.** Correlate tail latency with queue/pool wait and per-process CPU, runtime stalls, memory/GC, database query plans and lock waits, disk and network. Co-located components compete for resources; high aggregate CPU alone does not identify its owner. Compare one hypothesis-changing optimization at a time under the same workload, then re-profile because the bottleneck can move.
+> 4. **Reduce work before multiplying resources.** Bound/filter at the data source, verify query access paths, batch repeated calls, trim payloads and keep synchronous hot-path work small. Select the smallest evidenced fix; urgent capacity or availability requirements can justify scaling first. Read `.claude/skills/performance-review/references/performance-knowledge.md` §10.1 when designing a capacity experiment and §6.1 before selecting a cache layer.
+> 5. **Place reuse at the earliest safe boundary.** Compare request/process, shared data and proxy/client caches by work avoided, hit rate, key cardinality, freshness and operating cost. Cache lookup must preserve authorization and all response-varying inputs; personalized data is private/bypassed unless isolation and authorization before every hit are proven. Bound bytes/entries, lifetime and refill concurrency; specify write invalidation, stale-data policy, cross-instance behavior and cold-cache fallback. Verify cross-user isolation and mutation visibility as well as speed.
+> 6. **Budget overload and recovery.** Find the measured SLO boundary and keep justified headroom; no universal CPU percentage defines safety. Bound queues, concurrency, pools, retries and dependency demand across all replicas. Exercise cache loss, deploy/warmup and overload: verify bounded degradation/shedding and recovery after demand falls, without dropping correctness, authorization or durability to win a benchmark.
+> 7. **Scale the evidenced owner incrementally.** Compare tuning/offload and vertical capacity with horizontal replicas or component separation; name state/session/cache coherence, shared dependency limits, availability and operational costs. A single-instance design can be efficient while failing an availability requirement. Choose distribution only for measured pressure or explicit business/availability needs, with an owner, revisit trigger and reversible next step.
+>
+> **Evidence output:** workload/SLO/environment | load model and offered/achieved demand | limiting-resource proof | before/after distributions and errors | cache correctness/cold-state proof (if applicable) | headroom/recovery | cost/trade-off and next scaling trigger. Record unavailable measurements explicitly. **Closing priorities:** model demand → reduce work safely → prove capacity/recovery; retain the hosting contract and never generalize anecdotal numbers.
+
+<!-- /SYNC:measured-capacity-engineering -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
@@ -807,6 +822,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:review-principle-awareness:reminder -->
 
+<!-- SYNC:measured-capacity-engineering:reminder -->
+
+**MUST ATTENTION** capacity work: model demand/SLO and distinguish sessions from RPS/in-flight work; disclose load model and offered vs achieved demand; reduce measured work at a safe owner; preserve cache authorization/freshness/bounds; prove cold-state, overload recovery and justified headroom before scaling. Static review returns a verification plan, not invented throughput. Retain the hosting skill's scores, gates and authority.
+
+<!-- /SYNC:measured-capacity-engineering:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** Testability contract: resolve evidence-backed Unit/Integration/System/E2E rows, copy-ready full/focused commands, zero-match failures, owner/root/data, CI/simple Windows/macOS/Linux entry, unique run identity, and repeat proof before claiming setup, review, or test completion.
@@ -831,7 +852,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION** this is a THIN orchestrator — NEVER re-implement any of the three reviews inline; the children are 25k–34k tokens each and MUST run as sub-agents while this skill runs INLINE and spawns them — why: running them inline blows the main context and defeats the map-reduce this skill exists to perform.
 **IMPORTANT MUST ATTENTION** spawn all three sub-agents in ONE message and honor the all-return barrier — advance only after EVERY child returns — why: starting synthesis before all three return produces a report missing a whole dimension.
-**IMPORTANT MUST ATTENTION** dedup the intentional overlaps — one underlying issue = ONE finding citing every reporting child, ONE severity per `SYNC:severity-rubric`, never summed across duplicate reports; preserve every route-to-sibling pointer — why: three intentionally-cross-referencing reviewers inflate severity counts and bury distinct issues.
+**IMPORTANT MUST ATTENTION** dedup the intentional overlaps — one underlying issue = ONE finding citing every reporting child, ONE severity per `SYNC:severity-rubric`, never summed across duplicate reports; preserve every route-to-sibling pointer
 **IMPORTANT MUST ATTENTION** `architecture --mode=scalability` ALWAYS grades the PROJECT even under diff scope — read its `/20` scorecard as project posture, not a diff verdict.
 **IMPORTANT MUST ATTENTION** read-only until validated — run the Step 5 `$why-review` gate before handoff; every validated finding routes to a downstream `$plan`/feature flow, fixes are NEVER applied here.
 **IMPORTANT MUST ATTENTION** two orchestrator-only duties in Step 4 that NO child can perform: (a) sweep the merged report against the design-review script (`.claude/docs/architecture-knowledge.md` §20.2) and record every unanswered question as an INFO `Coverage gap` line, framing remaining risk against the five judgments (§20.4); (b) run the 11 thinking red flags (§20.3) across the merged findings and demote/remove any hit BEFORE `$why-review` sees it — why: three correctly-in-lane reviewers are all blind to a question belonging to no lane, and synthesis is exactly where three children's confirmation biases compound into one authoritative-sounding report. A coverage gap is INFO only and NEVER feeds the combined-verdict rollup.
@@ -843,18 +864,3 @@ The following are all MANDATORY:
 - **MANDATORY** every merged finding carries `file:line` proof + confidence (>80% to act, <80% verify first) — NEVER synthesize a finding from inference.
 - **Optional advice:** the code graph (`.code-graph/graph.db`) can hint at a high-risk blast radius grep may miss; it may be stale — verify by reading. Never required.
 - **MANDATORY** validate decisions with the user using ask user tool for scope resolution and next-step routing — never auto-decide the scope.
-
-**Anti-Rationalization:**
-
-| Evasion                                         | Rebuttal                                                                                             |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| "I'll just run the three checks inline myself"  | NEVER — each child is 25k–34k tokens; fan out as sub-agents, this skill stays inline and synthesizes |
-| "Same issue from 3 reviewers = 3 High findings" | Dedup first — one underlying issue = one finding, one severity, citing every source                  |
-| "asr scorecard is low, so the diff is bad"      | asr grades the PROJECT even under diff scope — read it as project posture, not a diff verdict        |
-| "Findings look right, ship the report"          | Run the Step 5 `$why-review` gate first — an unvalidated sub-agent claim is a hypothesis             |
-| "I'll fix the findings while I'm here"          | Read-only until validated — fixes route to a downstream `$plan`/feature flow                         |
-| "Two children returned, start synthesizing"     | Honor the all-return barrier — advance only after ALL three return                                   |
-
-**IMPORTANT MUST ATTENTION** THIN orchestrator — fan out three read-only sub-agents in ONE message, run INLINE yourself, NEVER re-implement the reviews.
-**IMPORTANT MUST ATTENTION** dedup the intentional cross-references into ONE report with three sub-scores + one combined verdict, one severity per issue.
-**IMPORTANT MUST ATTENTION** read-only until validated — run the `$why-review` gate, then route fixes to a downstream `$plan`/feature flow.

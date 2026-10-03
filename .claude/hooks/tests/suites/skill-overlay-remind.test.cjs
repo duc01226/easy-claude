@@ -45,6 +45,7 @@ function scrubbedEnv(temp, extra = {}) {
     const overrides = { HOME: temp, USERPROFILE: temp, TMPDIR: temp, TEMP: temp, TMP: temp, NODE_OPTIONS: undefined };
     for (const key of Object.keys(process.env)) {
         if (/^(?:CK_|CLAUDE_|CODEX_|OPENCODE_)/i.test(key)) overrides[key] = undefined;
+        if (/^(?:OPENAI_|ANTHROPIC_|GEMINI_|GOOGLE_|AZURE_|TELEGRAM_|DISCORD_|SLACK_)/i.test(key)) overrides[key] = '';
     }
     return childEnv({ ...overrides, ...extra });
 }
@@ -100,19 +101,21 @@ const skillUse = (fx, name, extra = {}) => ({
     ...extra
 });
 
-function run(fx, input) {
+function run(fx, input, { closeStdout = false } = {}) {
     return new Promise(resolve => {
         const child = spawn(process.execPath, [HOOK], { cwd: fx.project, env: fx.env(), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
         let stdout = '';
         let stderr = '';
         const timer = setTimeout(() => child.kill('SIGKILL'), SPAWN_TIMEOUT_MS);
-        child.stdout.on('data', chunk => { stdout += chunk; });
+        if (closeStdout) child.stdout.destroy();
+        else child.stdout.on('data', chunk => { stdout += chunk; });
         child.stderr.on('data', chunk => { stderr += chunk; });
         child.on('close', code => {
             clearTimeout(timer);
             const parsed = stdout ? JSON.parse(stdout).hookSpecificOutput : null;
             resolve({ code, stdout, stderr, event: parsed && parsed.hookEventName, text: parsed ? parsed.additionalContext : '' });
         });
+        child.stdin.on('error', () => {});
         child.stdin.end(JSON.stringify(input));
     });
 }
@@ -189,6 +192,7 @@ const tests = [
             const events = [
                 ['skill tool (name field of the third host)', { hook_event_name: 'PostToolUse', tool_name: 'Skill', tool_input: { name: 'plan' }, cwd: fx.project }, 'PostToolUse'],
                 ['SKILL.md read', { hook_event_name: 'PostToolUse', tool_name: 'Read', tool_input: { file_path: fx.abs('.claude/skills/plan/SKILL.md') }, cwd: fx.project }, 'PostToolUse'],
+                ['Windows separators in a second-host relative read', { hook_event_name: 'PostToolUse', tool_name: 'Read', tool_input: { file_path: '.agents\\skills\\plan\\SKILL.md' }, turn_id: 't1', cwd: fx.project }, 'PostToolUse'],
                 ['typed command', { hook_event_name: 'UserPromptExpansion', command_name: '/plan', cwd: fx.project }, 'UserPromptExpansion'],
                 ['second-host shell read', { hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: 'Get-Content -Raw .agents/skills/plan/SKILL.md' }, turn_id: 't1', cwd: fx.project }, 'PostToolUse'],
                 ['second-host prompt', { hook_event_name: 'UserPromptSubmit', prompt: 'please run $plan now', turn_id: 't1', cwd: fx.project }, 'UserPromptSubmit']
@@ -258,6 +262,65 @@ const tests = [
                 assert.equal(repeated, '', 'successful reminder stays silent');
                 assert.equal(repeatedWrites, 0, 'successful reminder does not write again');
             }
+
+            // The default transport releases its listener after success, throw, or emitted failure.
+            // Fault injection controls the transport only; resolution and ledger acknowledgment stay real.
+            const originalWrite = process.stdout.write;
+            const errorListeners = process.stdout.listenerCount('error');
+            try {
+                for (const fault of ['success', 'throw', 'callback']) {
+                    const input = skillUse(fx, 'plan', { session_id: `default-${fault}` });
+                    process.stdout.write = (_text, callback) => {
+                        if (fault === 'throw') throw new Error('fixture synchronous stdout failure');
+                        const error = fault === 'callback' ? new Error('fixture asynchronous stdout failure') : null;
+                        callback(error);
+                        if (error) process.stdout.emit('error', error);
+                        return true;
+                    };
+                    const output = await hook.run(input, deps);
+                    assert.equal(process.stdout.listenerCount('error'), errorListeners, `${fault}: listener released`);
+                    assert.equal(Boolean(output), fault === 'success', `${fault}: output acknowledgment`);
+                    assert.deepEqual(fx.records(`default-${fault}`), fault === 'success' ? ['skill-overlay-plan.json'] : [], `${fault}: only success recorded`);
+                    if (fault !== 'success') {
+                        assert.ok(await hook.run(input, { ...deps, write: (_text, done) => done(true) }), `${fault}: retry eligible`);
+                    }
+                }
+            } finally {
+                process.stdout.write = originalWrite;
+            }
+
+            // Given: a real host pipe closes before a batch can deliver (BR-PDL-19 failure retry).
+            const closedBatch = { hook_event_name: 'UserPromptSubmit', prompt: '$plan $commit', session_id: 'closed-pipe', transcript_path: fx.transcript, cwd: fx.project };
+            // When: the native entrypoint writes into the closed reader.
+            const closed = await run(fx, closedBatch, { closeStdout: true });
+            // Then: silent successful exit, no false delivery records, and both skills retry immediately.
+            assertSilent(closed, 'closed output reader');
+            assert.equal(closed.stderr, '', 'closed output reader never emits an error stack');
+            assert.deepEqual(fx.records('closed-pipe'), [], 'failed batch records neither skill');
+            const healthy = await run(fx, closedBatch);
+            assert.equal(healthy.code, 0);
+            assert.equal(healthy.stderr, '');
+            assert.ok(healthy.text.includes('Before executing skill plan'));
+            assert.ok(healthy.text.includes('Before executing skill commit'));
+            assert.deepEqual(fx.records('closed-pipe'), ['skill-overlay-commit.json', 'skill-overlay-plan.json']);
+            assertSilent(await run(fx, closedBatch), 'healthy delivery starts suppression');
+
+            // Given: ten overlays, of which only the first eight fit in the displayed path list.
+            const overflowRows = Array.from({ length: 10 }, (_, i) => ({ target: 'plan', scope: 'exact', name: `overflow-${i}` }));
+            fx.registry(overflowRows);
+            const overflowInput = skillUse(fx, 'plan', { session_id: 'overflow-change' });
+            const before = await run(fx, overflowInput);
+            assert.ok(before.text.includes('(+2 more in the overlay registry)'));
+            assertSilent(await run(fx, overflowInput), 'unchanged complete set stays suppressed');
+            // When: a file outside the displayed eight is replaced without changing the overflow count.
+            overflowRows[9] = { ...overflowRows[9], name: 'overflow-replaced' };
+            fx.registry(overflowRows);
+            // Then: the changed full set re-arms once even though the short reminder text is identical.
+            const changed = await run(fx, overflowInput);
+            assert.equal(changed.text, before.text, 'the displayed eight paths and overflow count are unchanged');
+            assert.ok(changed.text, 'a change to any matched overlay re-arms BR-PDL-19');
+            assertSilent(await run(fx, overflowInput), 'the newly delivered complete set is suppressed');
+            fx.registry([{ target: '*', scope: 'all', name: 'house-style' }, { target: '*', scope: 'all', name: 'second-rule' }]);
 
             // Given a prompt naming several skills, the first successful batch is one JSON message.
             const batch = { hook_event_name: 'UserPromptSubmit', prompt: '$plan $commit', session_id: 'batch', transcript_path: fx.transcript, cwd: fx.project };
@@ -338,6 +401,10 @@ const tests = [
             assert.equal(overlayLib.MAX_REMINDER_PATHS, 8);
             assert.ok(result.text.includes('(+2 more in the overlay registry)'), result.text);
             assert.ok(result.text.endsWith(ADDITIVE));
+            const resolved = overlayLib.resolveOverlayReminder('plan', fx.project, {});
+            assert.deepEqual(resolved.files, rows.map(item => `docs/project-protocols/${item.name}.md`));
+            assert.equal(resolved.text, result.text, 'metadata and text describe the same matched set');
+            assert.equal(overlayLib.buildOverlayReminder('plan', fx.project, {}), result.text, 'the string API is preserved');
         })
     },
     {
@@ -365,12 +432,36 @@ const tests = [
             fx.registry([{ target: 'plan', scope: 'exact', name: 'plan-rules' }]);
             // Given a registry row and an existing body
             assert.deepEqual(lib.resolveOverlayFiles('plan', fx.project, {}), ['docs/project-protocols/plan-rules.md']);
+            const originalRead = fs.readFileSync;
+            const registry = fx.abs('docs/project-reference/skill-protocols-reference.md');
+            const body = fx.abs('docs/project-protocols/plan-rules.md');
+            let registryReads = 0;
+            let bodyReads = 0;
+            try {
+                fs.readFileSync = (file, ...args) => {
+                    if (file === registry) registryReads++;
+                    if (file === body) {
+                        bodyReads++;
+                        throw new Error('overlay bodies belong to the assistant, never the reminder');
+                    }
+                    return originalRead(file, ...args);
+                };
+                assert.deepEqual(lib.resolveOverlayReminder('plan', fx.project, {}), {
+                    files: ['docs/project-protocols/plan-rules.md'],
+                    text: reminderFor('plan', ['docs/project-protocols/plan-rules.md'])
+                });
+                assert.equal(registryReads, 1, 'text and identity use one registry snapshot');
+                assert.equal(bodyReads, 0, 'the metadata resolver never reads overlay bodies');
+            } finally {
+                fs.readFileSync = originalRead;
+            }
             // Then a skill name that is not a bare slug resolves nothing, without reading
             for (const name of ['../plan', 'Plan', 'a b', '', null, undefined, 42]) assert.deepEqual(lib.resolveOverlayFiles(name, fx.project, {}), [], String(name));
             // And a null configuration (declared but unusable) and a missing project read nothing
             assert.deepEqual(lib.resolveOverlayFiles('plan', fx.project, null), []);
             assert.deepEqual(lib.resolveOverlayFiles('plan', path.join(fx.temp, 'no-such-project'), {}), []);
             assert.equal(lib.buildOverlayReminder('plan', fx.project, null), '');
+            assert.deepEqual(lib.resolveOverlayReminder('plan', fx.project, null), { files: [], text: '' });
             // And a pathological glob cannot wedge the resolver (a linear matcher)
             const pattern = `${'a*'.repeat(40)}b`;
             fx.write('docs/project-reference/skill-protocols-reference.md', `# Skill protocols\n\n${HEADER}\n${row({ target: pattern, scope: 'glob', name: 'evil' })}\n`);

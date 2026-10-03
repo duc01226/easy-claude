@@ -301,7 +301,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ## Standalone Review Gate (Non-Workflow Only)
 
-> **Post-gate of the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-if-invoked-inside-a-workflow).** Full standalone loop: ensure a plan exists → Steps 0-3 → `/changes-review` → `/why-review` → Steps 4-6; the two review steps below run after Step 3 and BEFORE the single Step 4 verify, so its one test run covers their fixes.
+> **Post-gate:** follow the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-only-when-nestedtrue--a-workflow-row-that-merely-exists-in-tasklist-does-not-count) above. It owns `/changes-review` → `/why-review` between Step 3 and the single Step 4 verify; their fixes must be covered by that verify.
 >
 > **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/plan --mode=execute`), you MUST ATTENTION create `TaskCreate` todo tasks for `/changes-review` then `/why-review` between the Step 3 and Step 4 tasks (the last reviews before the verify). This ensures all changes are reviewed before commit even without a workflow enforcing it.
 >
