@@ -60,7 +60,7 @@ Path branching: INIT derives the guide from verified native artifacts/config; SY
 | Evasion | Rebuttal |
 | --- | --- |
 | "Mode obvious, skip Phase 0 detection" | Phase 0 mode detection is BLOCKING — INIT vs SYNC paths differ significantly |
-| "Coverage Gaps not needed" | Coverage Gaps is a required section — omitting it hides maintenance debt |
+| "Coverage Gaps not needed" | Keep verified gaps in the report; include only actionable limits or consumer-required gap data in the guide |
 | "A framework template is probably the project's template" | Verify configured/native owner artifacts and generators before documenting a path |
 | "An ID grep proves test coverage" | Trace the owner + native ID + optional variant to the executing assertion |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own section extractions. |

@@ -18,35 +18,35 @@ description: '[Skill Management] Use when enhancing, compressing or expanding pr
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Quick Summary
 
-**Goal:** Two-phase optimization — (1) Caveman Compression strips stop words + grammatical scaffolding while preserving semantic meaning; (2) Prompt Enhancement applies AI attention anchoring so AI reads and follows all instructions — producing a prompt/skill that states its objective and ultimate outcome (one consolidated Goal) in both top summary and bottom reminders so AI optimizes for the right result.
+**Goal:** Improve readable, actionable instructions with preserved meaning. Agent guides use the shared content-value branch; other targets use two-phase optimization — (1) Caveman Compression strips stop words + grammatical scaffolding while preserving semantic meaning; (2) Prompt Enhancement applies AI attention anchoring so AI reads and follows all instructions — producing a prompt/skill that states its objective and ultimate outcome (one consolidated Goal) in both top summary and bottom reminders so AI optimizes for the right result.
 
 **Summary:**
 
-- Two phases, in order: caveman-compress prose FIRST, then attention-anchor structure — NEVER skip or reorder.
+- Classify output ownership FIRST. Agent guides use the content-value/retention branch; other targets compress prose then attention-anchor structure.
 - Enhance derives BOTH a **Goal** (the outcome to optimize for) AND a **Summary** (key things + steps to notice) for the target, and places both in its Quick Summary.
 - **Anti-forget rule (task/purpose targets):** when the target performs a task or has a purpose, the Summary AND Closing Reminders MUST carry the goal + purpose + ALL important main steps/tasks (compact enumeration) — why: AI forgets steps buried in the long middle of the prompt; the top Summary and bottom Reminders are the two high-attention anchors that survive context rot.
-- Protect content: NEVER compress code/YAML/tables/SYNC tags, NEVER delete rules or `file:line` evidence; post rule-density MUST be ≥ pre.
+- Preserve meaningful rules and consumer-required code/YAML/tables/tags; agent-guide removals require semantic dispositions, not blanket example retention.
 - Route on `--op` (default `enhance`): `compress` = token-strip only, `expand` = reconstruct compressed text.
 
 **Workflow:**
 
-1. **Detect** — Classify target: skill file, sub-agent file (`.claude/agents/*.md`), protocol file, or general doc
+1. **Detect** — Resolve output identity/ownership. Agent guides take the Agent-Guide Branch and return; classify other targets as skill, sub-agent, protocol or general prompt
 2. **Read** — Read target file completely
 3. **Goal + Summary** — Derive the target's one-sentence Goal (what it achieves + the ultimate outcome it must cause) AND its Summary (2-4 bullets of the key important things + the steps AI must notice) from the target's task, constraints, and success criteria
 4. **Compress** — Apply caveman compression (Phase 1)
 5. **Enhance** — Apply AI attention anchoring transforms (Phase 2)
-6. **Verify** — No content loss, rule density ≥ pre-optimization, Goal anchored top and bottom
+6. **Verify** — Semantic retention, readable guidance and Goal anchored top and bottom
 
 **Key Rules:**
 
 - **Operation flag** (see [Operation Mode](#operation-mode---op)): `--op=enhance` (default) = compress + anchor + skill-principles; `--op=compress` = token-strip only; `--op=expand` = reconstruct compressed text into fluent form (inverse Phase 1 + structural Transform 4)
-- NEVER skip Phase 1 (compress) before Phase 2 (enhance) — compression removes noise, enhancement structures signal
-- NEVER remove meaningful rules, constraints, code examples, or `file:line` evidence
+- For general prompts, compress before structural enhancement. Agent guides use their dedicated branch instead.
+- Preserve meaningful rules/constraints and verified evidence; agent guides may disposition redundant examples or outside-purpose evidence to reports.
 - MUST ATTENTION derive the target's Goal and add it to both `## Quick Summary` and `## Closing Reminders`
 - MUST ATTENTION derive the target's Summary (key important things + steps AI must notice) and place it in `## Quick Summary` immediately after the Goal — a condensing digest at a different altitude than Workflow/Key Rules, NEVER a verbatim re-listing of them
 - MUST ATTENTION when the target performs a task or has a purpose, the Summary AND `## Closing Reminders` MUST enumerate the goal + purpose + ALL important main steps/tasks as a compact list — why: long task descriptions in the middle of the prompt get forgotten; the top Summary and bottom Reminders re-anchor every step so none is skipped (compact enumeration ≠ the verbose Workflow prose, so the altitude stays distinct)
 - MUST ATTENTION skill AND sub-agent (`.claude/agents/*.md`) targets require the SAME Goal + Summary + Closing-Reminders structure (see [When Target is a Sub-Agent File](#when-target-is-a-sub-agent-file)) — anchored top and bottom; NEVER alter SYNC blocks when enhancing an agent
-- Post-optimization rule density (MUST ATTENTION/NEVER/ALWAYS per 100 lines) MUST be ≥ pre-optimization
+- Verify retained rules, exceptions and preconditions by semantic disposition; warning-keyword counts are not a quality gate
 - Caveman compression applies to prose only — NEVER compress code blocks, YAML, or structured tables
 - Prompt quality > token count, but verbose prompts degrade quality — optimize clarity-per-token
 
@@ -88,9 +88,23 @@ Per sentence: identify core S-V-O (non-negotiable) → restore articles/auxiliar
 
 **Transform 4 (expand) — Structural Clarity pass:** convert prose rule-lists → bullets, enumerated conditions → decision tables, before/after examples → two-column tables. Keep as prose: explanatory context (why a rule exists), workflow narratives, anti-pattern rationale.
 
-Verify (expand): no semantic loss (all facts/numbers/paths present), rule density post ≥ pre, no telegraphic 2-5 word prose sentences remain, code blocks untouched.
+Verify (expand): no semantic loss (all facts/numbers/paths present), semantic retention verified, no telegraphic 2-5 word prose sentences remain, code blocks untouched.
 
 ---
+
+## Agent-Guide Branch (before general transforms)
+
+When the target output is root context, a project-reference guide/template, docs index or prompt/protocol registry, read `.claude/skills/shared/protocols/ai-discovery-doc-quality.md` for the content-value and retention contract. Classify by resolved output identity and ownership, not the scratch candidate filename. Curated lessons/audits keep their owner contract and require authorized scope.
+
+For these targets, use this branch instead of caveman compression, blanket example/table preservation or generic skill scaffolding:
+
+1. Read/save the baseline and inventory meaningful rules, protocols, exceptions, rationale, discovery and parser structures.
+2. Remove low-value repetition/report material by explicit disposition. Keep clear sentences and necessary conditions; retain action-governing numbers and a useful short example. Preserve consumer-required data/syntax.
+3. Make purpose/read-when and critical rules easy to find, with brief closing reminders when useful. Do not duplicate substantive protocols into summaries or invent missing implementation examples.
+4. Verify sources and triggered discovery, then review final semantic dispositions against the baseline after all transforms. Reject both report bulk and lost exceptions; no word, warning or example quota proves quality.
+5. Before applying, use the owning writer's baseline and freshness rules. Editorial enhancement alone does not claim a full scan or refresh its ledger.
+
+Return this review to the caller; a scan candidate remains unapplied until its final gate. Other target types use the general transforms below.
 
 ## Phase 0: Detect Target Type
 
@@ -267,8 +281,8 @@ Prompt quality FIRST. Verbose prompts degrade quality — AI attention dilutes a
 
 **Evaluation metrics per doc:**
 
-- **Density score** — useful rules per 100 lines (higher = better)
-- **Savings estimate** — % tokens saveable without losing information
+- **Decision value** — what correct action depends on each section
+- **Retention** — meaningful items retained, consolidated, replaced by discovery or removed with a reason
 - **Risk** — what breaks if cut too aggressively (e.g., AI misses a pattern)
 
 ---
@@ -283,7 +297,7 @@ Prompt quality FIRST. Verbose prompts degrade quality — AI attention dilutes a
 ### Step 1: Read and Analyze
 
 1. Read target file completely
-2. Record: current line count, rule density (MUST ATTENTION/NEVER/ALWAYS count)
+2. Record meaningful rules, exceptions, preconditions, navigation and parser structures for disposition review
 3. List all READ references → classify as `.claude/` (needs inline summary) or `docs/` (skip)
 4. Derive the one-sentence **Goal** (what it achieves + ultimate outcome it must cause) from target task/outcomes/guardrails; cite source lines or mark inferred with confidence
 5. Derive the **Summary** (2-4 bullets of the key important things + the steps AI must notice) — the read-this-if-nothing-else digest at a different altitude than Workflow/Key Rules; cite source lines or mark inferred with confidence — why: the Summary condenses what matters most, it does not re-list every step/rule
@@ -329,11 +343,11 @@ For each `.claude/` protocol reference:
 | ------------------- | ---------------------------------------------- |
 | No YAML corruption  | Frontmatter intact                             |
 | No content loss     | All rules, code, paths present                 |
-| Rule density        | Post ≥ pre (count MUST ATTENTION/NEVER/ALWAYS) |
+| Semantic retention | Dispositions preserve action-changing rules, exceptions and reliable discovery |
 | Goal                | Present in Quick Summary and Closing Reminders |
 | Summary             | Present in Quick Summary (key things + steps digest) |
 | Main steps anchored | Task/purpose target → ALL main steps/tasks enumerated in BOTH Summary and Closing Reminders |
-| Line count          | Reduced (compression worked)                   |
+| Readability         | Clear priorities and conditions; no report bulk packed into dense prose |
 | Formatting          | Blank lines between sections, headers correct  |
 | READ classification | `.claude/` → inline summary, `docs/` → skipped |
 
@@ -386,8 +400,8 @@ For each `.claude/` protocol reference:
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `context-engineering-principles` — Research-backed principles for prompt and context quality; writing or enhancing prompts, skills or agents → .claude/skills/shared/protocols/context-engineering-principles.md
-- `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
+- `context-engineering-principles` — Prompt clarity and semantic retention principles; writing or enhancing prompts, skills or agents → .claude/skills/shared/protocols/context-engineering-principles.md
+- `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
 - `prompt-enhancement-transforms-base` — Base transforms shared by every prompt-enhance operation; running prompt-enhance → .claude/skills/shared/protocols/prompt-enhancement-transforms-base.md
 - `shared-protocol-duplication-policy` — Protocol copies in carriers are intentional: edit the canonical source, then propagate; editing a shared protocol or its carriers → .claude/skills/shared/protocols/shared-protocol-duplication-policy.md
 
@@ -395,17 +409,17 @@ For each `.claude/` protocol reference:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Two-phase optimization (caveman compression + attention anchoring) that produces a prompt/skill stating its objective and ultimate outcome (one consolidated Goal) anchored top and bottom, so AI optimizes for the right result.
+**IMPORTANT MUST ATTENTION Goal:** Improve readable, actionable instructions without losing conditions or consumer contracts. Classify agent guides first and use their shared content-value/retention branch; other prompts use compression and attention anchoring.
 
 **IMPORTANT MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries — each is a signpost to its canonical body above):**
 
-- **Output Quality:** MUST ATTENTION no inventories/trees/TOCs; lead with answer; sacrifice grammar for concision.
+- **Output Quality:** prioritize useful guidance and readability; preserve conditions and contractual structures.
 - **Universal Skill-Building:** MUST ATTENTION detect-before-act, derive-don't-enumerate, evidence gates, fresh-eyes, embed protocols verbatim.
 - **Context Engineering:** MUST ATTENTION primacy-recency, high-signal density, compress aggressively, affirmative directives.
 - **Prompt Enhancement Transforms:** MUST ATTENTION inline READ summaries, top Quick-Summary, bottom Closing-Reminders (Transforms 1-3 base).
 - **Shared Protocol Duplication Policy:** NEVER extract SYNC duplication to references — edit canonical first; inline is intentional.
 
-**IMPORTANT MUST ATTENTION** select `--op` FIRST (default `enhance`) — `compress`/`enhance` apply caveman compression FIRST (Phase 1) before structural enhancement (never skip); `expand` applies Language Expansion (inverse) instead — why: expand reconstructs, it does not strip
+**IMPORTANT MUST ATTENTION** classify output ownership and select `--op` FIRST (default `enhance`). Agent guides use the dedicated branch; other prompts compress then anchor, or expand with Language Expansion.
 **IMPORTANT MUST ATTENTION** NEVER compress code blocks, YAML frontmatter, structured tables, or SYNC tags
 **IMPORTANT MUST ATTENTION** read target file completely before any changes
 **IMPORTANT MUST ATTENTION** derive the target's one-sentence Goal (what it achieves + ultimate outcome), then place it in both `## Quick Summary` and `## Closing Reminders` — why: AI must know the ultimate outcome after enhancement
@@ -413,11 +427,11 @@ For each `.claude/` protocol reference:
 **IMPORTANT MUST ATTENTION** for a target that performs a task or has a purpose, the Summary AND Closing Reminders MUST enumerate the goal + purpose + ALL important main steps/tasks (compact ordered list) + modes/flags/gates — why: long task descriptions in the middle of the prompt get forgotten; the top Summary and bottom Reminders are the two anchors that survive context rot, so every step must appear in both
 **IMPORTANT MUST ATTENTION** skill AND sub-agent (`.claude/agents/*.md`) targets share ONE required structure — Goal + Summary in `## Quick Summary`, Goal echoed in `## Closing Reminders` — so creator skills (e.g. `custom-agent`) emit a consistent shape; when enhancing an agent NEVER alter `<!-- SYNC:... -->` blocks or delete `## Role`/`## Workflow`/`## Key Rules`/`## Output` — why: SYNC copies are canonical-synced and divergence fails the build
 **IMPORTANT MUST ATTENTION** read each referenced protocol file to write accurate inline summaries — NEVER guess content
-**IMPORTANT MUST ATTENTION** apply primacy-recency anchoring — 3 critical rules in first 5 AND last 5 lines of every enhanced file
-**IMPORTANT MUST ATTENTION** verify rule density: count MUST ATTENTION/NEVER/ALWAYS before and after — post ≥ pre
+**IMPORTANT MUST ATTENTION** make purpose and critical rules visible first and repeat brief priorities at the end when useful; preserve owner-specific structure
+**IMPORTANT MUST ATTENTION** verify semantic dispositions and readability; warning-keyword counts and word reduction are not proof
 **IMPORTANT MUST ATTENTION** state the action to take, not only what to avoid — pair every `NEVER` with the right path, and append a terse `— why:` to each non-obvious rule — why: affirmative directives + carried rationale are followed more reliably and survive compression (principles #10/#11)
 **IMPORTANT MUST ATTENTION** add inline summaries only for `.claude/` protocol files, not project-specific `docs/` files
-**IMPORTANT MUST ATTENTION** keep all meaningful content — only restructure/compress, NEVER delete rules or code examples
+**IMPORTANT MUST ATTENTION** keep all meaningful content — only restructure/compress, preserve meaningful rules; retain examples only when they clarify necessary distinctions
 **IMPORTANT MUST ATTENTION** verify no YAML frontmatter corruption after changes
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting
@@ -426,8 +440,8 @@ For each `.claude/` protocol reference:
 
 | Evasion                                 | Rebuttal                                                                  |
 | --------------------------------------- | ------------------------------------------------------------------------- |
-| "File is short, skip compression"       | Apply both phases anyway — density matters at any length                  |
-| "Already read the file"                 | Show recorded line count + rule density as proof                          |
+| "File is short, skip review" | Classify ownership and verify semantic retention; length alone proves nothing |
+| "Already read the file"                 | Show baseline semantic inventory and disposition review                          |
 | "Closing reminders already exist"       | Verify they echo top-section rules AND include anti-rationalization table |
 | "Skill file, skip Universal Principles" | NEVER skip — Phase 0 detection is BLOCKING                                |
 | "Summary already has the goal, enough"  | Task/purpose target needs ALL main steps enumerated in Summary AND Reminders — a goal alone leaves middle-buried steps forgettable |

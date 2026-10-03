@@ -17,7 +17,7 @@ Detect scan mode:
 
 | Mode | Condition | Action |
 | --- | --- | --- |
-| Init | Target doc doesn't exist or placeholder only | Full scan, create all sections |
+| Init | Target doc doesn't exist or placeholder only | Full owner scan, create only supported guidance |
 | Sync | Target doc has real content | Diff scan — check new base classes, changed patterns |
 
 Read the selected output and configured template/sections. Init mode populates only the selected local contract; Sync mode preserves its existing section roles and rechecks each relevant pattern for staleness. Resolve optional application/module paths from valid config when declared, then verify them; otherwise discover scope from source and repo structure. A declared invalid section blocks under the shared config contract.

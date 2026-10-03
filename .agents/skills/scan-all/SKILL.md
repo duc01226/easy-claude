@@ -22,7 +22,7 @@ description: '[Documentation] Use when refreshing every selected, evidence-appli
 
 **Workflow:**
 
-1. **Validate** — Require a schema-valid project-config file with a non-empty `project.name`.
+1. **Validate** — Support absent config; validate present config and use the runtime evidence-based resolver.
 2. **Resolve** — Read always-on inputs separately and resolve the effective task-specific `referenceDocs` selection.
 3. **Filter** — Resolve exact built-in targets, selected generic custom docs, and manually owned docs; verify capability evidence for each scan.
 4. **Scan** — Run eligible targets in parallel only when their output write sets are disjoint.
@@ -55,7 +55,7 @@ description: '[Documentation] Use when refreshing every selected, evidence-appli
 
 ### 1. Validate and resolve config
 
-Resolve the configured project-config file through `.claude/hooks/lib/project-config-loader.cjs` (default `docs/project-config.json`). Require a valid schema and non-empty `project.name`; repair a missing or invalid file through project initialization before scanning. Optional capability sections may be omitted. A declared incomplete or unsupported section blocks the run.
+Resolve the configured project-config file through `.claude/hooks/lib/project-config-loader.cjs` (default `docs/project-config.json`). Absent config uses portable defaults and repository evidence. Present config requires a valid schema and non-empty `project.name`; repair invalid declared sections before relying on them. Optional capability sections may be omitted. A declared incomplete or unsupported section blocks the run.
 
 Use `.claude/hooks/lib/session-init-helpers.cjs` to resolve the effective `referenceDocs` selection; do not copy the full registry into this skill:
 
@@ -71,13 +71,13 @@ Read `.claude/skills/scan/references/targets.md`. Resolve each selected filename
 - Registered targets are optional capabilities. [BLOCKING] Before launching a built-in target, read the head of its own file `.claude/skills/scan/references/targets/<key>.md` (its `applies when` and `skip when` lines) and apply that evidence; the registry index alone does not carry the gate. Config can select a scan or guide source search, but source examples and patterns must still be verified.
 - If a selected built-in target's capability is absent, report `SKIPPED` with the config/source paths checked. Do not create a placeholder or claim the doc is refreshed. Generic scans use only their configured purpose and selected output; manual docs are not scan candidates.
 - Do not launch `ui-system` alongside its child targets. `scan-all` selects individual docs from the effective list; an explicitly routed UI orchestration can fan out only to applicable children.
-- Deduplicate identical targets. Targets with different owned output docs may run in parallel; shared output owners run once.
+- Build a coverage ledger with one disposition per exact selected output: eligible, manual, skipped or blocked. Reconcile the union of assignments against that set, including nested/boundary paths; `[]` creates no task-specific scans. Deduplicate identical targets. Targets with different owned output docs may run in parallel; shared output owners run once.
 
 ### 3. Run and verify
 
 For each eligible built-in or generic target, invoke its exact scan command and accept only its evidence-backed result. Generic targets include their configured filename. A scan can finish as `UPDATED`, `UNCHANGED`, `SKIPPED`, or `BLOCKED`; preserve the target report and surface every non-complete status.
 
-Check the exact selected outputs and the always-on owner inputs. Clear `.claude/.scan-stale` only after the selected automatically scannable docs are current and project-init-owned inputs are confirmed; skipped or stale docs keep the result open. Manual docs do not enter the automated freshness gate. Use the owner helper only after this check:
+Reconcile every selected output against returned reports at the all-return barrier before dependent writes. Check final content-value/semantic-retention reviews after enhancement, baseline reconciliation and truthful operation stamps. Check the exact selected outputs and the always-on owner inputs. Clear `.claude/.scan-stale` only after the selected automatically scannable docs are current and project-init-owned inputs are confirmed; skipped or stale docs keep the result open. Manual docs do not enter the automated freshness gate. Use the owner helper only after this check:
 
 ```bash
 node -e "require('./.claude/hooks/lib/session-init-helpers.cjs').refreshScanStaleFlag()"
@@ -103,20 +103,20 @@ Report each selected target with its status, output path, and evidence-backed re
 
 > **Protocol guides** — A hook delivers each protocol's full text when this skill loads. If a protocol's text is not in your context, read its file below before you act on it.
 
-- `ai-discovery-doc-quality` — Keep AI-read docs discoverable: rules first, routed pointers, closing reminders; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
-- `output-quality-principles` — Token-efficient output without losing quality; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
+- `ai-discovery-doc-quality` — Agent-guide content value, authority, retention and verified discovery; writing a doc that an agent reads → .claude/skills/shared/protocols/ai-discovery-doc-quality.md
+- `output-quality-principles` — Useful, readable guidance without lost conditions; writing generated docs or reports → .claude/skills/shared/protocols/output-quality-principles.md
 
 <!-- PROTOCOL-GUIDES:END -->
 
 <!-- SYNC:output-quality-principles:reminder -->
 
-**IMPORTANT MUST ATTENTION** lead with the answer, remove filler and redundant counts/trees/TOCs, use an example only when non-obvious, keep reports concise without losing quality, and put unresolved questions last; honor the task's required output.
+**IMPORTANT MUST ATTENTION** lead with useful guidance and readable priorities; preserve action-changing conditions/numbers and required structures. Remove report bulk from guides, use verified discovery, and judge semantic value rather than word or warning counts.
 
 <!-- /SYNC:output-quality-principles:reminder -->
 
 <!-- SYNC:ai-discovery-doc-quality:reminder -->
 
-**MUST ATTENTION** AI-read docs: purpose + critical rules on top, closing reminders at the bottom when long; route to other docs as `read <path> when <situation>` with existing targets only, no orphan docs, N/A named once as a skip; token-efficient per `$prompt-enhance`; fix generated docs at their source; run the final gate on every changed doc.
+**MUST ATTENTION** AI-read guides: purpose/read-when and priorities first; retain action-changing rules, exceptions and rationale; verify triggered discovery and parser contracts. Use the content-value and semantic-disposition gate after enhancement; keep evidence in temporary reports and fix generated output at its source.
 
 <!-- /SYNC:ai-discovery-doc-quality:reminder -->
 
@@ -124,7 +124,7 @@ Report each selected target with its status, output path, and evidence-backed re
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor each canonical body:**
 
-- **Output Quality:** MUST ATTENTION no counts/trees/TOCs, rules over prose, primacy-recency anchoring.
+- **Output Quality:** MUST ATTENTION retain actionable guidance, conditions and consumer-required structures; move investigation bulk to temporary reports.
 - **AI-Discovery Doc Quality:** MUST ATTENTION the docs index and root context route every refreshed doc by trigger; no orphan, dead or not-applicable route.
 
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting

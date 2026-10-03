@@ -35,6 +35,30 @@ function createTempProjectDir() {
 
 const unitTests = [
     {
+        // Invariant: new guide scaffolds enable discovery without prescribing an unevidenced architecture.
+        name: '[init-reference-docs] guide scaffolds preserve local sections without imposing architecture',
+        fn: () => {
+            // Given portable built-in definitions and an explicitly selected local section contract.
+            const { mergeReferenceDocs, generatePlaceholderContent } = require('../../lib/session-init-helpers.cjs');
+            const filenames = ['project-structure-reference.md', 'backend-patterns-reference.md',
+                'frontend-patterns-reference.md', 'integration-test-reference.md', 'domain-entities-reference.md'];
+            // When default guides are scaffolded, they route discovery instead of requiring inventories/classes.
+            for (const filename of filenames) {
+                const [definition] = mergeReferenceDocs([{ filename }]);
+                const content = generatePlaceholderContent(definition);
+                // Then the discovery route exists and no prescribed pattern section sneaks into the scaffold.
+                assertContains(content, '## Discovery');
+                for (const legacySection of ['Project Directory Tree', 'Repository Pattern', 'CQRS Patterns',
+                    'Component Base Classes', 'Test Base Classes', 'Entity Catalog', 'Aggregate Boundaries']) {
+                    assertTrue(!definition.sections.includes(legacySection), `${filename} prescribes ${legacySection}`);
+                }
+                const [local] = mergeReferenceDocs([{ filename, sections: ['Local owner contract'] }]);
+                assertEqual(JSON.stringify(local.sections), JSON.stringify(['Local owner contract']));
+                assertContains(generatePlaceholderContent(local), '## Local owner contract');
+            }
+        }
+    },
+    {
         name: '[init-reference-docs] absent selection is empty for a minimal project and does not use a hidden reference floor',
         fn: async () => {
             const tmpDir = createTempDir();

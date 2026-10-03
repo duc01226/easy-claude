@@ -73,12 +73,12 @@
       "description": "Task tracking, planning, workflow execution, sub-agent orchestration, persistence and prompt craft.",
       "tags": {
         "agent-bootstrap": { "summary": "Plan tasks first, keep one in progress and keep a progress file for long work", "when": "an agent starts a task" },
-        "context-engineering-principles": { "summary": "Research-backed principles for prompt and context quality", "when": "writing or enhancing prompts, skills or agents" },
+        "context-engineering-principles": { "summary": "Prompt clarity and semantic retention principles", "when": "writing or enhancing prompts, skills or agents" },
         "estimation-framework": { "summary": "Bottom-up estimation with derived story points and a min-max range", "when": "estimating effort" },
         "goal-contract-satisfaction-loop": { "summary": "Save the goal in a file and loop until every saved criterion passes", "when": "executing work against a user goal" },
         "incremental-persistence": { "summary": "Persist results per file or section while the work proceeds", "when": "a sub-agent or heavy step processes more than three files" },
         "iterative-phase-quality": { "summary": "Use outcome phases for real boundaries, then review and verify once on the settled tree", "when": "starting a plan" },
-        "output-quality-principles": { "summary": "Token-efficient output without losing quality", "when": "writing generated docs or reports" },
+        "output-quality-principles": { "summary": "Useful, readable guidance without lost conditions", "when": "writing generated docs or reports" },
         "parallel-phase-advancement": { "summary": "Run a declared parallel batch together and advance only after every member returns", "when": "a workflow declares parallel steps" },
         "plan-granularity": { "summary": "Outcome phases name decisions, boundaries and bounded discovery without replaying implementation", "when": "breaking a plan into phases" },
         "plan-quality": { "summary": "Plans decide direction, affected owners, risks and final proof without pre-writing implementation", "when": "writing or reviewing a plan" },
@@ -95,7 +95,7 @@
     "spec-test": {
       "description": "Specs, test cases, tests and their execution, spec-test-code sync, requirement readiness and reference docs.",
       "tags": {
-        "ai-discovery-doc-quality": { "summary": "Keep AI-read docs discoverable: rules first, routed pointers, closing reminders", "when": "writing a doc that an agent reads" },
+        "ai-discovery-doc-quality": { "summary": "Agent-guide content value, authority, retention and verified discovery", "when": "writing a doc that an agent reads" },
         "ai-sdd-artifact-contract": { "summary": "Shared spec-driven development rules stay portable and source-owned", "when": "authoring spec-driven artifacts" },
         "ba-team-decision-model": { "summary": "Two-of-three BA vote and its escalation path", "when": "a BA team must reach a decision" },
         "e2e-visual-design-contract": { "summary": "Evidence and baseline rules for visual review in E2E and human QC", "when": "handling visual-review evidence or visual baseline updates" },
@@ -106,7 +106,7 @@
         "real-world-fidelity-testing": { "summary": "Integration, E2E and system tests exercise real boundaries", "when": "authoring, reviewing or repairing integration, E2E or system tests" },
         "refinement-dor-checklist": { "summary": "Eight Definition of Ready criteria before grooming", "when": "challenging or grooming a PBI" },
         "repeatable-test-principle": { "summary": "Same contract result across fresh runs and supported concurrency", "when": "writing or reviewing tests" },
-        "scan-and-update-reference-doc": { "summary": "Surgical updates to reference docs, never full rewrites", "when": "scanning or updating a reference doc" },
+        "scan-and-update-reference-doc": { "summary": "Baseline-safe updates with semantic retention and truthful freshness", "when": "scanning or updating a reference doc" },
         "source-test-drift-check": { "summary": "When source behavior changes, reconcile the affected tests from evidence", "when": "code, fix, test or review work changes behavior" },
         "spec-drift-adjudication": { "summary": "Decide code-wrong versus spec-stale from evidence, never silently", "when": "behavior diverges from its spec" },
         "spec-loop-discipline": { "summary": "Spec, test and code loop discipline shared by the spec-driven workflows", "when": "running a spec-driven workflow" },

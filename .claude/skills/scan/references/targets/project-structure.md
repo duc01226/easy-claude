@@ -79,7 +79,7 @@ Follow shared `output-quality-principles` (no full trees/counts/TOCs). Cite ever
 | "A standard port or command is implied by the framework" | Read the owning config or script and cite the exact source; omit unsupported defaults. |
 | "This project must have a frontend, backend, or service table" | Include only evidenced application surfaces and runtime units; the target is stack-neutral. |
 | "No familiar CI filename means no delivery workflow" | Search repository-owned pipeline/build definitions and their references; do not treat examples as an allowlist. |
-| "The project config is optional because the repository looks clear" | The config file and required `project.name` are part of the scan contract; optional capability sections may be absent. |
+| "The project config is optional because the repository looks clear" | Absent config is supported; present config requires valid identity and consumed sections. Derive missing facts from repository evidence. |
 | "Copy environment values for completeness" | Record setting keys and secret-reference names/mechanisms only; never publish values. |
 
 ### prompt-enhance

@@ -12,7 +12,7 @@ This target scans seeder and dev-data patterns into the seed-test-data reference
 
 ### Phase 0 detection — owner, purpose, safety, and mode
 
-Read the target doc, required project config, and any optional seed/data capability section that exists, then classify mode:
+Read the target doc, optional validated project config, and any optional seed/data capability section that exists, then classify mode:
 - `<ref>/seed-test-data-reference.md`
 - project-config's declared data/seed paths and settings, if present
 

@@ -278,19 +278,16 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- SYNC:context-engineering-principles -->
 
-> **Context Engineering Principles** — Research-backed principles for prompt quality. Source: Anthropic prompt engineering guide, Stanford "lost-in-the-middle" research, 2025-2026 LLM context optimization studies.
+> **Context Engineering Principles** — Read when writing or enhancing prompts, skills or agents. Make the purpose and critical rules visible; preserve semantic conditions and readable discovery.
 >
-> 1. **Primacy-Recency Effect** — LLM performance drops 15-47% for middle-context information (Stanford). AI attention peaks at first/last 10% of text. **Action:** Place the 3 most critical rules in both the first 5 lines AND the last 5 lines of every prompt. Queries at end improve quality by up to 30% (Anthropic).
-> 2. **High-Signal Density** — Anthropic: _"Identify the smallest collection of high-signal tokens that maximize the probability of the desired outcome."_ **Action:** Every line should change AI behavior. If removing a line doesn't change output → cut it. Target ≥8 rules (MUST ATTENTION/NEVER/ALWAYS) per 100 lines.
-> 3. **Context Rot** — LLM performance degrades as context length grows — even when all content is relevant. Compression (5-20x) maintains or improves accuracy while saving 70-94% tokens. **Action:** Compress aggressively. Shorter, denser prompts outperform longer, diluted ones.
-> 4. **Structured > Prose** — Tables, bullets, XML/markdown parse faster than paragraphs. Constrained formats reduce error rates vs free-text. **Action:** Convert narrative to tables/bullets. Use markdown headers for semantic sections.
-> 5. **RCCF Framework** — Modern LLMs (2025+) already know how to reason. What they need: **R**ole (personality), **C**ontext (grounding), **C**onstraints (guardrails), **F**ormat (structure). Constraints and format matter more than verbose instructions.
-> 6. **Checkbox Avoidance** — `[ ]` syntax triggers mechanical compliance — AI ticks boxes without reasoning. Bullet rules force reading and evaluation. **Action:** Replace `- [ ] Check X` with `- MUST ATTENTION verify X`.
-> 7. **Example Economy** — 3-5 examples optimal for few-shot; diminishing returns after. **Action:** 1 best example per pattern. Use BAD→GOOD pairs (2-3 lines each) for anti-patterns.
-> 8. **Deferred Tool Loading** — Claude Code delays loading tool definitions when they exceed 10% of context window. **Action:** Keep injected docs well under 10% of context budget. Docs exceeding ~3,000 lines are too large for injection — split or compress.
-> 9. **Rule Density Verification** — Post-optimization rule count (MUST ATTENTION/NEVER/ALWAYS) must be ≥ pre-optimization count. Compression should preserve or increase density, never decrease it. **Action:** Count before and after every optimization pass.
-> 10. **Affirmative Directives** — Models comply with affirmative directives more reliably than prohibitions; a bare "don't X" leaves the correct action unspecified, so the model substitutes an arbitrary alternative. **Action:** State the action to take, not only the action to avoid. Keep `NEVER`/forbidden guardrails for hard invariants — but pair each with the right path ("Do X" not just "Don't do Y").
-> 11. **Rationale-Carrying Instructions** — A rule shipped with its reason generalizes to edge cases the rule never enumerated and survives compression; a bare imperative gets misapplied or silently dropped. **Action:** Append a terse `— why: …` clause to every non-obvious rule. The reason names the failure prevented or outcome wanted — never restates the rule.
+> - **Attention:** Lead with the goal, read-when trigger and critical rules; close long instructions with brief reminders. Adapt placement to the host's truncation budget and owner format.
+> - **Signal:** Remove low-value repetition and report bulk. For agent guides, apply `ai-discovery-doc-quality`; word savings and warning labels are not proof of useful guidance.
+> - **Structure:** Use headings, bullets or tables when they clarify decisions. Keep connected prose for rationale and conditions; avoid dense shorthand.
+> - **Context:** Supply the relevant role, evidence, constraints and output contract. Preserve checkboxes or other syntax when an owner/consumer requires them.
+> - **Examples:** Retain a short example only when it communicates a necessary distinction more efficiently than prose and a source pointer. No fixed example quota.
+> - **Retention:** Map unique rules, preconditions, exceptions and navigation before/after enhancement. Check both excessive detail and over-compression; do not impose line limits, reduction percentages or warning-keyword quotas.
+> - **Affirmative instructions:** State the correct action and pair hard prohibitions with the permitted path. Keep short rationale when it prevents likely misuse.
+> - **Bounded context:** Load relevant owners/depth on demand; use verified triggered discovery instead of duplicating their entire protocols.
 
 <!-- /SYNC:context-engineering-principles -->
 
@@ -320,15 +317,12 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- SYNC:output-quality-principles -->
 
-> **Output Quality** — Token efficiency without sacrificing quality.
+> **Output Quality** — Optimize useful guidance per unit of attention. Lead with the outcome and clear priorities; keep readable language, necessary conditions and rationale.
 >
-> 1. No inventories/counts — AI can `grep | wc -l`. Counts go stale instantly
-> 2. No directory trees — AI can `glob`/`ls`. Use 1-line path conventions
-> 3. No TOCs — AI reads linearly. TOC wastes tokens
-> 4. No examples that repeat what rules say — one example only if non-obvious
-> 5. Lead with answer, not reasoning. Skip filler words and preamble
-> 6. Sacrifice grammar for concision in reports
-> 7. Unresolved questions at end, if any
+> - Omit derivable inventories, statistics, trees and repeated histories from guides unless their owner/consumer contract needs them; use live discovery and keep detailed investigation evidence in temporary reports.
+> - Keep actionable numbers, required structures and a short example when it clarifies a necessary distinction. Do not impose universal example or warning quotas.
+> - For agent guidance, apply the shared `ai-discovery-doc-quality` content-value and retention contract; review both excess detail and over-compression. Word reduction alone is not quality proof.
+> - Honor the requested report/registry format; put remaining questions and limitations where the reader can act on them.
 
 <!-- /SYNC:output-quality-principles -->
 

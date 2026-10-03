@@ -493,8 +493,16 @@ const tests = [
         name: '[count-drift] docs-index uses host-neutral skill invocation syntax',
         skip: !HAS_PROJECT_REFERENCE_INDEX,
         fn: () => {
+            // Given: source paths and host-prefixed invocations both contain a slash.
+            const findInvocations = text => text.match(/[$/]scan\b(?![\\/])/g) || [];
+            // When: checking navigation, preserve valid paths but reject commands.
+            if (findInvocations('`.claude/skills/scan/tests/README.md`').length !== 0 ||
+                findInvocations('`/scan --target=docs-index` and `$scan --target=docs-index`').length !== 2) {
+                throw new Error('Invocation check must distinguish source navigation from host-specific commands');
+            }
+            // Then: the authored index uses host-neutral invocation syntax.
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
-            const hostSpecificCommands = docsIndex.match(/[$/]scan\b/g) || [];
+            const hostSpecificCommands = findInvocations(docsIndex);
             if (hostSpecificCommands.length > 0) {
                 throw new Error(
                     `docs-index-reference.md contains host-specific scan invocation(s): ${hostSpecificCommands.join(', ')}.\n` +

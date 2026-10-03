@@ -1,10 +1,8 @@
-> **Scan & Update Reference Doc** — Surgical updates only, never full rewrite.
+> **Scan & Update Reference Doc** — Read when applying scan or editorial candidates. Preserve live user guidance, truthful freshness and semantic coverage.
 >
-> 1. **Read existing doc** first — understand current structure and manual annotations
-> 2. **Detect mode:** Placeholder (only headings, no content) → Init mode. Has content → Sync mode.
-> 3. **Scan codebase** for current state (grep/glob for patterns, counts, file paths)
-> 4. **Diff** findings vs doc content — identify stale sections only
-> 5. **Update ONLY** sections where code diverged from doc. Preserve manual annotations.
-> 6. **Update metadata** (date, counts, version) in frontmatter or header — but ONLY as part of a write that also changes content
-> 7. **NEVER** rewrite entire doc. NEVER remove sections without evidence they're obsolete.
-> 8. **NEVER write a no-op.** When the candidate differs from the doc on disk only by a date stamp or whitespace, write NOTHING — not the stamp either. Check with `node .claude/hooks/lib/doc-stamp-guard.cjs --check <doc> --candidate <file>` (exit 3 = no-op) and record the pass with `--record-verified <doc filename>`. — why: a date-only rewrite is an unmergeable line that makes two branches conflict over a value neither of them decided.
+> 1. Read the existing doc and save an exact recoverable baseline under project-root `tmp/reports/` before drafting; record absence explicitly for new docs. Identify Init (missing/placeholder) vs Sync (populated) and the verified source scope.
+> 2. Classify the operation: **full owner scan** checks the complete declared owner scope; **impact-scoped verification** checks named affected owners; **editorial rewrite** changes presentation only. Do not skip owner checks merely because a section is already documented.
+> 3. Diff evidence against guidance; update only affected sections. Preserve manual annotations and valid local rules. Remove obsolete, redundant or outside-purpose material only with a semantic disposition under `ai-discovery-doc-quality`; a substantial rewrite needs explicit task/owner scope, not permission inferred from this protocol.
+> 4. Before application, compare live bytes to the baseline, including concurrent stamp/format changes, creation and deletion. Use `node .claude/hooks/lib/doc-stamp-guard.cjs --check <doc> --candidate <file> --baseline <baseline-file>` (exit 4 = conflict; omit the option only for callers without baseline protection). A missing baseline file denotes originally absent output. On conflict retain both versions, reread/reconcile and repeat retention/discovery review; do not overwrite newer guidance. This is optimistic detection, not a multi-process lock: serialize application through one writer.
+> 5. Update `Last scanned` only after a full owner scan that changes content. Impact checks use their scoped `Last verified` owner contract; editorial changes preserve freshness stamps and never record full-scan verification. Content edits alone do not prove freshness.
+> 6. No-op scans write NOTHING, including dates/whitespace (guard exit 3). Only a completed full owner scan may record `--record-verified <doc filename>` in the local freshness ledger. Impact and editorial work never clear full-scan staleness. Preserve recoverable evidence and unrelated user work.

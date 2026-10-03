@@ -94,6 +94,20 @@ const LEAN_LAUNCHER = TODAY_LAUNCHER.replace(` ${GIT_STEPS.join(' ')}`, '');
 const todayRender = hookRel => `node -e "${TODAY_LAUNCHER}" -- ${JSON.stringify(hookRel)}`;
 const leanRender = hookRel => `node -e "${LEAN_LAUNCHER}" -- ${JSON.stringify(hookRel)}`;
 
+// POSIX desktop runtime discovery wraps the same pinned JavaScript payload;
+// node-hook-launcher.test.mjs owns resolver behavior. Keep payload/path checks
+// independent of that wrapper and verify the native Windows override separately.
+function nativeLauncher(command) {
+    if (command.startsWith('node -e ')) return command;
+    assert.ok(command.startsWith("/bin/sh -c '"), 'supported POSIX runtime wrapper');
+    const tail = command.slice(command.indexOf(' ck-node -e '));
+    const quoted = "'((?:[^']|'\\\\'')*)'";
+    const match = new RegExp(`^ ck-node -e ${quoted} -- '([^']+)'$`).exec(tail);
+    assert.ok(match, 'one JavaScript payload and one hook path, no extra arguments');
+    const payload = match[1].replaceAll("'\\''", "'");
+    return `node -e "${payload}" -- ${JSON.stringify(match[2])}`;
+}
+
 // ── environment ─────────────────────────────────────────────────────────────
 
 function scrubbedEnv(temp, extra = {}) {
@@ -202,10 +216,14 @@ function assertExistingStepsUnchanged(settings, temp, label) {
             for (const handler of group.hooks) {
                 // The whole handler, not only its command: an added field (say, the delivery
                 // allowance leaking onto every handler) changes the hash the host trusts.
-                const hookRel = /-- "([^"]+)"$/.exec(handler.command)?.[1];
+                const command = nativeLauncher(handler.command);
+                const hookRel = /-- "([^"]+)"$/.exec(command)?.[1];
                 if (!hookRel) continue;
                 const before = { type: 'command', command: todayRender(hookRel), ...(Object.hasOwn(handler, 'timeout') ? { timeout: handler.timeout } : {}) };
-                assert.equal(JSON.stringify(handler), JSON.stringify(before), `${label}: ${hookRel} no longer renders as before this change`);
+                assert.equal(handler.commandWindows, before.command, 'native Windows payload is preserved');
+                const { commandWindows, ...normalized } = handler;
+                normalized.command = command;
+                assert.equal(JSON.stringify(normalized), JSON.stringify(before), `${label}: ${hookRel} no longer renders as before this change`);
             }
         });
     }
@@ -450,7 +468,8 @@ const tests = [
                 const hooks = mirror.hooks;
                 const protocolGroups = event => (hooks[event] || []).filter(group => group.hooks.some(handler => isProtocolCommand(handler.command)));
                 const expectEntries = (group, label, rels = skillLoadRels()) => {
-                    assert.deepEqual(group.hooks.map(handler => handler.command), rels.map(leanRender), `${label}: the entries, lean launcher, no arguments`);
+                    assert.deepEqual(group.hooks.map(handler => nativeLauncher(handler.command)), rels.map(leanRender), `${label}: the entries, lean launcher, no arguments`);
+                    assert.deepEqual(group.hooks.map(handler => handler.commandWindows), rels.map(leanRender), `${label}: native Windows entries`);
                     for (const handler of group.hooks) {
                         assert.equal(handler.additionalContextLimit, CONTEXT_LIMIT, `${label}: allowance`);
                         assert.equal(Object.hasOwn(handler, 'if'), false, `${label}: no condition on the second host`);
@@ -518,7 +537,7 @@ const tests = [
                 assert.equal(protocolCommands.length, (ENTRY_GROUPS.length + 1) * 2 + (ENTRY_GROUPS.length + BIN_COUNT) + BIN_COUNT + BIN_COUNT, 'prompt, shell-read, agent-start, native bin and compact session-start steps');
                 // Then every second-host step is the launcher plus exactly one existing entry file
                 for (const command of protocolCommands) {
-                    const match = /^node -e "[^"]+" -- "(\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs)"$/.exec(command);
+                    const match = /^node -e "[^"]+" -- "(\.claude\/hooks\/(?:protocol-inject-[a-z0-9-]+|skill-overlay-remind)\.cjs)"$/.exec(nativeLauncher(command));
                     assert.ok(match, `not a bare launcher command: ${command.slice(-80)}`);
                     assert.ok(fs.existsSync(path.join(fixture, ...match[1].split('/'))), `${match[1]} exists`);
                 }
@@ -526,8 +545,11 @@ const tests = [
                 const sub = path.join(fixture, 'packages', 'app');
                 fs.mkdirSync(sub, { recursive: true });
                 const env = scrubbedEnv(temp);
-                const reviewCommand = event => mirror.hooks[event].flatMap(group => group.hooks).map(h => h.command)
-                    .find(command => command.includes('protocol-inject-review.cjs'));
+                const reviewCommand = event => {
+                    const handler = mirror.hooks[event].flatMap(group => group.hooks)
+                        .find(h => h.command.includes('protocol-inject-review.cjs'));
+                    return process.platform === 'win32' ? handler.commandWindows : handler.command;
+                };
                 const prompt = runShellCommand(reviewCommand('UserPromptSubmit'), sub,
                     { hook_event_name: 'UserPromptSubmit', prompt: 'please use $conv-a here', turn_id: 't1', session_id: 's1', cwd: sub }, env);
                 const shell = runShellCommand(reviewCommand('PostToolUse'), sub,
@@ -560,9 +582,11 @@ const tests = [
             const protocol = normalizeCommand(entryCommand('review'));
             const existing = normalizeCommand('node "$CLAUDE_PROJECT_DIR"/.claude/hooks/review-commit-gate.cjs');
             // Then the protocol command has no version-control step and the existing one is byte-identical to before
-            assert.equal(protocol, leanRender(entryRel('review')));
+            assert.equal(nativeLauncher(protocol), leanRender(entryRel('review')));
             assert.ok(!protocol.includes('windows-git.cjs'), 'no Git step in a delivery launcher');
-            assert.equal(existing, todayRender('.claude/hooks/review-commit-gate.cjs'));
+            assert.equal(nativeLauncher(existing), todayRender('.claude/hooks/review-commit-gate.cjs'));
+            assert.equal(normalizeCommand(entryCommand('review'), { windows: true }), leanRender(entryRel('review')));
+            assert.equal(normalizeCommand('node "$CLAUDE_PROJECT_DIR"/.claude/hooks/review-commit-gate.cjs', { windows: true }), todayRender('.claude/hooks/review-commit-gate.cjs'));
 
             const fixture = makeHookTreeProject('pdl070');
             try {
@@ -573,7 +597,9 @@ const tests = [
                 fs.mkdirSync(sub, { recursive: true });
                 const log = path.join(temp, 'load.jsonl');
                 // When the protocol command runs from a subdirectory for a second-host prompt with no `$`
-                const result = runShellCommand(protocol, sub,
+                const runtimeProtocol = process.platform === 'win32'
+                    ? normalizeCommand(entryCommand('review'), { windows: true }) : protocol;
+                const result = runShellCommand(runtimeProtocol, sub,
                     { hook_event_name: 'UserPromptSubmit', prompt: 'explain the build', turn_id: 't1', session_id: 's1', cwd: sub },
                     scrubbedEnv(temp, { NODE_OPTIONS: `--require "${preload.replace(/\\/g, '/')}"`, PDL_LOAD_LOG: log }));
                 // Then it prints nothing, exits 0, never loads the Git helper and spawns no child process

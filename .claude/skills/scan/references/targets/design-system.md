@@ -43,7 +43,7 @@ Use the selected project's declared sections. If none are declared, document evi
 ### Content Rules / exceptions
 - Scan only valid configured or evidence-backed source roots; distinguish authoritative definitions from generated derivatives and usages.
 - Record gaps only against declared capabilities/requirements or an explicitly scoped inventory; do not create speculative missing-work lists.
-- No directory-tree exception declared (unlike feature-spec); shared no-trees rule stands.
+- Use source-owner navigation instead of full directory trees unless a verified project consumer requires the structure.
 - **UI/UX clause coverage is a RECORD, not a review.** The 40 UI/UX Design Principles (`UI-1.1`–`UI-9.4`; canonical text in `.claude/skills/shared/sync-inline-versions.md` → `SYNC:ui-ux-design-principles`) are the DEFAULT only where this project is silent. A recorded project convention OUTRANKS the clause, so the generated doc states the project's rule, names the clause it overrides (`UI-<clause>`), and says the deviation is the project's authority; a clause-governed dimension with no token or convention behind it is recorded as a **GAP** so the clause default applies. Clause values obey this target's declarations-only rule, and `UI-3.1` contrast is COMPUTED or recorded "unmeasured" — never estimated. Never flag a deviation as a defect — enforcement belongs to `ui-design --mode=review`; this scan only records.
 
 ### Special slivers

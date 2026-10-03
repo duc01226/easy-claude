@@ -55,14 +55,14 @@
     {
       "tag": "ai-discovery-doc-quality",
       "group": "spec-test",
-      "summary": "Keep AI-read docs discoverable: rules first, routed pointers, closing reminders",
+      "summary": "Agent-guide content value, authority, retention and verified discovery",
       "when": "writing a doc that an agent reads",
-      "chars": 2493,
+      "chars": 4027,
       "file": ".claude/skills/shared/protocols/ai-discovery-doc-quality.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/ai-discovery-doc-quality.md",
-          "chars": 2493
+          "chars": 4027
         }
       ]
     },
@@ -251,14 +251,14 @@
     {
       "tag": "context-engineering-principles",
       "group": "workflow-task",
-      "summary": "Research-backed principles for prompt and context quality",
+      "summary": "Prompt clarity and semantic retention principles",
       "when": "writing or enhancing prompts, skills or agents",
-      "chars": 3315,
+      "chars": 1580,
       "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/context-engineering-principles.md",
-          "chars": 3315
+          "chars": 1580
         }
       ]
     },
@@ -755,14 +755,14 @@
     {
       "tag": "output-quality-principles",
       "group": "workflow-task",
-      "summary": "Token-efficient output without losing quality",
+      "summary": "Useful, readable guidance without lost conditions",
       "when": "writing generated docs or reports",
-      "chars": 510,
+      "chars": 874,
       "file": ".claude/skills/shared/protocols/output-quality-principles.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/output-quality-principles.md",
-          "chars": 510
+          "chars": 874
         }
       ]
     },
@@ -1039,14 +1039,14 @@
     {
       "tag": "scan-and-update-reference-doc",
       "group": "spec-test",
-      "summary": "Surgical updates to reference docs, never full rewrites",
+      "summary": "Baseline-safe updates with semantic retention and truthful freshness",
       "when": "scanning or updating a reference doc",
-      "chars": 1173,
+      "chars": 2182,
       "file": ".claude/skills/shared/protocols/scan-and-update-reference-doc.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/scan-and-update-reference-doc.md",
-          "chars": 1173
+          "chars": 2182
         }
       ]
     },

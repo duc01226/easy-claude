@@ -149,14 +149,32 @@ function contentHash(content) {
     return crypto.createHash('sha256').update(normalizeDocContent(content), 'utf8').digest('hex');
 }
 
+function matchesDocBaseline(filePath, baselineContent) {
+    let current = null;
+    try {
+        current = fs.readFileSync(filePath, 'utf8');
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+    }
+    // Raw comparison intentionally protects stamp/format edits too. Null means
+    // the output was absent, distinct from an existing empty document.
+    return current === baselineContent;
+}
+
 /**
  * Write a doc ONLY when it changes meaning.
  *
  * @param {string} filePath - Absolute path to the doc
  * @param {string} nextContent - Candidate content
- * @returns {{written: boolean, reason: string}} `written:false` = skipped as no-op
+ * @param {{baselineContent?: string|null}} [options] Exact read baseline; null means absent.
+ * @returns {{written: boolean, reason: string}} No-op/conflict leaves live bytes intact.
+ * Optimistic check only: callers serialize application; this is not a lock.
  */
-function writeDocIfChanged(filePath, nextContent) {
+function writeDocIfChanged(filePath, nextContent, options = {}) {
+    if (Object.prototype.hasOwnProperty.call(options, 'baselineContent') &&
+        !matchesDocBaseline(filePath, options.baselineContent)) {
+        return { written: false, reason: 'baseline conflict — reconcile current document' };
+    }
     let existing = null;
     try {
         if (fs.existsSync(filePath)) existing = fs.readFileSync(filePath, 'utf-8');
@@ -263,10 +281,12 @@ function printUsage() {
             '      List staged files whose diff is only volatile stamps/whitespace.',
             '      Exit 0 = nothing to report, exit 3 = stamp-only diffs found.',
             '',
-            '  node .claude/hooks/lib/doc-stamp-guard.cjs --check <doc> --candidate <file>',
+            '  node .claude/hooks/lib/doc-stamp-guard.cjs --check <doc> --candidate <file> [--baseline <file>]',
             '      <doc>       the doc on disk (may not exist yet)',
             '      <candidate> the new content, written to a scratch file first',
-            '      Exit 0 = candidate changes meaning, exit 3 = no-op (skip the write).',
+            '      Exit 0 = changed, exit 3 = no-op, exit 4 = baseline conflict.',
+            '      A missing baseline file records originally absent output.',
+            '      Check raw live bytes before no-op evaluation; reconcile on conflict.',
             '',
             '  node .claude/hooks/lib/doc-stamp-guard.cjs --record-verified <doc-filename>',
             '      Record in the untracked local ledger that a reference doc was',
@@ -339,6 +359,26 @@ function main(argv) {
     const checkIndex = args.indexOf('--check');
     const candidateIndex = args.indexOf('--candidate');
     if (checkIndex !== -1 && candidateIndex !== -1) {
+        const baselineIndex = args.indexOf('--baseline');
+        if (baselineIndex !== -1) {
+            const baselinePath = args[baselineIndex + 1];
+            if (!baselinePath || baselinePath.startsWith('--')) {
+                process.stderr.write('--baseline requires a baseline file path\n');
+                return 1;
+            }
+            // ENOENT is the explicit originally-absent baseline. Other I/O
+            // errors must fail visibly rather than authorize an overwrite.
+            let baselineContent = null;
+            try {
+                baselineContent = fs.readFileSync(baselinePath, 'utf8');
+            } catch (error) {
+                if (error.code !== 'ENOENT') throw error;
+            }
+            if (!matchesDocBaseline(args[checkIndex + 1], baselineContent)) {
+                process.stdout.write('CONFLICT — live document changed; reconcile before application\n');
+                return 4;
+            }
+        }
         const existing = readFileOrEmpty(args[checkIndex + 1]);
         const candidate = readFileOrEmpty(args[candidateIndex + 1]);
         if (candidate === null) {
@@ -361,6 +401,7 @@ module.exports = {
     isStampOnlyDiff,
     contentHash,
     writeDocIfChanged,
+    matchesDocBaseline,
     findStampOnlyStagedDocs,
 };
 

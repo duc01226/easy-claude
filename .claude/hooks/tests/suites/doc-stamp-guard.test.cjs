@@ -60,6 +60,67 @@ function withTempDir(fn) {
 
 const tests = [
     {
+        // Invariant: newer user guidance must survive stale compression candidates.
+        name: '[doc-stamp-guard] stale candidates preserve edits, creation and deletion',
+        fn: () => withTempDir(dir => {
+            // Given an exact snapshot and a candidate based on it.
+            const doc = path.join(dir, 'guide.md');
+            const candidate = STAMPED_DOC + '\nCandidate guidance.\n';
+            for (const live of [STAMPED_DOC + '\nNew exception.\n',
+                STAMPED_DOC.replace('2026-01-01', '2026-02-01'),
+                STAMPED_DOC.replace(/\n/g, '\r\n'), null]) {
+                if (live === null) { if (fs.existsSync(doc)) fs.unlinkSync(doc); }
+                else fs.writeFileSync(doc, live);
+                // When a stale writer attempts application.
+                const result = writeDocIfChanged(doc, candidate, { baselineContent: STAMPED_DOC });
+                // Then even stamp/format edits and deletion are preserved.
+                assertEqual(result.written, false);
+                assertTrue(result.reason.includes('conflict'));
+                assertEqual(fs.existsSync(doc) ? fs.readFileSync(doc, 'utf8') : null, live);
+            }
+            fs.writeFileSync(doc, 'Newly created user guide.');
+            assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: null }).written, false);
+            assertEqual(fs.readFileSync(doc, 'utf8'), 'Newly created user guide.');
+            // A reconciled snapshot permits real updates, and retains no-op semantics.
+            assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: 'Newly created user guide.' }).written, true);
+            assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: candidate }).written, false);
+            fs.unlinkSync(doc);
+            assertEqual(writeDocIfChanged(doc, candidate, { baselineContent: null }).written, true);
+        })
+    },
+    {
+        // Invariant: the portable CLI detects conflicts before reporting a no-op.
+        name: '[doc-stamp-guard] baseline CLI rejects concurrent edits before no-op comparison',
+        fn: () => withTempDir(dir => {
+            // Given separate baseline/candidate/live documents in an isolated directory.
+            const doc = path.join(dir, 'guide.md');
+            const baseline = path.join(dir, 'baseline.md');
+            const candidate = path.join(dir, 'candidate.md');
+            fs.writeFileSync(baseline, STAMPED_DOC);
+            fs.writeFileSync(candidate, STAMPED_DOC);
+            const live = STAMPED_DOC.replace(/\n/g, '\r\n');
+            fs.writeFileSync(doc, live);
+            const run = baselineArg => spawnSync(process.execPath,
+                [GUARD_PATH, '--check', doc, '--candidate', candidate, '--baseline', baselineArg],
+                { cwd: dir, encoding: 'utf8', windowsHide: true });
+            // When live formatting changes after the snapshot, normalization cannot authorize it.
+            const conflict = run(baseline);
+            // Then return a distinguishable conflict and leave every document untouched.
+            assertEqual(conflict.status, 4, conflict.stderr);
+            assertTrue(conflict.stdout.includes('CONFLICT'));
+            assertEqual(fs.readFileSync(doc, 'utf8'), live);
+            fs.writeFileSync(doc, STAMPED_DOC);
+            assertEqual(run(baseline).status, 3);
+            fs.writeFileSync(candidate, STAMPED_DOC + '\nA necessary condition.\n');
+            assertEqual(run(baseline).status, 0);
+            assertEqual(run(path.join(dir, 'absent-baseline.md')).status, 4);
+            fs.unlinkSync(doc);
+            assertEqual(run(baseline).status, 4);
+            assertEqual(run(path.join(dir, 'absent-baseline.md')).status, 0);
+            assertEqual(run('--not-a-baseline').status, 1);
+        })
+    },
+    {
         name: '[doc-stamp-guard] G1 a date-stamp-only rewrite is not a meaningful change',
         fn: () => {
             const restamped = STAMPED_DOC

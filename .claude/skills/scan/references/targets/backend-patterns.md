@@ -20,7 +20,7 @@ Step 3 — Resolve configured service/module paths when declared, then verify th
 
 **Evidence gate:** If framework identity remains uncertain, report `UNKNOWN` and continue only with generic, source-evidenced observations. Do not invent framework-specific conventions or block an otherwise useful generic scan.
 
-Phase 1 — derive only observed conventions: request flow, business-rule ownership, data access and transaction boundaries, validation/error behavior, async messaging/jobs, migrations, configuration, and authorization. Mark absent capabilities `NOT APPLICABLE`; do not recommend or require a pattern merely because it is common.
+Phase 1 — resolve intended conventions from declared owners and enforcing evidence, distinguishing legacy observations: request flow, business-rule ownership, data access and transaction boundaries, validation/error behavior, async messaging/jobs, migrations, configuration, and authorization. Mark absent capabilities `NOT APPLICABLE`; do not recommend or require a pattern merely because it is common.
 
 ### Sub-agent Think scopes
 
@@ -42,12 +42,12 @@ Phase 1 — derive only observed conventions: request flow, business-rule owners
 
 ### Target Sections
 
-Use the output sections declared by the selected reference-doc profile/template. If none are declared, organize the reference around the capabilities found: request flow; business-rule and data ownership; persistence/transactions; validation/errors/security; async/external boundaries; configuration/deployment; and verified risks. Omit areas with no evidence, and never create required headings for absent patterns.
+Use the output sections declared by the selected reference-doc profile/template. If none are declared, organize the reference around the capabilities found: request flow; business-rule and data ownership; persistence/transactions; validation/errors/security; async/external boundaries; configuration/deployment; and actionable constraints. Omit areas with no evidence, and never create required headings for absent patterns.
 
 ### Content Rules / exceptions
 - Cite actual source and config paths for every convention. Include short code excerpts only when they clarify a pattern and the local output contract allows them.
 - Compare observed patterns to project documentation, explicit invariants, and actual consumers. Do not grade architecture by assuming CQRS, repositories, ORM, OOP, DDD, microservices, or a specific layering model is always best.
-- Describe strengths, trade-offs, and verified gaps in terms of the project's scale, boundaries, and change needs. Apply local severity/format conventions when they exist; otherwise report evidence and impact directly.
+- Keep scan/audit findings in the report; describe necessary rationale, trade-offs, and actionable constraints in terms of the project's scale, boundaries, and change needs. Apply local severity/format conventions when they exist; otherwise report evidence and impact directly.
 - Keep output sections aligned with the selected local template and the shared `output-quality-principles`.
 
 ### Special slivers

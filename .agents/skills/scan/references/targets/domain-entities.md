@@ -44,7 +44,7 @@ Include only sections supported by evidence and useful to explain the project's 
 | **Representations & Transformations** | Separate API/UI/application/persistence/event representations and verified mapping ownership. |
 | **Persistence & Relationships** | Persisted structures, constraints, and relationships only where relevant to domain behavior; use a diagram only if it clarifies real relationships. |
 | **Ownership & Boundary Flows** | Verified authority, readers/writers, and synchronization across actual module/process/external boundaries. |
-| **Observed Conventions** | Repeated naming or modeling patterns that are backed by multiple examples and affect future changes. |
+| **Observed Conventions** | Intended naming/modeling practice from authoritative owners and compatible exemplars; label legacy observations separately. |
 | **Evidence Limits** | Material unknown owners, undocumented behavior, or unverified relationships that cannot be settled from available evidence. |
 
 ### Content Rules / exceptions

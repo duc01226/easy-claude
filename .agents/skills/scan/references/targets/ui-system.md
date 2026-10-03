@@ -14,7 +14,7 @@ This is an **orchestrator meta-target**, not a single-doc scanner: it checks sel
 ### Orchestration Procedure (replaces the shared 4-phase engine)
 
 **Phase 0 — Pre-Flight [BLOCKING]:**
-1. Require valid project config and resolve `referenceDocs` through the runtime helper. When it is an explicit array, honor it exactly; when absent, use only resolver-selected capability docs. This invocation cannot add a child doc to an explicit selection.
+1. Validate project config when present (absence uses repository evidence) and resolve `referenceDocs` through the runtime helper. When it is an explicit array, honor it exactly; when absent, use only resolver-selected capability docs. This invocation cannot add a child doc to an explicit selection.
 2. Check each child independently using its `applies when` / `skip when` evidence and exact output filename. Frontend patterns require UI source; design-system requires an actual maintained token/component/documentation owner; Sass requires Sass source. A dependency or directory name alone is insufficient.
 3. Run only children whose output is selected and whose evidence gate passes. If all children are absent, unselected, or fresh, report `SKIPPED` / `UNCHANGED` without asking a routine force-refresh question. Honor force only when the user explicitly requests a rebuild and the target supports it.
 4. Pass optional `designSystem` config to that child only when the section is valid, and verify its paths against source.
@@ -27,7 +27,7 @@ This is an **orchestrator meta-target**, not a single-doc scanner: it checks sel
 - `$scan --target=scss-styling`
 - `$scan --target=frontend-patterns`
 
-**Phase 3 — Verify outputs:** inspect each child result and its owned output. Accept `UPDATED` only when evidence checks pass; accept `UNCHANGED` when the child reports no write; preserve `SKIPPED` and `BLOCKED` with reasons. Never rerun a target only because a no-op stamp did not move.
+**Phase 3 — Verify outputs:** reconcile selected children against every return at the all-return barrier, then inspect each child result and its owned output, including final semantic retention and baseline checks. Accept `UPDATED` only when evidence checks pass; accept `UNCHANGED` when the child reports no write; preserve `SKIPPED` and `BLOCKED` with reasons. Never rerun a target only because a no-op stamp did not move.
 
 **Phase 4 — Summarize** from verified results only: list each selected child, output path, status, evidence, and remaining gap. Do not report skipped or unselected children as scanned.
 

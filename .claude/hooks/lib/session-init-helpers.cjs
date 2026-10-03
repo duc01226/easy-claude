@@ -286,13 +286,13 @@ function checkConfigStatus() {
 const REFERENCE_DOC_CATALOG = [
     {
         filename: 'project-structure-reference.md',
-        purpose: 'Project structure, service architecture, directory tree, tech stack, and module registry.',
-        sections: ['Service Architecture', 'Project Directory Tree', 'Tech Stack', 'Module Codes']
+        purpose: 'Project purpose, source ownership, entry points, toolchain and supported operations.',
+        sections: ['Purpose & Boundaries', 'Owners & Entry Points', 'Toolchain & Operations', 'Discovery']
     },
     {
         filename: 'backend-patterns-reference.md',
-        purpose: 'Backend patterns: CQRS, repositories, entities, validation, message bus, background jobs.',
-        sections: ['Repository Pattern', 'CQRS Patterns', 'Validation Patterns', 'Entity Patterns', 'Message Bus']
+        purpose: 'Server-side intended practice, ownership, lifecycle, constraints and verified discovery.',
+        sections: ['Purpose & Boundaries', 'Intended Practice', 'Preconditions & Exceptions', 'Discovery']
     },
     {
         filename: 'seed-test-data-reference.md',
@@ -302,13 +302,13 @@ const REFERENCE_DOC_CATALOG = [
     },
     {
         filename: 'frontend-patterns-reference.md',
-        purpose: 'Frontend patterns: component base classes, state management, API services, styling conventions.',
-        sections: ['Component Base Classes', 'State Management', 'API Services', 'Styling Conventions', 'Directory Structure']
+        purpose: 'UI composition, state/data flow, lifecycle, constraints and verified discovery.',
+        sections: ['Purpose & Boundaries', 'Intended Practice', 'Preconditions & Exceptions', 'Discovery']
     },
     {
         filename: 'integration-test-reference.md',
-        purpose: 'Integration test patterns: test base classes, fixtures, helpers, and service-specific setup.',
-        sections: ['Test Architecture', 'Test Base Classes', 'Test Helpers', 'Service-Specific Setup']
+        purpose: 'Integration boundaries, execution, isolation, assertions and verified discovery.',
+        sections: ['Execution & Boundaries', 'Fixtures & Isolation', 'Assertions & Exceptions', 'Discovery']
     },
     {
         filename: 'feature-spec-reference.md',
@@ -384,8 +384,8 @@ const REFERENCE_DOC_CATALOG = [
     },
     {
         filename: 'domain-entities-reference.md',
-        purpose: 'Domain entities, data models, DTOs, aggregate boundaries, cross-service entity sync, and ER diagrams.',
-        sections: ['Entity Catalog', 'Entity Relationships', 'Cross-Service Entity Map', 'DTO Mapping', 'Aggregate Boundaries']
+        purpose: 'Domain concepts, invariants, ownership, representations and verified relationships.',
+        sections: ['Concepts & Invariants', 'Ownership & Relationships', 'Preconditions & Exceptions', 'Discovery']
     },
     {
         filename: 'docs-index-reference.md',

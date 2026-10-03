@@ -6,6 +6,10 @@
 
 **Registered keys:** `project-structure` · `backend-patterns` · `frontend-patterns` · `scss-styling` · `design-system` · `code-review-rules` · `domain-entities` · `feature-spec` · `docs-index` · `e2e-tests` · `integration-tests` · `seed-test-data` · `ui-system`. `generic-reference-doc` is a reserved dynamic target described below. These targets form an optional capability catalog, not a list of scans every project should run.
 
+## Shared quality and output ownership
+
+Read `.claude/skills/shared/protocols/ai-discovery-doc-quality.md` when drafting or reviewing any target output; it owns content value, authority, semantic retention and triggered discovery. Target Sections are evidence lenses, not a requirement to fill every heading or emit every discovery. Keep audit/coverage details in temporary reports unless they change correct action or a verified consumer requires them. Template defaults are scaffolds; trace local consumers before changing existing headings, anchors, frontmatter, registry headers or rows. Curated documents keep their declared owner and are not automatically rewritten.
+
 ## Selection and Applicability
 
 - `docs/project-config.json` (or its configured path) is OPTIONAL. With no config, scan on the portable defaults and repository evidence — do not refuse to scan. When present it must be schema-valid with a non-empty `project.name`; omitted capability properties use neutral defaults or skip that capability, while a DECLARED invalid section blocks scanning of that capability (its author made it authoritative, so a silent default would mis-scan).

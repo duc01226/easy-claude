@@ -13,7 +13,7 @@
 - Resolve configured roots; regenerate category globs into a normalized unique-path union.
 - Compare broad `docs/**/*.md` results with the category union and expose every remainder.
 - Verify relationships and lookup paths; keep every path real, unique, and traceable to the current tree.
-- Index 474 unique authored Markdown files across 12 categories; `docs/` contains 52 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
+- Index 475 unique authored Markdown files across 12 categories; `docs/` contains 52 files with 0 uncategorized. Design System is a one-file Project Reference subset counted once.
 
 ## Workflow
 
@@ -29,7 +29,7 @@
 
 ## Documentation System
 
-474 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-02.
+475 unique authored markdown files across 12 indexed categories. Last scanned: 2026-10-02.
 
 **Relocatable roots.** Four of the categories below are anchored on a configurable root. Resolve each one before running its glob:
 
@@ -53,7 +53,7 @@ The **Reproducible scope** column states each glob relative to its category's ro
 | Release Notes          |              3 | `docs/release/**/*.md` + `docs/release-notes/**/*.md`                                 |
 | Knowledge Reports      |              11 | `docs/knowledge/**/*.md`                                                             |
 | Framework Docs         |             41 | `.claude/docs/**/*.md`                                                                |
-| Skill Markdown         |            378 | `rg --files .claude/skills -g '*.md'`                                                 |
+| Skill Markdown         |            379 | `rg --files .claude/skills -g '*.md'`                                                 |
 
 The unique total is the normalized union returned by `rg --files` for Root-Level Docs, all `docs/**/*.md`, Framework Docs, and Skill Markdown. Design System is nested inside Project Reference, so its count is informative rather than additive. Ignored dependency artifacts such as skill-local `.venv/` files are excluded.
 
@@ -125,7 +125,7 @@ easy-claude/
 │   ├── hooks/                                     # 3
 │   ├── skills/                                    # 2
 │   └── team-artifacts/templates/                  # 6
-└── .claude/skills/                                # 378 authored/tracked markdown assets
+└── .claude/skills/                                # 379 authored/tracked markdown assets
 ```
 
 Absent whitelist branches: Operations only.
@@ -213,6 +213,7 @@ Read `docs/project-config.json` first for any project question or task — paths
 | Design System          | touching UI design — tokens, components, app-to-doc map                                                                                                                            | `design-system/README.md`                                                                                   |
 | Framework Docs         | generating, planning, or reviewing any user-facing surface — journey-first UX process (`UX-1`–`UX-11`), read before `design-knowledge.md`                                          | `.claude/docs/ux-journey-process.md`                                                                        |
 | Skill Markdown         | planning, building, changing or reviewing an AI feature (model calls, prompts, agents, tools, retrieval, evals) — only when the change has an AI surface; read this ONE file first | `.claude/skills/shared/protocols/ai-engineering-gate.md` (planning: `ai-feature-framing-gate.md` beside it) |
+| Skill Markdown | changing scan/enhancement quality rules — regression corpus, semantic grading and baseline checks | `.claude/skills/scan/tests/README.md` |
 | Framework Docs         | reviewing an AI feature or plan — read the section for the touched surface only, never whole unless running the AI review                                                          | `.claude/docs/ai-engineering-review-checklist.md`                                                           |
 | Framework Docs         | needing the rationale or a clause of AI-engineering practice (RAG, tool use, agents, evals, safety, cost) — read by clause                                                         | `.claude/docs/ai-engineering-knowledge.md`                                                                  |
 | Framework Docs         | calibrating the severity of an AI-feature finding — read by section                                                                                                                | `.claude/docs/ai-engineering-calibration.md`                                                                |
