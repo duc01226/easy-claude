@@ -1125,12 +1125,12 @@
       "group": "workflow-task",
       "summary": "Protocol copies in carriers are intentional: edit the canonical source, then propagate",
       "when": "editing a shared protocol or its carriers",
-      "chars": 3028,
+      "chars": 2008,
       "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
       "parts": [
         {
           "file": ".claude/skills/shared/protocols/shared-protocol-duplication-policy.md",
-          "chars": 3028
+          "chars": 2008
         }
       ]
     },

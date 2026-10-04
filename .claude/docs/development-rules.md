@@ -1,6 +1,6 @@
 # Development Rules
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
+> **[IMPORTANT]** Create small todo tasks before starting work.
 
 ## Quick Summary
 
@@ -19,7 +19,7 @@
 - **Names express PURPOSE** — "OrXxx/AndYyy" joining roles/types/statuses = content-driven red flag. Test: "if I add/remove one item, must I rename?" → YES = rename
 - **Surgical changes (context-aware)** — Bug fix: every changed line traces to the bug (diff test). Review/enhancement: implement improvements AND announce them explicitly. Never silently scope-creep.
 - **Surface ambiguity before coding** — List assumptions (scope, format, volume), present interpretations with effort estimates, push back when simpler approach exists. Never pick silently and run.
-- **Goal-driven execution** — Each TaskCreate step needs explicit verify criterion: `step → verify: [observable check]`, not "make it work"
+- **Goal-driven execution** — Define observable success criteria for the overall task; complete all planned work, then verify the final result in one consolidated pass.
 - **Goal Contract** — Before planned, workflow, or non-trivial skill work: resolve the active Goal Contract (active plan `goal.md` → `goals/{YYMMDD-HHmm}-{slug}/goal.md` under the plans root — default `plans/`; a `docsRoots.plans.path` entry in `docs/project-config.json` overrides the path — → create from request via `.claude/templates/goal-contract-template.md`), execute against its saved success criteria, append iteration evidence, and close only when the Goal Satisfaction matrix passes or a blocker is escalated. See `SYNC:goal-contract-satisfaction-loop` in `.claude/skills/shared/sync-inline-versions.md`. Tiny conversational tasks may skip only with a recorded reason.
 - **Tests verify intent** — Tests must name the business rule or invariant they protect, not only assert observed behavior
 
@@ -63,24 +63,15 @@
 
 <!-- SYNC:shared-protocol-duplication-policy -->
 
-> **Shared Protocol Duplication Policy (hybrid)** — `.claude/skills/shared/sync-inline-versions.md` owns every shared protocol; every other copy is a projection of it, never a second source. Where each carrier holds a protocol:
+> **Shared Protocol Duplication Policy** — Author shared protocols only in `.claude/skills/shared/sync-inline-versions.md`; every other copy is a generated projection.
 >
-> - **Skills keep guides.** A converted skill's `SKILL.md` carries one guide line per protocol in its `PROTOCOL-GUIDES` block (tag, summary, when it applies, path of the published text) instead of the full `<!-- SYNC:tag -->` body.
-> - **Hooks deliver the full text** where the host runs hooks, from the generated projection `.claude/skills/shared/protocols/`. The guide path is the fallback: when a protocol's text is not in your context, read its file before you act on it.
-> - **`:reminder` digests stay** in every carrier for a role protocol's must-never-miss rules.
-> - **The universal bundle is hook-delivered only.** The `universal` group in `.claude/skills/shared/protocol-groups.json` holds the framework rules every task follows (critical thinking, AI mistake prevention, project-reference loading, overlays, task planning, workflow advancement, git discipline and the rest). Its bins (`bins` in that file, each at most 9,500 characters) are delivered on the first prompt of a session and again after about 100K tokens of growth or a compaction, and at every sub-agent start. No skill, agent, root instruction file or mirror carries a body, reminder, guide line or pointer for them; the root file holds project information only. Hosts that run no hooks are not supported.
-> - **The four converging review-family skills keep full SYNC bodies inline** — `changes-review`, `code-quality-review`, `why-review`, `workflow-review-changes` (`inlineSkills` in `.claude/skills/shared/protocol-groups.json`) — because their protocol text is larger than hook delivery can carry. Single-pass `plan --mode=review` uses protocol guides and loads only triggered depth.
-> - **Agents keep full protocol text.** `.claude/agents/*.md` are never converted to guides; only the universal bundle is absent from them (the sub-agent start hook delivers it).
-> - **Reviewer prompts carry protocol bodies inline.** The orchestrator copies ONE template (`SYNC:review-protocol-injection`) wholesale into each fresh reviewer prompt; a reviewer is never handed a path to go read.
-> - **`references/`:** a mode-only section of a skill may live in `references/*.md`, read at the point of use as that mode's first action; a SYNC body inside `references/*.md` stays inline.
+> - **Guides:** converted skills carry one `PROTOCOL-GUIDES` line per protocol: tag, summary, read-when trigger and published path. Hooks deliver the full text from `.claude/skills/shared/protocols/`; if it is absent from context, read that path before acting. Keep role-protocol `:reminder` digests in every carrier.
+> - **Inline exceptions:** the four converging review skills (`changes-review`, `code-quality-review`, `why-review`, `workflow-review-changes`; registry `inlineSkills` in `.claude/skills/shared/protocol-groups.json`) retain full bodies because they exceed hook-delivery capacity. Single-pass `plan --mode=review` uses guides and triggered depth. Agents retain full role protocols and are never converted to guides. Mode-only `references/*.md` load first on mode entry and retain their SYNC bodies. Copy the complete `SYNC:review-protocol-injection` template into every fresh reviewer prompt; never substitute a read pointer.
+> - **Universal:** the registry's `universal` group is hook-only, including for agents. Its `bins` are at most 9,500 characters, delivered on the first prompt, after about 100K tokens or compaction, and at every sub-agent start. Skills, agents, roots and mirrors carry no universal body, reminder, guide or pointer. Roots hold project information only; hosts without hooks are unsupported.
 >
-> Never hand-extract, deduplicate or replace a SYNC body outside these rules. To update a protocol: edit the canonical file first; run `.claude/scripts/sync-update-blocks.py <tag>` (Windows `py -3`, macOS/Linux `python3`), which rewrites every skill AND agent carrier; convert skills to guides only with its `--mode=guide --tags <tag>` (never a universal tag); rebuild the projection with `node .claude/scripts/build-protocol-projection.cjs`; then grep `SYNC:<tag>` for copies outside the tool's scope, such as `.claude/docs/development-rules.md`.
+> **Update:** edit canonical first, then run `.claude/scripts/sync-update-blocks.py <tag>` (macOS/Linux `python3`; Windows `py -3`) to propagate skills and agents. Only that tool's `--mode=guide --tags <tag>` converts skills; never convert a universal tag. Rebuild with `node .claude/scripts/build-protocol-projection.cjs`, then search `SYNC:<tag>` for copies outside the tool's scope, including `.claude/docs/development-rules.md`. Never hand-extract, deduplicate or replace a body outside this policy.
 
 <!-- /SYNC:shared-protocol-duplication-policy -->
-
-## Formatting and project-scoped code conventions
-
-Use formatters, linters, and style rules selected by project config and reference docs; when none are configured, follow the language's established conventions and nearby code. Whitespace is visual and does not encode dependencies or parallelism by default. Put special code-style rules in project config/context groups or project-reference docs, scoped to the files and situations where they apply.
 
 ## Surgical Changes (MANDATORY — applies to every edit)
 
@@ -96,24 +87,6 @@ Use formatters, linters, and style rules selected by project config and referenc
 - **Scope discipline** — Two modes, same transparency rule:
     - **Bug fix context:** "Fix the bug" ≠ "improve the function." If you see a related improvement, announce it — don't silently implement it.
     - **Review / enhancement context:** If you see improvement opportunities, **implement them AND explicitly announce** what was enhanced beyond the main request. Never leave visible quality improvements unfixed when the task gives you license to improve. The rule either way: **never silently scope-creep**. Always declare what you did beyond the stated request.
-
-### Anti-Pattern: Drive-By Refactoring
-
-```diff
-# BAD — fixing empty email bug but also adding username validation nobody asked for
--  if not user_data.get('email'):
-+  email = user_data.get('email', '').strip()
-+  if not email:
-      raise ValueError("Email required")
-+  if not user_data.get('username'):    # ← not part of the bug fix
-+      raise ValueError("Username required")  # ← not asked for
-
-# GOOD — surgical: only the lines that fix the empty email crash
--  if not user_data.get('email'):
-+  email = user_data.get('email', '')
-+  if not email or not email.strip():
-      raise ValueError("Email required")
-```
 
 ---
 
@@ -185,13 +158,7 @@ Transform imperative tasks into verifiable goals **before writing any code**. Th
 | "Make it faster" | Define: latency target? throughput? perceived? Then measure baseline → hit target |
 | "Review this"    | List specific acceptance criteria — what does PASS look like?                     |
 
-For multi-step tasks, each step in `TaskCreate` must carry an explicit verify criterion:
-
-```
-1. [Step] → verify: [specific observable check]
-2. [Step] → verify: [specific observable check]
-3. [Step] → verify: [specific observable check]
-```
+For multi-step tasks, define success criteria for the overall outcome. Complete all planned implementation steps and static review, then run one consolidated final verification pass. Do not require a separate verify criterion or routine verification run for every small todo task. Repeat verification only when a failure or later change invalidates the result; keep required prerequisite and safety gates at their specified points.
 
 **Weak criteria** ("make it work", "improve it") require constant clarification — the loop stalls.
 **Strong criteria** let you loop independently to completion — the loop self-terminates when done.
@@ -238,24 +205,17 @@ retitled as a stale test.
 
 ## Pre-commit/Push Rules
 
-**Consent & safety (BLOCKING — binds Claude, Codex and OpenCode equally; the rule text is delivered by the universal hook as `.claude/skills/shared/protocols/git-discipline.md`):**
+**Consent and safety apply to Claude, Codex and OpenCode.** Read `.claude/skills/shared/protocols/git-discipline.md` when performing Git operations.
 
-- **Never commit, push, or stage (`git add`) unless the user explicitly asks.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it. This is a behavioral rule on every host; no hook enforces it.
-- **Amend is a commit — gated like one.** `git commit --amend` and `git reset --soft HEAD~1` + `git commit` produce the same commit, so both need an explicit amend request (a plain commit request makes a new commit), and neither may rewrite a commit that is already pushed or that this task did not create. `review-commit-gate.cjs` gates an amend by a review receipt over the amended commit's candidate measured against HEAD's parent (descriptor `"amend":true`); amending a merge commit fails closed.
-- **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first. **Model-behavioral:** nothing catches a commit on `main` but you.
-- Read-only git needs no permission: `status`, `diff`, `log`, `show`, `rev-parse`, `describe`, `blame`, `check-ignore`, `ls-files`, `shortlog`, and the _listing_ forms of `branch`, `tag`, `remote`, `config` and `stash`.
-- **`fetch`, `restore`, `reset`, `checkout`, `switch`, `stash push`, `clean`, `merge`, `rebase`, `cherry-pick`, `revert`, `rm`, `mv` and config _writes_ are NOT read-only** — they move refs, the index or the working tree. Ask before running one.
-- **Publishing through the GitHub CLI — or the GitHub MCP server — is the same act as pushing.** `gh pr create|merge`, `gh release create`, `gh repo delete`, `gh api -X POST|PUT|PATCH|DELETE` and their siblings need the same explicit request a push does. The explicit-request rule binds every `gh` write verb; none is gated by a hook. GitHub MCP write tools reach the same remote without a shell; they are not guarded by a hook, so every MCP write still requires the same explicit user request.
-- **Destructive-git mechanical gating was removed by explicit user decision.** The former `git-commit-block.cjs` classifier hook that denied irreversible working-tree/history operations is gone; only the literal `permissions.ask` patterns in `.claude/settings.json` remain (and `ask` still prompts even under `defaultMode: bypassPermissions`). A destructive spelling outside that literal set therefore runs without a prompt — e.g. `git switch -f`/`--discard-changes`, `git checkout -f`, `git checkout <ref> -- <path>`, `git restore <path>`, `git rm -f`, `git branch -M`, `git stash clear`, `git reflog delete|expire`, `git filter-branch`/`filter-repo`, `git update-ref -d`, `git worktree remove -f`, `git read-tree --reset`, `git submodule … -f`. Treat that list as not-read-only and ask before running any of them.
-- **Recursive-delete prompts were removed from the shipped `permissions.ask` by explicit user decision.** `.claude/settings.json` no longer lists `rm -rf` (any form) or `del /s`, so under `defaultMode: bypassPermissions` with an empty `deny` list a recursive delete runs without a prompt and no hook blocks it. **Model-behavioral:** before any recursive delete outside `tmp/`/`temp/` or a path this task created, look at the target and ask. A project that wants the prompt back adds the patterns to its own `permissions.ask` or `permissions.deny` (see `.claude/docs/configuration/README.md`).
+- Stage, commit and push only on explicit user request; implementation approval grants none of them. A plain commit request creates a new commit.
+- Amend only when explicitly requested, and only an unpushed commit created by this task. This includes `reset --soft HEAD~1` followed by commit. The review gate requires a receipt against HEAD's parent with `"amend":true`; merge-commit amendments fail closed.
+- Create a feature branch before committing on `main` or `master`.
+- Read-only inspection needs no approval. Ask before operations that change refs, the index, worktree or Git configuration, including fetch. Listing branches, tags, remotes, configuration or stashes is read-only.
+- GitHub CLI/MCP writes require explicit user authorization, including PR/release publication, merging, deletion and API writes.
+- Consent remains the agent's responsibility: no hook enforces these authorization rules or blocks destructive Git operations. Only literal `permissions.ask` patterns in `.claude/settings.json` prompt, even under `bypassPermissions`; unmatched commands can run silently.
+- Before recursive deletion outside `tmp/`, `temp/` or task-created paths, inspect the target and ask. Shipped settings do not prompt for recursive deletion; read `.claude/docs/configuration/README.md` when adding project-specific ask/deny rules.
 
-**Hygiene:**
-
-- Run linting before commit
-- Run tests before push (DO NOT ignore failed tests just to pass the build)
-- Keep commits focused on actual code changes
-- **DO NOT** commit confidential information (dotenv files, API keys, credentials) to git
-- Clean, professional commit messages — conventional commit format
+**Hygiene:** lint before commit; test before push without hiding failures. Keep commits focused, use conventional messages, and exclude secrets and credentials.
 
 ## Bulk Edit Safety (MANDATORY for multi-file replacements)
 
@@ -294,7 +254,7 @@ After completing code changes, check for stale documentation:
 **MANDATORY IMPORTANT MUST ATTENTION** follow YAGNI/KISS/DRY — no speculative abstractions
 **MANDATORY IMPORTANT MUST ATTENTION** apply surgical changes (context-aware) — bug fix: diff test (every line traces to the bug). Review/enhancement: implement improvements you see AND announce them explicitly. Never silently scope-creep either way.
 **MANDATORY IMPORTANT MUST ATTENTION** surface ambiguity before coding — list assumptions (scope/format/volume/constraints), present interpretations with effort estimates, push back when simpler exists. Never pick silently.
-**MANDATORY IMPORTANT MUST ATTENTION** define verifiable success criteria per task — step → verify: [observable check], not "make it work"
+**MANDATORY IMPORTANT MUST ATTENTION** define overall task success criteria; verify the final result after all planned work, rather than routinely verifying every small step
 **MANDATORY IMPORTANT MUST ATTENTION** tests verify intent — each meaningful test names the business rule/invariant it protects and must fail if that rule breaks
 **MANDATORY IMPORTANT MUST ATTENTION** run doc review at session wrap-up (map changed files → affected docs)
 **MANDATORY IMPORTANT MUST ATTENTION** activate relevant skills from catalog during the process

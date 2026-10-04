@@ -539,22 +539,27 @@ module.exports = {
                 assertEqual(stale.length, 0, `old prohibition still present: ${stale.join(', ')}`);
                 // And the hybrid rule is present in the policy body
                 const required = [
-                    [/Skills keep guides/, 'skills keep guides'],
+                    [/converted skills carry one `PROTOCOL-GUIDES` line per protocol/, 'skills keep guides'],
                     [/Hooks deliver the full text/, 'hooks deliver the full text'],
-                    [/guide path is the fallback/, 'the guide path is the fallback'],
-                    [/`:reminder` digests stay/, 'reminder digests stay'],
-                    [/Agents keep full protocol text/, 'agents keep full text'],
-                    [/Reviewer prompts carry protocol bodies inline/, 'reviewer prompts carry bodies inline'],
-                    [/references\/\*\.md` stays inline/, 'SYNC bodies in references/*.md stay inline'],
+                    [/if it is absent from context, read that path before acting/, 'the guide path is the fallback'],
+                    [/Keep role-protocol `:reminder` digests in every carrier/, 'reminder digests stay'],
+                    [/Agents retain full role protocols and are never converted to guides/, 'agents keep full text'],
+                    [/Copy the complete `SYNC:review-protocol-injection` template into every fresh reviewer prompt; never substitute a read pointer/, 'reviewer prompts carry bodies inline'],
+                    [/Mode-only `references\/\*\.md` load first on mode entry and retain their SYNC bodies/, 'SYNC bodies in references/*.md stay inline'],
                 ];
                 const missing = required.filter(([re]) => !re.test(sections.policy)).map(([, label]) => label);
                 assertEqual(missing.length, 0, `hybrid policy is missing: ${missing.join('; ')}`);
+                // Removing any required delivery clause must still make its assertion fail.
+                for (const [re, label] of required) {
+                    const mutant = sections.policy.replace(re, '');
+                    assertTrue(!re.test(mutant), `missing-clause mutant SURVIVED: ${label}`);
+                }
                 // And it names exactly the review-family skills that protocol-groups.json keeps inline
                 const inline = JSON.parse(fs.readFileSync(GROUPS_PATH, 'utf8')).inlineSkills;
                 assertTrue(Array.isArray(inline) && inline.length === 4, `expected 4 inlineSkills, found ${JSON.stringify(inline)}`);
                 const unnamed = inline.filter((skill) => !sections.policy.includes(`\`${skill}\``));
                 assertEqual(unnamed.length, 0, `policy does not name inline skill(s): ${unnamed.join(', ')}`);
-                assertTrue(/four converging review-family skills keep full SYNC bodies inline/.test(sections.policy), 'policy does not say the converging review-family skills keep full bodies inline');
+                assertTrue(/four converging review skills[^\n]*retain full bodies because they exceed hook-delivery capacity/.test(sections.policy), 'policy does not say the converging review-family skills keep full bodies inline');
                 // And no carrier (skill, references/*.md, agent — OVERRIDE copies and prose digests included)
                 // nor a framework doc describing the policy restates the old prohibition (P27 carry-over)
                 const docs = POLICY_DOCS.filter((f) => fs.existsSync(f)).map((f) => ({ rel: path.relative(REPO, f).split(path.sep).join('/'), text: fs.readFileSync(f, 'utf8') }));
